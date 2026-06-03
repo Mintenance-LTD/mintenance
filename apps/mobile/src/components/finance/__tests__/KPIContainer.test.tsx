@@ -134,18 +134,18 @@ describe('KPIContainer', () => {
         />
       );
 
-      // The change should be marked as positive (green color)
+      // Redesign: positive change is tinted with brand primary, not success green.
       const changeElement = getByText('+15.5%');
       expect(changeElement.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#10B981',
+            color: '#0D9488',
           }),
         ])
       );
     });
 
-    it('should navigate to RevenueDetail on press', () => {
+    it('should navigate to Reporting on press', () => {
       const { getByText } = render(
         <KPIContainer
           financialData={mockFinancialData}
@@ -154,12 +154,12 @@ describe('KPIContainer', () => {
         />
       );
 
-      const revenueCard = getByText('Total Revenue').parent?.parent;
+      const revenueCard = getByText('Total Revenue').parent;
       expect(revenueCard).toBeTruthy();
 
       if (revenueCard) {
         fireEvent.press(revenueCard);
-        expect(mockNavigation.navigate).toHaveBeenCalledWith('RevenueDetail');
+        expect(mockNavigation.navigate).toHaveBeenCalledWith('Reporting');
       }
     });
   });
@@ -203,7 +203,9 @@ describe('KPIContainer', () => {
 
       if (outstandingCard) {
         fireEvent.press(outstandingCard);
-        expect(mockNavigation.navigate).toHaveBeenCalledWith('InvoiceManagement');
+        expect(mockNavigation.navigate).toHaveBeenCalledWith(
+          'InvoiceManagement'
+        );
       }
     });
   });
@@ -233,7 +235,7 @@ describe('KPIContainer', () => {
       expect(getByText('$1200.00')).toBeTruthy();
     });
 
-    it('should navigate to OverdueInvoices on press', () => {
+    it('should navigate to InvoiceManagement on press', () => {
       const { getByText } = render(
         <KPIContainer
           financialData={mockFinancialData}
@@ -242,12 +244,15 @@ describe('KPIContainer', () => {
         />
       );
 
-      const overdueCard = getByText('Overdue').parent?.parent;
+      // Press the Overdue card's TouchableOpacity directly (title.parent).
+      const overdueCard = getByText('Overdue').parent;
       expect(overdueCard).toBeTruthy();
 
       if (overdueCard) {
         fireEvent.press(overdueCard);
-        expect(mockNavigation.navigate).toHaveBeenCalledWith('OverdueInvoices');
+        expect(mockNavigation.navigate).toHaveBeenCalledWith(
+          'InvoiceManagement'
+        );
       }
     });
   });
@@ -277,7 +282,7 @@ describe('KPIContainer', () => {
       expect(getByText('$850.00')).toBeTruthy();
     });
 
-    it('should navigate to TaxCenter on press', () => {
+    it('should navigate to Reporting on press', () => {
       const { getByText } = render(
         <KPIContainer
           financialData={mockFinancialData}
@@ -286,12 +291,13 @@ describe('KPIContainer', () => {
         />
       );
 
-      const taxCard = getByText('Tax Due').parent?.parent;
+      // Press the Tax Due card's TouchableOpacity directly (title.parent).
+      const taxCard = getByText('Tax Due').parent;
       expect(taxCard).toBeTruthy();
 
       if (taxCard) {
         fireEvent.press(taxCard);
-        expect(mockNavigation.navigate).toHaveBeenCalledWith('TaxCenter');
+        expect(mockNavigation.navigate).toHaveBeenCalledWith('Reporting');
       }
     });
   });
@@ -484,7 +490,9 @@ describe('KPIContainer', () => {
 
       // Allow for floating point precision issues
       const calls = mockFormatCurrency.mock.calls;
-      const totalRevenueCall = calls.find(call => call[0] > 12581 && call[0] < 12582);
+      const totalRevenueCall = calls.find(
+        (call) => call[0] > 12581 && call[0] < 12582
+      );
       expect(totalRevenueCall).toBeDefined();
       expect(totalRevenueCall![0]).toBeCloseTo(12581.46, 2);
     });
@@ -515,7 +523,9 @@ describe('KPIContainer', () => {
     });
 
     it('should handle formatCurrency function that returns different formats', () => {
-      const customFormatCurrency = jest.fn((amount: number) => `£${amount.toLocaleString()}`);
+      const customFormatCurrency = jest.fn(
+        (amount: number) => `£${amount.toLocaleString()}`
+      );
 
       const { getByText } = render(
         <KPIContainer
@@ -583,7 +593,7 @@ describe('KPIContainer', () => {
       expect(mockFormatCurrency).toHaveBeenNthCalledWith(1, 4500); // Total Revenue
       expect(mockFormatCurrency).toHaveBeenNthCalledWith(2, 3500); // Outstanding
       expect(mockFormatCurrency).toHaveBeenNthCalledWith(3, 1200); // Overdue
-      expect(mockFormatCurrency).toHaveBeenNthCalledWith(4, 850);  // Tax Due
+      expect(mockFormatCurrency).toHaveBeenNthCalledWith(4, 850); // Tax Due
     });
   });
 });

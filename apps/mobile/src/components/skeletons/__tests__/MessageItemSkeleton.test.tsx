@@ -8,14 +8,17 @@ jest.mock('expo-linear-gradient', () => ({
 }));
 
 // Mock AccessibilityInfo
-jest.mock('react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo', () => ({
-  isReduceMotionEnabled: jest.fn(() => Promise.resolve(false)),
-  isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  announceForAccessibility: jest.fn(),
-  fetch: jest.fn(() => Promise.resolve({})),
-}));
+jest.mock(
+  'react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo',
+  () => ({
+    isReduceMotionEnabled: jest.fn(() => Promise.resolve(false)),
+    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    announceForAccessibility: jest.fn(),
+    fetch: jest.fn(() => Promise.resolve({})),
+  })
+);
 
 // Mock the Skeleton component to avoid animation issues in tests
 jest.mock('../Skeleton', () => ({
@@ -38,10 +41,14 @@ jest.mock('../Skeleton', () => ({
   SkeletonGroup: ({ children, gap, style }: any) => {
     const React = require('react');
     const { View } = require('react-native');
-    return React.createElement(View, {
-      testID: 'skeleton-group-mock',
-      style: { gap, ...style },
-    }, children);
+    return React.createElement(
+      View,
+      {
+        testID: 'skeleton-group-mock',
+        style: { gap, ...style },
+      },
+      children
+    );
   },
 }));
 
@@ -139,44 +146,60 @@ describe('MessageItemSkeleton', () => {
     });
 
     it('should apply unread indicator pattern with count=5', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={5} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={5} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle showUnread=false with count=10', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={10} showUnread={false} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={10} showUnread={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
 
   describe('Prop Combinations', () => {
     it('should handle count=1 with showUnread=false', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={1} showUnread={false} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={1} showUnread={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=10 with showUnread=true', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={10} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={10} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=0 with showUnread=false', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={0} showUnread={false} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={0} showUnread={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle all props as undefined', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={undefined} showUnread={undefined} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={undefined} showUnread={undefined} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=5 with showUnread=false', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={5} showUnread={false} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={5} showUnread={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=7 with showUnread=true', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={7} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={7} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -191,7 +214,9 @@ describe('MessageItemSkeleton', () => {
     });
 
     it('should handle showUnread prop changes', () => {
-      const { rerender, toJSON } = render(<MessageItemSkeleton showUnread={true} />);
+      const { rerender, toJSON } = render(
+        <MessageItemSkeleton showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<MessageItemSkeleton showUnread={false} />);
@@ -199,7 +224,9 @@ describe('MessageItemSkeleton', () => {
     });
 
     it('should handle multiple prop changes', () => {
-      const { rerender, toJSON } = render(<MessageItemSkeleton count={3} showUnread={true} />);
+      const { rerender, toJSON } = render(
+        <MessageItemSkeleton count={3} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<MessageItemSkeleton count={5} showUnread={false} />);
@@ -235,28 +262,38 @@ describe('MessageItemSkeleton', () => {
     });
 
     it('should mount with custom props and unmount cleanly', () => {
-      const { unmount, toJSON } = render(<MessageItemSkeleton count={10} showUnread={false} />);
+      const { unmount, toJSON } = render(
+        <MessageItemSkeleton count={10} showUnread={false} />
+      );
       expect(toJSON()).toBeTruthy();
       unmount();
       expect(toJSON()).toBeNull();
     });
 
     it('should handle rapid mount/unmount cycles', () => {
-      const { unmount: unmount1, toJSON: toJSON1 } = render(<MessageItemSkeleton />);
+      const { unmount: unmount1, toJSON: toJSON1 } = render(
+        <MessageItemSkeleton />
+      );
       expect(toJSON1()).toBeTruthy();
       unmount1();
 
-      const { unmount: unmount2, toJSON: toJSON2 } = render(<MessageItemSkeleton />);
+      const { unmount: unmount2, toJSON: toJSON2 } = render(
+        <MessageItemSkeleton />
+      );
       expect(toJSON2()).toBeTruthy();
       unmount2();
 
-      const { unmount: unmount3, toJSON: toJSON3 } = render(<MessageItemSkeleton />);
+      const { unmount: unmount3, toJSON: toJSON3 } = render(
+        <MessageItemSkeleton />
+      );
       expect(toJSON3()).toBeTruthy();
       unmount3();
     });
 
     it('should unmount after prop changes', () => {
-      const { rerender, unmount, toJSON } = render(<MessageItemSkeleton count={3} />);
+      const { rerender, unmount, toJSON } = render(
+        <MessageItemSkeleton count={3} />
+      );
       rerender(<MessageItemSkeleton count={8} />);
       expect(toJSON()).toBeTruthy();
       unmount();
@@ -281,7 +318,9 @@ describe('MessageItemSkeleton', () => {
     });
 
     it('should handle showUnread with count=0', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={0} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={0} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -303,12 +342,16 @@ describe('MessageItemSkeleton', () => {
     });
 
     it('should match snapshot with count=8 and showUnread=true', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={8} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={8} showUnread={true} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
     it('should match snapshot with count=1 and showUnread=false', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={1} showUnread={false} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={1} showUnread={false} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
@@ -320,51 +363,68 @@ describe('MessageItemSkeleton', () => {
 
   describe('Unread Indicator Pattern', () => {
     it('should render with unread pattern on index % 3 === 0', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={10} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={10} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should not show unread when showUnread=false regardless of index', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={10} showUnread={false} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={10} showUnread={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle single item with showUnread=true', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={1} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={1} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle two items with showUnread=true', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={2} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={2} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle three items with showUnread=true', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={3} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={3} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle four items with showUnread=true', () => {
-      const { toJSON } = render(<MessageItemSkeleton count={4} showUnread={true} />);
+      const { toJSON } = render(
+        <MessageItemSkeleton count={4} showUnread={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
 
-  describe('Default Export', () => {
-    it('should be importable as default export', () => {
-      const MessageItemSkeletonDefault = require('../MessageItemSkeleton').default;
-      expect(MessageItemSkeletonDefault).toBeDefined();
+  describe('Named Export', () => {
+    it('should be importable as named export', () => {
+      const MessageItemSkeletonNamed =
+        require('../MessageItemSkeleton').MessageItemSkeleton;
+      expect(MessageItemSkeletonNamed).toBeDefined();
     });
 
-    it('should render when imported as default', () => {
-      const MessageItemSkeletonDefault = require('../MessageItemSkeleton').default;
-      const { toJSON } = render(<MessageItemSkeletonDefault />);
+    it('should render when imported as named', () => {
+      const MessageItemSkeletonNamed =
+        require('../MessageItemSkeleton').MessageItemSkeleton;
+      const { toJSON } = render(<MessageItemSkeletonNamed />);
       expect(toJSON()).toBeTruthy();
     });
 
-    it('should render with props when imported as default', () => {
-      const MessageItemSkeletonDefault = require('../MessageItemSkeleton').default;
-      const { toJSON } = render(<MessageItemSkeletonDefault count={3} showUnread={false} />);
+    it('should render with props when imported as named', () => {
+      const MessageItemSkeletonNamed =
+        require('../MessageItemSkeleton').MessageItemSkeleton;
+      const { toJSON } = render(
+        <MessageItemSkeletonNamed count={3} showUnread={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });

@@ -12,9 +12,7 @@ exports[`ContractorCardSkeleton Component Rendering should render with default p
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -375,9 +373,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -728,9 +724,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -1081,9 +1075,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -1491,9 +1483,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -1912,9 +1902,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -2254,9 +2242,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -2596,9 +2582,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -2949,9 +2933,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -3291,9 +3273,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -3633,9 +3613,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -3975,9 +3953,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -4317,9 +4293,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -4670,9 +4644,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -5080,9 +5052,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -5490,9 +5460,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -5900,9 +5868,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -6310,9 +6276,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -6720,9 +6684,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -7130,9 +7092,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -7540,9 +7500,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with count=
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -7961,9 +7919,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with defaul
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -8314,9 +8270,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with showPo
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }
@@ -8667,9 +8621,7 @@ exports[`ContractorCardSkeleton Snapshot Tests should match snapshot with showPo
     style={
       {
         "backgroundColor": "#FFFFFF",
-        "borderColor": "#EBEBEB",
-        "borderRadius": 12,
-        "borderWidth": 1,
+        "borderRadius": 16,
         "padding": 16,
       }
     }

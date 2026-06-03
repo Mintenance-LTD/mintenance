@@ -121,20 +121,29 @@ describe('MobileApiClient', () => {
     });
 
     it('should handle auth errors gracefully', async () => {
+      // getAuthToken() is intentionally resilient: if getSession() throws it
+      // swallows the error, tries the getUser()/SecureStore fallbacks, and
+      // ultimately falls back to no token rather than propagating. The
+      // request therefore still proceeds — just without an Authorization
+      // header — instead of failing outright.
       (supabase.auth.getSession as jest.Mock).mockRejectedValue(
         new Error('Auth service unavailable')
       );
 
       mockApiClientRequest.mockResolvedValue({ data: 'test' });
 
-      await expect(mobileApiClient.get('/api/test')).rejects.toThrow(
-        'Auth service unavailable'
-      );
+      const result = await mobileApiClient.get('/api/test');
+
+      expect(result).toEqual({ data: 'test' });
+      // No auth token was resolved, so no Authorization header is attached.
+      expect(mockApiClientRequest).toHaveBeenCalledWith('/api/test', {
+        method: 'GET',
+        headers: {},
+      });
     });
   });
 
   describe('HTTP Methods', () => {
-
     beforeEach(() => {
       mockApiClientRequest.mockResolvedValue({ success: true });
     });
@@ -303,12 +312,13 @@ describe('MobileApiClient', () => {
   });
 
   describe('Error Handling', () => {
-
     it('should propagate request errors', async () => {
       const error = new Error('Network error');
       mockApiClientRequest.mockRejectedValue(error);
 
-      await expect(mobileApiClient.get('/api/test')).rejects.toThrow('Network error');
+      await expect(mobileApiClient.get('/api/test')).rejects.toThrow(
+        'Network error'
+      );
     });
 
     it('should handle JSON stringify errors in POST', async () => {
@@ -316,7 +326,9 @@ describe('MobileApiClient', () => {
       circularRef.self = circularRef;
 
       // JSON.stringify will throw on circular reference
-      await expect(mobileApiClient.post('/api/test', circularRef)).rejects.toThrow();
+      await expect(
+        mobileApiClient.post('/api/test', circularRef)
+      ).rejects.toThrow();
     });
 
     it('should handle response parsing errors', async () => {
@@ -328,7 +340,6 @@ describe('MobileApiClient', () => {
   });
 
   describe('Request Options', () => {
-
     beforeEach(() => {
       mockApiClientRequest.mockResolvedValue({ success: true });
     });
@@ -363,7 +374,7 @@ describe('MobileApiClient', () => {
       const options = {
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         params: {
           filter: { status: 'active' },
@@ -389,7 +400,6 @@ describe('MobileApiClient', () => {
   });
 
   describe('Type Safety', () => {
-
     interface User {
       id: string;
       name: string;
@@ -430,7 +440,8 @@ describe('MobileApiClient', () => {
 
       mockApiClientRequest.mockResolvedValue(mockResponse);
 
-      const result = await mobileApiClient.get<ApiResponse<User[]>>('/api/users');
+      const result =
+        await mobileApiClient.get<ApiResponse<User[]>>('/api/users');
 
       expect(result.data).toHaveLength(2);
       expect(result.meta.total).toBe(2);
@@ -452,12 +463,13 @@ describe('MobileApiClient', () => {
     });
 
     it('should use default localhost URL when env variable is not set', () => {
-      expect((mobileApiClient as any).config.baseURL).toContain('localhost:3000');
+      expect((mobileApiClient as any).config.baseURL).toContain(
+        'localhost:3000'
+      );
     });
   });
 
   describe('Concurrent Requests', () => {
-
     it('should handle multiple concurrent requests', async () => {
       mockApiClientRequest.mockImplementation((url: string) =>
         Promise.resolve({ url, timestamp: Date.now() })

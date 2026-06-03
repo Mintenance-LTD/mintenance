@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ScreenHeader } from '../ScreenHeader';
 
 // ============================================================================
@@ -23,6 +23,7 @@ jest.mock('../../../theme', () => ({
       textPrimary: '#171717',
       surface: '#FFFFFF',
       surfaceTertiary: '#F5F5F5',
+      backgroundSecondary: '#F5F5F5',
       border: '#E5E5E5',
       textSecondary: '#737373',
     },
@@ -50,14 +51,11 @@ jest.mock('@expo/vector-icons', () => {
   const RN = require('react-native');
 
   mockIonicons = jest.fn(({ name, size, color, ...props }) => {
-    return React.createElement(
-      RN.View,
-      {
-        testID: `ionicon-${name}`,
-        accessibilityLabel: `Icon: ${name}, size: ${size}, color: ${color}`,
-        ...props,
-      }
-    );
+    return React.createElement(RN.View, {
+      testID: `ionicon-${name}`,
+      accessibilityLabel: `Icon: ${name}, size: ${size}, color: ${color}`,
+      ...props,
+    });
   });
 
   return {
@@ -80,12 +78,12 @@ describe('ScreenHeader Component', () => {
 
   describe('Core Rendering', () => {
     it('renders with title', () => {
-      const { getByText } = render(<ScreenHeader title="Test Title" />);
+      const { getByText } = render(<ScreenHeader title='Test Title' />);
       expect(getByText('Test Title')).toBeTruthy();
     });
 
     it('renders title with correct styling', () => {
-      const { getByText } = render(<ScreenHeader title="Styled Title" />);
+      const { getByText } = render(<ScreenHeader title='Styled Title' />);
       const titleElement = getByText('Styled Title');
       const styles = Array.isArray(titleElement.props.style)
         ? titleElement.props.style.flat()
@@ -103,43 +101,47 @@ describe('ScreenHeader Component', () => {
     });
 
     it('renders with numberOfLines=1 on title', () => {
-      const { getByText } = render(<ScreenHeader title="Long Title" />);
+      const { getByText } = render(<ScreenHeader title='Long Title' />);
       const titleElement = getByText('Long Title');
       expect(titleElement.props.numberOfLines).toBe(1);
     });
 
     it('renders left section container', () => {
-      const { UNSAFE_root } = render(<ScreenHeader title="Test" />);
+      const { UNSAFE_root } = render(<ScreenHeader title='Test' />);
       const viewElements = UNSAFE_root.findAllByType('View' as any);
       const leftSection = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
-        return styles.some((style: any) => style?.width === 40);
+        return styles.some((style: any) => style?.width === 44);
       });
       expect(leftSection).toBeTruthy();
     });
 
     it('renders right section container', () => {
-      const { UNSAFE_root } = render(<ScreenHeader title="Test" />);
+      const { UNSAFE_root } = render(<ScreenHeader title='Test' />);
       const viewElements = UNSAFE_root.findAllByType('View' as any);
       const rightSection = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
-        return styles.some((style: any) => style?.width === 40 && style?.flexDirection === 'row');
+        return styles.some(
+          (style: any) => style?.width === 44 && style?.flexDirection === 'row'
+        );
       });
       expect(rightSection).toBeTruthy();
     });
 
     it('renders center section container', () => {
-      const { UNSAFE_root } = render(<ScreenHeader title="Test" />);
+      const { UNSAFE_root } = render(<ScreenHeader title='Test' />);
       const viewElements = UNSAFE_root.findAllByType('View' as any);
       const centerSection = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
-        return styles.some((style: any) => style?.flex === 1 && style?.alignItems === 'center');
+        return styles.some(
+          (style: any) => style?.flex === 1 && style?.alignItems === 'center'
+        );
       });
       expect(centerSection).toBeTruthy();
     });
@@ -153,13 +155,13 @@ describe('ScreenHeader Component', () => {
     it('renders back button by default when onBackPress is provided', () => {
       const onBackPress = jest.fn();
       const { getByTestId } = render(
-        <ScreenHeader title="Test" onBackPress={onBackPress} />
+        <ScreenHeader title='Test' onBackPress={onBackPress} />
       );
       expect(getByTestId('ionicon-arrow-back')).toBeTruthy();
     });
 
     it('does not render back button when onBackPress is not provided', () => {
-      const { queryByTestId } = render(<ScreenHeader title="Test" />);
+      const { queryByTestId } = render(<ScreenHeader title='Test' />);
       expect(queryByTestId('ionicon-arrow-back')).toBeNull();
     });
 
@@ -167,7 +169,7 @@ describe('ScreenHeader Component', () => {
       const onBackPress = jest.fn();
       const { queryByTestId } = render(
         <ScreenHeader
-          title="Test"
+          title='Test'
           onBackPress={onBackPress}
           showBackButton={false}
         />
@@ -179,7 +181,7 @@ describe('ScreenHeader Component', () => {
       const onBackPress = jest.fn();
       const { getByTestId } = render(
         <ScreenHeader
-          title="Test"
+          title='Test'
           onBackPress={onBackPress}
           showBackButton={true}
         />
@@ -190,7 +192,7 @@ describe('ScreenHeader Component', () => {
     it('calls onBackPress when back button is pressed', () => {
       const onBackPress = jest.fn();
       const { getByTestId } = render(
-        <ScreenHeader title="Test" onBackPress={onBackPress} />
+        <ScreenHeader title='Test' onBackPress={onBackPress} />
       );
 
       const backIcon = getByTestId('ionicon-arrow-back');
@@ -205,7 +207,7 @@ describe('ScreenHeader Component', () => {
     it('back button has correct accessibility properties', () => {
       const onBackPress = jest.fn();
       const { getByLabelText } = render(
-        <ScreenHeader title="Test" onBackPress={onBackPress} />
+        <ScreenHeader title='Test' onBackPress={onBackPress} />
       );
       const backButton = getByLabelText('Go back');
       expect(backButton.props.accessibilityRole).toBe('button');
@@ -213,35 +215,29 @@ describe('ScreenHeader Component', () => {
 
     it('back button icon has correct name prop', () => {
       const onBackPress = jest.fn();
-      render(<ScreenHeader title="Test" onBackPress={onBackPress} />);
+      render(<ScreenHeader title='Test' onBackPress={onBackPress} />);
       const calls = mockIonicons.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ name: 'arrow-back' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ name: 'arrow-back' }));
     });
 
     it('back button icon has correct size prop', () => {
       const onBackPress = jest.fn();
-      render(<ScreenHeader title="Test" onBackPress={onBackPress} />);
+      render(<ScreenHeader title='Test' onBackPress={onBackPress} />);
       const calls = mockIonicons.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ size: 24 })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ size: 24 }));
     });
 
     it('back button icon has correct color prop', () => {
       const onBackPress = jest.fn();
-      render(<ScreenHeader title="Test" onBackPress={onBackPress} />);
+      render(<ScreenHeader title='Test' onBackPress={onBackPress} />);
       const calls = mockIonicons.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ color: '#171717' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ color: '#171717' }));
     });
 
     it('back button has correct styling', () => {
       const onBackPress = jest.fn();
       const { getByLabelText } = render(
-        <ScreenHeader title="Test" onBackPress={onBackPress} />
+        <ScreenHeader title='Test' onBackPress={onBackPress} />
       );
       const backButton = getByLabelText('Go back');
       const styles = Array.isArray(backButton.props.style)
@@ -251,9 +247,9 @@ describe('ScreenHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
             backgroundColor: '#F5F5F5',
             justifyContent: 'center',
             alignItems: 'center',
@@ -270,20 +266,22 @@ describe('ScreenHeader Component', () => {
   describe('Subtitle', () => {
     it('renders subtitle when provided', () => {
       const { getByText } = render(
-        <ScreenHeader title="Main Title" subtitle="Subtitle text" />
+        <ScreenHeader title='Main Title' subtitle='Subtitle text' />
       );
       expect(getByText('Subtitle text')).toBeTruthy();
     });
 
     it('does not render subtitle when not provided', () => {
-      const { queryByText } = render(<ScreenHeader title="Main Title" />);
-      const viewElements = render(<ScreenHeader title="Main Title" />).UNSAFE_root.findAllByType('Text' as any);
+      const { queryByText } = render(<ScreenHeader title='Main Title' />);
+      const viewElements = render(
+        <ScreenHeader title='Main Title' />
+      ).UNSAFE_root.findAllByType('Text' as any);
       expect(viewElements.length).toBe(1); // Only title
     });
 
     it('subtitle has correct styling', () => {
       const { getByText } = render(
-        <ScreenHeader title="Main" subtitle="Sub" />
+        <ScreenHeader title='Main' subtitle='Sub' />
       );
       const subtitleElement = getByText('Sub');
       const styles = Array.isArray(subtitleElement.props.style)
@@ -293,7 +291,7 @@ describe('ScreenHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fontSize: 14,
+            fontSize: 13,
             color: '#737373',
             marginTop: 2,
           }),
@@ -303,7 +301,7 @@ describe('ScreenHeader Component', () => {
 
     it('subtitle renders with numberOfLines=1', () => {
       const { getByText } = render(
-        <ScreenHeader title="Main" subtitle="Long subtitle" />
+        <ScreenHeader title='Main' subtitle='Long subtitle' />
       );
       const subtitleElement = getByText('Long subtitle');
       expect(subtitleElement.props.numberOfLines).toBe(1);
@@ -311,7 +309,7 @@ describe('ScreenHeader Component', () => {
 
     it('renders both title and subtitle together', () => {
       const { getByText } = render(
-        <ScreenHeader title="Title" subtitle="Subtitle" />
+        <ScreenHeader title='Title' subtitle='Subtitle' />
       );
       expect(getByText('Title')).toBeTruthy();
       expect(getByText('Subtitle')).toBeTruthy();
@@ -326,13 +324,13 @@ describe('ScreenHeader Component', () => {
     it('renders custom right action when provided', () => {
       const rightAction = <Text>Save</Text>;
       const { getByText } = render(
-        <ScreenHeader title="Test" rightAction={rightAction} />
+        <ScreenHeader title='Test' rightAction={rightAction} />
       );
       expect(getByText('Save')).toBeTruthy();
     });
 
     it('does not render right action when not provided', () => {
-      const { queryByText } = render(<ScreenHeader title="Test" />);
+      const { queryByText } = render(<ScreenHeader title='Test' />);
       expect(queryByText('Save')).toBeNull();
     });
 
@@ -344,7 +342,7 @@ describe('ScreenHeader Component', () => {
         </TouchableOpacity>
       );
       const { getByText } = render(
-        <ScreenHeader title="Test" rightAction={rightAction} />
+        <ScreenHeader title='Test' rightAction={rightAction} />
       );
 
       fireEvent.press(getByText('Action'));
@@ -359,7 +357,7 @@ describe('ScreenHeader Component', () => {
         </>
       );
       const { getByText } = render(
-        <ScreenHeader title="Test" rightAction={rightAction} />
+        <ScreenHeader title='Test' rightAction={rightAction} />
       );
       expect(getByText('Edit')).toBeTruthy();
       expect(getByText('Delete')).toBeTruthy();
@@ -374,13 +372,13 @@ describe('ScreenHeader Component', () => {
     it('renders custom left action when provided', () => {
       const leftAction = <Text>Menu</Text>;
       const { getByText } = render(
-        <ScreenHeader title="Test" leftAction={leftAction} />
+        <ScreenHeader title='Test' leftAction={leftAction} />
       );
       expect(getByText('Menu')).toBeTruthy();
     });
 
     it('does not render left action when not provided', () => {
-      const { queryByText } = render(<ScreenHeader title="Test" />);
+      const { queryByText } = render(<ScreenHeader title='Test' />);
       expect(queryByText('Menu')).toBeNull();
     });
 
@@ -392,7 +390,7 @@ describe('ScreenHeader Component', () => {
         </TouchableOpacity>
       );
       const { getByText } = render(
-        <ScreenHeader title="Test" leftAction={leftAction} />
+        <ScreenHeader title='Test' leftAction={leftAction} />
       );
 
       fireEvent.press(getByText('Menu'));
@@ -404,7 +402,7 @@ describe('ScreenHeader Component', () => {
       const leftAction = <Text>Extra</Text>;
       const { getByText, getByTestId } = render(
         <ScreenHeader
-          title="Test"
+          title='Test'
           onBackPress={onBackPress}
           leftAction={leftAction}
         />
@@ -426,8 +424,8 @@ describe('ScreenHeader Component', () => {
 
       const { getByText, getByTestId } = render(
         <ScreenHeader
-          title="Full Header"
-          subtitle="With subtitle"
+          title='Full Header'
+          subtitle='With subtitle'
           onBackPress={onBackPress}
           showBackButton={true}
           leftAction={leftAction}
@@ -443,13 +441,13 @@ describe('ScreenHeader Component', () => {
     });
 
     it('renders with only required props', () => {
-      const { getByText } = render(<ScreenHeader title="Minimal" />);
+      const { getByText } = render(<ScreenHeader title='Minimal' />);
       expect(getByText('Minimal')).toBeTruthy();
     });
 
     it('renders with title and subtitle only', () => {
       const { getByText } = render(
-        <ScreenHeader title="Title" subtitle="Subtitle" />
+        <ScreenHeader title='Title' subtitle='Subtitle' />
       );
       expect(getByText('Title')).toBeTruthy();
       expect(getByText('Subtitle')).toBeTruthy();
@@ -458,7 +456,7 @@ describe('ScreenHeader Component', () => {
     it('renders with title and back button only', () => {
       const onBackPress = jest.fn();
       const { getByText, getByTestId } = render(
-        <ScreenHeader title="With Back" onBackPress={onBackPress} />
+        <ScreenHeader title='With Back' onBackPress={onBackPress} />
       );
       expect(getByText('With Back')).toBeTruthy();
       expect(getByTestId('ionicon-arrow-back')).toBeTruthy();
@@ -467,7 +465,7 @@ describe('ScreenHeader Component', () => {
     it('renders with title and right action only', () => {
       const rightAction = <Text>Save</Text>;
       const { getByText } = render(
-        <ScreenHeader title="Title" rightAction={rightAction} />
+        <ScreenHeader title='Title' rightAction={rightAction} />
       );
       expect(getByText('Title')).toBeTruthy();
       expect(getByText('Save')).toBeTruthy();
@@ -480,23 +478,25 @@ describe('ScreenHeader Component', () => {
 
   describe('Edge Cases', () => {
     it('handles very long title text', () => {
-      const longTitle = 'This is a very long title that should be truncated with ellipsis when it exceeds the available space in the header component';
+      const longTitle =
+        'This is a very long title that should be truncated with ellipsis when it exceeds the available space in the header component';
       const { getByText } = render(<ScreenHeader title={longTitle} />);
       const titleElement = getByText(longTitle);
       expect(titleElement.props.numberOfLines).toBe(1);
     });
 
     it('handles very long subtitle text', () => {
-      const longSubtitle = 'This is a very long subtitle that should also be truncated';
+      const longSubtitle =
+        'This is a very long subtitle that should also be truncated';
       const { getByText } = render(
-        <ScreenHeader title="Title" subtitle={longSubtitle} />
+        <ScreenHeader title='Title' subtitle={longSubtitle} />
       );
       const subtitleElement = getByText(longSubtitle);
       expect(subtitleElement.props.numberOfLines).toBe(1);
     });
 
     it('handles empty string title', () => {
-      const { getByText } = render(<ScreenHeader title="" />);
+      const { getByText } = render(<ScreenHeader title='' />);
       expect(getByText('')).toBeTruthy();
     });
 
@@ -509,14 +509,14 @@ describe('ScreenHeader Component', () => {
     it('handles special characters in subtitle', () => {
       const specialSubtitle = 'Subtitle <>&"\'{}[]';
       const { getByText } = render(
-        <ScreenHeader title="Title" subtitle={specialSubtitle} />
+        <ScreenHeader title='Title' subtitle={specialSubtitle} />
       );
       expect(getByText(specialSubtitle)).toBeTruthy();
     });
 
     it('handles onBackPress being undefined', () => {
       const { queryByTestId } = render(
-        <ScreenHeader title="Test" onBackPress={undefined} />
+        <ScreenHeader title='Test' onBackPress={undefined} />
       );
       expect(queryByTestId('ionicon-arrow-back')).toBeNull();
     });
@@ -524,7 +524,7 @@ describe('ScreenHeader Component', () => {
     it('handles multiple presses on back button', () => {
       const onBackPress = jest.fn();
       const { getByLabelText } = render(
-        <ScreenHeader title="Test" onBackPress={onBackPress} />
+        <ScreenHeader title='Test' onBackPress={onBackPress} />
       );
 
       const backButton = getByLabelText('Go back');
@@ -542,7 +542,7 @@ describe('ScreenHeader Component', () => {
 
   describe('Styling Verification', () => {
     it('applies correct container styles', () => {
-      const { UNSAFE_root } = render(<ScreenHeader title="Test" />);
+      const { UNSAFE_root } = render(<ScreenHeader title='Test' />);
       const viewElements = UNSAFE_root.findAllByType('View' as any);
       const containerView = viewElements[0];
 
@@ -556,10 +556,10 @@ describe('ScreenHeader Component', () => {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingHorizontal: 16,
-            paddingVertical: 16,
+            paddingHorizontal: 20,
+            paddingVertical: 20,
             backgroundColor: '#FFFFFF',
-            borderBottomWidth: 1,
+            borderBottomWidth: StyleSheet.hairlineWidth,
             borderBottomColor: '#E5E5E5',
           }),
         ])
@@ -567,16 +567,17 @@ describe('ScreenHeader Component', () => {
     });
 
     it('applies correct left section styles', () => {
-      const { UNSAFE_root } = render(<ScreenHeader title="Test" />);
+      const { UNSAFE_root } = render(<ScreenHeader title='Test' />);
       const viewElements = UNSAFE_root.findAllByType('View' as any);
       const leftSection = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
-        return styles.some((style: any) =>
-          style?.flexDirection === 'row' &&
-          style?.alignItems === 'center' &&
-          style?.width === 40
+        return styles.some(
+          (style: any) =>
+            style?.flexDirection === 'row' &&
+            style?.alignItems === 'center' &&
+            style?.width === 44
         );
       });
 
@@ -584,17 +585,18 @@ describe('ScreenHeader Component', () => {
     });
 
     it('applies correct center section styles', () => {
-      const { UNSAFE_root } = render(<ScreenHeader title="Test" />);
+      const { UNSAFE_root } = render(<ScreenHeader title='Test' />);
       const viewElements = UNSAFE_root.findAllByType('View' as any);
       const centerSection = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
-        return styles.some((style: any) =>
-          style?.flex === 1 &&
-          style?.alignItems === 'center' &&
-          style?.justifyContent === 'center' &&
-          style?.paddingHorizontal === 12
+        return styles.some(
+          (style: any) =>
+            style?.flex === 1 &&
+            style?.alignItems === 'center' &&
+            style?.justifyContent === 'center' &&
+            style?.paddingHorizontal === 16
         );
       });
 
@@ -602,16 +604,17 @@ describe('ScreenHeader Component', () => {
     });
 
     it('applies correct right section styles', () => {
-      const { UNSAFE_root } = render(<ScreenHeader title="Test" />);
+      const { UNSAFE_root } = render(<ScreenHeader title='Test' />);
       const viewElements = UNSAFE_root.findAllByType('View' as any);
       const rightSection = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
-        return styles.some((style: any) =>
-          style?.flexDirection === 'row' &&
-          style?.alignItems === 'center' &&
-          style?.width === 40
+        return styles.some(
+          (style: any) =>
+            style?.flexDirection === 'row' &&
+            style?.alignItems === 'center' &&
+            style?.width === 44
         );
       });
 
@@ -643,8 +646,8 @@ describe('ScreenHeader Component', () => {
 
       const { getByText, getByLabelText } = render(
         <ScreenHeader
-          title="Edit Profile"
-          subtitle="Update your information"
+          title='Edit Profile'
+          subtitle='Update your information'
           onBackPress={onBackPress}
           rightAction={rightAction}
           leftAction={leftAction}
@@ -671,7 +674,7 @@ describe('ScreenHeader Component', () => {
 
     it('simple header with just title works correctly', () => {
       const { getByText, queryByTestId } = render(
-        <ScreenHeader title="Simple Header" />
+        <ScreenHeader title='Simple Header' />
       );
 
       expect(getByText('Simple Header')).toBeTruthy();
@@ -690,7 +693,7 @@ describe('ScreenHeader Component', () => {
 
       const { getByText, getByLabelText } = render(
         <ScreenHeader
-          title="Settings"
+          title='Settings'
           onBackPress={onBackPress}
           rightAction={rightAction}
         />
@@ -716,7 +719,7 @@ describe('ScreenHeader Component', () => {
     it('back button has correct accessibility role', () => {
       const onBackPress = jest.fn();
       const { getByLabelText } = render(
-        <ScreenHeader title="Test" onBackPress={onBackPress} />
+        <ScreenHeader title='Test' onBackPress={onBackPress} />
       );
       const backButton = getByLabelText('Go back');
       expect(backButton.props.accessibilityRole).toBe('button');
@@ -725,19 +728,19 @@ describe('ScreenHeader Component', () => {
     it('back button has correct accessibility label', () => {
       const onBackPress = jest.fn();
       const { getByLabelText } = render(
-        <ScreenHeader title="Test" onBackPress={onBackPress} />
+        <ScreenHeader title='Test' onBackPress={onBackPress} />
       );
       expect(getByLabelText('Go back')).toBeTruthy();
     });
 
     it('title text is accessible', () => {
-      const { getByText } = render(<ScreenHeader title="Accessible Title" />);
+      const { getByText } = render(<ScreenHeader title='Accessible Title' />);
       expect(getByText('Accessible Title')).toBeTruthy();
     });
 
     it('subtitle text is accessible', () => {
       const { getByText } = render(
-        <ScreenHeader title="Title" subtitle="Accessible Subtitle" />
+        <ScreenHeader title='Title' subtitle='Accessible Subtitle' />
       );
       expect(getByText('Accessible Subtitle')).toBeTruthy();
     });

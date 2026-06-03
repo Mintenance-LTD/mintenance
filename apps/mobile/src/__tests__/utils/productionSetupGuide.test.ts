@@ -7,15 +7,15 @@ import {
   systemMonitoring,
   webPlatform,
   developmentUtils,
-  dashboardData
+  dashboardData,
 } from '../../utils/productionSetupGuide';
 
 import { productionReadinessOrchestrator } from '../../utils/productionReadinessOrchestrator';
 import { securityAuditService } from '../../utils/security';
 import { performanceMonitor } from '../../utils/performanceMonitor';
-import { enhancedErrorAnalytics } from '../../utils/errorTracking';
+import { enhancedErrorAnalytics } from '../../utils/errorTracking/index';
 import { monitoringAndAlerting } from '../../utils/monitoringAndAlerting';
-import { WebOptimizations } from '../../utils/webOptimizations';
+import { WebOptimizationsManager as WebOptimizations } from '../../utils/webOptimizations/';
 import { logger } from '../../utils/logger';
 import { Platform } from 'react-native';
 
@@ -27,16 +27,16 @@ jest.mock('../../utils/productionReadinessOrchestrator', () => ({
     checkProductionReadiness: jest.fn(),
     getLatestReadinessStatus: jest.fn(),
     getSystemStatusSummary: jest.fn(),
-    getDeploymentHistory: jest.fn()
-  }
+    getDeploymentHistory: jest.fn(),
+  },
 }));
 
 jest.mock('../../utils/security', () => ({
   securityAuditService: {
     runSecurityAudit: jest.fn(),
     runTestSuite: jest.fn(),
-    getLatestAuditReport: jest.fn()
-  }
+    getLatestAuditReport: jest.fn(),
+  },
 }));
 
 jest.mock('../../utils/performanceMonitor', () => ({
@@ -51,29 +51,33 @@ jest.mock('../../utils/performanceMonitor', () => ({
     generateReport: jest.fn(),
     getMetrics: jest.fn(),
     getBudgetStatus: jest.fn(),
-    reset: jest.fn()
-  }
+    reset: jest.fn(),
+  },
 }));
 
-jest.mock('../../utils/errorTracking', () => ({
+// Source imports from './errorTracking/index' explicitly, so the mock must
+// target the same module ID (the bare directory ID does not match).
+jest.mock('../../utils/errorTracking/index', () => ({
   enhancedErrorAnalytics: {
     recordError: jest.fn(),
     recordUserAction: jest.fn(),
     getErrorAnalytics: jest.fn(),
-    getErrorPatterns: jest.fn()
-  }
+    getErrorPatterns: jest.fn(),
+  },
 }));
 
 jest.mock('../../utils/monitoringAndAlerting', () => ({
   monitoringAndAlerting: {
-    checkSystemHealth: jest.fn()
-  }
+    checkSystemHealth: jest.fn(),
+  },
 }));
 
-jest.mock('../../utils/webOptimizations', () => ({
-  WebOptimizations: {
-    getInstance: jest.fn()
-  }
+// Source imports `WebOptimizationsManager` (aliased to WebOptimizations) from
+// the './webOptimizations/' directory module and calls getInstance().getWebVitals().
+jest.mock('../../utils/webOptimizations/', () => ({
+  WebOptimizationsManager: {
+    getInstance: jest.fn(),
+  },
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -81,14 +85,14 @@ jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-    debug: jest.fn()
-  }
+    debug: jest.fn(),
+  },
 }));
 
 jest.mock('react-native', () => ({
   Platform: {
-    OS: 'ios'
-  }
+    OS: 'ios',
+  },
 }));
 
 describe('productionSetupGuide', () => {
@@ -100,14 +104,16 @@ describe('productionSetupGuide', () => {
     // Setup mock WebOptimizations instance
     mockWebOptimizationsInstance = {
       initialized: false,
-      getCoreWebVitals: jest.fn().mockReturnValue({
+      getWebVitals: jest.fn().mockReturnValue({
         lcp: 2000,
         fid: 80,
-        cls: 0.05
-      })
+        cls: 0.05,
+      }),
     };
 
-    (WebOptimizations.getInstance as jest.Mock).mockReturnValue(mockWebOptimizationsInstance);
+    (WebOptimizations.getInstance as jest.Mock).mockReturnValue(
+      mockWebOptimizationsInstance
+    );
   });
 
   describe('Module Exports', () => {
@@ -178,7 +184,9 @@ describe('productionSetupGuide', () => {
 
   describe('initializeProductionSystems', () => {
     it('should initialize all production systems successfully', async () => {
-      (productionReadinessOrchestrator.initialize as jest.Mock).mockResolvedValue(undefined);
+      (
+        productionReadinessOrchestrator.initialize as jest.Mock
+      ).mockResolvedValue(undefined);
 
       await initializeProductionSystems();
 
@@ -193,9 +201,13 @@ describe('productionSetupGuide', () => {
 
     it('should handle initialization errors', async () => {
       const error = new Error('Init failed');
-      (productionReadinessOrchestrator.initialize as jest.Mock).mockRejectedValue(error);
+      (
+        productionReadinessOrchestrator.initialize as jest.Mock
+      ).mockRejectedValue(error);
 
-      await expect(initializeProductionSystems()).rejects.toThrow('Init failed');
+      await expect(initializeProductionSystems()).rejects.toThrow(
+        'Init failed'
+      );
 
       expect(logger.error).toHaveBeenCalledWith(
         'ProductionSetup',
@@ -205,7 +217,9 @@ describe('productionSetupGuide', () => {
     });
 
     it('should log initialization start', async () => {
-      (productionReadinessOrchestrator.initialize as jest.Mock).mockResolvedValue(undefined);
+      (
+        productionReadinessOrchestrator.initialize as jest.Mock
+      ).mockResolvedValue(undefined);
 
       await initializeProductionSystems();
 
@@ -222,11 +236,12 @@ describe('productionSetupGuide', () => {
         deploymentId: 'deploy_123',
         deploymentApproved: true,
         readinessCheck: { score: 95 },
-        blockers: []
+        blockers: [],
       };
 
-      (productionReadinessOrchestrator.createDeploymentReport as jest.Mock)
-        .mockResolvedValue(mockReport);
+      (
+        productionReadinessOrchestrator.createDeploymentReport as jest.Mock
+      ).mockResolvedValue(mockReport);
 
       const result = await validateDeploymentReadiness('staging');
 
@@ -247,12 +262,13 @@ describe('productionSetupGuide', () => {
         readinessCheck: { score: 65 },
         blockers: [
           '❌ Critical security vulnerabilities found',
-          '❌ Performance budget violations detected'
-        ]
+          '❌ Performance budget violations detected',
+        ],
       };
 
-      (productionReadinessOrchestrator.createDeploymentReport as jest.Mock)
-        .mockResolvedValue(mockReport);
+      (
+        productionReadinessOrchestrator.createDeploymentReport as jest.Mock
+      ).mockResolvedValue(mockReport);
 
       const result = await validateDeploymentReadiness('production');
 
@@ -263,15 +279,16 @@ describe('productionSetupGuide', () => {
         '❌ Deployment BLOCKED for production',
         expect.objectContaining({
           blockers: mockReport.blockers,
-          score: 65
+          score: 65,
         })
       );
     });
 
     it('should handle validation failures gracefully', async () => {
       const error = new Error('Validation failed');
-      (productionReadinessOrchestrator.createDeploymentReport as jest.Mock)
-        .mockRejectedValue(error);
+      (
+        productionReadinessOrchestrator.createDeploymentReport as jest.Mock
+      ).mockRejectedValue(error);
 
       const result = await validateDeploymentReadiness('production');
 
@@ -293,8 +310,9 @@ describe('productionSetupGuide', () => {
         // blockers is undefined
       };
 
-      (productionReadinessOrchestrator.createDeploymentReport as jest.Mock)
-        .mockResolvedValue(mockReport);
+      (
+        productionReadinessOrchestrator.createDeploymentReport as jest.Mock
+      ).mockResolvedValue(mockReport);
 
       const result = await validateDeploymentReadiness('staging');
 
@@ -309,22 +327,26 @@ describe('productionSetupGuide', () => {
         vulnerabilities: [],
         summary: {
           overallScore: 95,
-          riskLevel: 'low'
-        }
+          riskLevel: 'low',
+        },
       };
 
-      (securityAuditService.runSecurityAudit as jest.Mock).mockResolvedValue(mockAudit);
+      (securityAuditService.runSecurityAudit as jest.Mock).mockResolvedValue(
+        mockAudit
+      );
 
       await runDailySecurityAudit();
 
-      expect(securityAuditService.runSecurityAudit).toHaveBeenCalledWith('production');
+      expect(securityAuditService.runSecurityAudit).toHaveBeenCalledWith(
+        'production'
+      );
       expect(logger.info).toHaveBeenCalledWith(
         'ProductionSetup',
         'Daily security audit completed',
         expect.objectContaining({
           overallScore: 95,
           riskLevel: 'low',
-          totalVulnerabilities: 0
+          totalVulnerabilities: 0,
         })
       );
     });
@@ -333,15 +355,17 @@ describe('productionSetupGuide', () => {
       const mockAudit = {
         vulnerabilities: [
           { severity: 'critical', title: 'SQL Injection in API' },
-          { severity: 'critical', title: 'XSS in user input' }
+          { severity: 'critical', title: 'XSS in user input' },
         ],
         summary: {
           overallScore: 45,
-          riskLevel: 'critical'
-        }
+          riskLevel: 'critical',
+        },
       };
 
-      (securityAuditService.runSecurityAudit as jest.Mock).mockResolvedValue(mockAudit);
+      (securityAuditService.runSecurityAudit as jest.Mock).mockResolvedValue(
+        mockAudit
+      );
 
       await runDailySecurityAudit();
 
@@ -349,7 +373,7 @@ describe('productionSetupGuide', () => {
         'ProductionSetup',
         '🚨 CRITICAL: 2 critical vulnerabilities found!',
         expect.objectContaining({
-          vulnerabilities: ['SQL Injection in API', 'XSS in user input']
+          vulnerabilities: ['SQL Injection in API', 'XSS in user input'],
         })
       );
     });
@@ -359,15 +383,17 @@ describe('productionSetupGuide', () => {
         vulnerabilities: [
           { severity: 'high', title: 'Weak encryption' },
           { severity: 'high', title: 'Missing auth check' },
-          { severity: 'medium', title: 'Deprecated library' }
+          { severity: 'medium', title: 'Deprecated library' },
         ],
         summary: {
           overallScore: 65,
-          riskLevel: 'high'
-        }
+          riskLevel: 'high',
+        },
       };
 
-      (securityAuditService.runSecurityAudit as jest.Mock).mockResolvedValue(mockAudit);
+      (securityAuditService.runSecurityAudit as jest.Mock).mockResolvedValue(
+        mockAudit
+      );
 
       await runDailySecurityAudit();
 
@@ -375,14 +401,16 @@ describe('productionSetupGuide', () => {
         'ProductionSetup',
         '⚠️ HIGH: 2 high severity vulnerabilities found',
         expect.objectContaining({
-          vulnerabilities: ['Weak encryption', 'Missing auth check']
+          vulnerabilities: ['Weak encryption', 'Missing auth check'],
         })
       );
     });
 
     it('should handle audit failures', async () => {
       const error = new Error('Audit failed');
-      (securityAuditService.runSecurityAudit as jest.Mock).mockRejectedValue(error);
+      (securityAuditService.runSecurityAudit as jest.Mock).mockRejectedValue(
+        error
+      );
 
       await runDailySecurityAudit();
 
@@ -416,12 +444,17 @@ describe('productionSetupGuide', () => {
     it('should track custom metrics', () => {
       performanceTracking.trackCustomMetric('customMetric', 42);
 
-      expect(performanceMonitor.recordMetric).toHaveBeenCalledWith('customMetric', 42);
+      expect(performanceMonitor.recordMetric).toHaveBeenCalledWith(
+        'customMetric',
+        42
+      );
     });
 
     it('should generate performance report', () => {
       const mockReport = { metrics: {}, timestamp: Date.now() };
-      (performanceMonitor.generateReport as jest.Mock).mockReturnValue(mockReport);
+      (performanceMonitor.generateReport as jest.Mock).mockReturnValue(
+        mockReport
+      );
 
       const report = performanceTracking.generateReport();
 
@@ -444,7 +477,7 @@ describe('productionSetupGuide', () => {
         timestamp: expect.any(Number),
         context,
         severity: 'error',
-        fingerprint: 'Test error' + error.stack
+        fingerprint: 'Test error' + error.stack,
       });
     });
 
@@ -460,7 +493,7 @@ describe('productionSetupGuide', () => {
         timestamp: expect.any(Number),
         context: undefined,
         severity: 'error',
-        fingerprint: 'Simple error'
+        fingerprint: 'Simple error',
       });
     });
 
@@ -472,13 +505,15 @@ describe('productionSetupGuide', () => {
       expect(enhancedErrorAnalytics.recordUserAction).toHaveBeenCalledWith({
         type: 'form_submit',
         timestamp: expect.any(Number),
-        data: actionData
+        data: actionData,
       });
     });
 
     it('should get error analytics', () => {
       const mockAnalytics = { errorRate: 0.02, totalErrors: 100 };
-      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue(mockAnalytics);
+      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue(
+        mockAnalytics
+      );
 
       const analytics = errorTracking.getErrorAnalytics();
 
@@ -487,7 +522,9 @@ describe('productionSetupGuide', () => {
 
     it('should get error patterns', () => {
       const mockPatterns = [{ pattern: 'NetworkError', count: 50 }];
-      (enhancedErrorAnalytics.getErrorPatterns as jest.Mock).mockReturnValue(mockPatterns);
+      (enhancedErrorAnalytics.getErrorPatterns as jest.Mock).mockReturnValue(
+        mockPatterns
+      );
 
       const patterns = errorTracking.getErrorPatterns();
 
@@ -498,7 +535,9 @@ describe('productionSetupGuide', () => {
   describe('systemMonitoring', () => {
     it('should check system health', async () => {
       const mockHealth = { status: 'healthy', uptime: 3600000 };
-      (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue(mockHealth);
+      (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue(
+        mockHealth
+      );
 
       const health = await systemMonitoring.checkHealth();
 
@@ -507,8 +546,9 @@ describe('productionSetupGuide', () => {
 
     it('should get readiness status', () => {
       const mockStatus = { overall: 'ready', score: 95 };
-      (productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock)
-        .mockReturnValue(mockStatus);
+      (
+        productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock
+      ).mockReturnValue(mockStatus);
 
       const status = systemMonitoring.getReadinessStatus();
 
@@ -517,8 +557,9 @@ describe('productionSetupGuide', () => {
 
     it('should get system status summary', () => {
       const mockSummary = { overall: 'healthy', components: {} };
-      (productionReadinessOrchestrator.getSystemStatusSummary as jest.Mock)
-        .mockReturnValue(mockSummary);
+      (
+        productionReadinessOrchestrator.getSystemStatusSummary as jest.Mock
+      ).mockReturnValue(mockSummary);
 
       const summary = systemMonitoring.getStatusSummary();
 
@@ -527,14 +568,16 @@ describe('productionSetupGuide', () => {
 
     it('should check readiness for different environments', async () => {
       const mockReadiness = { overall: 'ready', score: 90 };
-      (productionReadinessOrchestrator.checkProductionReadiness as jest.Mock)
-        .mockResolvedValue(mockReadiness);
+      (
+        productionReadinessOrchestrator.checkProductionReadiness as jest.Mock
+      ).mockResolvedValue(mockReadiness);
 
       const readiness = await systemMonitoring.checkReadiness('staging');
 
       expect(readiness).toEqual(mockReadiness);
-      expect(productionReadinessOrchestrator.checkProductionReadiness)
-        .toHaveBeenCalledWith('staging');
+      expect(
+        productionReadinessOrchestrator.checkProductionReadiness
+      ).toHaveBeenCalledWith('staging');
     });
   });
 
@@ -561,7 +604,7 @@ describe('productionSetupGuide', () => {
     it('should get Core Web Vitals on web platform', () => {
       (Platform as any).OS = 'web';
       const mockVitals = { lcp: 2000, fid: 80, cls: 0.05 };
-      mockWebOptimizationsInstance.getCoreWebVitals.mockReturnValue(mockVitals);
+      mockWebOptimizationsInstance.getWebVitals.mockReturnValue(mockVitals);
 
       const vitals = webPlatform.getCoreWebVitals();
 
@@ -603,17 +646,23 @@ describe('productionSetupGuide', () => {
   describe('developmentUtils', () => {
     it('should run quick security test', async () => {
       const mockTestResult = { passed: 10, failed: 0 };
-      (securityAuditService.runTestSuite as jest.Mock).mockResolvedValue(mockTestResult);
+      (securityAuditService.runTestSuite as jest.Mock).mockResolvedValue(
+        mockTestResult
+      );
 
       const result = await developmentUtils.runQuickSecurityTest();
 
       expect(result).toEqual(mockTestResult);
-      expect(securityAuditService.runTestSuite).toHaveBeenCalledWith('authentication');
+      expect(securityAuditService.runTestSuite).toHaveBeenCalledWith(
+        'authentication'
+      );
     });
 
     it('should get performance budgets', () => {
       const mockBudgets = [{ name: 'bundleSize', status: 'pass' }];
-      (performanceMonitor.getBudgetStatus as jest.Mock).mockReturnValue(mockBudgets);
+      (performanceMonitor.getBudgetStatus as jest.Mock).mockReturnValue(
+        mockBudgets
+      );
 
       const budgets = developmentUtils.getPerformanceBudgets();
 
@@ -622,8 +671,9 @@ describe('productionSetupGuide', () => {
 
     it('should get deployment history', () => {
       const mockHistory = [{ deploymentId: 'deploy_123' }];
-      (productionReadinessOrchestrator.getDeploymentHistory as jest.Mock)
-        .mockReturnValue(mockHistory);
+      (
+        productionReadinessOrchestrator.getDeploymentHistory as jest.Mock
+      ).mockReturnValue(mockHistory);
 
       const history = developmentUtils.getDeploymentHistory();
 
@@ -643,25 +693,25 @@ describe('productionSetupGuide', () => {
       const mockReadinessStatus = {
         overall: 'ready',
         score: 95,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       const mockPerformanceMetrics = {
         startupTime: 3000,
         memoryUsage: 100000000,
         navigationTime: 200,
         apiResponseTime: 150,
-        fps: 60
+        fps: 60,
       };
       const mockErrorAnalytics = {
         errorRate: 0.02,
         totalErrors: 100,
         uniqueErrors: 10,
-        criticalErrors: 2
+        criticalErrors: 2,
       };
       const mockSystemHealth = {
         status: 'healthy',
         uptime: 3600000,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       const mockAuditReport = {
         timestamp: Date.now(),
@@ -671,17 +721,26 @@ describe('productionSetupGuide', () => {
             high: 1,
             medium: 5,
             low: 10,
-            info: 20
-          }
-        }
+            info: 20,
+          },
+        },
       };
 
-      (productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock)
-        .mockReturnValue(mockReadinessStatus);
-      (performanceMonitor.getMetrics as jest.Mock).mockReturnValue(mockPerformanceMetrics);
-      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue(mockErrorAnalytics);
-      (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue(mockSystemHealth);
-      (securityAuditService.getLatestAuditReport as jest.Mock).mockReturnValue(mockAuditReport);
+      (
+        productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock
+      ).mockReturnValue(mockReadinessStatus);
+      (performanceMonitor.getMetrics as jest.Mock).mockReturnValue(
+        mockPerformanceMetrics
+      );
+      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue(
+        mockErrorAnalytics
+      );
+      (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue(
+        mockSystemHealth
+      );
+      (securityAuditService.getLatestAuditReport as jest.Mock).mockReturnValue(
+        mockAuditReport
+      );
 
       const status = await dashboardData.getCompleteStatus();
 
@@ -689,41 +748,48 @@ describe('productionSetupGuide', () => {
         overall: {
           status: 'ready',
           score: 95,
-          lastCheck: mockReadinessStatus.timestamp
+          lastCheck: mockReadinessStatus.timestamp,
         },
         performance: {
           startupTime: 3000,
           memoryUsage: 100000000,
           navigationTime: 200,
           apiResponseTime: 150,
-          fps: 60
+          fps: 60,
         },
         errors: {
           errorRate: 0.02,
           totalErrors: 100,
           uniqueErrors: 10,
-          criticalErrors: 2
+          criticalErrors: 2,
         },
         security: {
           lastAudit: mockAuditReport.timestamp,
-          vulnerabilities: mockAuditReport.summary.vulnerabilities
+          vulnerabilities: mockAuditReport.summary.vulnerabilities,
         },
         health: {
           status: 'healthy',
           uptime: 3600000,
-          lastCheck: mockSystemHealth.timestamp
-        }
+          lastCheck: mockSystemHealth.timestamp,
+        },
       });
     });
 
     it('should handle missing data gracefully', async () => {
       // All mocks return undefined/null
-      (productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock)
-        .mockReturnValue(undefined);
+      (
+        productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock
+      ).mockReturnValue(undefined);
       (performanceMonitor.getMetrics as jest.Mock).mockReturnValue({});
-      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue({});
-      (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue({});
-      (securityAuditService.getLatestAuditReport as jest.Mock).mockReturnValue(undefined);
+      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue(
+        {}
+      );
+      (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue(
+        {}
+      );
+      (securityAuditService.getLatestAuditReport as jest.Mock).mockReturnValue(
+        undefined
+      );
 
       const status = await dashboardData.getCompleteStatus();
 
@@ -731,20 +797,20 @@ describe('productionSetupGuide', () => {
         overall: {
           status: 'unknown',
           score: 0,
-          lastCheck: 0
+          lastCheck: 0,
         },
         performance: {
           startupTime: undefined,
           memoryUsage: undefined,
           navigationTime: undefined,
           apiResponseTime: undefined,
-          fps: undefined
+          fps: undefined,
         },
         errors: {
           errorRate: undefined,
           totalErrors: undefined,
           uniqueErrors: undefined,
-          criticalErrors: undefined
+          criticalErrors: undefined,
         },
         security: {
           lastAudit: 0,
@@ -753,14 +819,14 @@ describe('productionSetupGuide', () => {
             high: 0,
             medium: 0,
             low: 0,
-            info: 0
-          }
+            info: 0,
+          },
         },
         health: {
           status: undefined,
           uptime: undefined,
-          lastCheck: undefined
-        }
+          lastCheck: undefined,
+        },
       });
     });
 
@@ -768,7 +834,7 @@ describe('productionSetupGuide', () => {
       const mockReadinessStatus = {
         overall: 'warning',
         score: 75,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       const mockPerformanceMetrics = {
         startupTime: 4000,
@@ -780,15 +846,22 @@ describe('productionSetupGuide', () => {
         // Other metrics missing
       };
 
-      (productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock)
-        .mockReturnValue(mockReadinessStatus);
-      (performanceMonitor.getMetrics as jest.Mock).mockReturnValue(mockPerformanceMetrics);
-      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue(mockErrorAnalytics);
+      (
+        productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock
+      ).mockReturnValue(mockReadinessStatus);
+      (performanceMonitor.getMetrics as jest.Mock).mockReturnValue(
+        mockPerformanceMetrics
+      );
+      (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue(
+        mockErrorAnalytics
+      );
       (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue({
         status: 'degraded',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      (securityAuditService.getLatestAuditReport as jest.Mock).mockReturnValue(null);
+      (securityAuditService.getLatestAuditReport as jest.Mock).mockReturnValue(
+        null
+      );
 
       const status = await dashboardData.getCompleteStatus();
 
@@ -807,7 +880,7 @@ describe('productionSetupGuide', () => {
     it('should handle error tracking with non-Error objects', () => {
       const customError = {
         message: 'Custom error',
-        stack: undefined
+        stack: undefined,
       };
 
       errorTracking.trackError(customError as Error);
@@ -818,7 +891,7 @@ describe('productionSetupGuide', () => {
         timestamp: expect.any(Number),
         context: undefined,
         severity: 'error',
-        fingerprint: 'Custom error'
+        fingerprint: 'Custom error',
       });
     });
 
@@ -828,7 +901,7 @@ describe('productionSetupGuide', () => {
       expect(enhancedErrorAnalytics.recordUserAction).toHaveBeenCalledWith({
         type: 'simple_action',
         timestamp: expect.any(Number),
-        data: undefined
+        data: undefined,
       });
     });
 
@@ -837,13 +910,14 @@ describe('productionSetupGuide', () => {
         deploymentId: 'deploy_null',
         deploymentApproved: true,
         readinessCheck: { score: 88 },
-        blockers: null
+        blockers: null,
       };
 
-      (productionReadinessOrchestrator.createDeploymentReport as jest.Mock)
-        .mockResolvedValue(mockReport);
+      (
+        productionReadinessOrchestrator.createDeploymentReport as jest.Mock
+      ).mockResolvedValue(mockReport);
 
-      validateDeploymentReadiness('staging').then(result => {
+      validateDeploymentReadiness('staging').then((result) => {
         expect(result.blockers).toEqual([]);
       });
     });
@@ -852,16 +926,20 @@ describe('productionSetupGuide', () => {
   describe('Integration Tests', () => {
     it('should perform complete initialization and validation flow', async () => {
       // Setup mocks for successful flow
-      (productionReadinessOrchestrator.initialize as jest.Mock).mockResolvedValue(undefined);
-      (productionReadinessOrchestrator.createDeploymentReport as jest.Mock).mockResolvedValue({
+      (
+        productionReadinessOrchestrator.initialize as jest.Mock
+      ).mockResolvedValue(undefined);
+      (
+        productionReadinessOrchestrator.createDeploymentReport as jest.Mock
+      ).mockResolvedValue({
         deploymentId: 'deploy_integration',
         deploymentApproved: true,
         readinessCheck: { score: 92 },
-        blockers: []
+        blockers: [],
       });
       (securityAuditService.runSecurityAudit as jest.Mock).mockResolvedValue({
         vulnerabilities: [],
-        summary: { overallScore: 90, riskLevel: 'low' }
+        summary: { overallScore: 90, riskLevel: 'low' },
       });
 
       // Initialize systems
@@ -886,7 +964,9 @@ describe('productionSetupGuide', () => {
       // Verify all systems were called
       expect(productionReadinessOrchestrator.initialize).toHaveBeenCalled();
       expect(validation.approved).toBe(true);
-      expect(securityAuditService.runSecurityAudit).toHaveBeenCalledWith('production');
+      expect(securityAuditService.runSecurityAudit).toHaveBeenCalledWith(
+        'production'
+      );
       expect(performanceMonitor.startNavigationTimer).toHaveBeenCalled();
       expect(performanceMonitor.startApiTimer).toHaveBeenCalledWith('req_123');
       expect(performanceMonitor.recordMemoryUsage).toHaveBeenCalled();
@@ -898,32 +978,33 @@ describe('productionSetupGuide', () => {
       // Setup comprehensive mocks
       const now = Date.now();
 
-      (productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock)
-        .mockReturnValue({
-          overall: 'ready',
-          score: 93,
-          timestamp: now
-        });
+      (
+        productionReadinessOrchestrator.getLatestReadinessStatus as jest.Mock
+      ).mockReturnValue({
+        overall: 'ready',
+        score: 93,
+        timestamp: now,
+      });
 
       (performanceMonitor.getMetrics as jest.Mock).mockReturnValue({
         startupTime: 2800,
         memoryUsage: 95000000,
         navigationTime: 180,
         apiResponseTime: 120,
-        fps: 59
+        fps: 59,
       });
 
       (enhancedErrorAnalytics.getErrorAnalytics as jest.Mock).mockReturnValue({
         errorRate: 0.015,
         totalErrors: 75,
         uniqueErrors: 8,
-        criticalErrors: 1
+        criticalErrors: 1,
       });
 
       (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue({
         status: 'healthy',
         uptime: 7200000,
-        timestamp: now
+        timestamp: now,
       });
 
       (securityAuditService.getLatestAuditReport as jest.Mock).mockReturnValue({
@@ -934,9 +1015,9 @@ describe('productionSetupGuide', () => {
             high: 0,
             medium: 3,
             low: 12,
-            info: 25
-          }
-        }
+            info: 25,
+          },
+        },
       });
 
       const dashboardStatus = await dashboardData.getCompleteStatus();

@@ -3,13 +3,29 @@ import { render, fireEvent } from '../../test-utils';
 import { ContractorMarker } from '../ContractorMarker';
 import { View, Text } from 'react-native';
 
-
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+// Render TouchableOpacity as a plain View whose onTouchEnd forwards to onPress,
+// so the marker container is discoverable via UNSAFE_getAllByType(View) and
+// touch interaction maps to the onPress callback in the test environment.
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('react-native');
+  const ReactActual = require('react');
+  const TouchableOpacityMock = ({ children, onPress, ...props }: any) =>
+    ReactActual.createElement(
+      RN.View,
+      { ...props, onTouchEnd: onPress },
+      children
+    );
+  return { ...RN, TouchableOpacity: TouchableOpacityMock };
+});
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock Ionicons
 jest.mock('@expo/vector-icons', () => ({
@@ -184,8 +200,9 @@ describe('ContractorMarker', () => {
         ? markerContainer.props.style
         : [markerContainer.props.style];
 
-      const hasScaleTransform = styles.some((style: any) =>
-        style && style.transform && Array.isArray(style.transform)
+      const hasScaleTransform = styles.some(
+        (style: any) =>
+          style && style.transform && Array.isArray(style.transform)
       );
       expect(hasScaleTransform).toBe(false);
     });
@@ -375,8 +392,10 @@ describe('ContractorMarker', () => {
       );
 
       const texts = UNSAFE_getAllByType(Text);
-      const hasCheckmark = texts.some(text =>
-        text.props.children && String(text.props.children).includes('checkmark')
+      const hasCheckmark = texts.some(
+        (text) =>
+          text.props.children &&
+          String(text.props.children).includes('checkmark')
       );
       expect(hasCheckmark).toBe(false);
     });

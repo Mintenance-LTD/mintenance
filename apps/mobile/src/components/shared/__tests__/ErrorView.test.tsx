@@ -35,7 +35,7 @@ jest.mock('@expo/vector-icons', () => ({
     'alert-circle-outline': 'alert-circle-outline',
     'warning-outline': 'warning-outline',
     'close-circle-outline': 'close-circle-outline',
-    'alert': 'alert',
+    alert: 'alert',
   },
 }));
 
@@ -44,7 +44,9 @@ jest.mock('../../../theme', () => ({
     colors: {
       error: '#EF4444',
       background: '#FFFFFF',
+      backgroundSecondary: '#FFFFFF',
       textPrimary: '#171717',
+      textInverse: '#FFFFFF',
       primary: '#0EA5E9',
       white: '#FFFFFF',
     },
@@ -80,46 +82,36 @@ describe('ErrorView Component', () => {
   describe('Core Rendering', () => {
     it('renders error message text', () => {
       const { getByText } = render(
-        <ErrorView message="Something went wrong" />
+        <ErrorView message='Something went wrong' />
       );
       expect(getByText('Something went wrong')).toBeTruthy();
     });
 
     it('renders Ionicons with correct name', () => {
-      const { getByTestId } = render(
-        <ErrorView message="Error" />
-      );
+      const { getByTestId } = render(<ErrorView message='Error' />);
       expect(getByTestId('icon-alert-circle-outline')).toBeTruthy();
     });
 
     it('renders Ionicons with error color', () => {
-      const { getByTestId } = render(
-        <ErrorView message="Error" />
-      );
+      const { getByTestId } = render(<ErrorView message='Error' />);
       const icon = getByTestId('icon-alert-circle-outline');
       expect(icon.props.accessibilityLabel).toContain('color: #EF4444');
     });
 
     it('renders Ionicons with size 64', () => {
-      const { getByTestId } = render(
-        <ErrorView message="Error" />
-      );
+      const { getByTestId } = render(<ErrorView message='Error' />);
       const icon = getByTestId('icon-alert-circle-outline');
       expect(icon.props.accessibilityLabel).toContain('size: 64');
     });
 
     it('renders container View', () => {
-      const { getByText } = render(
-        <ErrorView message="Test" />
-      );
+      const { getByText } = render(<ErrorView message='Test' />);
       const message = getByText('Test');
       expect(message.parent).toBeTruthy();
     });
 
     it('message has correct text alignment and max width', () => {
-      const { getByText } = render(
-        <ErrorView message="Error message" />
-      );
+      const { getByText } = render(<ErrorView message='Error message' />);
       const messageText = getByText('Error message');
       const styles = Array.isArray(messageText.props.style)
         ? messageText.props.style.flat()
@@ -142,9 +134,7 @@ describe('ErrorView Component', () => {
 
   describe('fullScreen Prop', () => {
     it('applies fullScreen style when fullScreen is true (default)', () => {
-      const { getByText } = render(
-        <ErrorView message="Error" />
-      );
+      const { getByText } = render(<ErrorView message='Error' />);
       const container = getByText('Error').parent;
       const styles = Array.isArray(container?.props.style)
         ? container.props.style.flat()
@@ -162,7 +152,7 @@ describe('ErrorView Component', () => {
 
     it('applies fullScreen style when fullScreen is explicitly true', () => {
       const { getByText } = render(
-        <ErrorView message="Error" fullScreen={true} />
+        <ErrorView message='Error' fullScreen={true} />
       );
       const container = getByText('Error').parent;
       const styles = Array.isArray(container?.props.style)
@@ -181,22 +171,23 @@ describe('ErrorView Component', () => {
 
     it('does not apply fullScreen style when fullScreen is false', () => {
       const { getByText } = render(
-        <ErrorView message="Error" fullScreen={false} />
+        <ErrorView message='Error' fullScreen={false} />
       );
       const container = getByText('Error').parent;
       const styles = Array.isArray(container?.props.style)
         ? container.props.style.flat()
         : [container?.props.style];
 
-      const hasFullScreenStyle = styles.some((style: any) =>
-        style?.flex === 1 || style?.backgroundColor === '#FFFFFF'
+      const hasFullScreenStyle = styles.some(
+        (style: any) =>
+          style?.flex === 1 || style?.backgroundColor === '#FFFFFF'
       );
       expect(hasFullScreenStyle).toBe(false);
     });
 
     it('fullScreen style includes flex: 1 and background color', () => {
       const { getByText } = render(
-        <ErrorView message="Error" fullScreen={true} />
+        <ErrorView message='Error' fullScreen={true} />
       );
       const container = getByText('Error').parent;
       const styles = Array.isArray(container?.props.style)
@@ -228,21 +219,19 @@ describe('ErrorView Component', () => {
   describe('Retry Button', () => {
     it('shows retry button when onRetry is provided', () => {
       const { getByText } = render(
-        <ErrorView message="Error" onRetry={() => {}} />
+        <ErrorView message='Error' onRetry={() => {}} />
       );
       expect(getByText('Try Again')).toBeTruthy();
     });
 
     it('hides retry button when onRetry is undefined', () => {
-      const { queryByText } = render(
-        <ErrorView message="Error" />
-      );
+      const { queryByText } = render(<ErrorView message='Error' />);
       expect(queryByText('Try Again')).toBeNull();
     });
 
     it('retry button displays "Try Again" text', () => {
       const { getByText } = render(
-        <ErrorView message="Error" onRetry={() => {}} />
+        <ErrorView message='Error' onRetry={() => {}} />
       );
       const button = getByText('Try Again');
       expect(button).toBeTruthy();
@@ -251,7 +240,7 @@ describe('ErrorView Component', () => {
     it('calls onRetry when button pressed', () => {
       const onRetry = jest.fn();
       const { getByText } = render(
-        <ErrorView message="Error" onRetry={onRetry} />
+        <ErrorView message='Error' onRetry={onRetry} />
       );
 
       fireEvent.press(getByText('Try Again'));
@@ -261,7 +250,7 @@ describe('ErrorView Component', () => {
     it('can call onRetry multiple times', () => {
       const onRetry = jest.fn();
       const { getByText } = render(
-        <ErrorView message="Error" onRetry={onRetry} />
+        <ErrorView message='Error' onRetry={onRetry} />
       );
 
       const button = getByText('Try Again');
@@ -274,7 +263,7 @@ describe('ErrorView Component', () => {
 
     it('retry button has primary background color', () => {
       const { getByText } = render(
-        <ErrorView message="Error" onRetry={() => {}} />
+        <ErrorView message='Error' onRetry={() => {}} />
       );
       const button = getByText('Try Again').parent;
       const styles = Array.isArray(button?.props.style)
@@ -284,7 +273,7 @@ describe('ErrorView Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#0EA5E9',
+            backgroundColor: '#171717',
           }),
         ])
       );
@@ -297,29 +286,27 @@ describe('ErrorView Component', () => {
 
   describe('Icon Customization', () => {
     it('uses default icon "alert-circle-outline" when icon prop not provided', () => {
-      const { getByTestId } = render(
-        <ErrorView message="Error" />
-      );
+      const { getByTestId } = render(<ErrorView message='Error' />);
       expect(getByTestId('icon-alert-circle-outline')).toBeTruthy();
     });
 
     it('uses custom icon when icon prop provided ("warning-outline")', () => {
       const { getByTestId } = render(
-        <ErrorView message="Error" icon="warning-outline" />
+        <ErrorView message='Error' icon='warning-outline' />
       );
       expect(getByTestId('icon-warning-outline')).toBeTruthy();
     });
 
     it('uses custom icon when icon prop provided ("close-circle-outline")', () => {
       const { getByTestId } = render(
-        <ErrorView message="Error" icon="close-circle-outline" />
+        <ErrorView message='Error' icon='close-circle-outline' />
       );
       expect(getByTestId('icon-close-circle-outline')).toBeTruthy();
     });
 
     it('icon color is always theme.colors.error', () => {
       const { getByTestId } = render(
-        <ErrorView message="Error" icon="warning-outline" />
+        <ErrorView message='Error' icon='warning-outline' />
       );
       const icon = getByTestId('icon-warning-outline');
       expect(icon.props.accessibilityLabel).toContain('color: #EF4444');
@@ -327,7 +314,7 @@ describe('ErrorView Component', () => {
 
     it('icon color is always theme.colors.error regardless of icon type', () => {
       const { getByTestId } = render(
-        <ErrorView message="Error" icon="alert" />
+        <ErrorView message='Error' icon='alert' />
       );
       const icon = getByTestId('icon-alert');
       expect(icon.props.accessibilityLabel).toContain('color: #EF4444');
@@ -340,9 +327,7 @@ describe('ErrorView Component', () => {
 
   describe('Props Validation', () => {
     it('renders with only required message prop', () => {
-      const { getByText } = render(
-        <ErrorView message="Minimum props" />
-      );
+      const { getByText } = render(<ErrorView message='Minimum props' />);
       expect(getByText('Minimum props')).toBeTruthy();
     });
 
@@ -350,10 +335,10 @@ describe('ErrorView Component', () => {
       const onRetry = jest.fn();
       const { getByText, getByTestId } = render(
         <ErrorView
-          message="All props"
+          message='All props'
           onRetry={onRetry}
           fullScreen={false}
-          icon="warning-outline"
+          icon='warning-outline'
         />
       );
 
@@ -364,9 +349,7 @@ describe('ErrorView Component', () => {
 
     it('message prop is displayed correctly', () => {
       const testMessage = 'This is a test error message';
-      const { getByText } = render(
-        <ErrorView message={testMessage} />
-      );
+      const { getByText } = render(<ErrorView message={testMessage} />);
       expect(getByText(testMessage)).toBeTruthy();
     });
   });
@@ -377,24 +360,21 @@ describe('ErrorView Component', () => {
 
   describe('Edge Cases', () => {
     it('handles very long error messages', () => {
-      const longMessage = 'This is a very long error message that contains multiple sentences and should still be displayed correctly even though it exceeds normal length expectations and might cause layout issues if not handled properly.';
-      const { getByText } = render(
-        <ErrorView message={longMessage} />
-      );
+      const longMessage =
+        'This is a very long error message that contains multiple sentences and should still be displayed correctly even though it exceeds normal length expectations and might cause layout issues if not handled properly.';
+      const { getByText } = render(<ErrorView message={longMessage} />);
       expect(getByText(longMessage)).toBeTruthy();
     });
 
     it('handles empty string message', () => {
-      const { getByText } = render(
-        <ErrorView message="" />
-      );
+      const { getByText } = render(<ErrorView message='' />);
       expect(getByText('')).toBeTruthy();
     });
 
     it('handles onRetry being called multiple times', () => {
       const onRetry = jest.fn();
       const { getByText } = render(
-        <ErrorView message="Error" onRetry={onRetry} />
+        <ErrorView message='Error' onRetry={onRetry} />
       );
 
       const button = getByText('Try Again');
@@ -407,9 +387,7 @@ describe('ErrorView Component', () => {
 
     it('handles special characters in message', () => {
       const specialMessage = 'Error: <>&"\'{}[]';
-      const { getByText } = render(
-        <ErrorView message={specialMessage} />
-      );
+      const { getByText } = render(<ErrorView message={specialMessage} />);
       expect(getByText(specialMessage)).toBeTruthy();
     });
   });
@@ -423,10 +401,10 @@ describe('ErrorView Component', () => {
       const onRetry = jest.fn();
       const { getByText, getByTestId } = render(
         <ErrorView
-          message="Network error occurred"
+          message='Network error occurred'
           onRetry={onRetry}
           fullScreen={true}
-          icon="alert-circle-outline"
+          icon='alert-circle-outline'
         />
       );
 
@@ -456,9 +434,9 @@ describe('ErrorView Component', () => {
     it('renders complete error view without retry button (fullScreen=false)', () => {
       const { getByText, getByTestId, queryByText } = render(
         <ErrorView
-          message="Error loading data"
+          message='Error loading data'
           fullScreen={false}
-          icon="warning-outline"
+          icon='warning-outline'
         />
       );
 
@@ -472,9 +450,7 @@ describe('ErrorView Component', () => {
       const styles = Array.isArray(container?.props.style)
         ? container.props.style.flat()
         : [container?.props.style];
-      const hasFullScreenStyle = styles.some((style: any) =>
-        style?.flex === 1
-      );
+      const hasFullScreenStyle = styles.some((style: any) => style?.flex === 1);
       expect(hasFullScreenStyle).toBe(false);
     });
 
@@ -482,8 +458,8 @@ describe('ErrorView Component', () => {
       const onRetry = jest.fn();
       const { getByText, getByTestId } = render(
         <ErrorView
-          message="Custom error"
-          icon="close-circle-outline"
+          message='Custom error'
+          icon='close-circle-outline'
           onRetry={onRetry}
         />
       );
@@ -499,10 +475,7 @@ describe('ErrorView Component', () => {
     it('multiple retry button presses work correctly', () => {
       const onRetry = jest.fn();
       const { getByText } = render(
-        <ErrorView
-          message="Retry test"
-          onRetry={onRetry}
-        />
+        <ErrorView message='Retry test' onRetry={onRetry} />
       );
 
       const button = getByText('Try Again');
@@ -525,9 +498,7 @@ describe('ErrorView Component', () => {
 
   describe('Styling Verification', () => {
     it('applies correct container styles', () => {
-      const { getByText } = render(
-        <ErrorView message="Test" />
-      );
+      const { getByText } = render(<ErrorView message='Test' />);
       const container = getByText('Test').parent;
       const styles = Array.isArray(container?.props.style)
         ? container.props.style.flat()
@@ -545,9 +516,7 @@ describe('ErrorView Component', () => {
     });
 
     it('applies correct message text styles', () => {
-      const { getByText } = render(
-        <ErrorView message="Style test" />
-      );
+      const { getByText } = render(<ErrorView message='Style test' />);
       const message = getByText('Style test');
       const styles = Array.isArray(message.props.style)
         ? message.props.style.flat()
@@ -556,7 +525,7 @@ describe('ErrorView Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            marginTop: 16,
+            marginTop: 20,
             fontSize: 18,
             color: '#171717',
             textAlign: 'center',
@@ -568,7 +537,7 @@ describe('ErrorView Component', () => {
 
     it('applies correct retry button styles', () => {
       const { getByText } = render(
-        <ErrorView message="Test" onRetry={() => {}} />
+        <ErrorView message='Test' onRetry={() => {}} />
       );
       const button = getByText('Try Again').parent;
       const styles = Array.isArray(button?.props.style)
@@ -579,10 +548,10 @@ describe('ErrorView Component', () => {
         expect.arrayContaining([
           expect.objectContaining({
             marginTop: 24,
-            backgroundColor: '#0EA5E9',
+            backgroundColor: '#171717',
             paddingHorizontal: 24,
-            paddingVertical: 12,
-            borderRadius: 12,
+            paddingVertical: 16,
+            borderRadius: 16,
           }),
         ])
       );
@@ -590,7 +559,7 @@ describe('ErrorView Component', () => {
 
     it('applies correct retry button text styles', () => {
       const { getByText } = render(
-        <ErrorView message="Test" onRetry={() => {}} />
+        <ErrorView message='Test' onRetry={() => {}} />
       );
       const buttonText = getByText('Try Again');
       const styles = Array.isArray(buttonText.props.style)
@@ -600,7 +569,7 @@ describe('ErrorView Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: '600',
             color: '#FFFFFF',
           }),

@@ -2,29 +2,17 @@ import React from 'react';
 import { fireEvent, render, createMockNavigation } from '../../test-utils';
 import { QuickActions } from '../QuickActions';
 
-import { Dimensions } from 'react-native';
-
 /**
  * QuickActions Component Tests
  *
- * Tests the QuickActions component functionality including:
- * - Component rendering and structure
- * - All action button rendering (4 buttons)
- * - Navigation handlers for each action
- * - Icon rendering for each action type
- * - Styling and layout (flexDirection, gap, padding, borderRadius)
- * - Button press interactions
- * - Responsive button sizing
- * - Multiple interactions
- * - Edge cases and re-renders
- *
- * Coverage: 100%
- * Total Tests: 29
+ * Realigned 2026-05-31 to the Airbnb-restyle redesign of QuickActions.
+ * The component now renders 4 actions — Invoices / Expenses / Payouts /
+ * Reports — navigating to InvoiceManagement / Expenses / Payouts / Reporting.
+ * Tests cover rendering, navigation handlers, icon rendering, and styling.
  */
 
 describe('QuickActions', () => {
   let mockNavigation: ReturnType<typeof createMockNavigation>;
-  const { width: screenWidth } = Dimensions.get('window');
 
   beforeEach(() => {
     mockNavigation = createMockNavigation();
@@ -39,56 +27,70 @@ describe('QuickActions', () => {
     });
 
     it('should render actions container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const container = getByText('Quick Actions').parent;
       expect(container).toBeTruthy();
     });
 
     it('should render title "Quick Actions"', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       expect(getByText('Quick Actions')).toBeTruthy();
     });
 
     it('should render all 4 action buttons', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      expect(getByText('Create Invoice')).toBeTruthy();
-      expect(getByText('Add Expense')).toBeTruthy();
-      expect(getByText('Record Payment')).toBeTruthy();
-      expect(getByText('View Reports')).toBeTruthy();
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      expect(getByText('Invoices')).toBeTruthy();
+      expect(getByText('Expenses')).toBeTruthy();
+      expect(getByText('Payouts')).toBeTruthy();
+      expect(getByText('Reports')).toBeTruthy();
     });
 
     it('should render action buttons container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices').parent;
       expect(button).toBeTruthy();
     });
   });
 
   describe('Title Styling', () => {
     it('should apply correct title font size', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const title = getByText('Quick Actions');
 
       expect(title.props.style).toEqual(
         expect.objectContaining({
-          fontSize: 16,
+          fontSize: 18,
         })
       );
     });
 
     it('should apply correct title font weight', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const title = getByText('Quick Actions');
 
       expect(title.props.style).toEqual(
         expect.objectContaining({
-          fontWeight: '600',
+          fontWeight: '700',
         })
       );
     });
 
     it('should apply textPrimary color to title', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const title = getByText('Quick Actions');
 
       expect(title.props.style).toEqual(
@@ -99,7 +101,9 @@ describe('QuickActions', () => {
     });
 
     it('should apply marginBottom of 16 to title', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const title = getByText('Quick Actions');
 
       expect(title.props.style).toEqual(
@@ -110,186 +114,229 @@ describe('QuickActions', () => {
     });
   });
 
-  describe('Create Invoice Button', () => {
-    it('should navigate to CreateInvoice when pressed', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice');
+  describe('Invoices Button', () => {
+    it('should navigate to InvoiceManagement when pressed', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices');
 
       fireEvent.press(button.parent as any);
 
       expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('CreateInvoice');
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('InvoiceManagement');
     });
 
     it('should render receipt-outline icon', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices').parent;
       const icon = button?.findByProps({ name: 'receipt-outline' });
 
       expect(icon).toBeTruthy();
     });
 
-    it('should render icon with size 24', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+    it('should render icon with size 22', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices').parent;
       const icon = button?.findByProps({ name: 'receipt-outline' });
 
-      expect(icon?.props.size).toBe(24);
+      expect(icon?.props.size).toBe(22);
     });
 
     it('should render icon with primary color', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices').parent;
       const icon = button?.findByProps({ name: 'receipt-outline' });
 
-      expect(icon?.props.color).toBe('#222222');
+      expect(icon?.props.color).toBe('#0D9488');
     });
   });
 
-  describe('Add Expense Button', () => {
-    it('should navigate to AddExpense when pressed', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Add Expense');
+  describe('Expenses Button', () => {
+    it('should navigate to Expenses when pressed', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Expenses');
 
       fireEvent.press(button.parent as any);
 
       expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('AddExpense');
+      expect(mockNavigation.navigate).toHaveBeenCalledWith(
+        'Expenses',
+        undefined
+      );
     });
 
     it('should render card-outline icon', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Add Expense').parent;
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Expenses').parent;
       const icon = button?.findByProps({ name: 'card-outline' });
 
       expect(icon).toBeTruthy();
     });
 
-    it('should render icon with size 24', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Add Expense').parent;
+    it('should render icon with size 22', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Expenses').parent;
       const icon = button?.findByProps({ name: 'card-outline' });
 
-      expect(icon?.props.size).toBe(24);
+      expect(icon?.props.size).toBe(22);
     });
 
-    it('should render icon with primary color', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Add Expense').parent;
+    it('should render icon with accent color', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Expenses').parent;
       const icon = button?.findByProps({ name: 'card-outline' });
 
-      expect(icon?.props.color).toBe('#222222');
+      expect(icon?.props.color).toBe('#F59E0B');
     });
   });
 
-  describe('Record Payment Button', () => {
-    it('should navigate to RecordPayment when pressed', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Record Payment');
+  describe('Payouts Button', () => {
+    it('should navigate to Payouts when pressed', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Payouts');
 
       fireEvent.press(button.parent as any);
 
       expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('RecordPayment');
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('Payouts');
     });
 
-    it('should render checkmark-circle-outline icon', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Record Payment').parent;
-      const icon = button?.findByProps({ name: 'checkmark-circle-outline' });
+    it('should render cash-outline icon', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Payouts').parent;
+      const icon = button?.findByProps({ name: 'cash-outline' });
 
       expect(icon).toBeTruthy();
     });
 
-    it('should render icon with size 24', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Record Payment').parent;
-      const icon = button?.findByProps({ name: 'checkmark-circle-outline' });
+    it('should render icon with size 22', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Payouts').parent;
+      const icon = button?.findByProps({ name: 'cash-outline' });
 
-      expect(icon?.props.size).toBe(24);
+      expect(icon?.props.size).toBe(22);
     });
 
-    it('should render icon with primary color', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Record Payment').parent;
-      const icon = button?.findByProps({ name: 'checkmark-circle-outline' });
+    it('should render icon with blue color', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Payouts').parent;
+      const icon = button?.findByProps({ name: 'cash-outline' });
 
-      expect(icon?.props.color).toBe('#222222');
+      expect(icon?.props.color).toBe('#3B82F6');
     });
   });
 
-  describe('View Reports Button', () => {
-    it('should navigate to FinanceReports when pressed', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('View Reports');
+  describe('Reports Button', () => {
+    it('should navigate to Reporting when pressed', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Reports');
 
       fireEvent.press(button.parent as any);
 
       expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('FinanceReports');
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('Reporting');
     });
 
     it('should render analytics-outline icon', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('View Reports').parent;
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Reports').parent;
       const icon = button?.findByProps({ name: 'analytics-outline' });
 
       expect(icon).toBeTruthy();
     });
 
-    it('should render icon with size 24', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('View Reports').parent;
+    it('should render icon with size 22', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Reports').parent;
       const icon = button?.findByProps({ name: 'analytics-outline' });
 
-      expect(icon?.props.size).toBe(24);
+      expect(icon?.props.size).toBe(22);
     });
 
-    it('should render icon with primary color', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('View Reports').parent;
+    it('should render icon with purple color', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Reports').parent;
       const icon = button?.findByProps({ name: 'analytics-outline' });
 
-      expect(icon?.props.color).toBe('#222222');
+      expect(icon?.props.color).toBe('#8B5CF6');
     });
   });
 
   describe('Container Styling', () => {
-    it('should apply background color to container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+    it('should apply surface background color to container', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const container = getByText('Quick Actions').parent;
 
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          backgroundColor: '#F7F7F7',
+          backgroundColor: '#FFFFFF',
         })
       );
     });
 
     it('should apply borderRadius to container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const container = getByText('Quick Actions').parent;
 
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          borderRadius: 16,
+          borderRadius: 20,
         })
       );
     });
 
-    it('should apply padding of 16 to container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+    it('should apply padding of 20 to container', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const container = getByText('Quick Actions').parent;
 
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          padding: 16,
+          padding: 20,
         })
       );
     });
 
     it('should apply marginBottom of 16 to container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
       const container = getByText('Quick Actions').parent;
 
       expect(container?.props.style).toEqual(
@@ -300,10 +347,12 @@ describe('QuickActions', () => {
     });
   });
 
-  describe('Action Buttons Container Styling', () => {
-    it('should apply flexDirection row to action buttons container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+  describe('Action Buttons Row Styling', () => {
+    it('should apply flexDirection row to action buttons row', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices').parent;
       const container = button?.parent;
 
       expect(container?.props.style).toEqual(
@@ -313,26 +362,16 @@ describe('QuickActions', () => {
       );
     });
 
-    it('should apply flexWrap to action buttons container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-      const container = button?.parent;
-
-      expect(container?.props.style).toEqual(
-        expect.objectContaining({
-          flexWrap: 'wrap',
-        })
+    it('should apply justifyContent space-between to action buttons row', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
       );
-    });
-
-    it('should apply gap of 12 to action buttons container', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+      const button = getByText('Invoices').parent;
       const container = button?.parent;
 
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          gap: 12,
+          justifyContent: 'space-between',
         })
       );
     });
@@ -340,8 +379,10 @@ describe('QuickActions', () => {
 
   describe('Individual Action Button Styling', () => {
     it('should apply flex 1 to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices').parent;
 
       expect(button?.props.style).toEqual(
         expect.objectContaining({
@@ -350,21 +391,11 @@ describe('QuickActions', () => {
       );
     });
 
-    it('should apply correct minWidth to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-      const expectedMinWidth = (screenWidth - 72) / 2;
-
-      expect(button?.props.style).toEqual(
-        expect.objectContaining({
-          minWidth: expectedMinWidth,
-        })
-      );
-    });
-
     it('should apply alignItems center to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices').parent;
 
       expect(button?.props.style).toEqual(
         expect.objectContaining({
@@ -372,78 +403,14 @@ describe('QuickActions', () => {
         })
       );
     });
-
-    it('should apply paddingVertical of 16 to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-
-      expect(button?.props.style).toEqual(
-        expect.objectContaining({
-          paddingVertical: 16,
-        })
-      );
-    });
-
-    it('should apply paddingHorizontal of 12 to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-
-      expect(button?.props.style).toEqual(
-        expect.objectContaining({
-          paddingHorizontal: 12,
-        })
-      );
-    });
-
-    it('should apply borderRadius to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-
-      expect(button?.props.style).toEqual(
-        expect.objectContaining({
-          borderRadius: 16,
-        })
-      );
-    });
-
-    it('should apply borderWidth of 1 to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-
-      expect(button?.props.style).toEqual(
-        expect.objectContaining({
-          borderWidth: 1,
-        })
-      );
-    });
-
-    it('should apply border color to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-
-      expect(button?.props.style).toEqual(
-        expect.objectContaining({
-          borderColor: '#EBEBEB',
-        })
-      );
-    });
-
-    it('should apply background color to action button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice').parent;
-
-      expect(button?.props.style).toEqual(
-        expect.objectContaining({
-          backgroundColor: '#F7F7F7',
-        })
-      );
-    });
   });
 
   describe('Action Button Text Styling', () => {
     it('should apply fontSize of 12 to button text', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const text = getByText('Create Invoice');
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const text = getByText('Invoices');
 
       expect(text.props.style).toEqual(
         expect.objectContaining({
@@ -453,8 +420,10 @@ describe('QuickActions', () => {
     });
 
     it('should apply textPrimary color to button text', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const text = getByText('Create Invoice');
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const text = getByText('Invoices');
 
       expect(text.props.style).toEqual(
         expect.objectContaining({
@@ -463,20 +432,11 @@ describe('QuickActions', () => {
       );
     });
 
-    it('should apply marginTop of 8 to button text', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const text = getByText('Create Invoice');
-
-      expect(text.props.style).toEqual(
-        expect.objectContaining({
-          marginTop: 8,
-        })
-      );
-    });
-
     it('should apply textAlign center to button text', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const text = getByText('Create Invoice');
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const text = getByText('Invoices');
 
       expect(text.props.style).toEqual(
         expect.objectContaining({
@@ -485,13 +445,15 @@ describe('QuickActions', () => {
       );
     });
 
-    it('should apply fontWeight 500 to button text', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const text = getByText('Create Invoice');
+    it('should apply fontWeight 600 to button text', () => {
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const text = getByText('Invoices');
 
       expect(text.props.style).toEqual(
         expect.objectContaining({
-          fontWeight: '500',
+          fontWeight: '600',
         })
       );
     });
@@ -499,32 +461,52 @@ describe('QuickActions', () => {
 
   describe('Multiple Interactions', () => {
     it('should handle multiple button presses', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
 
-      fireEvent.press(getByText('Create Invoice').parent as any);
-      fireEvent.press(getByText('Add Expense').parent as any);
-      fireEvent.press(getByText('Record Payment').parent as any);
-      fireEvent.press(getByText('View Reports').parent as any);
+      fireEvent.press(getByText('Invoices').parent as any);
+      fireEvent.press(getByText('Expenses').parent as any);
+      fireEvent.press(getByText('Payouts').parent as any);
+      fireEvent.press(getByText('Reports').parent as any);
 
       expect(mockNavigation.navigate).toHaveBeenCalledTimes(4);
-      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(1, 'CreateInvoice');
-      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(2, 'AddExpense');
-      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(3, 'RecordPayment');
-      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(4, 'FinanceReports');
+      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(
+        1,
+        'InvoiceManagement'
+      );
+      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(
+        2,
+        'Expenses',
+        undefined
+      );
+      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(3, 'Payouts');
+      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(4, 'Reporting');
     });
 
     it('should handle repeated presses of same button', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
-      const button = getByText('Create Invoice');
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
+      const button = getByText('Invoices');
 
       fireEvent.press(button.parent as any);
       fireEvent.press(button.parent as any);
       fireEvent.press(button.parent as any);
 
       expect(mockNavigation.navigate).toHaveBeenCalledTimes(3);
-      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(1, 'CreateInvoice');
-      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(2, 'CreateInvoice');
-      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(3, 'CreateInvoice');
+      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(
+        1,
+        'InvoiceManagement'
+      );
+      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(
+        2,
+        'InvoiceManagement'
+      );
+      expect(mockNavigation.navigate).toHaveBeenNthCalledWith(
+        3,
+        'InvoiceManagement'
+      );
     });
   });
 
@@ -533,58 +515,65 @@ describe('QuickActions', () => {
       const navigation1 = createMockNavigation();
       const navigation2 = createMockNavigation();
 
-      const { rerender, getByText } = render(<QuickActions navigation={navigation1 as any} />);
+      const { rerender, getByText } = render(
+        <QuickActions navigation={navigation1 as any} />
+      );
       expect(getByText('Quick Actions')).toBeTruthy();
 
       rerender(<QuickActions navigation={navigation2 as any} />);
       expect(getByText('Quick Actions')).toBeTruthy();
-      expect(getByText('Create Invoice')).toBeTruthy();
+      expect(getByText('Invoices')).toBeTruthy();
     });
 
     it('should maintain component structure on re-renders', () => {
-      const { getByText, rerender } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText, rerender } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
 
       expect(getByText('Quick Actions')).toBeTruthy();
-      expect(getByText('Create Invoice')).toBeTruthy();
-      expect(getByText('Add Expense')).toBeTruthy();
-      expect(getByText('Record Payment')).toBeTruthy();
-      expect(getByText('View Reports')).toBeTruthy();
+      expect(getByText('Invoices')).toBeTruthy();
+      expect(getByText('Expenses')).toBeTruthy();
+      expect(getByText('Payouts')).toBeTruthy();
+      expect(getByText('Reports')).toBeTruthy();
 
       rerender(<QuickActions navigation={mockNavigation as any} />);
 
       expect(getByText('Quick Actions')).toBeTruthy();
-      expect(getByText('Create Invoice')).toBeTruthy();
-      expect(getByText('Add Expense')).toBeTruthy();
-      expect(getByText('Record Payment')).toBeTruthy();
-      expect(getByText('View Reports')).toBeTruthy();
+      expect(getByText('Invoices')).toBeTruthy();
+      expect(getByText('Expenses')).toBeTruthy();
+      expect(getByText('Payouts')).toBeTruthy();
+      expect(getByText('Reports')).toBeTruthy();
     });
 
     it('should render all buttons after navigation instance changes', () => {
       const navigation1 = createMockNavigation();
       const navigation2 = createMockNavigation();
 
-      const { rerender, getByText } = render(<QuickActions navigation={navigation1 as any} />);
+      const { rerender, getByText } = render(
+        <QuickActions navigation={navigation1 as any} />
+      );
 
-      fireEvent.press(getByText('Create Invoice').parent as any);
-      expect(navigation1.navigate).toHaveBeenCalledWith('CreateInvoice');
+      fireEvent.press(getByText('Invoices').parent as any);
+      expect(navigation1.navigate).toHaveBeenCalledWith('InvoiceManagement');
 
       rerender(<QuickActions navigation={navigation2 as any} />);
 
-      fireEvent.press(getByText('Add Expense').parent as any);
-      expect(navigation2.navigate).toHaveBeenCalledWith('AddExpense');
+      fireEvent.press(getByText('Expenses').parent as any);
+      expect(navigation2.navigate).toHaveBeenCalledWith('Expenses', undefined);
       expect(navigation1.navigate).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('Actions Array Structure', () => {
     it('should render actions in correct order', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
 
-      // Verify all 4 buttons exist
-      const button1 = getByText('Create Invoice').parent;
-      const button2 = getByText('Add Expense').parent;
-      const button3 = getByText('Record Payment').parent;
-      const button4 = getByText('View Reports').parent;
+      const button1 = getByText('Invoices').parent;
+      const button2 = getByText('Expenses').parent;
+      const button3 = getByText('Payouts').parent;
+      const button4 = getByText('Reports').parent;
 
       expect(button1).toBeTruthy();
       expect(button2).toBeTruthy();
@@ -593,11 +582,13 @@ describe('QuickActions', () => {
     });
 
     it('should render all action labels correctly', () => {
-      const { getByText } = render(<QuickActions navigation={mockNavigation as any} />);
+      const { getByText } = render(
+        <QuickActions navigation={mockNavigation as any} />
+      );
 
-      const labels = ['Create Invoice', 'Add Expense', 'Record Payment', 'View Reports'];
+      const labels = ['Invoices', 'Expenses', 'Payouts', 'Reports'];
 
-      labels.forEach(label => {
+      labels.forEach((label) => {
         expect(getByText(label)).toBeTruthy();
       });
     });

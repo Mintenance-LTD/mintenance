@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { act } from '@testing-library/react-native';
 import { render, fireEvent, waitFor } from '../test-utils';
@@ -12,7 +11,36 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// The Reanimated-backed animation primitives pull the real native module in
+// jest (the repo's reanimated mock chokes on it). They're pure presentation
+// wrappers — render children straight through.
+jest.mock('../../components/animations/primitives', () => {
+  const ReactActual = require('react');
+  const pass = ({ children }: { children: React.ReactNode }) =>
+    ReactActual.createElement(ReactActual.Fragment, null, children);
+  return {
+    FadeIn: pass,
+    SlideIn: pass,
+    ScaleIn: pass,
+    Pulse: pass,
+    BouncyPress: pass,
+  };
+});
+
+// Screen-capture guard hits expo-screen-capture native APIs — no-op it.
+jest.mock('../../hooks/useScreenCaptureGuard', () => ({
+  useScreenCaptureGuard: jest.fn(),
+}));
+
+// expo-status-bar's StatusBar calls react-native's useColorScheme, which the
+// project's hand-written react-native mock doesn't implement. Render nothing.
+jest.mock('expo-status-bar', () => ({
+  StatusBar: () => null,
+}));
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');
@@ -24,20 +52,30 @@ jest.mock('../../utils/haptics', () => ({
     formSubmit: jest.fn(),
     loginSuccess: jest.fn(),
     loginFailed: jest.fn(),
+    selection: jest.fn(),
     error: jest.fn(),
   }),
 }));
 
-// Mock i18n
+// Mock i18n. The screen passes object fallbacks ({ defaultValue }) into t(),
+// so the mock must resolve those to the default-value string (mirrors the
+// production useI18n behaviour) for the validation copy to render.
 jest.mock('../../hooks/useI18n', () => ({
   useI18n: () => ({
-    t: jest.fn((key, fallback) => fallback || key),
+    t: jest.fn((key: string, fallback?: { defaultValue?: string } | string) => {
+      if (typeof fallback === 'string') return fallback;
+      if (fallback && typeof fallback === 'object' && fallback.defaultValue) {
+        return fallback.defaultValue;
+      }
+      return key;
+    }),
     auth: {
       email: () => 'Email',
       password: () => 'Password',
       login: () => 'Log In',
       loggingIn: () => 'Logging in...',
       forgotPassword: () => 'Forgot Password?',
+      createAccount: () => 'Sign Up',
       signUp: () => 'Sign Up',
       register: () => 'Sign Up',
     },
@@ -54,7 +92,6 @@ jest.mock('../../hooks/useAccessibleText', () => ({
     textStyle: {},
   }),
 }));
-
 
 // Create navigation mock using factory
 const mockNavigation = NavigationMockFactory.createAuthNavigationMock();
@@ -77,18 +114,23 @@ describe('LoginScreen', () => {
     jest.clearAllMocks();
   });
 
-
   it('renders login form correctly', () => {
-    const { getByTestId, getByText } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByTestId, getByText } = render(
+      <LoginScreen navigation={mockNavigation} />
+    );
 
     expect(getByTestId('email-input')).toBeTruthy();
     expect(getByTestId('password-input')).toBeTruthy();
+    // Mint Editorial redesign: primary button label comes from auth.login()
+    // ('Log In'); the footer sign-up CTA renders as 'Sign up →'.
     expect(getByText('Log In')).toBeTruthy();
-    expect(getByText('Sign Up')).toBeTruthy();
+    expect(getByText('Sign up →')).toBeTruthy();
   });
 
   it('validates required fields', async () => {
-    const { getByLabelText, getByText } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByLabelText, getByText } = render(
+      <LoginScreen navigation={mockNavigation} />
+    );
 
     await act(async () => {
       fireEvent.press(getByLabelText('Log In'));
@@ -118,9 +160,11 @@ describe('LoginScreen', () => {
 
   it('calls signIn when form is valid', async () => {
     const mockSignIn = jest.fn().mockResolvedValue({});
-    mockUseAuth.mockReturnValue(AuthMockFactory.createCompleteAuthMock({
-      signIn: mockSignIn,
-    }));
+    mockUseAuth.mockReturnValue(
+      AuthMockFactory.createCompleteAuthMock({
+        signIn: mockSignIn,
+      })
+    );
 
     const { getByLabelText, getByTestId } = render(
       <LoginScreen navigation={mockNavigation} />
@@ -147,18 +191,27 @@ describe('LoginScreen', () => {
   it('shows loading state during sign in', () => {
     mockUseAuth.mockReturnValue(AuthMockFactory.createLoadingState());
 
-    const { getByTestId } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByLabelText } = render(
+      <LoginScreen navigation={mockNavigation} />
+    );
 
-    expect(getByTestId('loading-spinner')).toBeTruthy();
+    // Mint Editorial redesign dropped the bespoke 'loading-spinner' testID;
+    // the loading branch now relabels the primary button to the
+    // 'auth.loggingIn' i18n key (no defaultValue passed) and marks it busy.
+    const loadingButton = getByLabelText('auth.loggingIn');
+    expect(loadingButton).toBeTruthy();
+    expect(loadingButton.props.accessibilityState.busy).toBe(true);
   });
 
   it('displays error message on sign in failure', async () => {
     const mockSignIn = jest
       .fn()
       .mockRejectedValue(new Error('Invalid credentials'));
-    mockUseAuth.mockReturnValue(AuthMockFactory.createCompleteAuthMock({
-      signIn: mockSignIn,
-    }));
+    mockUseAuth.mockReturnValue(
+      AuthMockFactory.createCompleteAuthMock({
+        signIn: mockSignIn,
+      })
+    );
 
     const { getByLabelText, getByTestId, getByText } = render(
       <LoginScreen navigation={mockNavigation} />
@@ -182,7 +235,7 @@ describe('LoginScreen', () => {
   it('navigates to register screen when sign up link is pressed', () => {
     const { getByText } = render(<LoginScreen navigation={mockNavigation} />);
 
-    act(() => fireEvent.press(getByText('Sign Up')));
+    act(() => fireEvent.press(getByText('Sign up →')));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('Register');
   });
@@ -190,7 +243,7 @@ describe('LoginScreen', () => {
   it('navigates to forgot password screen', () => {
     const { getByText } = render(<LoginScreen navigation={mockNavigation} />);
 
-    act(() => fireEvent.press(getByText('Forgot Password?')));
+    act(() => fireEvent.press(getByText('Forgot?')));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('ForgotPassword');
   });
@@ -199,7 +252,7 @@ describe('LoginScreen', () => {
     const { getByTestId } = render(<LoginScreen navigation={mockNavigation} />);
 
     const passwordInput = getByTestId('password-input');
-    
+
     // Password input should be secure by default
     expect(passwordInput.props.secureTextEntry).toBe(true);
   });
@@ -216,9 +269,11 @@ describe('LoginScreen', () => {
 
   it('successfully calls signIn with valid form', async () => {
     const mockSignIn = jest.fn().mockResolvedValue({});
-    mockUseAuth.mockReturnValue(AuthMockFactory.createCompleteAuthMock({
-      signIn: mockSignIn,
-    }));
+    mockUseAuth.mockReturnValue(
+      AuthMockFactory.createCompleteAuthMock({
+        signIn: mockSignIn,
+      })
+    );
 
     const { getByLabelText, getByTestId } = render(
       <LoginScreen navigation={mockNavigation} />
@@ -235,7 +290,10 @@ describe('LoginScreen', () => {
     });
 
     await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(mockSignIn).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123'
+      );
     });
   });
 });

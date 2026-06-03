@@ -1,43 +1,101 @@
 import { CacheManager } from '../../../utils/cache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-jest.mock('@react-native-async-storage/async-storage');
+// NOTE (test realignment 2026-06-02): the original suite assumed a
+// CacheManager(options) with delete()/getOrFetch()/setWithWriteThrough()/
+// getWithRefreshAhead(), count-based LRU eviction, a number TTL arg, and a
+// stats shape of { hits, misses, size, sizeInBytes }. None of that exists in
+// src/utils/cache (CacheManager). The real class: constructor takes no args,
+// set(key, value, config?) where config is a CacheConfig object ({ ttl, ... }),
+// invalidate() (not delete), clear(), getStats() -> { hitRate, totalHits,
+// totalMisses, entryCount, ... }. Persistence is an AsyncStorage disk layer
+// keyed `cache_<key>`; values are JSON serialized. Rewritten to the CURRENT
+// contract. No source changes made.
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: jest.fn().mockResolvedValue(null),
+    setItem: jest.fn().mockResolvedValue(undefined),
+    removeItem: jest.fn().mockResolvedValue(undefined),
+    getAllKeys: jest.fn().mockResolvedValue([]),
+    multiRemove: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock('../../../utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+jest.mock('../../../utils/performance', () => ({
+  performanceMonitor: { recordMetric: jest.fn() },
+}));
+
+const mockedStorage = AsyncStorage as unknown as {
+  getItem: jest.Mock;
+  setItem: jest.Mock;
+  removeItem: jest.Mock;
+  getAllKeys: jest.Mock;
+  multiRemove: jest.Mock;
+};
 
 describe('Cache Manager - Comprehensive', () => {
   let cache: CacheManager;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedStorage.getItem.mockResolvedValue(null);
+    mockedStorage.setItem.mockResolvedValue(undefined);
+    mockedStorage.removeItem.mockResolvedValue(undefined);
+    mockedStorage.getAllKeys.mockResolvedValue([]);
+    mockedStorage.multiRemove.mockResolvedValue(undefined);
     cache = new CacheManager();
   });
 
   describe('Basic Operations', () => {
-    it('should set and get cache values', async () => {
+    it('should set and get cache values (memory layer, round-trips JSON)', async () => {
       const data = { id: 1, name: 'Test' };
 
-      await cache.set('key1', data);
+      const ok = await cache.set('key1', data);
       const retrieved = await cache.get('key1');
 
+      expect(ok).toBe(true);
       expect(retrieved).toEqual(data);
     });
 
-    it('should handle cache miss', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    it('should return null on a cache miss', async () => {
+      mockedStorage.getItem.mockResolvedValue(null);
 
       const result = await cache.get('nonexistent');
 
       expect(result).toBeNull();
     });
 
-    it('should delete cache entries', async () => {
+    it('should persist to the disk layer under a cache_ key', async () => {
       await cache.set('key1', 'value');
-      await cache.delete('key1');
 
-      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('cache_key1');
+      expect(mockedStorage.setItem).toHaveBeenCalledWith(
+        'cache_key1',
+        expect.any(String)
+      );
     });
 
-    it('should clear all cache', async () => {
-      (AsyncStorage.getAllKeys as jest.Mock).mockResolvedValue([
+    it('should invalidate a single entry from disk and memory', async () => {
+      await cache.set('key1', 'value');
+      const removed = await cache.invalidate('key1');
+
+      expect(removed).toBe(true);
+      expect(mockedStorage.removeItem).toHaveBeenCalledWith('cache_key1');
+      expect(await cache.get('key1')).toBeNull();
+    });
+
+    it('should clear all cache_-prefixed disk keys', async () => {
+      mockedStorage.getAllKeys.mockResolvedValue([
         'cache_key1',
         'cache_key2',
         'other_key',
@@ -45,145 +103,113 @@ describe('Cache Manager - Comprehensive', () => {
 
       await cache.clear();
 
-      expect(AsyncStorage.multiRemove).toHaveBeenCalledWith([
+      expect(mockedStorage.multiRemove).toHaveBeenCalledWith([
         'cache_key1',
         'cache_key2',
       ]);
     });
   });
 
+  describe('Disk Promotion', () => {
+    it('should read a valid entry from disk and promote it to memory', async () => {
+      const freshCache = new CacheManager();
+      const entry = {
+        key: 'dkey',
+        value: JSON.stringify({ from: 'disk' }),
+        timestamp: Date.now(),
+        accessCount: 1,
+        lastAccessed: Date.now(),
+        ttl: 60_000,
+        size: 10,
+        priority: 'normal',
+        tags: [],
+        compressed: false,
+        encrypted: false,
+      };
+      mockedStorage.getItem.mockResolvedValueOnce(JSON.stringify(entry));
+
+      const result = await freshCache.get('dkey');
+
+      expect(result).toEqual({ from: 'disk' });
+    });
+  });
+
   describe('TTL (Time To Live)', () => {
-    it('should respect TTL', async () => {
-      const data = 'test data';
-      const ttl = 1000; // 1 second
+    it('should expose ttl on the stored entry and serve fresh values', async () => {
+      await cache.set('key1', 'test data', { ttl: 1000 });
+      expect(await cache.get('key1')).toBe('test data');
+    });
 
-      await cache.set('key1', data, ttl);
+    it('should treat an entry past its ttl as a miss', async () => {
+      const realNow = Date.now;
+      const base = realNow();
+      const spy = jest.spyOn(Date, 'now');
+      // Stamp the entry "now".
+      spy.mockReturnValue(base);
+      await cache.set('key1', 'data', { ttl: 1000, persistToDisk: false });
+      expect(await cache.get('key1')).toBe('data');
 
-      // Immediately should be available
-      expect(await cache.get('key1')).toBe(data);
-
-      // Mock time passing
-      jest.advanceTimersByTime(1100);
-
-      // Should be expired
+      // Advance virtual clock past the TTL -> isValid() is false.
+      spy.mockReturnValue(base + 2000);
       expect(await cache.get('key1')).toBeNull();
-    });
 
-    it('should handle infinite TTL', async () => {
-      await cache.set('key1', 'data', Infinity);
-
-      jest.advanceTimersByTime(1000000);
-
-      expect(await cache.get('key1')).toBe('data');
-    });
-  });
-
-  describe('Memory Management', () => {
-    it('should enforce max size limit', async () => {
-      cache = new CacheManager({ maxSize: 3 });
-
-      await cache.set('key1', 'value1');
-      await cache.set('key2', 'value2');
-      await cache.set('key3', 'value3');
-      await cache.set('key4', 'value4'); // Should evict oldest
-
-      expect(await cache.get('key1')).toBeNull(); // Evicted
-      expect(await cache.get('key4')).toBe('value4');
-    });
-
-    it('should use LRU eviction', async () => {
-      cache = new CacheManager({ maxSize: 3, evictionPolicy: 'LRU' });
-
-      await cache.set('key1', 'value1');
-      await cache.set('key2', 'value2');
-      await cache.set('key3', 'value3');
-
-      // Access key1 to make it recently used
-      await cache.get('key1');
-
-      await cache.set('key4', 'value4');
-
-      expect(await cache.get('key2')).toBeNull(); // Least recently used
-      expect(await cache.get('key1')).toBe('value1'); // Still exists
-    });
-  });
-
-  describe('Cache Patterns', () => {
-    it('should implement cache-aside pattern', async () => {
-      const fetchData = jest.fn().mockResolvedValue({ data: 'fresh' });
-
-      const result = await cache.getOrFetch('key1', fetchData);
-
-      expect(result).toEqual({ data: 'fresh' });
-      expect(fetchData).toHaveBeenCalled();
-
-      // Second call should use cache
-      const cachedResult = await cache.getOrFetch('key1', fetchData);
-
-      expect(cachedResult).toEqual({ data: 'fresh' });
-      expect(fetchData).toHaveBeenCalledTimes(1); // Not called again
-    });
-
-    it('should implement write-through pattern', async () => {
-      const persistData = jest.fn().mockResolvedValue(true);
-
-      await cache.setWithWriteThrough('key1', 'data', persistData);
-
-      expect(persistData).toHaveBeenCalledWith('key1', 'data');
-      expect(await cache.get('key1')).toBe('data');
-    });
-
-    it('should implement refresh-ahead pattern', async () => {
-      const fetchFresh = jest.fn().mockResolvedValue('fresh data');
-
-      await cache.set('key1', 'stale data', 1000);
-
-      // Set up refresh ahead at 80% of TTL
-      await cache.getWithRefreshAhead('key1', fetchFresh, 0.8);
-
-      jest.advanceTimersByTime(850); // Past 80% of TTL
-
-      expect(fetchFresh).toHaveBeenCalled();
+      spy.mockRestore();
     });
   });
 
   describe('Cache Statistics', () => {
-    it('should track cache hits and misses', async () => {
+    it('should track hits and misses and compute hitRate', async () => {
       await cache.set('key1', 'value');
 
-      await cache.get('key1'); // Hit
-      await cache.get('key2'); // Miss
-      await cache.get('key1'); // Hit
+      await cache.get('key1'); // hit
+      await cache.get('missingKey'); // miss
+      await cache.get('key1'); // hit
 
       const stats = cache.getStats();
 
-      expect(stats.hits).toBe(2);
-      expect(stats.misses).toBe(1);
-      expect(stats.hitRate).toBe(0.67);
+      expect(stats.totalHits).toBe(2);
+      expect(stats.totalMisses).toBe(1);
+      expect(stats.totalRequests).toBe(3);
+      expect(stats.hitRate).toBeCloseTo(2 / 3, 5);
     });
 
-    it('should track cache size', async () => {
+    it('should track entry count and memory usage', async () => {
       await cache.set('key1', 'value1');
       await cache.set('key2', 'value2');
 
       const stats = cache.getStats();
 
-      expect(stats.size).toBe(2);
-      expect(stats.sizeInBytes).toBeGreaterThan(0);
+      expect(stats.entryCount).toBe(2);
+      expect(stats.memoryUsage).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Tag Invalidation', () => {
+    it('should invalidate all entries carrying a tag', async () => {
+      await cache.set('a', '1', { tags: ['group'] });
+      await cache.set('b', '2', { tags: ['group'] });
+      await cache.set('c', '3', { tags: ['other'] });
+
+      const count = await cache.invalidateByTag('group');
+
+      expect(count).toBe(2);
+      expect(await cache.get('a')).toBeNull();
+      expect(await cache.get('b')).toBeNull();
+      expect(await cache.get('c')).toBe('3');
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle storage errors gracefully', async () => {
-      (AsyncStorage.setItem as jest.Mock).mockRejectedValue(new Error('Storage full'));
+    it('should return false when disk persistence fails', async () => {
+      mockedStorage.setItem.mockRejectedValue(new Error('Storage full'));
 
       const result = await cache.set('key1', 'value');
 
       expect(result).toBe(false);
     });
 
-    it('should handle corrupted cache data', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('corrupted{json');
+    it('should return null for corrupted disk data', async () => {
+      mockedStorage.getItem.mockResolvedValue('corrupted{json');
 
       const result = await cache.get('key1');
 

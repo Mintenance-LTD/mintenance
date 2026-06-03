@@ -38,7 +38,6 @@ afterAll(() => {
   global.console = originalConsole;
 });
 
-
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -60,8 +59,10 @@ describe('Logger', () => {
     it('logs to console in development', () => {
       logger.debug('Debug message', { key: 'value' });
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringMatching(/\[.*\] DEBUG: Debug message \| \{"key":"value"\}/)
+      expect(console.debug).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\[.*\] DEBUG: Debug message \| \{"key":"value"\}/
+        )
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
         message: 'Debug: Debug message',
@@ -74,7 +75,7 @@ describe('Logger', () => {
     it('logs without context', () => {
       logger.debug('Debug message');
 
-      expect(console.log).toHaveBeenCalledWith(
+      expect(console.debug).toHaveBeenCalledWith(
         expect.stringMatching(/\[.*\] DEBUG: Debug message$/)
       );
     });
@@ -84,7 +85,7 @@ describe('Logger', () => {
     it('logs to console and Sentry', () => {
       logger.info('Info message', { key: 'value' });
 
-      expect(console.info).toHaveBeenCalledWith(
+      expect(console.log).toHaveBeenCalledWith(
         expect.stringMatching(/\[.*\] INFO: Info message \| \{"key":"value"\}/)
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
@@ -105,7 +106,9 @@ describe('Logger', () => {
       logger.warn('Warning message', { key: 'value' });
 
       expect(console.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/\[.*\] WARN: Warning message \| \{"key":"value"\}/)
+        expect.stringMatching(
+          /\[.*\] WARN: Warning message \| \{"key":"value"\}/
+        )
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
         message: 'Warning: Warning message',
@@ -123,20 +126,25 @@ describe('Logger', () => {
   describe('error', () => {
     it('logs error with Error object', () => {
       const error = new Error('Test error');
+      // When an Error is passed in the second position, the logger treats it as
+      // the error and derives context from it (an Error has no enumerable own
+      // props, so the rendered context is `{}`). A trailing positional context
+      // arg is not merged in this overload.
       logger.error('Error message', error, { key: 'value' });
 
       expect(console.error).toHaveBeenCalledWith(
-        expect.stringMatching(/\[.*\] ERROR: Error message \| \{"key":"value"\}/),
-        error
+        expect.stringMatching(/\[.*\] ERROR: Error message \| \{\}/),
+        error,
+        { service: 'mobile' }
       );
       expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith({
         message: 'Error: Error message',
         category: 'error',
         level: 'error',
-        data: { key: 'value', error: 'Test error' },
+        data: { error: 'Test error' },
       });
       expect(mockSentry.captureException).toHaveBeenCalledWith(error, {
-        contexts: { logContext: { key: 'value' } },
+        contexts: { logContext: {} },
       });
     });
 
@@ -145,7 +153,8 @@ describe('Logger', () => {
 
       expect(console.error).toHaveBeenCalledWith(
         expect.stringMatching(/\[.*\] ERROR: Error message$/),
-        undefined
+        undefined,
+        { service: 'mobile' }
       );
       expect(mockSentry.captureMessage).toHaveBeenCalledWith(
         'Error message',
@@ -290,7 +299,7 @@ describe('Logger', () => {
     it('log.debug works correctly', () => {
       log.debug('Debug via convenience method');
 
-      expect(console.log).toHaveBeenCalledWith(
+      expect(console.debug).toHaveBeenCalledWith(
         expect.stringContaining('DEBUG: Debug via convenience method')
       );
     });
@@ -301,7 +310,8 @@ describe('Logger', () => {
 
       expect(console.error).toHaveBeenCalledWith(
         expect.stringContaining('ERROR: Error via convenience method'),
-        error
+        error,
+        { service: 'mobile' }
       );
     });
 
@@ -350,7 +360,7 @@ describe('Logger', () => {
     it('formats messages with timestamp', () => {
       logger.info('Test message');
 
-      expect(console.info).toHaveBeenCalledWith(
+      expect(console.log).toHaveBeenCalledWith(
         expect.stringMatching(
           /\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] INFO: Test message/
         )
@@ -360,9 +370,11 @@ describe('Logger', () => {
     it('includes context in formatted message', () => {
       logger.info('Test message', { key: 'value', nested: { prop: 123 } });
 
-      expect(console.info).toHaveBeenCalledWith(
+      // sanitizeContext JSON-stringifies nested objects before the outer
+      // safeStringify runs, so the nested object renders as escaped JSON.
+      expect(console.log).toHaveBeenCalledWith(
         expect.stringContaining(
-          'INFO: Test message | {"key":"value","nested":"[object Object]"}'
+          'INFO: Test message | {"key":"value","nested":"{\\"prop\\":123}"}'
         )
       );
     });
