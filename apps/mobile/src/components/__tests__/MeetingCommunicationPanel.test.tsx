@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, TouchableOpacity } from 'react-native';
 import MeetingCommunicationPanel from '../MeetingCommunicationPanel';
 import { MeetingService } from '../../services/MeetingService';
 import { MessagingService } from '../../services/MessagingService';
@@ -62,16 +62,16 @@ const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 const mockMeeting = {
   id: 'meeting-123',
-  jobId: 'job-456',
-  contractorId: 'contractor-789',
-  homeownerId: 'homeowner-101',
-  meetingType: 'site_visit',
-  scheduledDateTime: '2026-02-15T10:00:00.000Z',
+  job_id: 'job-456',
+  contractor_id: 'contractor-789',
+  homeowner_id: 'homeowner-101',
+  meeting_type: 'site_visit' as const,
+  scheduled_datetime: '2026-02-15T10:00:00.000Z',
   status: 'scheduled' as const,
-  location: '123 Main St',
+  address: '123 Main St',
   notes: 'Initial site visit',
-  createdAt: '2026-01-20T00:00:00.000Z',
-  updatedAt: '2026-01-20T00:00:00.000Z',
+  created_at: '2026-01-20T00:00:00.000Z',
+  updated_at: '2026-01-20T00:00:00.000Z',
 };
 
 const mockMessages = [
@@ -127,8 +127,12 @@ describe('MeetingCommunicationPanel Component', () => {
     } as any);
 
     // Default service mocks
-    (MessagingService.getJobMessages as jest.Mock).mockResolvedValue(mockMessages);
-    (MeetingService.getMeetingUpdates as jest.Mock).mockResolvedValue(mockUpdates);
+    (MessagingService.getJobMessages as jest.Mock).mockResolvedValue(
+      mockMessages
+    );
+    (MeetingService.getMeetingUpdates as jest.Mock).mockResolvedValue(
+      mockUpdates
+    );
   });
 
   describe('Initial Rendering', () => {
@@ -186,7 +190,9 @@ describe('MeetingCommunicationPanel Component', () => {
 
       await waitFor(() => {
         expect(MessagingService.getJobMessages).toHaveBeenCalledWith('job-456');
-        expect(MeetingService.getMeetingUpdates).toHaveBeenCalledWith('meeting-123');
+        expect(MeetingService.getMeetingUpdates).toHaveBeenCalledWith(
+          'meeting-123'
+        );
       });
     });
 
@@ -240,7 +246,7 @@ describe('MeetingCommunicationPanel Component', () => {
     });
 
     it('should switch back to chat tab', async () => {
-      const { getByText } = render(
+      const { getByText, getByPlaceholderText } = render(
         <MeetingCommunicationPanel
           meeting={mockMeeting}
           onMeetingUpdate={jest.fn()}
@@ -250,16 +256,21 @@ describe('MeetingCommunicationPanel Component', () => {
       );
 
       await waitFor(() => {
-        const scheduleTab = getByText('Schedule');
-        fireEvent.press(scheduleTab);
+        expect(getByText('Schedule')).toBeTruthy();
       });
 
-      const chatTab = getByText('Chat');
-      fireEvent.press(chatTab);
-
-      await waitFor(() => {
-        expect(getByText('Type a message...')).toBeTruthy();
+      await act(async () => {
+        fireEvent.press(getByText('Schedule'));
       });
+
+      // Confirm we are on the schedule tab
+      expect(getByText('Reschedule Meeting')).toBeTruthy();
+
+      await act(async () => {
+        fireEvent.press(getByText('Chat'));
+      });
+
+      expect(getByPlaceholderText('Type a message...')).toBeTruthy();
     });
   });
 
@@ -294,14 +305,18 @@ describe('MeetingCommunicationPanel Component', () => {
 
       await waitFor(() => {
         expect(getByText('No messages yet')).toBeTruthy();
-        expect(getByText('Start a conversation about the meeting')).toBeTruthy();
+        expect(
+          getByText('Start a conversation about the meeting')
+        ).toBeTruthy();
       });
     });
 
     it('should send message when button is pressed', async () => {
-      (MessagingService.sendMessage as jest.Mock).mockResolvedValue({ id: 'msg-new' });
+      (MessagingService.sendMessage as jest.Mock).mockResolvedValue({
+        id: 'msg-new',
+      });
 
-      const { getByPlaceholderText, getByTestId } = render(
+      const { getByPlaceholderText } = render(
         <MeetingCommunicationPanel
           meeting={mockMeeting}
           onMeetingUpdate={jest.fn()}
@@ -315,21 +330,26 @@ describe('MeetingCommunicationPanel Component', () => {
         fireEvent.changeText(input, 'New test message');
       });
 
-      const sendButton = getByTestId('send-button') || getByPlaceholderText('Type a message...').parentNode?.parentNode?.lastChild;
+      // The send button is the TouchableOpacity sibling of the message input
+      // inside the message input container (no testID on the component).
+      const input = getByPlaceholderText('Type a message...');
+      const container = input.parent;
+      const touchables = container?.findAllByType(TouchableOpacity) ?? [];
+      const sendButton = touchables[touchables.length - 1];
 
-      if (sendButton) {
+      await act(async () => {
         fireEvent.press(sendButton);
+      });
 
-        await waitFor(() => {
-          expect(MessagingService.sendMessage).toHaveBeenCalledWith(
-            'job-456',
-            'homeowner-101',
-            'contractor-789',
-            'New test message',
-            'text'
-          );
-        });
-      }
+      await waitFor(() => {
+        expect(MessagingService.sendMessage).toHaveBeenCalledWith(
+          'job-456',
+          'homeowner-101',
+          'contractor-789',
+          'New test message',
+          'text'
+        );
+      });
     });
 
     it('should not send empty messages', async () => {
@@ -352,7 +372,9 @@ describe('MeetingCommunicationPanel Component', () => {
     });
 
     it('should handle send message error', async () => {
-      (MessagingService.sendMessage as jest.Mock).mockRejectedValue(new Error('Network error'));
+      (MessagingService.sendMessage as jest.Mock).mockRejectedValue(
+        new Error('Network error')
+      );
 
       const { getByPlaceholderText } = render(
         <MeetingCommunicationPanel
@@ -377,7 +399,9 @@ describe('MeetingCommunicationPanel Component', () => {
     });
 
     it('should clear message input after sending', async () => {
-      (MessagingService.sendMessage as jest.Mock).mockResolvedValue({ id: 'msg-new' });
+      (MessagingService.sendMessage as jest.Mock).mockResolvedValue({
+        id: 'msg-new',
+      });
 
       const { getByPlaceholderText } = render(
         <MeetingCommunicationPanel
@@ -471,8 +495,11 @@ describe('MeetingCommunicationPanel Component', () => {
         loading: false,
       } as any);
 
-      const updatedMeeting = { ...mockMeeting, status: 'confirmed' as const };
-      (MeetingService.updateMeetingStatus as jest.Mock).mockResolvedValue(updatedMeeting);
+      // The "Confirm" quick action maps to the in_progress status
+      const updatedMeeting = { ...mockMeeting, status: 'in_progress' as const };
+      (MeetingService.updateMeetingStatus as jest.Mock).mockResolvedValue(
+        updatedMeeting
+      );
       const onMeetingUpdate = jest.fn();
 
       const { getByText } = render(
@@ -489,18 +516,20 @@ describe('MeetingCommunicationPanel Component', () => {
       });
 
       const confirmButton = getByText('Confirm');
-      fireEvent.press(confirmButton);
+      await act(async () => {
+        fireEvent.press(confirmButton);
+      });
 
       await waitFor(() => {
         expect(MeetingService.updateMeetingStatus).toHaveBeenCalledWith(
           'meeting-123',
-          'confirmed',
+          'in_progress',
           'contractor-789'
         );
         expect(onMeetingUpdate).toHaveBeenCalledWith(updatedMeeting);
         expect(Alert.alert).toHaveBeenCalledWith(
           'Status Updated',
-          'Meeting status changed to confirmed'
+          'Meeting status changed to in progress'
         );
       });
     });
@@ -515,7 +544,9 @@ describe('MeetingCommunicationPanel Component', () => {
         loading: false,
       } as any);
 
-      (MeetingService.updateMeetingStatus as jest.Mock).mockRejectedValue(new Error('Update failed'));
+      (MeetingService.updateMeetingStatus as jest.Mock).mockRejectedValue(
+        new Error('Update failed')
+      );
 
       const { getByText } = render(
         <MeetingCommunicationPanel
@@ -531,13 +562,13 @@ describe('MeetingCommunicationPanel Component', () => {
       });
 
       const confirmButton = getByText('Confirm');
-      fireEvent.press(confirmButton);
+      await act(async () => {
+        fireEvent.press(confirmButton);
+      });
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Error',
-          'Failed to update meeting status'
-        );
+        // The handler surfaces the underlying Error message when present.
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Update failed');
       });
     });
   });
@@ -575,8 +606,10 @@ describe('MeetingCommunicationPanel Component', () => {
       });
 
       // Try to reschedule without reason
-      const rescheduleButton = getByText('Reschedule');
-      fireEvent.press(rescheduleButton);
+      const rescheduleButton = getByText('Request Reschedule');
+      await act(async () => {
+        fireEvent.press(rescheduleButton);
+      });
 
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -600,11 +633,13 @@ describe('MeetingCommunicationPanel Component', () => {
         fireEvent.press(getByText('Schedule'));
       });
 
-      const reasonInput = getByPlaceholderText('e.g., Client requested different time');
+      const reasonInput = getByPlaceholderText('Reason for rescheduling...');
       fireEvent.changeText(reasonInput, 'Need to change time');
 
-      const rescheduleButton = getByText('Reschedule');
-      fireEvent.press(rescheduleButton);
+      const rescheduleButton = getByText('Request Reschedule');
+      await act(async () => {
+        fireEvent.press(rescheduleButton);
+      });
 
       // Component sets date/time to past by default in test - should alert
       await waitFor(() => {
@@ -620,7 +655,9 @@ describe('MeetingCommunicationPanel Component', () => {
         status: 'rescheduled' as const,
       };
 
-      (MeetingService.rescheduleMeeting as jest.Mock).mockResolvedValue(updatedMeeting);
+      (MeetingService.rescheduleMeeting as jest.Mock).mockResolvedValue(
+        updatedMeeting
+      );
       const onMeetingUpdate = jest.fn();
 
       const { getByText, getByPlaceholderText } = render(
@@ -636,7 +673,7 @@ describe('MeetingCommunicationPanel Component', () => {
         fireEvent.press(getByText('Schedule'));
       });
 
-      const reasonInput = getByPlaceholderText('e.g., Client requested different time');
+      const reasonInput = getByPlaceholderText('Reason for rescheduling...');
       fireEvent.changeText(reasonInput, 'Client unavailable');
 
       // The reschedule logic checks if time is in future - this will fail in test
@@ -671,7 +708,9 @@ describe('MeetingCommunicationPanel Component', () => {
         createdAt: new Date().toISOString(),
       };
 
-      (MessagingService.getJobMessages as jest.Mock).mockResolvedValue([todayMessage]);
+      (MessagingService.getJobMessages as jest.Mock).mockResolvedValue([
+        todayMessage,
+      ]);
 
       const { getByText } = render(
         <MeetingCommunicationPanel
@@ -695,7 +734,9 @@ describe('MeetingCommunicationPanel Component', () => {
 
   describe('Error Handling', () => {
     it('should handle error loading communication data', async () => {
-      (MessagingService.getJobMessages as jest.Mock).mockRejectedValue(new Error('Load failed'));
+      (MessagingService.getJobMessages as jest.Mock).mockRejectedValue(
+        new Error('Load failed')
+      );
 
       const { queryByText } = render(
         <MeetingCommunicationPanel
@@ -713,7 +754,7 @@ describe('MeetingCommunicationPanel Component', () => {
     });
 
     it('should handle missing jobId gracefully', async () => {
-      const meetingWithoutJob = { ...mockMeeting, jobId: undefined };
+      const meetingWithoutJob = { ...mockMeeting, job_id: undefined };
 
       render(
         <MeetingCommunicationPanel

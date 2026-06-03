@@ -1,20 +1,19 @@
-
 import React from 'react';
 /**
  * Tests for LoadingSpinner Component
  */
 
-
-import { render , waitFor} from '../test-utils';
+import { render, waitFor } from '../test-utils';
 import { LoadingSpinner, FullScreenLoading } from '../LoadingSpinner';
-
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 describe('LoadingSpinner', () => {
   describe('Rendering', () => {
@@ -26,20 +25,22 @@ describe('LoadingSpinner', () => {
     });
 
     it('should render with custom message', () => {
-      const { getByTestId } = render(<LoadingSpinner message="Please wait..." />);
+      const { getByTestId } = render(
+        <LoadingSpinner message='Please wait...' />
+      );
 
       const text = getByTestId('loading-text');
       expect(text.props.children).toBe('Please wait...');
     });
 
     it('should render with small size', () => {
-      const { getByTestId } = render(<LoadingSpinner size="small" />);
+      const { getByTestId } = render(<LoadingSpinner size='small' />);
 
       expect(getByTestId('loading-spinner')).toBeDefined();
     });
 
     it('should render with large size', () => {
-      const { getByTestId } = render(<LoadingSpinner size="large" />);
+      const { getByTestId } = render(<LoadingSpinner size='large' />);
 
       expect(getByTestId('loading-spinner')).toBeDefined();
     });
@@ -53,7 +54,7 @@ describe('LoadingSpinner', () => {
     });
 
     it('should not render message when empty string provided', () => {
-      const { queryByTestId } = render(<LoadingSpinner message="" />);
+      const { queryByTestId } = render(<LoadingSpinner message='' />);
 
       expect(queryByTestId('loading-text')).toBeNull();
     });
@@ -85,7 +86,7 @@ describe('LoadingSpinner', () => {
   describe('Props Combinations', () => {
     it('should handle all custom props together', () => {
       const { getByTestId } = render(
-        <LoadingSpinner message="Custom message" size="small" color="#00FF00" />
+        <LoadingSpinner message='Custom message' size='small' color='#00FF00' />
       );
 
       const text = getByTestId('loading-text');
@@ -94,13 +95,19 @@ describe('LoadingSpinner', () => {
     });
 
     it('should handle size large with custom message', () => {
-      const { getByTestId } = render(<LoadingSpinner message="Loading data..." size="large" />);
+      const { getByTestId } = render(
+        <LoadingSpinner message='Loading data...' size='large' />
+      );
 
-      expect(getByTestId('loading-text').props.children).toBe('Loading data...');
+      expect(getByTestId('loading-text').props.children).toBe(
+        'Loading data...'
+      );
     });
 
     it('should handle size small with custom color', () => {
-      const { getByTestId } = render(<LoadingSpinner size="small" color="#FF0000" />);
+      const { getByTestId } = render(
+        <LoadingSpinner size='small' color='#FF0000' />
+      );
 
       const text = getByTestId('loading-text');
       expect(text.props.style).toContainEqual({ color: '#FF0000' });
@@ -115,13 +122,15 @@ describe('LoadingSpinner', () => {
     });
 
     it('should have testID for text', () => {
-      const { getByTestId } = render(<LoadingSpinner message="Loading..." />);
+      const { getByTestId } = render(<LoadingSpinner message='Loading...' />);
 
       expect(getByTestId('loading-text')).toBeDefined();
     });
 
     it('should support screen readers with message text', () => {
-      const { getByTestId } = render(<LoadingSpinner message="Loading your data" />);
+      const { getByTestId } = render(
+        <LoadingSpinner message='Loading your data' />
+      );
 
       const text = getByTestId('loading-text');
       expect(text.props.children).toBe('Loading your data');
@@ -138,23 +147,25 @@ describe('FullScreenLoading', () => {
     });
 
     it('should render with custom message', () => {
-      const { getByText } = render(<FullScreenLoading message="Initializing..." />);
+      const { getByText } = render(
+        <FullScreenLoading message='Initializing...' />
+      );
 
       expect(getByText('Initializing...')).toBeDefined();
     });
 
     it('should use large size ActivityIndicator', () => {
-      const { container } = render(<FullScreenLoading />);
+      const { toJSON } = render(<FullScreenLoading />);
 
       // Component renders without error
-      expect(container).toBeDefined();
+      expect(toJSON()).toBeTruthy();
     });
 
     it('should use theme info color', () => {
-      const { container } = render(<FullScreenLoading />);
+      const { toJSON } = render(<FullScreenLoading />);
 
       // Component renders with theme colors
-      expect(container).toBeDefined();
+      expect(toJSON()).toBeTruthy();
     });
   });
 
@@ -168,19 +179,20 @@ describe('FullScreenLoading', () => {
 
   describe('Full Screen Behavior', () => {
     it('should render in fullscreen container', () => {
-      const { container } = render(<FullScreenLoading />);
+      const { toJSON } = render(<FullScreenLoading />);
 
-      expect(container).toBeDefined();
+      expect(toJSON()).toBeTruthy();
     });
 
     it('should display message below spinner', () => {
-      const { getByText } = render(<FullScreenLoading message="Please wait" />);
+      const { getByText } = render(<FullScreenLoading message='Please wait' />);
 
       expect(getByText('Please wait')).toBeDefined();
     });
 
     it('should handle long messages', () => {
-      const longMessage = 'This is a very long loading message that should still display correctly';
+      const longMessage =
+        'This is a very long loading message that should still display correctly';
       const { getByText } = render(<FullScreenLoading message={longMessage} />);
 
       expect(getByText(longMessage)).toBeDefined();
@@ -196,11 +208,11 @@ describe('FullScreenLoading', () => {
     });
 
     it('should use different styling than LoadingSpinner', () => {
-      const { container: fullScreenContainer } = render(<FullScreenLoading />);
-      const { container: spinnerContainer } = render(<LoadingSpinner />);
+      const { toJSON: fullScreenJSON } = render(<FullScreenLoading />);
+      const { toJSON: spinnerJSON } = render(<LoadingSpinner />);
 
-      expect(fullScreenContainer).toBeDefined();
-      expect(spinnerContainer).toBeDefined();
+      expect(fullScreenJSON()).toBeTruthy();
+      expect(spinnerJSON()).toBeTruthy();
     });
   });
 });

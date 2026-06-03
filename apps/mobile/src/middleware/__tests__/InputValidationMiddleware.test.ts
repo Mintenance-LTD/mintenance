@@ -223,8 +223,11 @@ describe('InputValidationMiddleware', () => {
         '<script>alert("xss")</script>'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      // XSS guard fires (the SQL blacklist was intentionally removed
+      // 2026-05-10, P2 #55 — see InputValidationMiddleware.ts header).
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect script tag with attributes', () => {
@@ -232,8 +235,10 @@ describe('InputValidationMiddleware', () => {
         '<script src="evil.js">alert(1)</script>'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      // The angle brackets are stripped by the safeText pattern; the
+      // attribute form does not match the <script>..</script> regex, so
+      // the rejection comes from the invalid-characters check.
+      expect(result.errors).toContain('input contains invalid characters');
     });
 
     it('should detect iframe injection', () => {
@@ -241,8 +246,9 @@ describe('InputValidationMiddleware', () => {
         '<iframe src="javascript:alert(1)"></iframe>'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect javascript: protocol', () => {
@@ -250,16 +256,18 @@ describe('InputValidationMiddleware', () => {
         'javascript:alert(1)'
       );
       expect(result.isValid).toBe(false);
-      // Contains ( and ) which trigger SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect vbscript: protocol', () => {
       const result =
         InputValidationMiddleware.validateText('vbscript:msgbox(1)');
       expect(result.isValid).toBe(false);
-      // Contains ( which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect onload event handler', () => {
@@ -267,8 +275,9 @@ describe('InputValidationMiddleware', () => {
         '<img onload="alert(1)" />'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect onerror event handler', () => {
@@ -276,8 +285,9 @@ describe('InputValidationMiddleware', () => {
         '<img onerror="alert(1)" src="x" />'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect onclick event handler', () => {
@@ -285,8 +295,9 @@ describe('InputValidationMiddleware', () => {
         '<div onclick="alert(1)">Click</div>'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect onmouseover event handler', () => {
@@ -294,8 +305,9 @@ describe('InputValidationMiddleware', () => {
         '<span onmouseover="evil()">Hover</span>'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect javascript in img src', () => {
@@ -303,8 +315,10 @@ describe('InputValidationMiddleware', () => {
         '<img src="javascript:alert(1)" />'
       );
       expect(result.isValid).toBe(false);
-      // Contains < which triggers SQL pattern check first
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      // The `javascript:` protocol XSS pattern fires.
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
 
     it('should detect case-insensitive XSS patterns', () => {
@@ -339,9 +353,9 @@ describe('InputValidationMiddleware', () => {
         sanitize: true,
         pattern: /^[a-zA-Z0-9\s]*$/,
       });
-      // SQL pattern detects < first
+      // The angle brackets fail the supplied alphanumeric pattern.
       expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain('input contains invalid characters');
     });
 
     it('should remove event handlers when sanitizing', () => {
@@ -352,9 +366,11 @@ describe('InputValidationMiddleware', () => {
           pattern: /^[a-zA-Z0-9\s]*$/,
         }
       );
-      // Contains = and ( which triggers SQL pattern first
+      // `onclick=` matches the XSS event-handler guard.
       expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain(
+        'input contains potentially dangerous scripts'
+      );
     });
   });
 
@@ -397,7 +413,11 @@ describe('InputValidationMiddleware', () => {
       expect(result.sanitized).toBe('Hello World Test');
     });
 
-    it('should remove SQL comments when sanitizing', () => {
+    it('no longer strips SQL comments but the supplied pattern still rejects them', () => {
+      // SQL-comment stripping was removed 2026-05-10 (P2 #55): parameterized
+      // Supabase queries make `--` harmless, and stripping mangled legit text
+      // (em-dashes, "4*/5"). With the default safeText pattern `--` is allowed;
+      // here the caller-supplied alphanumeric pattern is what rejects it.
       const result = InputValidationMiddleware.validateText(
         'test value -- comment',
         {
@@ -405,9 +425,15 @@ describe('InputValidationMiddleware', () => {
           pattern: /^[a-zA-Z0-9\s]*$/,
         }
       );
-      // SQL pattern detects -- first, so no sanitization happens
       expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.errors).toContain('input contains invalid characters');
+
+      // Under the default safeText pattern the same text is accepted, proving
+      // SQL comments are intentionally no longer treated as dangerous.
+      const defaultResult = InputValidationMiddleware.validateText(
+        'test value -- comment'
+      );
+      expect(defaultResult.isValid).toBe(true);
     });
 
     it('should not sanitize when sanitize is false', () => {
@@ -535,11 +561,10 @@ describe('InputValidationMiddleware', () => {
 
     it('should accept phone with parentheses', () => {
       const result = InputValidationMiddleware.validatePhone('(123) 456-7890');
-      // Parentheses ( and ) are in the phone pattern, should pass
-      // But the SQL pattern also has ( and ) which are dangerous chars
-      // SQL check happens first, so this fails
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      // Parentheses are part of the phone pattern. The SQL blacklist that
+      // used to reject `()` was removed 2026-05-10 (P2 #55), so a standard
+      // US-formatted number is now correctly accepted.
+      expect(result.isValid).toBe(true);
     });
 
     it('should accept 10-digit phone', () => {
@@ -642,9 +667,10 @@ describe('InputValidationMiddleware', () => {
       const result = InputValidationMiddleware.validateJobTitle(
         'Electrician & Handyman'
       );
-      // & is in the SQL pattern as a dangerous char
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      // `&` is part of the job-title pattern (`[a-zA-Z0-9\s.,&-]+`). The SQL
+      // blacklist that previously rejected ampersands was removed 2026-05-10
+      // (P2 #55), so this common service title is now accepted.
+      expect(result.isValid).toBe(true);
     });
 
     it('should reject title < 3 chars', () => {
@@ -695,11 +721,18 @@ describe('InputValidationMiddleware', () => {
       expect(result.isValid).toBe(false);
     });
 
-    it('should reject description with SQL injection', () => {
+    it('accepts SQL keywords as plain text (blacklist removed P2 #55)', () => {
+      // The SQL-injection blacklist was intentionally removed 2026-05-10
+      // (AUDIT_PUNCH_LIST P2 #55). Mobile DB writes go through the Supabase
+      // JS client, which parameterizes everything — `DROP TABLE` in a job
+      // description is harmless English text that can never reach raw SQL.
+      // Blacklisting it produced false positives (e.g. "drop off the keys").
+      // XSS protection (the surface that CAN execute in rendered RN text)
+      // is still enforced — see the XSS test below.
       const result = InputValidationMiddleware.validateJobDescription(
         'Need help DROP TABLE users'
       );
-      expect(result.isValid).toBe(false);
+      expect(result.isValid).toBe(true);
     });
 
     it('should reject description with XSS', () => {

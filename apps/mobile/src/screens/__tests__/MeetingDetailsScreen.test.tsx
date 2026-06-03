@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { render, waitFor, fireEvent } from '../..//test-utils';
-import { MeetingDetailsScreen } from '../MeetingDetailsScreen';
+// MeetingDetailsScreen is a default export.
+import MeetingDetailsScreen from '../MeetingDetailsScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -10,7 +10,53 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// expo-task-manager pulls expo-modules-core's native EventEmitter, which is
+// undefined under jest and crashes the whole import graph
+// (useJobTravelTracking → JobContextLocationService → BackgroundLocationTask).
+// Stub it out — these assertions don't exercise background location.
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskRegisteredAsync: jest.fn(() => Promise.resolve(false)),
+  unregisterTaskAsync: jest.fn(() => Promise.resolve()),
+  unregisterAllTasksAsync: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('expo-location', () => ({
+  getForegroundPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'undetermined', granted: false })
+  ),
+  requestForegroundPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'undetermined', granted: false })
+  ),
+  getCurrentPositionAsync: jest.fn(() =>
+    Promise.resolve({ coords: { latitude: 0, longitude: 0 } })
+  ),
+  watchPositionAsync: jest.fn(() => Promise.resolve({ remove: jest.fn() })),
+  Accuracy: { High: 4, Balanced: 3 },
+}));
+
+// MeetingService exposes static class-field methods; jest auto-mock does not
+// reliably convert them. Provide explicit factory with CURRENT names.
+jest.mock('../../services/MeetingService', () => ({
+  MeetingService: {
+    getMeetingById: jest.fn(() => Promise.resolve(null)),
+    getMeetingUpdates: jest.fn(() => Promise.resolve([])),
+    subscribeMeetingUpdates: jest.fn(() => ({ unsubscribe: jest.fn() })),
+  },
+}));
+
+// useJobTravelTracking touches location services; stub to an inert shape.
+jest.mock('../../hooks/useJobTravelTracking', () => ({
+  useJobTravelTracking: () => ({
+    isTracking: false,
+    startTracking: jest.fn(),
+    stopTracking: jest.fn(),
+    contractorLocation: null,
+  }),
+}));
 
 // Mock navigation
 const mockNavigation = {
@@ -41,7 +87,9 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -79,7 +127,6 @@ describe('MeetingDetailsScreen', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
-
 
   it('should render without crashing', async () => {
     const { getByTestId, queryByText } = renderScreen();

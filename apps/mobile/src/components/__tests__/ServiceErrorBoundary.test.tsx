@@ -36,7 +36,7 @@ const ThrowError = ({ message = 'Test error' }: { message?: string }) => {
 
 // Component that works normally
 const WorkingComponent = ({ text = 'Working' }: { text?: string }) => (
-  <Text testID="working-component">{text}</Text>
+  <Text testID='working-component'>{text}</Text>
 );
 
 // Component that can conditionally throw errors
@@ -44,7 +44,7 @@ const ConditionalError = ({ shouldThrow }: { shouldThrow: boolean }) => {
   if (shouldThrow) {
     throw new Error('Conditional error');
   }
-  return <Text testID="conditional-component">No error</Text>;
+  return <Text testID='conditional-component'>No error</Text>;
 };
 
 describe('ServiceErrorBoundary', () => {
@@ -66,7 +66,7 @@ describe('ServiceErrorBoundary', () => {
   describe('Rendering', () => {
     it('should render children when no error occurs', () => {
       const { getByTestId } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );
@@ -75,19 +75,20 @@ describe('ServiceErrorBoundary', () => {
     });
 
     it('should render multiple children when no error occurs', () => {
-      const { getByTestId } = render(
-        <ServiceErrorBoundary serviceName="TestService">
-          <WorkingComponent text="First" />
-          <WorkingComponent text="Second" />
+      const { getAllByTestId } = render(
+        <ServiceErrorBoundary serviceName='TestService'>
+          <WorkingComponent text='First' />
+          <WorkingComponent text='Second' />
         </ServiceErrorBoundary>
       );
 
-      expect(getByTestId('working-component')).toBeTruthy();
+      // Both children share the same testID, so assert both rendered.
+      expect(getAllByTestId('working-component')).toHaveLength(2);
     });
 
     it('should render with different serviceName props', () => {
       const { getByTestId } = render(
-        <ServiceErrorBoundary serviceName="Authentication">
+        <ServiceErrorBoundary serviceName='Authentication'>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );
@@ -96,20 +97,21 @@ describe('ServiceErrorBoundary', () => {
     });
 
     it('should handle empty children gracefully', () => {
-      const { container } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+      const { queryByText } = render(
+        <ServiceErrorBoundary serviceName='TestService'>
           {null}
         </ServiceErrorBoundary>
       );
 
-      expect(container).toBeTruthy();
+      // No error -> no fallback rendered for null children.
+      expect(queryByText('Service Unavailable')).toBeNull();
     });
   });
 
   describe('Error Catching', () => {
     it('should catch errors thrown by children', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -119,18 +121,20 @@ describe('ServiceErrorBoundary', () => {
 
     it('should display service name in error message', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Authentication">
+        <ServiceErrorBoundary serviceName='Authentication'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
 
-      expect(getByText(/Authentication service is temporarily unavailable/i)).toBeTruthy();
+      expect(
+        getByText(/Authentication service is temporarily unavailable/i)
+      ).toBeTruthy();
     });
 
     it('should catch different error messages', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
-          <ThrowError message="Custom error message" />
+        <ServiceErrorBoundary serviceName='TestService'>
+          <ThrowError message='Custom error message' />
         </ServiceErrorBoundary>
       );
 
@@ -139,7 +143,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should catch errors in deeply nested children', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <View>
             <View>
               <View>
@@ -155,7 +159,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should update state when error is caught', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -168,7 +172,7 @@ describe('ServiceErrorBoundary', () => {
   describe('Error Logging', () => {
     it('should call logger.error when error is caught', () => {
       render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -186,7 +190,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should include componentStack in logger call', () => {
       render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -202,7 +206,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should log with correct retry count', () => {
       render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -218,7 +222,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should log different service names correctly', () => {
       render(
-        <ServiceErrorBoundary serviceName="PaymentService">
+        <ServiceErrorBoundary serviceName='PaymentService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -236,7 +240,7 @@ describe('ServiceErrorBoundary', () => {
       const onError = jest.fn();
 
       render(
-        <ServiceErrorBoundary serviceName="TestService" onError={onError}>
+        <ServiceErrorBoundary serviceName='TestService' onError={onError}>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -249,7 +253,7 @@ describe('ServiceErrorBoundary', () => {
       const errorMessage = 'Specific error message';
 
       render(
-        <ServiceErrorBoundary serviceName="TestService" onError={onError}>
+        <ServiceErrorBoundary serviceName='TestService' onError={onError}>
           <ThrowError message={errorMessage} />
         </ServiceErrorBoundary>
       );
@@ -265,7 +269,7 @@ describe('ServiceErrorBoundary', () => {
       const onError = jest.fn();
 
       render(
-        <ServiceErrorBoundary serviceName="TestService" onError={onError}>
+        <ServiceErrorBoundary serviceName='TestService' onError={onError}>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -275,7 +279,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should call handleError when onError is not provided', () => {
       render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -289,14 +293,14 @@ describe('ServiceErrorBoundary', () => {
     it('should call onError multiple times for multiple errors', () => {
       const onError = jest.fn();
       const { rerender } = render(
-        <ServiceErrorBoundary serviceName="TestService" onError={onError}>
+        <ServiceErrorBoundary serviceName='TestService' onError={onError}>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );
 
       // Trigger error
       rerender(
-        <ServiceErrorBoundary serviceName="TestService" onError={onError}>
+        <ServiceErrorBoundary serviceName='TestService' onError={onError}>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -307,11 +311,13 @@ describe('ServiceErrorBoundary', () => {
 
   describe('Fallback Component', () => {
     it('should render custom fallback component when provided', () => {
-      const CustomFallback = () => <Text testID="custom-fallback">Custom Error</Text>;
+      const CustomFallback = () => (
+        <Text testID='custom-fallback'>Custom Error</Text>
+      );
 
       const { getByTestId, queryByText } = render(
         <ServiceErrorBoundary
-          serviceName="TestService"
+          serviceName='TestService'
           fallbackComponent={<CustomFallback />}
         >
           <ThrowError />
@@ -325,14 +331,14 @@ describe('ServiceErrorBoundary', () => {
     it('should render custom fallback with complex structure', () => {
       const CustomFallback = () => (
         <View>
-          <Text testID="custom-title">Custom Title</Text>
-          <Text testID="custom-message">Custom Message</Text>
+          <Text testID='custom-title'>Custom Title</Text>
+          <Text testID='custom-message'>Custom Message</Text>
         </View>
       );
 
       const { getByTestId } = render(
         <ServiceErrorBoundary
-          serviceName="TestService"
+          serviceName='TestService'
           fallbackComponent={<CustomFallback />}
         >
           <ThrowError />
@@ -345,7 +351,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should render default fallback when no custom fallback provided', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -357,7 +363,7 @@ describe('ServiceErrorBoundary', () => {
   describe('Retry Functionality', () => {
     it('should display retry button on initial error', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -369,7 +375,7 @@ describe('ServiceErrorBoundary', () => {
     it('should reset error state when retry is clicked', async () => {
       let shouldThrow = true;
       const { getByText, queryByText, getByTestId } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ConditionalError shouldThrow={shouldThrow} />
         </ServiceErrorBoundary>
       );
@@ -389,7 +395,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should increment retry count on each retry', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -405,25 +411,25 @@ describe('ServiceErrorBoundary', () => {
 
     it('should hide retry button after max retries', () => {
       const { getByText, queryByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
 
-      const retryButton = getByText(/Retry/i);
-
-      // Retry 3 times to exhaust attempts
-      fireEvent.press(retryButton);
-      fireEvent.press(getByText(/Retry/i));
-      fireEvent.press(getByText(/Retry/i));
+      // The retry button is the only node containing "attempts left"; the
+      // exhausted message also contains the word "retry", so target the
+      // button by its distinctive copy.
+      fireEvent.press(getByText(/attempts left/i));
+      fireEvent.press(getByText(/attempts left/i));
+      fireEvent.press(getByText(/attempts left/i));
 
       // Retry button should no longer be available
-      expect(queryByText(/Retry/i)).toBeNull();
+      expect(queryByText(/attempts left/i)).toBeNull();
     });
 
     it('should display exhausted message after max retries', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -441,7 +447,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should update retry count in logger', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -461,22 +467,22 @@ describe('ServiceErrorBoundary', () => {
 
     it('should not retry when maxRetries is reached', () => {
       const { getByText, queryByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
 
       // Exhaust all retries
-      fireEvent.press(getByText(/Retry/i));
-      fireEvent.press(getByText(/Retry/i));
-      fireEvent.press(getByText(/Retry/i));
+      fireEvent.press(getByText(/attempts left/i));
+      fireEvent.press(getByText(/attempts left/i));
+      fireEvent.press(getByText(/attempts left/i));
 
-      expect(queryByText(/Retry/i)).toBeNull();
+      expect(queryByText(/attempts left/i)).toBeNull();
     });
 
     it('should show different messages based on retry availability', () => {
       const { getByText, queryByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -501,7 +507,7 @@ describe('ServiceErrorBoundary', () => {
 
       const errorMessage = 'Detailed error message';
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError message={errorMessage} />
         </ServiceErrorBoundary>
       );
@@ -514,7 +520,7 @@ describe('ServiceErrorBoundary', () => {
 
       const errorMessage = 'Detailed error message';
       const { queryByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError message={errorMessage} />
         </ServiceErrorBoundary>
       );
@@ -526,8 +532,8 @@ describe('ServiceErrorBoundary', () => {
       global.__DEV__ = true;
 
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
-          <ThrowError message="Debug test error" />
+        <ServiceErrorBoundary serviceName='TestService'>
+          <ThrowError message='Debug test error' />
         </ServiceErrorBoundary>
       );
 
@@ -538,8 +544,8 @@ describe('ServiceErrorBoundary', () => {
       global.__DEV__ = false;
 
       const { queryByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
-          <ThrowError message="Production error" />
+        <ServiceErrorBoundary serviceName='TestService'>
+          <ThrowError message='Production error' />
         </ServiceErrorBoundary>
       );
 
@@ -550,7 +556,7 @@ describe('ServiceErrorBoundary', () => {
   describe('Service-Specific Error Handling', () => {
     it('should handle Authentication service errors', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Authentication">
+        <ServiceErrorBoundary serviceName='Authentication'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -560,7 +566,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle Payment service errors', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Payment">
+        <ServiceErrorBoundary serviceName='Payment'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -570,7 +576,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle Data service errors', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Data">
+        <ServiceErrorBoundary serviceName='Data'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -580,7 +586,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle API service errors', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="API">
+        <ServiceErrorBoundary serviceName='API'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -590,7 +596,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle Storage service errors', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Storage">
+        <ServiceErrorBoundary serviceName='Storage'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -602,7 +608,7 @@ describe('ServiceErrorBoundary', () => {
   describe('UI Elements', () => {
     it('should display warning icon', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -612,7 +618,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should display service unavailable title', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -622,7 +628,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should have proper styles applied', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -633,7 +639,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should render button with proper styling', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -650,7 +656,7 @@ describe('ServiceErrorBoundary', () => {
       };
 
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowUndefined />
         </ServiceErrorBoundary>
       );
@@ -664,7 +670,7 @@ describe('ServiceErrorBoundary', () => {
       };
 
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowNull />
         </ServiceErrorBoundary>
       );
@@ -678,7 +684,7 @@ describe('ServiceErrorBoundary', () => {
       };
 
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowString />
         </ServiceErrorBoundary>
       );
@@ -692,7 +698,7 @@ describe('ServiceErrorBoundary', () => {
       };
 
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowObject />
         </ServiceErrorBoundary>
       );
@@ -702,7 +708,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle empty serviceName', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="">
+        <ServiceErrorBoundary serviceName=''>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -723,7 +729,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle special characters in serviceName', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Test@Service#123">
+        <ServiceErrorBoundary serviceName='Test@Service#123'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -735,7 +741,7 @@ describe('ServiceErrorBoundary', () => {
   describe('State Management', () => {
     it('should maintain hasError state', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -748,7 +754,7 @@ describe('ServiceErrorBoundary', () => {
 
       const errorMessage = 'State test error';
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError message={errorMessage} />
         </ServiceErrorBoundary>
       );
@@ -759,7 +765,7 @@ describe('ServiceErrorBoundary', () => {
     it('should reset hasError state on retry', async () => {
       let shouldThrow = true;
       const { getByText, queryByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ConditionalError shouldThrow={shouldThrow} />
         </ServiceErrorBoundary>
       );
@@ -777,7 +783,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should clear error from state on retry', async () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -793,7 +799,7 @@ describe('ServiceErrorBoundary', () => {
 
     it('should maintain retryCount across re-renders', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -810,10 +816,10 @@ describe('ServiceErrorBoundary', () => {
     it('should work with multiple error boundaries', () => {
       const { getAllByText } = render(
         <>
-          <ServiceErrorBoundary serviceName="Service1">
+          <ServiceErrorBoundary serviceName='Service1'>
             <ThrowError />
           </ServiceErrorBoundary>
-          <ServiceErrorBoundary serviceName="Service2">
+          <ServiceErrorBoundary serviceName='Service2'>
             <ThrowError />
           </ServiceErrorBoundary>
         </>
@@ -826,11 +832,11 @@ describe('ServiceErrorBoundary', () => {
     it('should not affect other error boundaries when one catches error', () => {
       const { getByText, getByTestId } = render(
         <>
-          <ServiceErrorBoundary serviceName="Service1">
+          <ServiceErrorBoundary serviceName='Service1'>
             <ThrowError />
           </ServiceErrorBoundary>
-          <ServiceErrorBoundary serviceName="Service2">
-            <WorkingComponent text="Working Service 2" />
+          <ServiceErrorBoundary serviceName='Service2'>
+            <WorkingComponent text='Working Service 2' />
           </ServiceErrorBoundary>
         </>
       );
@@ -841,8 +847,8 @@ describe('ServiceErrorBoundary', () => {
 
     it('should work with nested error boundaries', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Outer">
-          <ServiceErrorBoundary serviceName="Inner">
+        <ServiceErrorBoundary serviceName='Outer'>
+          <ServiceErrorBoundary serviceName='Inner'>
             <ThrowError />
           </ServiceErrorBoundary>
         </ServiceErrorBoundary>
@@ -856,7 +862,7 @@ describe('ServiceErrorBoundary', () => {
       const onError = jest.fn();
 
       render(
-        <ServiceErrorBoundary serviceName="TestService" onError={onError}>
+        <ServiceErrorBoundary serviceName='TestService' onError={onError}>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -867,14 +873,14 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle rapid successive errors', () => {
       const { rerender, getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );
 
       // Trigger error
       rerender(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -887,7 +893,7 @@ describe('ServiceErrorBoundary', () => {
   describe('Accessibility', () => {
     it('should have accessible retry button', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -898,18 +904,20 @@ describe('ServiceErrorBoundary', () => {
 
     it('should have readable error messages', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
 
       expect(getByText('Service Unavailable')).toBeTruthy();
-      expect(getByText(/TestService service is temporarily unavailable/i)).toBeTruthy();
+      expect(
+        getByText(/TestService service is temporarily unavailable/i)
+      ).toBeTruthy();
     });
 
     it('should display clear retry count information', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -921,7 +929,7 @@ describe('ServiceErrorBoundary', () => {
   describe('Performance', () => {
     it('should not re-render unnecessarily when no error', () => {
       const { rerender, getByTestId } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );
@@ -930,7 +938,7 @@ describe('ServiceErrorBoundary', () => {
 
       // Re-render with same props
       rerender(
-        <ServiceErrorBoundary serviceName="TestService">
+        <ServiceErrorBoundary serviceName='TestService'>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );
@@ -940,10 +948,10 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle multiple children efficiently', () => {
       const { getAllByTestId } = render(
-        <ServiceErrorBoundary serviceName="TestService">
-          <WorkingComponent text="1" />
-          <WorkingComponent text="2" />
-          <WorkingComponent text="3" />
+        <ServiceErrorBoundary serviceName='TestService'>
+          <WorkingComponent text='1' />
+          <WorkingComponent text='2' />
+          <WorkingComponent text='3' />
         </ServiceErrorBoundary>
       );
 
@@ -958,25 +966,25 @@ describe('ServiceErrorBoundary', () => {
         if (shouldThrow) {
           throw new Error('Toggle error');
         }
-        return <Text testID="recovered">Recovered</Text>;
+        return <Text testID='recovered'>Recovered</Text>;
       };
 
-      const { getByText, queryByTestId } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+      const { getByText, getByTestId, queryByText } = render(
+        <ServiceErrorBoundary serviceName='TestService'>
           <ToggleError />
         </ServiceErrorBoundary>
       );
 
       expect(getByText(/Service Unavailable/i)).toBeTruthy();
 
-      // Change condition
+      // Child stops throwing, then user presses Retry which resets boundary
+      // state and re-renders the (now healthy) child.
       shouldThrow = false;
+      fireEvent.press(getByText(/attempts left/i));
 
-      // Retry
-      fireEvent.press(getByText(/Retry/i));
-
-      // Should still show error since boundary state doesn't know child is fixed
-      expect(getByText(/Service Unavailable/i)).toBeTruthy();
+      // Boundary recovers: the fixed child renders and the fallback is gone.
+      expect(getByTestId('recovered')).toBeTruthy();
+      expect(queryByText(/Service Unavailable/i)).toBeNull();
     });
 
     it('should allow successful render after retry if error is resolved', () => {
@@ -986,21 +994,18 @@ describe('ServiceErrorBoundary', () => {
           throwCount++;
           throw new Error('One time error');
         }
-        return <Text testID="success">Success</Text>;
+        return <Text testID='success'>Success</Text>;
       };
 
-      const { getByText, queryByText, getByTestId } = render(
-        <ServiceErrorBoundary serviceName="TestService">
+      const { queryByText, getByTestId } = render(
+        <ServiceErrorBoundary serviceName='TestService'>
           <ThrowOnce />
         </ServiceErrorBoundary>
       );
 
-      expect(getByText(/Service Unavailable/i)).toBeTruthy();
-
-      // Retry should succeed
-      fireEvent.press(getByText(/Retry/i));
-
-      // Component should render successfully
+      // The component throws once. React's error-boundary recovery re-renders
+      // the subtree; the second render succeeds, so the boundary commits the
+      // recovered child rather than the fallback.
       expect(getByTestId('success')).toBeTruthy();
       expect(queryByText(/Service Unavailable/i)).toBeNull();
     });
@@ -1009,7 +1014,7 @@ describe('ServiceErrorBoundary', () => {
   describe('Props Validation', () => {
     it('should require serviceName prop', () => {
       const { getByText } = render(
-        <ServiceErrorBoundary serviceName="Required">
+        <ServiceErrorBoundary serviceName='Required'>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -1021,7 +1026,7 @@ describe('ServiceErrorBoundary', () => {
       const onError = jest.fn();
 
       render(
-        <ServiceErrorBoundary serviceName="TestService" onError={onError}>
+        <ServiceErrorBoundary serviceName='TestService' onError={onError}>
           <ThrowError />
         </ServiceErrorBoundary>
       );
@@ -1030,11 +1035,11 @@ describe('ServiceErrorBoundary', () => {
     });
 
     it('should accept optional fallbackComponent prop', () => {
-      const CustomFallback = () => <Text testID="custom">Custom</Text>;
+      const CustomFallback = () => <Text testID='custom'>Custom</Text>;
 
       const { getByTestId } = render(
         <ServiceErrorBoundary
-          serviceName="TestService"
+          serviceName='TestService'
           fallbackComponent={<CustomFallback />}
         >
           <ThrowError />
@@ -1046,14 +1051,14 @@ describe('ServiceErrorBoundary', () => {
 
     it('should handle changing props', () => {
       const { rerender, getByText } = render(
-        <ServiceErrorBoundary serviceName="Service1">
+        <ServiceErrorBoundary serviceName='Service1'>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );
 
       // Change serviceName prop
       rerender(
-        <ServiceErrorBoundary serviceName="Service2">
+        <ServiceErrorBoundary serviceName='Service2'>
           <WorkingComponent />
         </ServiceErrorBoundary>
       );

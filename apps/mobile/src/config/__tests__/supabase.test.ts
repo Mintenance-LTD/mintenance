@@ -1,66 +1,21 @@
-
-import { isSupabaseConfigured } from '../supabase';
-jest.mock('../../../config/supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      signIn: jest.fn(),
-      signUp: jest.fn(),
-      signOut: jest.fn(),
-      onAuthStateChange: jest.fn(() => ({
-        data: { subscription: { unsubscribe: jest.fn() } }
-      })),
-    },
-    from: jest.fn((table) => ({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      neq: jest.fn().mockReturnThis(),
-      gt: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      lt: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-      like: jest.fn().mockReturnThis(),
-      ilike: jest.fn().mockReturnThis(),
-      in: jest.fn().mockReturnThis(),
-      contains: jest.fn().mockReturnThis(),
-      containedBy: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      range: jest.fn().mockReturnThis(),
-      single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      then: jest.fn((callback) => callback({ data: [], error: null })),
-    })),
-    storage: {
-      from: jest.fn((bucket) => ({
-        upload: jest.fn(() => Promise.resolve({ data: { path: 'test.jpg' }, error: null })),
-        download: jest.fn(() => Promise.resolve({ data: new Blob(), error: null })),
-        remove: jest.fn(() => Promise.resolve({ data: [], error: null })),
-        list: jest.fn(() => Promise.resolve({ data: [], error: null })),
-        getPublicUrl: jest.fn((path) => ({
-          data: { publicUrl: `https://test.supabase.co/storage/v1/object/public/${bucket}/${path}` }
-        })),
-      })),
-    },
-  },
-}));
+// NOTE: jest.config.js maps every `config/supabase` import to the chainable
+// manual mock in `src/config/__mocks__/supabase.ts`. To exercise the REAL
+// module under test we pull it in with `jest.requireActual` against the
+// concrete source path, which bypasses `moduleNameMapper`.
+const { isSupabaseConfigured } = jest.requireActual('../supabase') as {
+  isSupabaseConfigured: boolean;
+};
 
 describe('isSupabaseConfigured', () => {
-  it('should handle normal cases', () => {
-    // Test normal functionality
-    expect(isSupabaseConfigured('input')).toBeDefined();
+  it('is a boolean derived from credential validation', () => {
+    // Source exports `credentialsValid && !useMockFlag` — a boolean, not a fn.
+    expect(typeof isSupabaseConfigured).toBe('boolean');
   });
 
-  it('should handle edge cases', () => {
-    // Test edge cases
-    expect(() => isSupabaseConfigured(null)).not.toThrow();
-  });
-
-  it('should handle error cases', () => {
-    // Test error scenarios
+  it('resolves to true with the valid test env credentials', () => {
+    // jest-setup.js seeds EXPO_PUBLIC_SUPABASE_URL (valid *.supabase.co) and a
+    // JWT-shaped EXPO_PUBLIC_SUPABASE_ANON_KEY, and EXPO_PUBLIC_USE_MOCK is
+    // unset, so the guard should report a configured client.
+    expect(isSupabaseConfigured).toBe(true);
   });
 });

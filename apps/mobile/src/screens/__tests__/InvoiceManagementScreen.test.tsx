@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { render, waitFor, fireEvent } from '../..//test-utils';
+import { render, waitFor } from '../../__tests__/test-utils';
 import { InvoiceManagementScreen } from '../InvoiceManagementScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,9 +9,19 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
-// Mock navigation
+// The screen reads `user` from AuthContext and gates the invoice query on it.
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'contractor-1', email: 'c@example.com', role: 'contractor' },
+    loading: false,
+  }),
+}));
+
+// Mock navigation — screen calls navigation.canGoBack() at render.
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
@@ -22,6 +31,7 @@ const mockNavigation = {
   reset: jest.fn(),
   setParams: jest.fn(),
   isFocused: jest.fn(() => true),
+  canGoBack: jest.fn(() => true),
 };
 
 const mockRoute = {
@@ -41,7 +51,9 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -80,14 +92,11 @@ describe('InvoiceManagementScreen', () => {
     jest.clearAllMocks();
   });
 
-
   it('should render without crashing', async () => {
-    const { getByTestId, queryByText } = renderScreen();
+    const { queryAllByText } = renderScreen();
 
     await waitFor(() => {
-      // Check for either a test ID or any text to confirm render
-      const element = queryByText(/./i) || getByTestId('screen-container');
-      expect(element).toBeTruthy();
+      expect(queryAllByText(/./i).length).toBeGreaterThan(0);
     });
   });
 

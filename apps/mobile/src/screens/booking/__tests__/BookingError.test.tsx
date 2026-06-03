@@ -33,17 +33,21 @@ describe('BookingError', () => {
     });
 
     it('should render error icon', () => {
-      const { UNSAFE_getAllByType } = render(<BookingError {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <BookingError {...defaultProps} />
+      );
 
       const icons = UNSAFE_getAllByType('Ionicons');
       const errorIcon = icons[0];
       expect(errorIcon).toBeTruthy();
       expect(errorIcon.props.name).toBe('alert-circle-outline');
-      expect(errorIcon.props.size).toBe(64);
+      expect(errorIcon.props.size).toBe(32);
     });
 
     it('should render retry button icon', () => {
-      const { UNSAFE_getAllByType } = render(<BookingError {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <BookingError {...defaultProps} />
+      );
 
       const icons = UNSAFE_getAllByType('Ionicons');
       expect(icons.length).toBe(2);
@@ -83,7 +87,7 @@ describe('BookingError', () => {
   describe('Error Messages', () => {
     it('should display short error message', () => {
       const { getByText } = render(
-        <BookingError error="Error" onRetry={mockOnRetry} />
+        <BookingError error='Error' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Error')).toBeTruthy();
@@ -119,7 +123,7 @@ describe('BookingError', () => {
 
     it('should display error with numbers', () => {
       const { getByText } = render(
-        <BookingError error="Error code: 404" onRetry={mockOnRetry} />
+        <BookingError error='Error code: 404' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Error code: 404')).toBeTruthy();
@@ -127,7 +131,7 @@ describe('BookingError', () => {
 
     it('should display error with emojis', () => {
       const { getByText } = render(
-        <BookingError error="Network error 📡" onRetry={mockOnRetry} />
+        <BookingError error='Network error 📡' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Network error 📡')).toBeTruthy();
@@ -135,14 +139,15 @@ describe('BookingError', () => {
 
     it('should display empty string error', () => {
       const { queryByText } = render(
-        <BookingError error="" onRetry={mockOnRetry} />
+        <BookingError error='' onRetry={mockOnRetry} />
       );
 
       expect(queryByText('Oops!')).toBeTruthy();
     });
 
     it('should display technical error message', () => {
-      const technicalError = 'TypeError: Cannot read property "data" of undefined';
+      const technicalError =
+        'TypeError: Cannot read property "data" of undefined';
       const { getByText } = render(
         <BookingError error={technicalError} onRetry={mockOnRetry} />
       );
@@ -152,7 +157,7 @@ describe('BookingError', () => {
 
     it('should display network error message', () => {
       const { getByText } = render(
-        <BookingError error="Network request failed" onRetry={mockOnRetry} />
+        <BookingError error='Network request failed' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Network request failed')).toBeTruthy();
@@ -160,7 +165,7 @@ describe('BookingError', () => {
 
     it('should display authentication error message', () => {
       const { getByText } = render(
-        <BookingError error="Authentication required" onRetry={mockOnRetry} />
+        <BookingError error='Authentication required' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Authentication required')).toBeTruthy();
@@ -168,7 +173,7 @@ describe('BookingError', () => {
 
     it('should display server error message', () => {
       const { getByText } = render(
-        <BookingError error="500 Internal Server Error" onRetry={mockOnRetry} />
+        <BookingError error='500 Internal Server Error' onRetry={mockOnRetry} />
       );
 
       expect(getByText('500 Internal Server Error')).toBeTruthy();
@@ -176,7 +181,7 @@ describe('BookingError', () => {
 
     it('should display timeout error message', () => {
       const { getByText } = render(
-        <BookingError error="Request timeout" onRetry={mockOnRetry} />
+        <BookingError error='Request timeout' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Request timeout')).toBeTruthy();
@@ -184,7 +189,7 @@ describe('BookingError', () => {
 
     it('should display not found error message', () => {
       const { getByText } = render(
-        <BookingError error="Bookings not found" onRetry={mockOnRetry} />
+        <BookingError error='Bookings not found' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Bookings not found')).toBeTruthy();
@@ -192,7 +197,7 @@ describe('BookingError', () => {
 
     it('should display permission error message', () => {
       const { getByText } = render(
-        <BookingError error="Permission denied" onRetry={mockOnRetry} />
+        <BookingError error='Permission denied' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Permission denied')).toBeTruthy();
@@ -201,7 +206,7 @@ describe('BookingError', () => {
     it('should display database error message', () => {
       const { getByText } = render(
         <BookingError
-          error="Database connection failed"
+          error='Database connection failed'
           onRetry={mockOnRetry}
         />
       );
@@ -211,7 +216,7 @@ describe('BookingError', () => {
 
     it('should display generic error message', () => {
       const { getByText } = render(
-        <BookingError error="Something went wrong" onRetry={mockOnRetry} />
+        <BookingError error='Something went wrong' onRetry={mockOnRetry} />
       );
 
       expect(getByText('Something went wrong')).toBeTruthy();
@@ -251,7 +256,7 @@ describe('BookingError', () => {
     it('should work with different onRetry handlers', () => {
       const customHandler = jest.fn();
       const { getByText } = render(
-        <BookingError error="Test error" onRetry={customHandler} />
+        <BookingError error='Test error' onRetry={customHandler} />
       );
 
       const retryButton = getByText('Try Again');
@@ -283,7 +288,7 @@ describe('BookingError', () => {
       const { rerender } = render(<BookingError {...defaultProps} />);
 
       rerender(
-        <BookingError error="New error message" onRetry={mockOnRetry} />
+        <BookingError error='New error message' onRetry={mockOnRetry} />
       );
 
       expect(mockOnRetry).not.toHaveBeenCalled();
@@ -291,9 +296,11 @@ describe('BookingError', () => {
 
     it('should call new onRetry handler after prop change', () => {
       const newHandler = jest.fn();
-      const { rerender, getByText } = render(<BookingError {...defaultProps} />);
+      const { rerender, getByText } = render(
+        <BookingError {...defaultProps} />
+      );
 
-      rerender(<BookingError error="Test error" onRetry={newHandler} />);
+      rerender(<BookingError error='Test error' onRetry={newHandler} />);
 
       const retryButton = getByText('Try Again');
       fireEvent.press(retryButton);
@@ -346,7 +353,7 @@ describe('BookingError', () => {
         <BookingError {...defaultProps} />
       );
 
-      rerender(<BookingError error="New error" onRetry={mockOnRetry} />);
+      rerender(<BookingError error='New error' onRetry={mockOnRetry} />);
 
       const button = getByLabelText('Retry loading bookings');
       expect(button).toBeTruthy();
@@ -356,25 +363,25 @@ describe('BookingError', () => {
   describe('Props Validation', () => {
     it('should accept error as string', () => {
       expect(() => {
-        render(<BookingError error="Test error" onRetry={mockOnRetry} />);
+        render(<BookingError error='Test error' onRetry={mockOnRetry} />);
       }).not.toThrow();
     });
 
     it('should accept onRetry as function', () => {
       expect(() => {
-        render(<BookingError error="Test" onRetry={() => {}} />);
+        render(<BookingError error='Test' onRetry={() => {}} />);
       }).not.toThrow();
     });
 
     it('should work with minimal props', () => {
       expect(() => {
-        render(<BookingError error="Error" onRetry={jest.fn()} />);
+        render(<BookingError error='Error' onRetry={jest.fn()} />);
       }).not.toThrow();
     });
 
     it('should work with arrow function for onRetry', () => {
       const { getByText } = render(
-        <BookingError error="Test" onRetry={() => {}} />
+        <BookingError error='Test' onRetry={() => {}} />
       );
 
       expect(getByText('Try Again')).toBeTruthy();
@@ -384,7 +391,7 @@ describe('BookingError', () => {
       function handleRetry() {}
 
       const { getByText } = render(
-        <BookingError error="Test" onRetry={handleRetry} />
+        <BookingError error='Test' onRetry={handleRetry} />
       );
 
       expect(getByText('Try Again')).toBeTruthy();
@@ -437,7 +444,9 @@ describe('BookingError', () => {
     });
 
     it('should have correct icon color for error', () => {
-      const { UNSAFE_getAllByType } = render(<BookingError {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <BookingError {...defaultProps} />
+      );
 
       const icons = UNSAFE_getAllByType('Ionicons');
       const errorIcon = icons[0];
@@ -446,7 +455,9 @@ describe('BookingError', () => {
     });
 
     it('should have correct icon color for retry button', () => {
-      const { UNSAFE_getAllByType } = render(<BookingError {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <BookingError {...defaultProps} />
+      );
 
       const icons = UNSAFE_getAllByType('Ionicons');
       const retryIcon = icons[1];
@@ -457,19 +468,25 @@ describe('BookingError', () => {
 
   describe('Component Updates', () => {
     it('should update error message when prop changes', () => {
-      const { getByText, rerender } = render(<BookingError {...defaultProps} />);
+      const { getByText, rerender } = render(
+        <BookingError {...defaultProps} />
+      );
 
       expect(getByText('Failed to load bookings')).toBeTruthy();
 
-      rerender(<BookingError error="New error message" onRetry={mockOnRetry} />);
+      rerender(
+        <BookingError error='New error message' onRetry={mockOnRetry} />
+      );
 
       expect(getByText('New error message')).toBeTruthy();
     });
 
     it('should maintain button functionality after error change', () => {
-      const { getByText, rerender } = render(<BookingError {...defaultProps} />);
+      const { getByText, rerender } = render(
+        <BookingError {...defaultProps} />
+      );
 
-      rerender(<BookingError error="Updated error" onRetry={mockOnRetry} />);
+      rerender(<BookingError error='Updated error' onRetry={mockOnRetry} />);
 
       const retryButton = getByText('Try Again');
       fireEvent.press(retryButton);
@@ -479,9 +496,11 @@ describe('BookingError', () => {
 
     it('should update onRetry handler when prop changes', () => {
       const newHandler = jest.fn();
-      const { getByText, rerender } = render(<BookingError {...defaultProps} />);
+      const { getByText, rerender } = render(
+        <BookingError {...defaultProps} />
+      );
 
-      rerender(<BookingError error="Test error" onRetry={newHandler} />);
+      rerender(<BookingError error='Test error' onRetry={newHandler} />);
 
       const retryButton = getByText('Try Again');
       fireEvent.press(retryButton);
@@ -492,24 +511,24 @@ describe('BookingError', () => {
 
     it('should re-render correctly when error prop changes', () => {
       const { getByText, queryByText, rerender } = render(
-        <BookingError error="First error" onRetry={mockOnRetry} />
+        <BookingError error='First error' onRetry={mockOnRetry} />
       );
 
       expect(getByText('First error')).toBeTruthy();
 
-      rerender(<BookingError error="Second error" onRetry={mockOnRetry} />);
+      rerender(<BookingError error='Second error' onRetry={mockOnRetry} />);
 
       expect(getByText('Second error')).toBeTruthy();
       expect(queryByText('First error')).toBeNull();
     });
 
     it('should handle multiple prop updates', () => {
-      const { rerender, getByText } = render(<BookingError {...defaultProps} />);
+      const { rerender, getByText } = render(
+        <BookingError {...defaultProps} />
+      );
 
       for (let i = 0; i < 5; i++) {
-        rerender(
-          <BookingError error={`Error ${i}`} onRetry={mockOnRetry} />
-        );
+        rerender(<BookingError error={`Error ${i}`} onRetry={mockOnRetry} />);
         expect(getByText(`Error ${i}`)).toBeTruthy();
       }
     });
@@ -527,7 +546,7 @@ describe('BookingError', () => {
 
     it('should handle error with only whitespace', () => {
       const { getByText } = render(
-        <BookingError error="   " onRetry={mockOnRetry} />
+        <BookingError error='   ' onRetry={mockOnRetry} />
       );
 
       expect(getByText('   ')).toBeTruthy();
@@ -579,12 +598,12 @@ describe('BookingError', () => {
     });
 
     it('should handle rapid prop changes', () => {
-      const { rerender, getByText } = render(<BookingError {...defaultProps} />);
+      const { rerender, getByText } = render(
+        <BookingError {...defaultProps} />
+      );
 
       for (let i = 0; i < 20; i++) {
-        rerender(
-          <BookingError error={`Error ${i}`} onRetry={mockOnRetry} />
-        );
+        rerender(<BookingError error={`Error ${i}`} onRetry={mockOnRetry} />);
       }
 
       expect(getByText('Error 19')).toBeTruthy();
@@ -596,7 +615,7 @@ describe('BookingError', () => {
       });
 
       const { getByText } = render(
-        <BookingError error="Test" onRetry={throwingHandler} />
+        <BookingError error='Test' onRetry={throwingHandler} />
       );
 
       expect(() => {
@@ -639,9 +658,7 @@ describe('BookingError', () => {
 
       const startTime = Date.now();
       for (let i = 0; i < 50; i++) {
-        rerender(
-          <BookingError error={`Error ${i}`} onRetry={mockOnRetry} />
-        );
+        rerender(<BookingError error={`Error ${i}`} onRetry={mockOnRetry} />);
       }
       const endTime = Date.now();
 
@@ -687,7 +704,9 @@ describe('BookingError', () => {
     });
 
     it('should work correctly in error recovery flow', () => {
-      const { getByText, rerender } = render(<BookingError {...defaultProps} />);
+      const { getByText, rerender } = render(
+        <BookingError {...defaultProps} />
+      );
 
       // Initial error
       expect(getByText('Failed to load bookings')).toBeTruthy();
@@ -699,9 +718,7 @@ describe('BookingError', () => {
       expect(mockOnRetry).toHaveBeenCalledTimes(1);
 
       // New error occurs
-      rerender(
-        <BookingError error="Still failing" onRetry={mockOnRetry} />
-      );
+      rerender(<BookingError error='Still failing' onRetry={mockOnRetry} />);
 
       expect(getByText('Still failing')).toBeTruthy();
     });

@@ -102,10 +102,20 @@ const envSchema = z.object({
     )
     .describe('Stripe secret key - server-side only'),
 
+  // 2026-06-03: optional at the schema level. Only the Stripe webhook routes
+  // need this secret, and they already reject cleanly at request time when it
+  // is missing (lib/services/stripe-webhook/stripe-webhook-service.ts +
+  // app/api/webhooks/stripe/services/signature-verifier.ts validateConfiguration()).
+  // Previously it was `.required()`, so a missing webhook secret threw at
+  // module-import time and 500'd EVERY route that transitively imports lib/env
+  // (e.g. /api/jobs/[id]). A production warning is emitted below instead.
   STRIPE_WEBHOOK_SECRET: z
     .string()
     .regex(/^whsec_/, 'STRIPE_WEBHOOK_SECRET must start with whsec_')
-    .describe('Stripe webhook signing secret'),
+    .optional()
+    .describe(
+      'Stripe webhook signing secret (required only by webhook routes)'
+    ),
 
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z
     .string()
@@ -454,6 +464,15 @@ function validateEnv(): Env {
         );
       }
 
+      // Stripe webhooks can't be verified without the signing secret, but a
+      // missing secret must NOT crash unrelated routes — warn loudly instead.
+      if (!parsed.STRIPE_WEBHOOK_SECRET) {
+        logger.warn(
+          'STRIPE_WEBHOOK_SECRET not configured — Stripe webhook delivery will be rejected at request time',
+          { service: 'env-validation' }
+        );
+      }
+
       // Warn if AI features are disabled in production
       if (!parsed.OPENAI_API_KEY) {
         logger.warn(
@@ -498,7 +517,6 @@ function validateEnv(): Env {
         '  - NEXT_PUBLIC_SUPABASE_URL (valid URL)',
         '  - SUPABASE_SERVICE_ROLE_KEY',
         '  - STRIPE_SECRET_KEY (must start with sk_test_ or sk_live_)',
-        '  - STRIPE_WEBHOOK_SECRET (must start with whsec_)',
         '  - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (must start with pk_test_ or pk_live_)',
         '',
         'Production-only required variables:',
@@ -506,6 +524,7 @@ function validateEnv(): Env {
         '  - UPSTASH_REDIS_REST_TOKEN',
         '',
         'Recommended variables:',
+        '  - STRIPE_WEBHOOK_SECRET (whsec_…; required only for Stripe webhook delivery)',
         '  - OPENAI_API_KEY (for AI features)',
         '  - ROBOFLOW_API_KEY (for damage detection)',
         '  - GOOGLE_MAPS_API_KEY (for location services)',

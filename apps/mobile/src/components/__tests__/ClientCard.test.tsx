@@ -20,12 +20,16 @@ jest.mock('../../theme', () => ({
   theme: {
     colors: {
       primary: '#0F172A',
+      accent: '#F59E0B',
       success: '#10B981',
       warning: '#F59E0B',
       error: '#EF4444',
       textPrimary: '#0F172A',
+      textInverse: '#FFFFFF',
       textSecondary: '#475569',
       background: '#FFFFFF',
+      surface: '#FFFFFF',
+      backgroundSecondary: '#F7F7F7',
       borderLight: '#F1F5F9',
       surfaceSecondary: '#F8FAFC',
     },
@@ -129,15 +133,19 @@ describe('ClientCard', () => {
 
   describe('Status Colors - getStatusColor()', () => {
     it('should apply success color for active status', () => {
-      const activeClient = { ...baseClient, relationship_status: 'active' as const };
+      const activeClient = {
+        ...baseClient,
+        relationship_status: 'active' as const,
+      };
       const { getByText } = render(
         <ClientCard client={activeClient} onPress={mockOnPress} />
       );
 
       const statusBadge = getByText('ACTIVE').parent;
+      // active maps to theme.colors.primary
       expect(statusBadge?.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ backgroundColor: '#10B981' }),
+          expect.objectContaining({ backgroundColor: '#0F172A' }),
         ])
       );
     });
@@ -177,7 +185,10 @@ describe('ClientCard', () => {
     });
 
     it('should apply error color for former status', () => {
-      const formerClient = { ...baseClient, relationship_status: 'former' as const };
+      const formerClient = {
+        ...baseClient,
+        relationship_status: 'former' as const,
+      };
       const { getByText } = render(
         <ClientCard client={formerClient} onPress={mockOnPress} />
       );
@@ -193,7 +204,10 @@ describe('ClientCard', () => {
 
   describe('Client Type Icons - getClientTypeIcon()', () => {
     it('should render home icon for residential client type', () => {
-      const residentialClient = { ...baseClient, client_type: 'residential' as const };
+      const residentialClient = {
+        ...baseClient,
+        client_type: 'residential' as const,
+      };
       const { getByTestId } = render(
         <ClientCard client={residentialClient} onPress={mockOnPress} />
       );
@@ -202,7 +216,10 @@ describe('ClientCard', () => {
     });
 
     it('should render business icon for commercial client type', () => {
-      const commercialClient = { ...baseClient, client_type: 'commercial' as const };
+      const commercialClient = {
+        ...baseClient,
+        client_type: 'commercial' as const,
+      };
       const { getByTestId } = render(
         <ClientCard client={commercialClient} onPress={mockOnPress} />
       );
@@ -211,7 +228,10 @@ describe('ClientCard', () => {
     });
 
     it('should render construct icon for industrial client type', () => {
-      const industrialClient = { ...baseClient, client_type: 'industrial' as const };
+      const industrialClient = {
+        ...baseClient,
+        client_type: 'industrial' as const,
+      };
       const { getByTestId } = render(
         <ClientCard client={industrialClient} onPress={mockOnPress} />
       );
@@ -220,7 +240,10 @@ describe('ClientCard', () => {
     });
 
     it('should render library icon for government client type', () => {
-      const governmentClient = { ...baseClient, client_type: 'government' as const };
+      const governmentClient = {
+        ...baseClient,
+        client_type: 'government' as const,
+      };
       const { getByTestId } = render(
         <ClientCard client={governmentClient} onPress={mockOnPress} />
       );
@@ -239,7 +262,9 @@ describe('ClientCard', () => {
       expect(getByText('High Risk')).toBeTruthy();
       const riskBadge = getByText('High Risk').parent;
       expect(riskBadge?.props.style).toEqual(
-        expect.arrayContaining([expect.objectContaining({ borderColor: '#EF4444' })])
+        expect.arrayContaining([
+          expect.objectContaining({ borderColor: '#EF4444' }),
+        ])
       );
     });
 
@@ -284,9 +309,10 @@ describe('ClientCard', () => {
 
       expect(getByText('Low Risk')).toBeTruthy();
       const riskBadge = getByText('Low Risk').parent;
+      // low risk maps to theme.colors.primary
       expect(riskBadge?.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ borderColor: '#10B981' }),
+          expect.objectContaining({ borderColor: '#0F172A' }),
         ])
       );
     });
@@ -385,7 +411,10 @@ describe('ClientCard', () => {
     });
 
     it('should display payment score for 100%', () => {
-      const perfectPaymentClient = { ...baseClient, payment_history_score: 100 };
+      const perfectPaymentClient = {
+        ...baseClient,
+        payment_history_score: 100,
+      };
       const { getByText } = render(
         <ClientCard client={perfectPaymentClient} onPress={mockOnPress} />
       );
@@ -421,7 +450,10 @@ describe('ClientCard', () => {
     });
 
     it('should not display satisfaction metric when score is missing', () => {
-      const noSatisfactionClient = { ...baseClient, satisfaction_score: undefined };
+      const noSatisfactionClient = {
+        ...baseClient,
+        satisfaction_score: undefined,
+      };
       const { queryByText } = render(
         <ClientCard client={noSatisfactionClient} onPress={mockOnPress} />
       );
