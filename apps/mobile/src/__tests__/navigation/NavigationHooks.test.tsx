@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { render , waitFor} from '../test-utils';
+import { render, waitFor } from '../test-utils';
 import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -31,7 +30,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock react-navigation
 const mockNavigate = jest.fn();
@@ -41,9 +42,13 @@ const mockReset = jest.fn();
 const mockGetState = jest.fn();
 
 jest.mock('@react-navigation/native', () => {
+  const React = require('react');
   const actual = jest.requireActual('@react-navigation/native');
   return {
     ...actual,
+    // Passthrough container so rendering does not touch native I18nManager.getConstants
+    NavigationContainer: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
     useNavigation: () => ({
       navigate: mockNavigate,
       goBack: mockGoBack,
@@ -59,6 +64,20 @@ jest.mock('@react-navigation/native', () => {
   };
 });
 
+// Stub the stack navigator so the unit-under-test (the hooks) renders in isolation
+// without the heavy native navigator machinery.
+jest.mock('@react-navigation/stack', () => {
+  const React = require('react');
+  return {
+    createStackNavigator: () => ({
+      Navigator: ({ children }: { children: React.ReactNode }) =>
+        React.createElement(React.Fragment, null, children),
+      Screen: ({ component: Component }: { component: React.ComponentType }) =>
+        Component ? React.createElement(Component) : null,
+    }),
+  };
+});
+
 // Test component using navigation hooks
 const TestComponent: React.FC = () => {
   const navigation = useTypedNavigation();
@@ -67,7 +86,7 @@ const TestComponent: React.FC = () => {
   const profileNavigation = useProfileNavigation();
 
   return (
-    <View testID="test-component">
+    <View testID='test-component'>
       <Text>Test Component</Text>
     </View>
   );
@@ -78,7 +97,7 @@ const TestStack = createStackNavigator();
 
 const TestNavigator: React.FC = () => (
   <TestStack.Navigator>
-    <TestStack.Screen name="Test" component={TestComponent} />
+    <TestStack.Screen name='Test' component={TestComponent} />
   </TestStack.Navigator>
 );
 
@@ -89,7 +108,6 @@ describe('Navigation Hooks', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
-
 
   describe('useTypedNavigation', () => {
     it('should provide typed navigation object', () => {
@@ -163,7 +181,9 @@ describe('Navigation Utilities', () => {
     it('should navigate to screen with parameters', () => {
       navigateToScreen(mockNavigation, 'Modal', { screen: 'ServiceRequest' });
 
-      expect(mockNavigate).toHaveBeenCalledWith('Modal', { screen: 'ServiceRequest' });
+      expect(mockNavigate).toHaveBeenCalledWith('Modal', {
+        screen: 'ServiceRequest',
+      });
     });
   });
 
@@ -232,10 +252,7 @@ describe('Navigation Utilities', () => {
   describe('hasRoute', () => {
     it('should return true when route exists', () => {
       mockGetState.mockReturnValue({
-        routes: [
-          { name: 'Main' },
-          { name: 'Auth' },
-        ],
+        routes: [{ name: 'Main' }, { name: 'Auth' }],
       });
 
       const result = hasRoute(mockNavigation, 'Auth');
@@ -246,9 +263,7 @@ describe('Navigation Utilities', () => {
 
     it('should return false when route does not exist', () => {
       mockGetState.mockReturnValue({
-        routes: [
-          { name: 'Main' },
-        ],
+        routes: [{ name: 'Main' }],
       });
 
       const result = hasRoute(mockNavigation, 'Auth');
@@ -261,10 +276,7 @@ describe('Navigation Utilities', () => {
   describe('getCurrentRouteName', () => {
     it('should return current route name', () => {
       mockGetState.mockReturnValue({
-        routes: [
-          { name: 'Main' },
-          { name: 'Auth' },
-        ],
+        routes: [{ name: 'Main' }, { name: 'Auth' }],
         index: 1,
       });
 
@@ -292,7 +304,9 @@ describe('Type Safety Tests', () => {
   // These tests ensure TypeScript compilation catches type errors
   it('should enforce type safety at compile time', () => {
     // Valid navigation parameters
-    const validJobParams: JobsStackParamList['JobDetails'] = { jobId: 'job-123' };
+    const validJobParams: JobsStackParamList['JobDetails'] = {
+      jobId: 'job-123',
+    };
     const validMessagingParams: MessagingStackParamList['Messaging'] = {
       jobId: 'job-123',
       jobTitle: 'Test Job',
@@ -324,13 +338,13 @@ describe('Hook Integration Tests', () => {
       // Test that hooks can be used together
       const canGoBack = hasRoute(navigation, 'Main');
       const currentRoute = getCurrentRouteName(navigation);
-      
+
       // These would normally trigger navigation in a real app
       // but in tests we just verify they don't throw errors
     }, [navigation, jobsNavigation]);
 
     return (
-      <View testID="hook-test-component">
+      <View testID='hook-test-component'>
         <Text>Hook Integration Test</Text>
       </View>
     );
@@ -339,7 +353,7 @@ describe('Hook Integration Tests', () => {
   const HookTestStack = createStackNavigator();
   const HookTestNavigator: React.FC = () => (
     <HookTestStack.Navigator>
-      <HookTestStack.Screen name="HookTest" component={HookTestComponent} />
+      <HookTestStack.Screen name='HookTest' component={HookTestComponent} />
     </HookTestStack.Navigator>
   );
 
@@ -357,16 +371,16 @@ describe('Hook Integration Tests', () => {
 describe('Performance Tests', () => {
   it('should render hooks efficiently', () => {
     const start = performance.now();
-    
+
     render(
       <NavigationContainer>
         <TestNavigator />
       </NavigationContainer>
     );
-    
+
     const end = performance.now();
     const renderTime = end - start;
-    
+
     // Hooks should render quickly (less than 50ms in test environment)
     expect(renderTime).toBeLessThan(50);
   });
