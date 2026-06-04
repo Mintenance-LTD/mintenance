@@ -93,9 +93,9 @@ describe('JobSearchService', () => {
     it('should throw error when API fails', async () => {
       mockedApiClient.get.mockRejectedValue(new Error('Database error'));
 
-      await expect(JobSearchService.getJobsByHomeowner('homeowner-123')).rejects.toThrow(
-        'Database error'
-      );
+      await expect(
+        JobSearchService.getJobsByHomeowner('homeowner-123')
+      ).rejects.toThrow('Database error');
     });
 
     it('should handle response without jobs wrapper', async () => {
@@ -130,7 +130,9 @@ describe('JobSearchService', () => {
     it('should throw error when API fails', async () => {
       mockedApiClient.get.mockRejectedValue(new Error('Connection failed'));
 
-      await expect(JobSearchService.getUserJobs('user-123')).rejects.toThrow('Connection failed');
+      await expect(JobSearchService.getUserJobs('user-123')).rejects.toThrow(
+        'Connection failed'
+      );
     });
   });
 
@@ -160,7 +162,9 @@ describe('JobSearchService', () => {
     it('should throw error when API fails', async () => {
       mockedApiClient.get.mockRejectedValue(new Error('Query failed'));
 
-      await expect(JobSearchService.getAvailableJobs()).rejects.toThrow('Query failed');
+      await expect(JobSearchService.getAvailableJobs()).rejects.toThrow(
+        'Query failed'
+      );
     });
   });
 
@@ -205,13 +209,21 @@ describe('JobSearchService', () => {
   });
 
   describe('getJobsByUser', () => {
+    // getJobsByUser hits GET /api/jobs and relies on the web route scoping
+    // results to the authenticated session (apps/web/app/api/jobs/route.ts
+    // calls JobQueryService.listJobs({ id: user.id, role: user.role })). The
+    // client therefore does NOT — and must not — append homeowner_id/
+    // contractor_id query params; server-side auth scoping is authoritative.
     it('should get jobs by homeowner', async () => {
       mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
-      const result = await JobSearchService.getJobsByUser('user-123', 'homeowner');
+      const result = await JobSearchService.getJobsByUser(
+        'user-123',
+        'homeowner'
+      );
 
       expect(mockedApiClient.get).toHaveBeenCalledWith(
-        expect.stringContaining('homeowner_id=user-123')
+        expect.stringContaining('/api/jobs')
       );
       expect(result).toHaveLength(1);
     });
@@ -219,10 +231,13 @@ describe('JobSearchService', () => {
     it('should get jobs by contractor', async () => {
       mockedApiClient.get.mockResolvedValue({ jobs: [mockJobData] });
 
-      const result = await JobSearchService.getJobsByUser('contractor-123', 'contractor');
+      const result = await JobSearchService.getJobsByUser(
+        'contractor-123',
+        'contractor'
+      );
 
       expect(mockedApiClient.get).toHaveBeenCalledWith(
-        expect.stringContaining('contractor_id=contractor-123')
+        expect.stringContaining('/api/jobs')
       );
       expect(result).toHaveLength(1);
     });
@@ -230,7 +245,10 @@ describe('JobSearchService', () => {
     it('should return empty array when no jobs found', async () => {
       mockedApiClient.get.mockResolvedValue({ jobs: [] });
 
-      const result = await JobSearchService.getJobsByUser('user-999', 'homeowner');
+      const result = await JobSearchService.getJobsByUser(
+        'user-999',
+        'homeowner'
+      );
 
       expect(result).toEqual([]);
     });
@@ -295,7 +313,9 @@ describe('JobSearchService', () => {
       const result = await JobSearchService.searchJobs('invalid');
 
       expect(result).toEqual([]);
-      expect(logger.warn).toHaveBeenCalledWith('Invalid search term rejected in JobSearchService');
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Invalid search term rejected in JobSearchService'
+      );
     });
 
     it('should apply category filter', async () => {
@@ -371,7 +391,9 @@ describe('JobSearchService', () => {
 
   describe('getJob', () => {
     it('should delegate to JobCRUDService.getJobById', async () => {
-      (JobCRUDService.getJobById as jest.Mock).mockResolvedValue(mockFormattedJob);
+      (JobCRUDService.getJobById as jest.Mock).mockResolvedValue(
+        mockFormattedJob
+      );
 
       const result = await JobSearchService.getJob('job-123');
 

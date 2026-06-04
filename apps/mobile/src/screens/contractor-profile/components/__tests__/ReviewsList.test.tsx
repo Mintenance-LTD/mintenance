@@ -15,6 +15,7 @@ import { render } from '@testing-library/react-native';
 import { Text, View } from 'react-native';
 import { ReviewsList } from '../ReviewsList';
 import type { Review } from '../../viewmodels/ContractorProfileViewModel';
+import { me } from '../../../../design-system/mint-editorial';
 
 // ============================================================================
 // MOCKS
@@ -61,14 +62,11 @@ jest.mock('@expo/vector-icons', () => {
   const RN = require('react-native');
 
   mockIonicons = jest.fn(({ name, size, color, ...props }) => {
-    return React.createElement(
-      RN.View,
-      {
-        testID: `ionicon-${name}`,
-        accessibilityLabel: `Icon: ${name}, size: ${size}, color: ${color}`,
-        ...props,
-      }
-    );
+    return React.createElement(RN.View, {
+      testID: `ionicon-${name}`,
+      accessibilityLabel: `Icon: ${name}, size: ${size}, color: ${color}`,
+      ...props,
+    });
   });
 
   return {
@@ -140,13 +138,13 @@ describe('ReviewsList Component', () => {
     });
 
     it('renders section title', () => {
-      const { getByText } = render(<ReviewsList reviews={[]} />);
-      expect(getByText('Reviews')).toBeTruthy();
+      const { getByRole } = render(<ReviewsList reviews={[]} />);
+      expect(getByRole('header')).toBeTruthy();
     });
 
     it('renders section title as Text component', () => {
-      const { getByText } = render(<ReviewsList reviews={[]} />);
-      const title = getByText('Reviews');
+      const { getByRole } = render(<ReviewsList reviews={[]} />);
+      const title = getByRole('header');
       expect(title.type).toBe(Text);
     });
 
@@ -182,16 +180,19 @@ describe('ReviewsList Component', () => {
 
   describe('Empty State', () => {
     it('handles empty reviews array', () => {
-      const { getByText, queryByText } = render(<ReviewsList reviews={[]} />);
-      expect(getByText('Reviews')).toBeTruthy();
+      const { getByRole, queryByText } = render(<ReviewsList reviews={[]} />);
+      expect(getByRole('header')).toBeTruthy();
       expect(queryByText('John Doe')).toBeNull();
     });
 
-    it('renders only section title when no reviews', () => {
-      const { UNSAFE_root } = render(<ReviewsList reviews={[]} />);
-      const textElements = UNSAFE_root.findAllByType(Text as any);
-      // Should have only the section title
-      expect(textElements.length).toBe(1);
+    it('renders the empty state when no reviews', () => {
+      const { getByText, queryByText } = render(<ReviewsList reviews={[]} />);
+      // Mint Editorial empty state: title + descriptive copy, no review cards.
+      expect(getByText('No Reviews Yet')).toBeTruthy();
+      expect(
+        getByText('Be the first to leave a review after your job is complete.')
+      ).toBeTruthy();
+      expect(queryByText('John Doe')).toBeNull();
     });
 
     it('does not render review cards when empty', () => {
@@ -280,130 +281,80 @@ describe('ReviewsList Component', () => {
   // --------------------------------------------------------------------------
 
   describe('Rating Display', () => {
-    it('displays 5-star rating correctly', () => {
-      const reviews = [createReview({ rating: 5 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const filledStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star'
+    // In the Mint Editorial redesign, a single review is promoted to the
+    // "featured" card whose rating row renders 5 size-10 star icons. The
+    // breakdown chart (size 14) and list rows (size 12) render additional
+    // stars, so star assertions are scoped to the featured row by size.
+    const featuredStars = (name: 'star' | 'star-outline') =>
+      mockIonicons.mock.calls.filter(
+        (call) => call[0].name === name && call[0].size === 10
       );
-      expect(filledStars.length).toBe(5);
+
+    it('displays 5-star rating correctly', () => {
+      render(<ReviewsList reviews={[createReview({ rating: 5 })]} />);
+      expect(featuredStars('star').length).toBe(5);
     });
 
     it('displays 4-star rating correctly', () => {
-      const reviews = [createReview({ rating: 4 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const filledStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star'
-      );
-      const outlineStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star-outline'
-      );
-      expect(filledStars.length).toBe(4);
-      expect(outlineStars.length).toBe(1);
+      render(<ReviewsList reviews={[createReview({ rating: 4 })]} />);
+      expect(featuredStars('star').length).toBe(4);
+      expect(featuredStars('star-outline').length).toBe(1);
     });
 
     it('displays 3-star rating correctly', () => {
-      const reviews = [createReview({ rating: 3 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const filledStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star'
-      );
-      const outlineStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star-outline'
-      );
-      expect(filledStars.length).toBe(3);
-      expect(outlineStars.length).toBe(2);
+      render(<ReviewsList reviews={[createReview({ rating: 3 })]} />);
+      expect(featuredStars('star').length).toBe(3);
+      expect(featuredStars('star-outline').length).toBe(2);
     });
 
     it('displays 2-star rating correctly', () => {
-      const reviews = [createReview({ rating: 2 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const filledStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star'
-      );
-      const outlineStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star-outline'
-      );
-      expect(filledStars.length).toBe(2);
-      expect(outlineStars.length).toBe(3);
+      render(<ReviewsList reviews={[createReview({ rating: 2 })]} />);
+      expect(featuredStars('star').length).toBe(2);
+      expect(featuredStars('star-outline').length).toBe(3);
     });
 
     it('displays 1-star rating correctly', () => {
-      const reviews = [createReview({ rating: 1 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const filledStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star'
-      );
-      const outlineStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star-outline'
-      );
-      expect(filledStars.length).toBe(1);
-      expect(outlineStars.length).toBe(4);
+      render(<ReviewsList reviews={[createReview({ rating: 1 })]} />);
+      expect(featuredStars('star').length).toBe(1);
+      expect(featuredStars('star-outline').length).toBe(4);
     });
 
     it('displays 0-star rating correctly', () => {
-      const reviews = [createReview({ rating: 0 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const outlineStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star-outline'
-      );
-      expect(outlineStars.length).toBe(5);
+      render(<ReviewsList reviews={[createReview({ rating: 0 })]} />);
+      expect(featuredStars('star-outline').length).toBe(5);
     });
 
-    it('renders exactly 5 stars per review', () => {
-      const reviews = [createReview({ rating: 3 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const allStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star' || call[0].name === 'star-outline'
-      );
-      expect(allStars.length).toBe(5);
+    it('renders exactly 5 stars in the featured review row', () => {
+      render(<ReviewsList reviews={[createReview({ rating: 3 })]} />);
+      expect(
+        featuredStars('star').length + featuredStars('star-outline').length
+      ).toBe(5);
     });
 
-    it('star icons have correct size', () => {
-      const reviews = [createReview()];
-      render(<ReviewsList reviews={reviews} />);
+    it('featured star icons have the correct size', () => {
+      render(<ReviewsList reviews={[createReview()]} />);
+      const starCall = mockIonicons.mock.calls.find(
+        (call) => call[0].name === 'star' && call[0].size === 10
+      );
+      expect(starCall[0].size).toBe(10);
+    });
 
+    it('star icons use the accent token color', () => {
+      render(<ReviewsList reviews={[createReview()]} />);
       const starCall = mockIonicons.mock.calls.find(
         (call) => call[0].name === 'star'
       );
-      expect(starCall[0].size).toBe(14);
-    });
-
-    it('star icons have correct color', () => {
-      const reviews = [createReview()];
-      render(<ReviewsList reviews={reviews} />);
-
-      const starCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'star'
-      );
-      expect(starCall[0].color).toBe('#F59E0B');
+      expect(starCall[0].color).toBe(me.accent);
     });
 
     it('handles negative rating gracefully', () => {
-      const reviews = [createReview({ rating: -1 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const outlineStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star-outline'
-      );
-      expect(outlineStars.length).toBe(5);
+      render(<ReviewsList reviews={[createReview({ rating: -1 })]} />);
+      expect(featuredStars('star-outline').length).toBe(5);
     });
 
     it('handles rating above 5 gracefully', () => {
-      const reviews = [createReview({ rating: 10 })];
-      render(<ReviewsList reviews={reviews} />);
-
-      const filledStars = mockIonicons.mock.calls.filter(
-        (call) => call[0].name === 'star'
-      );
-      expect(filledStars.length).toBe(5);
+      render(<ReviewsList reviews={[createReview({ rating: 10 })]} />);
+      expect(featuredStars('star').length).toBe(5);
     });
   });
 
@@ -540,7 +491,7 @@ describe('ReviewsList Component', () => {
       expect(getByText('Bob Johnson')).toBeTruthy(); // 3 stars
     });
 
-    it('handles large number of reviews', () => {
+    it('handles large number of reviews without crashing', () => {
       const manyReviews = Array.from({ length: 50 }, (_, i) =>
         createReview({
           id: `review-${i}`,
@@ -548,9 +499,17 @@ describe('ReviewsList Component', () => {
           rating: (i % 5) + 1,
         })
       );
-      const { getByText } = render(<ReviewsList reviews={manyReviews} />);
-      expect(getByText('Reviewer 0')).toBeTruthy();
-      expect(getByText('Reviewer 49')).toBeTruthy();
+      // The redesign surfaces one featured review plus up to 5 in the list,
+      // so it does NOT render all 50 reviewer names. Assert it renders a
+      // bounded subset and shows the total count in the header.
+      const { getByRole, getAllByText } = render(
+        <ReviewsList reviews={manyReviews} totalCount={50} />
+      );
+      expect(getByRole('header').props.children).toEqual(['Reviews ', '(50)']);
+      const renderedNames = getAllByText(/^Reviewer \d+$/);
+      // 1 featured + up to 5 list rows.
+      expect(renderedNames.length).toBeGreaterThan(0);
+      expect(renderedNames.length).toBeLessThanOrEqual(6);
     });
 
     it('maintains review order', () => {
@@ -607,11 +566,12 @@ describe('ReviewsList Component', () => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
+        // Mint Editorial featured-review avatar: 36x36 with borderRadius 18.
         return styles.some(
           (style: any) =>
-            style?.borderRadius === 24 &&
-            style?.width === 48 &&
-            style?.height === 48
+            style?.borderRadius === 18 &&
+            style?.width === 36 &&
+            style?.height === 36
         );
       });
 
@@ -630,9 +590,7 @@ describe('ReviewsList Component', () => {
       );
       expect(getByText('John Doe')).toBeTruthy();
 
-      const newReviews = [
-        createReview({ reviewerName: 'Jane Doe', id: '2' }),
-      ];
+      const newReviews = [createReview({ reviewerName: 'Jane Doe', id: '2' })];
       rerender(<ReviewsList reviews={newReviews} />);
       expect(getByText('Jane Doe')).toBeTruthy();
       expect(queryByText('John Doe')).toBeNull();
@@ -771,15 +729,16 @@ describe('ReviewsList Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            padding: 20,
+            paddingTop: 12,
+            paddingBottom: 8,
           }),
         ])
       );
     });
 
     it('section title has correct styling', () => {
-      const { getByText } = render(<ReviewsList reviews={[]} />);
-      const titleElement = getByText('Reviews');
+      const { getByRole } = render(<ReviewsList reviews={[]} />);
+      const titleElement = getByRole('header');
       const styles = Array.isArray(titleElement.props.style)
         ? titleElement.props.style.flat()
         : [titleElement.props.style];
@@ -787,8 +746,8 @@ describe('ReviewsList Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#171717',
-            fontWeight: '600',
+            color: me.ink,
+            fontWeight: '700',
           }),
         ])
       );
@@ -805,14 +764,16 @@ describe('ReviewsList Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#171717',
+            color: me.ink,
             fontWeight: '600',
           }),
         ])
       );
     });
 
-    it('review comment has correct styling', () => {
+    it('featured review comment has correct styling', () => {
+      // A single review is promoted to the featured card, whose comment uses
+      // the ink token (italic pull-quote treatment).
       const reviews = [createReview()];
       const { getByText } = render(<ReviewsList reviews={reviews} />);
       const commentElement = getByText('Excellent service!');
@@ -823,7 +784,7 @@ describe('ReviewsList Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#737373',
+            color: me.ink,
           }),
         ])
       );
@@ -840,14 +801,19 @@ describe('ReviewsList Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#A3A3A3',
+            color: me.ink3,
           }),
         ])
       );
     });
 
-    it('review card has correct styling', () => {
-      const reviews = [createReview()];
+    it('list review card has correct styling', () => {
+      // Provide a higher-rated review so a SECOND review lands in the list
+      // (non-featured) and renders with the list reviewCard styling.
+      const reviews = [
+        createReview({ id: 'feat', reviewerName: 'Top', rating: 5 }),
+        createReview({ id: 'list', reviewerName: 'Second', rating: 4 }),
+      ];
       const { UNSAFE_root } = render(<ReviewsList reviews={reviews} />);
       const viewElements = UNSAFE_root.findAllByType(View as any);
 
@@ -857,8 +823,8 @@ describe('ReviewsList Component', () => {
           : [view?.props.style];
         return styles.some(
           (style: any) =>
-            style?.backgroundColor === '#FFFFFF' &&
-            style?.borderRadius === 8 &&
+            style?.backgroundColor === me.surface &&
+            style?.borderRadius === 16 &&
             style?.padding === 16
         );
       });
@@ -874,20 +840,22 @@ describe('ReviewsList Component', () => {
   describe('Accessibility', () => {
     it('renders semantic text elements', () => {
       const reviews = [createReview()];
-      const { getByText } = render(<ReviewsList reviews={reviews} />);
+      const { getByText, getByRole } = render(
+        <ReviewsList reviews={reviews} />
+      );
 
-      expect(getByText('Reviews').type).toBe(Text);
+      expect(getByRole('header').type).toBe(Text);
       expect(getByText('John Doe').type).toBe(Text);
       expect(getByText('Excellent service!').type).toBe(Text);
     });
 
     it('maintains proper semantic structure', () => {
       const reviews = [createReview()];
-      const { getByText, getAllByTestId } = render(
+      const { getByText, getByRole, getAllByTestId } = render(
         <ReviewsList reviews={reviews} />
       );
 
-      expect(getByText('Reviews')).toBeTruthy();
+      expect(getByRole('header')).toBeTruthy();
       expect(getByText('John Doe')).toBeTruthy();
       const stars = getAllByTestId(/ionicon-star/);
       expect(stars.length).toBeGreaterThan(0);
@@ -898,8 +866,9 @@ describe('ReviewsList Component', () => {
     it('provides visual rating indicators', () => {
       const reviews = [createReview({ rating: 5 })];
       const { getAllByTestId } = render(<ReviewsList reviews={reviews} />);
+      // Featured row (5) + breakdown chart (5) all carry ionicon-star* testIDs.
       const stars = getAllByTestId(/ionicon-star/);
-      expect(stars.length).toBe(5);
+      expect(stars.length).toBeGreaterThanOrEqual(5);
     });
   });
 
@@ -959,11 +928,11 @@ describe('ReviewsList Component', () => {
 
   describe('Integration', () => {
     it('renders complete review list with all features', () => {
-      const { getByText, getAllByTestId } = render(
+      const { getByText, getByRole, getAllByTestId } = render(
         <ReviewsList reviews={multipleReviews} />
       );
 
-      expect(getByText('Reviews')).toBeTruthy();
+      expect(getByRole('header')).toBeTruthy();
       expect(getByText('John Doe')).toBeTruthy();
       expect(getByText('Jane Smith')).toBeTruthy();
       expect(getByText('Bob Johnson')).toBeTruthy();

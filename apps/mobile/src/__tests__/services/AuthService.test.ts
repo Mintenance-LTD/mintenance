@@ -16,18 +16,21 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-
 jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
-      getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      getUser: jest.fn(() =>
+        Promise.resolve({ data: { user: null }, error: null })
+      ),
+      getSession: jest.fn(() =>
+        Promise.resolve({ data: { session: null }, error: null })
+      ),
       signIn: jest.fn(),
       signInWithPassword: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
       onAuthStateChange: jest.fn(() => ({
-        data: { subscription: { unsubscribe: jest.fn() } }
+        data: { subscription: { unsubscribe: jest.fn() } },
       })),
     },
     from: jest.fn((table) => ({
@@ -55,17 +58,38 @@ jest.mock('../../config/supabase', () => ({
     })),
     storage: {
       from: jest.fn((bucket) => ({
-        upload: jest.fn(() => Promise.resolve({ data: { path: 'test.jpg' }, error: null })),
-        download: jest.fn(() => Promise.resolve({ data: new Blob(), error: null })),
+        upload: jest.fn(() =>
+          Promise.resolve({ data: { path: 'test.jpg' }, error: null })
+        ),
+        download: jest.fn(() =>
+          Promise.resolve({ data: new Blob(), error: null })
+        ),
         remove: jest.fn(() => Promise.resolve({ data: [], error: null })),
         list: jest.fn(() => Promise.resolve({ data: [], error: null })),
         getPublicUrl: jest.fn((path) => ({
-          data: { publicUrl: `https://test.supabase.co/storage/v1/object/public/${bucket}/${path}` }
+          data: {
+            publicUrl: `https://test.supabase.co/storage/v1/object/public/${bucket}/${path}`,
+          },
         })),
       })),
     },
   },
 }));
+
+// The RateLimiter keeps in-memory state across tests in this file. Several
+// signUp/signIn cases reuse test@example.com, so the real limiter would trip
+// 'Too many attempts' on the later assertions. Stub it open here — rate
+// limiting is covered by its own dedicated suite.
+jest.mock('../../middleware/RateLimiter', () => ({
+  checkRateLimit: jest.fn(() => true),
+  resetRateLimit: jest.fn(),
+}));
+
+// getCurrentUser / updateUserProfile / the signup breach-check route
+// all go through mobileApiClient now (refactored 2026-05-09). Use the
+// manual mock so we don't hit a real fetch; override per-test below.
+jest.mock('../../utils/mobileApiClient');
+const { mobileApiClient } = require('../../utils/mobileApiClient');
 
 // Get mocked modules from jest-setup.js
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
@@ -129,9 +153,12 @@ describe('AuthService', () => {
   });
 
   describe('signUp', () => {
+    // Password must satisfy the full strength policy in
+    // services/auth/validators (>=8 chars, upper, lower, number,
+    // special). 'password123' no longer passes — tightened post-refactor.
     const signUpData = {
       email: 'test@example.com',
-      password: 'password123',
+      password: 'Password123!',
       firstName: 'John',
       lastName: 'Doe',
       role: 'homeowner' as const,
@@ -178,12 +205,13 @@ describe('AuthService', () => {
     });
 
     it('validates email format', async () => {
+      // signUp validates the email via validateEmailFormat (auth/validators),
+      // which throws 'Please enter a valid email address' (no trailing period)
+      // — it does NOT route through ServiceErrorHandler.validateEmail.
       const invalidData = { ...signUpData, email: 'invalid-email' };
       await expect(AuthService.signUp(invalidData)).rejects.toThrow(
-        'Please enter a valid email address.'
+        'Please enter a valid email address'
       );
-
-      expect(ServiceErrorHandler.validateEmail).toHaveBeenCalledWith('invalid-email', expect.any(Object));
     });
 
     it('validates password strength', async () => {
@@ -195,11 +223,10 @@ describe('AuthService', () => {
         error: null,
       });
 
+      // Real strength validator message (no trailing period).
       await expect(AuthService.signUp(weakPasswordData)).rejects.toThrow(
-        'Password must be at least 8 characters long.'
+        'Password must be at least 8 characters long'
       );
-
-      expect(ServiceErrorHandler.validatePassword).toHaveBeenCalledWith('123', expect.any(Object));
     });
 
     it('validates required fields', async () => {
@@ -267,7 +294,10 @@ describe('AuthService', () => {
         AuthService.signIn('invalid-email', 'password123')
       ).rejects.toThrow('Please enter a valid email address.');
 
-      expect(ServiceErrorHandler.validateEmail).toHaveBeenCalledWith('invalid-email', expect.any(Object));
+      expect(ServiceErrorHandler.validateEmail).toHaveBeenCalledWith(
+        'invalid-email',
+        expect.any(Object)
+      );
     });
 
     it('requires password', async () => {
@@ -332,11 +362,9 @@ describe('AuthService', () => {
         error: null,
       });
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
-      } as any);
+      // getCurrentUser now resolves the profile via the canonical web
+      // route GET /api/users/profile (mobileApiClient), not supabase.from.
+      mobileApiClient.get.mockResolvedValueOnce({ profile: mockUser });
 
       const result = await AuthService.getCurrentUser();
 
@@ -347,6 +375,7 @@ describe('AuthService', () => {
         createdAt: mockUser.created_at,
       };
 
+      expect(mobileApiClient.get).toHaveBeenCalledWith('/api/users/profile');
       expect(result).toEqual(expectedUser);
     });
 
@@ -367,17 +396,20 @@ describe('AuthService', () => {
       const updates = { first_name: 'Jane', last_name: 'Smith' };
       const updatedUser = { ...mockUser, ...updates };
 
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: updatedUser, error: null }),
-      } as any);
+      // updateUserProfile now persists via PUT /api/users/profile
+      // (mobileApiClient) which returns { success, profile }.
+      mobileApiClient.put.mockResolvedValueOnce({
+        success: true,
+        profile: updatedUser,
+      });
 
       const result = await AuthService.updateUserProfile('user-1', updates);
 
       expect(result).toEqual(updatedUser);
-      expect(mockSupabase.from).toHaveBeenCalledWith('users');
+      expect(mobileApiClient.put).toHaveBeenCalledWith(
+        '/api/users/profile',
+        updates
+      );
     });
 
     it('validates profile updates', async () => {
@@ -424,7 +456,7 @@ describe('AuthService', () => {
       // Mock successful Supabase getUser response
       mockSupabase.auth.getUser.mockResolvedValueOnce({
         data: { user: { id: 'user-123' } },
-        error: null
+        error: null,
       });
 
       const result = await AuthService.validateToken(validToken);
@@ -450,7 +482,7 @@ describe('AuthService', () => {
       // Mock Supabase error response for invalid token
       mockSupabase.auth.getUser.mockResolvedValueOnce({
         data: { user: null },
-        error: { message: 'Invalid JWT token' }
+        error: { message: 'Invalid JWT token' },
       });
 
       const result = await AuthService.validateToken(expiredToken);

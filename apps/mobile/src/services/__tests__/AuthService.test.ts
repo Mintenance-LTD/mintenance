@@ -76,6 +76,28 @@ jest.mock('../../utils/serviceErrorHandler', () => ({
 // NetworkDiagnosticsService mock removed — the module was deleted in the
 // bulk dead-code cleanup (commit 9f06a7ac) and AuthService no longer uses it.
 
+// AuthService now delegates to standalone functions split out of the service
+// on 2026-05-09. The biometric-restore path reads the current user via
+// auth/profile-fetch (NOT AuthService.getCurrentUser). The restore test spies
+// on that module's getCurrentUser inside its own describe block so the real
+// implementation is preserved for the getCurrentUser unit tests.
+import * as profileFetch from '../auth/profile-fetch';
+
+/**
+ * Build a genuinely base64url-decodable JWT (header.payload.signature) so the
+ * real decodeJWTPayload in auth/jwt.ts can parse the claims. validateToken no
+ * longer has a patchable static decodeJWTPayload method.
+ */
+function makeJwt(payload: Record<string, unknown>): string {
+  const b64 = (obj: Record<string, unknown>) =>
+    Buffer.from(JSON.stringify(obj))
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+  return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(payload)}.signature`;
+}
+
 describe('AuthService', () => {
   const mockUser = {
     id: 'user-123',
@@ -579,18 +601,14 @@ describe('AuthService', () => {
 
   describe('validateToken', () => {
     it('should validate a valid token', async () => {
-      const token = 'header.payload.signature';
+      const token = makeJwt({
+        exp: Math.floor(Date.now() / 1000) + 3600, // expires in 1 hour
+        iss: 'https://supabase.io',
+      });
 
       (supabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: mockUser },
         error: null,
-      });
-
-      // Mock the private decodeJWTPayload method
-      const originalDecode = (AuthService as any).decodeJWTPayload;
-      (AuthService as any).decodeJWTPayload = jest.fn().mockReturnValue({
-        exp: Date.now() / 1000 + 3600, // Token expires in 1 hour
-        iss: 'https://supabase.io',
       });
 
       const result = await AuthService.validateToken(token);
@@ -601,9 +619,6 @@ describe('AuthService', () => {
       });
 
       expect(supabase.auth.getUser).toHaveBeenCalledWith(token);
-
-      // Restore original method
-      (AuthService as any).decodeJWTPayload = originalDecode;
     });
 
     it('should reject invalid token format', async () => {
@@ -627,17 +642,14 @@ describe('AuthService', () => {
     });
 
     it('should reject expired token', async () => {
-      const token = 'header.payload.signature';
+      const token = makeJwt({
+        exp: Math.floor(Date.now() / 1000) - 3600, // expired 1 hour ago
+        iss: 'https://supabase.io',
+      });
 
       (supabase.auth.getUser as jest.Mock).mockResolvedValue({
         data: { user: mockUser },
         error: null,
-      });
-
-      const originalDecode = (AuthService as any).decodeJWTPayload;
-      (AuthService as any).decodeJWTPayload = jest.fn().mockReturnValue({
-        exp: Date.now() / 1000 - 3600, // Token expired 1 hour ago
-        iss: 'https://supabase.io',
       });
 
       const result = await AuthService.validateToken(token);
@@ -646,8 +658,6 @@ describe('AuthService', () => {
         valid: false,
         error: 'Token expired',
       });
-
-      (AuthService as any).decodeJWTPayload = originalDecode;
     });
 
     it('should handle validation errors', async () => {
@@ -667,17 +677,24 @@ describe('AuthService', () => {
   });
 
   describe('restoreSessionFromBiometricTokens', () => {
+    // restoreSessionFromBiometricTokens (auth/biometric-restore.ts) calls the
+    // standalone validateToken (auth/jwt) and getCurrentUser (auth/profile-fetch)
+    // directly — NOT via the AuthService statics — so drive those via a real
+    // decodable access token + the mocked profile-fetch module.
     const tokens = {
-      accessToken: 'header.payload.signature',
+      accessToken: makeJwt({
+        sub: 'user-123',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iss: 'https://supabase.io',
+      }),
       refreshToken: 'refresh-token',
     };
 
     it('should restore session successfully', async () => {
-      // Mock validateToken
-      const originalValidate = AuthService.validateToken;
-      AuthService.validateToken = jest.fn().mockResolvedValue({
-        valid: true,
-        userId: mockUser.id,
+      // validateToken -> supabase.auth.getUser returns matching user
+      (supabase.auth.getUser as jest.Mock).mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
       });
 
       (supabase.auth.setSession as jest.Mock).mockResolvedValue({
@@ -685,14 +702,14 @@ describe('AuthService', () => {
         error: null,
       });
 
-      // Mock getCurrentUser
-      const originalGetUser = AuthService.getCurrentUser;
-      AuthService.getCurrentUser = jest.fn().mockResolvedValue({
-        ...mockUserProfile,
-        firstName: mockUserProfile.first_name,
-        lastName: mockUserProfile.last_name,
-        createdAt: mockUserProfile.created_at,
-      });
+      const getUserSpy = jest
+        .spyOn(profileFetch, 'getCurrentUser')
+        .mockResolvedValue({
+          ...mockUserProfile,
+          firstName: mockUserProfile.first_name,
+          lastName: mockUserProfile.last_name,
+          createdAt: mockUserProfile.created_at,
+        } as never);
 
       const result =
         await AuthService.restoreSessionFromBiometricTokens(tokens);
@@ -705,9 +722,7 @@ describe('AuthService', () => {
       expect(result.user.id).toBe(mockUser.id);
       expect(result.session).toBe(mockSession);
 
-      // Restore originals
-      AuthService.validateToken = originalValidate;
-      AuthService.getCurrentUser = originalGetUser;
+      getUserSpy.mockRestore();
     });
 
     it('should throw error when refresh token is missing', async () => {
@@ -722,11 +737,10 @@ describe('AuthService', () => {
     });
 
     it('should throw error when token validation fails', async () => {
-      const originalValidate = AuthService.validateToken;
-      AuthService.validateToken = jest.fn().mockResolvedValue({
-        valid: false,
-        error: 'Invalid token',
-        errorType: 'invalid',
+      // supabase.auth.getUser errors -> validateToken returns invalid
+      (supabase.auth.getUser as jest.Mock).mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Invalid token' },
       });
 
       await expect(
@@ -739,8 +753,6 @@ describe('AuthService', () => {
         'Biometric token validation failed',
         expect.any(Object)
       );
-
-      AuthService.validateToken = originalValidate;
     });
   });
 

@@ -23,14 +23,33 @@ jest.mock('../../config/environment', () => ({
   },
 }));
 
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: jest.fn(),
+jest.mock('../../config/supabase', () => {
+  const contractChain = {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn(),
+  };
+  return {
+    supabase: {
+      auth: {
+        getSession: jest.fn(),
+      },
+      functions: {
+        invoke: jest.fn(),
+      },
+      from: jest.fn(() => contractChain),
+      __contractChain: contractChain,
     },
-    functions: {
-      invoke: jest.fn(),
-    },
+  };
+});
+
+// PaymentService now routes all HTTP through mobileApiClient (post/get), not
+// global.fetch or supabase.functions.invoke. Mock it so service tests assert
+// against the current network boundary.
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
   },
 }));
 
@@ -44,6 +63,7 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 const stripe = require('@stripe/stripe-react-native');
+const { mobileApiClient } = require('../../utils/mobileApiClient');
 
 describe('PaymentService - Comprehensive', () => {
   const mockSupabase = supabase as jest.Mocked<typeof supabase>;
@@ -53,58 +73,95 @@ describe('PaymentService - Comprehensive', () => {
     global.fetch = jest.fn();
   });
 
-  describe('createPaymentIntent', () => {
-    it('creates a payment intent when authenticated', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { access_token: 'token-123' } },
-      } as any);
+  // The service was refactored (audit-19/audit-53): createPaymentIntent now
+  // (1) gates on a signed ('accepted') contract via supabase.from('contracts'),
+  // (2) requires a contractorId so the server can resolve payee_id, and
+  // (3) routes through mobileApiClient.post (not global.fetch). It returns a
+  // structured response and never throws — failures come back as { error }.
+  const setAcceptedContract = () => {
+    (mockSupabase as any).__contractChain.single.mockResolvedValue({
+      data: { id: 'contract-1', status: 'accepted' },
+      error: null,
+    });
+  };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ clientSecret: 'pi_123_secret' }),
+  describe('createPaymentIntent', () => {
+    it('creates a payment intent when the contract is signed', async () => {
+      setAcceptedContract();
+      mobileApiClient.post.mockResolvedValue({
+        clientSecret: 'pi_123_secret',
+        paymentIntentId: 'pi_123',
+        escrowTransactionId: 'esc_123',
       });
 
-      const result = await PaymentService.createPaymentIntent('job-123', 1000, 'pm_123');
+      const result = await PaymentService.createPaymentIntent(
+        'job-123',
+        1000,
+        'pm_123',
+        'contractor-1'
+      );
 
       expect(result.clientSecret).toBe('pi_123_secret');
+      expect(result.paymentIntentId).toBe('pi_123');
+      expect(result.escrowTransactionId).toBe('esc_123');
       expect(result.error).toBeUndefined();
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:3000/api/payments/create-intent',
+      expect(mobileApiClient.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer token-123',
-          },
-          body: JSON.stringify({
-            jobId: 'job-123',
-            amount: 1000,
-            paymentMethodId: 'pm_123',
-          }),
+          jobId: 'job-123',
+          amount: 1000,
+          paymentMethodId: 'pm_123',
+          contractorId: 'contractor-1',
         }
       );
     });
 
-    it('returns an error when not authenticated', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({ data: { session: null } } as any);
-
-      const result = await PaymentService.createPaymentIntent('job-123', 1000, 'pm_123');
-
-      expect(result.clientSecret).toBeUndefined();
-      expect(result.error).toContain('Not authenticated');
-    });
-
-    it('returns an error when API responds with failure', async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { access_token: 'token-123' } },
-      } as any);
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Failed to create payment intent' }),
+    it('returns an error when the contract is not signed', async () => {
+      (mockSupabase as any).__contractChain.single.mockResolvedValue({
+        data: null,
+        error: { message: 'No rows' },
       });
 
-      const result = await PaymentService.createPaymentIntent('job-123', 1000, 'pm_123');
+      const result = await PaymentService.createPaymentIntent(
+        'job-123',
+        1000,
+        'pm_123',
+        'contractor-1'
+      );
+
+      expect(result.clientSecret).toBeUndefined();
+      expect(result.error).toContain(
+        'Contract must be signed by both parties before payment'
+      );
+      expect(mobileApiClient.post).not.toHaveBeenCalled();
+    });
+
+    it('returns an error when contractorId is missing', async () => {
+      setAcceptedContract();
+
+      const result = await PaymentService.createPaymentIntent(
+        'job-123',
+        1000,
+        'pm_123'
+      );
+
+      expect(result.clientSecret).toBeUndefined();
+      expect(result.error).toContain('Contractor ID is required');
+      expect(mobileApiClient.post).not.toHaveBeenCalled();
+    });
+
+    it('returns an error when the API call fails', async () => {
+      setAcceptedContract();
+      mobileApiClient.post.mockRejectedValue(
+        new Error('Failed to create payment intent')
+      );
+
+      const result = await PaymentService.createPaymentIntent(
+        'job-123',
+        1000,
+        'pm_123',
+        'contractor-1'
+      );
 
       expect(result.clientSecret).toBeUndefined();
       expect(result.error).toContain('Failed to create payment intent');
@@ -185,10 +242,12 @@ describe('PaymentService - Comprehensive', () => {
   });
 
   describe('refundPayment', () => {
-    it('processes a refund via edge function', async () => {
-      mockSupabase.functions.invoke.mockResolvedValue({
-        data: { success: true, refund_id: 'rf_123' },
-        error: null,
+    it('processes a refund via the refund API route', async () => {
+      // refundPayment now goes through mobileApiClient.post('/api/payments/refund')
+      // instead of supabase.functions.invoke('process-refund') (edge fn removed).
+      mobileApiClient.post.mockResolvedValue({
+        success: true,
+        refund_id: 'rf_123',
       });
 
       const result = await PaymentService.refundPayment({
@@ -199,13 +258,14 @@ describe('PaymentService - Comprehensive', () => {
 
       expect(result.success).toBe(true);
       expect(result.refund_id).toBe('rf_123');
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('process-refund', {
-        body: {
+      expect(mobileApiClient.post).toHaveBeenCalledWith(
+        '/api/payments/refund',
+        {
           paymentIntentId: 'pi_123',
           amount: 500,
           reason: 'requested_by_customer',
-        },
-      });
+        }
+      );
     });
 
     it('rejects invalid refund amounts', async () => {
@@ -226,7 +286,9 @@ describe('PaymentService - Comprehensive', () => {
       expect(result.platformFee).toBeGreaterThan(0);
       expect(result.stripeFee).toBeGreaterThan(0);
       expect(result.contractorAmount).toBeLessThan(100);
-      expect(result.totalFees).toBeCloseTo(result.platformFee + result.stripeFee);
+      expect(result.totalFees).toBeCloseTo(
+        result.platformFee + result.stripeFee
+      );
     });
   });
 });

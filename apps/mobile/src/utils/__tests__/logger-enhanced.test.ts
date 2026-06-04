@@ -1,54 +1,33 @@
 const loggerEnhanced = require('../logger-enhanced');
 const logger = loggerEnhanced.default || loggerEnhanced.logger;
-const {
-  createScreenLogger,
-  createServiceLogger,
-  logNavigation,
-  logScreenView,
-  logInteraction,
-  logApiCall,
-  logPerformance,
-  logStorage,
-  logPermission,
-  logNotification,
-  logAuth,
-  logConnectivity,
-  logMedia,
-  logPayment,
-  logCrash,
-  initializeCrashReporting,
-  logSessionStart,
-  logSessionEnd,
-  cleanup,
-} = loggerEnhanced;
+
+// NOTE: commit 867632aa5 ("strip ~1,000 unused type and export declarations,
+// knip --fix") removed the `export` keyword from the per-event helper functions
+// (logNavigation, logAuth, createScreenLogger, etc.) because no module imported
+// them. The functions still exist internally; only `logger`, the default export,
+// and `logMedia` remain part of the public surface. These assertions track that
+// current surface rather than the pre-knip one.
 
 describe('logger-enhanced', () => {
-  it('exports a logger instance and helper functions', () => {
+  it('exports a usable logger instance with the standard level methods', () => {
     expect(logger).toBeDefined();
-    expect(typeof logNavigation).toBe('function');
-    expect(typeof logScreenView).toBe('function');
-    expect(typeof logInteraction).toBe('function');
-    expect(typeof logApiCall).toBe('function');
-    expect(typeof logPerformance).toBe('function');
-    expect(typeof logStorage).toBe('function');
-    expect(typeof logPermission).toBe('function');
-    expect(typeof logNotification).toBe('function');
-    expect(typeof logAuth).toBe('function');
-    expect(typeof logConnectivity).toBe('function');
-    expect(typeof logMedia).toBe('function');
-    expect(typeof logPayment).toBe('function');
-    expect(typeof logCrash).toBe('function');
-    expect(typeof initializeCrashReporting).toBe('function');
-    expect(typeof logSessionStart).toBe('function');
-    expect(typeof logSessionEnd).toBe('function');
-    expect(typeof cleanup).toBe('function');
+    expect(typeof logger.info).toBe('function');
+    expect(typeof logger.warn).toBe('function');
+    expect(typeof logger.error).toBe('function');
+    expect(typeof logger.debug).toBe('function');
   });
 
-  it('creates scoped loggers', () => {
-    const screenLogger = createScreenLogger('Home');
-    const serviceLogger = createServiceLogger('Payments');
+  it('exposes the default export and named logger export as the same instance', () => {
+    expect(loggerEnhanced.default).toBe(loggerEnhanced.logger);
+  });
 
-    expect(screenLogger).toBeDefined();
-    expect(serviceLogger).toBeDefined();
+  it('exports the logMedia helper', () => {
+    expect(typeof loggerEnhanced.logMedia).toBe('function');
+  });
+
+  it('logMedia delegates to the logger without throwing', () => {
+    expect(() =>
+      loggerEnhanced.logMedia('capture', 'photo', true, { source: 'camera' })
+    ).not.toThrow();
   });
 });

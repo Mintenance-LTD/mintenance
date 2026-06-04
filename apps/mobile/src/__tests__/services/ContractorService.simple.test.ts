@@ -18,11 +18,22 @@ jest.mock('../../config/supabase', () => ({
   },
 }));
 
+// getContractorProfile routes through the web API via mobileApiClient
+// (refactored 2026-04-29). Use the manual mock so we don't hit a real
+// fetch / supabase.auth.getSession().
+jest.mock('../../utils/mobileApiClient');
+
 jest.mock('../../utils/logger', () => ({
-  logger: { error: jest.fn(), info: jest.fn() },
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 const { supabase } = require('../../config/supabase');
+const { mobileApiClient } = require('../../utils/mobileApiClient');
 
 describe('ContractorService - Simple Tests', () => {
   beforeEach(() => {
@@ -30,209 +41,129 @@ describe('ContractorService - Simple Tests', () => {
   });
 
   describe('getContractorProfile', () => {
-    it('should fetch contractor profile', async () => {
-      const mockProfile = {
-        id: 'contractor-1',
-        user_id: 'user-1',
-        bio: 'Experienced contractor',
-        hourly_rate: 50,
-        skills: ['plumbing', 'electrical'],
-        user: {
+    it('should fetch contractor profile via /api/contractor/profile-data', async () => {
+      // The route bundles profiles.* + contractor_profiles.hourly_rate
+      // into a `contractor` block.
+      const apiResponse = {
+        contractor: {
+          id: 'contractor-1',
           first_name: 'John',
           last_name: 'Contractor',
           email: 'john@example.com',
+          bio: 'Experienced contractor',
+          hourly_rate: 50,
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
         },
       };
 
-      const mockChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockProfile, error: null }),
-      };
-
-      supabase.from.mockReturnValue(mockChain);
+      mobileApiClient.get.mockResolvedValueOnce(apiResponse);
 
       const result = await ContractorService.getContractorProfile('user-1');
 
-      expect(supabase.from).toHaveBeenCalledWith('contractor_profiles');
+      expect(mobileApiClient.get).toHaveBeenCalledWith(
+        '/api/contractor/profile-data'
+      );
       expect(result?.bio).toBe('Experienced contractor');
+      expect(result?.hourly_rate).toBe(50);
     });
 
     it('should return null when profile not found', async () => {
-      const mockChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
+      mobileApiClient.get.mockResolvedValueOnce({ contractor: null });
 
-      supabase.from.mockReturnValue(mockChain);
+      const result =
+        await ContractorService.getContractorProfile('nonexistent');
 
-      const result = await ContractorService.getContractorProfile('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    it('should return null when the API call throws', async () => {
+      mobileApiClient.get.mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await ContractorService.getContractorProfile('user-1');
 
       expect(result).toBeNull();
     });
   });
 
-  describe('findNearbyContractors', () => {
-    it('should find contractors near location', async () => {
-      const mockContractors = [
-        {
-          id: 'contractor-1',
-          user_id: 'user-1',
-          skills: ['plumbing'],
-          latitude: 40.7128,
-          longitude: -74.0060,
-          user: { first_name: 'John', last_name: 'Doe' },
-        },
-        {
-          id: 'contractor-2', 
-          user_id: 'user-2',
-          skills: ['electrical'],
-          latitude: 40.7589,
-          longitude: -73.9851,
-          user: { first_name: 'Jane', last_name: 'Smith' },
-        },
-      ];
-
+  describe('updateContractorAvailability', () => {
+    it('should toggle availability and return the new flag', async () => {
       const mockChain = {
-        select: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        neq: jest.fn().mockResolvedValue({ data: mockContractors, error: null }),
-      };
-
-      supabase.from.mockReturnValue(mockChain);
-
-      const result = await ContractorService.findNearbyContractors({
-        latitude: 40.7128,
-        longitude: -74.0060,
-        radius: 10,
-      }, 'user-3');
-
-      expect(result).toHaveLength(2);
-      expect(result[0].skills).toContain('plumbing');
-    });
-
-    it('should filter out current user from results', async () => {
-      const mockContractors = [
-        {
-          id: 'contractor-1',
-          user_id: 'user-1',
-          skills: ['plumbing'],
-          user: { first_name: 'John', last_name: 'Doe' },
-        },
-      ];
-
-      const mockChain = {
         select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        neq: jest.fn().mockResolvedValue({ data: mockContractors, error: null }),
+        single: jest.fn().mockResolvedValue({ data: {}, error: null }),
       };
 
       supabase.from.mockReturnValue(mockChain);
 
-      const result = await ContractorService.findNearbyContractors({
-        latitude: 40.7128,
-        longitude: -74.0060,
-        radius: 10,
-      }, 'current-user');
-
-      expect(mockChain.neq).toHaveBeenCalledWith('user_id', 'current-user');
-    });
-  });
-
-  describe('swipeContractor', () => {
-    it('should record contractor match', async () => {
-      const mockMatch = {
-        id: 'match-1',
-        homeowner_id: 'user-1',
-        contractor_id: 'user-2',
-        action: 'liked',
-        created_at: '2024-01-01T00:00:00Z',
-      };
-
-      const mockChain = {
-        insert: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockMatch, error: null }),
-      };
-
-      supabase.from.mockReturnValue(mockChain);
-
-      const result = await ContractorService.swipeContractor(
-        'user-1',
-        'user-2',
-        'liked'
+      const result = await ContractorService.updateContractorAvailability(
+        'contractor-1',
+        false
       );
 
-      expect(supabase.from).toHaveBeenCalledWith('contractor_matches');
-      expect(result.action).toBe('liked');
+      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(result.isAvailable).toBe(false);
     });
 
-    it('should handle swipe errors', async () => {
+    it('should throw on update error', async () => {
       const mockChain = {
-        insert: jest.fn().mockReturnThis(),
-        single: jest.fn().mockRejectedValue(new Error('Swipe failed')),
+        update: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest
+          .fn()
+          .mockResolvedValue({
+            data: null,
+            error: { message: 'Update failed' },
+          }),
       };
 
       supabase.from.mockReturnValue(mockChain);
 
       await expect(
-        ContractorService.swipeContractor('user-1', 'user-2', 'liked')
-      ).rejects.toThrow('Swipe failed');
-    });
-  });
-
-  describe('getMatches', () => {
-    it('should get mutual matches', async () => {
-      const mockMatches = [
-        {
-          id: 'match-1',
-          contractor: {
-            user: { first_name: 'John', last_name: 'Contractor' },
-            skills: ['plumbing'],
-          },
-          created_at: '2024-01-01T00:00:00Z',
-        },
-      ];
-
-      const mockChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockMatches, error: null }),
-      };
-
-      supabase.from.mockReturnValue(mockChain);
-
-      const result = await ContractorService.getMatches('user-1');
-
-      expect(result).toHaveLength(1);
-      expect(result[0].contractor.skills).toContain('plumbing');
+        ContractorService.updateContractorAvailability('contractor-1', false)
+      ).rejects.toThrow('Update failed');
     });
   });
 
   describe('searchContractors', () => {
-    it('should search contractors by skills', async () => {
+    it('should search contractors by keyword string using .or()', async () => {
       const mockContractors = [
         {
           id: 'contractor-1',
-          user: { first_name: 'John', last_name: 'Plumber' },
+          company_name: 'John Plumbing',
           skills: ['plumbing', 'repair'],
-          average_rating: 4.8,
         },
       ];
 
       const mockChain = {
         select: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(), // FIXED: Added .or() method for string search
+        or: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: mockContractors, error: null }),
+        limit: jest
+          .fn()
+          .mockResolvedValue({ data: mockContractors, error: null }),
       };
 
       supabase.from.mockReturnValue(mockChain);
 
-      const result = await ContractorService.searchContractors('plumbing');
+      const result = (await ContractorService.searchContractors(
+        'plumbing'
+      )) as Array<{ skills?: string[] }>;
 
+      expect(supabase.from).toHaveBeenCalledWith('contractor_profiles');
+      expect(mockChain.or).toHaveBeenCalled();
       expect(result).toHaveLength(1);
       expect(result[0].skills).toContain('plumbing');
+    });
+
+    it('should return empty array for too-short search terms', async () => {
+      const result = await ContractorService.searchContractors('a');
+
+      expect(result).toHaveLength(0);
+      // Too-short terms short-circuit before touching the DB.
+      expect(supabase.from).not.toHaveBeenCalled();
     });
   });
 });

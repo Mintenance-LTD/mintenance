@@ -203,8 +203,10 @@ describe('MessagingService', () => {
 
       const result = await MessagingService.getJobMessages('job-1');
 
+      // 2026-05-26 audit-62 P2: getJobMessages is now keyset-paginated
+      // (default page size 50), so the first request carries `?limit=50`.
       expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/api/messages/threads/job-1/messages'
+        '/api/messages/threads/job-1/messages?limit=50'
       );
       expect(result).toHaveLength(2);
       expect(result[0].messageText).toBe('First message');

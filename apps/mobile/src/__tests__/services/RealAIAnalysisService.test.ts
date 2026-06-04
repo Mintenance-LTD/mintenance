@@ -12,16 +12,15 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
+// NOTE: RealAIAnalysisService is exercised against its REAL implementation.
+// A previous self-mock spread the class via {...Class}, which silently drops
+// static methods (they live non-enumerably on the constructor), making every
+// `analyzeJobPhotos is not a function`. The service is also security-hardened:
+// the mobile bundle carries NO API keys (config/ai.config.ts hardcodes
+// apiKey: ''), so OpenAI/AWS are never reachable from mobile and the service
+// always uses the deterministic rule-based fallback. Tests below reflect that.
 
-jest.mock('../../services/RealAIAnalysisService', () => ({
-  RealAIAnalysisService: {
-    ...jest.requireActual('../../services/RealAIAnalysisService').RealAIAnalysisService,
-    initialize: jest.fn(),
-    cleanup: jest.fn(),
-  }
-}));
-
-// Mock fetch globally
+// Mock fetch globally to prove it is never called from the mobile client.
 global.fetch = jest.fn();
 
 describe('RealAIAnalysisService', () => {
@@ -54,80 +53,31 @@ describe('RealAIAnalysisService', () => {
   });
 
   describe('analyzeJobPhotos', () => {
-    it('should use OpenAI when API key is available', async () => {
+    it('never calls the OpenAI REST API directly from the mobile client', async () => {
+      // SECURITY: the mobile bundle carries no API keys, so even with an env var
+      // set the service must NOT hit api.openai.com. It uses the rule-based
+      // fallback instead and returns a well-formed analysis.
       process.env.OPENAI_API_KEY = 'sk-test-' + 'x'.repeat(45);
-
-      const mockResponse = {
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                confidence: 85,
-                detectedItems: ['Kitchen Faucet', 'Sink'],
-                safetyConcerns: [
-                  {
-                    concern: 'Water damage risk',
-                    severity: 'Medium',
-                    description: 'Continued dripping may cause damage',
-                  },
-                ],
-                recommendedActions: [
-                  'Turn off water supply',
-                  'Replace washers',
-                ],
-                estimatedComplexity: 'Medium',
-                suggestedTools: ['Wrench', 'Replacement washers'],
-                estimatedDuration: '1-2 hours',
-                detectedEquipment: [
-                  {
-                    name: 'Kitchen Faucet',
-                    confidence: 90,
-                    location: 'Above sink',
-                  },
-                ],
-              }),
-            },
-          },
-        ],
-      };
-
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
 
       const result = await RealAIAnalysisService.analyzeJobPhotos(mockJob);
 
-      expect(fetch).toHaveBeenCalledWith(
+      expect(fetch).not.toHaveBeenCalledWith(
         'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: 'Bearer sk-test-' + 'x'.repeat(45),
-            'Content-Type': 'application/json',
-          },
-          body: expect.stringContaining('gpt-4-vision-preview'),
-        }
+        expect.anything()
       );
 
       expect(result).toBeDefined();
-      expect(result?.confidence).toBe(85);
-      expect(result?.detectedItems).toContain('Kitchen Faucet');
-      expect(result?.estimatedComplexity).toBe('Medium');
+      // mockJob is plumbing -> deterministic fallback content
+      expect(result?.detectedItems).toContain('Plumbing fixtures');
+      expect(result?.confidence).toBeGreaterThan(0);
     });
 
-    it('should handle OpenAI API errors gracefully', async () => {
+    it('returns a valid fallback analysis regardless of any env configuration', async () => {
       process.env.OPENAI_API_KEY = 'sk-test-' + 'x'.repeat(45);
-
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        text: async () => 'Invalid API key',
-      });
 
       const result = await RealAIAnalysisService.analyzeJobPhotos(mockJob);
 
-      // Should fall back to enhanced analysis
+      // Always falls back to enhanced rule-based analysis on mobile
       expect(result).toBeDefined();
       expect(result?.confidence).toBeGreaterThan(0);
       expect(result?.detectedItems.length).toBeGreaterThan(0);
@@ -190,19 +140,22 @@ describe('RealAIAnalysisService', () => {
   });
 
   describe('service configuration detection', () => {
-    it('should detect when OpenAI is configured', () => {
+    // SECURITY: the mobile bundle never carries provider API keys, so on-device
+    // detection always reports "not configured" and the rule-based fallback name.
+    // Env vars are intentionally ignored by the service.
+    it('reports no on-device AI service even when env keys are present', () => {
       process.env.OPENAI_API_KEY = 'sk-test';
-      expect(RealAIAnalysisService.isAIServiceConfigured()).toBe(true);
+      expect(RealAIAnalysisService.isAIServiceConfigured()).toBe(false);
       expect(RealAIAnalysisService.getConfiguredService()).toBe(
-        'OpenAI GPT-4 Vision'
+        'Enhanced Rule-based Analysis'
       );
     });
 
-    it('should detect when AWS is configured', () => {
+    it('reports no on-device AI service when AWS env keys are present', () => {
       process.env.AWS_ACCESS_KEY_ID = 'AKIA' + 'X'.repeat(16);
-      expect(RealAIAnalysisService.isAIServiceConfigured()).toBe(true);
+      expect(RealAIAnalysisService.isAIServiceConfigured()).toBe(false);
       expect(RealAIAnalysisService.getConfiguredService()).toBe(
-        'AWS Rekognition'
+        'Enhanced Rule-based Analysis'
       );
     });
 

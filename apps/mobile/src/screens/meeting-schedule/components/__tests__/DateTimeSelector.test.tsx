@@ -98,7 +98,7 @@ describe('DateTimeSelector Component', () => {
 
     it('should render section title "Date & Time"', () => {
       const { getByText } = render(<DateTimeSelector {...defaultProps} />);
-      expect(getByText('Date & Time')).toBeTruthy();
+      expect(getByText('DATE & TIME')).toBeTruthy();
     });
 
     it('should render date selector button', () => {
@@ -117,18 +117,28 @@ describe('DateTimeSelector Component', () => {
     });
 
     it('should render both date and time icons', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const calendarIcon = icons.find((icon: any) => icon.props.name === 'calendar-outline');
-      const timeIcon = icons.find((icon: any) => icon.props.name === 'time-outline');
+      const calendarIcon = icons.find(
+        (icon: any) => icon.props.name === 'calendar-outline'
+      );
+      const timeIcon = icons.find(
+        (icon: any) => icon.props.name === 'time-outline'
+      );
       expect(calendarIcon).toBeTruthy();
       expect(timeIcon).toBeTruthy();
     });
 
     it('should render chevron icons', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const chevronIcons = icons.filter((icon: any) => icon.props.name === 'chevron-down');
+      const chevronIcons = icons.filter(
+        (icon: any) => icon.props.name === 'chevron-down'
+      );
       expect(chevronIcons).toHaveLength(2);
     });
   });
@@ -141,7 +151,9 @@ describe('DateTimeSelector Component', () => {
     });
 
     it('should update date display when selectedDate changes', () => {
-      const { rerender, getByText } = render(<DateTimeSelector {...defaultProps} />);
+      const { rerender, getByText } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
 
       const newDate = new Date('2026-06-20T10:00:00.000Z');
       rerender(<DateTimeSelector {...defaultProps} selectedDate={newDate} />);
@@ -216,7 +228,9 @@ describe('DateTimeSelector Component', () => {
     });
 
     it('should update time display when selectedTime changes', () => {
-      const { rerender, getByText } = render(<DateTimeSelector {...defaultProps} />);
+      const { rerender, getByText } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
 
       const newTime = new Date('2026-03-15T09:15:00.000Z');
       rerender(<DateTimeSelector {...defaultProps} selectedTime={newTime} />);
@@ -264,7 +278,10 @@ describe('DateTimeSelector Component', () => {
     it('should format minutes with 2 digits', () => {
       const timeWithSingleDigitMinute = new Date('2026-03-15T14:05:00.000Z');
       const { getByText } = render(
-        <DateTimeSelector {...defaultProps} selectedTime={timeWithSingleDigitMinute} />
+        <DateTimeSelector
+          {...defaultProps}
+          selectedTime={timeWithSingleDigitMinute}
+        />
       );
       expect(getByText(/:05/)).toBeTruthy();
     });
@@ -277,7 +294,7 @@ describe('DateTimeSelector Component', () => {
         new Date('2026-03-15T23:59:00.000Z'),
       ];
 
-      times.forEach(time => {
+      times.forEach((time) => {
         const { getByText } = render(
           <DateTimeSelector {...defaultProps} selectedTime={time} />
         );
@@ -507,7 +524,11 @@ describe('DateTimeSelector Component', () => {
   describe('Both Pickers Visible', () => {
     it('should show both pickers when both flags are true', () => {
       const { UNSAFE_getAllByType } = render(
-        <DateTimeSelector {...defaultProps} showDatePicker={true} showTimePicker={true} />
+        <DateTimeSelector
+          {...defaultProps}
+          showDatePicker={true}
+          showTimePicker={true}
+        />
       );
       const pickers = UNSAFE_getAllByType('DateTimePicker' as any);
       expect(pickers.length).toBe(2);
@@ -515,7 +536,11 @@ describe('DateTimeSelector Component', () => {
 
     it('should distinguish between date and time pickers', () => {
       const { UNSAFE_getAllByType } = render(
-        <DateTimeSelector {...defaultProps} showDatePicker={true} showTimePicker={true} />
+        <DateTimeSelector
+          {...defaultProps}
+          showDatePicker={true}
+          showTimePicker={true}
+        />
       );
       const pickers = UNSAFE_getAllByType('DateTimePicker' as any);
 
@@ -528,7 +553,11 @@ describe('DateTimeSelector Component', () => {
 
     it('should maintain separate values for date and time pickers', () => {
       const { UNSAFE_getAllByType } = render(
-        <DateTimeSelector {...defaultProps} showDatePicker={true} showTimePicker={true} />
+        <DateTimeSelector
+          {...defaultProps}
+          showDatePicker={true}
+          showTimePicker={true}
+        />
       );
       const pickers = UNSAFE_getAllByType('DateTimePicker' as any);
 
@@ -542,48 +571,72 @@ describe('DateTimeSelector Component', () => {
 
   describe('Icon Configuration', () => {
     it('should render calendar icon with correct size', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const calendarIcon = icons.find((icon: any) => icon.props.name === 'calendar-outline');
-      expect(calendarIcon.props.size).toBe(20);
+      const calendarIcon = icons.find(
+        (icon: any) => icon.props.name === 'calendar-outline'
+      );
+      expect(calendarIcon.props.size).toBe(16);
     });
 
     it('should render time icon with correct size', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const timeIcon = icons.find((icon: any) => icon.props.name === 'time-outline');
-      expect(timeIcon.props.size).toBe(20);
+      const timeIcon = icons.find(
+        (icon: any) => icon.props.name === 'time-outline'
+      );
+      expect(timeIcon.props.size).toBe(16);
     });
 
     it('should render calendar icon with correct color', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const calendarIcon = icons.find((icon: any) => icon.props.name === 'calendar-outline');
-      expect(calendarIcon.props.color).toBe('#007AFF');
+      const calendarIcon = icons.find(
+        (icon: any) => icon.props.name === 'calendar-outline'
+      );
+      expect(calendarIcon.props.color).toBe('#3B82F6');
     });
 
     it('should render time icon with correct color', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const timeIcon = icons.find((icon: any) => icon.props.name === 'time-outline');
-      expect(timeIcon.props.color).toBe('#007AFF');
+      const timeIcon = icons.find(
+        (icon: any) => icon.props.name === 'time-outline'
+      );
+      expect(timeIcon.props.color).toBe('#8B5CF6');
     });
 
     it('should render chevron icons with correct size', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const chevronIcons = icons.filter((icon: any) => icon.props.name === 'chevron-down');
+      const chevronIcons = icons.filter(
+        (icon: any) => icon.props.name === 'chevron-down'
+      );
       chevronIcons.forEach((icon: any) => {
         expect(icon.props.size).toBe(20);
       });
     });
 
     it('should render chevron icons with correct color', () => {
-      const { UNSAFE_getAllByType } = render(<DateTimeSelector {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const chevronIcons = icons.filter((icon: any) => icon.props.name === 'chevron-down');
+      const chevronIcons = icons.filter(
+        (icon: any) => icon.props.name === 'chevron-down'
+      );
       chevronIcons.forEach((icon: any) => {
-        expect(icon.props.color).toBe('#999999');
+        expect(icon.props.color).toBe('#768079');
       });
     });
   });
@@ -596,14 +649,18 @@ describe('DateTimeSelector Component', () => {
       expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBe(0);
 
       rerender(<DateTimeSelector {...defaultProps} showDatePicker={true} />);
-      expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBeGreaterThan(0);
+      expect(
+        UNSAFE_queryAllByType('DateTimePicker' as any).length
+      ).toBeGreaterThan(0);
     });
 
     it('should transition from open to closed date picker', () => {
       const { rerender, UNSAFE_queryAllByType } = render(
         <DateTimeSelector {...defaultProps} showDatePicker={true} />
       );
-      expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBeGreaterThan(0);
+      expect(
+        UNSAFE_queryAllByType('DateTimePicker' as any).length
+      ).toBeGreaterThan(0);
 
       rerender(<DateTimeSelector {...defaultProps} showDatePicker={false} />);
       expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBe(0);
@@ -616,14 +673,18 @@ describe('DateTimeSelector Component', () => {
       expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBe(0);
 
       rerender(<DateTimeSelector {...defaultProps} showTimePicker={true} />);
-      expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBeGreaterThan(0);
+      expect(
+        UNSAFE_queryAllByType('DateTimePicker' as any).length
+      ).toBeGreaterThan(0);
     });
 
     it('should transition from open to closed time picker', () => {
       const { rerender, UNSAFE_queryAllByType } = render(
         <DateTimeSelector {...defaultProps} showTimePicker={true} />
       );
-      expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBeGreaterThan(0);
+      expect(
+        UNSAFE_queryAllByType('DateTimePicker' as any).length
+      ).toBeGreaterThan(0);
 
       rerender(<DateTimeSelector {...defaultProps} showTimePicker={false} />);
       expect(UNSAFE_queryAllByType('DateTimePicker' as any).length).toBe(0);
@@ -645,7 +706,9 @@ describe('DateTimeSelector Component', () => {
     });
 
     it('should update displayed date when prop changes', () => {
-      const { rerender, queryByText } = render(<DateTimeSelector {...defaultProps} />);
+      const { rerender, queryByText } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
 
       const newDate = new Date('2027-12-25T10:00:00.000Z');
       rerender(<DateTimeSelector {...defaultProps} selectedDate={newDate} />);
@@ -655,7 +718,9 @@ describe('DateTimeSelector Component', () => {
     });
 
     it('should update displayed time when prop changes', () => {
-      const { rerender, queryByText } = render(<DateTimeSelector {...defaultProps} />);
+      const { rerender, queryByText } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
 
       const newTime = new Date('2026-03-15T23:59:00.000Z');
       rerender(<DateTimeSelector {...defaultProps} selectedTime={newTime} />);
@@ -667,7 +732,9 @@ describe('DateTimeSelector Component', () => {
 
   describe('Component Lifecycle', () => {
     it('should mount without errors', () => {
-      expect(() => render(<DateTimeSelector {...defaultProps} />)).not.toThrow();
+      expect(() =>
+        render(<DateTimeSelector {...defaultProps} />)
+      ).not.toThrow();
     });
 
     it('should unmount without errors', () => {
@@ -676,7 +743,9 @@ describe('DateTimeSelector Component', () => {
     });
 
     it('should handle multiple mount/unmount cycles', () => {
-      const { unmount: unmount1 } = render(<DateTimeSelector {...defaultProps} />);
+      const { unmount: unmount1 } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       unmount1();
 
       const { unmount: unmount2 } = render(
@@ -754,7 +823,11 @@ describe('DateTimeSelector Component', () => {
       );
 
       rerender(
-        <DateTimeSelector {...defaultProps} showDatePicker={true} showTimePicker={true} />
+        <DateTimeSelector
+          {...defaultProps}
+          showDatePicker={true}
+          showTimePicker={true}
+        />
       );
 
       const pickers = UNSAFE_getAllByType('DateTimePicker' as any);
@@ -773,8 +846,12 @@ describe('DateTimeSelector Component', () => {
 
   describe('Rendering Consistency', () => {
     it('should render consistently across multiple renders', () => {
-      const { toJSON: toJSON1 } = render(<DateTimeSelector {...defaultProps} />);
-      const { toJSON: toJSON2 } = render(<DateTimeSelector {...defaultProps} />);
+      const { toJSON: toJSON1 } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
+      const { toJSON: toJSON2 } = render(
+        <DateTimeSelector {...defaultProps} />
+      );
       const snapshot1 = toJSON1();
       const snapshot2 = toJSON2();
       expect(JSON.stringify(snapshot1)).toEqual(JSON.stringify(snapshot2));
@@ -791,8 +868,8 @@ describe('DateTimeSelector Component', () => {
         <DateTimeSelector {...defaultProps} selectedDate={date2} />
       );
 
-      expect(getText1('Date & Time')).toBeTruthy();
-      expect(getText2('Date & Time')).toBeTruthy();
+      expect(getText1('DATE & TIME')).toBeTruthy();
+      expect(getText2('DATE & TIME')).toBeTruthy();
     });
 
     it('should maintain structure with different times', () => {
@@ -806,8 +883,8 @@ describe('DateTimeSelector Component', () => {
         <DateTimeSelector {...defaultProps} selectedTime={time2} />
       );
 
-      expect(getText1('Date & Time')).toBeTruthy();
-      expect(getText2('Date & Time')).toBeTruthy();
+      expect(getText1('DATE & TIME')).toBeTruthy();
+      expect(getText2('DATE & TIME')).toBeTruthy();
     });
   });
 
@@ -859,13 +936,13 @@ describe('DateTimeSelector Component', () => {
     it('should render correctly on iOS', () => {
       Platform.OS = 'ios';
       const { getByText } = render(<DateTimeSelector {...defaultProps} />);
-      expect(getByText('Date & Time')).toBeTruthy();
+      expect(getByText('DATE & TIME')).toBeTruthy();
     });
 
     it('should render correctly on Android', () => {
       Platform.OS = 'android';
       const { getByText } = render(<DateTimeSelector {...defaultProps} />);
-      expect(getByText('Date & Time')).toBeTruthy();
+      expect(getByText('DATE & TIME')).toBeTruthy();
     });
 
     it('should use platform-appropriate picker display style', () => {

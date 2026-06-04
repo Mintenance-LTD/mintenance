@@ -1,8 +1,24 @@
-// Mock AsyncStorage first
-// Import REAL service (after mocks)
+// MeetingService facade tests.
+//
+// Realigned 2026-06-04 to the current implementation. The CRUD + location
+// methods were migrated off direct Supabase to the web API via
+// mobileApiClient (audit-55 / audit-78, 2026-05-26/27):
+//   createMeeting          -> POST  /api/contractor/appointments
+//   getMeetingById         -> GET   /api/contractor/appointments/:id
+//   getMeetingsForUser     -> GET   /api/contractor/appointments | /api/appointments
+//   updateMeetingStatus    -> PATCH /api/contractor/appointments/:id
+//   rescheduleMeeting      -> PATCH /api/contractor/appointments/:id
+//   updateContractorLocation -> POST /api/contractors/:id/location
+//   getContractorLocation    -> GET  /api/contractors/:id/location
+// Responses are `appointments` rows coerced to the snake_case ContractorMeeting
+// shape via mapAppointmentToMeeting. createMeetingUpdate / getMeetingUpdates are
+// now intentional no-ops (no appointment_history table). Subscriptions still go
+// through supabase Realtime channels.
+
 import { MeetingService } from '../MeetingService';
 import { logger } from '../../utils/logger';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -15,14 +31,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock supabase using the manual mock
+// Mock supabase using the manual mock (used by subscription channels)
 jest.mock('../../config/supabase');
-const {
-  supabase,
-  __resetSupabaseMock,
-  __setMockData,
-  __queueMockData,
-} = require('../../config/supabase');
+const { supabase, __resetSupabaseMock } = require('../../config/supabase');
+
+// Manual mock at src/utils/__mocks__/mobileApiClient.ts
+jest.mock('../../utils/mobileApiClient');
+const mockedApiClient = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
 
 // Mock logger
 jest.mock('../../utils/logger', () => ({
@@ -37,12 +52,12 @@ jest.mock('../../utils/logger', () => ({
 // Mock ServiceErrorHandler
 jest.mock('../../utils/serviceErrorHandler', () => ({
   ServiceErrorHandler: {
-    validateRequired: jest.fn((value, name, context) => {
+    validateRequired: jest.fn((value, name) => {
       if (!value) {
         throw new Error(`${name} is required`);
       }
     }),
-    executeOperation: jest.fn().mockImplementation(async (operation, context) => {
+    executeOperation: jest.fn().mockImplementation(async (operation) => {
       try {
         const data = await operation();
         return { success: true, data };
@@ -50,7 +65,7 @@ jest.mock('../../utils/serviceErrorHandler', () => ({
         return { success: false, error };
       }
     }),
-    handleDatabaseError: jest.fn((error, context) => error),
+    handleDatabaseError: jest.fn((error) => error),
   },
 }));
 
@@ -68,31 +83,30 @@ jest.mock('../JobContextLocationService', () => ({
   },
 }));
 
-// Mock data helpers
-const createMockMeetingDb = (overrides = {}) => ({
+// An `appointments` row as the API returns it.
+const createMockAppointment = (overrides: Record<string, unknown> = {}) => ({
   id: 'meeting-123',
-  job_id: 'job-456',
-  homeowner_id: 'homeowner-789',
   contractor_id: 'contractor-101',
-  scheduled_datetime: '2026-01-25T14:00:00Z',
+  client_id: 'homeowner-789',
+  job_id: 'job-456',
+  title: 'site_visit meeting',
+  appointment_date: '2026-01-25',
+  start_time: '14:00:00',
+  end_time: '15:00:00',
+  duration_minutes: 60,
+  location_type: 'onsite',
+  location_address: '123 Main St, New York, NY',
   status: 'scheduled',
-  meeting_type: 'site_visit',
-  latitude: 40.7128,
-  longitude: -74.006,
-  address: '123 Main St, New York, NY',
-  duration: 60,
   notes: 'Initial consultation',
   created_at: '2026-01-20T10:00:00Z',
   updated_at: '2026-01-20T10:00:00Z',
-  homeowner: {
+  client: {
     id: 'homeowner-789',
     first_name: 'John',
     last_name: 'Doe',
     email: 'john@example.com',
     phone: '555-0100',
     profile_image_url: 'https://example.com/john.jpg',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
   },
   contractor: {
     id: 'contractor-101',
@@ -101,129 +115,91 @@ const createMockMeetingDb = (overrides = {}) => ({
     email: 'jane@example.com',
     phone: '555-0200',
     profile_image_url: 'https://example.com/jane.jpg',
-    rating: 4.8,
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
   },
   job: {
     id: 'job-456',
     title: 'Kitchen Renovation',
-    description: 'Complete kitchen remodel',
-    budget: 15000,
     status: 'in_progress',
+    latitude: 40.7128,
+    longitude: -74.006,
     location: '123 Main St',
-    homeowner_id: 'homeowner-789',
-    contractor_id: 'contractor-101',
-    created_at: '2026-01-15T00:00:00Z',
-    updated_at: '2026-01-15T00:00:00Z',
   },
-  ...overrides,
-});
-
-const createMockLocationDb = (overrides = {}) => ({
-  id: 'location-123',
-  contractor_id: 'contractor-101',
-  latitude: 40.7580,
-  longitude: -73.9855,
-  accuracy: 10,
-  timestamp: '2026-01-25T13:45:00Z',
-  is_active: true,
-  meeting_id: 'meeting-123',
-  ...overrides,
-});
-
-const createMockUpdateDb = (overrides = {}) => ({
-  id: 'update-123',
-  meeting_id: 'meeting-123',
-  update_type: 'status_change',
-  message: 'Meeting status updated',
-  updated_by: 'contractor-101',
-  timestamp: '2026-01-25T12:00:00Z',
-  old_value: '"scheduled"',
-  new_value: '"confirmed"',
   ...overrides,
 });
 
 describe('MeetingService', () => {
   beforeEach(() => {
     __resetSupabaseMock();
+    jest.clearAllMocks();
   });
 
   describe('createMeeting', () => {
+    const baseData = {
+      jobId: 'job-456',
+      homeownerId: 'homeowner-789',
+      contractorId: 'contractor-101',
+      scheduledDateTime: '2026-01-25T14:00:00Z',
+      meetingType: 'site_visit' as const,
+      location: {
+        latitude: 40.7128,
+        longitude: -74.006,
+        address: '123 Main St',
+      },
+      duration: 60,
+      notes: 'Test meeting',
+    };
+
     it('should create meeting with all required fields', async () => {
-      const meetingData = {
-        jobId: 'job-456',
-        homeownerId: 'homeowner-789',
-        contractorId: 'contractor-101',
-        scheduledDateTime: '2026-01-25T14:00:00Z',
-        meetingType: 'site_visit' as const,
-        location: {
-          latitude: 40.7128,
-          longitude: -74.006,
-          address: '123 Main St',
-        },
-        duration: 60,
-        notes: 'Test meeting',
-      };
+      mockedApiClient.post.mockResolvedValueOnce({
+        appointment: createMockAppointment(),
+      });
 
-      const mockData = createMockMeetingDb();
-      __setMockData(mockData);
+      const result = await MeetingService.createMeeting(baseData);
 
-      const result = await MeetingService.createMeeting(meetingData);
-
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/contractor/appointments',
+        expect.objectContaining({ jobId: 'job-456' })
+      );
       expect(result).toBeDefined();
       expect(result.id).toBe('meeting-123');
-      expect(result.jobId).toBe('job-456');
+      expect(result.job_id).toBe('job-456');
     });
 
     it('should validate required jobId field', async () => {
-      const invalidData = {
-        jobId: '',
-        homeownerId: 'homeowner-789',
-        contractorId: 'contractor-101',
-        scheduledDateTime: '2026-01-25T14:00:00Z',
-        meetingType: 'site_visit' as const,
-        location: { latitude: 40, longitude: -74, address: '123 Main' },
-        duration: 60,
-      };
+      const invalidData = { ...baseData, jobId: '' };
 
       await expect(MeetingService.createMeeting(invalidData)).rejects.toThrow();
       expect(ServiceErrorHandler.validateRequired).toHaveBeenCalled();
     });
 
-    it('should handle database errors gracefully', async () => {
-      const meetingData = {
-        jobId: 'job-456',
-        homeownerId: 'homeowner-789',
-        contractorId: 'contractor-101',
-        scheduledDateTime: '2026-01-25T14:00:00Z',
-        meetingType: 'consultation' as const,
-        location: { latitude: 40, longitude: -74, address: '123 Main' },
-        duration: 30,
-      };
+    it('should handle API errors gracefully', async () => {
+      mockedApiClient.post.mockRejectedValueOnce(new Error('network'));
 
-      __setMockData(null);
-
-      await expect(MeetingService.createMeeting(meetingData)).rejects.toThrow('Failed to create meeting');
+      await expect(MeetingService.createMeeting(baseData)).rejects.toThrow(
+        'Failed to create meeting'
+      );
     });
   });
 
   describe('getMeetingById', () => {
     it('should fetch meeting with nested relations', async () => {
-      const mockData = createMockMeetingDb();
-      __setMockData(mockData);
+      mockedApiClient.get.mockResolvedValueOnce({
+        appointment: createMockAppointment(),
+      });
 
       const result = await MeetingService.getMeetingById('meeting-123');
 
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/api/contractor/appointments/meeting-123'
+      );
       expect(result).toBeDefined();
       expect(result!.id).toBe('meeting-123');
       expect(result!.homeowner).toBeDefined();
       expect(result!.contractor).toBeDefined();
-      expect(result!.job).toBeDefined();
     });
 
-    it('should return null for non-existent meeting (PGRST116)', async () => {
-      __setMockData(null);
+    it('should return null for non-existent meeting (404)', async () => {
+      mockedApiClient.get.mockRejectedValueOnce({ statusCode: 404 });
 
       const result = await MeetingService.getMeetingById('non-existent');
 
@@ -233,39 +209,56 @@ describe('MeetingService', () => {
 
   describe('getMeetingsForUser', () => {
     it('should fetch meetings for homeowner role', async () => {
-      const mockData = [createMockMeetingDb(), createMockMeetingDb({ id: 'meeting-456' })];
-      __setMockData(mockData);
+      mockedApiClient.get.mockResolvedValueOnce({
+        appointments: [
+          createMockAppointment(),
+          createMockAppointment({ id: 'meeting-456' }),
+        ],
+      });
 
-      const result = await MeetingService.getMeetingsForUser('homeowner-789', 'homeowner');
+      const result = await MeetingService.getMeetingsForUser(
+        'homeowner-789',
+        'homeowner'
+      );
 
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/appointments');
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(2);
     });
 
     it('should fetch meetings for contractor role', async () => {
-      const mockData = [createMockMeetingDb()];
-      __setMockData(mockData);
+      mockedApiClient.get.mockResolvedValueOnce({
+        appointments: [createMockAppointment()],
+      });
 
-      const result = await MeetingService.getMeetingsForUser('contractor-101', 'contractor');
+      const result = await MeetingService.getMeetingsForUser(
+        'contractor-101',
+        'contractor'
+      );
 
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/api/contractor/appointments'
+      );
       expect(result.length).toBe(1);
     });
 
     it('should return empty array on no results', async () => {
-      __setMockData([]);
+      mockedApiClient.get.mockResolvedValueOnce({ appointments: [] });
 
-      const result = await MeetingService.getMeetingsForUser('homeowner-789', 'homeowner');
+      const result = await MeetingService.getMeetingsForUser(
+        'homeowner-789',
+        'homeowner'
+      );
 
       expect(result).toEqual([]);
     });
   });
 
   describe('updateMeetingStatus', () => {
-    it('should update meeting status and create update log', async () => {
-      const mockUpdated = createMockMeetingDb({ status: 'confirmed' });
-      const mockUpdateLog = createMockUpdateDb();
-
-      __queueMockData([mockUpdated, mockUpdateLog]);
+    it('should update meeting status', async () => {
+      mockedApiClient.patch.mockResolvedValueOnce({
+        appointment: createMockAppointment({ status: 'confirmed' }),
+      });
 
       const result = await MeetingService.updateMeetingStatus(
         'meeting-123',
@@ -274,28 +267,36 @@ describe('MeetingService', () => {
         'Confirmed availability'
       );
 
+      expect(mockedApiClient.patch).toHaveBeenCalledWith(
+        '/api/contractor/appointments/meeting-123',
+        expect.objectContaining({ status: 'confirmed' })
+      );
       expect(result.status).toBe('confirmed');
     });
 
-    it('should throw if no data returned', async () => {
-      __setMockData(null);
+    it('should throw on API error', async () => {
+      mockedApiClient.patch.mockRejectedValueOnce(new Error('update failed'));
 
       await expect(
-        MeetingService.updateMeetingStatus('meeting-123', 'confirmed', 'contractor-101')
-      ).rejects.toThrow('Failed to update meeting');
+        MeetingService.updateMeetingStatus(
+          'meeting-123',
+          'confirmed',
+          'contractor-101'
+        )
+      ).rejects.toThrow('update failed');
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
   describe('rescheduleMeeting', () => {
-    it('should reschedule meeting and log change', async () => {
-      const currentMeeting = createMockMeetingDb();
-      const rescheduledMeeting = createMockMeetingDb({
-        scheduled_datetime: '2026-01-26T15:00:00Z',
-        status: 'rescheduled',
+    it('should reschedule meeting', async () => {
+      mockedApiClient.patch.mockResolvedValueOnce({
+        appointment: createMockAppointment({
+          appointment_date: '2026-01-26',
+          start_time: '15:00:00',
+          status: 'rescheduled',
+        }),
       });
-      const mockUpdateLog = createMockUpdateDb({ update_type: 'schedule_change' });
-
-      __queueMockData([currentMeeting, rescheduledMeeting, mockUpdateLog]);
 
       const result = await MeetingService.rescheduleMeeting(
         'meeting-123',
@@ -304,53 +305,75 @@ describe('MeetingService', () => {
         'Customer requested different time'
       );
 
-      expect(result.scheduledDateTime).toBe('2026-01-26T15:00:00Z');
+      expect(mockedApiClient.patch).toHaveBeenCalledWith(
+        '/api/contractor/appointments/meeting-123',
+        expect.objectContaining({ status: 'rescheduled' })
+      );
       expect(result.status).toBe('rescheduled');
     });
   });
 
   describe('updateContractorLocation', () => {
-    it('should upsert contractor location', async () => {
-      const mockLocation = createMockLocationDb();
-      __setMockData(mockLocation);
+    it('should post contractor location and coerce the response', async () => {
+      mockedApiClient.post.mockResolvedValueOnce({
+        success: true,
+        location: {
+          id: 'location-123',
+          latitude: 40.758,
+          longitude: -73.9855,
+          accuracy: 10,
+          timestamp: '2026-01-25T13:45:00Z',
+        },
+      });
 
       const result = await MeetingService.updateContractorLocation(
         'contractor-101',
-        { latitude: 40.7580, longitude: -73.9855, address: '456 Broadway' },
+        { latitude: 40.758, longitude: -73.9855, address: '456 Broadway' },
         'meeting-123'
       );
 
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/contractors/contractor-101/location',
+        expect.objectContaining({ latitude: 40.758, longitude: -73.9855 })
+      );
       expect(result.contractorId).toBe('contractor-101');
-      expect(result.latitude).toBe(40.7580);
+      expect(result.latitude).toBe(40.758);
       expect(result.meetingId).toBe('meeting-123');
     });
   });
 
   describe('getContractorLocation', () => {
     it('should fetch active contractor location', async () => {
-      const mockLocation = createMockLocationDb();
-      __setMockData(mockLocation);
+      mockedApiClient.get.mockResolvedValueOnce({
+        location: {
+          id: 'location-123',
+          latitude: 40.758,
+          longitude: -73.9855,
+          accuracy: 10,
+          timestamp: '2026-01-25T13:45:00Z',
+          is_sharing_location: true,
+        },
+      });
 
-      const result = await MeetingService.getContractorLocation('contractor-101');
+      const result =
+        await MeetingService.getContractorLocation('contractor-101');
 
       expect(result).toBeDefined();
       expect(result!.contractorId).toBe('contractor-101');
     });
 
-    it('should return null when no active location found', async () => {
-      __setMockData(null);
+    it('should return null when no active location found (404)', async () => {
+      mockedApiClient.get.mockRejectedValueOnce({ statusCode: 404 });
 
-      const result = await MeetingService.getContractorLocation('contractor-101');
+      const result =
+        await MeetingService.getContractorLocation('contractor-101');
 
       expect(result).toBeNull();
     });
   });
 
   describe('createMeetingUpdate', () => {
-    it('should create meeting update with all fields', async () => {
-      const mockUpdate = createMockUpdateDb();
-      __setMockData(mockUpdate);
-
+    it('should synthesise an update record', async () => {
       const result = await MeetingService.createMeetingUpdate({
         meetingId: 'meeting-123',
         updateType: 'status_change',
@@ -364,13 +387,7 @@ describe('MeetingService', () => {
       expect(result.updateType).toBe('status_change');
     });
 
-    it('should handle JSON serialization of values', async () => {
-      const mockUpdate = createMockUpdateDb({
-        old_value: JSON.stringify({ status: 'scheduled' }),
-        new_value: JSON.stringify({ status: 'confirmed' }),
-      });
-      __setMockData(mockUpdate);
-
+    it('should carry through structured values', async () => {
       const result = await MeetingService.createMeetingUpdate({
         meetingId: 'meeting-123',
         updateType: 'status_change',
@@ -386,24 +403,10 @@ describe('MeetingService', () => {
   });
 
   describe('getMeetingUpdates', () => {
-    it('should fetch all updates for a meeting', async () => {
-      const mockUpdates = [
-        createMockUpdateDb(),
-        createMockUpdateDb({ id: 'update-456', update_type: 'schedule_change' }),
-      ];
-      __setMockData(mockUpdates);
-
+    it('should return an empty timeline (no appointment_history table)', async () => {
       const result = await MeetingService.getMeetingUpdates('meeting-123');
 
       expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBe(2);
-    });
-
-    it('should return empty array when no updates', async () => {
-      __setMockData([]);
-
-      const result = await MeetingService.getMeetingUpdates('meeting-123');
-
       expect(result).toEqual([]);
     });
   });
@@ -412,16 +415,24 @@ describe('MeetingService', () => {
     it('should subscribe to contractor location updates', () => {
       const callback = jest.fn();
 
-      const subscription = MeetingService.subscribeToContractorLocation('contractor-101', callback);
+      const subscription = MeetingService.subscribeToContractorLocation(
+        'contractor-101',
+        callback
+      );
 
-      expect(supabase.channel).toHaveBeenCalledWith('contractor_location_contractor-101');
+      expect(supabase.channel).toHaveBeenCalledWith(
+        'contractor_location_contractor-101'
+      );
       expect(subscription).toBeDefined();
     });
 
     it('should subscribe to meeting updates', () => {
       const callback = jest.fn();
 
-      const subscription = MeetingService.subscribeToMeetingUpdates('meeting-123', callback);
+      const subscription = MeetingService.subscribeToMeetingUpdates(
+        'meeting-123',
+        callback
+      );
 
       expect(supabase.channel).toHaveBeenCalledWith('meeting_meeting-123');
       expect(subscription).toBeDefined();
@@ -430,9 +441,15 @@ describe('MeetingService', () => {
     it('should subscribe to contractor travel location', () => {
       const callback = jest.fn();
 
-      const subscription = MeetingService.subscribeToContractorTravelLocation('meeting-123', 'contractor-101', callback);
+      const subscription = MeetingService.subscribeToContractorTravelLocation(
+        'meeting-123',
+        'contractor-101',
+        callback
+      );
 
-      expect(supabase.channel).toHaveBeenCalledWith('contractor_travel_meeting-123');
+      expect(supabase.channel).toHaveBeenCalledWith(
+        'contractor_travel_meeting-123'
+      );
       expect(subscription).toBeDefined();
     });
   });

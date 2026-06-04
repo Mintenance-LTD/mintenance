@@ -41,7 +41,6 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-
 describe('RealtimeService', () => {
   const mockMessage: Message = {
     id: 'msg-1',
@@ -77,6 +76,20 @@ describe('RealtimeService', () => {
   };
 
   let mockChannel: any;
+  // This comprehensive suite exercises the PRODUCTION code path: snake_case ->
+  // camelCase row transformation and the production topic names (e.g.
+  // 'jobs:job-1' for job updates). RealtimeService.isSimpleMode() keys off
+  // NODE_ENV === 'test', which Jest always sets, so we override it here to drive
+  // the real transform/topic logic. The .simple suite covers simple mode.
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  beforeAll(() => {
+    process.env.NODE_ENV = 'production';
+  });
+
+  afterAll(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();

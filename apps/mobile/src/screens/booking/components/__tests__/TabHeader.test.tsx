@@ -13,6 +13,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { Text, TouchableOpacity } from 'react-native';
 import { TabHeader } from '../TabHeader';
 import type { BookingStatus, TabInfo } from '../../viewmodels/BookingViewModel';
+import { me } from '../../../../design-system/mint-editorial';
 
 // ============================================================================
 // MOCKS
@@ -43,14 +44,11 @@ jest.mock('@expo/vector-icons', () => {
   const RN = require('react-native');
 
   mockIonicons = jest.fn(({ name, size, color, ...props }) => {
-    return React.createElement(
-      RN.View,
-      {
-        testID: `ionicon-${name}`,
-        accessibilityLabel: `Icon: ${name}, size: ${size}, color: ${color}`,
-        ...props,
-      }
-    );
+    return React.createElement(RN.View, {
+      testID: `ionicon-${name}`,
+      accessibilityLabel: `Icon: ${name}, size: ${size}, color: ${color}`,
+      ...props,
+    });
   });
 
   return {
@@ -116,7 +114,7 @@ describe('TabHeader Component', () => {
     it('renders without crashing', () => {
       const { UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -129,7 +127,7 @@ describe('TabHeader Component', () => {
     it('renders the header title "Bookings"', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -142,7 +140,7 @@ describe('TabHeader Component', () => {
     it('renders back arrow icon', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -155,7 +153,7 @@ describe('TabHeader Component', () => {
     it('renders search icon', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -168,7 +166,7 @@ describe('TabHeader Component', () => {
     it('renders all tabs', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -183,7 +181,7 @@ describe('TabHeader Component', () => {
     it('renders container with correct structure', () => {
       const { UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -198,7 +196,7 @@ describe('TabHeader Component', () => {
       expect(() => {
         render(
           <TabHeader
-            activeTab="upcoming"
+            activeTab='upcoming'
             tabs={mockTabs}
             onTabPress={onTabPressMock}
             onBackPress={onBackPressMock}
@@ -217,7 +215,7 @@ describe('TabHeader Component', () => {
     it('calls onBackPress when back button is pressed', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -237,7 +235,7 @@ describe('TabHeader Component', () => {
     it('calls onSearchPress when search button is pressed', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -257,7 +255,7 @@ describe('TabHeader Component', () => {
     it('back button is a TouchableOpacity', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -273,7 +271,7 @@ describe('TabHeader Component', () => {
     it('search button is a TouchableOpacity', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -289,7 +287,7 @@ describe('TabHeader Component', () => {
     it('back icon has correct name prop', () => {
       render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -306,7 +304,7 @@ describe('TabHeader Component', () => {
     it('search icon has correct name prop', () => {
       render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -323,7 +321,7 @@ describe('TabHeader Component', () => {
     it('back icon has correct size', () => {
       render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -339,7 +337,7 @@ describe('TabHeader Component', () => {
     it('search icon has correct size', () => {
       render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -355,7 +353,7 @@ describe('TabHeader Component', () => {
     it('back icon has correct color', () => {
       render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -365,13 +363,13 @@ describe('TabHeader Component', () => {
       const backIconCall = mockIonicons.mock.calls.find(
         (call) => call[0].name === 'arrow-back'
       );
-      expect(backIconCall[0].color).toBe('#171717');
+      expect(backIconCall[0].color).toBe(me.ink);
     });
 
     it('search icon has correct color', () => {
       render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -381,13 +379,13 @@ describe('TabHeader Component', () => {
       const searchIconCall = mockIonicons.mock.calls.find(
         (call) => call[0].name === 'search'
       );
-      expect(searchIconCall[0].color).toBe('#171717');
+      expect(searchIconCall[0].color).toBe(me.ink);
     });
 
     it('handles multiple back button presses', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -409,7 +407,7 @@ describe('TabHeader Component', () => {
     it('handles multiple search button presses', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -437,7 +435,7 @@ describe('TabHeader Component', () => {
     it('calls onTabPress when a tab is pressed', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -452,7 +450,7 @@ describe('TabHeader Component', () => {
     it('calls onTabPress with correct tab id for upcoming', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="completed"
+          activeTab='completed'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -467,7 +465,7 @@ describe('TabHeader Component', () => {
     it('calls onTabPress with correct tab id for cancelled', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -482,7 +480,7 @@ describe('TabHeader Component', () => {
     it('calls onTabPress only once per press', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -497,7 +495,7 @@ describe('TabHeader Component', () => {
     it('handles pressing the same tab multiple times', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -515,7 +513,7 @@ describe('TabHeader Component', () => {
     it('handles pressing different tabs sequentially', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -536,7 +534,7 @@ describe('TabHeader Component', () => {
     it('tabs are clickable elements', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -551,7 +549,7 @@ describe('TabHeader Component', () => {
     it('tab interaction works correctly', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -572,7 +570,7 @@ describe('TabHeader Component', () => {
     it('applies active styling to the active tab', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -588,7 +586,7 @@ describe('TabHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#10B981',
+            color: me.ink,
             fontWeight: '600',
           }),
         ])
@@ -598,7 +596,7 @@ describe('TabHeader Component', () => {
     it('does not apply active styling to inactive tabs', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -614,9 +612,9 @@ describe('TabHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: '500',
-            color: '#737373',
+            color: me.ink2,
           }),
         ])
       );
@@ -625,7 +623,7 @@ describe('TabHeader Component', () => {
     it('updates active styling when activeTab changes to completed', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="completed"
+          activeTab='completed'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -641,7 +639,7 @@ describe('TabHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#10B981',
+            color: me.ink,
             fontWeight: '600',
           }),
         ])
@@ -651,7 +649,7 @@ describe('TabHeader Component', () => {
     it('updates active styling when activeTab changes to cancelled', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="cancelled"
+          activeTab='cancelled'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -667,7 +665,7 @@ describe('TabHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#10B981',
+            color: me.ink,
             fontWeight: '600',
           }),
         ])
@@ -677,7 +675,7 @@ describe('TabHeader Component', () => {
     it('active and inactive tabs render correctly', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -695,7 +693,7 @@ describe('TabHeader Component', () => {
     it('visual distinction between active and inactive tabs', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -708,20 +706,32 @@ describe('TabHeader Component', () => {
 
       // Extract all style objects
       const upcomingStyles = Array.isArray(upcomingText.props.style)
-        ? upcomingText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [upcomingText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? upcomingText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [upcomingText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const completedStyles = Array.isArray(completedText.props.style)
-        ? completedText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [completedText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? completedText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [completedText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       // Get color from last style object (active tab should override with primary color)
-      const upcomingColor = upcomingStyles.reverse().find((s: any) => s?.color)?.color;
-      const completedColor = completedStyles.reverse().find((s: any) => s?.color)?.color;
+      const upcomingColor = upcomingStyles
+        .reverse()
+        .find((s: any) => s?.color)?.color;
+      const completedColor = completedStyles
+        .reverse()
+        .find((s: any) => s?.color)?.color;
 
       // Active tab should have primary color (#10B981), inactive should have textSecondary (#737373)
-      expect(upcomingColor).toBe('#10B981');
-      expect(completedColor).toBe('#737373');
+      expect(upcomingColor).toBe(me.ink);
+      expect(completedColor).toBe(me.ink2);
     });
   });
 
@@ -733,7 +743,7 @@ describe('TabHeader Component', () => {
     it('displays badge with count when count > 0', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -749,7 +759,7 @@ describe('TabHeader Component', () => {
     it('does not display badge when count is 0', () => {
       const { queryByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabsWithZeroCount}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -763,7 +773,7 @@ describe('TabHeader Component', () => {
     it('displays large count numbers correctly', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabsWithLargeCounts}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -779,7 +789,7 @@ describe('TabHeader Component', () => {
     it('badge has correct styling', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -795,8 +805,8 @@ describe('TabHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: 'white',
-            fontSize: 12,
+            color: me.onBrand,
+            fontSize: 11,
             fontWeight: '600',
           }),
         ])
@@ -806,7 +816,7 @@ describe('TabHeader Component', () => {
     it('badge container has correct styling', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -822,7 +832,7 @@ describe('TabHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#EF4444',
+            backgroundColor: me.errFg,
             borderRadius: 10,
             minWidth: 20,
             height: 20,
@@ -837,7 +847,7 @@ describe('TabHeader Component', () => {
     it('renders badges for all tabs with counts', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -867,7 +877,7 @@ describe('TabHeader Component', () => {
 
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={singleDigitTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -889,7 +899,7 @@ describe('TabHeader Component', () => {
 
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={doubleDigitTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -911,7 +921,7 @@ describe('TabHeader Component', () => {
 
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={tripleDigitTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -933,7 +943,7 @@ describe('TabHeader Component', () => {
 
       const { getByText, queryByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mixedTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -955,7 +965,7 @@ describe('TabHeader Component', () => {
     it('renders single tab', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockSingleTab}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -969,7 +979,7 @@ describe('TabHeader Component', () => {
     it('renders many tabs', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockManyTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -985,7 +995,7 @@ describe('TabHeader Component', () => {
     it('handles empty tabs array', () => {
       const { UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={[]}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1003,7 +1013,7 @@ describe('TabHeader Component', () => {
     it('all tabs in array are rendered', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1019,7 +1029,7 @@ describe('TabHeader Component', () => {
     it('each tab renders with proper structure', () => {
       const { getByText, UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1036,7 +1046,9 @@ describe('TabHeader Component', () => {
       });
 
       // Verify correct number of tab touchable elements (3 tabs + 2 header buttons = 5 total)
-      const touchableElements = UNSAFE_root.findAllByType(TouchableOpacity as any);
+      const touchableElements = UNSAFE_root.findAllByType(
+        TouchableOpacity as any
+      );
       expect(touchableElements.length).toBeGreaterThanOrEqual(mockTabs.length);
     });
   });
@@ -1049,7 +1061,7 @@ describe('TabHeader Component', () => {
     it('header title has correct styling', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1066,8 +1078,8 @@ describe('TabHeader Component', () => {
         expect.arrayContaining([
           expect.objectContaining({
             fontSize: 18,
-            fontWeight: '600',
-            color: '#171717',
+            fontWeight: '700',
+            color: me.ink,
           }),
         ])
       );
@@ -1076,7 +1088,7 @@ describe('TabHeader Component', () => {
     it('tab text has correct base styling', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="completed"
+          activeTab='completed'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1092,9 +1104,9 @@ describe('TabHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: '500',
-            color: '#737373',
+            color: me.ink2,
             marginRight: 6,
           }),
         ])
@@ -1104,7 +1116,7 @@ describe('TabHeader Component', () => {
     it('tab layout renders correctly', () => {
       const { getByText, UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1115,14 +1127,16 @@ describe('TabHeader Component', () => {
       const upcomingText = getByText('Upcoming');
       expect(upcomingText).toBeTruthy();
 
-      const touchableElements = UNSAFE_root.findAllByType(TouchableOpacity as any);
+      const touchableElements = UNSAFE_root.findAllByType(
+        TouchableOpacity as any
+      );
       expect(touchableElements.length).toBeGreaterThanOrEqual(mockTabs.length);
     });
 
     it('tabs container has correct styling', () => {
       const { UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1150,7 +1164,7 @@ describe('TabHeader Component', () => {
     it('main container has correct background color', () => {
       const { UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1176,7 +1190,7 @@ describe('TabHeader Component', () => {
     it('header section has correct styling', () => {
       const { UNSAFE_root } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1194,7 +1208,7 @@ describe('TabHeader Component', () => {
             style?.flexDirection === 'row' &&
             style?.alignItems === 'center' &&
             style?.justifyContent === 'space-between' &&
-            style?.paddingTop === 60
+            style?.paddingTop === 16
         );
       });
 
@@ -1210,7 +1224,7 @@ describe('TabHeader Component', () => {
     it('complete workflow: navigate back, switch tabs, search', () => {
       const { getByText, getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1241,7 +1255,11 @@ describe('TabHeader Component', () => {
     });
 
     it('renders correctly with all different activeTab values', () => {
-      const activeTabValues: BookingStatus[] = ['upcoming', 'completed', 'cancelled'];
+      const activeTabValues: BookingStatus[] = [
+        'upcoming',
+        'completed',
+        'cancelled',
+      ];
 
       activeTabValues.forEach((activeTab) => {
         const { getByText } = render(
@@ -1264,7 +1282,7 @@ describe('TabHeader Component', () => {
           expect(styles).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
-                color: '#10B981',
+                color: me.ink,
                 fontWeight: '600',
               }),
             ])
@@ -1276,7 +1294,7 @@ describe('TabHeader Component', () => {
     it('maintains state across multiple renders', () => {
       const { rerender, getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1288,7 +1306,7 @@ describe('TabHeader Component', () => {
 
       rerender(
         <TabHeader
-          activeTab="completed"
+          activeTab='completed'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1307,14 +1325,18 @@ describe('TabHeader Component', () => {
   describe('Edge Cases', () => {
     it('handles very long tab names', () => {
       const longNameTabs: TabInfo[] = [
-        { id: 'upcoming', name: 'Very Long Tab Name That Should Be Displayed', count: 1 },
+        {
+          id: 'upcoming',
+          name: 'Very Long Tab Name That Should Be Displayed',
+          count: 1,
+        },
         { id: 'completed', name: 'Another Extremely Long Tab Name', count: 2 },
         { id: 'cancelled', name: 'Yet Another Very Long Name', count: 3 },
       ];
 
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={longNameTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1336,7 +1358,7 @@ describe('TabHeader Component', () => {
 
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={specialCharTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1358,7 +1380,7 @@ describe('TabHeader Component', () => {
 
       const { getAllByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={duplicateNameTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1373,7 +1395,7 @@ describe('TabHeader Component', () => {
     it('handles rapid tab switching', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1393,7 +1415,7 @@ describe('TabHeader Component', () => {
     it('handles rapid button presses', () => {
       const { getByTestId } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1420,7 +1442,11 @@ describe('TabHeader Component', () => {
 
   describe('Type Safety', () => {
     it('accepts valid BookingStatus types', () => {
-      const validStatuses: BookingStatus[] = ['upcoming', 'completed', 'cancelled'];
+      const validStatuses: BookingStatus[] = [
+        'upcoming',
+        'completed',
+        'cancelled',
+      ];
 
       validStatuses.forEach((status) => {
         expect(() => {
@@ -1440,7 +1466,7 @@ describe('TabHeader Component', () => {
     it('tab IDs match BookingStatus type', () => {
       const { getByText } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1469,7 +1495,7 @@ describe('TabHeader Component', () => {
       const startTime = Date.now();
       render(
         <TabHeader
-          activeTab="tab-0"
+          activeTab='tab-0'
           tabs={manyTabsList}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}
@@ -1484,7 +1510,7 @@ describe('TabHeader Component', () => {
     it('handles re-renders efficiently', () => {
       const { rerender } = render(
         <TabHeader
-          activeTab="upcoming"
+          activeTab='upcoming'
           tabs={mockTabs}
           onTabPress={onTabPressMock}
           onBackPress={onBackPressMock}

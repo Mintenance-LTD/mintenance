@@ -72,7 +72,7 @@ describe('LocationPicker Component', () => {
   // Mock location data
   const mockLocation: ExtendedLocationData = {
     latitude: 40.7128,
-    longitude: -74.0060,
+    longitude: -74.006,
     address: '123 Main St, New York, NY 10001',
   };
 
@@ -85,7 +85,7 @@ describe('LocationPicker Component', () => {
       const { toJSON } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -96,7 +96,7 @@ describe('LocationPicker Component', () => {
       const { root } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -107,17 +107,21 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
-      expect(getByText('Location')).toBeTruthy();
+      expect(getByText('LOCATION')).toBeTruthy();
     });
 
     it('should render section title in all states', () => {
-      const states: ('loading' | 'success' | 'error')[] = ['loading', 'success', 'error'];
+      const states: ('loading' | 'success' | 'error')[] = [
+        'loading',
+        'success',
+        'error',
+      ];
 
-      states.forEach(status => {
+      states.forEach((status) => {
         const { getByText } = render(
           <LocationPicker
             location={mockLocation}
@@ -125,7 +129,7 @@ describe('LocationPicker Component', () => {
             onRetry={mockOnRetry}
           />
         );
-        expect(getByText('Location')).toBeTruthy();
+        expect(getByText('LOCATION')).toBeTruthy();
       });
     });
 
@@ -133,7 +137,7 @@ describe('LocationPicker Component', () => {
       const { toJSON } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -146,7 +150,7 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -157,7 +161,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -168,7 +172,7 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -180,19 +184,19 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
       const indicator = UNSAFE_getByType('ActivityIndicator' as any);
-      expect(indicator.props.color).toBe('#007AFF');
+      expect(indicator.props.color).toBe('#1A2520');
     });
 
     it('should not show error or success states when loading', () => {
       const { queryByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -204,7 +208,7 @@ describe('LocationPicker Component', () => {
       const { queryByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -215,7 +219,7 @@ describe('LocationPicker Component', () => {
       const { queryByText } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -226,7 +230,7 @@ describe('LocationPicker Component', () => {
       const { toJSON } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -239,7 +243,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -250,12 +254,14 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getAllByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const errorIcon = icons.find((icon: any) => icon.props.name === 'location-outline');
+      const errorIcon = icons.find(
+        (icon: any) => icon.props.name === 'location-outline'
+      );
       expect(errorIcon).toBeTruthy();
     });
 
@@ -263,12 +269,14 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getAllByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const errorIcon = icons.find((icon: any) => icon.props.name === 'location-outline');
+      const errorIcon = icons.find(
+        (icon: any) => icon.props.name === 'location-outline'
+      );
       expect(errorIcon.props.size).toBe(24);
     });
 
@@ -276,20 +284,22 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getAllByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const errorIcon = icons.find((icon: any) => icon.props.name === 'location-outline');
-      expect(errorIcon.props.color).toBe('#EF4444');
+      const errorIcon = icons.find(
+        (icon: any) => icon.props.name === 'location-outline'
+      );
+      expect(errorIcon.props.color).toBe('#8A2E1B');
     });
 
     it('should show Retry button when error', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -300,7 +310,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -312,7 +322,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -327,7 +337,7 @@ describe('LocationPicker Component', () => {
       const { queryByText, UNSAFE_queryByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -340,7 +350,7 @@ describe('LocationPicker Component', () => {
       const { queryByText } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -351,7 +361,7 @@ describe('LocationPicker Component', () => {
       const { toJSON } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -362,7 +372,7 @@ describe('LocationPicker Component', () => {
       const { toJSON } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -375,7 +385,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -387,7 +397,7 @@ describe('LocationPicker Component', () => {
       const { queryByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -398,12 +408,14 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getAllByType } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const successIcon = icons.find((icon: any) => icon.props.name === 'location');
+      const successIcon = icons.find(
+        (icon: any) => icon.props.name === 'location'
+      );
       expect(successIcon).toBeTruthy();
     });
 
@@ -411,12 +423,14 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getAllByType } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const successIcon = icons.find((icon: any) => icon.props.name === 'location');
+      const successIcon = icons.find(
+        (icon: any) => icon.props.name === 'location'
+      );
       expect(successIcon.props.size).toBe(20);
     });
 
@@ -424,20 +438,22 @@ describe('LocationPicker Component', () => {
       const { UNSAFE_getAllByType } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const successIcon = icons.find((icon: any) => icon.props.name === 'location');
-      expect(successIcon.props.color).toBe('#10B981');
+      const successIcon = icons.find(
+        (icon: any) => icon.props.name === 'location'
+      );
+      expect(successIcon.props.color).toBe('#3F8C7A');
     });
 
     it('should not show loading or error states when success', () => {
       const { queryByText, UNSAFE_queryByType } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -450,13 +466,13 @@ describe('LocationPicker Component', () => {
     it('should display address with short format', () => {
       const shortLocation: ExtendedLocationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '123 Main St',
       };
       const { getByText } = render(
         <LocationPicker
           location={shortLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -466,29 +482,34 @@ describe('LocationPicker Component', () => {
     it('should display address with long format', () => {
       const longLocation: ExtendedLocationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
-        address: '123 Main Street, Apartment 4B, New York, NY 10001, United States',
+        longitude: -74.006,
+        address:
+          '123 Main Street, Apartment 4B, New York, NY 10001, United States',
       };
       const { getByText } = render(
         <LocationPicker
           location={longLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
-      expect(getByText('123 Main Street, Apartment 4B, New York, NY 10001, United States')).toBeTruthy();
+      expect(
+        getByText(
+          '123 Main Street, Apartment 4B, New York, NY 10001, United States'
+        )
+      ).toBeTruthy();
     });
 
     it('should display address with special characters', () => {
       const specialLocation: ExtendedLocationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: "O'Brien's Café & Restaurant, 42nd St",
       };
       const { getByText } = render(
         <LocationPicker
           location={specialLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -498,13 +519,13 @@ describe('LocationPicker Component', () => {
     it('should display address with numbers only', () => {
       const numericLocation: ExtendedLocationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '123',
       };
       const { getByText } = render(
         <LocationPicker
           location={numericLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -515,7 +536,7 @@ describe('LocationPicker Component', () => {
       const { toJSON } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -526,7 +547,7 @@ describe('LocationPicker Component', () => {
       const { toJSON } = render(
         <LocationPicker
           location={null}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -539,7 +560,7 @@ describe('LocationPicker Component', () => {
       const { rerender, queryByText, UNSAFE_queryByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -549,7 +570,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -562,7 +583,7 @@ describe('LocationPicker Component', () => {
       const { rerender, queryByText, UNSAFE_queryByType } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -571,7 +592,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -584,7 +605,7 @@ describe('LocationPicker Component', () => {
       const { rerender, queryByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -593,7 +614,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -605,7 +626,7 @@ describe('LocationPicker Component', () => {
       const { rerender, queryByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -614,7 +635,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -626,7 +647,7 @@ describe('LocationPicker Component', () => {
       const { rerender, queryByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -635,14 +656,14 @@ describe('LocationPicker Component', () => {
         rerender(
           <LocationPicker
             location={null}
-            locationStatus="error"
+            locationStatus='error'
             onRetry={mockOnRetry}
           />
         );
         rerender(
           <LocationPicker
             location={null}
-            locationStatus="loading"
+            locationStatus='loading'
             onRetry={mockOnRetry}
           />
         );
@@ -651,7 +672,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -663,7 +684,7 @@ describe('LocationPicker Component', () => {
       const { rerender, getByText, queryByText } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -677,7 +698,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={newLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -692,7 +713,7 @@ describe('LocationPicker Component', () => {
       const { rerender, getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -700,7 +721,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={newOnRetry}
         />
       );
@@ -718,7 +739,7 @@ describe('LocationPicker Component', () => {
       const { rerender, getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={callback1}
         />
       );
@@ -726,7 +747,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={callback2}
         />
       );
@@ -734,7 +755,7 @@ describe('LocationPicker Component', () => {
       rerender(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={callback3}
         />
       );
@@ -752,7 +773,7 @@ describe('LocationPicker Component', () => {
         render(
           <LocationPicker
             location={null}
-            locationStatus="loading"
+            locationStatus='loading'
             onRetry={mockOnRetry}
           />
         )
@@ -763,7 +784,7 @@ describe('LocationPicker Component', () => {
       const { unmount } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -774,7 +795,7 @@ describe('LocationPicker Component', () => {
       const { unmount: unmount1 } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -783,7 +804,7 @@ describe('LocationPicker Component', () => {
       const { unmount: unmount2 } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -792,7 +813,7 @@ describe('LocationPicker Component', () => {
       const { unmount: unmount3 } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -805,14 +826,14 @@ describe('LocationPicker Component', () => {
       const { toJSON: toJSON1 } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
       const { toJSON: toJSON2 } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -820,9 +841,13 @@ describe('LocationPicker Component', () => {
     });
 
     it('should maintain structure across all states', () => {
-      const states: ('loading' | 'success' | 'error')[] = ['loading', 'success', 'error'];
+      const states: ('loading' | 'success' | 'error')[] = [
+        'loading',
+        'success',
+        'error',
+      ];
 
-      states.forEach(status => {
+      states.forEach((status) => {
         const { getByText } = render(
           <LocationPicker
             location={mockLocation}
@@ -830,7 +855,7 @@ describe('LocationPicker Component', () => {
             onRetry={mockOnRetry}
           />
         );
-        expect(getByText('Location')).toBeTruthy();
+        expect(getByText('LOCATION')).toBeTruthy();
       });
     });
   });
@@ -839,13 +864,13 @@ describe('LocationPicker Component', () => {
     it('should handle empty address', () => {
       const emptyLocation: ExtendedLocationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '',
       };
       const { queryByText } = render(
         <LocationPicker
           location={emptyLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -855,13 +880,13 @@ describe('LocationPicker Component', () => {
     it('should handle whitespace-only address', () => {
       const whitespaceLocation: ExtendedLocationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '   ',
       };
       const { getByText } = render(
         <LocationPicker
           location={whitespaceLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -877,24 +902,26 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={unicodeLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
-      expect(getByText('Café de Flore, 172 Boulevard Saint-Germain, Paris 🇫🇷')).toBeTruthy();
+      expect(
+        getByText('Café de Flore, 172 Boulevard Saint-Germain, Paris 🇫🇷')
+      ).toBeTruthy();
     });
 
     it('should handle very long address', () => {
       const longAddress = 'A'.repeat(500);
       const longLocation: ExtendedLocationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: longAddress,
       };
       const { getByText } = render(
         <LocationPicker
           location={longLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -905,7 +932,7 @@ describe('LocationPicker Component', () => {
       const { queryByText } = render(
         <LocationPicker
           location={undefined as any}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -916,7 +943,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={undefined as any}
         />
       );
@@ -926,9 +953,13 @@ describe('LocationPicker Component', () => {
 
   describe('Props Validation', () => {
     it('should accept all valid locationStatus values', () => {
-      const statuses: ('loading' | 'success' | 'error')[] = ['loading', 'success', 'error'];
+      const statuses: ('loading' | 'success' | 'error')[] = [
+        'loading',
+        'success',
+        'error',
+      ];
 
-      statuses.forEach(status => {
+      statuses.forEach((status) => {
         expect(() =>
           render(
             <LocationPicker
@@ -946,7 +977,7 @@ describe('LocationPicker Component', () => {
         render(
           <LocationPicker
             location={null}
-            locationStatus="loading"
+            locationStatus='loading'
             onRetry={mockOnRetry}
           />
         )
@@ -958,7 +989,7 @@ describe('LocationPicker Component', () => {
         render(
           <LocationPicker
             location={mockLocation}
-            locationStatus="success"
+            locationStatus='success'
             onRetry={mockOnRetry}
           />
         )
@@ -969,11 +1000,7 @@ describe('LocationPicker Component', () => {
       const fn = () => {};
       expect(() =>
         render(
-          <LocationPicker
-            location={null}
-            locationStatus="error"
-            onRetry={fn}
-          />
+          <LocationPicker location={null} locationStatus='error' onRetry={fn} />
         )
       ).not.toThrow();
     });
@@ -984,7 +1011,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="loading"
+          locationStatus='loading'
           onRetry={mockOnRetry}
         />
       );
@@ -995,7 +1022,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
@@ -1007,7 +1034,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={mockLocation}
-          locationStatus="success"
+          locationStatus='success'
           onRetry={mockOnRetry}
         />
       );
@@ -1019,7 +1046,7 @@ describe('LocationPicker Component', () => {
       const { getByText } = render(
         <LocationPicker
           location={null}
-          locationStatus="error"
+          locationStatus='error'
           onRetry={mockOnRetry}
         />
       );
