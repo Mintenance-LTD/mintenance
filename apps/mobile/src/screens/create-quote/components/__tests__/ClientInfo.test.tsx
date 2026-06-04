@@ -53,7 +53,7 @@ describe('ClientInfo Component', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
       expect(getByPlaceholderText('Enter client name')).toBeTruthy();
       expect(getByPlaceholderText('client@example.com')).toBeTruthy();
-      expect(getByPlaceholderText('+1 (555) 123-4567')).toBeTruthy();
+      expect(getByPlaceholderText('+44 7700 900000')).toBeTruthy();
     });
 
     it('renders Client Name input with correct label', () => {
@@ -70,7 +70,7 @@ describe('ClientInfo Component', () => {
 
     it('renders Phone Number input with correct label', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
       expect(input).toBeTruthy();
     });
 
@@ -214,7 +214,9 @@ describe('ClientInfo Component', () => {
 
       fireEvent.changeText(input, 'valid.email@domain.com');
 
-      expect(props.setClientEmail).toHaveBeenCalledWith('valid.email@domain.com');
+      expect(props.setClientEmail).toHaveBeenCalledWith(
+        'valid.email@domain.com'
+      );
     });
 
     it('handles email with subdomain', () => {
@@ -223,7 +225,9 @@ describe('ClientInfo Component', () => {
 
       fireEvent.changeText(input, 'user@mail.company.com');
 
-      expect(props.setClientEmail).toHaveBeenCalledWith('user@mail.company.com');
+      expect(props.setClientEmail).toHaveBeenCalledWith(
+        'user@mail.company.com'
+      );
     });
 
     it('handles email with plus addressing', () => {
@@ -241,7 +245,9 @@ describe('ClientInfo Component', () => {
 
       fireEvent.changeText(input, 'first.last@example.com');
 
-      expect(props.setClientEmail).toHaveBeenCalledWith('first.last@example.com');
+      expect(props.setClientEmail).toHaveBeenCalledWith(
+        'first.last@example.com'
+      );
     });
 
     it('handles email with numbers', () => {
@@ -311,14 +317,14 @@ describe('ClientInfo Component', () => {
   describe('Phone Number Input', () => {
     it('has correct keyboard type for phone', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       expect(input.props.keyboardType).toBe('phone-pad');
     });
 
     it('calls setClientPhone when text changes', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '555-1234');
 
@@ -328,16 +334,16 @@ describe('ClientInfo Component', () => {
 
     it('handles US formatted phone number', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
-      fireEvent.changeText(input, '+1 (555) 123-4567');
+      fireEvent.changeText(input, '+44 7700 900000');
 
-      expect(props.setClientPhone).toHaveBeenCalledWith('+1 (555) 123-4567');
+      expect(props.setClientPhone).toHaveBeenCalledWith('+44 7700 900000');
     });
 
     it('handles phone number with dashes', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '555-123-4567');
 
@@ -346,7 +352,7 @@ describe('ClientInfo Component', () => {
 
     it('handles phone number with dots', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '555.123.4567');
 
@@ -355,7 +361,7 @@ describe('ClientInfo Component', () => {
 
     it('handles international phone number', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '+44 20 7123 4567');
 
@@ -364,7 +370,7 @@ describe('ClientInfo Component', () => {
 
     it('handles phone number with only digits', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '5551234567');
 
@@ -373,7 +379,7 @@ describe('ClientInfo Component', () => {
 
     it('handles phone number with extension', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '555-1234 ext. 123');
 
@@ -383,7 +389,7 @@ describe('ClientInfo Component', () => {
     it('handles empty phone input', () => {
       const filledProps = createProps({ clientPhone: '555-1234' });
       const { getByPlaceholderText } = render(<ClientInfo {...filledProps} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '');
 
@@ -392,7 +398,7 @@ describe('ClientInfo Component', () => {
 
     it('handles partial phone number input', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '555-12');
 
@@ -401,7 +407,7 @@ describe('ClientInfo Component', () => {
 
     it('handles multiple rapid changes to phone', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
-      const input = getByPlaceholderText('+1 (555) 123-4567');
+      const input = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(input, '5');
       fireEvent.changeText(input, '55');
@@ -432,7 +438,7 @@ describe('ClientInfo Component', () => {
 
       const nameInput = getByPlaceholderText('Enter client name');
       const emailInput = getByPlaceholderText('client@example.com');
-      const phoneInput = getByPlaceholderText('+1 (555) 123-4567');
+      const phoneInput = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(nameInput, 'John Doe');
       fireEvent.changeText(emailInput, 'john@example.com');
@@ -457,7 +463,7 @@ describe('ClientInfo Component', () => {
       expect(props.setClientEmail).toHaveBeenCalledTimes(1);
 
       // Finally phone
-      const phoneInput = getByPlaceholderText('+1 (555) 123-4567');
+      const phoneInput = getByPlaceholderText('+44 7700 900000');
       fireEvent.changeText(phoneInput, '555-5678');
       expect(props.setClientPhone).toHaveBeenCalledTimes(1);
     });
@@ -467,7 +473,7 @@ describe('ClientInfo Component', () => {
 
       const nameInput = getByPlaceholderText('Enter client name');
       const emailInput = getByPlaceholderText('client@example.com');
-      const phoneInput = getByPlaceholderText('+1 (555) 123-4567');
+      const phoneInput = getByPlaceholderText('+44 7700 900000');
 
       fireEvent.changeText(nameInput, 'J');
       fireEvent.changeText(emailInput, 't');
@@ -504,7 +510,7 @@ describe('ClientInfo Component', () => {
 
       fireEvent.changeText(getByPlaceholderText('Enter client name'), '');
       fireEvent.changeText(getByPlaceholderText('client@example.com'), '');
-      fireEvent.changeText(getByPlaceholderText('+1 (555) 123-4567'), '');
+      fireEvent.changeText(getByPlaceholderText('+44 7700 900000'), '');
 
       expect(filledProps.setClientName).toHaveBeenCalledWith('');
       expect(filledProps.setClientEmail).toHaveBeenCalledWith('');
@@ -555,9 +561,15 @@ describe('ClientInfo Component', () => {
       const longString = 'A'.repeat(500);
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
 
-      fireEvent.changeText(getByPlaceholderText('Enter client name'), longString);
-      fireEvent.changeText(getByPlaceholderText('client@example.com'), longString);
-      fireEvent.changeText(getByPlaceholderText('+1 (555) 123-4567'), longString);
+      fireEvent.changeText(
+        getByPlaceholderText('Enter client name'),
+        longString
+      );
+      fireEvent.changeText(
+        getByPlaceholderText('client@example.com'),
+        longString
+      );
+      fireEvent.changeText(getByPlaceholderText('+44 7700 900000'), longString);
 
       expect(props.setClientName).toHaveBeenCalledWith(longString);
       expect(props.setClientEmail).toHaveBeenCalledWith(longString);
@@ -568,9 +580,18 @@ describe('ClientInfo Component', () => {
       const specialChars = '!@#$%^&*()_+-={}[]|\\:";\'<>?,./';
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
 
-      fireEvent.changeText(getByPlaceholderText('Enter client name'), specialChars);
-      fireEvent.changeText(getByPlaceholderText('client@example.com'), specialChars);
-      fireEvent.changeText(getByPlaceholderText('+1 (555) 123-4567'), specialChars);
+      fireEvent.changeText(
+        getByPlaceholderText('Enter client name'),
+        specialChars
+      );
+      fireEvent.changeText(
+        getByPlaceholderText('client@example.com'),
+        specialChars
+      );
+      fireEvent.changeText(
+        getByPlaceholderText('+44 7700 900000'),
+        specialChars
+      );
 
       expect(props.setClientName).toHaveBeenCalledWith(specialChars);
       expect(props.setClientEmail).toHaveBeenCalledWith(specialChars);
@@ -582,7 +603,7 @@ describe('ClientInfo Component', () => {
 
       fireEvent.changeText(getByPlaceholderText('Enter client name'), '   ');
       fireEvent.changeText(getByPlaceholderText('client@example.com'), '   ');
-      fireEvent.changeText(getByPlaceholderText('+1 (555) 123-4567'), '   ');
+      fireEvent.changeText(getByPlaceholderText('+44 7700 900000'), '   ');
 
       expect(props.setClientName).toHaveBeenCalledWith('   ');
       expect(props.setClientEmail).toHaveBeenCalledWith('   ');
@@ -592,7 +613,10 @@ describe('ClientInfo Component', () => {
     it('handles newline characters in input', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
 
-      fireEvent.changeText(getByPlaceholderText('Enter client name'), 'Line1\nLine2');
+      fireEvent.changeText(
+        getByPlaceholderText('Enter client name'),
+        'Line1\nLine2'
+      );
 
       expect(props.setClientName).toHaveBeenCalledWith('Line1\nLine2');
     });
@@ -600,7 +624,10 @@ describe('ClientInfo Component', () => {
     it('handles tab characters in input', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
 
-      fireEvent.changeText(getByPlaceholderText('Enter client name'), 'Word1\tWord2');
+      fireEvent.changeText(
+        getByPlaceholderText('Enter client name'),
+        'Word1\tWord2'
+      );
 
       expect(props.setClientName).toHaveBeenCalledWith('Word1\tWord2');
     });
@@ -617,7 +644,9 @@ describe('ClientInfo Component', () => {
     });
 
     it('renders section title before inputs', () => {
-      const { getAllByText, getByPlaceholderText } = render(<ClientInfo {...props} />);
+      const { getAllByText, getByPlaceholderText } = render(
+        <ClientInfo {...props} />
+      );
       const title = getAllByText('Client Information')[0];
       const firstInput = getByPlaceholderText('Enter client name');
 
@@ -631,7 +660,7 @@ describe('ClientInfo Component', () => {
       // All inputs should be present
       expect(getByPlaceholderText('Enter client name')).toBeTruthy();
       expect(getByPlaceholderText('client@example.com')).toBeTruthy();
-      expect(getByPlaceholderText('+1 (555) 123-4567')).toBeTruthy();
+      expect(getByPlaceholderText('+44 7700 900000')).toBeTruthy();
     });
   });
 
@@ -696,7 +725,10 @@ describe('ClientInfo Component', () => {
     it('only calls setClientEmail when email changes', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
 
-      fireEvent.changeText(getByPlaceholderText('client@example.com'), 'test@test.com');
+      fireEvent.changeText(
+        getByPlaceholderText('client@example.com'),
+        'test@test.com'
+      );
 
       expect(props.setClientEmail).toHaveBeenCalled();
       expect(props.setClientName).not.toHaveBeenCalled();
@@ -706,7 +738,7 @@ describe('ClientInfo Component', () => {
     it('only calls setClientPhone when phone changes', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
 
-      fireEvent.changeText(getByPlaceholderText('+1 (555) 123-4567'), '555-1234');
+      fireEvent.changeText(getByPlaceholderText('+44 7700 900000'), '555-1234');
 
       expect(props.setClientPhone).toHaveBeenCalled();
       expect(props.setClientName).not.toHaveBeenCalled();
@@ -719,10 +751,13 @@ describe('ClientInfo Component', () => {
       fireEvent.changeText(getByPlaceholderText('Enter client name'), 'Name');
       expect(props.setClientName).toHaveBeenCalledTimes(1);
 
-      fireEvent.changeText(getByPlaceholderText('client@example.com'), 'email@test.com');
+      fireEvent.changeText(
+        getByPlaceholderText('client@example.com'),
+        'email@test.com'
+      );
       expect(props.setClientEmail).toHaveBeenCalledTimes(1);
 
-      fireEvent.changeText(getByPlaceholderText('+1 (555) 123-4567'), '555-0000');
+      fireEvent.changeText(getByPlaceholderText('+44 7700 900000'), '555-0000');
       expect(props.setClientPhone).toHaveBeenCalledTimes(1);
     });
   });
@@ -753,7 +788,9 @@ describe('ClientInfo Component', () => {
         clientEmail: 'initial@email.com',
         clientPhone: '555-0000',
       });
-      const { getByDisplayValue, rerender } = render(<ClientInfo {...initialProps} />);
+      const { getByDisplayValue, rerender } = render(
+        <ClientInfo {...initialProps} />
+      );
 
       const updatedProps = createProps({
         clientName: 'Updated Name',
@@ -768,7 +805,9 @@ describe('ClientInfo Component', () => {
     });
 
     it('handles setter function changes', () => {
-      const { getByPlaceholderText, rerender } = render(<ClientInfo {...props} />);
+      const { getByPlaceholderText, rerender } = render(
+        <ClientInfo {...props} />
+      );
 
       const newSetClientName = jest.fn();
       const newProps = createProps({ setClientName: newSetClientName });
@@ -798,11 +837,13 @@ describe('ClientInfo Component', () => {
       fireEvent.changeText(emailInput, 'sarah.johnson@example.com');
 
       // User enters phone
-      const phoneInput = getByPlaceholderText('+1 (555) 123-4567');
+      const phoneInput = getByPlaceholderText('+44 7700 900000');
       fireEvent.changeText(phoneInput, '+1 (555) 234-5678');
 
       expect(props.setClientName).toHaveBeenCalledWith('Sarah Johnson');
-      expect(props.setClientEmail).toHaveBeenCalledWith('sarah.johnson@example.com');
+      expect(props.setClientEmail).toHaveBeenCalledWith(
+        'sarah.johnson@example.com'
+      );
       expect(props.setClientPhone).toHaveBeenCalledWith('+1 (555) 234-5678');
     });
 
@@ -815,19 +856,33 @@ describe('ClientInfo Component', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...filledProps} />);
 
       // User corrects name
-      fireEvent.changeText(getByPlaceholderText('Enter client name'), 'Correct Name');
+      fireEvent.changeText(
+        getByPlaceholderText('Enter client name'),
+        'Correct Name'
+      );
       expect(filledProps.setClientName).toHaveBeenCalledWith('Correct Name');
 
       // User corrects email
-      fireEvent.changeText(getByPlaceholderText('client@example.com'), 'correct@email.com');
-      expect(filledProps.setClientEmail).toHaveBeenCalledWith('correct@email.com');
+      fireEvent.changeText(
+        getByPlaceholderText('client@example.com'),
+        'correct@email.com'
+      );
+      expect(filledProps.setClientEmail).toHaveBeenCalledWith(
+        'correct@email.com'
+      );
     });
 
     it('handles partial form fill (only name and email)', () => {
       const { getByPlaceholderText } = render(<ClientInfo {...props} />);
 
-      fireEvent.changeText(getByPlaceholderText('Enter client name'), 'Partial User');
-      fireEvent.changeText(getByPlaceholderText('client@example.com'), 'partial@user.com');
+      fireEvent.changeText(
+        getByPlaceholderText('Enter client name'),
+        'Partial User'
+      );
+      fireEvent.changeText(
+        getByPlaceholderText('client@example.com'),
+        'partial@user.com'
+      );
 
       expect(props.setClientName).toHaveBeenCalledWith('Partial User');
       expect(props.setClientEmail).toHaveBeenCalledWith('partial@user.com');

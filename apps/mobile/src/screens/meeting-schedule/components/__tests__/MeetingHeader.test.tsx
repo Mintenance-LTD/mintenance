@@ -113,7 +113,9 @@ describe('MeetingHeader Component', () => {
 
   describe('Contractor Display', () => {
     it('should display contractor name when provided', () => {
-      const { getByText } = render(<MeetingHeader contractor={mockContractor} />);
+      const { getByText } = render(
+        <MeetingHeader contractor={mockContractor} />
+      );
       expect(getByText('With: John Smith')).toBeTruthy();
     });
 
@@ -123,7 +125,9 @@ describe('MeetingHeader Component', () => {
     });
 
     it('should render person icon when contractor is provided', () => {
-      const { UNSAFE_getAllByType } = render(<MeetingHeader contractor={mockContractor} />);
+      const { UNSAFE_getAllByType } = render(
+        <MeetingHeader contractor={mockContractor} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
       expect(icons.length).toBe(2); // calendar + person
     });
@@ -133,7 +137,9 @@ describe('MeetingHeader Component', () => {
         ...mockContractor,
         last_name: '',
       };
-      const { getByText } = render(<MeetingHeader contractor={contractorFirstOnly} />);
+      const { getByText } = render(
+        <MeetingHeader contractor={contractorFirstOnly} />
+      );
       expect(getByText('With: John ')).toBeTruthy();
     });
 
@@ -142,12 +148,16 @@ describe('MeetingHeader Component', () => {
         ...mockContractor,
         first_name: '',
       };
-      const { getByText } = render(<MeetingHeader contractor={contractorLastOnly} />);
+      const { getByText } = render(
+        <MeetingHeader contractor={contractorLastOnly} />
+      );
       expect(getByText('With:  Smith')).toBeTruthy();
     });
 
     it('should display both names with space', () => {
-      const { getByText } = render(<MeetingHeader contractor={mockContractor} />);
+      const { getByText } = render(
+        <MeetingHeader contractor={mockContractor} />
+      );
       const text = getByText('With: John Smith');
       expect(text.props.children).toContain('John');
       expect(text.props.children).toContain('Smith');
@@ -159,7 +169,9 @@ describe('MeetingHeader Component', () => {
         first_name: '',
         last_name: '',
       };
-      const { getByText } = render(<MeetingHeader contractor={contractorNoNames} />);
+      const { getByText } = render(
+        <MeetingHeader contractor={contractorNoNames} />
+      );
       expect(getByText('With:  ')).toBeTruthy();
     });
 
@@ -201,7 +213,11 @@ describe('MeetingHeader Component', () => {
         title: 'Complete Kitchen and Bathroom Renovation with New Fixtures',
       };
       const { getByText } = render(<MeetingHeader job={jobLongTitle} />);
-      expect(getByText('Job: Complete Kitchen and Bathroom Renovation with New Fixtures')).toBeTruthy();
+      expect(
+        getByText(
+          'Job: Complete Kitchen and Bathroom Renovation with New Fixtures'
+        )
+      ).toBeTruthy();
     });
 
     it('should display job with special characters in title', () => {
@@ -258,26 +274,32 @@ describe('MeetingHeader Component', () => {
       const icons = UNSAFE_getAllByType('Ionicons' as any);
       const calendarIcon = icons[0];
       expect(calendarIcon.props.name).toBe('calendar-outline');
-      expect(calendarIcon.props.size).toBe(24);
-      expect(calendarIcon.props.color).toBe('#007AFF');
+      expect(calendarIcon.props.size).toBe(20);
+      expect(calendarIcon.props.color).toBe('#3B82F6');
     });
 
     it('should render person icon with correct props when contractor provided', () => {
-      const { UNSAFE_getAllByType } = render(<MeetingHeader contractor={mockContractor} />);
+      const { UNSAFE_getAllByType } = render(
+        <MeetingHeader contractor={mockContractor} />
+      );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const personIcon = icons.find((icon: any) => icon.props.name === 'person-outline');
+      const personIcon = icons.find(
+        (icon: any) => icon.props.name === 'person-outline'
+      );
       expect(personIcon).toBeTruthy();
-      expect(personIcon.props.size).toBe(16);
-      expect(personIcon.props.color).toBe('#666666');
+      expect(personIcon.props.size).toBe(14);
+      expect(personIcon.props.color).toBe('#4A5751');
     });
 
     it('should render briefcase icon with correct props when job provided', () => {
       const { UNSAFE_getAllByType } = render(<MeetingHeader job={mockJob} />);
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const briefcaseIcon = icons.find((icon: any) => icon.props.name === 'briefcase-outline');
+      const briefcaseIcon = icons.find(
+        (icon: any) => icon.props.name === 'briefcase-outline'
+      );
       expect(briefcaseIcon).toBeTruthy();
-      expect(briefcaseIcon.props.size).toBe(16);
-      expect(briefcaseIcon.props.color).toBe('#666666');
+      expect(briefcaseIcon.props.size).toBe(14);
+      expect(briefcaseIcon.props.color).toBe('#4A5751');
     });
 
     it('should use consistent icon sizes for info icons', () => {
@@ -285,8 +307,12 @@ describe('MeetingHeader Component', () => {
         <MeetingHeader contractor={mockContractor} job={mockJob} />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const personIcon = icons.find((icon: any) => icon.props.name === 'person-outline');
-      const briefcaseIcon = icons.find((icon: any) => icon.props.name === 'briefcase-outline');
+      const personIcon = icons.find(
+        (icon: any) => icon.props.name === 'person-outline'
+      );
+      const briefcaseIcon = icons.find(
+        (icon: any) => icon.props.name === 'briefcase-outline'
+      );
       expect(personIcon.props.size).toBe(briefcaseIcon.props.size);
     });
 
@@ -295,8 +321,12 @@ describe('MeetingHeader Component', () => {
         <MeetingHeader contractor={mockContractor} job={mockJob} />
       );
       const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const personIcon = icons.find((icon: any) => icon.props.name === 'person-outline');
-      const briefcaseIcon = icons.find((icon: any) => icon.props.name === 'briefcase-outline');
+      const personIcon = icons.find(
+        (icon: any) => icon.props.name === 'person-outline'
+      );
+      const briefcaseIcon = icons.find(
+        (icon: any) => icon.props.name === 'briefcase-outline'
+      );
       expect(personIcon.props.color).toBe(briefcaseIcon.props.color);
     });
   });
@@ -334,7 +364,9 @@ describe('MeetingHeader Component', () => {
         first_name: null as any,
         last_name: null as any,
       };
-      const { root } = render(<MeetingHeader contractor={contractorNullNames} />);
+      const { root } = render(
+        <MeetingHeader contractor={contractorNullNames} />
+      );
       expect(root).toBeTruthy();
     });
 
@@ -353,8 +385,12 @@ describe('MeetingHeader Component', () => {
         first_name: 'Christopher Alexander',
         last_name: 'Montgomery-Williamson',
       };
-      const { getByText } = render(<MeetingHeader contractor={contractorLongNames} />);
-      expect(getByText('With: Christopher Alexander Montgomery-Williamson')).toBeTruthy();
+      const { getByText } = render(
+        <MeetingHeader contractor={contractorLongNames} />
+      );
+      expect(
+        getByText('With: Christopher Alexander Montgomery-Williamson')
+      ).toBeTruthy();
     });
 
     it('should handle contractor with numeric characters in name', () => {
@@ -363,7 +399,9 @@ describe('MeetingHeader Component', () => {
         first_name: 'John2',
         last_name: 'Smith3',
       };
-      const { getByText } = render(<MeetingHeader contractor={contractorNumeric} />);
+      const { getByText } = render(
+        <MeetingHeader contractor={contractorNumeric} />
+      );
       expect(getByText('With: John2 Smith3')).toBeTruthy();
     });
 
@@ -382,7 +420,9 @@ describe('MeetingHeader Component', () => {
         first_name: 'José',
         last_name: 'García',
       };
-      const { getByText } = render(<MeetingHeader contractor={contractorUnicode} />);
+      const { getByText } = render(
+        <MeetingHeader contractor={contractorUnicode} />
+      );
       expect(getByText('With: José García')).toBeTruthy();
     });
 
@@ -398,7 +438,9 @@ describe('MeetingHeader Component', () => {
 
   describe('Component Props', () => {
     it('should accept optional contractor prop', () => {
-      expect(() => render(<MeetingHeader contractor={mockContractor} />)).not.toThrow();
+      expect(() =>
+        render(<MeetingHeader contractor={mockContractor} />)
+      ).not.toThrow();
     });
 
     it('should accept optional job prop', () => {
@@ -406,9 +448,9 @@ describe('MeetingHeader Component', () => {
     });
 
     it('should accept both optional props', () => {
-      expect(() => render(
-        <MeetingHeader contractor={mockContractor} job={mockJob} />
-      )).not.toThrow();
+      expect(() =>
+        render(<MeetingHeader contractor={mockContractor} job={mockJob} />)
+      ).not.toThrow();
     });
 
     it('should accept no props', () => {
@@ -427,7 +469,9 @@ describe('MeetingHeader Component', () => {
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       };
-      expect(() => render(<MeetingHeader contractor={validContractor} />)).not.toThrow();
+      expect(() =>
+        render(<MeetingHeader contractor={validContractor} />)
+      ).not.toThrow();
     });
 
     it('should accept valid Job type for job prop', () => {

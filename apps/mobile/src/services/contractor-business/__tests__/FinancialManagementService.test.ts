@@ -1,6 +1,33 @@
+/**
+ * FinancialManagementService facade tests.
+ *
+ * Realigned 2026-06-04 to the current implementation. The invoice/expense
+ * mutation + list methods were migrated off direct Supabase to the web API
+ * via mobileApiClient (audit P0-1, 2026-04-30):
+ *   createInvoice       -> POST  /api/contractor/invoices
+ *   updateInvoiceStatus -> PATCH /api/contractor/invoices?id=
+ *   recordExpense       -> POST  /api/contractor/expenses
+ *   getInvoices         -> GET   /api/contractor/invoices
+ *   getExpenses         -> GET   /api/contractor/expenses
+ * The financial *aggregations* (calculateFinancialTotals / getFinancialSummary)
+ * intentionally keep direct read-only Supabase queries, so the calc tests still
+ * drive the supabase queue mock.
+ *
+ * Two impl changes the old suite hadn't caught up to:
+ *   - recordPayment() now throws by design (no canonical payment API yet; use
+ *     the Stripe pay route or updateInvoiceStatus(id,'paid')). Asserting the
+ *     guard rather than a fabricated success.
+ *   - generateInvoiceNumber() returns a server-authoritative `INV-YYYY-DRAFT`
+ *     placeholder; the server stamps the real sequence on POST.
+ */
 import { FinancialManagementService } from '../FinancialManagementService';
 import { ServiceErrorHandler } from '@/utils/serviceErrorHandler';
-import { __setMockData, __resetSupabaseMock, __queueMockData } from '@/config/__mocks__/supabase';
+import { mobileApiClient } from '@/utils/mobileApiClient';
+import {
+  __setMockData,
+  __resetSupabaseMock,
+  __queueMockData,
+} from '@/config/__mocks__/supabase';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -13,12 +40,17 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
+// Manual mock at src/utils/__mocks__/mobileApiClient.ts
+jest.mock('@/utils/mobileApiClient');
+const mockedApiClient = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
+
 // Mock ServiceErrorHandler
 jest.mock('@/utils/serviceErrorHandler', () => ({
   ServiceErrorHandler: {
     executeOperation: jest.fn((operation) =>
-      operation().then(data => ({ success: true, data }))
-        .catch(error => ({ success: false, error }))
+      operation()
+        .then((data) => ({ success: true, data }))
+        .catch((error) => ({ success: false, error }))
     ),
     validateRequired: jest.fn(),
     validatePositiveNumber: jest.fn(),
@@ -72,7 +104,10 @@ describe('FinancialManagementService', () => {
           updated_at: '2026-01-15T10:00:00Z',
         };
 
-        __setMockData(mockInvoice);
+        mockedApiClient.post.mockResolvedValueOnce({
+          success: true,
+          invoice: mockInvoice,
+        });
 
         const invoiceData = {
           contractor_id: 'contractor-123',
@@ -94,21 +129,36 @@ describe('FinancialManagementService', () => {
           due_date: '2026-02-14',
         };
 
-        const result = await FinancialManagementService.createInvoice(invoiceData);
+        const result =
+          await FinancialManagementService.createInvoice(invoiceData);
 
+        expect(mockedApiClient.post).toHaveBeenCalledWith(
+          '/api/contractor/invoices',
+          expect.any(Object)
+        );
         expect(result).toEqual(mockInvoice);
-        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('contractor-123', 'Contractor ID', expect.any(Object));
-        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('client-123', 'Client ID', expect.any(Object));
-        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('INV-2026-001', 'Invoice number', expect.any(Object));
-        expect(ServiceErrorHandler.validatePositiveNumber).toHaveBeenCalledWith(1500.0, 'Total amount', expect.any(Object));
+        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith(
+          'contractor-123',
+          'Contractor ID',
+          expect.any(Object)
+        );
+        // client_id is optional since audit-17 (2026-05-23); validation is on
+        // total_amount, not invoice_number (server stamps the number).
+        expect(ServiceErrorHandler.validatePositiveNumber).toHaveBeenCalledWith(
+          1500.0,
+          'Total amount',
+          expect.any(Object)
+        );
       });
 
       it('should validate required fields', async () => {
-        (ServiceErrorHandler.validateRequired as jest.Mock).mockImplementation((value, fieldName) => {
-          if (!value) {
-            throw new Error(`${fieldName} is required`);
+        (ServiceErrorHandler.validateRequired as jest.Mock).mockImplementation(
+          (value, fieldName) => {
+            if (!value) {
+              throw new Error(`${fieldName} is required`);
+            }
           }
-        });
+        );
 
         const invalidInvoice = {
           contractor_id: '',
@@ -123,11 +173,15 @@ describe('FinancialManagementService', () => {
           due_date: '2026-02-14',
         };
 
-        await expect(FinancialManagementService.createInvoice(invalidInvoice)).rejects.toThrow();
+        await expect(
+          FinancialManagementService.createInvoice(invalidInvoice)
+        ).rejects.toThrow();
       });
 
       it('should validate positive total amount', async () => {
-        (ServiceErrorHandler.validatePositiveNumber as jest.Mock).mockImplementation((value, fieldName) => {
+        (
+          ServiceErrorHandler.validatePositiveNumber as jest.Mock
+        ).mockImplementation((value, fieldName) => {
           if (value <= 0) {
             throw new Error(`${fieldName} must be positive`);
           }
@@ -146,7 +200,9 @@ describe('FinancialManagementService', () => {
           due_date: '2026-02-14',
         };
 
-        await expect(FinancialManagementService.createInvoice(invalidInvoice)).rejects.toThrow();
+        await expect(
+          FinancialManagementService.createInvoice(invalidInvoice)
+        ).rejects.toThrow();
       });
     });
 
@@ -169,61 +225,87 @@ describe('FinancialManagementService', () => {
           updated_at: '2026-01-20T10:00:00Z',
         };
 
-        __setMockData(mockUpdatedInvoice);
+        mockedApiClient.patch.mockResolvedValueOnce({
+          success: true,
+          invoice: mockUpdatedInvoice,
+        });
 
-        const result = await FinancialManagementService.updateInvoiceStatus('inv-123', 'paid', 'contractor-123');
+        const result = await FinancialManagementService.updateInvoiceStatus(
+          'inv-123',
+          'paid',
+          'contractor-123'
+        );
 
+        expect(mockedApiClient.patch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/contractor/invoices?id=inv-123'),
+          expect.objectContaining({ status: 'paid' })
+        );
         expect(result).toEqual(mockUpdatedInvoice);
       });
     });
 
     describe('recordExpense', () => {
       it('should record tax deductible expense', async () => {
-        const mockExpense = {
-          id: 'exp-123',
-          contractor_id: 'contractor-123',
-          category: 'Tools',
-          amount: 250.0,
-          description: 'New drill purchase',
-          date: '2026-01-15',
-          tax_deductible: true,
-          created_at: '2026-01-15T10:00:00Z',
-          updated_at: '2026-01-15T10:00:00Z',
-        };
-
-        __setMockData(mockExpense);
+        // API returns an ApiExpense; recordExpense maps it to ExpenseRecord
+        // (tax_deductible is reconstructed from the `tax-deductible` tag).
+        mockedApiClient.post.mockResolvedValueOnce({
+          expense: {
+            id: 'exp-123',
+            description: 'New drill purchase',
+            category: 'tools',
+            amount: 250.0,
+            date: '2026-01-15',
+            jobId: null,
+            paymentMethod: 'card',
+            receiptUrl: null,
+            tags: ['tax-deductible'],
+            isBillable: false,
+            notes: null,
+            createdAt: '2026-01-15T10:00:00Z',
+          },
+        });
 
         const expenseData = {
           contractor_id: 'contractor-123',
-          category: 'Tools',
+          category: 'tools',
           amount: 250.0,
           description: 'New drill purchase',
           date: '2026-01-15',
           tax_deductible: true,
         };
 
-        const result = await FinancialManagementService.recordExpense(expenseData);
+        const result =
+          await FinancialManagementService.recordExpense(expenseData);
 
-        expect(result).toEqual(mockExpense);
-        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('contractor-123', 'Contractor ID', expect.any(Object));
-        expect(ServiceErrorHandler.validatePositiveNumber).toHaveBeenCalledWith(250.0, 'Amount', expect.any(Object));
+        expect(mockedApiClient.post).toHaveBeenCalledWith(
+          '/api/contractor/expenses',
+          expect.objectContaining({ tags: ['tax-deductible'] })
+        );
+        expect(result).toMatchObject({
+          id: 'exp-123',
+          contractor_id: 'contractor-123',
+          amount: 250.0,
+          description: 'New drill purchase',
+          tax_deductible: true,
+        });
+        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith(
+          'contractor-123',
+          'Contractor ID',
+          expect.any(Object)
+        );
+        expect(ServiceErrorHandler.validatePositiveNumber).toHaveBeenCalledWith(
+          250.0,
+          'Amount',
+          expect.any(Object)
+        );
       });
     });
 
     describe('recordPayment', () => {
-      it('should record payment and update invoice status', async () => {
-        const mockPayment = {
-          id: 'pay-123',
-          contractor_id: 'contractor-123',
-          invoice_id: 'inv-123',
-          amount: 1500.0,
-          payment_method: 'credit_card',
-          payment_date: '2026-01-20',
-          created_at: '2026-01-20T10:00:00Z',
-        };
-
-        __setMockData(mockPayment);
-
+      // recordPayment() has no canonical API yet and intentionally throws,
+      // directing callers to the Stripe pay route or updateInvoiceStatus.
+      // Asserting the guard rather than fabricating a success path.
+      it('should throw directing callers to the supported payment paths', async () => {
         const paymentData = {
           contractor_id: 'contractor-123',
           invoice_id: 'inv-123',
@@ -232,9 +314,9 @@ describe('FinancialManagementService', () => {
           payment_date: '2026-01-20',
         };
 
-        const result = await FinancialManagementService.recordPayment(paymentData);
-
-        expect(result).toEqual(mockPayment);
+        await expect(
+          FinancialManagementService.recordPayment(paymentData)
+        ).rejects.toThrow(/no canonical API/i);
       });
     });
   });
@@ -252,24 +334,19 @@ describe('FinancialManagementService', () => {
         // 3. Get outstanding invoices
         __queueMockData([
           // Query 1: Paid invoices (revenue calculation)
-          [
-            { total_amount: 2000 },
-            { total_amount: 3000 },
-          ],
+          [{ total_amount: 2000 }, { total_amount: 3000 }],
           // Query 2: Expenses
-          [
-            { amount: 500 },
-            { amount: 700 },
-          ],
+          [{ amount: 500 }, { amount: 700 }],
           // Query 3: Outstanding invoices
           [],
         ]);
 
-        const result = await FinancialManagementService.calculateFinancialTotals(
-          'contractor-123',
-          '2026-01-01',
-          '2026-01-31'
-        );
+        const result =
+          await FinancialManagementService.calculateFinancialTotals(
+            'contractor-123',
+            '2026-01-01',
+            '2026-01-31'
+          );
 
         expect(result.totalRevenue).toBe(5000); // 2000 + 3000
         expect(result.totalExpenses).toBe(1200); // 500 + 700
@@ -295,11 +372,12 @@ describe('FinancialManagementService', () => {
           ],
         ]);
 
-        const result = await FinancialManagementService.calculateFinancialTotals(
-          'contractor-123',
-          '2026-01-01',
-          '2026-01-31'
-        );
+        const result =
+          await FinancialManagementService.calculateFinancialTotals(
+            'contractor-123',
+            '2026-01-01',
+            '2026-01-31'
+          );
 
         expect(result.totalRevenue).toBe(0);
         expect(result.totalExpenses).toBe(0);
@@ -310,24 +388,15 @@ describe('FinancialManagementService', () => {
     });
 
     describe('generateInvoiceNumber', () => {
-      it('should generate first invoice number', async () => {
-        __setMockData(null);
+      // Server now stamps the canonical sequence on POST; the client returns
+      // an `INV-YYYY-DRAFT` placeholder purely for the pre-submit UI preview.
+      it('should return a server-authoritative DRAFT placeholder', async () => {
+        const result =
+          await FinancialManagementService.generateInvoiceNumber(
+            'contractor-123'
+          );
 
-        const result = await FinancialManagementService.generateInvoiceNumber('contractor-123');
-
-        expect(result).toMatch(/^INV-\d{4}-001$/);
-      });
-
-      it('should increment existing invoice number', async () => {
-        const mockLastInvoice = {
-          invoice_number: 'INV-2026-042',
-        };
-
-        __setMockData(mockLastInvoice);
-
-        const result = await FinancialManagementService.generateInvoiceNumber('contractor-123');
-
-        expect(result).toBe('INV-2026-043');
+        expect(result).toMatch(/^INV-\d{4}-DRAFT$/);
       });
     });
   });
@@ -344,60 +413,119 @@ describe('FinancialManagementService', () => {
           { id: 'inv-2', status: 'paid', total_amount: 2000 },
         ];
 
-        __setMockData(mockInvoices);
+        mockedApiClient.get.mockResolvedValueOnce({ invoices: mockInvoices });
 
-        const result = await FinancialManagementService.getInvoices('contractor-123', { status: 'paid' });
+        const result = await FinancialManagementService.getInvoices(
+          'contractor-123',
+          { status: 'paid' }
+        );
 
+        expect(mockedApiClient.get).toHaveBeenCalledWith(
+          expect.stringContaining('status=paid')
+        );
         expect(result).toEqual(mockInvoices);
       });
 
       it('should filter by date range', async () => {
-        const mockInvoices = [{ id: 'inv-1', issue_date: '2026-01-15' }];
-
-        __setMockData(mockInvoices);
-
-        const result = await FinancialManagementService.getInvoices('contractor-123', {
-          dateFrom: '2026-01-01',
-          dateTo: '2026-01-31',
+        mockedApiClient.get.mockResolvedValueOnce({
+          invoices: [{ id: 'inv-1', issue_date: '2026-01-15' }],
         });
 
-        // Test just verifies it doesn't throw and returns an array
+        const result = await FinancialManagementService.getInvoices(
+          'contractor-123',
+          {
+            dateFrom: '2026-01-01',
+            dateTo: '2026-01-31',
+          }
+        );
+
         expect(Array.isArray(result)).toBe(true);
       });
     });
 
     describe('getExpenses', () => {
-      it('should filter by tax_deductible', async () => {
-        const mockExpenses = [
-          { id: 'exp-1', category: 'Tools', amount: 250, tax_deductible: true },
-          { id: 'exp-2', category: 'Materials', amount: 500, tax_deductible: true },
-        ];
+      it('should map API expenses and reconstruct tax_deductible from tags', async () => {
+        mockedApiClient.get.mockResolvedValueOnce({
+          expenses: [
+            {
+              id: 'exp-1',
+              description: 'Drill',
+              category: 'tools',
+              amount: 250,
+              date: '2026-01-15',
+              jobId: null,
+              paymentMethod: 'card',
+              receiptUrl: null,
+              tags: ['tax-deductible'],
+              isBillable: false,
+              notes: null,
+              createdAt: '2026-01-15T10:00:00Z',
+            },
+          ],
+        });
 
-        __setMockData(mockExpenses);
+        const result = await FinancialManagementService.getExpenses(
+          'contractor-123',
+          { taxDeductible: true }
+        );
 
-        const result = await FinancialManagementService.getExpenses('contractor-123', { tax_deductible: true });
-
-        expect(result).toEqual(mockExpenses);
+        expect(result).toHaveLength(1);
+        expect(result[0]).toMatchObject({
+          id: 'exp-1',
+          contractor_id: 'contractor-123',
+          amount: 250,
+          tax_deductible: true,
+        });
       });
     });
 
     describe('getExpenseCategories', () => {
-      it('should aggregate expenses by category', async () => {
-        const mockExpenses = [
-          { category: 'Tools', amount: 250 },
-          { category: 'Tools', amount: 150 },
-          { category: 'Materials', amount: 500 },
-        ];
+      it('should aggregate expenses by category from the API source', async () => {
+        mockedApiClient.get.mockResolvedValueOnce({
+          expenses: [
+            {
+              id: 'e1',
+              description: 'Drill',
+              category: 'tools',
+              amount: 250,
+              date: '2026-01-15',
+              jobId: null,
+              paymentMethod: 'card',
+              receiptUrl: null,
+              tags: [],
+              isBillable: false,
+              notes: null,
+              createdAt: '2026-01-15T10:00:00Z',
+            },
+            {
+              id: 'e2',
+              description: 'Saw',
+              category: 'tools',
+              amount: 150,
+              date: '2026-01-16',
+              jobId: null,
+              paymentMethod: 'card',
+              receiptUrl: null,
+              tags: [],
+              isBillable: false,
+              notes: null,
+              createdAt: '2026-01-16T10:00:00Z',
+            },
+          ],
+        });
 
-        __setMockData(mockExpenses);
+        const result =
+          await FinancialManagementService.getExpenseCategories(
+            'contractor-123'
+          );
 
-        await FinancialManagementService.getExpenseCategories(
-          'contractor-123',
-          '2026-01-01',
-          '2026-01-31'
-        );
-
-        expect(ServiceErrorHandler.executeOperation).toHaveBeenCalled();
+        expect(result).toEqual([
+          expect.objectContaining({
+            category: 'tools',
+            totalAmount: 400,
+            count: 2,
+          }),
+        ]);
       });
     });
   });
@@ -424,13 +552,21 @@ describe('FinancialManagementService', () => {
           due_date: '2026-02-14',
         };
 
-        await expect(FinancialManagementService.createInvoice(invoiceData)).rejects.toThrow();
+        await expect(
+          FinancialManagementService.createInvoice(invoiceData)
+        ).rejects.toThrow();
       });
 
       it('should handle database errors in updateInvoiceStatus', async () => {
         __setMockData(null);
 
-        await expect(FinancialManagementService.updateInvoiceStatus('inv-999', 'paid', 'contractor-123')).rejects.toThrow();
+        await expect(
+          FinancialManagementService.updateInvoiceStatus(
+            'inv-999',
+            'paid',
+            'contractor-123'
+          )
+        ).rejects.toThrow();
       });
     });
 
@@ -438,7 +574,10 @@ describe('FinancialManagementService', () => {
       it('should return empty array when no invoices found', async () => {
         __setMockData([]);
 
-        const result = await FinancialManagementService.getInvoices('contractor-123', {});
+        const result = await FinancialManagementService.getInvoices(
+          'contractor-123',
+          {}
+        );
 
         expect(result).toEqual([]);
       });
@@ -446,7 +585,10 @@ describe('FinancialManagementService', () => {
       it('should return empty array when no expenses found', async () => {
         __setMockData([]);
 
-        const result = await FinancialManagementService.getExpenses('contractor-123', {});
+        const result = await FinancialManagementService.getExpenses(
+          'contractor-123',
+          {}
+        );
 
         expect(result).toEqual([]);
       });

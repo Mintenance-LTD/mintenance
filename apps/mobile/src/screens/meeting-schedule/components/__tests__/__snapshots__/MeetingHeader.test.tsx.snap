@@ -3,20 +3,25 @@
 exports[`MeetingHeader Component Basic Rendering should match snapshot without props 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "marginTop": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <View
@@ -24,23 +29,40 @@ exports[`MeetingHeader Component Basic Rendering should match snapshot without p
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "gap": 8,
+        "gap": 10,
         "marginBottom": 12,
       }
     }
   >
-    <Ionicons
-      color="#717171"
-      name="calendar-outline"
-      size={24}
-    />
-    <Text
+    <View
       style={
         {
-          "color": "#000000",
-          "fontSize": 20,
-          "fontWeight": "600",
+          "alignItems": "center",
+          "backgroundColor": "#DBEAFE",
+          "borderRadius": 12,
+          "height": 40,
+          "justifyContent": "center",
+          "width": 40,
         }
+      }
+    >
+      <Ionicons
+        color="#3B82F6"
+        name="calendar-outline"
+        size={20}
+      />
+    </View>
+    <Text
+      style={
+        [
+          {
+            "fontSize": 18,
+            "fontWeight": "700",
+          },
+          {
+            "color": "#1A2520",
+          },
+        ]
       }
     >
       Schedule Meeting
@@ -52,20 +74,25 @@ exports[`MeetingHeader Component Basic Rendering should match snapshot without p
 exports[`MeetingHeader Component Combined Display should match snapshot with both props 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "marginTop": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <View
@@ -73,23 +100,40 @@ exports[`MeetingHeader Component Combined Display should match snapshot with bot
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "gap": 8,
+        "gap": 10,
         "marginBottom": 12,
       }
     }
   >
-    <Ionicons
-      color="#717171"
-      name="calendar-outline"
-      size={24}
-    />
-    <Text
+    <View
       style={
         {
-          "color": "#000000",
-          "fontSize": 20,
-          "fontWeight": "600",
+          "alignItems": "center",
+          "backgroundColor": "#DBEAFE",
+          "borderRadius": 12,
+          "height": 40,
+          "justifyContent": "center",
+          "width": 40,
         }
+      }
+    >
+      <Ionicons
+        color="#3B82F6"
+        name="calendar-outline"
+        size={20}
+      />
+    </View>
+    <Text
+      style={
+        [
+          {
+            "fontSize": 18,
+            "fontWeight": "700",
+          },
+          {
+            "color": "#1A2520",
+          },
+        ]
       }
     >
       Schedule Meeting
@@ -105,17 +149,38 @@ exports[`MeetingHeader Component Combined Display should match snapshot with bot
       }
     }
   >
-    <Ionicons
-      color="#666666"
-      name="person-outline"
-      size={16}
-    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 8,
+            "height": 28,
+            "justifyContent": "center",
+            "width": 28,
+          },
+          {
+            "backgroundColor": "#E9F1EB",
+          },
+        ]
+      }
+    >
+      <Ionicons
+        color="#4A5751"
+        name="person-outline"
+        size={14}
+      />
+    </View>
     <Text
       style={
-        {
-          "color": "#666666",
-          "fontSize": 14,
-        }
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#4A5751",
+          },
+        ]
       }
     >
       With: 
@@ -134,17 +199,38 @@ exports[`MeetingHeader Component Combined Display should match snapshot with bot
       }
     }
   >
-    <Ionicons
-      color="#666666"
-      name="briefcase-outline"
-      size={16}
-    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 8,
+            "height": 28,
+            "justifyContent": "center",
+            "width": 28,
+          },
+          {
+            "backgroundColor": "#E9F1EB",
+          },
+        ]
+      }
+    >
+      <Ionicons
+        color="#4A5751"
+        name="briefcase-outline"
+        size={14}
+      />
+    </View>
     <Text
       style={
-        {
-          "color": "#666666",
-          "fontSize": 14,
-        }
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#4A5751",
+          },
+        ]
       }
     >
       Job: 
@@ -157,20 +243,25 @@ exports[`MeetingHeader Component Combined Display should match snapshot with bot
 exports[`MeetingHeader Component Contractor Display should match snapshot with contractor 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "marginTop": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <View
@@ -178,23 +269,40 @@ exports[`MeetingHeader Component Contractor Display should match snapshot with c
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "gap": 8,
+        "gap": 10,
         "marginBottom": 12,
       }
     }
   >
-    <Ionicons
-      color="#717171"
-      name="calendar-outline"
-      size={24}
-    />
-    <Text
+    <View
       style={
         {
-          "color": "#000000",
-          "fontSize": 20,
-          "fontWeight": "600",
+          "alignItems": "center",
+          "backgroundColor": "#DBEAFE",
+          "borderRadius": 12,
+          "height": 40,
+          "justifyContent": "center",
+          "width": 40,
         }
+      }
+    >
+      <Ionicons
+        color="#3B82F6"
+        name="calendar-outline"
+        size={20}
+      />
+    </View>
+    <Text
+      style={
+        [
+          {
+            "fontSize": 18,
+            "fontWeight": "700",
+          },
+          {
+            "color": "#1A2520",
+          },
+        ]
       }
     >
       Schedule Meeting
@@ -210,17 +318,38 @@ exports[`MeetingHeader Component Contractor Display should match snapshot with c
       }
     }
   >
-    <Ionicons
-      color="#666666"
-      name="person-outline"
-      size={16}
-    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 8,
+            "height": 28,
+            "justifyContent": "center",
+            "width": 28,
+          },
+          {
+            "backgroundColor": "#E9F1EB",
+          },
+        ]
+      }
+    >
+      <Ionicons
+        color="#4A5751"
+        name="person-outline"
+        size={14}
+      />
+    </View>
     <Text
       style={
-        {
-          "color": "#666666",
-          "fontSize": 14,
-        }
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#4A5751",
+          },
+        ]
       }
     >
       With: 
@@ -235,20 +364,25 @@ exports[`MeetingHeader Component Contractor Display should match snapshot with c
 exports[`MeetingHeader Component Job Display should match snapshot with job 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "marginTop": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <View
@@ -256,23 +390,40 @@ exports[`MeetingHeader Component Job Display should match snapshot with job 1`] 
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "gap": 8,
+        "gap": 10,
         "marginBottom": 12,
       }
     }
   >
-    <Ionicons
-      color="#717171"
-      name="calendar-outline"
-      size={24}
-    />
-    <Text
+    <View
       style={
         {
-          "color": "#000000",
-          "fontSize": 20,
-          "fontWeight": "600",
+          "alignItems": "center",
+          "backgroundColor": "#DBEAFE",
+          "borderRadius": 12,
+          "height": 40,
+          "justifyContent": "center",
+          "width": 40,
         }
+      }
+    >
+      <Ionicons
+        color="#3B82F6"
+        name="calendar-outline"
+        size={20}
+      />
+    </View>
+    <Text
+      style={
+        [
+          {
+            "fontSize": 18,
+            "fontWeight": "700",
+          },
+          {
+            "color": "#1A2520",
+          },
+        ]
       }
     >
       Schedule Meeting
@@ -288,17 +439,38 @@ exports[`MeetingHeader Component Job Display should match snapshot with job 1`] 
       }
     }
   >
-    <Ionicons
-      color="#666666"
-      name="briefcase-outline"
-      size={16}
-    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 8,
+            "height": 28,
+            "justifyContent": "center",
+            "width": 28,
+          },
+          {
+            "backgroundColor": "#E9F1EB",
+          },
+        ]
+      }
+    >
+      <Ionicons
+        color="#4A5751"
+        name="briefcase-outline"
+        size={14}
+      />
+    </View>
     <Text
       style={
-        {
-          "color": "#666666",
-          "fontSize": 14,
-        }
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#4A5751",
+          },
+        ]
       }
     >
       Job: 

@@ -26,26 +26,29 @@ exports[`ScheduleActions Component Basic Rendering should match snapshot in norm
         [
           {
             "alignItems": "center",
-            "borderRadius": 12,
+            "borderRadius": 28,
             "flex": 1,
             "justifyContent": "center",
-            "paddingVertical": 12,
+            "paddingVertical": 14,
           },
+          {},
           {
-            "backgroundColor": "#F5F5F5",
-            "borderColor": "#E0E0E0",
-            "borderWidth": 1,
+            "backgroundColor": "#E9F1EB",
           },
         ]
       }
     >
       <Text
         style={
-          {
-            "color": "#000000",
-            "fontSize": 16,
-            "fontWeight": "600",
-          }
+          [
+            {
+              "fontSize": 16,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#1A2520",
+            },
+          ]
         }
       >
         Cancel
@@ -60,24 +63,29 @@ exports[`ScheduleActions Component Basic Rendering should match snapshot in norm
         [
           {
             "alignItems": "center",
-            "borderRadius": 12,
+            "borderRadius": 28,
             "flex": 1,
             "justifyContent": "center",
-            "paddingVertical": 12,
+            "paddingVertical": 14,
           },
+          {},
           {
-            "backgroundColor": "#007AFF",
+            "backgroundColor": "#1A2520",
           },
         ]
       }
     >
       <Text
         style={
-          {
-            "color": "#FFFFFF",
-            "fontSize": 16,
-            "fontWeight": "600",
-          }
+          [
+            {
+              "fontSize": 16,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#FFFFFF",
+            },
+          ]
         }
       >
         Schedule Meeting
@@ -113,26 +121,29 @@ exports[`ScheduleActions Component Loading State should match snapshot in loadin
         [
           {
             "alignItems": "center",
-            "borderRadius": 12,
+            "borderRadius": 28,
             "flex": 1,
             "justifyContent": "center",
-            "paddingVertical": 12,
+            "paddingVertical": 14,
           },
+          {},
           {
-            "backgroundColor": "#F5F5F5",
-            "borderColor": "#E0E0E0",
-            "borderWidth": 1,
+            "backgroundColor": "#E9F1EB",
           },
         ]
       }
     >
       <Text
         style={
-          {
-            "color": "#000000",
-            "fontSize": 16,
-            "fontWeight": "600",
-          }
+          [
+            {
+              "fontSize": 16,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#1A2520",
+            },
+          ]
         }
       >
         Cancel
@@ -147,13 +158,14 @@ exports[`ScheduleActions Component Loading State should match snapshot in loadin
         [
           {
             "alignItems": "center",
-            "borderRadius": 12,
+            "borderRadius": 28,
             "flex": 1,
             "justifyContent": "center",
-            "paddingVertical": 12,
+            "paddingVertical": 14,
           },
+          {},
           {
-            "backgroundColor": "#007AFF",
+            "backgroundColor": "#1A2520",
           },
         ]
       }

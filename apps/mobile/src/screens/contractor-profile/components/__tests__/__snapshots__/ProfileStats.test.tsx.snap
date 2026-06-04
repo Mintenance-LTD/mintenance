@@ -1,125 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ProfileStats Component Snapshot Stability renders consistently with different value combinations 1`] = `
-<View
-  style={
-    {
-      "flexDirection": "row",
-      "justifyContent": "space-around",
-      "paddingVertical": 16,
-    }
-  }
-  testID="profile-stats-container"
->
-  <View
-    accessibilityLabel="156 jobs completed"
-    style={
-      {
-        "alignItems": "center",
-      }
-    }
-    testID="jobs-stat"
-  >
-    <Text
-      style={
-        {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
-        }
-      }
-      testID="jobs-value"
-    >
-      156
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
-        }
-      }
-    >
-      Jobs
-    </Text>
-  </View>
-  <View
-    accessibilityLabel="Rating: 4.7 out of 5"
-    style={
-      {
-        "alignItems": "center",
-      }
-    }
-    testID="rating-stat"
-  >
-    <Text
-      style={
-        {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
-        }
-      }
-      testID="rating-value"
-    >
-      4.7
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
-        }
-      }
-    >
-      Rating
-    </Text>
-  </View>
-  <View
-    accessibilityLabel="243 reviews"
-    style={
-      {
-        "alignItems": "center",
-      }
-    }
-    testID="reviews-stat"
-  >
-    <Text
-      style={
-        {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
-        }
-      }
-      testID="reviews-value"
-    >
-      243
-    </Text>
-    <Text
-      style={
-        {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
-        }
-      }
-    >
-      Reviews
-    </Text>
-  </View>
-</View>
-`;
-
 exports[`ProfileStats Component Snapshot Stability renders consistently with maximum values 1`] = `
 <View
   style={
     {
       "flexDirection": "row",
-      "justifyContent": "space-around",
-      "paddingVertical": 16,
+      "gap": 10,
+      "marginBottom": 8,
+      "marginTop": 4,
+      "paddingHorizontal": 16,
     }
   }
   testID="profile-stats-container"
@@ -129,16 +18,55 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with max
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="jobs-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#DCEAE5",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#3F8C7A"
+        name="briefcase"
+        size={18}
+      >
+        briefcase
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="jobs-value"
@@ -148,13 +76,14 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with max
     <Text
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
+          "color": "#4A5751",
+          "fontSize": 12,
+          "fontWeight": "500",
+          "marginTop": 2,
         }
       }
     >
-      Jobs
+      Jobs Done
     </Text>
   </View>
   <View
@@ -162,49 +91,161 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with max
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="rating-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#FBE9CB",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={18}
+      >
+        star
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="rating-value"
     >
-      5
+      5.0
     </Text>
-    <Text
+    <View
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
+          "flexDirection": "row",
+          "gap": 1,
           "marginTop": 4,
         }
       }
     >
-      Rating
-    </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+    </View>
   </View>
   <View
     accessibilityLabel="9999 reviews"
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="reviews-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#DBEAFE",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#3B82F6"
+        name="chatbubbles"
+        size={18}
+      >
+        chatbubbles
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="reviews-value"
@@ -214,9 +255,10 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with max
     <Text
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
+          "color": "#4A5751",
+          "fontSize": 12,
+          "fontWeight": "500",
+          "marginTop": 2,
         }
       }
     >
@@ -231,8 +273,10 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with typ
   style={
     {
       "flexDirection": "row",
-      "justifyContent": "space-around",
-      "paddingVertical": 16,
+      "gap": 10,
+      "marginBottom": 8,
+      "marginTop": 4,
+      "paddingHorizontal": 16,
     }
   }
   testID="profile-stats-container"
@@ -242,16 +286,55 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with typ
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="jobs-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#DCEAE5",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#3F8C7A"
+        name="briefcase"
+        size={18}
+      >
+        briefcase
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="jobs-value"
@@ -261,13 +344,14 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with typ
     <Text
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
+          "color": "#4A5751",
+          "fontSize": 12,
+          "fontWeight": "500",
+          "marginTop": 2,
         }
       }
     >
-      Jobs
+      Jobs Done
     </Text>
   </View>
   <View
@@ -275,49 +359,161 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with typ
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="rating-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#FBE9CB",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={18}
+      >
+        star
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="rating-value"
     >
       4.8
     </Text>
-    <Text
+    <View
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
+          "flexDirection": "row",
+          "gap": 1,
           "marginTop": 4,
         }
       }
     >
-      Rating
-    </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star-half"
+        size={10}
+      >
+        star-half
+      </Text>
+    </View>
   </View>
   <View
     accessibilityLabel="127 reviews"
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="reviews-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#DBEAFE",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#3B82F6"
+        name="chatbubbles"
+        size={18}
+      >
+        chatbubbles
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="reviews-value"
@@ -327,9 +523,10 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with typ
     <Text
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
+          "color": "#4A5751",
+          "fontSize": 12,
+          "fontWeight": "500",
+          "marginTop": 2,
         }
       }
     >
@@ -344,8 +541,10 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with zer
   style={
     {
       "flexDirection": "row",
-      "justifyContent": "space-around",
-      "paddingVertical": 16,
+      "gap": 10,
+      "marginBottom": 8,
+      "marginTop": 4,
+      "paddingHorizontal": 16,
     }
   }
   testID="profile-stats-container"
@@ -355,16 +554,55 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with zer
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="jobs-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#DCEAE5",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#3F8C7A"
+        name="briefcase"
+        size={18}
+      >
+        briefcase
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="jobs-value"
@@ -374,13 +612,14 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with zer
     <Text
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
+          "color": "#4A5751",
+          "fontSize": 12,
+          "fontWeight": "500",
+          "marginTop": 2,
         }
       }
     >
-      Jobs
+      Jobs Done
     </Text>
   </View>
   <View
@@ -388,49 +627,161 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with zer
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="rating-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#FBE9CB",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#E26B4F"
+        name="star"
+        size={18}
+      >
+        star
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="rating-value"
     >
-      0
+      —
     </Text>
-    <Text
+    <View
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
+          "flexDirection": "row",
+          "gap": 1,
           "marginTop": 4,
         }
       }
     >
-      Rating
-    </Text>
+      <Text
+        color="#E26B4F"
+        name="star-outline"
+        size={10}
+      >
+        star-outline
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star-outline"
+        size={10}
+      >
+        star-outline
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star-outline"
+        size={10}
+      >
+        star-outline
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star-outline"
+        size={10}
+      >
+        star-outline
+      </Text>
+      <Text
+        color="#E26B4F"
+        name="star-outline"
+        size={10}
+      >
+        star-outline
+      </Text>
+    </View>
   </View>
   <View
     accessibilityLabel="0 reviews"
     style={
       {
         "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 16,
+        "elevation": 1,
+        "flex": 1,
+        "paddingHorizontal": 8,
+        "paddingVertical": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       }
     }
     testID="reviews-stat"
   >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 36,
+            "justifyContent": "center",
+            "marginBottom": 8,
+            "width": 36,
+          },
+          {
+            "backgroundColor": "#DBEAFE",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#3B82F6"
+        name="chatbubbles"
+        size={18}
+      >
+        chatbubbles
+      </Text>
+    </View>
     <Text
       style={
         {
-          "color": "#171717",
-          "fontSize": 24,
-          "fontWeight": "600",
+          "color": "#1A2520",
+          "fontSize": 22,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
         }
       }
       testID="reviews-value"
@@ -440,9 +791,10 @@ exports[`ProfileStats Component Snapshot Stability renders consistently with zer
     <Text
       style={
         {
-          "color": "#737373",
-          "fontSize": 14,
-          "marginTop": 4,
+          "color": "#4A5751",
+          "fontSize": 12,
+          "fontWeight": "500",
+          "marginTop": 2,
         }
       }
     >

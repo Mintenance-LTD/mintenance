@@ -133,9 +133,12 @@ describe('JobCRUDService', () => {
         'Location',
         expect.any(Object)
       );
-      expect(ServiceErrorHandler.validatePositiveNumber).toHaveBeenCalledWith(
-        1000,
-        'Budget',
+      // Budget is optional since 2026-05-22 (contractors price each bid), so
+      // createJob no longer calls validatePositiveNumber('Budget'). It does
+      // validate the homeowner id is present.
+      expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith(
+        'homeowner-123',
+        'Homeowner ID',
         expect.any(Object)
       );
     });

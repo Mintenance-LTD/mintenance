@@ -1,42 +1,34 @@
+/**
+ * JobPostingScreen tests.
+ *
+ * Realigned for the 2026-05-22/23 Mint Editorial + job-draft refactor:
+ *   - The budget input was removed; client-side validation now runs the
+ *     shared `validateJobDraft` adapter (title min 5, description min 20,
+ *     location min 3) so messages mirror the wire schema.
+ *   - At least one photo is required before a job can be posted.
+ *   - The create payload no longer carries `budget`; it carries `photos`
+ *     (uploaded URLs) plus optional tenancy metadata.
+ *   - Non-homeowners are routed away via `goToTab(navigation, 'HomeTab')`,
+ *     i.e. `navigation.navigate('HomeTab')`.
+ */
 import React from 'react';
 import { act } from '@testing-library/react-native';
 import { render, fireEvent, waitFor } from '../test-utils';
 import { QueryClientProvider } from '@tanstack/react-query';
 import JobPostingScreen from '../../screens/JobPostingScreen';
-import { JobService } from '../../services/JobService';
 import { useAuth } from '../../contexts/AuthContext';
 import { createTestQueryClient } from '../utils/test-utils';
 import { useCreateJob } from '../../hooks/useJobs';
 import { AuthMockFactory } from '../../test-utils/authMockFactory';
-import { NavigationMockFactory } from '../../test-utils/navigationMockFactory';
 
 jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
+  SafeAreaProvider: ({ children }: any) => children,
+  SafeAreaView: ({ children }: any) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
-
-const mockNavigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
-  dispatch: jest.fn(),
-  reset: jest.fn(),
-  setParams: jest.fn(),
-  addListener: jest.fn(),
-  removeListener: jest.fn(),
-  canGoBack: jest.fn(() => true),
-  isFocused: jest.fn(() => true),
-  setOptions: jest.fn(),
-};
-
-const mockRoute = {
-  params: {},
-  key: 'test-route',
-  name: 'TestScreen',
-};
 
 // Mock dependencies
 jest.mock('../../services/JobService');
@@ -48,13 +40,15 @@ jest.mock('@react-navigation/native', () => ({
 }));
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),
-  MediaTypeOptions: {
-    Images: 'Images',
-  },
+  MediaTypeOptions: { Images: 'Images' },
   ImagePickerResult: {},
 }));
+// Photos are uploaded to public URLs before the create payload is built.
+// Stub the helper so it echoes the local URIs without a real network call.
+jest.mock('../../utils/uploadJobPhotos', () => ({
+  uploadJobPhotos: jest.fn((uris: string[]) => Promise.resolve(uris)),
+}));
 
-const mockJobService = JobService as jest.Mocked<typeof JobService>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseCreateJob = useCreateJob as jest.MockedFunction<
   typeof useCreateJob
@@ -72,12 +66,36 @@ const mockUser = {
   updated_at: new Date().toISOString(),
 };
 
+const buildMutationMock = (overrides: Record<string, unknown> = {}) =>
+  ({
+    mutateAsync: jest.fn().mockResolvedValue({ id: 'job-1' }),
+    isPending: false,
+    isError: false,
+    error: null,
+    isSuccess: false,
+    data: undefined,
+    mutate: jest.fn(),
+    reset: jest.fn(),
+    variables: undefined,
+    isIdle: true,
+    status: 'idle' as const,
+    context: undefined,
+    submittedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    isPaused: false,
+    ...overrides,
+  }) as any;
+
 describe('JobPostingScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (nav.useNavigation as jest.Mock).mockReturnValue({
       navigate: mockNavigate,
       goBack: mockGoBack,
+      // useUnsavedChanges subscribes to 'beforeRemove' once the form is dirty.
+      addListener: jest.fn(() => jest.fn()),
+      dispatch: jest.fn(),
     });
     mockUseAuth.mockReturnValue(
       AuthMockFactory.createAuthenticatedHomeowner({
@@ -90,33 +108,13 @@ describe('JobPostingScreen', () => {
         updated_at: mockUser.updated_at,
       })
     );
-
-    // Default successful mutation
-    mockUseCreateJob.mockReturnValue({
-      mutateAsync: jest.fn().mockResolvedValue({ id: 'job-1' }),
-      isPending: false,
-      isError: false,
-      error: null,
-      isSuccess: false,
-      data: undefined,
-      mutate: jest.fn(),
-      reset: jest.fn(),
-      variables: undefined,
-      isIdle: true,
-      status: 'idle' as const,
-      context: undefined,
-      submittedAt: 0,
-      failureCount: 0,
-      failureReason: null,
-      isPaused: false,
-    } as any);
+    mockUseCreateJob.mockReturnValue(buildMutationMock());
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  // Test wrapper with QueryClient
   const renderJobPostingScreen = () => {
     const queryClient = createTestQueryClient();
     return render(
@@ -128,63 +126,84 @@ describe('JobPostingScreen', () => {
     );
   };
 
+  // Adds a photo via the image-picker. Uses an https URI so the
+  // component skips the file:// SecurityManager validation branch.
+  const addPhoto = async (getByTestId: any, uri = 'https://photo1.jpg') => {
+    const picker = require('expo-image-picker');
+    picker.launchImageLibraryAsync.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri }],
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId('add-photo-button'));
+    });
+  };
+
+  const fillRequiredText = async (getByTestId: any) => {
+    await act(async () => {
+      fireEvent.changeText(
+        getByTestId('job-title-input'),
+        'Fix Kitchen Faucet'
+      );
+      fireEvent.changeText(
+        getByTestId('job-description-input'),
+        'Leaky kitchen faucet needs professional repair'
+      );
+      fireEvent.changeText(
+        getByTestId('job-location-input'),
+        '123 Main Street, Anytown'
+      );
+    });
+  };
+
   it('renders job posting form correctly', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     expect(getByTestId('job-title-input')).toBeTruthy();
     expect(getByTestId('job-description-input')).toBeTruthy();
     expect(getByTestId('job-location-input')).toBeTruthy();
-    expect(getByTestId('job-budget-input')).toBeTruthy();
-    expect(getByTestId('job-category-select')).toBeTruthy();
+    // The category Picker renders test-accessible option rows.
+    expect(getByTestId('category-option-plumbing')).toBeTruthy();
     expect(getByTestId('job-priority-select')).toBeTruthy();
+    expect(getByTestId('add-photo-button')).toBeTruthy();
     expect(getByText('Post Job')).toBeTruthy();
   });
 
   it('validates required fields', async () => {
     const { getByText } = renderJobPostingScreen();
 
-    act(() => fireEvent.press(getByText('Post Job')));
+    await act(async () => {
+      fireEvent.press(getByText('Post Job'));
+    });
 
+    // validateJobDraft surfaces the canonical title min-length message.
     await waitFor(() => {
-      expect(getByText('Title is required')).toBeTruthy();
+      expect(getByText('Title must be at least 5 characters')).toBeTruthy();
     });
   });
 
-  it('validates budget is a positive number', async () => {
+  it('validates title minimum length', async () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    act(
-      () => fireEvent.changeText(getByTestId('job-title-input')),
-      'Fix Kitchen Faucet'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-description-input')),
-      'Leaky faucet needs repair'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-location-input')),
-      '123 Main St'
-    );
-    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '-50');
-    act(() => fireEvent.press(getByText('Post Job')));
+    await act(async () => {
+      fireEvent.changeText(getByTestId('job-title-input'), 'Hi');
+    });
 
     await waitFor(() => {
-      expect(getByText('Budget must be a positive number')).toBeTruthy();
+      expect(getByText('Title must be at least 5 characters')).toBeTruthy();
     });
   });
 
   it('validates description length', async () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    act(
-      () => fireEvent.changeText(getByTestId('job-title-input')),
-      'Fix Kitchen Faucet'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-description-input')),
-      'Too short'
-    );
-    act(() => fireEvent.press(getByText('Post Job')));
+    await act(async () => {
+      fireEvent.changeText(
+        getByTestId('job-title-input'),
+        'Fix Kitchen Faucet'
+      );
+      fireEvent.changeText(getByTestId('job-description-input'), 'Too short');
+    });
 
     await waitFor(() => {
       expect(
@@ -193,21 +212,23 @@ describe('JobPostingScreen', () => {
     });
   });
 
-  it('selects job category correctly', () => {
+  it('selects job category correctly', async () => {
     const { getByTestId } = renderJobPostingScreen();
 
-    // Use the hidden category option for testing
-    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
+    await act(async () => {
+      fireEvent.press(getByTestId('category-option-plumbing'));
+    });
 
-    // Verify the category was selected by checking if Plumbing text is visible
     expect(getByTestId('category-option-plumbing')).toBeTruthy();
   });
 
-  it('selects job priority correctly', () => {
+  it('selects job priority correctly', async () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    act(() => fireEvent.press(getByTestId('job-priority-select')));
-    act(() => fireEvent.press(getByText('High')));
+    await act(async () => {
+      fireEvent.press(getByTestId('job-priority-select'));
+      fireEvent.press(getByText('High'));
+    });
 
     expect(getByText('High')).toBeTruthy();
   });
@@ -216,12 +237,14 @@ describe('JobPostingScreen', () => {
     const mockImagePicker = require('expo-image-picker');
     mockImagePicker.launchImageLibraryAsync.mockResolvedValue({
       canceled: false,
-      assets: [{ uri: 'file://photo1.jpg' }],
-    } as any);
+      assets: [{ uri: 'https://photo1.jpg' }],
+    });
 
     const { getByTestId } = renderJobPostingScreen();
 
-    act(() => fireEvent.press(getByTestId('add-photo-button')));
+    await act(async () => {
+      fireEvent.press(getByTestId('add-photo-button'));
+    });
 
     await waitFor(() => {
       expect(mockImagePicker.launchImageLibraryAsync).toHaveBeenCalled();
@@ -229,44 +252,33 @@ describe('JobPostingScreen', () => {
   });
 
   it('limits photos to maximum of 3', async () => {
-    const mockImagePicker = require('expo-image-picker');
-    mockImagePicker.launchImageLibraryAsync.mockResolvedValue({
-      canceled: false,
-      assets: [{ uri: 'file://photo4.jpg' }],
-    } as any);
-
     const { getByTestId } = renderJobPostingScreen();
 
-    // Add 3 photos first
-    act(() => fireEvent.press(getByTestId('add-photo-button')));
-    act(() => fireEvent.press(getByTestId('add-photo-button')));
-    act(() => fireEvent.press(getByTestId('add-photo-button')));
+    await addPhoto(getByTestId, 'https://photo1.jpg');
+    await addPhoto(getByTestId, 'https://photo2.jpg');
+    await addPhoto(getByTestId, 'https://photo3.jpg');
+    // 4th press hits the limit guard (Alert) and is a no-op for state.
+    await addPhoto(getByTestId, 'https://photo4.jpg');
 
-    // Try to add a 4th photo - should show alert
-    act(() => fireEvent.press(getByTestId('add-photo-button')));
-
-    // Note: Alert.alert is mocked, so we can't test the actual alert text
-    // This test will pass if the component doesn't crash when hitting the limit
     expect(getByTestId('add-photo-button')).toBeTruthy();
+    expect(getByTestId('photo-0')).toBeTruthy();
+    expect(getByTestId('photo-1')).toBeTruthy();
+    expect(getByTestId('photo-2')).toBeTruthy();
+    expect(() => getByTestId('photo-3')).toThrow();
   });
 
   it('removes photo when delete button is pressed', async () => {
     const { getByTestId } = renderJobPostingScreen();
 
-    // First add a photo
-    const mockImagePicker = require('expo-image-picker');
-    mockImagePicker.launchImageLibraryAsync.mockResolvedValue({
-      canceled: false,
-      assets: [{ uri: 'file://photo1.jpg' }],
-    });
-
-    act(() => fireEvent.press(getByTestId('add-photo-button')));
+    await addPhoto(getByTestId);
 
     await waitFor(() => {
       expect(getByTestId('photo-0')).toBeTruthy();
     });
 
-    act(() => fireEvent.press(getByTestId('delete-photo-0')));
+    await act(async () => {
+      fireEvent.press(getByTestId('delete-photo-0'));
+    });
 
     await waitFor(() => {
       expect(() => getByTestId('photo-0')).toThrow();
@@ -275,93 +287,52 @@ describe('JobPostingScreen', () => {
 
   it('creates job with valid data', async () => {
     const mockMutateAsync = jest.fn().mockResolvedValue({ id: 'job-1' });
-    mockUseCreateJob.mockReturnValue({
-      mutateAsync: mockMutateAsync,
-      isPending: false,
-      isError: false,
-      error: null,
-      isSuccess: false,
-      data: undefined,
-      mutate: jest.fn(),
-      reset: jest.fn(),
-    } as any);
+    mockUseCreateJob.mockReturnValue(
+      buildMutationMock({ mutateAsync: mockMutateAsync })
+    );
 
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    // Fill form
-    act(
-      () => fireEvent.changeText(getByTestId('job-title-input')),
-      'Fix Kitchen Faucet'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-description-input')),
-      'Leaky kitchen faucet needs professional repair'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-location-input')),
-      '123 Main Street, Anytown, USA'
-    );
-    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
+    await fillRequiredText(getByTestId);
+    await act(async () => {
+      fireEvent.press(getByTestId('category-option-plumbing'));
+      fireEvent.press(getByText('High'));
+    });
+    await addPhoto(getByTestId);
 
-    // Select category and priority
-    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
-    act(() => fireEvent.press(getByTestId('job-priority-select')));
-    act(() => fireEvent.press(getByText('High')));
-
-    act(() => fireEvent.press(getByText('Post Job')));
+    await act(async () => {
+      fireEvent.press(getByText('Post Job'));
+    });
 
     await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({
-        title: 'Fix Kitchen Faucet',
-        description: 'Leaky kitchen faucet needs professional repair',
-        location: '123 Main Street, Anytown, USA',
-        budget: 150,
-        category: 'plumbing',
-        urgency: 'high',
-        homeownerId: 'user-1',
-      });
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Fix Kitchen Faucet',
+          description: 'Leaky kitchen faucet needs professional repair',
+          location: '123 Main Street, Anytown',
+          homeownerId: 'user-1',
+          category: 'plumbing',
+          urgency: 'high',
+          photos: ['https://photo1.jpg'],
+        })
+      );
     });
   });
 
   it('shows success message and navigates on successful job creation', async () => {
-    const mockJob = {
-      id: 'job-1',
-      title: 'Fix Kitchen Faucet',
-      description: 'Leaky kitchen faucet needs professional repair',
-      location: '123 Main Street, Anytown, USA',
-      budget: 150,
-      homeowner_id: 'user-1',
-      status: 'posted' as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    // Fill minimum required fields
-    act(
-      () => fireEvent.changeText(getByTestId('job-title-input')),
-      'Fix Kitchen Faucet'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-description-input')),
-      'Leaky kitchen faucet needs professional repair'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-location-input')),
-      '123 Main Street'
-    );
-    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
+    await fillRequiredText(getByTestId);
+    await addPhoto(getByTestId);
 
-    // Select category and priority
-    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
-    act(() => fireEvent.press(getByTestId('job-priority-select')));
-    act(() => fireEvent.press(getByText('High')));
-
-    act(() => fireEvent.press(getByText('Post Job')));
+    await act(async () => {
+      fireEvent.press(getByText('Post Job'));
+    });
 
     await waitFor(() => {
       expect(getByText('Job posted successfully!')).toBeTruthy();
+    });
+    await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('JobDetails', {
         jobId: 'job-1',
       });
@@ -369,118 +340,68 @@ describe('JobPostingScreen', () => {
   });
 
   it('shows error message on job creation failure', async () => {
-    // Override the mutation to reject with an error
-    mockUseCreateJob.mockReturnValue({
-      mutateAsync: jest
-        .fn()
-        .mockRejectedValue(new Error('Failed to create job')),
-      isPending: false,
-      isError: false,
-      error: null,
-      isSuccess: false,
-      data: undefined,
-      mutate: jest.fn(),
-      reset: jest.fn(),
-    } as any);
+    mockUseCreateJob.mockReturnValue(
+      buildMutationMock({
+        mutateAsync: jest
+          .fn()
+          .mockRejectedValue(new Error('Failed to create job')),
+      })
+    );
 
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    // Fill form
-    act(
-      () => fireEvent.changeText(getByTestId('job-title-input')),
-      'Fix Kitchen Faucet'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-description-input')),
-      'Leaky kitchen faucet needs professional repair'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-location-input')),
-      '123 Main Street'
-    );
-    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
+    await fillRequiredText(getByTestId);
+    await addPhoto(getByTestId);
 
-    // Select category and priority
-    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
-    act(() => fireEvent.press(getByTestId('job-priority-select')));
-    act(() => fireEvent.press(getByText('High')));
-
-    act(() => fireEvent.press(getByText('Post Job')));
+    await act(async () => {
+      fireEvent.press(getByText('Post Job'));
+    });
 
     await waitFor(() => {
       expect(getByText('Failed to create job')).toBeTruthy();
     });
   });
 
-  it('shows loading state during job creation', () => {
+  it('shows loading state during job creation', async () => {
+    mockUseCreateJob.mockReturnValue(
+      buildMutationMock({
+        mutateAsync: jest.fn().mockImplementation(() => new Promise(() => {})),
+      })
+    );
+
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    // Fill form
-    act(
-      () => fireEvent.changeText(getByTestId('job-title-input')),
-      'Fix Kitchen Faucet'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-description-input')),
-      'Leaky kitchen faucet needs professional repair'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-location-input')),
-      '123 Main Street'
-    );
-    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
+    await fillRequiredText(getByTestId);
+    await addPhoto(getByTestId);
 
-    // Mock a slow response
-    mockUseCreateJob.mockReturnValue({
-      mutateAsync: jest.fn().mockImplementation(() => new Promise(() => {})),
-      isPending: false,
-      isError: false,
-      error: null,
-      isSuccess: false,
-      data: undefined,
-      mutate: jest.fn(),
-      reset: jest.fn(),
-    } as any);
+    await act(async () => {
+      fireEvent.press(getByText('Post Job'));
+    });
 
-    act(() => fireEvent.press(getByText('Post Job')));
-
-    expect(getByTestId('loading-spinner')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByTestId('loading-spinner')).toBeTruthy();
+    });
   });
 
   it('disables form during submission', async () => {
+    mockUseCreateJob.mockReturnValue(
+      buildMutationMock({
+        mutateAsync: jest.fn().mockImplementation(() => new Promise(() => {})),
+      })
+    );
+
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    // Fill form
-    act(
-      () => fireEvent.changeText(getByTestId('job-title-input')),
-      'Fix Kitchen Faucet'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-description-input')),
-      'Leaky kitchen faucet needs professional repair'
-    );
-    act(
-      () => fireEvent.changeText(getByTestId('job-location-input')),
-      '123 Main Street'
-    );
-    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
+    await fillRequiredText(getByTestId);
+    await addPhoto(getByTestId);
 
-    // Mock a slow response
-    mockUseCreateJob.mockReturnValue({
-      mutateAsync: jest.fn().mockImplementation(() => new Promise(() => {})),
-      isPending: false,
-      isError: false,
-      error: null,
-      isSuccess: false,
-      data: undefined,
-      mutate: jest.fn(),
-      reset: jest.fn(),
-    } as any);
+    await act(async () => {
+      fireEvent.press(getByText('Post Job'));
+    });
 
-    act(() => fireEvent.press(getByText('Post Job')));
-
-    // Check loading spinner appears and button is disabled
-    expect(getByTestId('loading-spinner')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByTestId('loading-spinner')).toBeTruthy();
+    });
   });
 
   it('redirects non-homeowners', () => {
@@ -497,6 +418,7 @@ describe('JobPostingScreen', () => {
 
     renderJobPostingScreen();
 
-    expect(mockNavigate).toHaveBeenCalledWith('Home');
+    // goToTab(navigation, 'HomeTab') -> navigation.navigate('HomeTab')
+    expect(mockNavigate).toHaveBeenCalledWith('HomeTab');
   });
 });
