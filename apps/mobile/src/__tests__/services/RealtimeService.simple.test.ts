@@ -2,7 +2,6 @@
 
 import { RealtimeService } from '../../services/RealtimeService';
 
-
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -42,9 +41,13 @@ describe('RealtimeService - Simple Tests', () => {
       supabase.channel.mockReturnValue(mockChannel);
 
       const callback = jest.fn();
-      const unsubscribe = RealtimeService.subscribeToMessages('job-1', callback);
+      const unsubscribe = RealtimeService.subscribeToMessages(
+        'job-1',
+        callback
+      );
 
-      expect(supabase.channel).toHaveBeenCalledWith('messages:job_id=eq.job-1');
+      // topic() builds `${table}:${key}` -> 'messages:job-1' (post-refactor format)
+      expect(supabase.channel).toHaveBeenCalledWith('messages:job-1');
       expect(mockChannel.on).toHaveBeenCalledWith(
         'postgres_changes',
         expect.objectContaining({
@@ -119,9 +122,13 @@ describe('RealtimeService - Simple Tests', () => {
       supabase.channel.mockReturnValue(mockChannel);
 
       const callback = jest.fn();
-      const unsubscribe = RealtimeService.subscribeToJobUpdates('job-1', callback);
+      const unsubscribe = RealtimeService.subscribeToJobUpdates(
+        'job-1',
+        callback
+      );
 
-      expect(supabase.channel).toHaveBeenCalledWith('job:id=eq.job-1');
+      // simple mode uses topic('job', jobId) -> 'job:job-1'
+      expect(supabase.channel).toHaveBeenCalledWith('job:job-1');
       expect(mockChannel.on).toHaveBeenCalledWith(
         'postgres_changes',
         expect.objectContaining({
@@ -175,7 +182,8 @@ describe('RealtimeService - Simple Tests', () => {
       const callback = jest.fn();
       const unsubscribe = RealtimeService.subscribeToJobBids('job-1', callback);
 
-      expect(supabase.channel).toHaveBeenCalledWith('bids:job_id=eq.job-1');
+      // topic('bids', jobId) -> 'bids:job-1'
+      expect(supabase.channel).toHaveBeenCalledWith('bids:job-1');
       expect(mockChannel.on).toHaveBeenCalledWith(
         'postgres_changes',
         expect.objectContaining({
@@ -232,7 +240,9 @@ describe('RealtimeService - Simple Tests', () => {
         unsubscribe: jest.fn(),
       };
 
-      supabase.channel.mockReturnValueOnce(mockChannel1).mockReturnValueOnce(mockChannel2);
+      supabase.channel
+        .mockReturnValueOnce(mockChannel1)
+        .mockReturnValueOnce(mockChannel2);
 
       // Create some subscriptions
       RealtimeService.subscribeToMessages('job-1', jest.fn());

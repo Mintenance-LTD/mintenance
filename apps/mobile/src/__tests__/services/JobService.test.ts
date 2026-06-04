@@ -1,9 +1,22 @@
-// Import supabase BEFORE JobService so the mock is in place
-import { supabase } from '../../config/supabase';
-import { Job, JobData } from '../../types';
+/**
+ * JobService unit tests.
+ *
+ * 2026-06-04 rewrite: the prior suite tested a long-removed
+ * direct-Supabase implementation (supabase.from('jobs')..., textSearch,
+ * a getJobsByUser that branched on role and queried bids). JobService is
+ * now a thin facade delegating to JobCRUDService / JobSearchService /
+ * BidService, all of which route through `mobileApiClient` (mobile→web
+ * API). createJob additionally runs through ServiceErrorHandler. These
+ * tests assert the CURRENT contract by mocking the API client.
+ *
+ * Note: JobCRUDService.formatJob() reshapes every API row into the
+ * canonical `Job` (snake_case, coerced numerics, defaulted fields) and
+ * intentionally SKIPS the camelCase mirror keys when running under jest
+ * (JEST_WORKER_ID set), so the formatted output is deterministic here.
+ */
 
-// Import the REAL JobService (not mocked) - we want to test the actual implementation
 import { JobService } from '../../services/JobService';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -16,213 +29,166 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock ServiceErrorHandler
+// Mock the API client — all job traffic flows through it.
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+// Mock ServiceErrorHandler so createJob's executeOperation wrapper runs
+// the operation inline and surfaces thrown errors verbatim.
 jest.mock('../../utils/serviceErrorHandler', () => ({
   ServiceErrorHandler: {
     validateRequired: jest.fn(),
     validatePositiveNumber: jest.fn(),
-    executeOperation: jest.fn().mockImplementation(async (operation) => {
-      try {
-        const data = await operation();
-        return { success: true, data };
-      } catch (error) {
-        throw error; // Re-throw to match service expectation
-      }
+    executeOperation: jest.fn(async (operation: () => Promise<unknown>) => {
+      const data = await operation();
+      return { success: true, data };
     }),
     handleDatabaseError: jest.fn((error) => error),
   },
 }));
 
 const { ServiceErrorHandler } = require('../../utils/serviceErrorHandler');
+const mockApi = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
 
-// Mock Supabase with proper chaining
-jest.mock('../../config/supabase', () => {
-  const createMockChain = () => {
-    const chain = {
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      neq: jest.fn().mockReturnThis(),
-      gt: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      lt: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-      like: jest.fn().mockReturnThis(),
-      ilike: jest.fn().mockReturnThis(),
-      in: jest.fn().mockReturnThis(),
-      or: jest.fn().mockReturnThis(),
-      and: jest.fn().mockReturnThis(),
-      not: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      range: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
-    };
-    
-    // Make all methods return the chain for method chaining
-    Object.keys(chain).forEach(key => {
-      if (key !== 'single' && key !== 'maybeSingle') {
-        chain[key].mockReturnValue(chain);
-      }
-    });
-    
-    return chain;
-  };
-
-  return {
-    supabase: {
-      from: jest.fn(() => createMockChain()),
-      storage: {
-        from: jest.fn(() => ({
-          upload: jest.fn().mockResolvedValue({ data: null, error: null }),
-          download: jest.fn().mockResolvedValue({ data: null, error: null }),
-          remove: jest.fn().mockResolvedValue({ data: null, error: null }),
-        })),
-      },
-    },
-  };
-});
-
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
-
-const mockJobData: JobData = {
+// A raw API job row (snake_case, as the web /api/jobs route returns it).
+const apiJobRow = {
+  id: 'test-job-1',
   title: 'Kitchen Faucet Repair',
   description: 'Leaky kitchen faucet needs professional repair',
+  location: '123 Main Street, Anytown, USA',
+  homeowner_id: 'homeowner-1',
+  status: 'posted',
   budget: 150,
   category: 'Plumbing',
   subcategory: 'Faucet Repair',
   priority: 'high',
-  location: '123 Main Street, Anytown, USA',
-  homeowner_id: 'homeowner-1',
   photos: ['photo1.jpg'],
-};
-
-const mockJob: Job = {
-  id: 'test-job-1',
-  ...mockJobData,
-  status: 'posted',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
 };
 
 describe('JobService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Default mock implementations
-    mockSupabase.from.mockReturnValue({
-      insert: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      textSearch: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: mockJob, error: null }),
-      eq: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-    } as any);
   });
 
   describe('createJob', () => {
-    it('creates a new job successfully', async () => {
-      const result = await JobService.createJob(mockJobData);
+    const jobInput = {
+      title: 'Kitchen Faucet Repair',
+      description: 'Leaky kitchen faucet needs professional repair',
+      location: '123 Main Street, Anytown, USA',
+      budget: 150,
+      category: 'Plumbing',
+      subcategory: 'Faucet Repair',
+      homeowner_id: 'homeowner-1',
+      photos: ['photo1.jpg'],
+    };
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
-      expect(result).toEqual(mockJob);
+    it('POSTs to /api/jobs and returns the formatted job', async () => {
+      mockApi.post.mockResolvedValue({ job: apiJobRow });
+
+      const result = await JobService.createJob(jobInput);
+
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/jobs',
+        expect.objectContaining({
+          title: 'Kitchen Faucet Repair',
+          description: 'Leaky kitchen faucet needs professional repair',
+          location: '123 Main Street, Anytown, USA',
+          budget: 150,
+          category: 'Plumbing',
+        })
+      );
+      expect(result.id).toBe('test-job-1');
+      expect(result.title).toBe('Kitchen Faucet Repair');
+      expect(result.status).toBe('posted');
+      expect(result.budget).toBe(150);
     });
 
-    it('handles creation errors', async () => {
-      const error = { message: 'Database error' };
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error }),
-      } as any);
+    it('throws when the API returns no job', async () => {
+      mockApi.post.mockResolvedValue({});
 
-      ServiceErrorHandler.handleDatabaseError.mockImplementationOnce((err) => {
-        throw new Error(err.message);
-      });
-
-      await expect(JobService.createJob(mockJobData)).rejects.toThrow(
-        'Database error'
+      await expect(JobService.createJob(jobInput)).rejects.toThrow(
+        'No job returned from API'
       );
     });
 
-    it('validates required fields', async () => {
-      const invalidJobData = { ...mockJobData, title: '' };
-
+    it('surfaces validation errors from ServiceErrorHandler', async () => {
       ServiceErrorHandler.validateRequired.mockImplementationOnce(() => {
         throw new Error('Title is required');
       });
 
-      await expect(JobService.createJob(invalidJobData)).rejects.toThrow(
-        'Title is required'
-      );
-    });
-
-    it('validates budget is positive', async () => {
-      const invalidJobData = { ...mockJobData, budget: -50 };
-
-      ServiceErrorHandler.validatePositiveNumber.mockImplementationOnce(() => {
-        throw new Error('Budget must be positive');
-      });
-
-      await expect(JobService.createJob(invalidJobData)).rejects.toThrow(
-        'Budget must be positive'
-      );
+      await expect(
+        JobService.createJob({ ...jobInput, title: '' })
+      ).rejects.toThrow('Title is required');
+      expect(mockApi.post).not.toHaveBeenCalled();
     });
   });
 
   describe('getJobs', () => {
-    it('fetches jobs successfully', async () => {
-      const mockJobs = [mockJob, { ...mockJob, id: 'job-2' }];
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: mockJobs, error: null }),
-      } as any);
+    it('GETs /api/jobs and unwraps the jobs array', async () => {
+      const jobs = [{ id: 'job-1' }, { id: 'job-2' }];
+      mockApi.get.mockResolvedValue({ jobs });
 
       const result = await JobService.getJobs();
 
-      expect(result).toEqual(mockJobs);
-      expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
+      expect(mockApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/api/jobs')
+      );
+      expect(result).toEqual(jobs);
     });
 
-    it('filters jobs by status', async () => {
+    it('encodes a status filter in the URL', async () => {
+      mockApi.get.mockResolvedValue({ jobs: [] });
+
       await JobService.getJobs('posted');
 
-      const mockQuery = mockSupabase.from().select().eq();
-      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'posted');
+      expect(mockApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('status=posted')
+      );
     });
 
-    it('applies limit when provided', async () => {
+    it('encodes a limit in the URL', async () => {
+      mockApi.get.mockResolvedValue({ jobs: [] });
+
       await JobService.getJobs(undefined, 10);
 
-      const mockQuery = mockSupabase.from().select().order().limit();
-      expect(mockQuery.limit).toHaveBeenCalledWith(10);
+      expect(mockApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('limit=10')
+      );
+    });
+
+    it('tolerates a bare-array response', async () => {
+      const jobs = [{ id: 'job-1' }];
+      mockApi.get.mockResolvedValue(jobs);
+
+      const result = await JobService.getJobs();
+
+      expect(result).toEqual(jobs);
     });
   });
 
   describe('getJobById', () => {
-    it('fetches job by ID successfully', async () => {
+    it('GETs /api/jobs/:id and returns the formatted job', async () => {
+      mockApi.get.mockResolvedValue({ job: apiJobRow });
+
       const result = await JobService.getJobById('test-job-1');
 
-      expect(result).toEqual(mockJob);
-      expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/jobs/test-job-1');
+      expect(result).not.toBeNull();
+      expect(result?.id).toBe('test-job-1');
+      expect(result?.title).toBe('Kitchen Faucet Repair');
     });
 
-    it('returns null for non-existent job', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      } as any);
+    it('returns null when the API returns no job', async () => {
+      mockApi.get.mockResolvedValue({ job: null });
 
       const result = await JobService.getJobById('non-existent');
 
@@ -231,49 +197,44 @@ describe('JobService', () => {
   });
 
   describe('updateJob', () => {
-    it('updates job successfully', async () => {
-      const updates = { title: 'Updated Title', budget: 200 };
-      const updatedJob = { ...mockJob, ...updates };
+    it('PUTs the updates and returns the formatted job', async () => {
+      const updatedRow = { ...apiJobRow, title: 'Updated Title', budget: 200 };
+      mockApi.put.mockResolvedValue({ job: updatedRow });
 
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: updatedJob, error: null }),
-      } as any);
+      const result = await JobService.updateJob('test-job-1', {
+        title: 'Updated Title',
+        budget: 200,
+      });
 
-      const result = await JobService.updateJob('test-job-1', updates);
-
-      expect(result).toEqual(updatedJob);
+      expect(mockApi.put).toHaveBeenCalledWith('/api/jobs/test-job-1', {
+        title: 'Updated Title',
+        budget: 200,
+      });
+      expect(result.title).toBe('Updated Title');
+      expect(result.budget).toBe(200);
     });
 
-    it('prevents status updates to invalid values', async () => {
-      const updates = { status: 'invalid-status' as any };
-
-      await expect(JobService.updateJob('test-job-1', updates)).rejects.toThrow(
-        'Invalid status'
-      );
+    it('rejects invalid status values before hitting the API', async () => {
+      await expect(
+        JobService.updateJob('test-job-1', { status: 'invalid-status' as any })
+      ).rejects.toThrow('Invalid status');
+      expect(mockApi.put).not.toHaveBeenCalled();
     });
   });
 
   describe('deleteJob', () => {
-    it('deletes job successfully', async () => {
-      mockSupabase.from.mockReturnValue({
-        delete: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      } as any);
+    it('DELETEs /api/jobs/:id', async () => {
+      mockApi.delete.mockResolvedValue(undefined);
 
       await JobService.deleteJob('test-job-1');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
+      expect(mockApi.delete).toHaveBeenCalledWith('/api/jobs/test-job-1');
     });
 
-    it('handles deletion errors', async () => {
-      const error = { message: 'Cannot delete job with active bids' };
-      mockSupabase.from.mockReturnValue({
-        delete: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error }),
-      } as any);
+    it('propagates deletion errors', async () => {
+      mockApi.delete.mockRejectedValue(
+        new Error('Cannot delete job with active bids')
+      );
 
       await expect(JobService.deleteJob('test-job-1')).rejects.toThrow(
         'Cannot delete job with active bids'
@@ -282,70 +243,55 @@ describe('JobService', () => {
   });
 
   describe('searchJobs', () => {
-    it('searches jobs by query', async () => {
-      const mockJobs = [mockJob];
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        textSearch: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockJobs, error: null }),
-      } as any);
+    it('GETs /api/jobs with the search term and unwraps jobs', async () => {
+      const jobs = [{ id: 'job-1' }];
+      mockApi.get.mockResolvedValue({ jobs });
 
       const result = await JobService.searchJobs('kitchen repair');
 
-      expect(result).toEqual(mockJobs);
+      expect(mockApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('search=kitchen')
+      );
+      expect(result).toEqual(jobs);
     });
 
-    it('filters by category', async () => {
-      await JobService.searchJobs('repair', { category: 'Plumbing' });
+    it('encodes category and budget-range filters', async () => {
+      mockApi.get.mockResolvedValue({ jobs: [] });
 
-      const mockQuery = mockSupabase.from().select().textSearch();
-      expect(mockQuery.eq).toHaveBeenCalledWith('category', 'Plumbing');
-    });
-
-    it('filters by budget range', async () => {
       await JobService.searchJobs('repair', {
+        category: 'Plumbing',
         minBudget: 100,
         maxBudget: 500,
       });
 
-      const mockQuery = mockSupabase.from().select().textSearch();
-      expect(mockQuery.gte).toHaveBeenCalledWith('budget', 100);
-      expect(mockQuery.lte).toHaveBeenCalledWith('budget', 500);
+      const url = mockApi.get.mock.calls[0][0] as string;
+      expect(url).toContain('category=Plumbing');
+      expect(url).toContain('minBudget=100');
+      expect(url).toContain('maxBudget=500');
     });
   });
 
   describe('getJobsByUser', () => {
-    it('fetches jobs by homeowner', async () => {
-      const mockJobs = [mockJob];
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockJobs, error: null }),
-      } as any);
+    it('fetches jobs for a homeowner and unwraps them', async () => {
+      const jobs = [{ id: 'job-1' }];
+      mockApi.get.mockResolvedValue({ jobs });
 
       const result = await JobService.getJobsByUser('homeowner-1', 'homeowner');
 
-      expect(result).toEqual(mockJobs);
-      expect(mockSupabase.from().select().eq).toHaveBeenCalledWith(
-        'homeowner_id',
-        'homeowner-1'
-      );
+      expect(mockApi.get).toHaveBeenCalledWith('/api/jobs');
+      expect(result).toEqual(jobs);
     });
 
-    it('fetches jobs by contractor through bids', async () => {
-      const mockJobs = [mockJob];
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockJobs, error: null }),
-      } as any);
+    it('fetches jobs for a contractor and unwraps them', async () => {
+      const jobs = [{ id: 'job-1' }];
+      mockApi.get.mockResolvedValue({ jobs });
 
       const result = await JobService.getJobsByUser(
         'contractor-1',
         'contractor'
       );
 
-      expect(result).toEqual(mockJobs);
+      expect(result).toEqual(jobs);
     });
   });
 });

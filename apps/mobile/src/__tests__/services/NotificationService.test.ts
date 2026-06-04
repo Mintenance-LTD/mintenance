@@ -387,21 +387,17 @@ describe('NotificationService', () => {
 
   describe('getUnreadCount', () => {
     it('should return unread notification count', async () => {
-      // Real code: supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false)
+      // Real code (2026-05-27 audit-80): supabase
+      //   .from('notifications')
+      //   .select('*', { count: 'exact', head: true })
+      //   .eq('user_id', userId)
+      //   .eq('read', false)
+      //   .not('type', 'in', '(post_liked,...)')   <- terminal, resolves
       const mockChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
+        not: jest.fn().mockResolvedValue({ count: 7, error: null }),
       };
-      // The final .eq('read', false) resolves the chain
-      let eqCallCount = 0;
-      mockChain.eq.mockImplementation(() => {
-        eqCallCount++;
-        if (eqCallCount >= 2) {
-          // Second .eq() call returns the final result
-          return Promise.resolve({ count: 7, error: null });
-        }
-        return mockChain;
-      });
       supabase.from.mockReturnValue(mockChain);
 
       const count = await NotificationService.getUnreadCount('user-1');
@@ -413,18 +409,11 @@ describe('NotificationService', () => {
       const mockChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
+        not: jest.fn().mockResolvedValue({
+          count: null,
+          error: { message: 'Database error' },
+        }),
       };
-      let eqCallCount = 0;
-      mockChain.eq.mockImplementation(() => {
-        eqCallCount++;
-        if (eqCallCount >= 2) {
-          return Promise.resolve({
-            count: null,
-            error: { message: 'Database error' },
-          });
-        }
-        return mockChain;
-      });
       supabase.from.mockReturnValue(mockChain);
 
       const count = await NotificationService.getUnreadCount('user-1');

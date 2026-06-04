@@ -78,7 +78,8 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
     // Get service mocks
     JobService = require('../../services/JobService').JobService;
-    MessagingService = require('../../services/MessagingService').MessagingService;
+    MessagingService =
+      require('../../services/MessagingService').MessagingService;
     UserService = require('../../services/UserService').UserService;
     sentry = require('../../config/sentry');
   });
@@ -106,7 +107,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
         maxRetries: 3,
       };
 
-      mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify([failingAction]));
+      mockAsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify([failingAction])
+      );
       JobService.createJob.mockRejectedValue(new Error('Network error'));
 
       // Act: Start sync
@@ -117,7 +120,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       // Check that the action was updated with retry count and next retry time
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const updatedQueueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const updatedQueueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (updatedQueueCall) {
         const updatedQueue = JSON.parse(updatedQueueCall[1] as string);
@@ -126,7 +131,8 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
         // Calculate expected backoff: 500 * 2^(retryCount-1) = 500ms for first retry
         const expectedDelay = 500;
-        const actualDelay = updatedQueue[0].nextRetryAt - failingAction.timestamp;
+        const actualDelay =
+          updatedQueue[0].nextRetryAt - failingAction.timestamp;
         expect(actualDelay).toBeGreaterThanOrEqual(expectedDelay);
       }
     });
@@ -136,12 +142,12 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       // Test multiple retry counts
       const testCases = [
-        { retryCount: 0, expectedDelay: 0 },      // Initial attempt
-        { retryCount: 1, expectedDelay: 500 },    // 500 * 2^0 = 500ms
-        { retryCount: 2, expectedDelay: 1000 },   // 500 * 2^1 = 1000ms
-        { retryCount: 3, expectedDelay: 2000 },   // 500 * 2^2 = 2000ms
-        { retryCount: 4, expectedDelay: 4000 },   // 500 * 2^3 = 4000ms
-        { retryCount: 5, expectedDelay: 8000 },   // 500 * 2^4 = 8000ms
+        { retryCount: 0, expectedDelay: 0 }, // Initial attempt
+        { retryCount: 1, expectedDelay: 500 }, // 500 * 2^0 = 500ms
+        { retryCount: 2, expectedDelay: 1000 }, // 500 * 2^1 = 1000ms
+        { retryCount: 3, expectedDelay: 2000 }, // 500 * 2^2 = 2000ms
+        { retryCount: 4, expectedDelay: 4000 }, // 500 * 2^3 = 4000ms
+        { retryCount: 5, expectedDelay: 8000 }, // 500 * 2^4 = 8000ms
       ];
 
       for (const testCase of testCases) {
@@ -155,7 +161,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
           maxRetries: 10,
         };
 
-        mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify([action]));
+        mockAsyncStorage.getItem.mockResolvedValueOnce(
+          JSON.stringify([action])
+        );
         JobService.createJob.mockRejectedValueOnce(new Error('Network error'));
 
         await OfflineManager.syncQueue();
@@ -171,7 +179,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
             if (testCase.expectedDelay > 0) {
               const actualDelay = updatedAction.nextRetryAt - baseTime;
               // Allow for execution time skew with real timers
-              expect(actualDelay).toBeGreaterThanOrEqual(testCase.expectedDelay);
+              expect(actualDelay).toBeGreaterThanOrEqual(
+                testCase.expectedDelay
+              );
             }
           }
         }
@@ -196,7 +206,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
       await OfflineManager.syncQueue();
 
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const updatedQueueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const updatedQueueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (updatedQueueCall) {
         const updatedQueue = JSON.parse(updatedQueueCall[1] as string);
@@ -331,7 +343,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
       await OfflineManager.syncQueue();
 
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const updatedQueueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const updatedQueueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (updatedQueueCall) {
         const updatedQueue = JSON.parse(updatedQueueCall[1] as string);
@@ -360,7 +374,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       // After this failure, should not be in queue anymore
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const updatedQueueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const updatedQueueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (updatedQueueCall) {
         const updatedQueue = JSON.parse(updatedQueueCall[1] as string);
@@ -418,7 +434,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       // Check that only failed action remains in queue
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const updatedQueueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const updatedQueueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (updatedQueueCall) {
         const updatedQueue = JSON.parse(updatedQueueCall[1] as string);
@@ -485,7 +503,7 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       // Check that breadcrumb includes delay information
       const breadcrumbCalls = sentry.addBreadcrumb.mock.calls;
-      const retryBreadcrumb = breadcrumbCalls.find(call =>
+      const retryBreadcrumb = breadcrumbCalls.find((call) =>
         call[0].includes('offline.schedule_retry')
       );
 
@@ -587,7 +605,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       // First action should be removed, second should remain with incremented retry
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const updatedQueueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const updatedQueueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (updatedQueueCall) {
         const updatedQueue = JSON.parse(updatedQueueCall[1] as string);
@@ -685,8 +705,11 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify([action]));
 
       // Make execution slow
-      JobService.createJob.mockImplementation(() =>
-        new Promise(resolve => setTimeout(() => resolve({ id: 'job-1' }), 100))
+      JobService.createJob.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ id: 'job-1' }), 100)
+          )
       );
 
       // Start multiple syncs concurrently
@@ -705,8 +728,14 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       await OfflineManager.syncQueue();
 
-      // Should handle gracefully and reset queue
-      expect(mockLogger.error).not.toHaveBeenCalled();
+      // MSV-P1-3: corruption is now intentionally logged loudly (instead of
+      // silently swallowed) so ops can investigate data loss. getQueue() catches
+      // the parse error, logs it, and returns []; with an empty queue syncQueue
+      // short-circuits before writing anything back.
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Offline queue JSON corrupt in getQueue; returning empty',
+        expect.objectContaining({ parseError: expect.any(Error) })
+      );
       expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
     });
 
@@ -729,7 +758,7 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Action failed'),
         expect.objectContaining({
-          error: expect.stringContaining('Unknown entity type')
+          error: expect.stringContaining('Unknown entity type'),
         })
       );
     });
@@ -746,7 +775,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
         maxRetries: 3,
       }));
 
-      mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(largeQueue));
+      mockAsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify(largeQueue)
+      );
       JobService.createJob.mockResolvedValue({ id: 'job-1' });
 
       await OfflineManager.syncQueue();
@@ -790,7 +821,11 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
         id: 'action-1',
         type: 'UPDATE' as const,
         entity: 'job',
-        data: JSON.stringify({ jobId: 'job-1', status: 'in_progress', contractorId: 'c-1' }),
+        data: JSON.stringify({
+          jobId: 'job-1',
+          status: 'in_progress',
+          contractorId: 'c-1',
+        }),
         timestamp: Date.now(),
         retryCount: 0,
         maxRetries: 3,
@@ -803,13 +838,17 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
       mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify([action]));
 
       // Simulate version conflict error
-      JobService.updateJobStatus.mockRejectedValueOnce(new Error('Version conflict'));
+      JobService.updateJobStatus.mockRejectedValueOnce(
+        new Error('Version conflict')
+      );
 
       await OfflineManager.syncQueue();
 
       // Should handle conflict and retry with backoff
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const updatedQueueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const updatedQueueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (updatedQueueCall) {
         const updatedQueue = JSON.parse(updatedQueueCall[1] as string);
@@ -831,7 +870,9 @@ describe('OfflineManager - Backoff and Retry Logic', () => {
 
       // Check that action was queued with appropriate strategy
       const setItemCalls = mockAsyncStorage.setItem.mock.calls;
-      const queueCall = setItemCalls.find(call => call[0] === 'OFFLINE_QUEUE');
+      const queueCall = setItemCalls.find(
+        (call) => call[0] === 'OFFLINE_QUEUE'
+      );
 
       if (queueCall) {
         const queue = JSON.parse(queueCall[1] as string);
