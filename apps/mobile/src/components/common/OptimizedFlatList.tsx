@@ -220,6 +220,8 @@ const OptimizedFlatList = React.forwardRef(OptimizedFlatListComponent) as <
   props: OptimizedFlatListProps<T> & { ref?: React.Ref<FlatList<T>> }
 ) => React.ReactElement;
 
+export default OptimizedFlatList;
+
 // Helper hook for common FlatList optimizations
 export function useOptimizedRenderItem<T>(
   renderFn: (item: T, index: number) => React.ReactElement,
