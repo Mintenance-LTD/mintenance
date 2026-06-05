@@ -24,11 +24,15 @@ const mockPerformance = {
 
 describe('PerformanceMonitor', () => {
   beforeEach(() => {
-    // Reset the singleton instance for testing
-    performanceMonitor.reset();
     jest.clearAllMocks();
     jest.clearAllTimers();
+    // Install fake timers BEFORE reset() so the monitor's startTime is captured
+    // from the frozen fake clock, not real wall-clock time. Resetting before
+    // useFakeTimers() left a real-time→fake-time gap that crossed 1ms under
+    // parallel suite load, making startupTime deltas flaky (e.g. 1 instead of 0).
     jest.useFakeTimers();
+    // Reset the singleton instance for testing
+    performanceMonitor.reset();
   });
 
   afterEach(() => {
