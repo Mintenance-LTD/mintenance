@@ -151,14 +151,22 @@ const nextConfig = {
     ],
   },
 
-  // Modularize imports for tree shaking
+  // Modularize imports for tree shaking.
+  //
+  // NOTE: `lucide-react` and `date-fns` are intentionally NOT listed here —
+  // they are already in `experimental.optimizePackageImports` above, which
+  // supersedes modularizeImports (per Next.js docs). Declaring a package in
+  // BOTH double-transforms its imports: modularizeImports first rewrites
+  // `import { Facebook } from 'lucide-react'` to the hardcoded deep path
+  // `lucide-react/dist/esm/icons/facebook`, then optimizePackageImports
+  // re-optimizes it. That conflict is build-cache-sensitive and resolves on
+  // case-insensitive local filesystems but intermittently fails the strict
+  // Linux resolver on Vercel ("Module not found" on the lucide-react import,
+  // e.g. Footer2025.tsx). optimizePackageImports alone tree-shakes both
+  // packages via their real entry points, so there is no bundle-size cost.
+  // `@radix-ui/react-icons` stays here because it is not in
+  // optimizePackageImports.
   modularizeImports: {
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
-    },
-    'date-fns': {
-      transform: 'date-fns/{{member}}',
-    },
     '@radix-ui/react-icons': {
       transform: '@radix-ui/react-icons/dist/{{member}}',
     },
