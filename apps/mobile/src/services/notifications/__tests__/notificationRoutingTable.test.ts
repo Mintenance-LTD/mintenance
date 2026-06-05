@@ -387,4 +387,211 @@ describe('notificationRoutingTable', () => {
       }
     });
   });
+
+  // =====================================================================
+  // Gap coverage: actionUrl parsing + newer notification types
+  // =====================================================================
+  const UUID = 'a1b2c3d4-1111-2222-3333-444455556666';
+  const JOB = 'job12345';
+  const inbox = { screen: 'Modal', params: { screen: 'Notifications' } };
+  const jobDetails = (jobId: string) => ({
+    screen: 'Main',
+    params: {
+      screen: 'JobsTab',
+      params: { screen: 'JobDetails', params: { jobId } },
+    },
+  });
+  const calendar = {
+    screen: 'Main',
+    params: { screen: 'ProfileTab', params: { screen: 'Calendar' } },
+  };
+  const paymentHistory = {
+    screen: 'Main',
+    params: { screen: 'ProfileTab', params: { screen: 'PaymentHistory' } },
+  };
+  const reviews = {
+    screen: 'Main',
+    params: { screen: 'ProfileTab', params: { screen: 'Reviews' } },
+  };
+
+  describe('normalizePayload — actionUrl fallback parsing', () => {
+    it('parses /jobs/:id', () => {
+      expect(normalizePayload({ actionUrl: `/jobs/${UUID}` }).jobId).toBe(UUID);
+    });
+    it('parses /contractor/jobs/:id (preferred over /jobs)', () => {
+      expect(
+        normalizePayload({ action_url: `/contractor/jobs/${UUID}` }).jobId
+      ).toBe(UUID);
+    });
+    it('parses /properties/:id', () => {
+      expect(normalizePayload({ url: `/properties/${UUID}` }).propertyId).toBe(
+        UUID
+      );
+    });
+    it('parses /messages/:id path with userId/userName/jobTitle query', () => {
+      const p = normalizePayload({
+        link: `/messages/${UUID}?userId=${UUID}&userName=Alex&jobTitle=Leak`,
+      });
+      expect(p.jobId).toBe(UUID);
+      expect(p.conversationId).toBe(UUID);
+      expect(p.senderId).toBe(UUID);
+      expect(p.senderName).toBe('Alex');
+      expect(p.jobTitle).toBe('Leak');
+    });
+    it('parses /messages?jobId= query-string variant', () => {
+      const p = normalizePayload({ actionUrl: `/messages?jobId=${UUID}` });
+      expect(p.conversationId).toBe(UUID);
+      expect(p.jobId).toBe(UUID);
+    });
+    it('accepts senderId/senderName query aliases', () => {
+      const p = normalizePayload({
+        actionUrl: `/messages/${UUID}?senderId=${UUID}&senderName=Jo`,
+      });
+      expect(p.senderId).toBe(UUID);
+      expect(p.senderName).toBe('Jo');
+    });
+    it('metadata takes precedence over actionUrl', () => {
+      expect(
+        normalizePayload({ jobId: 'meta-job', actionUrl: `/jobs/${UUID}` })
+          .jobId
+      ).toBe('meta-job');
+    });
+    it('ignores non-UUID path segments (e.g. /jobs/new)', () => {
+      expect(
+        normalizePayload({ actionUrl: '/jobs/new' }).jobId
+      ).toBeUndefined();
+    });
+    it('handles a malformed actionUrl without throwing', () => {
+      expect(() =>
+        normalizePayload({ actionUrl: 'http://[::bad' })
+      ).not.toThrow();
+    });
+    it('normalizes propertyId + appointmentId metadata (camel + snake)', () => {
+      expect(normalizePayload({ propertyId: 'p1' }).propertyId).toBe('p1');
+      expect(normalizePayload({ property_id: 'p2' }).propertyId).toBe('p2');
+      expect(normalizePayload({ appointmentId: 'a1' }).appointmentId).toBe(
+        'a1'
+      );
+      expect(normalizePayload({ appointment_id: 'a2' }).appointmentId).toBe(
+        'a2'
+      );
+    });
+  });
+
+  describe('routeForNotification — newer job-detail types', () => {
+    const NEWER_JOB_TYPES = [
+      'job_nearby',
+      'job_assigned',
+      'completion_confirmed',
+      'contract_pending_signature',
+      'job_confirmed',
+      'payment',
+      'escrow_released',
+      'escrow_auto_released',
+      'changes_requested',
+      'contractor_en_route',
+      'contractor_arrived',
+      'job_terminated',
+      'location_sharing_request',
+      'location_sharing_started',
+      'location_sharing_stopped',
+      'location_sharing_enabled',
+    ];
+    it.each(NEWER_JOB_TYPES)('%s with jobId → JobDetails', (t) => {
+      expect(routeForNotification(t, { jobId: JOB })).toEqual(jobDetails(JOB));
+    });
+    it.each(NEWER_JOB_TYPES)('%s without jobId → inbox', (t) => {
+      expect(routeForNotification(t, {})).toEqual(inbox);
+    });
+  });
+
+  describe('routeForNotification — message jobId fallback + alias', () => {
+    it('bare "message" alias routes via jobId as thread id', () => {
+      const r = routeForNotification('message', { jobId: JOB });
+      expect(r).toMatchObject({
+        params: { params: { params: { conversationId: JOB } } },
+      });
+    });
+    it('message_received falls back to jobId when no conversationId', () => {
+      const r = routeForNotification('message_received', { jobId: JOB });
+      expect(r).toMatchObject({
+        params: { params: { params: { conversationId: JOB } } },
+      });
+    });
+  });
+
+  describe('routeForNotification — scheduling/verification/finance/review', () => {
+    it('appointment_scheduled with jobId → JobDetails', () => {
+      expect(
+        routeForNotification('appointment_scheduled', { jobId: JOB })
+      ).toEqual(jobDetails(JOB));
+    });
+    it('job_scheduled without jobId → Calendar', () => {
+      expect(routeForNotification('job_scheduled', {})).toEqual(calendar);
+    });
+    it.each(['verification_approved', 'verification_rejected'])(
+      '%s → VerificationStatus',
+      (t) => {
+        expect(routeForNotification(t, {})).toEqual({
+          screen: 'Main',
+          params: {
+            screen: 'ProfileTab',
+            params: { screen: 'VerificationStatus' },
+          },
+        });
+      }
+    );
+    it('cashflow_digest without jobId → PaymentHistory', () => {
+      expect(routeForNotification('cashflow_digest', {})).toEqual(
+        paymentHistory
+      );
+    });
+    it('job_tip_received with jobId → JobDetails; without → PaymentHistory', () => {
+      expect(routeForNotification('job_tip_received', { jobId: JOB })).toEqual(
+        jobDetails(JOB)
+      );
+      expect(routeForNotification('job_tip_received', {})).toEqual(
+        paymentHistory
+      );
+    });
+    it('review with jobId → JobDetails; without → Reviews', () => {
+      expect(routeForNotification('review', { jobId: JOB })).toEqual(
+        jobDetails(JOB)
+      );
+      expect(routeForNotification('review', {})).toEqual(reviews);
+    });
+    it('review_milestone → Reviews', () => {
+      expect(routeForNotification('review_milestone', { jobId: JOB })).toEqual(
+        reviews
+      );
+    });
+  });
+
+  describe('routeForNotification — property-scoped types', () => {
+    it.each([
+      'tenant_linked',
+      'property_team_invite',
+      'property_team_invite_accepted',
+    ])('%s with propertyId → PropertyDetail', (t) => {
+      expect(routeForNotification(t, { propertyId: 'prop-1' })).toEqual({
+        screen: 'Main',
+        params: {
+          screen: 'ProfileTab',
+          params: {
+            screen: 'PropertyDetail',
+            params: { propertyId: 'prop-1' },
+          },
+        },
+      });
+    });
+    it('property type without propertyId → inbox', () => {
+      expect(routeForNotification('tenant_linked', {})).toEqual(inbox);
+    });
+  });
+
+  it('resolves jobId from actionUrl when metadata lacks it', () => {
+    expect(
+      routeForNotification('job_update', { actionUrl: `/jobs/${UUID}` })
+    ).toEqual(jobDetails(UUID));
+  });
 });
