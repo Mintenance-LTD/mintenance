@@ -104,7 +104,7 @@ describe('MonitoringAndAlerting', () => {
       const slowCheck: HealthCheck = {
         name: 'slow_check',
         check: async () => {
-          await new Promise(resolve => setTimeout(resolve, 10000));
+          await new Promise((resolve) => setTimeout(resolve, 10000));
           return {
             healthy: true,
             message: 'Should timeout',
@@ -305,7 +305,7 @@ describe('MonitoringAndAlerting', () => {
 
         // Resolved alerts should not appear in active alerts
         const activeAlerts = instance.getActiveAlerts();
-        expect(activeAlerts.find(a => a.id === alertId)).toBeUndefined();
+        expect(activeAlerts.find((a) => a.id === alertId)).toBeUndefined();
       }
     });
 
@@ -610,7 +610,7 @@ describe('MonitoringAndAlerting', () => {
       await Promise.resolve();
 
       const alerts = instance.getActiveAlerts();
-      expect(alerts.some(a => a.severity === 'low')).toBe(true);
+      expect(alerts.some((a) => a.severity === 'low')).toBe(true);
     });
 
     it('should handle medium severity alerts', async () => {
@@ -630,7 +630,7 @@ describe('MonitoringAndAlerting', () => {
       await Promise.resolve();
 
       const alerts = instance.getActiveAlerts();
-      expect(alerts.some(a => a.severity === 'medium')).toBe(true);
+      expect(alerts.some((a) => a.severity === 'medium')).toBe(true);
     });
 
     it('should handle high severity alerts', async () => {
@@ -650,7 +650,7 @@ describe('MonitoringAndAlerting', () => {
       await Promise.resolve();
 
       const alerts = instance.getActiveAlerts();
-      expect(alerts.some(a => a.severity === 'high')).toBe(true);
+      expect(alerts.some((a) => a.severity === 'high')).toBe(true);
     });
 
     it('should handle critical severity alerts', async () => {
@@ -670,7 +670,116 @@ describe('MonitoringAndAlerting', () => {
       await Promise.resolve();
 
       const alerts = instance.getActiveAlerts();
-      expect(alerts.some(a => a.severity === 'critical')).toBe(true);
+      expect(alerts.some((a) => a.severity === 'critical')).toBe(true);
     });
+  });
+});
+
+/**
+ * Module-load behaviour for the facade (monitoringAndAlerting.ts).
+ *
+ * These cover the production auto-initialize block (lines 38-45) which is gated
+ * behind `if (!__DEV__)`. The default jest env sets `global.__DEV__ = true`
+ * (see jest-setup.js), so that branch never runs in the suite above. We flip
+ * __DEV__ and re-require the module in isolation to exercise both the success
+ * and failure paths of the auto-init.
+ */
+describe('monitoringAndAlerting facade — module load', () => {
+  const originalDev = (global as { __DEV__?: boolean }).__DEV__;
+  const GLOBAL_KEY = '__mintenanceMonitoringInstance';
+
+  // The class caches a singleton on globalThis. To force getInstance() to build
+  // a fresh instance from the freshly-required (and therefore spy-able) class
+  // module, we must clear that cached reference before each re-require.
+  const clearSingleton = () => {
+    delete (globalThis as Record<string, unknown>)[GLOBAL_KEY];
+    const ctor =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      (
+        require('../monitoring/MonitoringAndAlerting') as {
+          MonitoringAndAlerting: { instance?: unknown };
+        }
+      ).MonitoringAndAlerting;
+    ctor.instance = undefined;
+  };
+
+  afterEach(() => {
+    (global as { __DEV__?: boolean }).__DEV__ = originalDev;
+    delete (globalThis as Record<string, unknown>)[GLOBAL_KEY];
+    jest.resetModules();
+    jest.useRealTimers();
+  });
+
+  it('does NOT auto-initialize when __DEV__ is true', () => {
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    jest.resetModules();
+
+    const initSpy = jest
+      .spyOn(
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('../monitoring/MonitoringAndAlerting').MonitoringAndAlerting
+          .prototype,
+        'initialize'
+      )
+      .mockResolvedValue(undefined);
+    clearSingleton();
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('../monitoringAndAlerting');
+
+    expect(initSpy).not.toHaveBeenCalled();
+    initSpy.mockRestore();
+  });
+
+  it('auto-initializes on module load when __DEV__ is false (success path)', async () => {
+    (global as { __DEV__?: boolean }).__DEV__ = false;
+    jest.resetModules();
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('../monitoring/MonitoringAndAlerting');
+    const initSpy = jest
+      .spyOn(mod.MonitoringAndAlerting.prototype, 'initialize')
+      .mockResolvedValue(undefined);
+    clearSingleton();
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('../monitoringAndAlerting');
+
+    expect(initSpy).toHaveBeenCalledTimes(1);
+    // Allow the resolved promise (and its .catch chain) to settle.
+    await Promise.resolve();
+    initSpy.mockRestore();
+  });
+
+  it('logs an error when auto-init rejects (__DEV__ false, failure path)', async () => {
+    (global as { __DEV__?: boolean }).__DEV__ = false;
+    jest.resetModules();
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('../monitoring/MonitoringAndAlerting');
+    const bootError = new Error('boot failed');
+    const initSpy = jest
+      .spyOn(mod.MonitoringAndAlerting.prototype, 'initialize')
+      .mockRejectedValue(bootError);
+    clearSingleton();
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { logger } = require('../logger');
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('../monitoringAndAlerting');
+
+    // Flush the rejected promise so the .catch handler runs.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(initSpy).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      'MonitoringAndAlerting',
+      'Failed to auto-initialize monitoring',
+      bootError
+    );
+
+    initSpy.mockRestore();
   });
 });
