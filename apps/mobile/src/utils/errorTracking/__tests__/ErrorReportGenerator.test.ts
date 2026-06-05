@@ -1,8 +1,514 @@
+/**
+ * Unit tests for ErrorReportGenerator — pure markdown report assembly.
+ *
+ * Externals mocked:
+ *  - react-native `Platform.OS` is provided by the repo manual mock (`'ios'`).
+ *  - `Date` is fully spied so `new Date().toLocaleString()` is deterministic.
+ *
+ * The unit under test is NOT mocked. We assert exact report payloads and
+ * exercise every method + branch (summary, critical issues, top patterns,
+ * every severity emoji, insights, recommendations filtering/priority).
+ */
 import { ErrorReportGenerator } from '../ErrorReportGenerator';
+import {
+  ErrorPattern,
+  ErrorTrend,
+  ErrorSeverity,
+  ErrorCategory,
+  ErrorInsight,
+  ErrorRecommendation,
+} from '../ErrorTypes';
 
+// ---------------------------------------------------------------------------
+// Deterministic Date.toLocaleString()
+// ---------------------------------------------------------------------------
+const FIXED_DATE_STRING = '1/2/2024, 3:04:05 AM';
+let dateSpy: jest.SpyInstance;
+
+beforeAll(() => {
+  // Spy on the prototype so `new Date().toLocaleString()` is stable across runs
+  // without breaking other Date usage.
+  dateSpy = jest
+    .spyOn(Date.prototype, 'toLocaleString')
+    .mockReturnValue(FIXED_DATE_STRING);
+});
+
+afterAll(() => {
+  dateSpy.mockRestore();
+});
+
+// ---------------------------------------------------------------------------
+// Builders
+// ---------------------------------------------------------------------------
+function makeTrend(overrides: Partial<ErrorTrend['summary']> = {}): ErrorTrend {
+  return {
+    period: '24h',
+    data: [],
+    summary: {
+      totalErrors: 42,
+      uniqueUsers: 10,
+      errorRate: 4.2,
+      criticalErrors: 3,
+      newErrors: 2,
+      resolved: 1,
+      ...overrides,
+    },
+  };
+}
+
+function makeInsight(overrides: Partial<ErrorInsight> = {}): ErrorInsight {
+  return {
+    type: 'pattern',
+    title: 'Insight Title',
+    description: 'Insight description text.',
+    confidence: 0.825,
+    data: {},
+    ...overrides,
+  };
+}
+
+function makeRecommendation(
+  overrides: Partial<ErrorRecommendation> = {}
+): ErrorRecommendation {
+  return {
+    priority: 'high',
+    category: 'fix',
+    title: 'Fix the thing',
+    description: 'Detailed fix description.',
+    actions: ['do x'],
+    estimatedEffort: 'medium',
+    potentialImpact: 'high',
+    ...overrides,
+  };
+}
+
+function makePattern(overrides: Partial<ErrorPattern> = {}): ErrorPattern {
+  return {
+    id: 'p1',
+    signature: 'TypeError: undefined is not a function',
+    category: ErrorCategory.UI_RENDERING,
+    severity: ErrorSeverity.ERROR,
+    occurrences: [],
+    metrics: {
+      count: 12,
+      uniqueUsers: new Set(['u1', 'u2', 'u3']),
+      firstSeen: 0,
+      lastSeen: 0,
+      frequency: 1,
+      trend: 'increasing',
+      impactScore: 87,
+      resolution: 'pending',
+    },
+    insights: [],
+    recommendations: [],
+    tags: [],
+    ...overrides,
+  };
+}
+
+const generator = new ErrorReportGenerator();
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 describe('ErrorReportGenerator', () => {
-  it('exports a generator class', () => {
+  it('exports an instantiable class', () => {
     expect(ErrorReportGenerator).toBeDefined();
     expect(typeof ErrorReportGenerator).toBe('function');
+    expect(generator).toBeInstanceOf(ErrorReportGenerator);
+  });
+
+  describe('header + executive summary', () => {
+    it('renders the header with platform, fixed date and analysis period', () => {
+      const report = generator.generateAnalyticsReport(makeTrend(), [], []);
+
+      expect(report).toContain('# 📊 Error Analytics Report');
+      expect(report).toContain(`**Generated:** ${FIXED_DATE_STRING}`);
+      expect(report).toContain('**Platform:** ios');
+      expect(report).toContain('**Analysis Period:** Last 24 hours');
+      expect(dateSpy).toHaveBeenCalled();
+    });
+
+    it('renders every executive-summary field with errorRate fixed to 2 dp', () => {
+      const report = generator.generateAnalyticsReport(
+        makeTrend({
+          totalErrors: 100,
+          uniqueUsers: 25,
+          errorRate: 4,
+          criticalErrors: 7,
+          newErrors: 5,
+          resolved: 9,
+        }),
+        [],
+        []
+      );
+
+      expect(report).toContain('## 📈 Executive Summary');
+      expect(report).toContain('- **Total Errors:** 100');
+      expect(report).toContain('- **Affected Users:** 25');
+      expect(report).toContain('- **Error Rate:** 4.00 errors/user');
+      expect(report).toContain('- **Critical Errors:** 7');
+      expect(report).toContain('- **New Error Types:** 5');
+      expect(report).toContain('- **Resolved Issues:** 9');
+    });
+
+    it('always ends with the footer line', () => {
+      const report = generator.generateAnalyticsReport(makeTrend(), [], []);
+      expect(report.trimEnd()).toMatch(
+        /---\n\*Generated by Mintenance Enhanced Error Analytics\*$/
+      );
+    });
+  });
+
+  describe('critical issues section', () => {
+    it('is omitted entirely when there are no critical patterns', () => {
+      const report = generator.generateAnalyticsReport(makeTrend(), [], []);
+      expect(report).not.toContain(
+        '## 🚨 Critical Issues Requiring Immediate Attention'
+      );
+    });
+
+    it('renders critical pattern metrics including top recommendation', () => {
+      const critical = makePattern({
+        signature: 'FatalError: boom',
+        metrics: {
+          count: 99,
+          uniqueUsers: new Set(['a', 'b']),
+          firstSeen: 0,
+          lastSeen: 0,
+          frequency: 1,
+          trend: 'increasing',
+          impactScore: 95,
+          resolution: 'pending',
+        },
+        recommendations: [makeRecommendation({ title: 'Rollback release' })],
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [],
+        [critical]
+      );
+
+      expect(report).toContain(
+        '## 🚨 Critical Issues Requiring Immediate Attention'
+      );
+      expect(report).toContain('### 1. FatalError: boom');
+      expect(report).toContain('- **Occurrences:** 99');
+      expect(report).toContain('- **Users Affected:** 2');
+      expect(report).toContain('- **Impact Score:** 95/100');
+      expect(report).toContain('- **Trend:** increasing');
+      expect(report).toContain('- **Top Recommendation:** Rollback release');
+    });
+
+    it('omits the top-recommendation line when a critical pattern has none', () => {
+      const critical = makePattern({
+        signature: 'NoRecError',
+        recommendations: [],
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [],
+        [critical]
+      );
+
+      expect(report).toContain('### 1. NoRecError');
+      expect(report).not.toContain('- **Top Recommendation:**');
+    });
+
+    it('caps the critical list at the first 5 patterns', () => {
+      const criticals = Array.from({ length: 7 }, (_, i) =>
+        makePattern({ id: `c${i}`, signature: `Critical-${i}` })
+      );
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [],
+        criticals
+      );
+
+      expect(report).toContain('### 5. Critical-4');
+      expect(report).not.toContain('Critical-5');
+      expect(report).not.toContain('### 6.');
+    });
+  });
+
+  describe('top error patterns section + severity emojis', () => {
+    it('always renders the heading even with no patterns', () => {
+      const report = generator.generateAnalyticsReport(makeTrend(), [], []);
+      expect(report).toContain('## 🔍 Top Error Patterns by Impact');
+    });
+
+    it('renders count / users / impact / category / status lines', () => {
+      const pattern = makePattern({
+        signature: 'NetworkError: timeout',
+        category: ErrorCategory.NETWORK,
+        metrics: {
+          count: 5,
+          uniqueUsers: new Set(['x']),
+          firstSeen: 0,
+          lastSeen: 0,
+          frequency: 1,
+          trend: 'stable',
+          impactScore: 40,
+          resolution: 'investigating',
+        },
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [pattern],
+        []
+      );
+
+      expect(report).toContain('1. 🔴 **NetworkError: timeout**');
+      expect(report).toContain('   - Count: 5 | Users: 1 | Impact: 40/100');
+      expect(report).toContain(
+        '   - Category: network | Status: investigating'
+      );
+    });
+
+    it.each([
+      [ErrorSeverity.FATAL, '🚨'],
+      [ErrorSeverity.ERROR, '🔴'],
+      [ErrorSeverity.WARNING, '🟡'],
+      [ErrorSeverity.INFO, '🔵'],
+      [ErrorSeverity.DEBUG, '⚪'],
+    ])('maps severity %s to emoji %s', (severity, emoji) => {
+      const pattern = makePattern({
+        signature: `sev-${severity}`,
+        severity: severity as ErrorSeverity,
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [pattern],
+        []
+      );
+
+      expect(report).toContain(`1. ${emoji} **sev-${severity}**`);
+    });
+
+    it('falls back to ❓ for an unknown severity (default branch)', () => {
+      const pattern = makePattern({
+        signature: 'weird-severity',
+        severity: 'totally-unknown' as unknown as ErrorSeverity,
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [pattern],
+        []
+      );
+
+      expect(report).toContain('1. ❓ **weird-severity**');
+    });
+
+    it('caps the top-patterns list at the first 10', () => {
+      const patterns = Array.from({ length: 12 }, (_, i) =>
+        makePattern({ id: `t${i}`, signature: `Top-${i}` })
+      );
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        patterns,
+        []
+      );
+
+      expect(report).toContain('**Top-9**');
+      expect(report).not.toContain('**Top-10**');
+      expect(report).not.toContain('**Top-11**');
+    });
+  });
+
+  describe('insights section', () => {
+    it('is omitted when no pattern carries insights', () => {
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [makePattern({ insights: [] })],
+        []
+      );
+      expect(report).not.toContain('## 💡 Key Insights');
+    });
+
+    it('renders insights with rounded confidence percentage', () => {
+      const pattern = makePattern({
+        insights: [
+          makeInsight({
+            title: 'Correlated with deploy',
+            description: 'Spike began at 14:00.',
+            confidence: 0.826, // rounds to 83
+          }),
+        ],
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [pattern],
+        []
+      );
+
+      expect(report).toContain('## 💡 Key Insights');
+      expect(report).toContain(
+        '1. **Correlated with deploy** (83% confidence)'
+      );
+      expect(report).toContain('   Spike began at 14:00.');
+    });
+
+    it('aggregates insights across patterns and caps at 5', () => {
+      const patterns = Array.from({ length: 3 }, (_, p) =>
+        makePattern({
+          id: `ip${p}`,
+          insights: [
+            makeInsight({ title: `I-${p}-a` }),
+            makeInsight({ title: `I-${p}-b` }),
+          ],
+        })
+      );
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        patterns,
+        []
+      );
+
+      // 6 total insights, only first 5 rendered → I-0-a..I-2-a, last (I-2-b) dropped
+      expect(report).toContain('**I-0-a**');
+      expect(report).toContain('**I-2-a**');
+      expect(report).not.toContain('**I-2-b**');
+    });
+  });
+
+  describe('priority recommendations section', () => {
+    it('is omitted when no high/critical recommendations exist', () => {
+      const pattern = makePattern({
+        recommendations: [
+          makeRecommendation({ priority: 'low' }),
+          makeRecommendation({ priority: 'medium' }),
+        ],
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [pattern],
+        []
+      );
+
+      expect(report).not.toContain('## 🎯 Priority Recommendations');
+    });
+
+    it('renders critical recommendations with 🚨 and full detail line', () => {
+      const pattern = makePattern({
+        recommendations: [
+          makeRecommendation({
+            priority: 'critical',
+            title: 'Disable feature flag',
+            description: 'Turn off X immediately.',
+            estimatedEffort: 'low',
+            potentialImpact: 'high',
+          }),
+        ],
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [pattern],
+        []
+      );
+
+      expect(report).toContain('## 🎯 Priority Recommendations');
+      expect(report).toContain('1. 🚨 **Disable feature flag** (critical)');
+      expect(report).toContain('   Turn off X immediately.');
+      expect(report).toContain('   - Effort: low | Impact: high');
+    });
+
+    it('renders high recommendations with ⚠️ and filters out low/medium', () => {
+      const pattern = makePattern({
+        recommendations: [
+          makeRecommendation({ priority: 'high', title: 'Add retry' }),
+          makeRecommendation({ priority: 'medium', title: 'Tidy logs' }),
+          makeRecommendation({ priority: 'low', title: 'Rename var' }),
+        ],
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [pattern],
+        []
+      );
+
+      expect(report).toContain('1. ⚠️ **Add retry** (high)');
+      expect(report).not.toContain('Tidy logs');
+      expect(report).not.toContain('Rename var');
+    });
+
+    it('aggregates recommendations across patterns and caps at 5', () => {
+      const patterns = Array.from({ length: 6 }, (_, i) =>
+        makePattern({
+          id: `rp${i}`,
+          recommendations: [
+            makeRecommendation({ priority: 'high', title: `Rec-${i}` }),
+          ],
+        })
+      );
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        patterns,
+        []
+      );
+
+      expect(report).toContain('**Rec-0**');
+      expect(report).toContain('**Rec-4**');
+      expect(report).not.toContain('**Rec-5**');
+    });
+  });
+
+  describe('full populated report integration', () => {
+    it('assembles all sections in order with realistic data', () => {
+      const critical = makePattern({
+        id: 'crit',
+        signature: 'CrashError',
+        severity: ErrorSeverity.FATAL,
+        recommendations: [makeRecommendation({ title: 'Hotfix now' })],
+      });
+      const top = makePattern({
+        id: 'top',
+        signature: 'SlowQuery',
+        severity: ErrorSeverity.WARNING,
+        category: ErrorCategory.DATABASE,
+        insights: [makeInsight({ title: 'DB saturation' })],
+        recommendations: [
+          makeRecommendation({ priority: 'critical', title: 'Add index' }),
+        ],
+      });
+
+      const report = generator.generateAnalyticsReport(
+        makeTrend(),
+        [top],
+        [critical]
+      );
+
+      const idxHeader = report.indexOf('# 📊 Error Analytics Report');
+      const idxSummary = report.indexOf('## 📈 Executive Summary');
+      const idxCritical = report.indexOf('## 🚨 Critical Issues');
+      const idxTop = report.indexOf('## 🔍 Top Error Patterns');
+      const idxInsights = report.indexOf('## 💡 Key Insights');
+      const idxRecs = report.indexOf('## 🎯 Priority Recommendations');
+      const idxFooter = report.indexOf('Generated by Mintenance');
+
+      expect(idxHeader).toBeGreaterThanOrEqual(0);
+      expect(idxSummary).toBeGreaterThan(idxHeader);
+      expect(idxCritical).toBeGreaterThan(idxSummary);
+      expect(idxTop).toBeGreaterThan(idxCritical);
+      expect(idxInsights).toBeGreaterThan(idxTop);
+      expect(idxRecs).toBeGreaterThan(idxInsights);
+      expect(idxFooter).toBeGreaterThan(idxRecs);
+
+      // returns a non-empty string
+      expect(typeof report).toBe('string');
+      expect(report.length).toBeGreaterThan(0);
+    });
   });
 });
