@@ -28,11 +28,15 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 // fetchServerData uses require('../JobService') and require('../UserService')
 const mockGetJobById = jest.fn();
+const mockGetBidById = jest.fn();
 const mockGetUserProfile = jest.fn();
 jest.mock(
   '../../JobService',
   () => ({
-    JobService: { getJobById: (...a: unknown[]) => mockGetJobById(...a) },
+    JobService: {
+      getJobById: (...a: unknown[]) => mockGetJobById(...a),
+      getBidById: (...a: unknown[]) => mockGetBidById(...a),
+    },
   }),
   { virtual: true }
 );
@@ -262,15 +266,30 @@ describe('fetchServerData (via detectConflict)', () => {
     expect(mockGetJobById).toHaveBeenCalledWith('entity-1');
   });
 
-  it('bid entity returns null and warns (not implemented)', async () => {
+  it('bid entity without a queued jobId returns null and warns', async () => {
+    // makeAction's default data ({ title }) carries no jobId, so the bid
+    // branch cannot resolve the /api/jobs/:jobId/bids/:bidId route.
     const r = await manager.detectConflict(
       makeAction({ entity: 'bid', baseVersion: 0 })
     );
     expect(r).toBeNull();
+    expect(mockGetBidById).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
-      'Bid conflict detection skipped — getBidById not yet implemented',
+      'Bid conflict detection skipped — queued action has no jobId',
       { entityId: 'entity-1' }
     );
+  });
+
+  it('bid entity with a queued jobId resolves via JobService.getBidById', async () => {
+    mockGetBidById.mockResolvedValue({ id: 'entity-1', version: 9 });
+    await manager.detectConflict(
+      makeAction({
+        entity: 'bid',
+        baseVersion: 0,
+        data: { jobId: 'job-77', amount: 100 },
+      })
+    );
+    expect(mockGetBidById).toHaveBeenCalledWith('job-77', 'entity-1');
   });
 
   it('profile entity calls UserService.getUserProfile', async () => {
