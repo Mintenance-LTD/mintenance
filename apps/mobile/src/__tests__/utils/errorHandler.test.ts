@@ -650,17 +650,32 @@ describe('ErrorHandler', () => {
         .mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
         .mockResolvedValue('success');
 
-      const start = Date.now();
-      const result = await ErrorHandler.withRetry(operation, {
-        delay: 10,
-        backoff: true,
-      });
+      // Capture backoff delays deterministically rather than measuring
+      // wall-clock time: Date.now()-based timing flakes in the full suite
+      // (jest.config restoreMocks:false lets a Date.now spy from another test
+      // file leak into this worker) and real setTimeout waits are unreliable
+      // under parallel/coverage load. Asserting the delays is also stronger.
+      const delays: number[] = [];
+      const setTimeoutSpy = jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation(((cb: (...a: unknown[]) => void, ms?: number) => {
+          delays.push(ms ?? 0);
+          cb();
+          return 0 as unknown as ReturnType<typeof setTimeout>;
+        }) as unknown as typeof setTimeout);
 
-      const duration = Date.now() - start;
-      expect(result).toBe('success');
-      expect(operation).toHaveBeenCalledTimes(3);
-      // First retry after 10ms, second after 20ms (10 * 2^1)
-      expect(duration).toBeGreaterThanOrEqual(30);
+      try {
+        const result = await ErrorHandler.withRetry(operation, {
+          delay: 10,
+          backoff: true,
+        });
+        expect(result).toBe('success');
+        expect(operation).toHaveBeenCalledTimes(3);
+        // Exponential: first retry 10ms (10*2^0), second 20ms (10*2^1)
+        expect(delays).toEqual([10, 20]);
+      } finally {
+        setTimeoutSpy.mockRestore();
+      }
     });
 
     it('should not use backoff when disabled', async () => {
@@ -670,18 +685,29 @@ describe('ErrorHandler', () => {
         .mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
         .mockResolvedValue('success');
 
-      const start = Date.now();
-      const result = await ErrorHandler.withRetry(operation, {
-        delay: 10,
-        backoff: false,
-      });
+      // Deterministic delay capture (see exponential-backoff test above for why
+      // wall-clock timing is unreliable in the full suite).
+      const delays: number[] = [];
+      const setTimeoutSpy = jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation(((cb: (...a: unknown[]) => void, ms?: number) => {
+          delays.push(ms ?? 0);
+          cb();
+          return 0 as unknown as ReturnType<typeof setTimeout>;
+        }) as unknown as typeof setTimeout);
 
-      const duration = Date.now() - start;
-      expect(result).toBe('success');
-      expect(operation).toHaveBeenCalledTimes(3);
-      // Both retries after 10ms each (with tolerance for test environment)
-      expect(duration).toBeGreaterThanOrEqual(20);
-      expect(duration).toBeLessThan(60); // Increased tolerance for CI environments
+      try {
+        const result = await ErrorHandler.withRetry(operation, {
+          delay: 10,
+          backoff: false,
+        });
+        expect(result).toBe('success');
+        expect(operation).toHaveBeenCalledTimes(3);
+        // No backoff: both retries use the flat 10ms delay
+        expect(delays).toEqual([10, 10]);
+      } finally {
+        setTimeoutSpy.mockRestore();
+      }
     });
 
     it('should retry on specific Supabase errors', async () => {

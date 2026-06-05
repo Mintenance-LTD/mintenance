@@ -137,7 +137,10 @@
     "@sentry/browser": "7.119.1",
     "@sentry/react": "7.119.1",
     "fast-xml-parser": "5.7.0",
-    "minimatch": "10.2.4"
+    "minimatch": "10.2.4",
+    "test-exclude": {
+      "minimatch": "3.1.2"
+    }
   },
   "dependencies": {
     "node-cache": "^5.1.2",
