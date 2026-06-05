@@ -46,10 +46,7 @@ export class ConflictManager {
   async detectConflict(action: OfflineAction): Promise<DataConflict | null> {
     if (action.type !== 'UPDATE' || !action.entityId) return null;
     try {
-      const serverData = await this.fetchServerData(
-        action.entity,
-        action.entityId
-      );
+      const serverData = await this.fetchServerData(action);
       if (!serverData) return null;
       const serverEntity = serverData as ServerEntityData;
       const currentVersion = await this.versionTracker.getEntityVersion(
@@ -57,8 +54,21 @@ export class ConflictManager {
         action.entityId
       );
       const baseVersion = action.baseVersion || 0;
-      if (!serverEntity.version || serverEntity.version <= baseVersion)
-        return null;
+
+      // jobs/bids/profiles carry no server-side numeric `version` column —
+      // only `updated_at`. When the server row does expose a numeric version
+      // we keep the original optimistic-version check; otherwise we fall back
+      // to comparing the server's last-modified time against when this action
+      // was queued offline. A conflict exists only if the row changed on the
+      // server AFTER we queued our mutation. If neither signal is available we
+      // assume no conflict (the previous, version-only check was a permanent
+      // no-op for every entity because no table has a `version` column).
+      const serverTimestamp = this.parseServerTimestamp(serverEntity);
+      const hasServerVersion = typeof serverEntity.version === 'number';
+      const isConflict = hasServerVersion
+        ? (serverEntity.version as number) > baseVersion
+        : serverTimestamp !== null && serverTimestamp > action.timestamp;
+      if (!isConflict) return null;
 
       const conflict: DataConflict = {
         id: `conflict_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -66,13 +76,11 @@ export class ConflictManager {
         entity: action.entity,
         entityId: action.entityId,
         clientVersion: action.version || currentVersion,
-        serverVersion: serverEntity.version,
+        serverVersion: serverEntity.version ?? 0,
         clientData: action.data,
         serverData,
         clientTimestamp: action.timestamp,
-        serverTimestamp: new Date(
-          serverEntity.updatedAt || serverEntity.updated_at || Date.now()
-        ).getTime(),
+        serverTimestamp: serverTimestamp ?? Date.now(),
         detectedAt: Date.now(),
         strategy:
           action.strategy ||
@@ -93,11 +101,22 @@ export class ConflictManager {
     }
   }
 
-  /** Fetch current server data for an entity (used by detectConflict) */
-  private async fetchServerData(
-    entity: string,
-    entityId: string
-  ): Promise<unknown> {
+  /**
+   * Parse a server entity's last-modified timestamp to epoch milliseconds,
+   * or null when it is absent/unparseable. Used as the conflict signal for
+   * entities that have no numeric `version` column (all of them today).
+   */
+  private parseServerTimestamp(entity: ServerEntityData): number | null {
+    const raw = entity.updatedAt || entity.updated_at;
+    if (!raw) return null;
+    const ms = new Date(raw).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+
+  /** Fetch current server data for an action's entity (used by detectConflict) */
+  private async fetchServerData(action: OfflineAction): Promise<unknown> {
+    const { entity, entityId } = action;
+    if (!entityId) return null;
     try {
       switch (entity) {
         case 'job': {
@@ -106,22 +125,23 @@ export class ConflictManager {
         }
         case 'bid': {
           // 2026-05-27 whole-app review Critical #8: previously called
-          // `JobService.getBidsByJob(entityId)` — but `entityId` is a
-          // bidId, not a jobId. The .find() always returned undefined,
-          // so bid conflicts were never detected and the merge-strategy
-          // path silently degraded to "no conflict".
-          //
-          // Until a server-side `GET /api/jobs/[id]/bids/[bidId]`
-          // endpoint + `BidService.getBidById` exist (separate scope),
-          // we explicitly return null + log so the gap is operator-
-          // visible. Falls through to "no conflict detected", which is
-          // the SAME behaviour as the broken previous version — but
-          // now it's traceable in logs instead of silent.
-          logger.warn(
-            'Bid conflict detection skipped — getBidById not yet implemented',
-            { entityId }
-          );
-          return null;
+          // `JobService.getBidsByJob(entityId)` — but `entityId` is a bidId,
+          // not a jobId, so `.find()` always returned undefined and bid
+          // conflicts were never detected. Bids live under the nested
+          // `/api/jobs/:jobId/bids/:bidId` route, so resolving one needs the
+          // jobId; offline bid mutations carry it on `action.data.jobId`
+          // (see offline/types BidData). Now wired to the real by-id fetch
+          // via `GET /api/jobs/[id]/bids/[bidId]` + `BidService.getBidById`.
+          const jobId = (action.data as { jobId?: string } | null)?.jobId;
+          if (!jobId) {
+            logger.warn(
+              'Bid conflict detection skipped — queued action has no jobId',
+              { entityId }
+            );
+            return null;
+          }
+          const { JobService } = require('../JobService');
+          return await JobService.getBidById(jobId, entityId);
         }
         case 'profile': {
           const { UserService } = require('../UserService');

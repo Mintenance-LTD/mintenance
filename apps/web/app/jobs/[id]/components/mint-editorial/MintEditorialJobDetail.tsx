@@ -284,6 +284,7 @@ export function MintEditorialJobDetail({
 
       {/* Hero strip — left: status/title/meta, right: Mint AI summary */}
       <div
+        className='me-job-hero'
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1fr) 320px',
@@ -387,6 +388,7 @@ export function MintEditorialJobDetail({
 
       {/* Body — 2-col with sticky right rail */}
       <div
+        className='me-job-body'
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1fr) 360px',

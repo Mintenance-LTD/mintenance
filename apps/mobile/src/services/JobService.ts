@@ -158,6 +158,10 @@ export class JobService {
     return BidService.getBidsByJob(jobId);
   }
 
+  static async getBidById(jobId: string, bidId: string): Promise<Bid | null> {
+    return BidService.getBidById(jobId, bidId);
+  }
+
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
     return BidService.getBidsByContractor(contractorId);
   }
