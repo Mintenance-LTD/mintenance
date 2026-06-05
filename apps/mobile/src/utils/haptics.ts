@@ -294,12 +294,17 @@ export const useHaptics = () => {
     selection: HapticService.selection,
 
     // Pattern haptics
-    playPattern: HapticService.playPattern,
+    // NOTE: playPattern / getPreferences / updatePreferences / initialize are
+    // regular `static` methods (not arrow-function statics), so they rely on
+    // `this`. Exposing them as bare references through the hook dropped `this`
+    // — e.g. getPreferences() returned `{}` and playPattern() threw on
+    // `this.shouldPlayHaptic`. Bind to HapticService so the hook surface works.
+    playPattern: HapticService.playPattern.bind(HapticService),
 
     // Preferences management
-    getPreferences: HapticService.getPreferences,
-    updatePreferences: HapticService.updatePreferences,
-    initialize: HapticService.initialize,
+    getPreferences: HapticService.getPreferences.bind(HapticService),
+    updatePreferences: HapticService.updatePreferences.bind(HapticService),
+    initialize: HapticService.initialize.bind(HapticService),
 
     // Context-specific haptics
     buttonPress: HapticService.buttonPress,
