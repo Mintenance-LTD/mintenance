@@ -54,11 +54,9 @@ describe('BundleAnalyzer', () => {
     it('should log performance metrics', async () => {
       await BundleAnalyzer.analyzeBundle();
 
-      expect(logger.performance).toHaveBeenCalledWith(
-        'Bundle analysis',
-        0,
-        { phase: 'start' }
-      );
+      expect(logger.performance).toHaveBeenCalledWith('Bundle analysis', 0, {
+        phase: 'start',
+      });
       expect(logger.performance).toHaveBeenCalledWith(
         'Bundle analysis',
         expect.any(Number),
@@ -83,7 +81,10 @@ describe('BundleAnalyzer', () => {
       (AsyncStorage.getItem as jest.Mock).mockRejectedValue(error);
 
       await BundleAnalyzer.analyzeBundle();
-      expect(logger.warn).toHaveBeenCalledWith('Failed to store bundle metrics:', { data: error });
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Failed to store bundle metrics:',
+        { data: error }
+      );
     });
   });
 
@@ -116,8 +117,10 @@ describe('BundleAnalyzer', () => {
 
     it('should categorize assets correctly', async () => {
       const result = await BundleAnalyzer.analyzeBundle();
-      const jsAssets = result.metrics.assets.filter(a => a.type === 'js');
-      const imageAssets = result.metrics.assets.filter(a => a.type === 'image');
+      const jsAssets = result.metrics.assets.filter((a) => a.type === 'js');
+      const imageAssets = result.metrics.assets.filter(
+        (a) => a.type === 'image'
+      );
 
       expect(jsAssets).toHaveLength(2);
       expect(imageAssets).toHaveLength(1);
@@ -146,7 +149,7 @@ describe('BundleAnalyzer', () => {
 
       const result = await BundleAnalyzer.analyzeBundle();
       const codeSplittingRec = result.recommendations.find(
-        r => r.type === 'code-splitting'
+        (r) => r.type === 'code-splitting'
       );
 
       expect(codeSplittingRec).toBeDefined();
@@ -158,7 +161,7 @@ describe('BundleAnalyzer', () => {
     it('should recommend lazy loading for large assets', async () => {
       const result = await BundleAnalyzer.analyzeBundle();
       const lazyLoadingRec = result.recommendations.find(
-        r => r.type === 'lazy-loading'
+        (r) => r.type === 'lazy-loading'
       );
 
       expect(lazyLoadingRec).toBeDefined();
@@ -169,11 +172,11 @@ describe('BundleAnalyzer', () => {
     it('should recommend tree shaking for duplicate modules', async () => {
       const result = await BundleAnalyzer.analyzeBundle();
       const treeShakingRecs = result.recommendations.filter(
-        r => r.type === 'tree-shaking'
+        (r) => r.type === 'tree-shaking'
       );
 
       expect(treeShakingRecs.length).toBeGreaterThan(0);
-      const duplicateRec = treeShakingRecs.find(r =>
+      const duplicateRec = treeShakingRecs.find((r) =>
         r.description.includes('duplicate modules')
       );
       expect(duplicateRec?.description).toContain('lodash');
@@ -199,7 +202,7 @@ describe('BundleAnalyzer', () => {
 
       const result = await BundleAnalyzer.analyzeBundle();
       const compressionRec = result.recommendations.find(
-        r => r.type === 'compression'
+        (r) => r.type === 'compression'
       );
 
       expect(compressionRec).toBeDefined();
@@ -288,7 +291,9 @@ describe('BundleAnalyzer', () => {
       const history = await BundleAnalyzer.getBundleHistory();
 
       expect(history).toEqual(mockHistory);
-      expect(AsyncStorage.getItem).toHaveBeenCalledWith('@mintenance/bundle_metrics');
+      expect(AsyncStorage.getItem).toHaveBeenCalledWith(
+        '@mintenance/bundle_metrics'
+      );
     });
 
     it('should return empty array when no history exists', async () => {
@@ -366,7 +371,9 @@ describe('BundleAnalyzer', () => {
       const report = await BundleAnalyzer.generateTrendReport();
 
       expect(report.trend).toBe('stable');
-      expect(report.recommendations).toContain('Insufficient data for trend analysis');
+      expect(report.recommendations).toContain(
+        'Insufficient data for trend analysis'
+      );
     });
 
     it('should detect increasing trend', async () => {
@@ -474,9 +481,12 @@ describe('DynamicImportManager', () => {
 
     it('should handle concurrent loading of same module', async () => {
       const mockModule = { test: 'module' };
-      const importFn = jest.fn().mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockModule), 100))
-      );
+      const importFn = jest
+        .fn()
+        .mockImplementation(
+          () =>
+            new Promise((resolve) => setTimeout(() => resolve(mockModule), 100))
+        );
 
       const promise1 = manager.loadModule('testModule', importFn);
       const promise2 = manager.loadModule('testModule', importFn);
@@ -494,8 +504,11 @@ describe('DynamicImportManager', () => {
       const result = await manager.loadModule('testModule', importFn, fallback);
 
       expect(result).toEqual(fallback);
+      // The elapsed-ms value is real wall-clock (Date.now() - start) and is
+      // non-deterministic under parallel suite load (0ms in isolation, 1ms+
+      // when the worker is busy). Match the message shape, not the exact ms.
       expect(logger.error).toHaveBeenCalledWith(
-        'Module testModule loading failed after 0ms',
+        expect.stringMatching(/^Module testModule loading failed after \d+ms$/),
         expect.any(Error)
       );
     });
@@ -503,9 +516,9 @@ describe('DynamicImportManager', () => {
     it('should throw error when no fallback provided', async () => {
       const importFn = jest.fn().mockRejectedValue(new Error('Import failed'));
 
-      await expect(
-        manager.loadModule('testModule', importFn)
-      ).rejects.toThrow('Import failed');
+      await expect(manager.loadModule('testModule', importFn)).rejects.toThrow(
+        'Import failed'
+      );
 
       expect(logger.error).toHaveBeenCalledWith(
         'Dynamic import failed',
