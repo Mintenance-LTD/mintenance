@@ -1,54 +1,80 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '../test-utils';
-import { HomeScreen } from '../../screens/home';
+import { Text } from 'react-native';
+import { render } from '../test-utils';
 import { useAuth } from '../../contexts/AuthContext';
-import { JobService } from '../../services/JobService';
-import { UserService } from '../../services/UserService';
+
+// ---------------------------------------------------------------------------
+// Realigned 2026-06-03 to the Mint Editorial v2 architecture.
+//
+// `HomeScreen` is now a thin role-router: it shows `HomeScreenLoading` while
+// auth resolves and otherwise delegates to `HomeownerDashboard` /
+// `ContractorDashboard`. The old monolithic HomeScreen (which owned the
+// "Welcome back, <name>!" hero, the recent-jobs list, contractor stats and the
+// empty/error states) no longer exists — that content moved into the dashboard
+// sub-components, each with their own dedicated suites. This suite therefore
+// verifies the router's contract: correct dashboard per role + the loading
+// gate. The heavy dashboard subtrees (React Query, Reanimated, Supabase, the
+// service stack) are mocked to lightweight stubs so we exercise routing intent
+// without re-testing every child.
+// ---------------------------------------------------------------------------
 
 jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
-);
 
-const mockNavigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
-  dispatch: jest.fn(),
-  reset: jest.fn(),
-  setParams: jest.fn(),
-  addListener: jest.fn(),
-  removeListener: jest.fn(),
-  canGoBack: jest.fn(() => true),
-  isFocused: jest.fn(() => true),
-  setOptions: jest.fn(),
-};
-
-const mockRoute = {
-  params: {},
-  key: 'test-route',
-  name: 'TestScreen',
-};
-
-// Mock dependencies
 jest.mock('../../contexts/AuthContext');
-jest.mock('../../services/JobService');
-jest.mock('../../services/UserService');
-// Use global navigation mock from jest-setup.js
+
+// Stub the dashboards + loading view so HomeScreen routing is isolated.
+jest.mock('../../screens/home/HomeownerDashboard', () => {
+  const { Text: RNText } = require('react-native');
+  return {
+    HomeownerDashboard: () => (
+      <RNText testID='homeowner-dashboard'>Homeowner Dashboard</RNText>
+    ),
+  };
+});
+jest.mock('../../screens/home/ContractorDashboard', () => {
+  const { Text: RNText } = require('react-native');
+  return {
+    ContractorDashboard: () => (
+      <RNText testID='contractor-dashboard'>Contractor Dashboard</RNText>
+    ),
+  };
+});
+jest.mock('../../screens/home/HomeScreenLoading', () => {
+  const { Text: RNText } = require('react-native');
+  return {
+    HomeScreenLoading: () => <RNText testID='home-loading'>Loading…</RNText>,
+  };
+});
+
+// Import after mocks so HomeScreen picks up the stubbed children.
+import { HomeScreen } from '../../screens/home';
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
-const mockJobService = JobService as jest.Mocked<typeof JobService>;
-const mockUserService = UserService as jest.Mocked<typeof UserService>;
-const mockNavigate = jest.fn();
 
-describe('HomeScreen', () => {
+const baseAuth = {
+  loading: false,
+  signIn: jest.fn(),
+  signUp: jest.fn(),
+  signOut: jest.fn(),
+  signInWithBiometrics: jest.fn(),
+  isBiometricAvailable: jest.fn(),
+  isBiometricEnabled: jest.fn(),
+  enableBiometric: jest.fn(),
+  disableBiometric: jest.fn(),
+};
+
+describe('HomeScreen (role router)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
 
+  it('routes a homeowner to the HomeownerDashboard', () => {
     mockUseAuth.mockReturnValue({
+      ...baseAuth,
       user: {
         id: 'user-1',
         email: 'test@example.com',
@@ -58,46 +84,17 @@ describe('HomeScreen', () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
-      loading: false,
-      signIn: jest.fn(),
-      signUp: jest.fn(),
-      signOut: jest.fn(),
-      signInWithBiometrics: jest.fn(),
-      isBiometricAvailable: jest.fn(),
-      isBiometricEnabled: jest.fn(),
-      enableBiometric: jest.fn(),
-      disableBiometric: jest.fn(),
-    });
+    } as unknown as ReturnType<typeof useAuth>);
+
+    const { getByTestId, queryByTestId } = render(<HomeScreen />);
+
+    expect(getByTestId('homeowner-dashboard')).toBeTruthy();
+    expect(queryByTestId('contractor-dashboard')).toBeNull();
   });
 
-  it('renders homeowner dashboard correctly', async () => {
-    const mockJobs = [
-      {
-        id: 'job-1',
-        title: 'Fix leaky faucet',
-        description: 'Kitchen faucet is leaking',
-        location: 'San Francisco, CA',
-        homeowner_id: 'homeowner-1',
-        budget: 150,
-        status: 'posted',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ];
-
-    mockJobService.getUserJobs.mockResolvedValue(mockJobs);
-
-    const { getByText, getByTestId } = render(<HomeScreen />);
-
-    await waitFor(() => {
-      expect(getByText('Welcome back, John!')).toBeTruthy();
-      expect(getByText('Your Recent Jobs')).toBeTruthy();
-      expect(getByText('Fix leaky faucet')).toBeTruthy();
-    });
-  });
-
-  it('renders contractor dashboard correctly', async () => {
+  it('routes a contractor to the ContractorDashboard', () => {
     mockUseAuth.mockReturnValue({
+      ...baseAuth,
       user: {
         id: 'user-1',
         email: 'contractor@example.com',
@@ -107,94 +104,56 @@ describe('HomeScreen', () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
-      loading: false,
-      signIn: jest.fn(),
-      signUp: jest.fn(),
-      signOut: jest.fn(),
-      signInWithBiometrics: jest.fn(),
-      isBiometricAvailable: false,
-      isBiometricEnabled: false,
-      enableBiometric: jest.fn(),
-      disableBiometric: jest.fn(),
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
-    const mockStats = {
-      totalJobs: 15,
-      completedJobs: 12,
-      activeJobs: 2,
-      rating: 4.8,
-      totalEarnings: 2500,
-      monthlyEarnings: 800,
-      totalJobsCompleted: 12,
-      responseTime: 2.5,
-      successRate: 95,
-      todaysAppointments: 3,
-    };
+    const { getByTestId, queryByTestId } = render(<HomeScreen />);
 
-    mockUserService.getContractorStats.mockResolvedValue(mockStats);
-
-    const { getByText } = render(<HomeScreen />);
-
-    await waitFor(() => {
-      expect(getByText('Welcome back, Jane!')).toBeTruthy();
-      expect(getByText('Your Stats')).toBeTruthy();
-      expect(getByText('15')).toBeTruthy(); // Total jobs
-      expect(getByText('4.8')).toBeTruthy(); // Rating
-    });
+    expect(getByTestId('contractor-dashboard')).toBeTruthy();
+    expect(queryByTestId('homeowner-dashboard')).toBeNull();
   });
 
-  it('handles loading state', () => {
+  it('falls back to the homeowner view for unknown roles', () => {
     mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      user: {
+        id: 'user-1',
+        email: 'admin@example.com',
+        first_name: 'Ada',
+        last_name: 'Min',
+        role: 'admin',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    } as unknown as ReturnType<typeof useAuth>);
+
+    const { getByTestId } = render(<HomeScreen />);
+    expect(getByTestId('homeowner-dashboard')).toBeTruthy();
+  });
+
+  it('shows the loading view while a contractor session is still loading', () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      user: {
+        id: 'user-1',
+        email: 'contractor@example.com',
+        role: 'contractor',
+      },
+      loading: true,
+    } as unknown as ReturnType<typeof useAuth>);
+
+    const { getByTestId, queryByTestId } = render(<HomeScreen />);
+    expect(getByTestId('home-loading')).toBeTruthy();
+    expect(queryByTestId('contractor-dashboard')).toBeNull();
+  });
+
+  it('shows the loading view while auth resolves with no user yet', () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
       user: null,
       loading: true,
-      signIn: jest.fn(),
-      signUp: jest.fn(),
-      signOut: jest.fn(),
-      signInWithBiometrics: jest.fn(),
-      isBiometricAvailable: false,
-      isBiometricEnabled: false,
-      enableBiometric: jest.fn(),
-      disableBiometric: jest.fn(),
-    });
+    } as unknown as ReturnType<typeof useAuth>);
 
     const { getByTestId } = render(<HomeScreen />);
-    expect(getByTestId('loading-spinner')).toBeTruthy();
-  });
-
-  it('handles error state', async () => {
-    mockUserService.getPreviousContractors.mockRejectedValue(
-      new Error('Failed to load dashboard data')
-    );
-
-    const { getByText } = render(<HomeScreen />);
-
-    await waitFor(() => {
-      expect(getByText('Failed to load dashboard data')).toBeTruthy();
-    });
-  });
-
-  it('refreshes data on pull to refresh', async () => {
-    const mockJobs = [];
-    mockJobService.getUserJobs.mockResolvedValue(mockJobs);
-
-    const { getByTestId } = render(<HomeScreen />);
-
-    const scrollView = getByTestId('home-scroll-view');
-    fireEvent(scrollView, 'refresh');
-
-    await waitFor(() => {
-      expect(mockJobService.getUserJobs).toHaveBeenCalledTimes(2); // Initial load + refresh
-    });
-  });
-
-  it('shows empty state when no jobs', async () => {
-    mockJobService.getUserJobs.mockResolvedValue([]);
-
-    const { getByText } = render(<HomeScreen />);
-
-    await waitFor(() => {
-      expect(getByText('No jobs posted yet')).toBeTruthy();
-      expect(getByText('Post your first job to get started!')).toBeTruthy();
-    });
+    expect(getByTestId('home-loading')).toBeTruthy();
   });
 });

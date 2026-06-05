@@ -3,33 +3,43 @@
 exports[`LocationPicker Component Basic Rendering should match snapshot in loading state 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <Text
     style={
-      {
-        "color": "#000000",
-        "fontSize": 20,
-        "fontWeight": "600",
-        "marginBottom": 16,
-      }
+      [
+        {
+          "fontSize": 12,
+          "fontWeight": "700",
+          "letterSpacing": 0.8,
+          "marginBottom": 16,
+          "textTransform": "uppercase",
+        },
+        {
+          "color": "#768079",
+        },
+      ]
     }
   >
-    Location
+    LOCATION
   </Text>
   <View
     style={
@@ -43,15 +53,19 @@ exports[`LocationPicker Component Basic Rendering should match snapshot in loadi
     }
   >
     <ActivityIndicator
-      color="#007AFF"
+      color="#1A2520"
       size="small"
     />
     <Text
       style={
-        {
-          "color": "#666666",
-          "fontSize": 14,
-        }
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#4A5751",
+          },
+        ]
       }
     >
       Getting your location...
@@ -63,33 +77,43 @@ exports[`LocationPicker Component Basic Rendering should match snapshot in loadi
 exports[`LocationPicker Component Error State should match snapshot in error state 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <Text
     style={
-      {
-        "color": "#000000",
-        "fontSize": 20,
-        "fontWeight": "600",
-        "marginBottom": 16,
-      }
+      [
+        {
+          "fontSize": 12,
+          "fontWeight": "700",
+          "letterSpacing": 0.8,
+          "marginBottom": 16,
+          "textTransform": "uppercase",
+        },
+        {
+          "color": "#768079",
+        },
+      ]
     }
   >
-    Location
+    LOCATION
   </Text>
   <View
     style={
@@ -100,17 +124,34 @@ exports[`LocationPicker Component Error State should match snapshot in error sta
       }
     }
   >
-    <Ionicons
-      color="#EF4444"
-      name="location-outline"
-      size={24}
-    />
-    <Text
+    <View
       style={
         {
-          "color": "#EF4444",
-          "fontSize": 14,
+          "alignItems": "center",
+          "backgroundColor": "#F5DDD2",
+          "borderRadius": 24,
+          "height": 48,
+          "justifyContent": "center",
+          "width": 48,
         }
+      }
+    >
+      <Ionicons
+        color="#8A2E1B"
+        name="location-outline"
+        size={24}
+      />
+    </View>
+    <Text
+      style={
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#8A2E1B",
+          },
+        ]
       }
     >
       Failed to get location
@@ -118,21 +159,29 @@ exports[`LocationPicker Component Error State should match snapshot in error sta
     <TouchableOpacity
       onPress={[MockFunction]}
       style={
-        {
-          "backgroundColor": "#EF4444",
-          "borderRadius": 8,
-          "paddingHorizontal": 16,
-          "paddingVertical": 8,
-        }
+        [
+          {
+            "borderRadius": 28,
+            "paddingHorizontal": 24,
+            "paddingVertical": 10,
+          },
+          {
+            "backgroundColor": "#1A2520",
+          },
+        ]
       }
     >
       <Text
         style={
-          {
-            "color": "#FFFFFF",
-            "fontSize": 12,
-            "fontWeight": "600",
-          }
+          [
+            {
+              "fontSize": 13,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#FFFFFF",
+            },
+          ]
         }
       >
         Retry
@@ -145,33 +194,43 @@ exports[`LocationPicker Component Error State should match snapshot in error sta
 exports[`LocationPicker Component Error State should match snapshot in error state with location data 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <Text
     style={
-      {
-        "color": "#000000",
-        "fontSize": 20,
-        "fontWeight": "600",
-        "marginBottom": 16,
-      }
+      [
+        {
+          "fontSize": 12,
+          "fontWeight": "700",
+          "letterSpacing": 0.8,
+          "marginBottom": 16,
+          "textTransform": "uppercase",
+        },
+        {
+          "color": "#768079",
+        },
+      ]
     }
   >
-    Location
+    LOCATION
   </Text>
   <View
     style={
@@ -182,17 +241,34 @@ exports[`LocationPicker Component Error State should match snapshot in error sta
       }
     }
   >
-    <Ionicons
-      color="#EF4444"
-      name="location-outline"
-      size={24}
-    />
-    <Text
+    <View
       style={
         {
-          "color": "#EF4444",
-          "fontSize": 14,
+          "alignItems": "center",
+          "backgroundColor": "#F5DDD2",
+          "borderRadius": 24,
+          "height": 48,
+          "justifyContent": "center",
+          "width": 48,
         }
+      }
+    >
+      <Ionicons
+        color="#8A2E1B"
+        name="location-outline"
+        size={24}
+      />
+    </View>
+    <Text
+      style={
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#8A2E1B",
+          },
+        ]
       }
     >
       Failed to get location
@@ -200,21 +276,29 @@ exports[`LocationPicker Component Error State should match snapshot in error sta
     <TouchableOpacity
       onPress={[MockFunction]}
       style={
-        {
-          "backgroundColor": "#EF4444",
-          "borderRadius": 8,
-          "paddingHorizontal": 16,
-          "paddingVertical": 8,
-        }
+        [
+          {
+            "borderRadius": 28,
+            "paddingHorizontal": 24,
+            "paddingVertical": 10,
+          },
+          {
+            "backgroundColor": "#1A2520",
+          },
+        ]
       }
     >
       <Text
         style={
-          {
-            "color": "#FFFFFF",
-            "fontSize": 12,
-            "fontWeight": "600",
-          }
+          [
+            {
+              "fontSize": 13,
+              "fontWeight": "600",
+            },
+            {
+              "color": "#FFFFFF",
+            },
+          ]
         }
       >
         Retry
@@ -227,33 +311,43 @@ exports[`LocationPicker Component Error State should match snapshot in error sta
 exports[`LocationPicker Component Loading State should match snapshot with location but loading state 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <Text
     style={
-      {
-        "color": "#000000",
-        "fontSize": 20,
-        "fontWeight": "600",
-        "marginBottom": 16,
-      }
+      [
+        {
+          "fontSize": 12,
+          "fontWeight": "700",
+          "letterSpacing": 0.8,
+          "marginBottom": 16,
+          "textTransform": "uppercase",
+        },
+        {
+          "color": "#768079",
+        },
+      ]
     }
   >
-    Location
+    LOCATION
   </Text>
   <View
     style={
@@ -267,15 +361,19 @@ exports[`LocationPicker Component Loading State should match snapshot with locat
     }
   >
     <ActivityIndicator
-      color="#007AFF"
+      color="#1A2520"
       size="small"
     />
     <Text
       style={
-        {
-          "color": "#666666",
-          "fontSize": 14,
-        }
+        [
+          {
+            "fontSize": 14,
+          },
+          {
+            "color": "#4A5751",
+          },
+        ]
       }
     >
       Getting your location...
@@ -287,60 +385,78 @@ exports[`LocationPicker Component Loading State should match snapshot with locat
 exports[`LocationPicker Component Success State should match snapshot in success state 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <Text
     style={
-      {
-        "color": "#000000",
-        "fontSize": 20,
-        "fontWeight": "600",
-        "marginBottom": 16,
-      }
+      [
+        {
+          "fontSize": 12,
+          "fontWeight": "700",
+          "letterSpacing": 0.8,
+          "marginBottom": 16,
+          "textTransform": "uppercase",
+        },
+        {
+          "color": "#768079",
+        },
+      ]
     }
   >
-    Location
+    LOCATION
   </Text>
   <View
     style={
-      {
-        "alignItems": "center",
-        "backgroundColor": "#F5F5F5",
-        "borderRadius": 8,
-        "flexDirection": "row",
-        "gap": 12,
-        "padding": 12,
-      }
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 12,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 14,
+        },
+        {
+          "backgroundColor": "#E9F1EB",
+        },
+      ]
     }
   >
     <View
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderRadius": 20,
-          "height": 40,
-          "justifyContent": "center",
-          "width": 40,
-        }
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "height": 40,
+            "justifyContent": "center",
+            "width": 40,
+          },
+          {
+            "backgroundColor": "#DCEAE5",
+          },
+        ]
       }
     >
       <Ionicons
-        color="#10B981"
+        color="#3F8C7A"
         name="location"
         size={20}
       />
@@ -354,23 +470,31 @@ exports[`LocationPicker Component Success State should match snapshot in success
     >
       <Text
         style={
-          {
-            "color": "#666666",
-            "fontSize": 12,
-            "fontWeight": "500",
-            "marginBottom": 2,
-          }
+          [
+            {
+              "fontSize": 12,
+              "fontWeight": "500",
+              "marginBottom": 2,
+            },
+            {
+              "color": "#4A5751",
+            },
+          ]
         }
       >
         Meeting Location
       </Text>
       <Text
         style={
-          {
-            "color": "#000000",
-            "fontSize": 14,
-            "fontWeight": "500",
-          }
+          [
+            {
+              "fontSize": 15,
+              "fontWeight": "500",
+            },
+            {
+              "color": "#1A2520",
+            },
+          ]
         }
       >
         123 Main St, New York, NY 10001
@@ -383,33 +507,43 @@ exports[`LocationPicker Component Success State should match snapshot in success
 exports[`LocationPicker Component Success State should match snapshot in success state without location 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <Text
     style={
-      {
-        "color": "#000000",
-        "fontSize": 20,
-        "fontWeight": "600",
-        "marginBottom": 16,
-      }
+      [
+        {
+          "fontSize": 12,
+          "fontWeight": "700",
+          "letterSpacing": 0.8,
+          "marginBottom": 16,
+          "textTransform": "uppercase",
+        },
+        {
+          "color": "#768079",
+        },
+      ]
     }
   >
-    Location
+    LOCATION
   </Text>
 </View>
 `;

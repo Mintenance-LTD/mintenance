@@ -77,29 +77,32 @@ describe('PhotoGallery', () => {
     });
 
     it('should render section title', () => {
+      const { getByRole } = render(
+        <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
+      );
+
+      // "Portfolio" also appears as the empty-state project card name, so
+      // scope the title lookup to the section header role.
+      const header = getByRole('header');
+      expect(header.props.children).toBe('Portfolio');
+    });
+
+    it('should render the See All button', () => {
       const { getByText } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      expect(getByText('Photos')).toBeTruthy();
+      expect(getByText('See All')).toBeTruthy();
     });
 
-    it('should render add photo button', () => {
-      const { getByText } = render(
-        <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
-      );
-
-      expect(getByText('Add Photo')).toBeTruthy();
-    });
-
-    it('should render add icon in button', () => {
+    it('should render the forward arrow icon in the See All button', () => {
       const { getByTestId } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const icon = getByTestId('icon-add');
+      const icon = getByTestId('icon-arrow-forward');
       expect(icon).toBeTruthy();
-      expect(icon.props.children).toContain('Ionicons-add-16');
+      expect(icon.props.children).toContain('Ionicons-arrow-forward-14');
     });
 
     it('should render container with proper structure', () => {
@@ -185,24 +188,24 @@ describe('PhotoGallery', () => {
     });
   });
 
-  describe('Add Photo Functionality', () => {
-    it('should call onAddPhoto when add button is pressed', () => {
+  describe('See All Functionality', () => {
+    it('should call onAddPhoto when the See All button is pressed', () => {
       const { getByText } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const addButton = getByText('Add Photo');
+      const addButton = getByText('See All');
       fireEvent.press(addButton);
 
       expect(mockOnAddPhoto).toHaveBeenCalledTimes(1);
     });
 
-    it('should call onAddPhoto when button is pressed multiple times', () => {
+    it('should call onAddPhoto when the button is pressed multiple times', () => {
       const { getByText } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const addButton = getByText('Add Photo');
+      const addButton = getByText('See All');
       fireEvent.press(addButton);
       fireEvent.press(addButton);
       fireEvent.press(addButton);
@@ -210,23 +213,23 @@ describe('PhotoGallery', () => {
       expect(mockOnAddPhoto).toHaveBeenCalledTimes(3);
     });
 
-    it('should allow adding photos to empty gallery', () => {
+    it('should fire from an empty gallery', () => {
       const { getByText } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      fireEvent.press(getByText('Add Photo'));
+      fireEvent.press(getByText('See All'));
 
       expect(mockOnAddPhoto).toHaveBeenCalled();
     });
 
-    it('should allow adding photos to existing gallery', () => {
+    it('should fire from a populated gallery', () => {
       const photos = ['photo1.jpg', 'photo2.jpg'];
       const { getByText } = render(
         <PhotoGallery photos={photos} onAddPhoto={mockOnAddPhoto} />
       );
 
-      fireEvent.press(getByText('Add Photo'));
+      fireEvent.press(getByText('See All'));
 
       expect(mockOnAddPhoto).toHaveBeenCalled();
     });
@@ -236,7 +239,7 @@ describe('PhotoGallery', () => {
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const addButton = getByText('Add Photo');
+      const addButton = getByText('See All');
 
       expect(() => {
         for (let i = 0; i < 10; i++) {
@@ -317,7 +320,9 @@ describe('PhotoGallery', () => {
   describe('Edge Cases and Error Handling', () => {
     it('should handle null photos array gracefully', () => {
       expect(() => {
-        render(<PhotoGallery photos={null as any} onAddPhoto={mockOnAddPhoto} />);
+        render(
+          <PhotoGallery photos={null as any} onAddPhoto={mockOnAddPhoto} />
+        );
       }).toThrow();
     });
 
@@ -356,7 +361,7 @@ describe('PhotoGallery', () => {
         <PhotoGallery photos={[]} onAddPhoto={undefined as any} />
       );
       // The component renders but button press would fail
-      expect(getByText('Add Photo')).toBeTruthy();
+      expect(getByText('See All')).toBeTruthy();
     });
 
     it('should handle onAddPhoto throwing an error', () => {
@@ -369,7 +374,7 @@ describe('PhotoGallery', () => {
       );
 
       expect(() => {
-        fireEvent.press(getByText('Add Photo'));
+        fireEvent.press(getByText('See All'));
       }).toThrow('Test error');
 
       expect(errorCallback).toHaveBeenCalled();
@@ -417,7 +422,7 @@ describe('PhotoGallery', () => {
 
       rerender(<PhotoGallery photos={[]} onAddPhoto={newCallback} />);
 
-      fireEvent.press(getByText('Add Photo'));
+      fireEvent.press(getByText('See All'));
 
       expect(newCallback).toHaveBeenCalledTimes(1);
       expect(mockOnAddPhoto).not.toHaveBeenCalled();
@@ -439,14 +444,14 @@ describe('PhotoGallery', () => {
 
   describe('Layout and Styling', () => {
     it('should render header with correct layout', () => {
-      const { getByText } = render(
+      const { getByRole, getByText } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const title = getByText('Photos');
-      const addButton = getByText('Add Photo');
+      const title = getByRole('header');
+      const addButton = getByText('See All');
 
-      expect(title).toBeTruthy();
+      expect(title.props.children).toBe('Portfolio');
       expect(addButton).toBeTruthy();
     });
 
@@ -496,20 +501,20 @@ describe('PhotoGallery', () => {
 
   describe('Accessibility', () => {
     it('should have accessible text for section title', () => {
-      const { getByText } = render(
+      const { getByRole } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const title = getByText('Photos');
-      expect(title).toBeTruthy();
+      const title = getByRole('header');
+      expect(title.props.children).toBe('Portfolio');
     });
 
-    it('should have accessible add photo button', () => {
+    it('should have an accessible See All button', () => {
       const { getByText } = render(
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const addButton = getByText('Add Photo');
+      const addButton = getByText('See All');
       expect(addButton).toBeTruthy();
     });
 
@@ -518,8 +523,8 @@ describe('PhotoGallery', () => {
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const icon = getByTestId('icon-add');
-      expect(icon.props.children).toContain('16'); // Icon size
+      const icon = getByTestId('icon-arrow-forward');
+      expect(icon.props.children).toContain('14'); // Icon size
     });
 
     it('should support button press interactions', () => {
@@ -527,7 +532,7 @@ describe('PhotoGallery', () => {
         <PhotoGallery photos={[]} onAddPhoto={mockOnAddPhoto} />
       );
 
-      const addButton = getByText('Add Photo');
+      const addButton = getByText('See All');
       expect(() => fireEvent.press(addButton)).not.toThrow();
     });
   });
@@ -562,7 +567,10 @@ describe('PhotoGallery', () => {
     });
 
     it('should handle memory efficiently with large arrays', () => {
-      const photos = Array.from({ length: 1000 }, (_, i) => `photo${i + 1}.jpg`);
+      const photos = Array.from(
+        { length: 1000 },
+        (_, i) => `photo${i + 1}.jpg`
+      );
 
       expect(() => {
         render(<PhotoGallery photos={photos} onAddPhoto={mockOnAddPhoto} />);
@@ -580,7 +588,7 @@ describe('PhotoGallery', () => {
         <PhotoGallery photos={[]} onAddPhoto={asyncCallback} />
       );
 
-      fireEvent.press(getByText('Add Photo'));
+      fireEvent.press(getByText('See All'));
 
       expect(asyncCallback).toHaveBeenCalled();
     });
@@ -595,7 +603,7 @@ describe('PhotoGallery', () => {
         <PhotoGallery photos={photos} onAddPhoto={addPhotoCallback} />
       );
 
-      fireEvent.press(getByText('Add Photo'));
+      fireEvent.press(getByText('See All'));
       rerender(<PhotoGallery photos={photos} onAddPhoto={addPhotoCallback} />);
 
       expect(addPhotoCallback).toHaveBeenCalled();

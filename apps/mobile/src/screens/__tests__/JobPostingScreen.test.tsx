@@ -1,7 +1,6 @@
-
 import React from 'react';
-import { render, waitFor, fireEvent } from '../..//test-utils';
-import { JobPostingScreen } from '../JobPostingScreen';
+import { render, waitFor, act } from '../../__tests__/test-utils';
+import JobPostingScreen from '../JobPostingScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -10,7 +9,26 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// expo-task-manager pulls expo-modules-core's native EventEmitter, which is
+// undefined under jest and crashes the import graph. Stub it out.
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskRegisteredAsync: jest.fn(() => Promise.resolve(false)),
+  unregisterTaskAsync: jest.fn(() => Promise.resolve()),
+  unregisterAllTasksAsync: jest.fn(() => Promise.resolve()),
+}));
+
+// AuthContext: the screen reads `user` and redirects non-homeowners.
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1', email: 'test@example.com', role: 'homeowner' },
+    loading: false,
+  }),
+}));
 
 // Mock navigation
 const mockNavigation = {
@@ -41,7 +59,9 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -80,14 +100,12 @@ describe('JobPostingScreen', () => {
     jest.clearAllMocks();
   });
 
-
   it('should render without crashing', async () => {
-    const { getByTestId, queryByText } = renderScreen();
+    const { queryAllByText } = renderScreen();
 
     await waitFor(() => {
-      // Check for either a test ID or any text to confirm render
-      const element = queryByText(/./i) || getByTestId('screen-container');
-      expect(element).toBeTruthy();
+      // Confirm the screen mounted by asserting it rendered any text.
+      expect(queryAllByText(/./i).length).toBeGreaterThan(0);
     });
   });
 

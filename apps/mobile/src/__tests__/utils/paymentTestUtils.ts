@@ -6,28 +6,38 @@
 import { PaymentService } from '../../services/PaymentService';
 
 // Test data generators
-export const generateTestPaymentIntent = (overrides: Record<string, unknown> = {}) => ({
+export const generateTestPaymentIntent = (
+  overrides: Record<string, unknown> = {}
+) => ({
   id: 'pi_test_' + Math.random().toString(36).substr(2, 9),
-  client_secret: 'pi_test_' + Math.random().toString(36).substr(2, 9) + '_secret_' + Math.random().toString(36).substr(2, 9),
+  client_secret:
+    'pi_test_' +
+    Math.random().toString(36).substr(2, 9) +
+    '_secret_' +
+    Math.random().toString(36).substr(2, 9),
   amount: 15000, // $150.00
   currency: 'usd',
   status: 'requires_payment_method',
   ...overrides,
 });
 
-export const generateTestPaymentMethod = (overrides: Record<string, unknown> = {}) => ({
+export const generateTestPaymentMethod = (
+  overrides: Record<string, unknown> = {}
+) => ({
   id: 'pm_test_' + Math.random().toString(36).substr(2, 9),
   card: {
     brand: 'visa',
     last4: '4242',
     exp_month: 12,
     exp_year: 2025,
-    ...(overrides.card as Record<string, unknown> ?? {}),
+    ...((overrides.card as Record<string, unknown>) ?? {}),
   },
   ...overrides,
 });
 
-export const generateTestEscrowTransaction = (overrides: Record<string, unknown> = {}) => ({
+export const generateTestEscrowTransaction = (
+  overrides: Record<string, unknown> = {}
+) => ({
   id: 'escrow_' + Math.random().toString(36).substr(2, 9),
   job_id: 'job_' + Math.random().toString(36).substr(2, 9),
   payer_id: 'homeowner_' + Math.random().toString(36).substr(2, 9),
@@ -173,7 +183,9 @@ export class PaymentTestHelper {
     });
 
     // Final confirmation succeeds
-    this.mockStripe.confirmPayment.mockResolvedValueOnce(createMockStripeSuccess());
+    this.mockStripe.confirmPayment.mockResolvedValueOnce(
+      createMockStripeSuccess()
+    );
 
     return { clientSecret, paymentMethodId };
   }
@@ -181,7 +193,10 @@ export class PaymentTestHelper {
   /**
    * Setup failed payment flow
    */
-  setupFailedPaymentFlow(errorType: string = 'card_error', errorMessage: string = 'Your card was declined.') {
+  setupFailedPaymentFlow(
+    errorType: string = 'card_error',
+    errorMessage: string = 'Your card was declined.'
+  ) {
     const clientSecret = 'pi_test_failed_secret';
     const paymentMethodId = 'pm_test_failed';
 
@@ -209,13 +224,17 @@ export class PaymentTestHelper {
    */
   setupEscrowWorkflow() {
     const transactionId = 'escrow_test_123';
-    const mockTransaction = generateTestEscrowTransaction({ id: transactionId });
+    const mockTransaction = generateTestEscrowTransaction({
+      id: transactionId,
+    });
 
     // Mock escrow creation
     this.mockSupabase.from.mockReturnValue({
       insert: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue(createMockSupabaseSuccess(mockTransaction)),
+      single: jest
+        .fn()
+        .mockResolvedValue(createMockSupabaseSuccess(mockTransaction)),
       update: jest.fn().mockReturnThis(),
       eq: jest.fn().mockResolvedValue(createMockSupabaseSuccess(null)),
     } as any);
@@ -231,7 +250,10 @@ export class PaymentTestHelper {
   /**
    * Setup contractor payout mocks
    */
-  setupContractorPayoutMocks(hasAccount: boolean = false, accountComplete: boolean = false) {
+  setupContractorPayoutMocks(
+    hasAccount: boolean = false,
+    accountComplete: boolean = false
+  ) {
     if (hasAccount) {
       this.mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
@@ -248,16 +270,19 @@ export class PaymentTestHelper {
       this.mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          createMockSupabaseError('No rows returned', 'PGRST116')
-        ),
+        single: jest
+          .fn()
+          .mockResolvedValue(
+            createMockSupabaseError('No rows returned', 'PGRST116')
+          ),
       } as any);
     }
 
     // Mock payout setup
     this.mockSupabase.functions.invoke.mockResolvedValueOnce(
       createMockSupabaseSuccess({
-        accountUrl: 'https://connect.stripe.com/express/onboarding/acct_test_123',
+        accountUrl:
+          'https://connect.stripe.com/express/onboarding/acct_test_123',
       })
     );
   }
@@ -362,9 +387,12 @@ export const securityTestCases = {
 
 // Async test helpers
 export const waitForAsync = (ms: number = 100) =>
-  new Promise(resolve => setTimeout(resolve, ms));
+  new Promise((resolve) => setTimeout(resolve, ms));
 
-export const waitForMockCall = async (mockFn: jest.Mock, callIndex: number = 0) => {
+export const waitForMockCall = async (
+  mockFn: jest.Mock,
+  callIndex: number = 0
+) => {
   let attempts = 0;
   const maxAttempts = 50; // 5 seconds max wait
 
@@ -376,7 +404,9 @@ export const waitForMockCall = async (mockFn: jest.Mock, callIndex: number = 0) 
     attempts++;
   }
 
-  throw new Error(`Mock function call ${callIndex} not found after ${maxAttempts * 100}ms`);
+  throw new Error(
+    `Mock function call ${callIndex} not found after ${maxAttempts * 100}ms`
+  );
 };
 
 // Test environment setup
@@ -429,7 +459,11 @@ export const commonTestPatterns = {
     return { initResult, paymentMethod, confirmResult };
   },
 
-  failedPayment: async (helper: PaymentTestHelper, errorType?: string, errorMessage?: string) => {
+  failedPayment: async (
+    helper: PaymentTestHelper,
+    errorType?: string,
+    errorMessage?: string
+  ) => {
     const setup = helper.setupFailedPaymentFlow(errorType, errorMessage);
 
     const initResult = await PaymentService.initializePayment({
@@ -458,3 +492,43 @@ export const commonTestPatterns = {
     }
   },
 };
+
+// ----------------------------------------------------------------------------
+// Smoke test
+// This file is a shared test-utility module that Jest's testRegex also matches,
+// so it must contain at least one test. Assert the pure exported helpers behave.
+// ----------------------------------------------------------------------------
+describe('paymentTestUtils helpers', () => {
+  it('generates a payment intent with overridable defaults', () => {
+    const intent = generateTestPaymentIntent({ status: 'succeeded' });
+    expect(intent.id).toMatch(/^pi_test_/);
+    expect(intent.client_secret).toContain('_secret_');
+    expect(intent.currency).toBe('usd');
+    expect(intent.status).toBe('succeeded');
+  });
+
+  it('exposes canonical Stripe test card numbers', () => {
+    expect(TEST_CARDS.VALID).toBe('4242424242424242');
+    expect(TEST_CARDS.DECLINED).toBe('4000000000000002');
+  });
+
+  it('builds Supabase success and error envelopes', () => {
+    expect(createMockSupabaseSuccess({ a: 1 })).toEqual({
+      data: { a: 1 },
+      error: null,
+    });
+    const err = createMockSupabaseError('boom', 'X1');
+    expect(err.data).toBeNull();
+    expect(err.error).toEqual({ message: 'boom', code: 'X1' });
+  });
+
+  it('creates the requested number of concurrent payment requests', () => {
+    const requests = createConcurrentPaymentRequests(3);
+    expect(requests).toHaveLength(3);
+    expect(requests[0]).toEqual({
+      amount: 100,
+      jobId: 'job-0',
+      contractorId: 'contractor-0',
+    });
+  });
+});

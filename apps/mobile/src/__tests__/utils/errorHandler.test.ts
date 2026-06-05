@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
-import ErrorHandler, { handleError, safeAsync } from '../../utils/errorHandler';
+import { ErrorHandler, handleError, safeAsync } from '../../utils/errorHandler';
 import { logger } from '../../utils/logger';
+import { isOnlineCached } from '../../utils/networkUtils';
 
 // Mock dependencies
 jest.mock('react-native', () => ({
@@ -12,8 +13,15 @@ jest.mock('../../utils/logger', () => ({
     error: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
-    info: jest.fn()
+    info: jest.fn(),
   },
+}));
+
+// Network detection: source reads `isOnlineCached()` (NetInfo-backed) rather
+// than `navigator.onLine` (undefined in React Native). Mock it so offline
+// branches can be driven deterministically.
+jest.mock('../../utils/networkUtils', () => ({
+  isOnlineCached: jest.fn(() => true),
 }));
 
 // Mock Sentry
@@ -22,16 +30,16 @@ jest.mock('../../config/sentry', () => ({
 }));
 
 const mockAlert = Alert.alert as jest.MockedFunction<typeof Alert.alert>;
+const mockIsOnlineCached = isOnlineCached as jest.MockedFunction<
+  typeof isOnlineCached
+>;
 
 describe('ErrorHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     console.error = jest.fn();
-    // Reset navigator.onLine
-    Object.defineProperty(navigator, 'onLine', {
-      writable: true,
-      value: true,
-    });
+    // Default to online; individual tests flip this to simulate offline.
+    mockIsOnlineCached.mockReturnValue(true);
   });
 
   describe('handle', () => {
@@ -127,16 +135,46 @@ describe('ErrorHandler', () => {
       const testCases = [
         { code: 'PGRST301', expected: 'The requested item was not found.' },
         { code: 'PGRST116', expected: 'The requested item was not found.' },
-        { code: 'PGRST204', expected: 'You do not have permission to perform this action.' },
-        { code: '42501', expected: 'You do not have permission to perform this action.' },
-        { code: '23505', expected: 'A record with these details already exists.' },
-        { code: '23503', expected: 'Cannot perform this action because the item is being used elsewhere.' },
+        {
+          code: 'PGRST204',
+          expected: 'You do not have permission to perform this action.',
+        },
+        {
+          code: '42501',
+          expected: 'You do not have permission to perform this action.',
+        },
+        {
+          code: '23505',
+          expected: 'A record with these details already exists.',
+        },
+        {
+          code: '23503',
+          expected:
+            'Cannot perform this action because the item is being used elsewhere.',
+        },
         { code: '23514', expected: 'The provided data is invalid.' },
-        { code: 'invalid_credentials', expected: 'Invalid email or password. Please check your credentials and try again.' },
-        { code: 'email_not_confirmed', expected: 'Please check your email and confirm your account before signing in.' },
-        { code: 'weak_password', expected: 'Password must be at least 8 characters long.' },
-        { code: 'email_address_invalid', expected: 'Please enter a valid email address.' },
-        { code: 'signup_disabled', expected: 'Account registration is currently disabled.' },
+        {
+          code: 'invalid_credentials',
+          expected:
+            'Invalid email or password. Please check your credentials and try again.',
+        },
+        {
+          code: 'email_not_confirmed',
+          expected:
+            'Please check your email and confirm your account before signing in.',
+        },
+        {
+          code: 'weak_password',
+          expected: 'Password must be at least 8 characters long.',
+        },
+        {
+          code: 'email_address_invalid',
+          expected: 'Please enter a valid email address.',
+        },
+        {
+          code: 'signup_disabled',
+          expected: 'Account registration is currently disabled.',
+        },
       ];
 
       testCases.forEach(({ code, expected }) => {
@@ -156,19 +194,63 @@ describe('ErrorHandler', () => {
 
     describe('Message-based error detection', () => {
       const testCases = [
-        { message: 'Invalid login credentials', expected: 'Invalid email or password. Please check your credentials and try again.' },
-        { message: 'Email not confirmed', expected: 'Please check your email and confirm your account before signing in.' },
-        { message: 'Network request failed', expected: 'Network connection failed. Please check your internet connection and try again.' },
-        { message: 'fetch error occurred', expected: 'Network connection failed. Please check your internet connection and try again.' },
-        { message: 'duplicate key error', expected: 'This record already exists.' },
-        { message: 'foreign key constraint', expected: 'Cannot delete this item because it is being used elsewhere.' },
-        { message: 'not found in database', expected: 'The requested item was not found.' },
-        { message: 'PGRST116 error', expected: 'The requested item was not found.' },
-        { message: 'permission denied for table', expected: 'You do not have permission to perform this action.' },
-        { message: 'row-level security violation', expected: 'You do not have permission to perform this action.' },
-        { message: 'policy violation', expected: 'You do not have permission to perform this action.' },
-        { message: 'password is too weak', expected: 'Password must be at least 8 characters long.' },
-        { message: 'invalid email format', expected: 'Please enter a valid email address.' },
+        {
+          message: 'Invalid login credentials',
+          expected:
+            'Invalid email or password. Please check your credentials and try again.',
+        },
+        {
+          message: 'Email not confirmed',
+          expected:
+            'Please check your email and confirm your account before signing in.',
+        },
+        {
+          message: 'Network request failed',
+          expected:
+            'Network connection failed. Please check your internet connection and try again.',
+        },
+        {
+          message: 'fetch error occurred',
+          expected:
+            'Network connection failed. Please check your internet connection and try again.',
+        },
+        {
+          message: 'duplicate key error',
+          expected: 'This record already exists.',
+        },
+        {
+          message: 'foreign key constraint',
+          expected:
+            'Cannot delete this item because it is being used elsewhere.',
+        },
+        {
+          message: 'not found in database',
+          expected: 'The requested item was not found.',
+        },
+        {
+          message: 'PGRST116 error',
+          expected: 'The requested item was not found.',
+        },
+        {
+          message: 'permission denied for table',
+          expected: 'You do not have permission to perform this action.',
+        },
+        {
+          message: 'row-level security violation',
+          expected: 'You do not have permission to perform this action.',
+        },
+        {
+          message: 'policy violation',
+          expected: 'You do not have permission to perform this action.',
+        },
+        {
+          message: 'password is too weak',
+          expected: 'Password must be at least 8 characters long.',
+        },
+        {
+          message: 'invalid email format',
+          expected: 'Please enter a valid email address.',
+        },
       ];
 
       testCases.forEach(({ message, expected }) => {
@@ -182,15 +264,34 @@ describe('ErrorHandler', () => {
 
     describe('HTTP status codes', () => {
       const testCases = [
-        { statusCode: 400, expected: 'Invalid request. Please check your input and try again.' },
+        {
+          statusCode: 400,
+          expected: 'Invalid request. Please check your input and try again.',
+        },
         { statusCode: 401, expected: 'Please log in to continue.' },
-        { statusCode: 403, expected: 'You do not have permission to perform this action.' },
+        {
+          statusCode: 403,
+          expected: 'You do not have permission to perform this action.',
+        },
         { statusCode: 404, expected: 'The requested item was not found.' },
-        { statusCode: 409, expected: 'This action conflicts with the current state. Please refresh and try again.' },
-        { statusCode: 422, expected: 'The provided data is invalid. Please check and try again.' },
-        { statusCode: 429, expected: 'Too many requests. Please wait a moment and try again.' },
+        {
+          statusCode: 409,
+          expected:
+            'This action conflicts with the current state. Please refresh and try again.',
+        },
+        {
+          statusCode: 422,
+          expected: 'The provided data is invalid. Please check and try again.',
+        },
+        {
+          statusCode: 429,
+          expected: 'Too many requests. Please wait a moment and try again.',
+        },
         { statusCode: 500, expected: 'Server error. Please try again later.' },
-        { statusCode: 503, expected: 'Service temporarily unavailable. Please try again later.' },
+        {
+          statusCode: 503,
+          expected: 'Service temporarily unavailable. Please try again later.',
+        },
       ];
 
       testCases.forEach(({ statusCode, expected }) => {
@@ -213,7 +314,7 @@ describe('ErrorHandler', () => {
     });
 
     it('should detect offline state', () => {
-      Object.defineProperty(navigator, 'onLine', { value: false });
+      mockIsOnlineCached.mockReturnValue(false);
       const error = {};
 
       const message = ErrorHandler.getUserMessage(error);
@@ -259,7 +360,7 @@ describe('ErrorHandler', () => {
     });
 
     it('should identify offline state as network error', () => {
-      Object.defineProperty(navigator, 'onLine', { value: false });
+      mockIsOnlineCached.mockReturnValue(false);
       const error = {};
       expect(ErrorHandler.isNetworkError(error)).toBe(true);
     });
@@ -323,15 +424,27 @@ describe('ErrorHandler', () => {
 
   describe('validateEmail', () => {
     it('should accept valid email addresses', () => {
-      expect(() => ErrorHandler.validateEmail('test@example.com')).not.toThrow();
-      expect(() => ErrorHandler.validateEmail('user.name@company.co.uk')).not.toThrow();
+      expect(() =>
+        ErrorHandler.validateEmail('test@example.com')
+      ).not.toThrow();
+      expect(() =>
+        ErrorHandler.validateEmail('user.name@company.co.uk')
+      ).not.toThrow();
     });
 
     it('should reject invalid email addresses', () => {
-      expect(() => ErrorHandler.validateEmail('')).toThrow('Invalid email format');
-      expect(() => ErrorHandler.validateEmail('notanemail')).toThrow('Invalid email format');
-      expect(() => ErrorHandler.validateEmail('missing@domain')).toThrow('Invalid email format');
-      expect(() => ErrorHandler.validateEmail('@example.com')).toThrow('Invalid email format');
+      expect(() => ErrorHandler.validateEmail('')).toThrow(
+        'Invalid email format'
+      );
+      expect(() => ErrorHandler.validateEmail('notanemail')).toThrow(
+        'Invalid email format'
+      );
+      expect(() => ErrorHandler.validateEmail('missing@domain')).toThrow(
+        'Invalid email format'
+      );
+      expect(() => ErrorHandler.validateEmail('@example.com')).toThrow(
+        'Invalid email format'
+      );
     });
 
     it('should throw AppError with correct properties', () => {
@@ -351,9 +464,15 @@ describe('ErrorHandler', () => {
     });
 
     it('should reject short passwords', () => {
-      expect(() => ErrorHandler.validatePassword('')).toThrow('Password too short');
-      expect(() => ErrorHandler.validatePassword('short')).toThrow('Password too short');
-      expect(() => ErrorHandler.validatePassword('1234567')).toThrow('Password too short');
+      expect(() => ErrorHandler.validatePassword('')).toThrow(
+        'Password too short'
+      );
+      expect(() => ErrorHandler.validatePassword('short')).toThrow(
+        'Password too short'
+      );
+      expect(() => ErrorHandler.validatePassword('1234567')).toThrow(
+        'Password too short'
+      );
     });
 
     it('should throw AppError with correct properties', () => {
@@ -361,23 +480,37 @@ describe('ErrorHandler', () => {
         ErrorHandler.validatePassword('short');
       } catch (error) {
         expect(error.code).toBe('VALIDATION_ERROR');
-        expect(error.userMessage).toBe('Password must be at least 8 characters long.');
+        expect(error.userMessage).toBe(
+          'Password must be at least 8 characters long.'
+        );
       }
     });
   });
 
   describe('validateRequired', () => {
     it('should accept valid values', () => {
-      expect(() => ErrorHandler.validateRequired('value', 'Field')).not.toThrow();
+      expect(() =>
+        ErrorHandler.validateRequired('value', 'Field')
+      ).not.toThrow();
       expect(() => ErrorHandler.validateRequired(123, 'Number')).not.toThrow();
-      expect(() => ErrorHandler.validateRequired({ id: 1 }, 'Object')).not.toThrow();
+      expect(() =>
+        ErrorHandler.validateRequired({ id: 1 }, 'Object')
+      ).not.toThrow();
     });
 
     it('should reject empty values', () => {
-      expect(() => ErrorHandler.validateRequired(null, 'Field')).toThrow('Field is required');
-      expect(() => ErrorHandler.validateRequired(undefined, 'Field')).toThrow('Field is required');
-      expect(() => ErrorHandler.validateRequired('', 'Field')).toThrow('Field is required');
-      expect(() => ErrorHandler.validateRequired('   ', 'Field')).toThrow('Field is required');
+      expect(() => ErrorHandler.validateRequired(null, 'Field')).toThrow(
+        'Field is required'
+      );
+      expect(() => ErrorHandler.validateRequired(undefined, 'Field')).toThrow(
+        'Field is required'
+      );
+      expect(() => ErrorHandler.validateRequired('', 'Field')).toThrow(
+        'Field is required'
+      );
+      expect(() => ErrorHandler.validateRequired('   ', 'Field')).toThrow(
+        'Field is required'
+      );
     });
 
     it('should include field name in error message', () => {
@@ -439,7 +572,10 @@ describe('ErrorHandler', () => {
 
       await ErrorHandler.handleAsync(mockPromise, 'test context');
 
-      expect(logger.error).toHaveBeenCalledWith('Error in test context:', mockError);
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error in test context:',
+        mockError
+      );
     });
   });
 
@@ -454,7 +590,8 @@ describe('ErrorHandler', () => {
     });
 
     it('should retry on network error', async () => {
-      const operation = jest.fn()
+      const operation = jest
+        .fn()
         .mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
         .mockResolvedValue('success');
 
@@ -469,7 +606,8 @@ describe('ErrorHandler', () => {
     });
 
     it('should retry on server error', async () => {
-      const operation = jest.fn()
+      const operation = jest
+        .fn()
         .mockRejectedValueOnce({ statusCode: 500 })
         .mockResolvedValue('success');
 
@@ -506,46 +644,75 @@ describe('ErrorHandler', () => {
     });
 
     it('should use exponential backoff', async () => {
-      const operation = jest.fn()
+      const operation = jest
+        .fn()
         .mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
         .mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
         .mockResolvedValue('success');
 
-      const start = Date.now();
-      const result = await ErrorHandler.withRetry(operation, {
-        delay: 10,
-        backoff: true,
-      });
+      // Capture backoff delays deterministically rather than measuring
+      // wall-clock time: Date.now()-based timing flakes in the full suite
+      // (jest.config restoreMocks:false lets a Date.now spy from another test
+      // file leak into this worker) and real setTimeout waits are unreliable
+      // under parallel/coverage load. Asserting the delays is also stronger.
+      const delays: number[] = [];
+      const setTimeoutSpy = jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation(((cb: (...a: unknown[]) => void, ms?: number) => {
+          delays.push(ms ?? 0);
+          cb();
+          return 0 as unknown as ReturnType<typeof setTimeout>;
+        }) as unknown as typeof setTimeout);
 
-      const duration = Date.now() - start;
-      expect(result).toBe('success');
-      expect(operation).toHaveBeenCalledTimes(3);
-      // First retry after 10ms, second after 20ms (10 * 2^1)
-      expect(duration).toBeGreaterThanOrEqual(30);
+      try {
+        const result = await ErrorHandler.withRetry(operation, {
+          delay: 10,
+          backoff: true,
+        });
+        expect(result).toBe('success');
+        expect(operation).toHaveBeenCalledTimes(3);
+        // Exponential: first retry 10ms (10*2^0), second 20ms (10*2^1)
+        expect(delays).toEqual([10, 20]);
+      } finally {
+        setTimeoutSpy.mockRestore();
+      }
     });
 
     it('should not use backoff when disabled', async () => {
-      const operation = jest.fn()
+      const operation = jest
+        .fn()
         .mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
         .mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
         .mockResolvedValue('success');
 
-      const start = Date.now();
-      const result = await ErrorHandler.withRetry(operation, {
-        delay: 10,
-        backoff: false,
-      });
+      // Deterministic delay capture (see exponential-backoff test above for why
+      // wall-clock timing is unreliable in the full suite).
+      const delays: number[] = [];
+      const setTimeoutSpy = jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation(((cb: (...a: unknown[]) => void, ms?: number) => {
+          delays.push(ms ?? 0);
+          cb();
+          return 0 as unknown as ReturnType<typeof setTimeout>;
+        }) as unknown as typeof setTimeout);
 
-      const duration = Date.now() - start;
-      expect(result).toBe('success');
-      expect(operation).toHaveBeenCalledTimes(3);
-      // Both retries after 10ms each (with tolerance for test environment)
-      expect(duration).toBeGreaterThanOrEqual(20);
-      expect(duration).toBeLessThan(60); // Increased tolerance for CI environments
+      try {
+        const result = await ErrorHandler.withRetry(operation, {
+          delay: 10,
+          backoff: false,
+        });
+        expect(result).toBe('success');
+        expect(operation).toHaveBeenCalledTimes(3);
+        // No backoff: both retries use the flat 10ms delay
+        expect(delays).toEqual([10, 10]);
+      } finally {
+        setTimeoutSpy.mockRestore();
+      }
     });
 
     it('should retry on specific Supabase errors', async () => {
-      const operation = jest.fn()
+      const operation = jest
+        .fn()
         .mockRejectedValueOnce({ code: 'PGRST301' })
         .mockResolvedValue('success');
 
@@ -577,7 +744,9 @@ describe('ErrorHandler', () => {
     });
 
     it('should not retry non-retryable errors', () => {
-      expect(ErrorHandler.shouldRetry({ code: 'VALIDATION_ERROR' })).toBe(false);
+      expect(ErrorHandler.shouldRetry({ code: 'VALIDATION_ERROR' })).toBe(
+        false
+      );
       expect(ErrorHandler.shouldRetry({})).toBe(false);
     });
   });
@@ -596,11 +765,20 @@ describe('ErrorHandler', () => {
     it('should handle errors gracefully', async () => {
       const error = new Error('Test error');
 
+      // Force the Sentry capture to fail so the fallback `.catch()` branch
+      // (which logs "Error reporting failed:") is exercised.
+      const { captureException } = jest.requireMock('../../config/sentry');
+      (captureException as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('Sentry down');
+      });
+
       // Should not throw
-      expect(() => ErrorHandler.reportError(error, 'test context')).not.toThrow();
+      expect(() =>
+        ErrorHandler.reportError(error, 'test context')
+      ).not.toThrow();
 
       // Wait for any async operations
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // The method should have been called even if Sentry fails
       expect(logger.error).toHaveBeenCalledWith(

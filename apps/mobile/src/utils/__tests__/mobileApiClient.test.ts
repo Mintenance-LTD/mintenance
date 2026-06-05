@@ -51,13 +51,16 @@ describe('mobileApiClient', () => {
       await expect(mobileApiClient.get('/test')).resolves.toBeDefined();
     });
 
-    it('should handle errors gracefully', async () => {
-      // Mock auth failure
+    it('should handle auth-token failures gracefully without throwing', async () => {
+      // getAuthToken is intentionally resilient: a getSession() failure is
+      // swallowed, fallbacks (getUser refresh, SecureStore) are tried, and it
+      // returns null rather than throwing — so a missing/expired session never
+      // crashes an outgoing request. The request proceeds without a token.
       (supabase.auth.getSession as jest.Mock).mockRejectedValue(
         new Error('Auth failed')
       );
 
-      await expect(mobileApiClient.get('/test')).rejects.toThrow('Auth failed');
+      await expect(mobileApiClient.get('/test')).resolves.toBeDefined();
     });
 
     it('should validate inputs', () => {

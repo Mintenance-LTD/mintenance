@@ -5,9 +5,7 @@ exports[`MessageItemSkeleton Component Rendering should render with default prop
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderColor": "#EBEBEB",
-      "borderRadius": 12,
-      "borderWidth": 1,
+      "borderRadius": 16,
       "overflow": "hidden",
     }
   }
@@ -693,9 +691,7 @@ exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=0 1
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderColor": "#EBEBEB",
-      "borderRadius": 12,
-      "borderWidth": 1,
+      "borderRadius": 16,
       "overflow": "hidden",
     }
   }
@@ -743,9 +739,7 @@ exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=1 a
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderColor": "#EBEBEB",
-      "borderRadius": 12,
-      "borderWidth": 1,
+      "borderRadius": 16,
       "overflow": "hidden",
     }
   }
@@ -917,9 +911,7 @@ exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=3 1
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderColor": "#EBEBEB",
-      "borderRadius": 12,
-      "borderWidth": 1,
+      "borderRadius": 16,
       "overflow": "hidden",
     }
   }
@@ -1348,9 +1340,7 @@ exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=8 a
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderColor": "#EBEBEB",
-      "borderRadius": 12,
-      "borderWidth": 1,
+      "borderRadius": 16,
       "overflow": "hidden",
     }
   }
@@ -2416,9 +2406,7 @@ exports[`MessageItemSkeleton Snapshot Tests should match snapshot with default p
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderColor": "#EBEBEB",
-      "borderRadius": 12,
-      "borderWidth": 1,
+      "borderRadius": 16,
       "overflow": "hidden",
     }
   }
@@ -3104,9 +3092,7 @@ exports[`MessageItemSkeleton Snapshot Tests should match snapshot with showUnrea
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderColor": "#EBEBEB",
-      "borderRadius": 12,
-      "borderWidth": 1,
+      "borderRadius": 16,
       "overflow": "hidden",
     }
   }

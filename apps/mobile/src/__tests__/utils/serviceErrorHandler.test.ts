@@ -1,4 +1,8 @@
-import { ServiceErrorHandler, ServiceErrorContext, ServiceOperationResult } from '../../utils/serviceErrorHandler';
+import {
+  ServiceErrorHandler,
+  ServiceErrorContext,
+  ServiceOperationResult,
+} from '../../utils/serviceErrorHandler';
 import { ErrorCategory, ErrorSeverity } from '../../utils/errorHandling';
 
 // Mock dependencies
@@ -13,15 +17,17 @@ jest.mock('../../utils/errorHandling', () => ({
       context,
       originalError: error,
     })),
-    createError: jest.fn((message, userMessage, category, severity, context, originalError) => ({
-      id: 'error-456',
-      message,
-      userMessage,
-      category,
-      severity,
-      context,
-      originalError,
-    })),
+    createError: jest.fn(
+      (message, userMessage, category, severity, context, originalError) => ({
+        id: 'error-456',
+        message,
+        userMessage,
+        category,
+        severity,
+        context,
+        originalError,
+      })
+    ),
   },
   ErrorCategory: {
     DATABASE: 'DATABASE',
@@ -40,19 +46,23 @@ jest.mock('../../utils/errorHandling', () => ({
 jest.mock('../../utils/logger', () => ({
   logger: {
     error: jest.fn(),
+    warn: jest.fn(),
     info: jest.fn(),
     debug: jest.fn(),
   },
 }));
 
-// Mock navigator.onLine
-Object.defineProperty(navigator, 'onLine', {
-  writable: true,
-  value: true,
-});
+// Source determines connectivity via NetInfo-backed `isOnlineCached()`
+// (navigator.onLine is undefined in React Native). Mock it so offline
+// branches can be driven deterministically.
+jest.mock('../../utils/networkUtils', () => ({
+  isOnlineCached: jest.fn(() => true),
+}));
 
 const { ErrorHandlingService } = require('../../utils/errorHandling');
 const { logger } = require('../../utils/logger');
+const { isOnlineCached } = require('../../utils/networkUtils');
+const mockIsOnlineCached = isOnlineCached as jest.MockedFunction<() => boolean>;
 
 describe('ServiceErrorHandler', () => {
   const mockContext: ServiceErrorContext = {
@@ -64,14 +74,17 @@ describe('ServiceErrorHandler', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (navigator as any).onLine = true;
+    mockIsOnlineCached.mockReturnValue(true);
   });
 
   describe('executeOperation', () => {
     it('should return success result when operation succeeds', async () => {
       const operation = jest.fn().mockResolvedValue({ data: 'test' });
 
-      const result = await ServiceErrorHandler.executeOperation(operation, mockContext);
+      const result = await ServiceErrorHandler.executeOperation(
+        operation,
+        mockContext
+      );
 
       expect(result).toEqual({
         data: { data: 'test' },
@@ -85,7 +98,10 @@ describe('ServiceErrorHandler', () => {
       const mockError = new Error('Operation failed');
       const operation = jest.fn().mockRejectedValue(mockError);
 
-      const result = await ServiceErrorHandler.executeOperation(operation, mockContext);
+      const result = await ServiceErrorHandler.executeOperation(
+        operation,
+        mockContext
+      );
 
       expect(result).toEqual({
         error: mockError,
@@ -124,8 +140,14 @@ describe('ServiceErrorHandler', () => {
     it('should handle not found errors with low severity', () => {
       const error = { code: 'PGRST116', message: 'Not found' };
 
-      const result = ServiceErrorHandler.handleDatabaseError(error, mockContext);
+      const result = ServiceErrorHandler.handleDatabaseError(
+        error,
+        mockContext
+      );
 
+      // Plain error objects are not `Error` instances, so the source passes
+      // `undefined` as the originalError argument (error instanceof Error
+      // ? error : undefined).
       expect(ErrorHandlingService.createError).toHaveBeenCalledWith(
         'Not found',
         'The requested item was not found.',
@@ -135,7 +157,7 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'DATABASE',
         },
-        error
+        undefined
       );
     });
 
@@ -153,7 +175,7 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'DATABASE',
         },
-        error
+        undefined
       );
     });
 
@@ -171,7 +193,7 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'DATABASE',
         },
-        error
+        undefined
       );
     });
 
@@ -189,7 +211,7 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'DATABASE',
         },
-        error
+        undefined
       );
     });
   });
@@ -219,7 +241,11 @@ describe('ServiceErrorHandler', () => {
         metadata: { existing: 'data' },
       };
 
-      ServiceErrorHandler.handleValidationError('Error', 'field', contextWithMetadata);
+      ServiceErrorHandler.handleValidationError(
+        'Error',
+        'field',
+        contextWithMetadata
+      );
 
       expect(ErrorHandlingService.createError).toHaveBeenCalledWith(
         'Validation failed for field: Error',
@@ -240,6 +266,7 @@ describe('ServiceErrorHandler', () => {
 
       ServiceErrorHandler.handleNetworkError(error, mockContext);
 
+      // Plain objects aren't `Error` instances → originalError is undefined.
       expect(ErrorHandlingService.createError).toHaveBeenCalledWith(
         'Internal server error',
         'Server is currently unavailable. Please try again later.',
@@ -249,7 +276,7 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'NETWORK',
         },
-        error
+        undefined
       );
     });
 
@@ -267,7 +294,7 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'NETWORK',
         },
-        error
+        undefined
       );
     });
 
@@ -285,12 +312,12 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'NETWORK',
         },
-        error
+        undefined
       );
     });
 
     it('should handle offline errors', () => {
-      (navigator as any).onLine = false;
+      mockIsOnlineCached.mockReturnValue(false);
       const error = {};
 
       ServiceErrorHandler.handleNetworkError(error, mockContext);
@@ -304,7 +331,7 @@ describe('ServiceErrorHandler', () => {
           ...mockContext,
           category: 'NETWORK',
         },
-        error
+        undefined
       );
     });
   });
@@ -348,7 +375,7 @@ describe('ServiceErrorHandler', () => {
         'user123@test-domain.org',
       ];
 
-      validEmails.forEach(email => {
+      validEmails.forEach((email) => {
         expect(() => {
           ServiceErrorHandler.validateEmail(email, mockContext);
         }).not.toThrow();
@@ -365,7 +392,7 @@ describe('ServiceErrorHandler', () => {
         '',
       ];
 
-      invalidEmails.forEach(email => {
+      invalidEmails.forEach((email) => {
         expect(() => {
           ServiceErrorHandler.validateEmail(email, mockContext);
         }).toThrow();
@@ -374,15 +401,19 @@ describe('ServiceErrorHandler', () => {
   });
 
   describe('validatePassword', () => {
+    // validatePassword now delegates to the canonical 5-rule
+    // `validatePasswordStrength` (B2-P1-1 hardening): >=8 chars, lowercase,
+    // uppercase, number, and special char (@$!%*?&). The old single-rule
+    // length check is gone, so the fixtures below reflect the full policy.
     it('should not throw for valid passwords', () => {
       const validPasswords = [
-        'password123',
-        'strongPassword',
-        '12345678',
         'P@ssw0rd!',
+        'Str0ng&Pass',
+        'Valid1$Secret',
+        'Abcdef1@',
       ];
 
-      validPasswords.forEach(password => {
+      validPasswords.forEach((password) => {
         expect(() => {
           ServiceErrorHandler.validatePassword(password, mockContext);
         }).not.toThrow();
@@ -393,11 +424,15 @@ describe('ServiceErrorHandler', () => {
       const invalidPasswords = [
         '',
         '1234567', // Too short
+        'password123', // No uppercase / special char
+        'PASSWORD123!', // No lowercase
+        'Password!', // No number
+        'Password1', // No special char
         null,
         undefined,
       ];
 
-      invalidPasswords.forEach(password => {
+      invalidPasswords.forEach((password) => {
         expect(() => {
           ServiceErrorHandler.validatePassword(password as any, mockContext);
         }).toThrow();
@@ -409,9 +444,13 @@ describe('ServiceErrorHandler', () => {
     it('should not throw for positive numbers', () => {
       const validNumbers = [1, 0.1, 100, 99.99];
 
-      validNumbers.forEach(number => {
+      validNumbers.forEach((number) => {
         expect(() => {
-          ServiceErrorHandler.validatePositiveNumber(number, 'field', mockContext);
+          ServiceErrorHandler.validatePositiveNumber(
+            number,
+            'field',
+            mockContext
+          );
         }).not.toThrow();
       });
     });
@@ -419,9 +458,13 @@ describe('ServiceErrorHandler', () => {
     it('should throw for zero and negative numbers', () => {
       const invalidNumbers = [0, -1, -0.1, -100];
 
-      invalidNumbers.forEach(number => {
+      invalidNumbers.forEach((number) => {
         expect(() => {
-          ServiceErrorHandler.validatePositiveNumber(number, 'field', mockContext);
+          ServiceErrorHandler.validatePositiveNumber(
+            number,
+            'field',
+            mockContext
+          );
         }).toThrow();
       });
     });
@@ -432,12 +475,28 @@ describe('ServiceErrorHandler', () => {
       const testCases = [
         { code: 'PGRST301', expected: 'The requested item was not found.' },
         { code: 'PGRST116', expected: 'The requested item was not found.' },
-        { code: 'PGRST204', expected: 'You do not have permission to perform this action.' },
-        { code: '42501', expected: 'You do not have permission to perform this action.' },
-        { code: '23505', expected: 'A record with these details already exists.' },
-        { code: '23503', expected: 'Cannot perform this action because the item is being used elsewhere.' },
+        {
+          code: 'PGRST204',
+          expected: 'You do not have permission to perform this action.',
+        },
+        {
+          code: '42501',
+          expected: 'You do not have permission to perform this action.',
+        },
+        {
+          code: '23505',
+          expected: 'A record with these details already exists.',
+        },
+        {
+          code: '23503',
+          expected:
+            'Cannot perform this action because the item is being used elsewhere.',
+        },
         { code: '23514', expected: 'The provided data is invalid.' },
-        { code: 'UNKNOWN', expected: 'A database error occurred. Please try again.' },
+        {
+          code: 'UNKNOWN',
+          expected: 'A database error occurred. Please try again.',
+        },
       ];
 
       testCases.forEach(({ code, expected }) => {
@@ -451,7 +510,7 @@ describe('ServiceErrorHandler', () => {
           'DATABASE',
           expect.any(String),
           expect.any(Object),
-          error
+          undefined
         );
       });
     });
@@ -460,12 +519,27 @@ describe('ServiceErrorHandler', () => {
   describe('getNetworkUserMessage (via handleNetworkError)', () => {
     it('should return correct messages for various status codes', () => {
       const testCases = [
-        { status: 500, expected: 'Server is currently unavailable. Please try again later.' },
-        { status: 502, expected: 'Server is currently unavailable. Please try again later.' },
-        { status: 401, expected: 'Your session has expired. Please log in again.' },
-        { status: 403, expected: 'You do not have permission to perform this action.' },
+        {
+          status: 500,
+          expected: 'Server is currently unavailable. Please try again later.',
+        },
+        {
+          status: 502,
+          expected: 'Server is currently unavailable. Please try again later.',
+        },
+        {
+          status: 401,
+          expected: 'Your session has expired. Please log in again.',
+        },
+        {
+          status: 403,
+          expected: 'You do not have permission to perform this action.',
+        },
         { status: 404, expected: 'The requested resource was not found.' },
-        { status: 400, expected: 'A network error occurred. Please try again.' },
+        {
+          status: 400,
+          expected: 'A network error occurred. Please try again.',
+        },
       ];
 
       testCases.forEach(({ status, expected }) => {
@@ -479,13 +553,13 @@ describe('ServiceErrorHandler', () => {
           'NETWORK',
           expect.any(String),
           expect.any(Object),
-          error
+          undefined
         );
       });
     });
 
     it('should handle offline scenario', () => {
-      (navigator as any).onLine = false;
+      mockIsOnlineCached.mockReturnValue(false);
       const error = { message: 'Network error' };
 
       ServiceErrorHandler.handleNetworkError(error, mockContext);
@@ -496,7 +570,7 @@ describe('ServiceErrorHandler', () => {
         'NETWORK',
         'MEDIUM',
         expect.any(Object),
-        error
+        undefined
       );
     });
   });

@@ -207,6 +207,24 @@ export class BidService {
   }
 
   /**
+   * Fetch a single bid by id. Requires `jobId` because bids live under the
+   * nested `/api/jobs/:jobId/bids/:bidId` route. The endpoint authorizes the
+   * bid's own contractor, the job's homeowner, or an admin; anything else
+   * (404/403) surfaces as a thrown error which callers may treat as "no row".
+   *
+   * Primary consumer is the offline ConflictManager, which fetches current
+   * server state for a queued bid mutation to detect conflicts. Previously
+   * conflict detection for bids was a no-op because no by-id fetch existed.
+   */
+  static async getBidById(jobId: string, bidId: string): Promise<Bid | null> {
+    if (!jobId || !bidId) return null;
+    const response = await mobileApiClient.get<{ bid?: Bid | null }>(
+      `/api/jobs/${jobId}/bids/${bidId}`
+    );
+    return response.bid ?? null;
+  }
+
+  /**
    * Mutation methods all hit the nested route
    * `/api/jobs/:jobId/bids/:bidId/...` which requires both ids in
    * the URL. Audit step 11 (2026-04-29): the previous helper

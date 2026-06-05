@@ -1,51 +1,72 @@
-
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Text } from 'react-native';
+import { render, renderHook } from '../../../test-utils';
 import { useOptimizedRenderItem } from '../OptimizedFlatList';
 
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
-// Mock dependencies
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
-  useParams: () => ({ id: 'test-id' }),
-}));
-
 describe('useOptimizedRenderItem', () => {
-  const defaultProps = {
-    // Add default props here
-  };
+  it('returns a stable memoized ListRenderItem function', () => {
+    const renderFn = (item: { label: string }) => <Text>{item.label}</Text>;
+    const { result, rerender } = renderHook(
+      ({ deps }) => useOptimizedRenderItem(renderFn, deps),
+      { initialProps: { deps: [] as React.DependencyList } }
+    );
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+    const first = result.current;
+    expect(typeof first).toBe('function');
 
-
-  it('should render without crashing', () => {
-    render(<useOptimizedRenderItem {...defaultProps} />);
-    expect(screen.getByRole('main', { hidden: true }) || screen.container).toBeTruthy();
+    // Same deps => same memoized reference
+    rerender({ deps: [] });
+    expect(result.current).toBe(first);
   });
 
-  it('should handle user interactions', async () => {
-    render(<useOptimizedRenderItem {...defaultProps} />);
-    // Add interaction tests
+  it('invokes the provided render function with item and index', () => {
+    const renderFn = jest.fn((item: { label: string }) => (
+      <Text>{item.label}</Text>
+    ));
+    const { result } = renderHook(() => useOptimizedRenderItem(renderFn));
+
+    const listRenderItem = result.current;
+    listRenderItem!({
+      item: { label: 'Alpha' },
+      index: 0,
+      separators: {} as never,
+    });
+
+    expect(renderFn).toHaveBeenCalledWith({ label: 'Alpha' }, 0);
   });
 
-  it('should display correct data', () => {
-    render(<useOptimizedRenderItem {...defaultProps} />);
-    // Add data display tests
+  it('produces an element that renders the item content', () => {
+    const renderFn = (item: { label: string }) => <Text>{item.label}</Text>;
+    const { result } = renderHook(() => useOptimizedRenderItem(renderFn));
+
+    const element = result.current!({
+      item: { label: 'Rendered Label' },
+      index: 0,
+      separators: {} as never,
+    }) as React.ReactElement;
+
+    const { getByText } = render(element);
+    expect(getByText('Rendered Label')).toBeTruthy();
   });
 
-  it('should handle edge cases', () => {
-    render(<useOptimizedRenderItem {...defaultProps} />);
-    // Test edge cases
+  it('handles different items by index', () => {
+    const data = [{ label: 'One' }, { label: 'Two' }];
+    const renderFn = (item: { label: string }) => <Text>{item.label}</Text>;
+    const { result } = renderHook(() => useOptimizedRenderItem(renderFn));
+
+    const listRenderItem = result.current!;
+    const elOne = listRenderItem({
+      item: data[0],
+      index: 0,
+      separators: {} as never,
+    }) as React.ReactElement;
+    const elTwo = listRenderItem({
+      item: data[1],
+      index: 1,
+      separators: {} as never,
+    }) as React.ReactElement;
+
+    expect(render(elOne).getByText('One')).toBeTruthy();
+    expect(render(elTwo).getByText('Two')).toBeTruthy();
   });
 });

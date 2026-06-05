@@ -12,13 +12,13 @@ jest.mock('../SwipeableCardWrapper', () => {
     __esModule: true,
     default: ({ cards, onSwipedLeft, onSwipedRight, renderCard }: any) => {
       return (
-        <View testID="swipeable-card-wrapper">
+        <View testID='swipeable-card-wrapper'>
           {cards.map((card: any, index: number) => (
             <View key={index} testID={`card-${index}`}>
               {renderCard(card)}
             </View>
           ))}
-          <View testID="swipe-actions">
+          <View testID='swipe-actions'>
             <Text onPress={onSwipedLeft}>Swipe Left</Text>
             <Text onPress={onSwipedRight}>Swipe Right</Text>
           </View>
@@ -77,7 +77,9 @@ jest.spyOn(Alert, 'alert');
 
 describe('ContractorCard', () => {
   // Helper function to create mock contractor data
-  const createMockContractor = (overrides: Partial<ContractorProfile> = {}): ContractorProfile => ({
+  const createMockContractor = (
+    overrides: Partial<ContractorProfile> = {}
+  ): ContractorProfile => ({
     id: 'contractor-123',
     firstName: 'John',
     lastName: 'Smith',
@@ -87,12 +89,21 @@ describe('ContractorCard', () => {
     phone: '555-0100',
     role: 'contractor',
     profileImageUrl: 'https://example.com/profile.jpg',
+    profile_image_url: 'https://example.com/profile.jpg',
     rating: 4.8,
     totalJobsCompleted: 45,
     total_jobs_completed: 45,
     skills: [
-      { id: 'skill-1', skillName: 'Plumbing', contractorId: 'contractor-123' } as ContractorSkill,
-      { id: 'skill-2', skillName: 'Electrical', contractorId: 'contractor-123' } as ContractorSkill,
+      {
+        id: 'skill-1',
+        skillName: 'Plumbing',
+        contractorId: 'contractor-123',
+      } as ContractorSkill,
+      {
+        id: 'skill-2',
+        skillName: 'Electrical',
+        contractorId: 'contractor-123',
+      } as ContractorSkill,
     ],
     reviews: [
       {
@@ -124,7 +135,9 @@ describe('ContractorCard', () => {
 
   describe('Component Rendering', () => {
     it('should render contractor card with basic information', () => {
-      const { getByText, getByTestId } = render(<ContractorCard {...defaultProps} />);
+      const { getByText, getByTestId } = render(
+        <ContractorCard {...defaultProps} />
+      );
 
       expect(getByText('John Smith')).toBeTruthy();
       expect(getByText('4.8 (45 jobs)')).toBeTruthy();
@@ -136,7 +149,9 @@ describe('ContractorCard', () => {
       const contractor = createMockContractor({
         companyName: 'Smith Plumbing LLC',
       });
-      const { getByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('Smith Plumbing LLC')).toBeTruthy();
       expect(getByText('John Smith')).toBeTruthy(); // Personal name shown below company name
@@ -146,22 +161,31 @@ describe('ContractorCard', () => {
       const contractor = createMockContractor({
         companyLogo: 'https://example.com/logo.png',
       });
-      const { UNSAFE_getAllByType } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { UNSAFE_getAllByType } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       const images = UNSAFE_getAllByType(require('react-native').Image);
       expect(images.length).toBeGreaterThanOrEqual(1); // Company logo + possibly profile image
     });
 
     it('should render profile image when provided', () => {
-      const { UNSAFE_getAllByType } = render(<ContractorCard {...defaultProps} />);
+      const { UNSAFE_getAllByType } = render(
+        <ContractorCard {...defaultProps} />
+      );
 
       const images = UNSAFE_getAllByType(require('react-native').Image);
       expect(images.length).toBeGreaterThan(0);
     });
 
     it('should render placeholder when no profile image', () => {
-      const contractor = createMockContractor({ profileImageUrl: undefined });
-      const { getByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const contractor = createMockContractor({
+        profileImageUrl: undefined,
+        profile_image_url: undefined,
+      });
+      const { getByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByTestId('icon-person')).toBeTruthy();
     });
@@ -169,12 +193,16 @@ describe('ContractorCard', () => {
     it('should render bio when provided', () => {
       const { getByText } = render(<ContractorCard {...defaultProps} />);
 
-      expect(getByText('Experienced contractor with 15 years in the industry')).toBeTruthy();
+      expect(
+        getByText('Experienced contractor with 15 years in the industry')
+      ).toBeTruthy();
     });
 
     it('should not render bio section when bio is missing', () => {
       const contractor = createMockContractor({ bio: undefined });
-      const { queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(queryByText('Experienced contractor')).toBeNull();
     });
@@ -183,7 +211,9 @@ describe('ContractorCard', () => {
   describe('Star Rating Rendering', () => {
     it('should render correct number of full stars', () => {
       const contractor = createMockContractor({ rating: 4.0 });
-      const { getAllByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getAllByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       const fullStars = getAllByTestId('icon-star');
       expect(fullStars.length).toBeGreaterThanOrEqual(4);
@@ -191,14 +221,18 @@ describe('ContractorCard', () => {
 
     it('should render half star for decimal ratings', () => {
       const contractor = createMockContractor({ rating: 4.5 });
-      const { getByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByTestId('icon-star-half')).toBeTruthy();
     });
 
     it('should render empty stars to complete 5-star rating', () => {
       const contractor = createMockContractor({ rating: 3.5 });
-      const { getByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       // Should have outline stars for the remaining
       expect(getByTestId('icon-star-outline')).toBeTruthy();
@@ -206,7 +240,9 @@ describe('ContractorCard', () => {
 
     it('should handle zero rating', () => {
       const contractor = createMockContractor({ rating: 0 });
-      const { getAllByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getAllByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       const outlineStars = getAllByTestId('icon-star-outline');
       expect(outlineStars.length).toBe(5);
@@ -214,7 +250,9 @@ describe('ContractorCard', () => {
 
     it('should handle missing rating (defaults to 0)', () => {
       const contractor = createMockContractor({ rating: undefined });
-      const { getByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('0.0 (45 jobs)')).toBeTruthy();
     });
@@ -223,7 +261,9 @@ describe('ContractorCard', () => {
   describe('Enhanced Profile Details', () => {
     it('should render hourly rate when provided', () => {
       const contractor = createMockContractor({ hourlyRate: 75 });
-      const { getByText, getByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, getByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('$75/hr')).toBeTruthy();
       expect(getByTestId('icon-cash-outline')).toBeTruthy();
@@ -231,7 +271,9 @@ describe('ContractorCard', () => {
 
     it('should render years of experience when provided', () => {
       const contractor = createMockContractor({ yearsExperience: 15 });
-      const { getByText, getByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, getByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('15 years exp')).toBeTruthy();
       expect(getByTestId('icon-time-outline')).toBeTruthy();
@@ -239,7 +281,9 @@ describe('ContractorCard', () => {
 
     it('should render availability when provided', () => {
       const contractor = createMockContractor({ availability: 'this_week' });
-      const { getByText, getByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, getByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('This Week')).toBeTruthy();
       expect(getByTestId('icon-calendar-outline')).toBeTruthy();
@@ -247,14 +291,20 @@ describe('ContractorCard', () => {
 
     it('should format availability text correctly', () => {
       const contractor = createMockContractor({ availability: 'this_month' });
-      const { getByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('This Month')).toBeTruthy();
     });
 
     it('should render business address when provided', () => {
-      const contractor = createMockContractor({ businessAddress: '123 Main St, New York, NY' });
-      const { getByText, getByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const contractor = createMockContractor({
+        businessAddress: '123 Main St, New York, NY',
+      });
+      const { getByText, getByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('123 Main St, New York, NY')).toBeTruthy();
       expect(getByTestId('icon-location-outline')).toBeTruthy();
@@ -273,15 +323,41 @@ describe('ContractorCard', () => {
     it('should render maximum 4 skills', () => {
       const contractor = createMockContractor({
         skills: [
-          { id: '1', skillName: 'Skill 1', contractorId: 'contractor-123' } as ContractorSkill,
-          { id: '2', skillName: 'Skill 2', contractorId: 'contractor-123' } as ContractorSkill,
-          { id: '3', skillName: 'Skill 3', contractorId: 'contractor-123' } as ContractorSkill,
-          { id: '4', skillName: 'Skill 4', contractorId: 'contractor-123' } as ContractorSkill,
-          { id: '5', skillName: 'Skill 5', contractorId: 'contractor-123' } as ContractorSkill,
-          { id: '6', skillName: 'Skill 6', contractorId: 'contractor-123' } as ContractorSkill,
+          {
+            id: '1',
+            skillName: 'Skill 1',
+            contractorId: 'contractor-123',
+          } as ContractorSkill,
+          {
+            id: '2',
+            skillName: 'Skill 2',
+            contractorId: 'contractor-123',
+          } as ContractorSkill,
+          {
+            id: '3',
+            skillName: 'Skill 3',
+            contractorId: 'contractor-123',
+          } as ContractorSkill,
+          {
+            id: '4',
+            skillName: 'Skill 4',
+            contractorId: 'contractor-123',
+          } as ContractorSkill,
+          {
+            id: '5',
+            skillName: 'Skill 5',
+            contractorId: 'contractor-123',
+          } as ContractorSkill,
+          {
+            id: '6',
+            skillName: 'Skill 6',
+            contractorId: 'contractor-123',
+          } as ContractorSkill,
         ],
       });
-      const { getByText, queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('Skill 1')).toBeTruthy();
       expect(getByText('Skill 4')).toBeTruthy();
@@ -291,14 +367,18 @@ describe('ContractorCard', () => {
 
     it('should not render skills section when skills array is empty', () => {
       const contractor = createMockContractor({ skills: [] });
-      const { queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(queryByText('Specialties')).toBeNull();
     });
 
     it('should not render skills section when skills is undefined', () => {
       const contractor = createMockContractor({ skills: undefined as any });
-      const { queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(queryByText('Specialties')).toBeNull();
     });
@@ -306,14 +386,18 @@ describe('ContractorCard', () => {
 
   describe('Reviews Toggle Functionality', () => {
     it('should initially show "View Reviews" button', () => {
-      const { getByText, getByTestId } = render(<ContractorCard {...defaultProps} />);
+      const { getByText, getByTestId } = render(
+        <ContractorCard {...defaultProps} />
+      );
 
       expect(getByText('View Reviews')).toBeTruthy();
       expect(getByTestId('icon-chevron-down')).toBeTruthy();
     });
 
     it('should toggle to "Show Less" when reviews button is pressed', () => {
-      const { getByText, queryByText, getByTestId } = render(<ContractorCard {...defaultProps} />);
+      const { getByText, queryByText, getByTestId } = render(
+        <ContractorCard {...defaultProps} />
+      );
 
       const viewReviewsButton = getByText('View Reviews');
       fireEvent.press(viewReviewsButton);
@@ -333,7 +417,9 @@ describe('ContractorCard', () => {
     });
 
     it('should hide reviews section when collapsed', () => {
-      const { getByText, queryByText } = render(<ContractorCard {...defaultProps} />);
+      const { getByText, queryByText } = render(
+        <ContractorCard {...defaultProps} />
+      );
 
       // Expand
       fireEvent.press(getByText('View Reviews'));
@@ -346,7 +432,9 @@ describe('ContractorCard', () => {
 
     it('should not show reviews section if contractor has no reviews', () => {
       const contractor = createMockContractor({ reviews: [] });
-      const { getByText, queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       fireEvent.press(getByText('View Reviews'));
 
@@ -387,7 +475,9 @@ describe('ContractorCard', () => {
           } as Review,
         ],
       });
-      const { getByText, queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       fireEvent.press(getByText('View Reviews'));
 
@@ -435,7 +525,9 @@ describe('ContractorCard', () => {
           } as Review,
         ],
       });
-      const { getByText, queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       fireEvent.press(getByText('View Reviews'));
 
@@ -454,7 +546,9 @@ describe('ContractorCard', () => {
           'https://example.com/image2.jpg',
         ],
       });
-      const { getByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('Previous Work')).toBeTruthy();
       expect(getByText('Swipe through project photos')).toBeTruthy();
@@ -462,7 +556,9 @@ describe('ContractorCard', () => {
 
     it('should not render portfolio card when no portfolio images', () => {
       const contractor = createMockContractor({ portfolioImages: undefined });
-      const { queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(queryByText('Previous Work')).toBeNull();
     });
@@ -472,7 +568,9 @@ describe('ContractorCard', () => {
         portfolioImages: ['https://example.com/image1.jpg'],
         specialties: ['Kitchen Remodel', 'Bathroom Renovation'],
       });
-      const { getByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('Kitchen Remodel')).toBeTruthy();
       expect(getByText('Bathroom Renovation')).toBeTruthy();
@@ -481,9 +579,19 @@ describe('ContractorCard', () => {
     it('should render maximum 6 specialties', () => {
       const contractor = createMockContractor({
         portfolioImages: ['https://example.com/image1.jpg'],
-        specialties: ['Spec1', 'Spec2', 'Spec3', 'Spec4', 'Spec5', 'Spec6', 'Spec7'],
+        specialties: [
+          'Spec1',
+          'Spec2',
+          'Spec3',
+          'Spec4',
+          'Spec5',
+          'Spec6',
+          'Spec7',
+        ],
       });
-      const { getByText, queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText, queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('Spec1')).toBeTruthy();
       expect(getByText('Spec6')).toBeTruthy();
@@ -494,7 +602,9 @@ describe('ContractorCard', () => {
   describe('User Interactions', () => {
     it('should call onLike when like button is pressed', () => {
       const onLike = jest.fn();
-      const { getByTestId } = render(<ContractorCard {...defaultProps} onLike={onLike} />);
+      const { getByTestId } = render(
+        <ContractorCard {...defaultProps} onLike={onLike} />
+      );
 
       const likeButton = getByTestId('icon-leaf').parent;
       fireEvent.press(likeButton!);
@@ -504,7 +614,9 @@ describe('ContractorCard', () => {
 
     it('should call onPass when pass button is pressed', () => {
       const onPass = jest.fn();
-      const { getByTestId } = render(<ContractorCard {...defaultProps} onPass={onPass} />);
+      const { getByTestId } = render(
+        <ContractorCard {...defaultProps} onPass={onPass} />
+      );
 
       const passButton = getByTestId('icon-close').parent;
       fireEvent.press(passButton!);
@@ -514,7 +626,9 @@ describe('ContractorCard', () => {
 
     it('should call onLike when swiped right', () => {
       const onLike = jest.fn();
-      const { getByText } = render(<ContractorCard {...defaultProps} onLike={onLike} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} onLike={onLike} />
+      );
 
       fireEvent.press(getByText('Swipe Right'));
 
@@ -523,7 +637,9 @@ describe('ContractorCard', () => {
 
     it('should call onPass when swiped left', () => {
       const onPass = jest.fn();
-      const { getByText } = render(<ContractorCard {...defaultProps} onPass={onPass} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} onPass={onPass} />
+      );
 
       fireEvent.press(getByText('Swipe Left'));
 
@@ -534,14 +650,18 @@ describe('ContractorCard', () => {
   describe('Edge Cases and Missing Fields', () => {
     it('should handle contractor without distance', () => {
       const contractor = createMockContractor({ distance: undefined });
-      const { queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(queryByText(/km away/)).toBeNull();
     });
 
     it('should handle contractor without address', () => {
       const contractor = createMockContractor({ address: undefined });
-      const { queryByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { queryByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       // Should not render location section when address is missing (businessAddress also not in default mock)
       // Note: If businessAddress were present, location icon would still show in detailsGrid
@@ -576,7 +696,9 @@ describe('ContractorCard', () => {
         totalJobsCompleted: undefined,
         total_jobs_completed: 30,
       });
-      const { getByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('4.8 (30 jobs)')).toBeTruthy();
     });
@@ -586,7 +708,9 @@ describe('ContractorCard', () => {
         totalJobsCompleted: undefined,
         total_jobs_completed: undefined,
       });
-      const { getByText } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getByText } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       expect(getByText('4.8 (0 jobs)')).toBeTruthy();
     });
@@ -616,7 +740,9 @@ describe('ContractorCard', () => {
       const contractor = createMockContractor({
         portfolioImages: ['https://example.com/image1.jpg'],
       });
-      const { getAllByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getAllByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       const cards = getAllByTestId(/card-\d+/);
       expect(cards.length).toBe(2); // Profile card + Portfolio card
@@ -626,7 +752,9 @@ describe('ContractorCard', () => {
       const contractor = createMockContractor({
         portfolioImages: undefined,
       });
-      const { getAllByTestId } = render(<ContractorCard {...defaultProps} contractor={contractor} />);
+      const { getAllByTestId } = render(
+        <ContractorCard {...defaultProps} contractor={contractor} />
+      );
 
       const cards = getAllByTestId(/card-\d+/);
       expect(cards.length).toBe(1); // Profile card only

@@ -37,7 +37,7 @@ jest.mock('../../../utils/PerformanceOptimizer', () => ({
     debounce: jest.fn((fn) => fn),
     throttle: jest.fn((fn) => fn),
     runAfterInteractions: jest.fn((fn) => fn()),
-    batchOperations: jest.fn((ops) => ops.forEach(op => op())),
+    batchOperations: jest.fn((ops) => ops.forEach((op) => op())),
   },
   useDebounce: jest.fn((value) => value),
   useThrottle: jest.fn((callback) => callback),
@@ -84,18 +84,24 @@ describe('BusinessDashboard', () => {
     });
 
     it('should render the main container', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Business Analytics')).toBeTruthy();
     });
 
     it('should render a ScrollView', () => {
-      const { UNSAFE_root } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { UNSAFE_root } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const scrollView = UNSAFE_root.findAllByType('ScrollView');
       expect(scrollView.length).toBeGreaterThan(0);
     });
 
     it('should apply correct container styling', () => {
-      const { UNSAFE_root } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { UNSAFE_root } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const scrollView = UNSAFE_root.findByType('ScrollView');
       expect(scrollView.props.style).toMatchObject(
         expect.objectContaining({
@@ -106,7 +112,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should hide vertical scroll indicator', () => {
-      const { UNSAFE_root } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { UNSAFE_root } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const scrollView = UNSAFE_root.findByType('ScrollView');
       expect(scrollView.props.showsVerticalScrollIndicator).toBe(false);
     });
@@ -114,12 +122,16 @@ describe('BusinessDashboard', () => {
 
   describe('Header Section', () => {
     it('should render the header title', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Business Analytics')).toBeTruthy();
     });
 
     it('should apply correct header styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const title = getByText('Business Analytics');
       const header = title.parent;
       const styles = header?.props.style;
@@ -134,7 +146,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should apply correct title styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const title = getByText('Business Analytics');
 
       expect(title.props.style).toMatchObject(
@@ -155,7 +169,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should NOT render refresh button when onRefresh is not provided', () => {
-      const { queryByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { queryByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(queryByText('Refresh')).toBeNull();
     });
 
@@ -229,45 +245,59 @@ describe('BusinessDashboard', () => {
 
   describe('MetricCard Component', () => {
     it('should render metric title', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Active Jobs')).toBeTruthy();
     });
 
     it('should render metric value', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('12')).toBeTruthy();
     });
 
     it('should render change text when provided', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/\+12% this week/)).toBeTruthy();
     });
 
     it('should display up trend arrow for up trend', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const changeText = getByText(/\+12% this week/);
       expect(changeText.props.children).toContain('↗ ');
     });
 
     it('should apply success color for up trend', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const changeText = getByText(/\+12% this week/);
       // Style can be an array, check if it contains the color
       const styles = Array.isArray(changeText.props.style)
         ? changeText.props.style
         : [changeText.props.style];
-      const hasColor = styles.some((style) => style?.color === '#10B981');
+      const hasColor = styles.some((style) => style?.color === '#0D9488');
       expect(hasColor).toBe(true);
     });
 
     it('should display down trend arrow for down trend', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const changeText = getByText(/-3% this week/);
       expect(changeText.props.children).toContain('↘ ');
     });
 
     it('should apply error color for down trend', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const changeText = getByText(/-3% this week/);
       // Style can be an array, check if it contains the color
       const styles = Array.isArray(changeText.props.style)
@@ -285,33 +315,39 @@ describe('BusinessDashboard', () => {
     });
 
     it('should apply custom color to metric value', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const activeJobsValue = getByText('12');
       expect(activeJobsValue.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#10B981',
+            color: '#0D9488',
           }),
         ])
       );
     });
 
     it('should apply border left color', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const metricTitle = getByText('Active Jobs');
       const card = metricTitle.parent;
 
       expect(card?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            borderLeftColor: '#10B981',
+            borderLeftColor: '#0D9488',
           }),
         ])
       );
     });
 
     it('should apply correct card styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const metricTitle = getByText('Active Jobs');
       const card = metricTitle.parent;
 
@@ -329,18 +365,19 @@ describe('BusinessDashboard', () => {
     });
 
     it('should apply shadow styling to metric cards', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const metricTitle = getByText('Active Jobs');
       const card = metricTitle.parent;
 
       expect(card?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            shadowColor: '#000',
+            shadowColor: '#000000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
+            shadowOpacity: 0.06,
+            shadowRadius: 10,
           }),
         ])
       );
@@ -349,17 +386,23 @@ describe('BusinessDashboard', () => {
 
   describe('Active Jobs Metric', () => {
     it('should display active jobs count', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('12')).toBeTruthy();
     });
 
     it('should display active jobs title', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Active Jobs')).toBeTruthy();
     });
 
     it('should display active jobs change', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/\+12% this week/)).toBeTruthy();
     });
 
@@ -378,22 +421,30 @@ describe('BusinessDashboard', () => {
 
   describe('Completed Jobs Metric', () => {
     it('should display completed jobs count', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('45')).toBeTruthy();
     });
 
     it('should display completed jobs title', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Completed Jobs')).toBeTruthy();
     });
 
     it('should display completed jobs change', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/\+8% this month/)).toBeTruthy();
     });
 
     it('should apply primary color to completed jobs', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const value = getByText('45');
       expect(value.props.style).toEqual(
         expect.arrayContaining([
@@ -407,17 +458,21 @@ describe('BusinessDashboard', () => {
 
   describe('Total Revenue Metric', () => {
     it('should display total revenue', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('$125,000')).toBeTruthy();
     });
 
     it('should display total revenue title', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Total Revenue')).toBeTruthy();
     });
 
     it('should format revenue as currency', () => {
-      const metrics = { ...defaultMetrics, totalRevenue: 1500.50 };
+      const metrics = { ...defaultMetrics, totalRevenue: 1500.5 };
       const { getByText } = render(<BusinessDashboard metrics={metrics} />);
       expect(getByText('$1,500.5')).toBeTruthy();
     });
@@ -435,19 +490,25 @@ describe('BusinessDashboard', () => {
     });
 
     it('should display revenue change', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/\+15% this month/)).toBeTruthy();
     });
   });
 
   describe('Average Job Value Metric', () => {
     it('should display average job value', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('$2,500')).toBeTruthy();
     });
 
     it('should display avg job value title', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Avg Job Value')).toBeTruthy();
     });
 
@@ -458,12 +519,16 @@ describe('BusinessDashboard', () => {
     });
 
     it('should display negative trend for avg job value', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/-3% this week/)).toBeTruthy();
     });
 
     it('should apply warning color to avg job value', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const value = getByText('$2,500');
       expect(value.props.style).toEqual(
         expect.arrayContaining([
@@ -477,12 +542,16 @@ describe('BusinessDashboard', () => {
 
   describe('User Growth Metric', () => {
     it('should display user growth percentage', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('15.5%')).toBeTruthy();
     });
 
     it('should display user growth title', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('User Growth')).toBeTruthy();
     });
 
@@ -505,17 +574,21 @@ describe('BusinessDashboard', () => {
     });
 
     it('should display growth change text', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/\+25% this quarter/)).toBeTruthy();
     });
 
     it('should apply info color to user growth', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const value = getByText('15.5%');
       expect(value.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#3B82F6',
+            color: '#222222',
           }),
         ])
       );
@@ -524,12 +597,16 @@ describe('BusinessDashboard', () => {
 
   describe('Contractor Utilization Metric', () => {
     it('should display contractor utilization percentage', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('78.3%')).toBeTruthy();
     });
 
     it('should display contractor util title (abbreviated)', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Contractor Util.')).toBeTruthy();
     });
 
@@ -546,17 +623,21 @@ describe('BusinessDashboard', () => {
     });
 
     it('should display utilization change', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/\+5% this month/)).toBeTruthy();
     });
 
     it('should apply secondary color to contractor utilization', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const value = getByText('78.3%');
       expect(value.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#717171',
+            color: '#222222',
           }),
         ])
       );
@@ -565,75 +646,95 @@ describe('BusinessDashboard', () => {
 
   describe('Performance Insights Section', () => {
     it('should render performance insights section', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Performance Insights')).toBeTruthy();
     });
 
     it('should render peak performance insight', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText('🚀 Peak Performance')).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(getByText('Peak Performance')).toBeTruthy();
     });
 
     it('should display peak performance text', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/Your platform is performing excellently/)).toBeTruthy();
       expect(getByText(/95% user satisfaction/)).toBeTruthy();
     });
 
     it('should render growth opportunities insight', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText('📈 Growth Opportunities')).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(getByText('Growth Opportunities')).toBeTruthy();
     });
 
     it('should display growth opportunities text', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText(/Consider expanding to 3 new service categories/)).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(
+        getByText(/Consider expanding to 3 new service categories/)
+      ).toBeTruthy();
       expect(getByText(/plumbing and electrical work/)).toBeTruthy();
     });
 
     it('should render attention needed insight', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText('⚠️ Attention Needed')).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(getByText('Attention Needed')).toBeTruthy();
     });
 
     it('should display attention needed text', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText(/Response times in North London/)).toBeTruthy();
       expect(getByText(/averaging 2.3 hours/)).toBeTruthy();
     });
 
     it('should apply correct section title styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const title = getByText('Performance Insights');
 
       expect(title.props.style).toMatchObject(
         expect.objectContaining({
           fontSize: 18,
-          fontWeight: '600',
+          fontWeight: '700',
           color: '#222222',
         })
       );
     });
 
     it('should apply correct insight card styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      const insightTitle = getByText('🚀 Peak Performance');
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      const insightTitle = getByText('Peak Performance');
       const card = insightTitle.parent;
 
       expect(card?.props.style).toMatchObject(
         expect.objectContaining({
           backgroundColor: '#FFFFFF',
-          borderRadius: 12,
+          borderRadius: 16,
           padding: 16,
-          borderWidth: 1,
-          borderColor: '#EBEBEB',
         })
       );
     });
 
     it('should apply correct insight title styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      const insightTitle = getByText('🚀 Peak Performance');
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      const insightTitle = getByText('Peak Performance');
 
       expect(insightTitle.props.style).toMatchObject(
         expect.objectContaining({
@@ -645,7 +746,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should apply correct insight text styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const insightText = getByText(/Your platform is performing excellently/);
 
       expect(insightText.props.style).toMatchObject(
@@ -660,57 +763,73 @@ describe('BusinessDashboard', () => {
 
   describe('Quick Actions Section', () => {
     it('should render quick actions section', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Quick Actions')).toBeTruthy();
     });
 
     it('should render detailed reports action', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText('📊 Detailed Reports')).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(getByText('Detailed Reports')).toBeTruthy();
     });
 
     it('should render user management action', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText('👥 User Management')).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(getByText('User Management')).toBeTruthy();
     });
 
     it('should render financial overview action', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText('💰 Financial Overview')).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(getByText('Financial Overview')).toBeTruthy();
     });
 
     it('should render marketing insights action', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(getByText('🎯 Marketing Insights')).toBeTruthy();
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      expect(getByText('Marketing Insights')).toBeTruthy();
     });
 
     it('should render action buttons as TouchableOpacity', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      const actionText = getByText('📊 Detailed Reports');
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      const actionText = getByText('Detailed Reports');
       const button = actionText.parent;
       expect(button?.type).toBe('TouchableOpacity');
     });
 
     it('should apply correct action button styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      const actionText = getByText('📊 Detailed Reports');
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      const actionText = getByText('Detailed Reports');
       const button = actionText.parent;
 
       expect(button?.props.style).toMatchObject(
         expect.objectContaining({
           backgroundColor: '#222222',
-          borderRadius: 12,
+          borderRadius: 16,
           padding: 12,
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 60,
+          minHeight: 56,
         })
       );
     });
 
     it('should apply correct action text styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      const actionText = getByText('📊 Detailed Reports');
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      const actionText = getByText('Detailed Reports');
 
       expect(actionText.props.style).toMatchObject(
         expect.objectContaining({
@@ -723,8 +842,10 @@ describe('BusinessDashboard', () => {
     });
 
     it('should allow pressing action buttons', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      const actionButton = getByText('📊 Detailed Reports').parent;
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      const actionButton = getByText('Detailed Reports').parent;
 
       expect(() => {
         fireEvent.press(actionButton);
@@ -735,13 +856,19 @@ describe('BusinessDashboard', () => {
   describe('Performance Optimization', () => {
     it('should start performance metric on mount', () => {
       render(<BusinessDashboard metrics={defaultMetrics} />);
-      expect(PerformanceOptimizer.startMetric).toHaveBeenCalledWith('dashboard-render');
+      expect(PerformanceOptimizer.startMetric).toHaveBeenCalledWith(
+        'dashboard-render'
+      );
     });
 
     it('should end performance metric on unmount', () => {
-      const { unmount } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { unmount } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       unmount();
-      expect(PerformanceOptimizer.endMetric).toHaveBeenCalledWith('dashboard-render');
+      expect(PerformanceOptimizer.endMetric).toHaveBeenCalledWith(
+        'dashboard-render'
+      );
     });
 
     it('should track performance metric only once per mount', () => {
@@ -752,12 +879,16 @@ describe('BusinessDashboard', () => {
 
   describe('Internationalization', () => {
     it('should use i18n formatters for currency', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('$125,000')).toBeTruthy();
     });
 
     it('should use i18n formatters for percentage', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('15.5%')).toBeTruthy();
     });
 
@@ -776,7 +907,9 @@ describe('BusinessDashboard', () => {
 
   describe('Layout and Grid Structure', () => {
     it('should render metrics in grid layout', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       // Verify that metrics are rendered in pairs (grid layout)
       expect(getByText('Active Jobs')).toBeTruthy();
       expect(getByText('Completed Jobs')).toBeTruthy();
@@ -786,7 +919,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should apply correct grid styling', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const activeJobs = getByText('Active Jobs');
       let current = activeJobs.parent;
 
@@ -805,7 +940,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should render three rows of metrics (6 metrics total)', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Active Jobs')).toBeTruthy();
       expect(getByText('Completed Jobs')).toBeTruthy();
       expect(getByText('Total Revenue')).toBeTruthy();
@@ -928,14 +1065,20 @@ describe('BusinessDashboard', () => {
       const mockOnRefresh2 = jest.fn();
 
       const { getByText, rerender } = render(
-        <BusinessDashboard metrics={defaultMetrics} onRefresh={mockOnRefresh1} />
+        <BusinessDashboard
+          metrics={defaultMetrics}
+          onRefresh={mockOnRefresh1}
+        />
       );
 
       fireEvent.press(getByText('Refresh'));
       expect(mockOnRefresh1).toHaveBeenCalledTimes(1);
 
       rerender(
-        <BusinessDashboard metrics={defaultMetrics} onRefresh={mockOnRefresh2} />
+        <BusinessDashboard
+          metrics={defaultMetrics}
+          onRefresh={mockOnRefresh2}
+        />
       );
 
       fireEvent.press(getByText('Refresh'));
@@ -945,7 +1088,9 @@ describe('BusinessDashboard', () => {
 
   describe('Accessibility', () => {
     it('should render all text elements', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
 
       // Check all metric titles are accessible
       expect(getByText('Active Jobs')).toBeTruthy();
@@ -957,14 +1102,18 @@ describe('BusinessDashboard', () => {
     });
 
     it('should render all section titles', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       expect(getByText('Performance Insights')).toBeTruthy();
       expect(getByText('Quick Actions')).toBeTruthy();
     });
 
     it('should have touchable action buttons', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
-      const button = getByText('📊 Detailed Reports').parent;
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
+      const button = getByText('Detailed Reports').parent;
       expect(button?.type).toBe('TouchableOpacity');
     });
 
@@ -980,13 +1129,17 @@ describe('BusinessDashboard', () => {
 
   describe('Theme Integration', () => {
     it('should use theme colors for background', () => {
-      const { UNSAFE_root } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { UNSAFE_root } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const scrollView = UNSAFE_root.findByType('ScrollView');
       expect(scrollView.props.style.backgroundColor).toBe('#F7F7F7');
     });
 
     it('should use theme spacing', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const card = getByText('Active Jobs').parent;
       expect(card?.props.style).toEqual(
         expect.arrayContaining([
@@ -998,7 +1151,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should use theme border radius', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const card = getByText('Active Jobs').parent;
       expect(card?.props.style).toEqual(
         expect.arrayContaining([
@@ -1010,7 +1165,9 @@ describe('BusinessDashboard', () => {
     });
 
     it('should use theme typography', () => {
-      const { getByText } = render(<BusinessDashboard metrics={defaultMetrics} />);
+      const { getByText } = render(
+        <BusinessDashboard metrics={defaultMetrics} />
+      );
       const title = getByText('Business Analytics');
       expect(title.props.style).toMatchObject(
         expect.objectContaining({

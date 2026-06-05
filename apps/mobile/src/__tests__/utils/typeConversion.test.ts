@@ -1,5 +1,9 @@
-import typeConversion, { TypeConversion } from '../../utils/typeConversion';
+import { TypeConversion } from '../../utils/typeConversion';
 import * as typeConversionModule from '../../utils/typeConversion';
+
+// The module exposes its conversion registry as the named `TypeConversion`
+// export (the previous default export was removed during refactor).
+const typeConversion = TypeConversion;
 
 // Mock the fieldMapper module
 jest.mock('../../utils/fieldMapper', () => ({
@@ -8,7 +12,7 @@ jest.mock('../../utils/fieldMapper', () => ({
   mapDatabaseJobToJob: jest.fn((job) => job),
   mapJobToDatabaseJob: jest.fn((job) => job),
   mapDatabaseMessageToMessage: jest.fn((msg) => msg),
-  mapMessageToDatabaseMessage: jest.fn((msg) => msg)
+  mapMessageToDatabaseMessage: jest.fn((msg) => msg),
 }));
 
 describe('typeConversion', () => {
@@ -32,8 +36,12 @@ describe('typeConversion', () => {
       expect(typeConversionModule.convertUserToDatabaseUser).toBeDefined();
       expect(typeConversionModule.convertDatabaseJobToJob).toBeDefined();
       expect(typeConversionModule.convertJobToDatabaseJob).toBeDefined();
-      expect(typeConversionModule.convertDatabaseMessageToMessage).toBeDefined();
-      expect(typeConversionModule.convertMessageToDatabaseMessage).toBeDefined();
+      expect(
+        typeConversionModule.convertDatabaseMessageToMessage
+      ).toBeDefined();
+      expect(
+        typeConversionModule.convertMessageToDatabaseMessage
+      ).toBeDefined();
       expect(typeConversionModule.convertDatabaseBidToBid).toBeDefined();
       expect(typeConversionModule.normalizeFieldNames).toBeDefined();
     });
@@ -50,7 +58,7 @@ describe('typeConversion', () => {
         created_at: '2023-01-01',
         updated_at: '2023-01-02',
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '123 Main St',
         profile_image_url: 'http://example.com/image.jpg',
         bio: 'Test bio',
@@ -58,7 +66,7 @@ describe('typeConversion', () => {
         total_jobs_completed: 10,
         is_available: true,
         is_verified: false,
-        phone: '+1234567890'
+        phone: '+1234567890',
       };
 
       const result = typeConversionModule.convertDatabaseUserToUser(dbUser);
@@ -72,7 +80,7 @@ describe('typeConversion', () => {
         createdAt: '2023-01-01',
         updatedAt: '2023-01-02',
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '123 Main St',
         profileImageUrl: 'http://example.com/image.jpg',
         bio: 'Test bio',
@@ -80,7 +88,7 @@ describe('typeConversion', () => {
         totalJobsCompleted: 10,
         isAvailable: true,
         isVerified: false,
-        phone: '+1234567890'
+        phone: '+1234567890',
       });
     });
 
@@ -88,11 +96,11 @@ describe('typeConversion', () => {
       const dbUser = {
         id: 'user123',
         email: 'test@example.com',
-        firstName: 'John',  // Already camelCase
-        lastName: 'Doe',    // Already camelCase
+        firstName: 'John', // Already camelCase
+        lastName: 'Doe', // Already camelCase
         role: 'contractor',
         createdAt: '2023-01-01',
-        updatedAt: '2023-01-02'
+        updatedAt: '2023-01-02',
       };
 
       const result = typeConversionModule.convertDatabaseUserToUser(dbUser);
@@ -105,7 +113,7 @@ describe('typeConversion', () => {
       const dbUser = {
         id: 'user123',
         email: 'test@example.com',
-        role: 'homeowner'
+        role: 'homeowner',
       };
 
       const result = typeConversionModule.convertDatabaseUserToUser(dbUser);
@@ -123,7 +131,7 @@ describe('typeConversion', () => {
         first_name: 'SnakeCase',
         firstName: 'CamelCase',
         profile_image_url: 'snake.jpg',
-        profileImageUrl: 'camel.jpg'
+        profileImageUrl: 'camel.jpg',
       };
 
       const result = typeConversionModule.convertDatabaseUserToUser(dbUser);
@@ -147,7 +155,7 @@ describe('typeConversion', () => {
         profileImageUrl: 'http://example.com/image.jpg',
         totalJobsCompleted: 25,
         isAvailable: true,
-        isVerified: true
+        isVerified: true,
       };
 
       const result = typeConversionModule.convertUserToDatabaseUser(user);
@@ -169,7 +177,7 @@ describe('typeConversion', () => {
         address: undefined,
         bio: undefined,
         rating: undefined,
-        phone: undefined
+        phone: undefined,
       });
     });
 
@@ -177,7 +185,7 @@ describe('typeConversion', () => {
       const user = {
         id: 'user123',
         email: 'test@example.com',
-        role: 'homeowner'
+        role: 'homeowner',
       };
 
       const result = typeConversionModule.convertUserToDatabaseUser(user);
@@ -204,7 +212,7 @@ describe('typeConversion', () => {
         category: 'plumbing',
         subcategory: 'faucets',
         priority: 'high',
-        photos: ['photo1.jpg', 'photo2.jpg']
+        photos: ['photo1.jpg', 'photo2.jpg'],
       };
 
       const result = typeConversionModule.convertDatabaseJobToJob(dbJob);
@@ -226,7 +234,7 @@ describe('typeConversion', () => {
         photos: ['photo1.jpg', 'photo2.jpg'],
         homeowner: undefined,
         contractor: undefined,
-        bids: undefined
+        bids: undefined,
       });
     });
 
@@ -237,17 +245,17 @@ describe('typeConversion', () => {
         homeowner: {
           id: 'user456',
           email: 'owner@example.com',
-          first_name: 'Jane'
+          first_name: 'Jane',
         },
         contractor: {
           id: 'user789',
           email: 'contractor@example.com',
-          first_name: 'Bob'
+          first_name: 'Bob',
         },
         bids: [
           { id: 'bid1', amount: 100 },
-          { id: 'bid2', amount: 150 }
-        ]
+          { id: 'bid2', amount: 150 },
+        ],
       };
 
       const result = typeConversionModule.convertDatabaseJobToJob(dbJob);
@@ -262,10 +270,10 @@ describe('typeConversion', () => {
     it('should handle job with camelCase fields', () => {
       const dbJob = {
         id: 'job123',
-        homeownerId: 'user456',  // Already camelCase
+        homeownerId: 'user456', // Already camelCase
         contractorId: 'user789', // Already camelCase
         createdAt: '2023-01-01',
-        updatedAt: '2023-01-02'
+        updatedAt: '2023-01-02',
       };
 
       const result = typeConversionModule.convertDatabaseJobToJob(dbJob);
@@ -291,7 +299,7 @@ describe('typeConversion', () => {
         category: 'painting',
         subcategory: 'interior',
         priority: 'medium',
-        photos: ['before.jpg', 'after.jpg']
+        photos: ['before.jpg', 'after.jpg'],
       };
 
       const result = typeConversionModule.convertJobToDatabaseJob(job);
@@ -310,7 +318,7 @@ describe('typeConversion', () => {
         category: 'painting',
         subcategory: 'interior',
         priority: 'medium',
-        photos: ['before.jpg', 'after.jpg']
+        photos: ['before.jpg', 'after.jpg'],
       });
     });
 
@@ -320,7 +328,7 @@ describe('typeConversion', () => {
         title: 'Clean gutters',
         homeowner: { id: 'user456', email: 'test@example.com' },
         contractor: { id: 'user789', email: 'contractor@example.com' },
-        bids: [{ id: 'bid1' }]
+        bids: [{ id: 'bid1' }],
       };
 
       const result = typeConversionModule.convertJobToDatabaseJob(job);
@@ -345,10 +353,11 @@ describe('typeConversion', () => {
         created_at: '2023-01-01T12:00:00Z',
         synced_at: '2023-01-01T12:05:00Z',
         call_id: 'call123',
-        call_duration: 300
+        call_duration: 300,
       };
 
-      const result = typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
+      const result =
+        typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
 
       expect(result).toEqual({
         id: 'msg123',
@@ -367,7 +376,7 @@ describe('typeConversion', () => {
         receiver: undefined,
         job: undefined,
         senderName: undefined,
-        senderRole: undefined
+        senderRole: undefined,
       });
     });
 
@@ -378,11 +387,12 @@ describe('typeConversion', () => {
           id: 'user789',
           first_name: 'John',
           last_name: 'Smith',
-          role: 'contractor'
-        }
+          role: 'contractor',
+        },
       };
 
-      const result = typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
+      const result =
+        typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
 
       expect(result.senderName).toBe('John Smith');
       expect(result.senderRole).toBe('contractor');
@@ -395,11 +405,12 @@ describe('typeConversion', () => {
           id: 'user789',
           first_name: '',
           last_name: null,
-          role: 'homeowner'
-        }
+          role: 'homeowner',
+        },
       };
 
-      const result = typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
+      const result =
+        typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
 
       expect(result.senderName).toBe('');
       expect(result.senderRole).toBe('homeowner');
@@ -408,13 +419,14 @@ describe('typeConversion', () => {
     it('should handle message with camelCase fields', () => {
       const dbMessage = {
         id: 'msg123',
-        jobId: 'job456',         // Already camelCase
-        senderId: 'user789',      // Already camelCase
+        jobId: 'job456', // Already camelCase
+        senderId: 'user789', // Already camelCase
         messageText: 'Test message',
-        createdAt: '2023-01-01'
+        createdAt: '2023-01-01',
       };
 
-      const result = typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
+      const result =
+        typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
 
       expect(result.jobId).toBe('job456');
       expect(result.senderId).toBe('user789');
@@ -435,10 +447,11 @@ describe('typeConversion', () => {
         createdAt: '2023-01-01T12:00:00Z',
         syncedAt: '2023-01-01T12:05:00Z',
         callId: 'call456',
-        callDuration: 180
+        callDuration: 180,
       };
 
-      const result = typeConversionModule.convertMessageToDatabaseMessage(message);
+      const result =
+        typeConversionModule.convertMessageToDatabaseMessage(message);
 
       expect(result).toEqual({
         id: 'msg123',
@@ -452,7 +465,7 @@ describe('typeConversion', () => {
         created_at: '2023-01-01T12:00:00Z',
         synced_at: '2023-01-01T12:05:00Z',
         call_id: 'call456',
-        call_duration: 180
+        call_duration: 180,
       });
     });
 
@@ -461,13 +474,14 @@ describe('typeConversion', () => {
         id: 'msg123',
         jobId: 'job456',
         senderId: 'user789',
-        senderName: 'John Doe',     // Computed field
-        senderRole: 'contractor',    // Computed field
-        sender: { id: 'user789' },   // Related entity
-        receiver: { id: 'user012' }  // Related entity
+        senderName: 'John Doe', // Computed field
+        senderRole: 'contractor', // Computed field
+        sender: { id: 'user789' }, // Related entity
+        receiver: { id: 'user012' }, // Related entity
       };
 
-      const result = typeConversionModule.convertMessageToDatabaseMessage(message);
+      const result =
+        typeConversionModule.convertMessageToDatabaseMessage(message);
 
       expect(result.senderName).toBeUndefined();
       expect(result.senderRole).toBeUndefined();
@@ -486,7 +500,7 @@ describe('typeConversion', () => {
         description: 'I can fix this quickly',
         status: 'pending',
         created_at: '2023-01-01T10:00:00Z',
-        updated_at: '2023-01-01T11:00:00Z'
+        updated_at: '2023-01-01T11:00:00Z',
       };
 
       const result = typeConversionModule.convertDatabaseBidToBid(dbBid);
@@ -506,7 +520,7 @@ describe('typeConversion', () => {
         jobTitle: undefined,
         jobDescription: undefined,
         jobLocation: undefined,
-        jobBudget: undefined
+        jobBudget: undefined,
       });
     });
 
@@ -517,8 +531,8 @@ describe('typeConversion', () => {
           first_name: 'Bob',
           last_name: 'Builder',
           email: 'bob@example.com',
-          rating: 4.8
-        }
+          rating: 4.8,
+        },
       };
 
       const result = typeConversionModule.convertDatabaseBidToBid(dbBid);
@@ -535,8 +549,8 @@ describe('typeConversion', () => {
           title: 'Fix sink',
           description: 'Kitchen sink is leaking',
           location: '789 Pine St',
-          budget: 200
-        }
+          budget: 200,
+        },
       };
 
       const result = typeConversionModule.convertDatabaseBidToBid(dbBid);
@@ -550,9 +564,9 @@ describe('typeConversion', () => {
     it('should handle bid with camelCase fields', () => {
       const dbBid = {
         id: 'bid123',
-        jobId: 'job456',          // Already camelCase
-        contractorId: 'user789',   // Already camelCase
-        createdAt: '2023-01-01'
+        jobId: 'job456', // Already camelCase
+        contractorId: 'user789', // Already camelCase
+        createdAt: '2023-01-01',
       };
 
       const result = typeConversionModule.convertDatabaseBidToBid(dbBid);
@@ -567,10 +581,11 @@ describe('typeConversion', () => {
       it('should convert array of database users', () => {
         const dbUsers = [
           { id: 'user1', email: 'user1@example.com', first_name: 'Alice' },
-          { id: 'user2', email: 'user2@example.com', first_name: 'Bob' }
+          { id: 'user2', email: 'user2@example.com', first_name: 'Bob' },
         ];
 
-        const result = typeConversionModule.convertDatabaseUsersToUsers(dbUsers);
+        const result =
+          typeConversionModule.convertDatabaseUsersToUsers(dbUsers);
 
         expect(result).toHaveLength(2);
         expect(result[0].firstName).toBe('Alice');
@@ -587,7 +602,7 @@ describe('typeConversion', () => {
       it('should convert array of database jobs', () => {
         const dbJobs = [
           { id: 'job1', title: 'Job 1', homeowner_id: 'user1' },
-          { id: 'job2', title: 'Job 2', homeowner_id: 'user2' }
+          { id: 'job2', title: 'Job 2', homeowner_id: 'user2' },
         ];
 
         const result = typeConversionModule.convertDatabaseJobsToJobs(dbJobs);
@@ -602,10 +617,11 @@ describe('typeConversion', () => {
       it('should convert array of database messages', () => {
         const dbMessages = [
           { id: 'msg1', message_text: 'Hello', sender_id: 'user1' },
-          { id: 'msg2', message_text: 'Hi', sender_id: 'user2' }
+          { id: 'msg2', message_text: 'Hi', sender_id: 'user2' },
         ];
 
-        const result = typeConversionModule.convertDatabaseMessagesToMessages(dbMessages);
+        const result =
+          typeConversionModule.convertDatabaseMessagesToMessages(dbMessages);
 
         expect(result).toHaveLength(2);
         expect(result[0].messageText).toBe('Hello');
@@ -617,7 +633,7 @@ describe('typeConversion', () => {
       it('should convert array of database bids', () => {
         const dbBids = [
           { id: 'bid1', amount: 100, contractor_id: 'user1' },
-          { id: 'bid2', amount: 150, contractor_id: 'user2' }
+          { id: 'bid2', amount: 150, contractor_id: 'user2' },
         ];
 
         const result = typeConversionModule.convertDatabaseBidsToBids(dbBids);
@@ -633,7 +649,10 @@ describe('typeConversion', () => {
     describe('convertDatabaseEntity', () => {
       it('should convert user entity', () => {
         const dbUser = { id: 'user1', first_name: 'John' };
-        const result = typeConversionModule.convertDatabaseEntity(dbUser, 'user');
+        const result = typeConversionModule.convertDatabaseEntity(
+          dbUser,
+          'user'
+        );
         expect(result.firstName).toBe('John');
       });
 
@@ -645,7 +664,10 @@ describe('typeConversion', () => {
 
       it('should convert message entity', () => {
         const dbMessage = { id: 'msg1', message_text: 'Hello' };
-        const result = typeConversionModule.convertDatabaseEntity(dbMessage, 'message');
+        const result = typeConversionModule.convertDatabaseEntity(
+          dbMessage,
+          'message'
+        );
         expect(result.messageText).toBe('Hello');
       });
 
@@ -657,7 +679,10 @@ describe('typeConversion', () => {
 
       it('should return original for unknown entity type', () => {
         const entity = { id: 'unknown1', some_field: 'value' };
-        const result = typeConversionModule.convertDatabaseEntity(entity, 'unknown');
+        const result = typeConversionModule.convertDatabaseEntity(
+          entity,
+          'unknown'
+        );
         expect(result).toBe(entity);
       });
     });
@@ -665,31 +690,46 @@ describe('typeConversion', () => {
     describe('convertApplicationEntity', () => {
       it('should convert user entity to database', () => {
         const user = { id: 'user1', firstName: 'John' };
-        const result = typeConversionModule.convertApplicationEntity(user, 'user');
+        const result = typeConversionModule.convertApplicationEntity(
+          user,
+          'user'
+        );
         expect(result.first_name).toBe('John');
       });
 
       it('should convert job entity to database', () => {
         const job = { id: 'job1', homeownerId: 'user1' };
-        const result = typeConversionModule.convertApplicationEntity(job, 'job');
+        const result = typeConversionModule.convertApplicationEntity(
+          job,
+          'job'
+        );
         expect(result.homeowner_id).toBe('user1');
       });
 
       it('should convert message entity to database', () => {
         const message = { id: 'msg1', messageText: 'Hello' };
-        const result = typeConversionModule.convertApplicationEntity(message, 'message');
+        const result = typeConversionModule.convertApplicationEntity(
+          message,
+          'message'
+        );
         expect(result.message_text).toBe('Hello');
       });
 
       it('should return original for bid (no reverse conversion)', () => {
         const bid = { id: 'bid1', contractorId: 'user1' };
-        const result = typeConversionModule.convertApplicationEntity(bid, 'bid');
+        const result = typeConversionModule.convertApplicationEntity(
+          bid,
+          'bid'
+        );
         expect(result).toBe(bid);
       });
 
       it('should return original for unknown entity type', () => {
         const entity = { id: 'unknown1', someField: 'value' };
-        const result = typeConversionModule.convertApplicationEntity(entity, 'unknown');
+        const result = typeConversionModule.convertApplicationEntity(
+          entity,
+          'unknown'
+        );
         expect(result).toBe(entity);
       });
     });
@@ -702,46 +742,55 @@ describe('typeConversion', () => {
           firstName: 'John',
           lastName: 'Doe',
           profileImageUrl: 'http://example.com/image.jpg',
-          isAvailable: true
+          isAvailable: true,
         };
 
-        const result = typeConversionModule.normalizeFieldNames(obj, 'snake_case');
+        const result = typeConversionModule.normalizeFieldNames(
+          obj,
+          'snake_case'
+        );
 
         expect(result).toEqual({
           first_name: 'John',
           last_name: 'Doe',
           profile_image_url: 'http://example.com/image.jpg',
-          is_available: true
+          is_available: true,
         });
       });
 
       it('should handle already snake_case fields', () => {
         const obj = {
           first_name: 'Jane',
-          user_id: '123'
+          user_id: '123',
         };
 
-        const result = typeConversionModule.normalizeFieldNames(obj, 'snake_case');
+        const result = typeConversionModule.normalizeFieldNames(
+          obj,
+          'snake_case'
+        );
 
         expect(result).toEqual({
           first_name: 'Jane',
-          user_id: '123'
+          user_id: '123',
         });
       });
 
       it('should handle mixed case fields', () => {
         const obj = {
-          userID: '123',          // ID in caps
-          XMLData: '<xml/>',      // Acronym
-          HTMLContent: '<div/>'   // Mixed acronym
+          userID: '123', // ID in caps
+          XMLData: '<xml/>', // Acronym
+          HTMLContent: '<div/>', // Mixed acronym
         };
 
-        const result = typeConversionModule.normalizeFieldNames(obj, 'snake_case');
+        const result = typeConversionModule.normalizeFieldNames(
+          obj,
+          'snake_case'
+        );
 
         expect(result).toEqual({
-          user_i_d: '123',        // Each capital gets underscore
+          user_i_d: '123', // Each capital gets underscore
           x_m_l_data: '<xml/>',
-          h_t_m_l_content: '<div/>'
+          h_t_m_l_content: '<div/>',
         });
       });
     });
@@ -752,59 +801,81 @@ describe('typeConversion', () => {
           first_name: 'John',
           last_name: 'Doe',
           profile_image_url: 'http://example.com/image.jpg',
-          is_verified: false
+          is_verified: false,
         };
 
-        const result = typeConversionModule.normalizeFieldNames(obj, 'camelCase');
+        const result = typeConversionModule.normalizeFieldNames(
+          obj,
+          'camelCase'
+        );
 
         expect(result).toEqual({
           firstName: 'John',
           lastName: 'Doe',
           profileImageUrl: 'http://example.com/image.jpg',
-          isVerified: false
+          isVerified: false,
         });
       });
 
       it('should handle already camelCase fields', () => {
         const obj = {
           firstName: 'Jane',
-          userId: '123'
+          userId: '123',
         };
 
-        const result = typeConversionModule.normalizeFieldNames(obj, 'camelCase');
+        const result = typeConversionModule.normalizeFieldNames(
+          obj,
+          'camelCase'
+        );
 
         expect(result).toEqual({
           firstName: 'Jane',
-          userId: '123'
+          userId: '123',
         });
       });
 
       it('should handle leading underscores', () => {
         const obj = {
           _private_field: 'secret',
-          __double_underscore: 'value'
+          __double_underscore: 'value',
         };
 
-        const result = typeConversionModule.normalizeFieldNames(obj, 'camelCase');
+        const result = typeConversionModule.normalizeFieldNames(
+          obj,
+          'camelCase'
+        );
 
         expect(result).toEqual({
           _privateField: 'secret',
-          __doubleUnderscore: 'value'
+          __doubleUnderscore: 'value',
         });
       });
     });
 
     describe('Edge cases', () => {
       it('should return non-objects as-is', () => {
-        expect(typeConversionModule.normalizeFieldNames(null, 'snake_case')).toBeNull();
-        expect(typeConversionModule.normalizeFieldNames(undefined, 'camelCase')).toBeUndefined();
-        expect(typeConversionModule.normalizeFieldNames('string', 'snake_case')).toBe('string');
-        expect(typeConversionModule.normalizeFieldNames(123, 'camelCase')).toBe(123);
-        expect(typeConversionModule.normalizeFieldNames(true, 'snake_case')).toBe(true);
+        expect(
+          typeConversionModule.normalizeFieldNames(null, 'snake_case')
+        ).toBeNull();
+        expect(
+          typeConversionModule.normalizeFieldNames(undefined, 'camelCase')
+        ).toBeUndefined();
+        expect(
+          typeConversionModule.normalizeFieldNames('string', 'snake_case')
+        ).toBe('string');
+        expect(typeConversionModule.normalizeFieldNames(123, 'camelCase')).toBe(
+          123
+        );
+        expect(
+          typeConversionModule.normalizeFieldNames(true, 'snake_case')
+        ).toBe(true);
       });
 
       it('should handle empty objects', () => {
-        const result = typeConversionModule.normalizeFieldNames({}, 'snake_case');
+        const result = typeConversionModule.normalizeFieldNames(
+          {},
+          'snake_case'
+        );
         expect(result).toEqual({});
       });
 
@@ -812,19 +883,23 @@ describe('typeConversion', () => {
         const obj = {
           userName: 'John',
           userDetails: {
-            nestedField: 'value'
+            nestedField: 'value',
           },
-          userScores: [1, 2, 3]
+          userScores: [1, 2, 3],
         };
 
-        const result = typeConversionModule.normalizeFieldNames(obj, 'snake_case');
+        const result = typeConversionModule.normalizeFieldNames(
+          obj,
+          'snake_case'
+        );
 
         expect(result).toEqual({
           user_name: 'John',
-          user_details: {          // Nested object not converted
-            nestedField: 'value'
+          user_details: {
+            // Nested object not converted
+            nestedField: 'value',
           },
-          user_scores: [1, 2, 3]
+          user_scores: [1, 2, 3],
         });
       });
     });
@@ -833,36 +908,64 @@ describe('typeConversion', () => {
   describe('TypeConversion object structure', () => {
     it('should have user conversion methods', () => {
       expect(TypeConversion.user).toBeDefined();
-      expect(TypeConversion.user.fromDatabase).toBe(typeConversionModule.convertDatabaseUserToUser);
-      expect(TypeConversion.user.toDatabase).toBe(typeConversionModule.convertUserToDatabaseUser);
-      expect(TypeConversion.user.arrayFromDatabase).toBe(typeConversionModule.convertDatabaseUsersToUsers);
+      expect(TypeConversion.user.fromDatabase).toBe(
+        typeConversionModule.convertDatabaseUserToUser
+      );
+      expect(TypeConversion.user.toDatabase).toBe(
+        typeConversionModule.convertUserToDatabaseUser
+      );
+      expect(TypeConversion.user.arrayFromDatabase).toBe(
+        typeConversionModule.convertDatabaseUsersToUsers
+      );
     });
 
     it('should have job conversion methods', () => {
       expect(TypeConversion.job).toBeDefined();
-      expect(TypeConversion.job.fromDatabase).toBe(typeConversionModule.convertDatabaseJobToJob);
-      expect(TypeConversion.job.toDatabase).toBe(typeConversionModule.convertJobToDatabaseJob);
-      expect(TypeConversion.job.arrayFromDatabase).toBe(typeConversionModule.convertDatabaseJobsToJobs);
+      expect(TypeConversion.job.fromDatabase).toBe(
+        typeConversionModule.convertDatabaseJobToJob
+      );
+      expect(TypeConversion.job.toDatabase).toBe(
+        typeConversionModule.convertJobToDatabaseJob
+      );
+      expect(TypeConversion.job.arrayFromDatabase).toBe(
+        typeConversionModule.convertDatabaseJobsToJobs
+      );
     });
 
     it('should have message conversion methods', () => {
       expect(TypeConversion.message).toBeDefined();
-      expect(TypeConversion.message.fromDatabase).toBe(typeConversionModule.convertDatabaseMessageToMessage);
-      expect(TypeConversion.message.toDatabase).toBe(typeConversionModule.convertMessageToDatabaseMessage);
-      expect(TypeConversion.message.arrayFromDatabase).toBe(typeConversionModule.convertDatabaseMessagesToMessages);
+      expect(TypeConversion.message.fromDatabase).toBe(
+        typeConversionModule.convertDatabaseMessageToMessage
+      );
+      expect(TypeConversion.message.toDatabase).toBe(
+        typeConversionModule.convertMessageToDatabaseMessage
+      );
+      expect(TypeConversion.message.arrayFromDatabase).toBe(
+        typeConversionModule.convertDatabaseMessagesToMessages
+      );
     });
 
     it('should have bid conversion methods', () => {
       expect(TypeConversion.bid).toBeDefined();
-      expect(TypeConversion.bid.fromDatabase).toBe(typeConversionModule.convertDatabaseBidToBid);
-      expect(TypeConversion.bid.arrayFromDatabase).toBe(typeConversionModule.convertDatabaseBidsToBids);
+      expect(TypeConversion.bid.fromDatabase).toBe(
+        typeConversionModule.convertDatabaseBidToBid
+      );
+      expect(TypeConversion.bid.arrayFromDatabase).toBe(
+        typeConversionModule.convertDatabaseBidsToBids
+      );
     });
 
     it('should have generic conversion methods', () => {
       expect(TypeConversion.generic).toBeDefined();
-      expect(TypeConversion.generic.fromDatabase).toBe(typeConversionModule.convertDatabaseEntity);
-      expect(TypeConversion.generic.toDatabase).toBe(typeConversionModule.convertApplicationEntity);
-      expect(TypeConversion.generic.normalizeFields).toBe(typeConversionModule.normalizeFieldNames);
+      expect(TypeConversion.generic.fromDatabase).toBe(
+        typeConversionModule.convertDatabaseEntity
+      );
+      expect(TypeConversion.generic.toDatabase).toBe(
+        typeConversionModule.convertApplicationEntity
+      );
+      expect(TypeConversion.generic.normalizeFields).toBe(
+        typeConversionModule.normalizeFieldNames
+      );
     });
   });
 
@@ -875,11 +978,13 @@ describe('typeConversion', () => {
         lastName: 'Doe',
         role: 'contractor',
         profileImageUrl: 'http://example.com/image.jpg',
-        isAvailable: true
+        isAvailable: true,
       };
 
-      const dbUser = typeConversionModule.convertUserToDatabaseUser(originalUser);
-      const convertedBack = typeConversionModule.convertDatabaseUserToUser(dbUser);
+      const dbUser =
+        typeConversionModule.convertUserToDatabaseUser(originalUser);
+      const convertedBack =
+        typeConversionModule.convertDatabaseUserToUser(dbUser);
 
       expect(convertedBack.id).toBe(originalUser.id);
       expect(convertedBack.email).toBe(originalUser.email);
@@ -896,7 +1001,7 @@ describe('typeConversion', () => {
         homeownerId: 'user456',
         contractorId: 'user789',
         budget: 1500,
-        createdAt: '2023-01-01'
+        createdAt: '2023-01-01',
       };
 
       const dbJob = typeConversionModule.convertJobToDatabaseJob(originalJob);
@@ -917,11 +1022,13 @@ describe('typeConversion', () => {
         receiverId: 'user012',
         messageText: 'Hello',
         messageType: 'text',
-        read: false
+        read: false,
       };
 
-      const dbMessage = typeConversionModule.convertMessageToDatabaseMessage(originalMessage);
-      const convertedBack = typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
+      const dbMessage =
+        typeConversionModule.convertMessageToDatabaseMessage(originalMessage);
+      const convertedBack =
+        typeConversionModule.convertDatabaseMessageToMessage(dbMessage);
 
       expect(convertedBack.id).toBe(originalMessage.id);
       expect(convertedBack.jobId).toBe(originalMessage.jobId);

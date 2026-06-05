@@ -304,7 +304,7 @@ describe('ProfileHeader Component', () => {
       const locationIconCall = mockIonicons.mock.calls.find(
         (call) => call[0].name === 'location-outline'
       );
-      expect(locationIconCall[0].size).toBe(14);
+      expect(locationIconCall[0].size).toBe(13);
     });
 
     it('location icon has correct color', () => {
@@ -598,7 +598,7 @@ describe('ProfileHeader Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#737373',
+            color: '#768079',
           }),
         ])
       );
@@ -652,27 +652,27 @@ describe('ProfileHeader Component', () => {
       expect(viewElements.length).toBeGreaterThan(1);
     });
 
-    it('avatar has correct circular styling', () => {
+    it('avatar ring has correct circular styling', () => {
       const { UNSAFE_root } = render(<ProfileHeader {...defaultProps} />);
       const viewElements = UNSAFE_root.findAllByType(View as any);
 
-      // Find the avatar view (should have borderRadius: 50)
+      // Mint Editorial avatar ring: 96x96 with borderRadius 48.
       const avatar = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
         return styles.some(
           (style: any) =>
-            style?.borderRadius === 50 &&
-            style?.width === 100 &&
-            style?.height === 100
+            style?.borderRadius === 48 &&
+            style?.width === 96 &&
+            style?.height === 96
         );
       });
 
       expect(avatar).toBeTruthy();
     });
 
-    it('avatar has correct dimensions', () => {
+    it('avatar ring has correct dimensions', () => {
       const { UNSAFE_root } = render(<ProfileHeader {...defaultProps} />);
       const viewElements = UNSAFE_root.findAllByType(View as any);
 
@@ -681,25 +681,28 @@ describe('ProfileHeader Component', () => {
           ? view.props.style.flat()
           : [view?.props.style];
         return styles.some(
-          (style: any) => style?.width === 100 && style?.height === 100
+          (style: any) => style?.width === 96 && style?.height === 96
         );
       });
 
       expect(avatar).toBeTruthy();
     });
 
-    it('avatar container is positioned relatively', () => {
-      const { UNSAFE_root } = render(<ProfileHeader {...defaultProps} />);
+    it('verified badge is absolutely positioned over the avatar', () => {
+      const { UNSAFE_root } = render(
+        <ProfileHeader {...defaultProps} verified />
+      );
       const viewElements = UNSAFE_root.findAllByType(View as any);
 
-      const avatarContainer = viewElements.find((view: any) => {
+      // The verified dot overlays the avatar ring via position: 'absolute'.
+      const verifiedDot = viewElements.find((view: any) => {
         const styles = Array.isArray(view?.props.style)
           ? view.props.style.flat()
           : [view?.props.style];
-        return styles.some((style: any) => style?.position === 'relative');
+        return styles.some((style: any) => style?.position === 'absolute');
       });
 
-      expect(avatarContainer).toBeTruthy();
+      expect(verifiedDot).toBeTruthy();
     });
 
     it.skip('edit button is absolutely positioned when shown', () => {

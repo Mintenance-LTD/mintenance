@@ -1,7 +1,23 @@
-import { BidService } from '../../services/BidService';
-import { supabase } from '../../config/supabase';
-import { Bid, BidData } from '../../types';
+/**
+ * BidService unit tests.
+ *
+ * 2026-06-04 rewrite: the prior suite tested a long-removed
+ * direct-Supabase implementation (supabase.from('bids')..., a
+ * getBidStatistics edge-function call, bidId-only mutation signatures
+ * that returned the updated row). The service was consolidated to route
+ * every call through `mobileApiClient` (mobile→web API) and to delegate
+ * the rich-payload submit to `BidManagementService.submitBid`. These
+ * tests assert the CURRENT contract:
+ *   - createBid validates locally then calls BidManagementService.submitBid
+ *   - reads (getBidsByJob / getBidsByContractor / getMyBidForJob) GET the
+ *     web routes and unwrap { bids }
+ *   - mutations (accept/reject/unreject/withdraw/update) POST/PATCH the
+ *     nested /api/jobs/:jobId/bids/:bidId routes and require jobId
+ */
 
+import { BidService } from '../../services/BidService';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import { BidManagementService } from '../../services/BidManagementService';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -14,611 +30,324 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock Supabase
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    from: jest.fn(),
-    functions: {
-      invoke: jest.fn(),
-    },
+// Mock the API client (all bid traffic flows through it).
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+// Mock the rich-payload submit delegate so createBid/submitBid don't
+// reach the real network helper.
+jest.mock('../../services/BidManagementService', () => ({
+  BidManagementService: {
+    submitBid: jest.fn(),
+  },
+}));
 
-const mockBidData: BidData = {
+const mockApi = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
+const mockSubmitBid = BidManagementService.submitBid as jest.Mock;
+
+const mockBidData = {
   job_id: 'job-1',
   contractor_id: 'contractor-1',
   amount: 140,
   message: 'I can complete this job today with 5+ years experience',
-  estimated_duration: 'Same day',
+  estimated_duration_days: 1,
   availability: '2024-01-15',
-};
-
-const mockBid: Bid = {
-  id: 'bid-1',
-  ...mockBidData,
-  status: 'pending',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  contractor: {
-    id: 'contractor-1',
-    first_name: 'Jane',
-    last_name: 'Contractor',
-    email: 'jane@example.com',
-    rating: 4.8,
-    reviews_count: 25,
-    profile_picture: 'avatar.jpg',
-  },
-  job: {
-    id: 'job-1',
-    title: 'Kitchen Faucet Repair',
-    description: 'Leaky faucet needs repair',
-    budget: 150,
-    category: 'plumbing',
-    status: 'posted',
-    location: 'Kitchen',
-    created_at: new Date().toISOString(),
-    homeowner_id: 'homeowner-1',  // Add this for authorization tests
-  } as any,
 };
 
 describe('BidService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Default mock implementations
-    mockSupabase.from.mockReturnValue({
-      insert: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: mockBid, error: null }),
-      eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-    } as any);
   });
 
   describe('createBid', () => {
-    it('creates a new bid successfully', async () => {
+    it('creates a new bid via BidManagementService.submitBid', async () => {
+      mockSubmitBid.mockResolvedValue({
+        id: 'bid-1',
+        status: 'pending',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      });
+
       const result = await BidService.createBid(mockBidData);
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('bids');
-      expect(result).toEqual(mockBid);
+      expect(mockSubmitBid).toHaveBeenCalledWith({
+        jobId: 'job-1',
+        contractorId: 'contractor-1',
+        amount: 140,
+        description: mockBidData.message,
+      });
+      expect(result.id).toBe('bid-1');
+      expect(result.status).toBe('pending');
+      expect(result.created_at).toBe('2024-01-01T00:00:00.000Z');
+      expect(result.updated_at).toBe('2024-01-01T00:00:00.000Z');
     });
 
-    it('handles bid creation errors', async () => {
-      const error = new Error('Job not found');
-      
-      // Clear mocks and set up specific error scenario
-      jest.clearAllMocks();
-      
-      // Mock the job check call first (successful) 
-      const mockJobChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: { homeowner_id: 'different-user' }, error: null }),
-      };
-      
-      // Mock the bid creation call (which should fail)
-      const mockBidChain = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error }),
-      };
-      
-      mockSupabase.from
-        .mockReturnValueOnce(mockJobChain as any)
-        .mockReturnValueOnce(mockBidChain as any);
-        
+    it('propagates submit errors (e.g. job not found / duplicate bid)', async () => {
+      mockSubmitBid.mockRejectedValue(new Error('Job not found'));
+
       await expect(BidService.createBid(mockBidData)).rejects.toThrow(
         'Job not found'
       );
     });
 
-    it('validates bid amount', async () => {
-      const invalidBidData = { ...mockBidData, amount: 0 };
-
-      await expect(BidService.createBid(invalidBidData)).rejects.toThrow(
-        'Bid amount must be greater than 0'
-      );
+    it('validates bid amount must be greater than 0', async () => {
+      await expect(
+        BidService.createBid({ ...mockBidData, amount: 0 })
+      ).rejects.toThrow('Bid amount must be greater than 0');
+      expect(mockSubmitBid).not.toHaveBeenCalled();
     });
 
-    it('validates bid message', async () => {
-      const invalidBidData = { ...mockBidData, message: '' };
-
-      await expect(BidService.createBid(invalidBidData)).rejects.toThrow(
-        'Bid message is required'
-      );
+    it('validates bid message is required', async () => {
+      await expect(
+        BidService.createBid({ ...mockBidData, message: '' })
+      ).rejects.toThrow('Bid message is required');
+      expect(mockSubmitBid).not.toHaveBeenCalled();
     });
+  });
 
-    it('prevents duplicate bids from same contractor', async () => {
-      const error = new Error('You have already placed a bid on this job');
-      
-      // Clear mocks and set up specific error scenario
-      jest.clearAllMocks();
-      
-      // Mock the job check call first (successful) 
-      const mockJobChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: { homeowner_id: 'different-user' }, error: null }),
+  describe('submitBid', () => {
+    it('delegates the rich payload to BidManagementService.submitBid', async () => {
+      const richPayload = {
+        jobId: 'job-1',
+        contractorId: 'contractor-1',
+        amount: 200,
+        description: 'Full quote',
+        estimatedDurationDays: 2,
       };
-      
-      // Mock the bid creation call (which should fail with duplicate error)
-      const mockBidChain = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error }),
-      };
-      
-      mockSupabase.from
-        .mockReturnValueOnce(mockJobChain as any)
-        .mockReturnValueOnce(mockBidChain as any);
+      const apiBid = { id: 'bid-9', status: 'pending', createdAt: 'now' };
+      mockSubmitBid.mockResolvedValue(apiBid);
 
-      await expect(BidService.createBid(mockBidData)).rejects.toThrow(
-        'You have already placed a bid on this job'
-      );
-    });
+      const result = await BidService.submitBid(richPayload);
 
-    it('validates availability date format', async () => {
-      const invalidBidData = { ...mockBidData, availability: 'tomorrow' };
-
-      await expect(BidService.createBid(invalidBidData)).rejects.toThrow(
-        'Invalid availability date format'
-      );
-    });
-
-    it('prevents bidding on own jobs', async () => {
-      // Mock checking if contractor is also homeowner of the job
-      const contractorOwnedJob = {
-        ...mockBidData,
-        contractor_id: 'homeowner-1',
-      };
-
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { homeowner_id: 'homeowner-1' },
-          error: null,
-        }),
-      } as any);
-
-      await expect(BidService.createBid(contractorOwnedJob)).rejects.toThrow(
-        'Cannot bid on your own job'
-      );
+      expect(mockSubmitBid).toHaveBeenCalledWith(richPayload);
+      expect(result).toBe(apiBid);
     });
   });
 
   describe('getBidsByJob', () => {
-    it('fetches bids for a job successfully', async () => {
-      const mockBids = [mockBid, { ...mockBid, id: 'bid-2' }];
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockBids, error: null }),
-      } as any);
+    it('fetches bids for a job and unwraps { bids }', async () => {
+      const bids = [{ id: 'bid-1' }, { id: 'bid-2' }];
+      mockApi.get.mockResolvedValue({ bids });
 
       const result = await BidService.getBidsByJob('job-1');
 
-      expect(result).toEqual(mockBids);
-      expect(mockSupabase.from).toHaveBeenCalledWith('bids');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/jobs/job-1/bids');
+      expect(result).toEqual(bids);
     });
 
-    it('includes contractor profile information', async () => {
-      const result = await BidService.getBidsByJob('job-1');
+    it('appends the status filter to the URL', async () => {
+      mockApi.get.mockResolvedValue({ bids: [] });
 
-      expect(mockSupabase.from().select).toHaveBeenCalledWith(`
-        *,
-        contractor:contractor_id (
-          id,
-          first_name,
-          last_name,
-          email,
-          rating,
-          reviews_count,
-          profile_picture
-        )
-      `);
-    });
+      await BidService.getBidsByJob('job-1', 'accepted');
 
-    it('orders bids by creation time', async () => {
-      await BidService.getBidsByJob('job-1');
-
-      expect(mockSupabase.from().select().eq().order).toHaveBeenCalledWith(
-        'created_at',
-        { ascending: false }
+      expect(mockApi.get).toHaveBeenCalledWith(
+        '/api/jobs/job-1/bids?status=accepted'
       );
     });
 
-    it('filters by bid status', async () => {
-      await BidService.getBidsByJob('job-1', 'accepted');
+    it('returns [] when the response has no bids array', async () => {
+      mockApi.get.mockResolvedValue({ bids: null });
 
-      const mockQuery = mockSupabase.from().select().eq();
-      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'accepted');
+      const result = await BidService.getBidsByJob('job-1');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getBidsByJobs', () => {
+    it('returns [] for an empty job id list without calling the API', async () => {
+      const result = await BidService.getBidsByJobs([]);
+
+      expect(result).toEqual([]);
+      expect(mockApi.get).not.toHaveBeenCalled();
+    });
+
+    it('fans out across jobs and sorts by created_at desc', async () => {
+      mockApi.get
+        .mockResolvedValueOnce({
+          bids: [{ id: 'a', created_at: '2024-01-01T00:00:00.000Z' }],
+        })
+        .mockResolvedValueOnce({
+          bids: [{ id: 'b', created_at: '2024-02-01T00:00:00.000Z' }],
+        });
+
+      const result = await BidService.getBidsByJobs(['job-1', 'job-2']);
+
+      expect(result.map((b) => b.id)).toEqual(['b', 'a']);
+    });
+
+    it('tolerates a per-job failure and still returns the rest', async () => {
+      mockApi.get
+        .mockResolvedValueOnce({
+          bids: [{ id: 'a', created_at: '2024-01-01T00:00:00.000Z' }],
+        })
+        .mockRejectedValueOnce(new Error('boom'));
+
+      const result = await BidService.getBidsByJobs(['job-1', 'job-2']);
+
+      expect(result.map((b) => b.id)).toEqual(['a']);
     });
   });
 
   describe('getBidsByContractor', () => {
-    it('fetches contractor bids successfully', async () => {
-      const mockBids = [mockBid];
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockBids, error: null }),
-      } as any);
+    it('fetches the contractor bids from /api/contractor/bids', async () => {
+      const bids = [{ id: 'bid-1' }];
+      mockApi.get.mockResolvedValue({ bids });
 
       const result = await BidService.getBidsByContractor('contractor-1');
 
-      expect(result).toEqual(mockBids);
+      expect(mockApi.get).toHaveBeenCalledWith(
+        '/api/contractor/bids?contractorId=contractor-1'
+      );
+      expect(result).toEqual(bids);
+    });
+  });
+
+  describe('getMyBidForJob', () => {
+    it('returns null when jobId is empty', async () => {
+      const result = await BidService.getMyBidForJob('');
+
+      expect(result).toBeNull();
+      expect(mockApi.get).not.toHaveBeenCalled();
     });
 
-    it('includes job information in contractor bids', async () => {
-      await BidService.getBidsByContractor('contractor-1');
+    it('returns the first bid for the job', async () => {
+      mockApi.get.mockResolvedValue({
+        bids: [{ id: 'bid-1' }, { id: 'bid-2' }],
+      });
 
-      expect(mockSupabase.from().select).toHaveBeenCalledWith(`
-        *,
-        job:job_id (
-          id,
-          title,
-          description,
-          budget,
-          category,
-          status,
-          location,
-          created_at
-        )
-      `);
+      const result = await BidService.getMyBidForJob('job-1');
+
+      expect(mockApi.get).toHaveBeenCalledWith(
+        '/api/contractor/bids?jobId=job-1'
+      );
+      expect(result).toEqual({ id: 'bid-1' });
+    });
+
+    it('returns null when the contractor has no bid on the job', async () => {
+      mockApi.get.mockResolvedValue({ bids: [] });
+
+      const result = await BidService.getMyBidForJob('job-1');
+
+      expect(result).toBeNull();
     });
   });
 
   describe('acceptBid', () => {
-    it('accepts a bid successfully', async () => {
-      const pendingBid = { 
-        ...mockBid, 
-        status: 'pending',
-        job: { homeowner_id: 'homeowner-1' }
-      };
-      const acceptedBid = { 
-        ...mockBid, 
-        status: 'accepted',
-        job: { homeowner_id: 'homeowner-1' }
-      };
-      
-      // First call (fetch/verify) returns pending bid
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: pendingBid, error: null }),
-      } as any);
-      
-      // Second call (update bid status) returns accepted bid
-      mockSupabase.from.mockReturnValueOnce({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
-      } as any);
-      
-      // Third call (reject other bids)
-      mockSupabase.from.mockReturnValueOnce({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        neq: jest.fn().mockResolvedValue({ data: null, error: null }),
-      } as any);
-      
-      // Fourth call (update job status)
-      mockSupabase.from.mockReturnValueOnce({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-      } as any);
+    it('POSTs the nested accept route and returns the wire shape', async () => {
+      const response = { success: true, message: 'Bid accepted' };
+      mockApi.post.mockResolvedValue(response);
 
-      const result = await BidService.acceptBid('bid-1', 'homeowner-1');
+      const result = await BidService.acceptBid('bid-1', 'job-1');
 
-      expect(result.status).toBe('accepted');
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/jobs/job-1/bids/bid-1/accept'
+      );
+      expect(result).toEqual(response);
     });
 
-    it('rejects other bids when one is accepted', async () => {
-      const pendingBid = { 
-        ...mockBid, 
-        status: 'pending',
-        job: { homeowner_id: 'homeowner-1' }
-      };
-      const acceptedBid = { 
-        ...mockBid, 
-        status: 'accepted'
-      };
-      
-      mockSupabase.from
-        // First call (fetch/verify)
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: pendingBid, error: null }),
-        })
-        // Second call (update bid status)
-        .mockReturnValueOnce({
-          update: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
-        })
-        // Third call (reject other bids)
-        .mockReturnValueOnce({
-          update: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          neq: jest.fn().mockResolvedValue({ data: null, error: null }),
-        })
-        // Fourth call (update job status)
-        .mockReturnValueOnce({
-          update: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-        } as any);
-
-      await BidService.acceptBid('bid-1', 'homeowner-1');
-
-      // Should update other bids to rejected  
-      expect(mockSupabase.from).toHaveBeenCalledWith('bids');
-    });
-
-    it('updates job status to assigned', async () => {
-      const pendingBid = { 
-        ...mockBid, 
-        status: 'pending',
-        job: { homeowner_id: 'homeowner-1' }
-      };
-      const acceptedBid = { 
-        ...mockBid, 
-        status: 'accepted'
-      };
-      
-      mockSupabase.from
-        // First call (fetch/verify)
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: pendingBid, error: null }),
-        })
-        // Second call (update bid status)
-        .mockReturnValueOnce({
-          update: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
-        })
-        // Third call (reject other bids)
-        .mockReturnValueOnce({
-          update: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          neq: jest.fn().mockResolvedValue({ data: null, error: null }),
-        })
-        // Fourth call (update job status)
-        .mockReturnValueOnce({
-          update: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({ error: null }),
-        } as any);
-
-      await BidService.acceptBid('bid-1', 'homeowner-1');
-
-      // Should update job status
-      expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
-    });
-
-    it('validates homeowner authorization', async () => {
-      // Mock job with different homeowner
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { job: { homeowner_id: 'other-homeowner' } },
-          error: null,
-        }),
-      } as any);
-
-      await expect(
-        BidService.acceptBid('bid-1', 'homeowner-1')
-      ).rejects.toThrow('Not authorized to accept this bid');
-    });
-
-    it('prevents accepting already accepted bids', async () => {
-      const acceptedBid = { ...mockBid, status: 'accepted' };
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
-      } as any);
-
-      await expect(
-        BidService.acceptBid('bid-1', 'homeowner-1')
-      ).rejects.toThrow('Bid has already been accepted');
+    it('throws when jobId is missing', async () => {
+      await expect(BidService.acceptBid('bid-1', '')).rejects.toThrow(
+        'jobId is required to accept a bid'
+      );
+      expect(mockApi.post).not.toHaveBeenCalled();
     });
   });
 
   describe('rejectBid', () => {
-    it('rejects a bid successfully', async () => {
-      const rejectedBid = { ...mockBid, status: 'rejected' };
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: rejectedBid, error: null }),
-      } as any);
-
-      const result = await BidService.rejectBid('bid-1', 'homeowner-1');
-
-      expect(result.status).toBe('rejected');
-    });
-
-    it('allows providing rejection reason', async () => {
-      const rejectedBid = {
-        ...mockBid,
-        status: 'rejected',
-        rejection_reason: 'Budget too high',
-      };
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: rejectedBid, error: null }),
-      } as any);
+    it('POSTs the reject route with the reason body', async () => {
+      const response = { success: true, message: 'Bid rejected' };
+      mockApi.post.mockResolvedValue(response);
 
       const result = await BidService.rejectBid(
         'bid-1',
-        'homeowner-1',
+        'job-1',
         'Budget too high'
       );
 
-      expect(result.rejection_reason).toBe('Budget too high');
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/jobs/job-1/bids/bid-1/reject',
+        { reason: 'Budget too high' }
+      );
+      expect(result).toEqual(response);
+    });
+
+    it('throws when jobId is missing', async () => {
+      await expect(BidService.rejectBid('bid-1', '')).rejects.toThrow(
+        'jobId is required to reject a bid'
+      );
+      expect(mockApi.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unrejectBid', () => {
+    it('POSTs the unreject route', async () => {
+      mockApi.post.mockResolvedValue(undefined);
+
+      await BidService.unrejectBid('bid-1', 'job-1');
+
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/jobs/job-1/bids/bid-1/unreject'
+      );
+    });
+
+    it('throws when jobId is missing', async () => {
+      await expect(BidService.unrejectBid('bid-1', '')).rejects.toThrow(
+        'jobId is required to unreject a bid'
+      );
+      expect(mockApi.post).not.toHaveBeenCalled();
     });
   });
 
   describe('withdrawBid', () => {
-    it('allows contractor to withdraw their bid', async () => {
-      // First call (verify authorization)
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { contractor_id: 'contractor-1', status: 'pending' },
-          error: null,
-        }),
-      } as any);
-      
-      // Second call (delete bid)
-      mockSupabase.from.mockReturnValueOnce({
-        delete: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      } as any);
+    it('POSTs the withdraw route', async () => {
+      mockApi.post.mockResolvedValue(undefined);
 
-      await BidService.withdrawBid('bid-1', 'contractor-1');
+      await BidService.withdrawBid('bid-1', 'job-1');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('bids');
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/jobs/job-1/bids/bid-1/withdraw'
+      );
     });
 
-    it('validates contractor authorization for withdrawal', async () => {
-      // Mock bid from different contractor
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { contractor_id: 'other-contractor' },
-          error: null,
-        }),
-      } as any);
-
-      await expect(
-        BidService.withdrawBid('bid-1', 'contractor-1')
-      ).rejects.toThrow('Not authorized to withdraw this bid');
-    });
-
-    it('prevents withdrawal of accepted bids', async () => {
-      const acceptedBid = { ...mockBid, status: 'accepted' };
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
-      } as any);
-
-      await expect(
-        BidService.withdrawBid('bid-1', 'contractor-1')
-      ).rejects.toThrow('Cannot withdraw an accepted bid');
+    it('throws when jobId is missing', async () => {
+      await expect(BidService.withdrawBid('bid-1', '')).rejects.toThrow(
+        'jobId is required to withdraw a bid'
+      );
+      expect(mockApi.post).not.toHaveBeenCalled();
     });
   });
 
   describe('updateBid', () => {
-    it('updates bid amount and message', async () => {
-      const updates = {
+    it('PATCHes the bid route with the updates and returns response.bid', async () => {
+      const updates = { amount: 160, message: 'Updated pricing' };
+      const updatedBid = {
+        id: 'bid-1',
         amount: 160,
-        message: 'Updated pricing based on materials',
+        message: 'Updated pricing',
       };
-      const updatedBid = { ...mockBid, ...updates };
+      mockApi.patch.mockResolvedValue({ bid: updatedBid });
 
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: updatedBid, error: null }),
-      } as any);
+      const result = await BidService.updateBid('bid-1', 'job-1', updates);
 
-      const result = await BidService.updateBid(
-        'bid-1',
-        'contractor-1',
+      expect(mockApi.patch).toHaveBeenCalledWith(
+        '/api/jobs/job-1/bids/bid-1',
         updates
       );
-
-      expect(result.amount).toBe(160);
-      expect(result.message).toBe('Updated pricing based on materials');
+      expect(result).toEqual(updatedBid);
     });
 
-    it('validates contractor authorization for updates', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { contractor_id: 'other-contractor', status: 'pending' },
-          error: null,
-        }),
-      } as any);
-
+    it('throws when jobId is missing', async () => {
       await expect(
-        BidService.updateBid('bid-1', 'contractor-1', { amount: 160 })
-      ).rejects.toThrow('Not authorized to update this bid');
-    });
-
-    it('prevents updates to non-pending bids', async () => {
-      const acceptedBid = { ...mockBid, status: 'accepted' };
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: acceptedBid, error: null }),
-      } as any);
-
-      await expect(
-        BidService.updateBid('bid-1', 'contractor-1', { amount: 160 })
-      ).rejects.toThrow('Cannot update a bid that is not pending');
-    });
-  });
-
-  describe('getBidStatistics', () => {
-    it('returns bid statistics for a job', async () => {
-      const mockStats = {
-        total_bids: 5,
-        average_bid: 155,
-        lowest_bid: 120,
-        highest_bid: 180,
-        pending_bids: 3,
-        accepted_bids: 1,
-        rejected_bids: 1,
-      };
-
-      mockSupabase.functions.invoke.mockResolvedValue({
-        data: mockStats,
-        error: null,
-      });
-
-      const result = await BidService.getBidStatistics('job-1');
-
-      expect(result).toEqual(mockStats);
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
-        'get-bid-statistics',
-        {
-          body: { jobId: 'job-1' },
-        }
-      );
-    });
-
-    it('handles statistics calculation errors', async () => {
-      const error = new Error('Job not found');
-      mockSupabase.functions.invoke.mockResolvedValue({
-        data: null,
-        error,
-      });
-
-      await expect(BidService.getBidStatistics('job-1')).rejects.toThrow(
-        'Job not found'
-      );
+        BidService.updateBid('bid-1', '', { amount: 160 })
+      ).rejects.toThrow('jobId is required to update a bid');
+      expect(mockApi.patch).not.toHaveBeenCalled();
     });
   });
 });

@@ -5,7 +5,6 @@ import type {
   BidData,
   MessageData,
   ProfileData,
-  ServerEntityData,
 } from './types';
 
 /**
@@ -142,9 +141,14 @@ export class ActionExecutor {
           return await JobService.getJobById(entityId);
         }
         case 'bid': {
-          const { JobService } = require('../JobService');
-          const bids = await JobService.getBidsByJob(entityId);
-          return bids.find((b: ServerEntityData) => b.id === entityId);
+          // NOTE: this fetchServerData is currently unused — ConflictManager
+          // has its own copy which is the live conflict-detection path. The
+          // previous body here had the same bid bug (calling getBidsByJob with
+          // a bidId), so it is intentionally a no-op rather than a wrong fetch.
+          // A real by-id fetch needs the jobId (bids are nested under
+          // /api/jobs/:jobId/bids/:bidId); see ConflictManager.fetchServerData
+          // + JobService.getBidById for the wired implementation.
+          return null;
         }
         case 'profile': {
           const { UserService } = require('../UserService');

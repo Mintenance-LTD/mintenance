@@ -95,27 +95,33 @@ describe('ListSkeleton', () => {
     });
 
     it('should render with circular imageVariant', () => {
-      const { toJSON } = render(<ListSkeleton imageVariant="circular" />);
+      const { toJSON } = render(<ListSkeleton imageVariant='circular' />);
       expect(toJSON()).toBeTruthy();
     });
 
     it('should render with square imageVariant', () => {
-      const { toJSON } = render(<ListSkeleton imageVariant="square" />);
+      const { toJSON } = render(<ListSkeleton imageVariant='square' />);
       expect(toJSON()).toBeTruthy();
     });
 
     it('should render circular variant with showImage=true', () => {
-      const { toJSON } = render(<ListSkeleton showImage={true} imageVariant="circular" />);
+      const { toJSON } = render(
+        <ListSkeleton showImage={true} imageVariant='circular' />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should render square variant with showImage=true', () => {
-      const { toJSON } = render(<ListSkeleton showImage={true} imageVariant="square" />);
+      const { toJSON } = render(
+        <ListSkeleton showImage={true} imageVariant='square' />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should not render image variant when showImage=false', () => {
-      const { toJSON } = render(<ListSkeleton showImage={false} imageVariant="circular" />);
+      const { toJSON } = render(
+        <ListSkeleton showImage={false} imageVariant='circular' />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -123,85 +129,81 @@ describe('ListSkeleton', () => {
   describe('Props Combinations', () => {
     it('should handle count=1, showImage=true, imageVariant=circular', () => {
       const { toJSON } = render(
-        <ListSkeleton count={1} showImage={true} imageVariant="circular" />
+        <ListSkeleton count={1} showImage={true} imageVariant='circular' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=1, showImage=true, imageVariant=square', () => {
       const { toJSON } = render(
-        <ListSkeleton count={1} showImage={true} imageVariant="square" />
+        <ListSkeleton count={1} showImage={true} imageVariant='square' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=1, showImage=false, imageVariant=circular', () => {
       const { toJSON } = render(
-        <ListSkeleton count={1} showImage={false} imageVariant="circular" />
+        <ListSkeleton count={1} showImage={false} imageVariant='circular' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=1, showImage=false, imageVariant=square', () => {
       const { toJSON } = render(
-        <ListSkeleton count={1} showImage={false} imageVariant="square" />
+        <ListSkeleton count={1} showImage={false} imageVariant='square' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=3, showImage=true, imageVariant=circular', () => {
       const { toJSON } = render(
-        <ListSkeleton count={3} showImage={true} imageVariant="circular" />
+        <ListSkeleton count={3} showImage={true} imageVariant='circular' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=3, showImage=true, imageVariant=square', () => {
       const { toJSON } = render(
-        <ListSkeleton count={3} showImage={true} imageVariant="square" />
+        <ListSkeleton count={3} showImage={true} imageVariant='square' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=3, showImage=false, imageVariant=circular', () => {
       const { toJSON } = render(
-        <ListSkeleton count={3} showImage={false} imageVariant="circular" />
+        <ListSkeleton count={3} showImage={false} imageVariant='circular' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=3, showImage=false, imageVariant=square', () => {
       const { toJSON } = render(
-        <ListSkeleton count={3} showImage={false} imageVariant="square" />
+        <ListSkeleton count={3} showImage={false} imageVariant='square' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=5, showImage=true, imageVariant=circular', () => {
       const { toJSON } = render(
-        <ListSkeleton count={5} showImage={true} imageVariant="circular" />
+        <ListSkeleton count={5} showImage={true} imageVariant='circular' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=5, showImage=false', () => {
-      const { toJSON } = render(
-        <ListSkeleton count={5} showImage={false} />
-      );
+      const { toJSON } = render(<ListSkeleton count={5} showImage={false} />);
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=10, showImage=true, imageVariant=square', () => {
       const { toJSON } = render(
-        <ListSkeleton count={10} showImage={true} imageVariant="square" />
+        <ListSkeleton count={10} showImage={true} imageVariant='square' />
       );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=0, showImage=true', () => {
-      const { toJSON } = render(
-        <ListSkeleton count={0} showImage={true} />
-      );
+      const { toJSON } = render(<ListSkeleton count={0} showImage={true} />);
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -224,7 +226,11 @@ describe('ListSkeleton', () => {
 
     it('should handle all props undefined', () => {
       const { toJSON } = render(
-        <ListSkeleton count={undefined} showImage={undefined} imageVariant={undefined} />
+        <ListSkeleton
+          count={undefined}
+          showImage={undefined}
+          imageVariant={undefined}
+        />
       );
       expect(toJSON()).toBeTruthy();
     });
@@ -267,13 +273,13 @@ describe('ListSkeleton', () => {
     });
 
     it('should match snapshot with imageVariant=square', () => {
-      const { toJSON } = render(<ListSkeleton imageVariant="square" />);
+      const { toJSON } = render(<ListSkeleton imageVariant='square' />);
       expect(toJSON()).toMatchSnapshot();
     });
 
     it('should match snapshot with all custom props', () => {
       const { toJSON } = render(
-        <ListSkeleton count={3} showImage={true} imageVariant="square" />
+        <ListSkeleton count={3} showImage={true} imageVariant='square' />
       );
       expect(toJSON()).toMatchSnapshot();
     });
@@ -297,21 +303,23 @@ describe('ListSkeleton', () => {
     });
 
     it('should update imageVariant prop correctly', () => {
-      const { rerender, toJSON } = render(<ListSkeleton imageVariant="circular" />);
+      const { rerender, toJSON } = render(
+        <ListSkeleton imageVariant='circular' />
+      );
       expect(toJSON()).toBeTruthy();
 
-      rerender(<ListSkeleton imageVariant="square" />);
+      rerender(<ListSkeleton imageVariant='square' />);
       expect(toJSON()).toBeTruthy();
     });
 
     it('should update all props simultaneously', () => {
       const { rerender, toJSON } = render(
-        <ListSkeleton count={3} showImage={true} imageVariant="circular" />
+        <ListSkeleton count={3} showImage={true} imageVariant='circular' />
       );
       expect(toJSON()).toBeTruthy();
 
       rerender(
-        <ListSkeleton count={5} showImage={false} imageVariant="square" />
+        <ListSkeleton count={5} showImage={false} imageVariant='square' />
       );
       expect(toJSON()).toBeTruthy();
     });
@@ -348,15 +356,15 @@ describe('ListSkeleton', () => {
     });
   });
 
-  describe('Default Export', () => {
-    it('should be importable as default export', () => {
-      const ListSkeletonDefault = require('../ListSkeleton').default;
-      expect(ListSkeletonDefault).toBeDefined();
+  describe('Named Export', () => {
+    it('should be importable as named export', () => {
+      const ListSkeletonNamed = require('../ListSkeleton').ListSkeleton;
+      expect(ListSkeletonNamed).toBeDefined();
     });
 
-    it('should render when imported as default', () => {
-      const ListSkeletonDefault = require('../ListSkeleton').default;
-      const { toJSON } = render(<ListSkeletonDefault />);
+    it('should render when imported as named', () => {
+      const ListSkeletonNamed = require('../ListSkeleton').ListSkeleton;
+      const { toJSON } = render(<ListSkeletonNamed />);
       expect(toJSON()).toBeTruthy();
     });
   });

@@ -148,6 +148,7 @@ export function MintEditorialPropertyDetail({
 
       {activeTab === 'overview' ? (
         <div
+          className='me-prop-overview'
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)',

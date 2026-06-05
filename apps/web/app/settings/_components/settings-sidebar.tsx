@@ -17,7 +17,7 @@ export function SettingsSidebar({
   onSectionChange,
 }: SettingsSidebarProps) {
   return (
-    <aside style={{ width: '22%', minWidth: 200 }}>
+    <aside className='settings-nav' style={{ width: '22%', minWidth: 200 }}>
       <nav
         className='card'
         style={{ overflow: 'hidden', position: 'sticky', top: 24 }}

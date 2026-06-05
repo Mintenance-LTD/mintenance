@@ -17,15 +17,82 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { BookingList } from '../BookingList';
 import { Booking } from '../BookingStatusScreen';
 
+// The global react-native mock stubs FlatList as a non-rendering string element,
+// so it never invokes data/renderItem/ListEmptyComponent. Provide a functional
+// FlatList that mirrors the real contract (renders items + empty component) so
+// list content can be asserted. ScrollView passthrough preserves UNSAFE_getAllByType.
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('../../../../__mocks__/react-native.js');
+  const React = require('react');
+  const FlatList = ({
+    data,
+    renderItem,
+    keyExtractor,
+    ListEmptyComponent,
+    style,
+    contentContainerStyle,
+    showsVerticalScrollIndicator,
+    ...rest
+  }: any) => {
+    const items = Array.isArray(data) ? data : [];
+    if (items.length === 0) {
+      const empty =
+        typeof ListEmptyComponent === 'function'
+          ? React.createElement(ListEmptyComponent)
+          : ListEmptyComponent || null;
+      return React.createElement(
+        RN.ScrollView,
+        { style, contentContainerStyle, showsVerticalScrollIndicator, ...rest },
+        empty
+      );
+    }
+    return React.createElement(
+      RN.ScrollView,
+      { style, contentContainerStyle, showsVerticalScrollIndicator, ...rest },
+      items.map((item: any, index: number) =>
+        React.createElement(
+          React.Fragment,
+          { key: keyExtractor ? keyExtractor(item, index) : index },
+          renderItem({ item, index })
+        )
+      )
+    );
+  };
+  return { ...RN, FlatList };
+});
+
+// Mock navigation hooks used by the empty-state CTA.
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+}));
+jest.mock('../../../navigation/hooks', () => ({
+  goToTab: jest.fn(),
+}));
+
 // Mock BookingCard component to isolate BookingList testing
 jest.mock('../BookingCard', () => ({
-  BookingCard: ({ booking, onCancel, onReschedule, onRate, onShare, onViewDetails }: any) => {
+  BookingCard: ({
+    booking,
+    onCancel,
+    onReschedule,
+    onRate,
+    onShare,
+    onViewDetails,
+  }: any) => {
     const React = require('react');
     const { View, Text, TouchableOpacity } = require('react-native');
 
     return React.createElement(View, { testID: `booking-card-${booking.id}` }, [
-      React.createElement(Text, { key: 'name', testID: `booking-name-${booking.id}` }, booking.contractorName),
-      React.createElement(Text, { key: 'service', testID: `booking-service-${booking.id}` }, booking.serviceName),
+      React.createElement(
+        Text,
+        { key: 'name', testID: `booking-name-${booking.id}` },
+        booking.contractorName
+      ),
+      React.createElement(
+        Text,
+        { key: 'service', testID: `booking-service-${booking.id}` },
+        booking.serviceName
+      ),
       React.createElement(
         TouchableOpacity,
         {
@@ -124,7 +191,9 @@ describe('BookingList', () => {
       );
 
       expect(getByText('No bookings found')).toBeTruthy();
-      expect(getByText('Your bookings will appear here once you have them')).toBeTruthy();
+      expect(
+        getByText('Your bookings will appear here once you schedule services')
+      ).toBeTruthy();
     });
 
     it('should render calendar icon in empty state', () => {
@@ -161,7 +230,9 @@ describe('BookingList', () => {
         <BookingList bookings={[]} {...mockCallbacks} />
       );
 
-      const subtitle = getByText('Your bookings will appear here once you have them');
+      const subtitle = getByText(
+        'Your bookings will appear here once you schedule services'
+      );
       expect(subtitle).toBeTruthy();
       expect(subtitle.props.style).toBeDefined();
     });
@@ -685,7 +756,7 @@ describe('BookingList', () => {
     it('should handle bookings with special characters in text', () => {
       const specialCharBooking = createBooking({
         contractorName: "O'Brien & Co.",
-        serviceName: "AC & Heating <Repair>",
+        serviceName: 'AC & Heating <Repair>',
         address: '123 Main St., Apt. #5',
       });
 
@@ -1032,7 +1103,7 @@ describe('BookingList', () => {
       expect(getByTestId('booking-card-booking-3')).toBeTruthy();
 
       // Remove one
-      bookings = bookings.filter(b => b.id !== 'booking-2');
+      bookings = bookings.filter((b) => b.id !== 'booking-2');
       rerender(<BookingList bookings={bookings} {...mockCallbacks} />);
       expect(queryByTestId('booking-card-booking-2')).toBeNull();
 

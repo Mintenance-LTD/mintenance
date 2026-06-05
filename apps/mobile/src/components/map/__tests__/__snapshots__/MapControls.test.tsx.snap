@@ -10,7 +10,6 @@ exports[`MapControls Snapshot should match snapshot when loading 1`] = `
         "backgroundColor": "#FFFFFF",
         "borderRadius": 24,
         "bottom": 100,
-        "elevation": 2,
         "height": 48,
         "justifyContent": "center",
         "position": "absolute",
@@ -20,8 +19,8 @@ exports[`MapControls Snapshot should match snapshot when loading 1`] = `
           "height": 2,
           "width": 0,
         },
-        "shadowOpacity": 0.08,
-        "shadowRadius": 8,
+        "shadowOpacity": 0.06,
+        "shadowRadius": 10,
         "width": 48,
       }
     }
@@ -33,7 +32,7 @@ exports[`MapControls Snapshot should match snapshot when loading 1`] = `
       -
       24
       -
-      #10B981
+      #222222
     </Text>
   </TouchableOpacity>,
   <View
@@ -58,7 +57,7 @@ exports[`MapControls Snapshot should match snapshot when loading 1`] = `
     }
   >
     <ActivityIndicator
-      color="#10B981"
+      color="#222222"
       size="large"
     />
     <Text
@@ -85,7 +84,6 @@ exports[`MapControls Snapshot should match snapshot when not loading 1`] = `
       "backgroundColor": "#FFFFFF",
       "borderRadius": 24,
       "bottom": 100,
-      "elevation": 2,
       "height": 48,
       "justifyContent": "center",
       "position": "absolute",
@@ -95,8 +93,8 @@ exports[`MapControls Snapshot should match snapshot when not loading 1`] = `
         "height": 2,
         "width": 0,
       },
-      "shadowOpacity": 0.08,
-      "shadowRadius": 8,
+      "shadowOpacity": 0.06,
+      "shadowRadius": 10,
       "width": 48,
     }
   }
@@ -108,7 +106,7 @@ exports[`MapControls Snapshot should match snapshot when not loading 1`] = `
     -
     24
     -
-    #10B981
+    #222222
   </Text>
 </TouchableOpacity>
 `;

@@ -4,8 +4,8 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
-    error: jest.fn()
-  }
+    error: jest.fn(),
+  },
 }));
 
 // Mock sentry config module
@@ -13,7 +13,7 @@ jest.mock('../../config/sentry', () => ({
   setUserContext: jest.fn(),
   trackUserAction: jest.fn(),
   addBreadcrumb: jest.fn(),
-  measureAsyncPerformance: jest.fn((fn) => fn)
+  measureAsyncPerformance: jest.fn((fn) => fn),
 }));
 
 describe('sentryUtils', () => {
@@ -55,7 +55,7 @@ describe('sentryUtils', () => {
         const userData = {
           id: 'user123',
           email: 'user@example.com',
-          username: 'testuser'
+          username: 'testuser',
         };
 
         sentryUtils.setUserContext(userData);
@@ -86,25 +86,36 @@ describe('sentryUtils', () => {
 
         sentryUtils.trackUserAction(action, category, data);
 
-        expect(mockSentry.trackUserAction).toHaveBeenCalledWith(action, category, data);
+        expect(mockSentry.trackUserAction).toHaveBeenCalledWith(
+          action,
+          category,
+          data
+        );
       });
 
       it('should track action without additional data', () => {
         sentryUtils.trackUserAction('page_view', 'analytics');
 
-        expect(mockSentry.trackUserAction).toHaveBeenCalledWith('page_view', 'analytics', undefined);
+        expect(mockSentry.trackUserAction).toHaveBeenCalledWith(
+          'page_view',
+          'analytics'
+        );
       });
 
       it('should handle complex action data', () => {
         const complexData = {
           items: [1, 2, 3],
           nested: { deep: { value: 'test' } },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
 
         sentryUtils.trackUserAction('form_submit', 'forms', complexData);
 
-        expect(mockSentry.trackUserAction).toHaveBeenCalledWith('form_submit', 'forms', complexData);
+        expect(mockSentry.trackUserAction).toHaveBeenCalledWith(
+          'form_submit',
+          'forms',
+          complexData
+        );
       });
     });
 
@@ -112,21 +123,36 @@ describe('sentryUtils', () => {
       it('should add breadcrumb with message and category', () => {
         sentryUtils.addBreadcrumb('User navigated to profile', 'navigation');
 
-        expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith('User navigated to profile', 'navigation', undefined, undefined);
+        expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
+          'User navigated to profile',
+          'navigation'
+        );
       });
 
       it('should add simple breadcrumb with just message', () => {
         sentryUtils.addBreadcrumb('Simple breadcrumb');
 
-        expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith('Simple breadcrumb', undefined, undefined, undefined);
+        expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
+          'Simple breadcrumb'
+        );
       });
 
       it('should handle breadcrumb with data', () => {
         const breadcrumbData = { userId: '123', action: 'update' };
 
-        sentryUtils.addBreadcrumb('Data update', 'database', 'info', breadcrumbData);
+        sentryUtils.addBreadcrumb(
+          'Data update',
+          'database',
+          'info',
+          breadcrumbData
+        );
 
-        expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith('Data update', 'database', 'info', breadcrumbData);
+        expect(mockSentry.addBreadcrumb).toHaveBeenCalledWith(
+          'Data update',
+          'database',
+          'info',
+          breadcrumbData
+        );
       });
 
       it('should handle different breadcrumb levels', () => {
@@ -142,23 +168,29 @@ describe('sentryUtils', () => {
     describe('measureAsyncPerformance', () => {
       it('should measure async function performance', async () => {
         const asyncFn = jest.fn(async () => {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
           return 'async result';
         });
 
-        mockSentry.measureAsyncPerformance.mockImplementation((fn: any) => fn());
+        mockSentry.measureAsyncPerformance.mockImplementation((fn: any) =>
+          fn()
+        );
 
         const result = await sentryUtils.measureAsyncPerformance(asyncFn);
 
         expect(result).toBe('async result');
-        expect(mockSentry.measureAsyncPerformance).toHaveBeenCalledWith(asyncFn);
+        expect(mockSentry.measureAsyncPerformance).toHaveBeenCalledWith(
+          asyncFn
+        );
         expect(asyncFn).toHaveBeenCalled();
       });
 
       it('should handle synchronous functions', () => {
         const syncFn = jest.fn(() => 'sync result');
 
-        mockSentry.measureAsyncPerformance.mockImplementation((fn: any) => fn());
+        mockSentry.measureAsyncPerformance.mockImplementation((fn: any) =>
+          fn()
+        );
 
         const result = sentryUtils.measureAsyncPerformance(syncFn);
 
@@ -170,7 +202,11 @@ describe('sentryUtils', () => {
       it('should pass through function arguments', () => {
         const fnWithArgs = jest.fn((a: number, b: string) => `${a}-${b}`);
 
-        mockSentry.measureAsyncPerformance.mockImplementation((fn: any) => (...args: any[]) => fn(...args));
+        mockSentry.measureAsyncPerformance.mockImplementation(
+          (fn: any) =>
+            (...args: any[]) =>
+              fn(...args)
+        );
 
         const wrappedFn = sentryUtils.measureAsyncPerformance(fnWithArgs);
         const result = wrappedFn(42, 'test');
@@ -184,10 +220,16 @@ describe('sentryUtils', () => {
           throw new Error('Test error');
         });
 
-        mockSentry.measureAsyncPerformance.mockImplementation((fn: any) => fn());
+        mockSentry.measureAsyncPerformance.mockImplementation((fn: any) =>
+          fn()
+        );
 
-        await expect(sentryUtils.measureAsyncPerformance(errorFn)).rejects.toThrow('Test error');
-        expect(mockSentry.measureAsyncPerformance).toHaveBeenCalledWith(errorFn);
+        await expect(
+          sentryUtils.measureAsyncPerformance(errorFn)
+        ).rejects.toThrow('Test error');
+        expect(mockSentry.measureAsyncPerformance).toHaveBeenCalledWith(
+          errorFn
+        );
       });
     });
   });
@@ -225,7 +267,9 @@ describe('sentryUtils', () => {
 
       require('../../utils/sentryUtils');
 
-      expect(logger.debug).toHaveBeenCalledWith('Sentry not available, using no-op functions');
+      expect(logger.debug).toHaveBeenCalledWith(
+        'Sentry not available, using no-op functions'
+      );
     });
   });
 
@@ -250,7 +294,9 @@ describe('sentryUtils', () => {
 
       // setUserContext should work
       sentryUtils.setUserContext({ id: 'user123' });
-      expect(partialSentry.setUserContext).toHaveBeenCalledWith({ id: 'user123' });
+      expect(partialSentry.setUserContext).toHaveBeenCalledWith({
+        id: 'user123',
+      });
 
       // Missing functions should be no-ops
       expect(() => sentryUtils.trackUserAction('action')).not.toThrow();
@@ -300,7 +346,7 @@ describe('sentryUtils', () => {
         setUserContext: jest.fn(),
         trackUserAction: jest.fn(),
         addBreadcrumb: jest.fn(),
-        measureAsyncPerformance: jest.fn((fn) => fn)
+        measureAsyncPerformance: jest.fn((fn) => fn),
       }));
     });
 
@@ -311,12 +357,16 @@ describe('sentryUtils', () => {
       // Simulate user login flow
       const user = { id: 'prod_user_123', email: 'user@prod.com' };
       sentryUtils.setUserContext(user);
-      sentryUtils.addBreadcrumb('User logged in', 'auth', 'info', { userId: user.id });
-      sentryUtils.trackUserAction('login_success', 'authentication', { timestamp: Date.now() });
+      sentryUtils.addBreadcrumb('User logged in', 'auth', 'info', {
+        userId: user.id,
+      });
+      sentryUtils.trackUserAction('login_success', 'authentication', {
+        timestamp: Date.now(),
+      });
 
       // Simulate async operation
       const apiCall = jest.fn(async () => {
-        await new Promise(resolve => setTimeout(resolve, 5));
+        await new Promise((resolve) => setTimeout(resolve, 5));
         return { data: 'api response' };
       });
 
@@ -338,18 +388,18 @@ describe('sentryUtils', () => {
       const operations = [
         jest.fn(async () => 'op1'),
         jest.fn(async () => 'op2'),
-        jest.fn(async () => 'op3')
+        jest.fn(async () => 'op3'),
       ];
 
       mockSentry.measureAsyncPerformance.mockImplementation((fn: any) => fn());
 
       const results = await Promise.all(
-        operations.map(op => sentryUtils.measureAsyncPerformance(op))
+        operations.map((op) => sentryUtils.measureAsyncPerformance(op))
       );
 
       expect(results).toEqual(['op1', 'op2', 'op3']);
       expect(mockSentry.measureAsyncPerformance).toHaveBeenCalledTimes(3);
-      operations.forEach(op => expect(op).toHaveBeenCalled());
+      operations.forEach((op) => expect(op).toHaveBeenCalled());
     });
 
     it('should gracefully degrade when Sentry is unavailable', () => {

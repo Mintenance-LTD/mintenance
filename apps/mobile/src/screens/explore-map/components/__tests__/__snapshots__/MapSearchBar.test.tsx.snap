@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`MapSearchBar Snapshot Consistency maintains consistent structure with empty value 1`] = `
+exports[`MapSearchBar Snapshot Consistency matches snapshot with category and back button 1`] = `
 <View
   style={
     [
@@ -13,14 +13,57 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with e
       {
         "top": 12,
       },
-      undefined,
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8,
+      },
     ]
   }
 >
   <TouchableOpacity
-    accessibilityLabel="Search jobs. Any category · undefined jobs nearby"
+    accessibilityLabel="Back to list"
+    accessibilityRole="button"
+    hitSlop={
+      {
+        "bottom": 8,
+        "left": 8,
+        "right": 8,
+        "top": 8,
+      }
+    }
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 22,
+        "elevation": 4,
+        "flexShrink": 0,
+        "height": 44,
+        "justifyContent": "center",
+        "shadowColor": "#1A2520",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.12,
+        "shadowRadius": 8,
+        "width": 44,
+      }
+    }
+  >
+    <Ionicons
+      color="#1A2520"
+      name="arrow-back"
+      size={20}
+    />
+  </TouchableOpacity>
+  <TouchableOpacity
+    accessibilityLabel="Search jobs. Plumbing · 1 job nearby"
     accessibilityRole="search"
     activeOpacity={0.9}
+    onPress={[MockFunction]}
     style={
       {
         "alignItems": "center",
@@ -32,7 +75,7 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with e
         "paddingLeft": 16,
         "paddingRight": 8,
         "paddingVertical": 10,
-        "shadowColor": "#000000",
+        "shadowColor": "#1A2520",
         "shadowOffset": {
           "height": 2,
           "width": 0,
@@ -42,13 +85,11 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with e
       }
     }
   >
-    <Text
-      color="#222222"
+    <Ionicons
+      color="#1A2520"
       name="search"
       size={18}
-    >
-      search
-    </Text>
+    />
     <View
       style={
         {
@@ -60,7 +101,7 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with e
       <Text
         style={
           {
-            "color": "#222222",
+            "color": "#1A2520",
             "fontSize": 14,
             "fontWeight": "600",
           }
@@ -72,13 +113,13 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with e
         numberOfLines={1}
         style={
           {
-            "color": "#717171",
+            "color": "#4A5751",
             "fontSize": 12,
             "marginTop": 1,
           }
         }
       >
-        Any category · undefined jobs nearby
+        Plumbing · 1 job nearby
       </Text>
     </View>
     <TouchableOpacity
@@ -96,28 +137,25 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with e
       style={
         {
           "alignItems": "center",
-          "borderColor": "#F0F0F0",
+          "backgroundColor": "#E9F1EB",
           "borderRadius": 18,
-          "borderWidth": 1,
           "height": 36,
           "justifyContent": "center",
           "width": 36,
         }
       }
     >
-      <Text
-        color="#222222"
+      <Ionicons
+        color="#1A2520"
         name="options-outline"
         size={16}
-      >
-        options-outline
-      </Text>
+      />
     </TouchableOpacity>
   </TouchableOpacity>
 </View>
 `;
 
-exports[`MapSearchBar Snapshot Consistency maintains consistent structure with long value 1`] = `
+exports[`MapSearchBar Snapshot Consistency matches snapshot without category 1`] = `
 <View
   style={
     [
@@ -135,9 +173,10 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with l
   }
 >
   <TouchableOpacity
-    accessibilityLabel="Search jobs. Any category · undefined jobs nearby"
+    accessibilityLabel="Search jobs. Any category · 3 jobs nearby"
     accessibilityRole="search"
     activeOpacity={0.9}
+    onPress={[MockFunction]}
     style={
       {
         "alignItems": "center",
@@ -149,7 +188,7 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with l
         "paddingLeft": 16,
         "paddingRight": 8,
         "paddingVertical": 10,
-        "shadowColor": "#000000",
+        "shadowColor": "#1A2520",
         "shadowOffset": {
           "height": 2,
           "width": 0,
@@ -159,13 +198,11 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with l
       }
     }
   >
-    <Text
-      color="#222222"
+    <Ionicons
+      color="#1A2520"
       name="search"
       size={18}
-    >
-      search
-    </Text>
+    />
     <View
       style={
         {
@@ -177,7 +214,7 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with l
       <Text
         style={
           {
-            "color": "#222222",
+            "color": "#1A2520",
             "fontSize": 14,
             "fontWeight": "600",
           }
@@ -189,13 +226,13 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with l
         numberOfLines={1}
         style={
           {
-            "color": "#717171",
+            "color": "#4A5751",
             "fontSize": 12,
             "marginTop": 1,
           }
         }
       >
-        Any category · undefined jobs nearby
+        Any category · 3 jobs nearby
       </Text>
     </View>
     <TouchableOpacity
@@ -213,139 +250,19 @@ exports[`MapSearchBar Snapshot Consistency maintains consistent structure with l
       style={
         {
           "alignItems": "center",
-          "borderColor": "#F0F0F0",
+          "backgroundColor": "#E9F1EB",
           "borderRadius": 18,
-          "borderWidth": 1,
           "height": 36,
           "justifyContent": "center",
           "width": 36,
         }
       }
     >
-      <Text
-        color="#222222"
+      <Ionicons
+        color="#1A2520"
         name="options-outline"
         size={16}
-      >
-        options-outline
-      </Text>
-    </TouchableOpacity>
-  </TouchableOpacity>
-</View>
-`;
-
-exports[`MapSearchBar Snapshot Consistency maintains consistent structure with value 1`] = `
-<View
-  style={
-    [
-      {
-        "left": 16,
-        "position": "absolute",
-        "right": 16,
-        "zIndex": 10,
-      },
-      {
-        "top": 12,
-      },
-      undefined,
-    ]
-  }
->
-  <TouchableOpacity
-    accessibilityLabel="Search jobs. Any category · undefined jobs nearby"
-    accessibilityRole="search"
-    activeOpacity={0.9}
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": "#FFFFFF",
-        "borderRadius": 32,
-        "elevation": 4,
-        "flex": 1,
-        "flexDirection": "row",
-        "paddingLeft": 16,
-        "paddingRight": 8,
-        "paddingVertical": 10,
-        "shadowColor": "#000000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.12,
-        "shadowRadius": 8,
-      }
-    }
-  >
-    <Text
-      color="#222222"
-      name="search"
-      size={18}
-    >
-      search
-    </Text>
-    <View
-      style={
-        {
-          "flex": 1,
-          "marginLeft": 12,
-        }
-      }
-    >
-      <Text
-        style={
-          {
-            "color": "#222222",
-            "fontSize": 14,
-            "fontWeight": "600",
-          }
-        }
-      >
-        Near you
-      </Text>
-      <Text
-        numberOfLines={1}
-        style={
-          {
-            "color": "#717171",
-            "fontSize": 12,
-            "marginTop": 1,
-          }
-        }
-      >
-        Any category · undefined jobs nearby
-      </Text>
-    </View>
-    <TouchableOpacity
-      accessibilityLabel="Open filters"
-      accessibilityRole="button"
-      hitSlop={
-        {
-          "bottom": 8,
-          "left": 8,
-          "right": 8,
-          "top": 8,
-        }
-      }
-      onPress={[MockFunction]}
-      style={
-        {
-          "alignItems": "center",
-          "borderColor": "#F0F0F0",
-          "borderRadius": 18,
-          "borderWidth": 1,
-          "height": 36,
-          "justifyContent": "center",
-          "width": 36,
-        }
-      }
-    >
-      <Text
-        color="#222222"
-        name="options-outline"
-        size={16}
-      >
-        options-outline
-      </Text>
+      />
     </TouchableOpacity>
   </TouchableOpacity>
 </View>

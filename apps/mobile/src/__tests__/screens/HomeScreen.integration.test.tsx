@@ -1,41 +1,28 @@
 import React from 'react';
-import { render, waitFor } from '../test-utils';
-import { HomeScreen } from '../../screens/home';
+import { render } from '../test-utils';
+
+// ---------------------------------------------------------------------------
+// Realigned 2026-06-03 to the Mint Editorial v2 architecture.
+//
+// `HomeScreen` is a thin role-router (loading gate + Homeowner/Contractor
+// dashboard delegation). The dashboards now own React Query, Reanimated,
+// Supabase and the service stack, so they are stubbed here — this suite proves
+// the router renders the `home-screen` container and selects the right
+// dashboard per role. The greeting copy ("Good morning, <name>") and the
+// `home-scroll-view` now live inside the dashboard components and are covered
+// by their own suites.
+// ---------------------------------------------------------------------------
 
 jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
-);
 
-const mockNavigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
-  dispatch: jest.fn(),
-  reset: jest.fn(),
-  setParams: jest.fn(),
-  addListener: jest.fn(),
-  removeListener: jest.fn(),
-  canGoBack: jest.fn(() => true),
-  isFocused: jest.fn(() => true),
-  setOptions: jest.fn(),
-};
-
-const mockRoute = {
-  params: {},
-  key: 'test-route',
-  name: 'TestScreen',
-};
-
-// Mock the useAuth hook instead of trying to use AuthContext directly
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
-// Minimal mocks for external dependencies only
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: jest.fn(),
@@ -47,48 +34,46 @@ jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: {} }),
 }));
 
-// Override the global navigation mocks from jest-setup.js
-jest.mock('@react-navigation/stack', () => ({
-  createStackNavigator: () => ({
-    Navigator: ({ children }) => children,
-    Screen: ({ children }) => children,
-  }),
-}));
+jest.mock('../../screens/home/HomeownerDashboard', () => {
+  const { Text } = require('react-native');
+  return {
+    HomeownerDashboard: () => (
+      <Text testID='homeowner-dashboard'>Homeowner</Text>
+    ),
+  };
+});
+jest.mock('../../screens/home/ContractorDashboard', () => {
+  const { Text } = require('react-native');
+  return {
+    ContractorDashboard: () => (
+      <Text testID='contractor-dashboard'>Contractor</Text>
+    ),
+  };
+});
+jest.mock('../../screens/home/HomeScreenLoading', () => {
+  const { Text } = require('react-native');
+  return {
+    HomeScreenLoading: () => <Text testID='home-loading'>Loading</Text>,
+  };
+});
 
-jest.mock('@react-navigation/bottom-tabs', () => ({
-  createBottomTabNavigator: () => ({
-    Navigator: ({ children }) => children,
-    Screen: ({ children }) => children,
-  }),
-}));
-
-// Mock services to return predictable data
-jest.mock('../../services/UserService', () => ({
-  UserService: {
-    getContractorStats: jest.fn().mockResolvedValue({
-      activeJobs: 2,
-      monthlyEarnings: 800,
-      averageRating: 4.8,
-      completedJobs: 12,
-    }),
-    getPreviousContractors: jest.fn().mockResolvedValue([]),
-  },
-}));
-
-// Mock logger to prevent console noise
-jest.mock('../../utils/logger', () => ({
-  logger: { error: jest.fn(), info: jest.fn() },
-}));
-
-jest.mock('../../utils/haptics', () => ({
-  useHaptics: () => ({
-    light: jest.fn(),
-    medium: jest.fn(),
-    heavy: jest.fn(),
-  }),
-}));
+import { HomeScreen } from '../../screens/home';
 
 const { useAuth } = require('../../contexts/AuthContext');
+
+const baseAuth = {
+  loading: false,
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  signUp: jest.fn(),
+  updateProfile: jest.fn(),
+  signInWithBiometrics: jest.fn(),
+  isBiometricAvailable: jest.fn(),
+  isBiometricEnabled: jest.fn(),
+  enableBiometric: jest.fn(),
+  disableBiometric: jest.fn(),
+  session: null,
+};
 
 describe('HomeScreen Integration Tests', () => {
   beforeEach(() => {
@@ -98,129 +83,68 @@ describe('HomeScreen Integration Tests', () => {
     jest.clearAllMocks();
   });
 
-  it('renders without crashing for homeowner', async () => {
-    const mockUser = {
-      id: '1',
-      email: 'homeowner@test.com',
-      role: 'homeowner',
-      first_name: 'John',
-      last_name: 'Homeowner',
-    };
-
+  it('renders the homeowner dashboard for a homeowner', () => {
     useAuth.mockReturnValue({
-      user: mockUser,
-      loading: false,
-      signIn: jest.fn(),
-      signOut: jest.fn(),
-      signUp: jest.fn(),
-      updateProfile: jest.fn(),
-      signInWithBiometrics: jest.fn(),
-      isBiometricAvailable: jest.fn(),
-      isBiometricEnabled: jest.fn(),
-      enableBiometric: jest.fn(),
-      disableBiometric: jest.fn(),
-      session: null,
+      ...baseAuth,
+      user: {
+        id: '1',
+        email: 'homeowner@test.com',
+        role: 'homeowner',
+        first_name: 'John',
+        last_name: 'Homeowner',
+      },
     });
 
     const { getByTestId } = render(<HomeScreen />);
 
-    // Should render the home screen container
     expect(getByTestId('home-screen')).toBeTruthy();
+    expect(getByTestId('homeowner-dashboard')).toBeTruthy();
   });
 
-  it('renders without crashing for contractor', async () => {
-    const mockUser = {
-      id: '2',
-      email: 'contractor@test.com',
-      role: 'contractor',
-      first_name: 'Jane',
-      last_name: 'Contractor',
-    };
-
+  it('renders the contractor dashboard for a contractor', () => {
     useAuth.mockReturnValue({
-      user: mockUser,
-      loading: false,
-      signIn: jest.fn(),
-      signOut: jest.fn(),
-      signUp: jest.fn(),
-      updateProfile: jest.fn(),
-      signInWithBiometrics: jest.fn(),
-      isBiometricAvailable: jest.fn(),
-      isBiometricEnabled: jest.fn(),
-      enableBiometric: jest.fn(),
-      disableBiometric: jest.fn(),
-      session: null,
+      ...baseAuth,
+      user: {
+        id: '2',
+        email: 'contractor@test.com',
+        role: 'contractor',
+        first_name: 'Jane',
+        last_name: 'Contractor',
+      },
     });
 
-    const { getByTestId, getByText } = render(<HomeScreen />);
+    const { getByTestId } = render(<HomeScreen />);
 
-    // Wait for contractor data to load
-    await waitFor(() => {
-      expect(getByTestId('home-screen')).toBeTruthy();
-    });
-
-    // Wait for data to load and check for contractor-specific content
-    await waitFor(() => {
-      expect(getByText('Good morning!')).toBeTruthy();
-    });
+    expect(getByTestId('home-screen')).toBeTruthy();
+    expect(getByTestId('contractor-dashboard')).toBeTruthy();
   });
 
-  it('renders when no user is present', () => {
+  it('renders the container (homeowner fallback) when no user is present', () => {
     useAuth.mockReturnValue({
+      ...baseAuth,
       user: null,
-      loading: false,
-      signIn: jest.fn(),
-      signOut: jest.fn(),
-      signUp: jest.fn(),
-      updateProfile: jest.fn(),
-      signInWithBiometrics: jest.fn(),
-      isBiometricAvailable: jest.fn(),
-      isBiometricEnabled: jest.fn(),
-      enableBiometric: jest.fn(),
-      disableBiometric: jest.fn(),
-      session: null,
     });
 
     const { getByTestId } = render(<HomeScreen />);
 
-    // Should still render the container even without user
+    // No user + not loading -> container renders with the least-privileged view.
     expect(getByTestId('home-screen')).toBeTruthy();
+    expect(getByTestId('homeowner-dashboard')).toBeTruthy();
   });
 
-  it('has required test IDs for user interactions', async () => {
-    const mockUser = {
-      id: '2',
-      email: 'contractor@test.com',
-      role: 'contractor',
-      first_name: 'Jane',
-      last_name: 'Contractor',
-    };
-
+  it('exposes the home-screen container test id for interactions', () => {
     useAuth.mockReturnValue({
-      user: mockUser,
-      loading: false,
-      signIn: jest.fn(),
-      signOut: jest.fn(),
-      signUp: jest.fn(),
-      updateProfile: jest.fn(),
-      signInWithBiometrics: jest.fn(),
-      isBiometricAvailable: jest.fn(),
-      isBiometricEnabled: jest.fn(),
-      enableBiometric: jest.fn(),
-      disableBiometric: jest.fn(),
-      session: null,
+      ...baseAuth,
+      user: {
+        id: '2',
+        email: 'contractor@test.com',
+        role: 'contractor',
+        first_name: 'Jane',
+        last_name: 'Contractor',
+      },
     });
 
     const { getByTestId } = render(<HomeScreen />);
-
-    // Wait for contractor data to load
-    await waitFor(() => {
-      expect(getByTestId('home-screen')).toBeTruthy();
-    });
-
-    // Should have scroll view for refresh functionality
-    await waitFor(() => {
-      expect(getByTestId('home-scroll-view')).toBeTruthy();
-    });
+    expect(getByTestId('home-screen')).toBeTruthy();
   });
 });

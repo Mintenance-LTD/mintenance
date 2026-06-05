@@ -6,12 +6,14 @@ import {
 jest.mock('../productionReadinessOrchestrator', () => ({
   productionReadinessOrchestrator: {
     initialize: jest.fn(() => Promise.resolve()),
-    createDeploymentReport: jest.fn(() => Promise.resolve({
-      deploymentApproved: true,
-      blockers: [],
-      readinessCheck: { score: 95 },
-      deploymentId: 'deploy-1',
-    })),
+    createDeploymentReport: jest.fn(() =>
+      Promise.resolve({
+        deploymentApproved: true,
+        blockers: [],
+        readinessCheck: { score: 95 },
+        deploymentId: 'deploy-1',
+      })
+    ),
   },
 }));
 
@@ -30,7 +32,11 @@ jest.mock('../performanceMonitor', () => ({
   },
 }));
 
-jest.mock('../errorTracking', () => ({
+// Source imports the directory-explicit module id `./errorTracking/index`,
+// so the mock must target that exact specifier — `../errorTracking` is a
+// different module id to jest and would not intercept the real (Sentry-backed)
+// module, which crashes at import time.
+jest.mock('../errorTracking/index', () => ({
   enhancedErrorAnalytics: {
     getErrorAnalytics: jest.fn(() => ({})),
   },
@@ -42,8 +48,9 @@ jest.mock('../monitoringAndAlerting', () => ({
   },
 }));
 
+// Source imports `WebOptimizationsManager` (aliased to WebOptimizations).
 jest.mock('../webOptimizations/', () => ({
-  WebOptimizations: {
+  WebOptimizationsManager: {
     initialize: jest.fn(() => Promise.resolve()),
   },
 }));

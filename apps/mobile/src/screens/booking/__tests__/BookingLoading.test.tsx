@@ -6,7 +6,19 @@
 import React from 'react';
 import { render } from '../../../__tests__/test-utils';
 import { BookingLoading } from '../BookingLoading';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
+
+// Mint Editorial redesign: BookingLoading now styles from the `me` token
+// mirror (spinner = me.ink, background = me.bg2, text = me.ink2) rather than
+// the legacy `theme.colors.*` palette. Assert against the values the
+// component actually renders.
+const theme = {
+  colors: {
+    primary: me.ink,
+    background: me.bg2,
+    textSecondary: me.ink2,
+  },
+};
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: any) => children,
@@ -121,13 +133,17 @@ describe('BookingLoading Component', () => {
     it('should use theme background color', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toMatchObject({ backgroundColor: theme.colors.background });
+      expect(container.props.style).toMatchObject({
+        backgroundColor: theme.colors.background,
+      });
     });
 
     it('should use theme textSecondary color for text', () => {
       const { getByTestId } = render(<BookingLoading />);
       const text = getByTestId('booking-loading-text');
-      expect(text.props.style).toMatchObject({ color: theme.colors.textSecondary });
+      expect(text.props.style).toMatchObject({
+        color: theme.colors.textSecondary,
+      });
     });
 
     it('should have 16px margin top for text', () => {
@@ -180,13 +196,17 @@ describe('BookingLoading Component', () => {
     it('should use theme background color', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toMatchObject({ backgroundColor: theme.colors.background });
+      expect(container.props.style).toMatchObject({
+        backgroundColor: theme.colors.background,
+      });
     });
 
     it('should use theme textSecondary for text color', () => {
       const { getByTestId } = render(<BookingLoading />);
       const text = getByTestId('booking-loading-text');
-      expect(text.props.style).toMatchObject({ color: theme.colors.textSecondary });
+      expect(text.props.style).toMatchObject({
+        color: theme.colors.textSecondary,
+      });
     });
 
     it('should be consistent with design system', () => {
@@ -194,7 +214,9 @@ describe('BookingLoading Component', () => {
       const spinner = getByTestId('booking-loading-spinner');
       const text = getByTestId('booking-loading-text');
       expect(spinner.props.color).toBe(theme.colors.primary);
-      expect(text.props.style).toMatchObject({ color: theme.colors.textSecondary });
+      expect(text.props.style).toMatchObject({
+        color: theme.colors.textSecondary,
+      });
     });
   });
 

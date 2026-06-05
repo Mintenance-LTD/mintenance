@@ -236,7 +236,7 @@ export function MintEditorialFinancials({
       {/* Ledger — single combined escrow_transactions table */}
       <div className='card' style={{ overflow: 'hidden', marginBottom: 22 }}>
         <div
-          className='row'
+          className='row me-fin-thead'
           style={{
             padding: '12px 20px',
             background: 'var(--me-bg-2)',
@@ -266,7 +266,7 @@ export function MintEditorialFinancials({
             return (
               <div
                 key={row.id || i}
-                className='row'
+                className='row me-fin-trow'
                 style={{
                   padding: '14px 20px',
                   borderTop: '1px solid var(--me-line-2)',

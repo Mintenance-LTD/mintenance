@@ -8,14 +8,17 @@ jest.mock('expo-linear-gradient', () => ({
 }));
 
 // Mock AccessibilityInfo
-jest.mock('react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo', () => ({
-  isReduceMotionEnabled: jest.fn(() => Promise.resolve(false)),
-  isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  announceForAccessibility: jest.fn(),
-  fetch: jest.fn(() => Promise.resolve({})),
-}));
+jest.mock(
+  'react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo',
+  () => ({
+    isReduceMotionEnabled: jest.fn(() => Promise.resolve(false)),
+    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    announceForAccessibility: jest.fn(),
+    fetch: jest.fn(() => Promise.resolve({})),
+  })
+);
 
 // Mock the Skeleton component to avoid animation issues in tests
 jest.mock('../Skeleton', () => ({
@@ -38,10 +41,14 @@ jest.mock('../Skeleton', () => ({
   SkeletonGroup: ({ children, gap, style }: any) => {
     const React = require('react');
     const { View } = require('react-native');
-    return React.createElement(View, {
-      testID: 'skeleton-group-mock',
-      style: { gap, ...style },
-    }, children);
+    return React.createElement(
+      View,
+      {
+        testID: 'skeleton-group-mock',
+        style: { gap, ...style },
+      },
+      children
+    );
   },
 }));
 
@@ -190,103 +197,141 @@ describe('ContractorCardSkeleton', () => {
 
   describe('ShowPortfolio Prop - False', () => {
     it('should not show portfolio when showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={false} />
+      );
       const tree = toJSON();
       expect(tree).toBeTruthy();
     });
 
     it('should hide portfolio section when showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle showPortfolio=false with count=5', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={5} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={5} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
 
   describe('ShowPortfolio Prop - True', () => {
     it('should show portfolio when showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={true} />
+      );
       const tree = toJSON();
       expect(tree).toBeTruthy();
     });
 
     it('should render portfolio section when showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle showPortfolio=true with count=1', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle showPortfolio=true with count=3', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={3} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={3} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle showPortfolio=true with count=10', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={10} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={10} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
 
   describe('Prop Combinations - Count and ShowPortfolio', () => {
     it('should handle count=1 with showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=1 with showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=2 with showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={2} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={2} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=2 with showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={2} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={2} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=5 with showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={5} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={5} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=5 with showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={5} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={5} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=0 with showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={0} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={0} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=0 with showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={0} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={0} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle all props as undefined', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={undefined} showPortfolio={undefined} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={undefined} showPortfolio={undefined} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=7 with showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={7} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={7} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=8 with showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={8} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={8} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -335,7 +380,9 @@ describe('ContractorCardSkeleton', () => {
 
   describe('Component Updates - ShowPortfolio Changes', () => {
     it('should handle showPortfolio prop changes from false to true', () => {
-      const { rerender, toJSON } = render(<ContractorCardSkeleton showPortfolio={false} />);
+      const { rerender, toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<ContractorCardSkeleton showPortfolio={true} />);
@@ -343,7 +390,9 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should handle showPortfolio prop changes from true to false', () => {
-      const { rerender, toJSON } = render(<ContractorCardSkeleton showPortfolio={true} />);
+      const { rerender, toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<ContractorCardSkeleton showPortfolio={false} />);
@@ -351,7 +400,9 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should toggle showPortfolio multiple times', () => {
-      const { rerender, toJSON } = render(<ContractorCardSkeleton showPortfolio={false} />);
+      const { rerender, toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<ContractorCardSkeleton showPortfolio={true} />);
@@ -367,7 +418,9 @@ describe('ContractorCardSkeleton', () => {
 
   describe('Component Updates - Combined Prop Changes', () => {
     it('should handle multiple prop changes', () => {
-      const { rerender, toJSON } = render(<ContractorCardSkeleton count={3} showPortfolio={true} />);
+      const { rerender, toJSON } = render(
+        <ContractorCardSkeleton count={3} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<ContractorCardSkeleton count={5} showPortfolio={false} />);
@@ -378,7 +431,9 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should handle count change while keeping showPortfolio constant', () => {
-      const { rerender, toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={true} />);
+      const { rerender, toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<ContractorCardSkeleton count={5} showPortfolio={true} />);
@@ -386,7 +441,9 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should handle showPortfolio change while keeping count constant', () => {
-      const { rerender, toJSON } = render(<ContractorCardSkeleton count={3} showPortfolio={false} />);
+      const { rerender, toJSON } = render(
+        <ContractorCardSkeleton count={3} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<ContractorCardSkeleton count={3} showPortfolio={true} />);
@@ -394,7 +451,9 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should handle complex prop update sequence', () => {
-      const { rerender, toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={false} />);
+      const { rerender, toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<ContractorCardSkeleton count={3} showPortfolio={false} />);
@@ -420,35 +479,47 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should mount with custom props and unmount cleanly', () => {
-      const { unmount, toJSON } = render(<ContractorCardSkeleton count={10} showPortfolio={false} />);
+      const { unmount, toJSON } = render(
+        <ContractorCardSkeleton count={10} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
       unmount();
       expect(toJSON()).toBeNull();
     });
 
     it('should mount with showPortfolio=true and unmount cleanly', () => {
-      const { unmount, toJSON } = render(<ContractorCardSkeleton count={5} showPortfolio={true} />);
+      const { unmount, toJSON } = render(
+        <ContractorCardSkeleton count={5} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
       unmount();
       expect(toJSON()).toBeNull();
     });
 
     it('should handle rapid mount/unmount cycles', () => {
-      const { unmount: unmount1, toJSON: toJSON1 } = render(<ContractorCardSkeleton />);
+      const { unmount: unmount1, toJSON: toJSON1 } = render(
+        <ContractorCardSkeleton />
+      );
       expect(toJSON1()).toBeTruthy();
       unmount1();
 
-      const { unmount: unmount2, toJSON: toJSON2 } = render(<ContractorCardSkeleton />);
+      const { unmount: unmount2, toJSON: toJSON2 } = render(
+        <ContractorCardSkeleton />
+      );
       expect(toJSON2()).toBeTruthy();
       unmount2();
 
-      const { unmount: unmount3, toJSON: toJSON3 } = render(<ContractorCardSkeleton />);
+      const { unmount: unmount3, toJSON: toJSON3 } = render(
+        <ContractorCardSkeleton />
+      );
       expect(toJSON3()).toBeTruthy();
       unmount3();
     });
 
     it('should unmount after prop changes', () => {
-      const { rerender, unmount, toJSON } = render(<ContractorCardSkeleton count={3} />);
+      const { rerender, unmount, toJSON } = render(
+        <ContractorCardSkeleton count={3} />
+      );
       rerender(<ContractorCardSkeleton count={8} />);
       expect(toJSON()).toBeTruthy();
       unmount();
@@ -456,7 +527,9 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should unmount after showPortfolio changes', () => {
-      const { rerender, unmount, toJSON } = render(<ContractorCardSkeleton showPortfolio={false} />);
+      const { rerender, unmount, toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={false} />
+      );
       rerender(<ContractorCardSkeleton showPortfolio={true} />);
       expect(toJSON()).toBeTruthy();
       unmount();
@@ -481,22 +554,30 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should match snapshot with showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={false} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
     it('should match snapshot with showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton showPortfolio={true} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
     it('should match snapshot with count=8 and showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={8} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={8} showPortfolio={true} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
     it('should match snapshot with count=1 and showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={false} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
@@ -506,59 +587,79 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should match snapshot with count=5 and showPortfolio=false', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={5} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={5} showPortfolio={false} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
     it('should match snapshot with count=2 and showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={2} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={2} showPortfolio={true} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
   });
 
-  describe('Default Export', () => {
-    it('should be importable as default export', () => {
-      const ContractorCardSkeletonDefault = require('../ContractorCardSkeleton').default;
-      expect(ContractorCardSkeletonDefault).toBeDefined();
+  describe('Named Export', () => {
+    it('should be importable as named export', () => {
+      const ContractorCardSkeletonNamed =
+        require('../ContractorCardSkeleton').ContractorCardSkeleton;
+      expect(ContractorCardSkeletonNamed).toBeDefined();
     });
 
-    it('should render when imported as default', () => {
-      const ContractorCardSkeletonDefault = require('../ContractorCardSkeleton').default;
-      const { toJSON } = render(<ContractorCardSkeletonDefault />);
+    it('should render when imported as named', () => {
+      const ContractorCardSkeletonNamed =
+        require('../ContractorCardSkeleton').ContractorCardSkeleton;
+      const { toJSON } = render(<ContractorCardSkeletonNamed />);
       expect(toJSON()).toBeTruthy();
     });
 
-    it('should render with props when imported as default', () => {
-      const ContractorCardSkeletonDefault = require('../ContractorCardSkeleton').default;
-      const { toJSON } = render(<ContractorCardSkeletonDefault count={3} showPortfolio={false} />);
+    it('should render with props when imported as named', () => {
+      const ContractorCardSkeletonNamed =
+        require('../ContractorCardSkeleton').ContractorCardSkeleton;
+      const { toJSON } = render(
+        <ContractorCardSkeletonNamed count={3} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
-    it('should render with showPortfolio=true when imported as default', () => {
-      const ContractorCardSkeletonDefault = require('../ContractorCardSkeleton').default;
-      const { toJSON } = render(<ContractorCardSkeletonDefault count={5} showPortfolio={true} />);
+    it('should render with showPortfolio=true when imported as named', () => {
+      const ContractorCardSkeletonNamed =
+        require('../ContractorCardSkeleton').ContractorCardSkeleton;
+      const { toJSON } = render(
+        <ContractorCardSkeletonNamed count={5} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
 
   describe('Edge Cases - Portfolio Rendering', () => {
     it('should render portfolio with count=0 and showPortfolio=true', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={0} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={0} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should render portfolio with large count', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={50} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={50} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle portfolio with negative count', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={-1} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={-1} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle portfolio with NaN count', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={NaN} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={NaN} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -590,30 +691,42 @@ describe('ContractorCardSkeleton', () => {
     });
 
     it('should render all sections without portfolio', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should render all sections including portfolio', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={1} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={1} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
 
   describe('Multiple Cards Consistency', () => {
     it('should render consistent structure for multiple cards without portfolio', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={3} showPortfolio={false} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={3} showPortfolio={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should render consistent structure for multiple cards with portfolio', () => {
-      const { toJSON } = render(<ContractorCardSkeleton count={3} showPortfolio={true} />);
+      const { toJSON } = render(
+        <ContractorCardSkeleton count={3} showPortfolio={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should render different card counts with same props', () => {
-      const { toJSON: json1 } = render(<ContractorCardSkeleton count={2} showPortfolio={true} />);
-      const { toJSON: json2 } = render(<ContractorCardSkeleton count={4} showPortfolio={true} />);
+      const { toJSON: json1 } = render(
+        <ContractorCardSkeleton count={2} showPortfolio={true} />
+      );
+      const { toJSON: json2 } = render(
+        <ContractorCardSkeleton count={4} showPortfolio={true} />
+      );
       expect(json1()).toBeTruthy();
       expect(json2()).toBeTruthy();
     });

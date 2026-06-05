@@ -204,8 +204,10 @@ export function MintEditorialPropertyMaintenancePlan({ schedules }: Props) {
       </div>
 
       {/* Year strip — 12 columns, one per month. Empty months keep
-          their slot so the visual rhythm doesn't collapse. */}
-      <div className='card' style={{ overflow: 'hidden' }}>
+          their slot so the visual rhythm doesn't collapse. On a phone
+          12 columns won't fit, so the inner grid keeps a min-width and
+          the card scrolls horizontally (me-mplan-strip). */}
+      <div className='card me-mplan-strip' style={{ overflow: 'hidden' }}>
         <div
           style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)' }}
         >
@@ -264,6 +266,7 @@ export function MintEditorialPropertyMaintenancePlan({ schedules }: Props) {
 
       {/* This quarter list + Mint AI auto-rebook card */}
       <div
+        className='me-mplan-grid'
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1.55fr) minmax(0, 1fr)',

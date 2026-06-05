@@ -51,15 +51,18 @@ const VALIDATION_PATTERNS = {
 
 // XSS patterns to detect and block
 const XSS_PATTERNS = [
-  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-  /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
-  /javascript:/gi,
-  /vbscript:/gi,
-  /onload\s*=/gi,
-  /onerror\s*=/gi,
-  /onclick\s*=/gi,
-  /onmouseover\s*=/gi,
-  /<img[^>]+src[\\s]*=[\\s]*["\']javascript:/gi,
+  // No `g` flag: these constants are shared and consumed via `.test()`, whose
+  // statefulness with `g` (persisted `lastIndex`) makes detection order-dependent
+  // and lets real payloads slip through. `g` is meaningless for `.test()` anyway.
+  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i,
+  /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/i,
+  /javascript:/i,
+  /vbscript:/i,
+  /onload\s*=/i,
+  /onerror\s*=/i,
+  /onclick\s*=/i,
+  /onmouseover\s*=/i,
+  /<img[^>]+src[\\s]*=[\\s]*["\']javascript:/i,
 ] as const;
 
 interface ValidationOptions {

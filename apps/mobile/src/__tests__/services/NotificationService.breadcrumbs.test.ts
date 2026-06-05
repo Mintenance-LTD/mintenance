@@ -21,6 +21,7 @@ jest.mock('../../utils/mobileApiClient', () => ({
     get: jest.fn(),
     post: jest.fn(),
     put: jest.fn(),
+    patch: jest.fn(),
     delete: jest.fn(),
   },
   API_BASE_URL: 'http://localhost:3000',
@@ -404,24 +405,26 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
 
   describe('Breadcrumb Tracking for Notification Preferences', () => {
     it('should add breadcrumb when fetching preferences succeeds', async () => {
-      const mockFrom = jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: {
-            notification_preferences: {
-              jobUpdates: true,
-              newMessages: false,
-            },
-          },
-          error: null,
-        }),
+      // 2026-05-27 audit-71 P1: preferences now proxy to
+      // GET /api/user/notification-preferences (canonical
+      // user_notification_preferences shape), not supabase. The service
+      // translates the canonical shape back to the legacy bool flags.
+      mobileApiClient.get.mockResolvedValueOnce({
+        push_enabled: true,
+        email_enabled: true,
+        sms_enabled: false,
+        in_app_enabled: true,
+        disabled_types: [],
+        quiet_hours_start: null,
+        quiet_hours_end: null,
+        timezone: 'Europe/London',
       });
-      (supabase.from as jest.Mock) = mockFrom;
 
-      const prefs =
-        await NotificationService.getNotificationPreferences('user-123');
+      await NotificationService.getNotificationPreferences('user-123');
 
+      expect(mobileApiClient.get).toHaveBeenCalledWith(
+        '/api/user/notification-preferences'
+      );
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Fetched notification preferences',
         'notification',
@@ -433,33 +436,20 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
     });
 
     it('should add breadcrumb when updating preferences', async () => {
-      // updateNotificationPreferences first reads current preferences,
-      // then updates. The READ chain ends in .single() (returns data);
-      // the UPDATE chain ends in .eq() (returns { error }). The earlier
-      // mock conflated both by setting eq() to mockResolvedValue once,
-      // breaking the read chain. Use mockReturnValueOnce for the read
-      // and mockResolvedValueOnce for the update so the chain resolves
-      // correctly per call.
-      const readChain: Record<string, jest.Mock> = {
-        select: jest.fn(),
-        eq: jest.fn(),
-        single: jest.fn().mockResolvedValue({
-          data: { notification_preferences: {} },
-          error: null,
-        }),
-      };
-      readChain.select.mockReturnValue(readChain);
-      readChain.eq.mockReturnValue(readChain);
-
-      const updateChain: Record<string, jest.Mock> = {
-        update: jest.fn(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-      updateChain.update.mockReturnValue(updateChain);
-
-      (supabase.from as jest.Mock)
-        .mockReturnValueOnce(readChain)
-        .mockReturnValueOnce(updateChain);
+      // updateNotificationPreferences first reads the current canonical
+      // preferences (GET), then writes a canonical patch (PATCH) — both
+      // via mobileApiClient against /api/user/notification-preferences.
+      mobileApiClient.get.mockResolvedValueOnce({
+        push_enabled: true,
+        email_enabled: true,
+        sms_enabled: false,
+        in_app_enabled: true,
+        disabled_types: [],
+        quiet_hours_start: null,
+        quiet_hours_end: null,
+        timezone: 'Europe/London',
+      });
+      mobileApiClient.patch.mockResolvedValueOnce({});
 
       const newPrefs = {
         jobUpdates: false,
@@ -469,6 +459,11 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       await NotificationService.updateNotificationPreferences(
         'user-123',
         newPrefs
+      );
+
+      expect(mobileApiClient.patch).toHaveBeenCalledWith(
+        '/api/user/notification-preferences',
+        expect.any(Object)
       );
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(

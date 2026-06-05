@@ -1,124 +1,126 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '../test-utils';
-import { HomeScreen } from '../../../screens/home';
-import { JobService } from '../../../services/JobService';
-import { AuthService } from '../../../services/AuthService';
+import { render } from '../test-utils';
+
+// ---------------------------------------------------------------------------
+// Realigned 2026-06-03 to the Mint Editorial v2 architecture.
+//
+// This suite previously assumed a monolithic HomeScreen that read the session
+// from `AuthService.getCurrentUser`, fetched jobs via
+// `JobService.getJobsByHomeowner`, and owned the welcome banner, the job list,
+// the empty state and the post/find-job CTAs. That screen no longer exists:
+// HomeScreen is now a thin role-router driven by the `useAuth` context that
+// delegates to `HomeownerDashboard` / `ContractorDashboard`. The job list,
+// empty state, refresh and CTAs moved into the dashboard sub-components (each
+// with their own suites). This suite now verifies the router contract: the
+// `home-screen` container plus role-correct dashboard selection.
+// ---------------------------------------------------------------------------
 
 jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
-);
 
-jest.mock('../../../services/JobService');
-jest.mock('../../../services/AuthService');
+jest.mock('../../../contexts/AuthContext', () => ({
+  useAuth: jest.fn(),
+}));
 
-describe('HomeScreen Integration - Comprehensive', () => {
-  const mockNavigation = {
-    navigate: jest.fn(),
-    addListener: jest.fn(),
-    setOptions: jest.fn(),
+jest.mock('../../../screens/home/HomeownerDashboard', () => {
+  const { Text } = require('react-native');
+  return {
+    HomeownerDashboard: () => (
+      <Text testID='homeowner-dashboard'>Homeowner</Text>
+    ),
   };
-
-  const mockUser = {
-    id: 'user_123',
-    name: 'John Doe',
-    role: 'homeowner',
+});
+jest.mock('../../../screens/home/ContractorDashboard', () => {
+  const { Text } = require('react-native');
+  return {
+    ContractorDashboard: () => (
+      <Text testID='contractor-dashboard'>Contractor</Text>
+    ),
   };
+});
+jest.mock('../../../screens/home/HomeScreenLoading', () => {
+  const { Text } = require('react-native');
+  return {
+    HomeScreenLoading: () => <Text testID='home-loading'>Loading</Text>,
+  };
+});
 
+import { HomeScreen } from '../../../screens/home';
+
+const { useAuth } = require('../../../contexts/AuthContext');
+
+const baseAuth = {
+  loading: false,
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  signUp: jest.fn(),
+  signInWithBiometrics: jest.fn(),
+  isBiometricAvailable: jest.fn(),
+  isBiometricEnabled: jest.fn(),
+  enableBiometric: jest.fn(),
+  disableBiometric: jest.fn(),
+};
+
+describe('HomeScreen Integration - Comprehensive (role router)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (AuthService.getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-    (JobService.getJobsByHomeowner as jest.Mock).mockResolvedValue([
-      { id: 'job_1', title: 'Plumbing', status: 'posted' },
-      { id: 'job_2', title: 'Electrical', status: 'in_progress' },
-    ]);
-  });
-
-  it('should display user welcome message', async () => {
-    const { getByText } = render(
-      <HomeScreen navigation={mockNavigation} route={{ params: {} }} />
-    );
-
-    await waitFor(() => {
-      expect(getByText(/welcome.*john doe/i)).toBeTruthy();
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      user: {
+        id: 'user_123',
+        first_name: 'John',
+        last_name: 'Doe',
+        role: 'homeowner',
+      },
     });
   });
 
-  it('should load and display user jobs', async () => {
-    const { getByText } = render(
-      <HomeScreen navigation={mockNavigation} route={{ params: {} }} />
-    );
-
-    await waitFor(() => {
-      expect(getByText('Plumbing')).toBeTruthy();
-      expect(getByText('Electrical')).toBeTruthy();
-    });
+  it('renders the home-screen container', () => {
+    const { getByTestId } = render(<HomeScreen />);
+    expect(getByTestId('home-screen')).toBeTruthy();
   });
 
-  it('should navigate to job creation', async () => {
-    const { getByText } = render(
-      <HomeScreen navigation={mockNavigation} route={{ params: {} }} />
-    );
-
-    fireEvent.press(getByText(/post.*job/i));
-
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('JobPosting');
+  it('routes a homeowner to the homeowner dashboard', () => {
+    const { getByTestId, queryByTestId } = render(<HomeScreen />);
+    expect(getByTestId('homeowner-dashboard')).toBeTruthy();
+    expect(queryByTestId('contractor-dashboard')).toBeNull();
   });
 
-  it('should navigate to job details on job press', async () => {
-    const { getByText } = render(
-      <HomeScreen navigation={mockNavigation} route={{ params: {} }} />
-    );
-
-    await waitFor(() => {
-      fireEvent.press(getByText('Plumbing'));
+  it('routes a contractor to the contractor dashboard', () => {
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      user: {
+        id: 'user_123',
+        first_name: 'John',
+        last_name: 'Doe',
+        role: 'contractor',
+      },
     });
 
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('JobDetails', {
-      jobId: 'job_1',
-    });
+    const { getByTestId, queryByTestId } = render(<HomeScreen />);
+    expect(getByTestId('contractor-dashboard')).toBeTruthy();
+    expect(queryByTestId('homeowner-dashboard')).toBeNull();
   });
 
-  it('should show empty state when no jobs', async () => {
-    (JobService.getJobsByHomeowner as jest.Mock).mockResolvedValue([]);
+  it('falls back to the homeowner view when there is no user', () => {
+    useAuth.mockReturnValue({ ...baseAuth, user: null });
 
-    const { getByText } = render(
-      <HomeScreen navigation={mockNavigation} route={{ params: {} }} />
-    );
-
-    await waitFor(() => {
-      expect(getByText(/no active jobs/i)).toBeTruthy();
-    });
+    const { getByTestId } = render(<HomeScreen />);
+    expect(getByTestId('home-screen')).toBeTruthy();
+    expect(getByTestId('homeowner-dashboard')).toBeTruthy();
   });
 
-  it('should handle pull to refresh', async () => {
-    const { getByTestId } = render(
-      <HomeScreen navigation={mockNavigation} route={{ params: {} }} />
-    );
-
-    const scrollView = getByTestId('home-scroll-view');
-
-    fireEvent(scrollView, 'onRefresh');
-
-    await waitFor(() => {
-      expect(JobService.getJobsByHomeowner).toHaveBeenCalledTimes(2);
+  it('shows the loading view while a contractor session loads', () => {
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      user: { id: 'user_123', role: 'contractor' },
+      loading: true,
     });
-  });
 
-  it('should display contractor view for contractors', async () => {
-    const contractorUser = { ...mockUser, role: 'contractor' };
-    (AuthService.getCurrentUser as jest.Mock).mockResolvedValue(contractorUser);
-
-    const { getByText } = render(
-      <HomeScreen navigation={mockNavigation} route={{ params: {} }} />
-    );
-
-    await waitFor(() => {
-      expect(getByText(/find jobs/i)).toBeTruthy();
-    });
+    const { getByTestId } = render(<HomeScreen />);
+    expect(getByTestId('home-loading')).toBeTruthy();
   });
 });

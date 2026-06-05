@@ -3,34 +3,44 @@
 exports[`DateTimeSelector Component Basic Rendering should match snapshot in default state 1`] = `
 <View
   style={
-    {
-      "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginBottom": 16,
-      "padding": 16,
-      "shadowColor": "#000",
-      "shadowOffset": {
-        "height": 2,
-        "width": 0,
+    [
+      {
+        "borderRadius": 16,
+        "elevation": 1,
+        "marginBottom": 16,
+        "padding": 16,
+        "shadowColor": "#1F2A24",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.06,
+        "shadowRadius": 2,
       },
-      "shadowOpacity": 0.1,
-      "shadowRadius": 4,
-    }
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
   }
 >
   <Text
     accessibilityRole="header"
     style={
-      {
-        "color": "#000000",
-        "fontSize": 20,
-        "fontWeight": "600",
-        "marginBottom": 16,
-      }
+      [
+        {
+          "fontSize": 12,
+          "fontWeight": "700",
+          "letterSpacing": 0.8,
+          "marginBottom": 16,
+          "textTransform": "uppercase",
+        },
+        {
+          "color": "#768079",
+        },
+      ]
     }
   >
-    Date & Time
+    DATE & TIME
   </Text>
   <View
     style={
@@ -44,14 +54,18 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#F5F5F5",
-          "borderRadius": 8,
-          "flexDirection": "row",
-          "justifyContent": "space-between",
-          "padding": 12,
-        }
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "padding": 14,
+          },
+          {
+            "backgroundColor": "#E9F1EB",
+          },
+        ]
       }
     >
       <View
@@ -64,11 +78,24 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
           }
         }
       >
-        <Ionicons
-          color="#717171"
-          name="calendar-outline"
-          size={20}
-        />
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "backgroundColor": "#DBEAFE",
+              "borderRadius": 10,
+              "height": 32,
+              "justifyContent": "center",
+              "width": 32,
+            }
+          }
+        >
+          <Ionicons
+            color="#3B82F6"
+            name="calendar-outline"
+            size={16}
+          />
+        </View>
         <View
           style={
             {
@@ -78,22 +105,30 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
         >
           <Text
             style={
-              {
-                "color": "#666666",
-                "fontSize": 12,
-                "marginBottom": 2,
-              }
+              [
+                {
+                  "fontSize": 12,
+                  "marginBottom": 2,
+                },
+                {
+                  "color": "#4A5751",
+                },
+              ]
             }
           >
             Date
           </Text>
           <Text
             style={
-              {
-                "color": "#000000",
-                "fontSize": 14,
-                "fontWeight": "500",
-              }
+              [
+                {
+                  "fontSize": 15,
+                  "fontWeight": "500",
+                },
+                {
+                  "color": "#1A2520",
+                },
+              ]
             }
           >
             Sunday, March 15, 2026
@@ -101,7 +136,7 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
         </View>
       </View>
       <Ionicons
-        color="#999999"
+        color="#768079"
         name="chevron-down"
         size={20}
       />
@@ -111,14 +146,18 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
       accessibilityRole="button"
       onPress={[Function]}
       style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#F5F5F5",
-          "borderRadius": 8,
-          "flexDirection": "row",
-          "justifyContent": "space-between",
-          "padding": 12,
-        }
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "flexDirection": "row",
+            "justifyContent": "space-between",
+            "padding": 14,
+          },
+          {
+            "backgroundColor": "#E9F1EB",
+          },
+        ]
       }
     >
       <View
@@ -131,11 +170,29 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
           }
         }
       >
-        <Ionicons
-          color="#717171"
-          name="time-outline"
-          size={20}
-        />
+        <View
+          style={
+            [
+              {
+                "alignItems": "center",
+                "backgroundColor": "#DBEAFE",
+                "borderRadius": 10,
+                "height": 32,
+                "justifyContent": "center",
+                "width": 32,
+              },
+              {
+                "backgroundColor": "#EDE9FE",
+              },
+            ]
+          }
+        >
+          <Ionicons
+            color="#8B5CF6"
+            name="time-outline"
+            size={16}
+          />
+        </View>
         <View
           style={
             {
@@ -145,22 +202,30 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
         >
           <Text
             style={
-              {
-                "color": "#666666",
-                "fontSize": 12,
-                "marginBottom": 2,
-              }
+              [
+                {
+                  "fontSize": 12,
+                  "marginBottom": 2,
+                },
+                {
+                  "color": "#4A5751",
+                },
+              ]
             }
           >
             Time
           </Text>
           <Text
             style={
-              {
-                "color": "#000000",
-                "fontSize": 14,
-                "fontWeight": "500",
-              }
+              [
+                {
+                  "fontSize": 15,
+                  "fontWeight": "500",
+                },
+                {
+                  "color": "#1A2520",
+                },
+              ]
             }
           >
             2:30 PM
@@ -168,7 +233,7 @@ exports[`DateTimeSelector Component Basic Rendering should match snapshot in def
         </View>
       </View>
       <Ionicons
-        color="#999999"
+        color="#768079"
         name="chevron-down"
         size={20}
       />

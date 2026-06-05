@@ -1,6 +1,5 @@
 import { logger } from '../../utils/logger';
 
-
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'info').mockImplementation(() => {});
@@ -31,12 +30,16 @@ describe('Logger Utility', () => {
   describe('log levels', () => {
     it('should log info messages', () => {
       logger.info('test info');
-      expect(console.info).toHaveBeenCalledWith(expect.stringContaining('test info'));
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('test info')
+      );
     });
 
     it('should log warning messages', () => {
       logger.warn('test warning');
-      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('test warning'));
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('test warning')
+      );
     });
 
     it('should log error messages', () => {

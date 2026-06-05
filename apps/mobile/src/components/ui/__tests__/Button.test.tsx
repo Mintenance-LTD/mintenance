@@ -9,49 +9,21 @@ import type { ButtonProps } from '../Button';
 // ============================================================================
 
 // Mock theme to avoid circular dependencies
+// The Button source builds its VARIANT_STYLES from theme.colors.* directly
+// (the old theme.components.button.* map is gone) plus StyleSheet size styles.
+// Mock the color tokens the source actually reads.
 jest.mock('../../../theme', () => ({
   theme: {
     colors: {
       primary: '#0EA5E9',
-      secondary: '#10B981',
+      backgroundSecondary: '#F7F7F7',
+      border: '#EBEBEB',
+      textPrimary: '#222222',
+      textSecondary: '#717171',
       error: '#EF4444',
       info: '#3B82F6',
       textInverse: '#FFFFFF',
       textTertiary: '#9CA3AF',
-    },
-    components: {
-      button: {
-        primary: {
-          backgroundColor: '#0EA5E9',
-          color: '#FFFFFF',
-          borderColor: '#0EA5E9',
-        },
-        secondary: {
-          backgroundColor: 'transparent',
-          color: '#0EA5E9',
-          borderColor: '#0EA5E9',
-        },
-        tertiary: {
-          backgroundColor: 'transparent',
-          color: '#3B82F6',
-          borderColor: 'transparent',
-        },
-        success: {
-          backgroundColor: '#10B981',
-          color: '#FFFFFF',
-          borderColor: '#10B981',
-        },
-        danger: {
-          backgroundColor: '#EF4444',
-          color: '#FFFFFF',
-          borderColor: '#EF4444',
-        },
-        ghost: {
-          backgroundColor: 'transparent',
-          color: '#0EA5E9',
-          borderColor: 'transparent',
-        },
-      },
     },
     layout: {
       buttonHeightLarge: 48,
@@ -92,7 +64,7 @@ jest.mock('../../../theme', () => ({
 // TEST HELPERS
 // ============================================================================
 
-const TestIcon = () => <RNText testID="test-icon">★</RNText>;
+const TestIcon = () => <RNText testID='test-icon'>★</RNText>;
 
 // Helper to get style values from component
 const getStyleValue = (element: any, property: string) => {
@@ -119,19 +91,19 @@ describe('Button Component', () => {
 
   describe('Rendering', () => {
     it('renders with title text', () => {
-      const { getByText } = render(<Button title="Test Button" />);
+      const { getByText } = render(<Button title='Test Button' />);
       expect(getByText('Test Button')).toBeTruthy();
     });
 
     it('renders with custom testID', () => {
       const { getByTestId } = render(
-        <Button title="Test" testID="custom-button" />
+        <Button title='Test' testID='custom-button' />
       );
       expect(getByTestId('custom-button')).toBeTruthy();
     });
 
     it('renders as TouchableOpacity', () => {
-      const { getByText } = render(<Button title="Button" />);
+      const { getByText } = render(<Button title='Button' />);
       const button = getByText('Button').parent?.parent;
       expect(button?.type).toBe('TouchableOpacity');
     });
@@ -144,7 +116,7 @@ describe('Button Component', () => {
   describe('Variants', () => {
     it('renders primary variant by default', () => {
       const { getByTestId } = render(
-        <Button title="Primary" testID="primary-btn" />
+        <Button title='Primary' testID='primary-btn' />
       );
       const button = getByTestId('primary-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
@@ -153,7 +125,7 @@ describe('Button Component', () => {
 
     it('renders primary variant explicitly', () => {
       const { getByTestId } = render(
-        <Button title="Primary" variant="primary" testID="primary-btn" />
+        <Button title='Primary' variant='primary' testID='primary-btn' />
       );
       const button = getByTestId('primary-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
@@ -162,16 +134,16 @@ describe('Button Component', () => {
 
     it('renders secondary variant', () => {
       const { getByTestId } = render(
-        <Button title="Secondary" variant="secondary" testID="secondary-btn" />
+        <Button title='Secondary' variant='secondary' testID='secondary-btn' />
       );
       const button = getByTestId('secondary-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
-      expect(bgColor).toBe('transparent');
+      expect(bgColor).toBe('#F7F7F7'); // theme.colors.backgroundSecondary
     });
 
     it('renders tertiary variant', () => {
       const { getByTestId } = render(
-        <Button title="Tertiary" variant="tertiary" testID="tertiary-btn" />
+        <Button title='Tertiary' variant='tertiary' testID='tertiary-btn' />
       );
       const button = getByTestId('tertiary-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
@@ -180,16 +152,16 @@ describe('Button Component', () => {
 
     it('renders success variant', () => {
       const { getByTestId } = render(
-        <Button title="Success" variant="success" testID="success-btn" />
+        <Button title='Success' variant='success' testID='success-btn' />
       );
       const button = getByTestId('success-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
-      expect(bgColor).toBe('#10B981');
+      expect(bgColor).toBe('#0EA5E9'); // success maps to theme.colors.primary
     });
 
     it('renders danger variant', () => {
       const { getByTestId } = render(
-        <Button title="Danger" variant="danger" testID="danger-btn" />
+        <Button title='Danger' variant='danger' testID='danger-btn' />
       );
       const button = getByTestId('danger-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
@@ -198,7 +170,7 @@ describe('Button Component', () => {
 
     it('renders ghost variant', () => {
       const { getByTestId } = render(
-        <Button title="Ghost" variant="ghost" testID="ghost-btn" />
+        <Button title='Ghost' variant='ghost' testID='ghost-btn' />
       );
       const button = getByTestId('ghost-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
@@ -207,7 +179,7 @@ describe('Button Component', () => {
 
     it('applies correct text color for primary variant', () => {
       const { getByText } = render(
-        <Button title="Primary" variant="primary" />
+        <Button title='Primary' variant='primary' />
       );
       const text = getByText('Primary');
       const color = getStyleValue(text, 'color');
@@ -216,34 +188,34 @@ describe('Button Component', () => {
 
     it('applies correct text color for secondary variant', () => {
       const { getByText } = render(
-        <Button title="Secondary" variant="secondary" />
+        <Button title='Secondary' variant='secondary' />
       );
       const text = getByText('Secondary');
       const color = getStyleValue(text, 'color');
-      expect(color).toBe('#0EA5E9');
+      expect(color).toBe('#222222'); // theme.colors.textPrimary
     });
 
     it('applies correct border color for primary variant', () => {
       const { getByTestId } = render(
-        <Button title="Primary" variant="primary" testID="primary-btn" />
+        <Button title='Primary' variant='primary' testID='primary-btn' />
       );
       const button = getByTestId('primary-btn');
       const borderColor = getStyleValue(button, 'borderColor');
-      expect(borderColor).toBe('#0EA5E9');
+      expect(borderColor).toBe('transparent'); // primary has no border
     });
 
     it('applies correct border color for secondary variant', () => {
       const { getByTestId } = render(
-        <Button title="Secondary" variant="secondary" testID="secondary-btn" />
+        <Button title='Secondary' variant='secondary' testID='secondary-btn' />
       );
       const button = getByTestId('secondary-btn');
       const borderColor = getStyleValue(button, 'borderColor');
-      expect(borderColor).toBe('#0EA5E9');
+      expect(borderColor).toBe('#EBEBEB'); // theme.colors.border
     });
 
     it('applies transparent border for tertiary variant', () => {
       const { getByTestId } = render(
-        <Button title="Tertiary" variant="tertiary" testID="tertiary-btn" />
+        <Button title='Tertiary' variant='tertiary' testID='tertiary-btn' />
       );
       const button = getByTestId('tertiary-btn');
       const borderColor = getStyleValue(button, 'borderColor');
@@ -252,7 +224,7 @@ describe('Button Component', () => {
 
     it('applies underline text decoration for tertiary variant', () => {
       const { getByText } = render(
-        <Button title="Tertiary" variant="tertiary" />
+        <Button title='Tertiary' variant='tertiary' />
       );
       const text = getByText('Tertiary');
       const textDecoration = getStyleValue(text, 'textDecorationLine');
@@ -267,25 +239,25 @@ describe('Button Component', () => {
   describe('Sizes', () => {
     it('renders medium size by default', () => {
       const { getByTestId } = render(
-        <Button title="Default Size" testID="default-btn" />
+        <Button title='Default Size' testID='default-btn' />
       );
       const button = getByTestId('default-btn');
       const minHeight = getStyleValue(button, 'minHeight');
-      expect(minHeight).toBe(48);
+      expect(minHeight).toBe(56);
     });
 
     it('renders medium size explicitly', () => {
       const { getByTestId } = render(
-        <Button title="Medium" size="md" testID="md-btn" />
+        <Button title='Medium' size='md' testID='md-btn' />
       );
       const button = getByTestId('md-btn');
       const minHeight = getStyleValue(button, 'minHeight');
-      expect(minHeight).toBe(48);
+      expect(minHeight).toBe(56);
     });
 
     it('renders small size', () => {
       const { getByTestId } = render(
-        <Button title="Small" size="sm" testID="sm-btn" />
+        <Button title='Small' size='sm' testID='sm-btn' />
       );
       const button = getByTestId('sm-btn');
       const minHeight = getStyleValue(button, 'minHeight');
@@ -294,7 +266,7 @@ describe('Button Component', () => {
 
     it('applies correct padding for medium size', () => {
       const { getByTestId } = render(
-        <Button title="Medium" size="md" testID="md-btn" />
+        <Button title='Medium' size='md' testID='md-btn' />
       );
       const button = getByTestId('md-btn');
       const paddingHorizontal = getStyleValue(button, 'paddingHorizontal');
@@ -303,7 +275,7 @@ describe('Button Component', () => {
 
     it('applies correct padding for small size', () => {
       const { getByTestId } = render(
-        <Button title="Small" size="sm" testID="sm-btn" />
+        <Button title='Small' size='sm' testID='sm-btn' />
       );
       const button = getByTestId('sm-btn');
       const paddingHorizontal = getStyleValue(button, 'paddingHorizontal');
@@ -312,20 +284,20 @@ describe('Button Component', () => {
 
     it('applies correct border radius for medium size', () => {
       const { getByTestId } = render(
-        <Button title="Medium" size="md" testID="md-btn" />
+        <Button title='Medium' size='md' testID='md-btn' />
       );
       const button = getByTestId('md-btn');
       const borderRadius = getStyleValue(button, 'borderRadius');
-      expect(borderRadius).toBe(16);
+      expect(borderRadius).toBe(28);
     });
 
     it('applies correct border radius for small size', () => {
       const { getByTestId } = render(
-        <Button title="Small" size="sm" testID="sm-btn" />
+        <Button title='Small' size='sm' testID='sm-btn' />
       );
       const button = getByTestId('sm-btn');
       const borderRadius = getStyleValue(button, 'borderRadius');
-      expect(borderRadius).toBe(8);
+      expect(borderRadius).toBe(12);
     });
   });
 
@@ -336,7 +308,7 @@ describe('Button Component', () => {
   describe('Disabled State', () => {
     it('is not disabled by default', () => {
       const { getByTestId } = render(
-        <Button title="Enabled" testID="enabled-btn" />
+        <Button title='Enabled' testID='enabled-btn' />
       );
       const button = getByTestId('enabled-btn');
       expect(button.props.disabled).toBeFalsy();
@@ -344,7 +316,7 @@ describe('Button Component', () => {
 
     it('can be disabled', () => {
       const { getByTestId } = render(
-        <Button title="Disabled" disabled testID="disabled-btn" />
+        <Button title='Disabled' disabled testID='disabled-btn' />
       );
       const button = getByTestId('disabled-btn');
       expect(button.props.disabled).toBe(true);
@@ -352,7 +324,7 @@ describe('Button Component', () => {
 
     it('applies disabled background color', () => {
       const { getByTestId } = render(
-        <Button title="Disabled" disabled testID="disabled-btn" />
+        <Button title='Disabled' disabled testID='disabled-btn' />
       );
       const button = getByTestId('disabled-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
@@ -361,7 +333,7 @@ describe('Button Component', () => {
 
     it('removes shadow when disabled', () => {
       const { getByTestId } = render(
-        <Button title="Disabled" disabled testID="disabled-btn" />
+        <Button title='Disabled' disabled testID='disabled-btn' />
       );
       const button = getByTestId('disabled-btn');
       const shadowOpacity = getStyleValue(button, 'shadowOpacity');
@@ -373,7 +345,7 @@ describe('Button Component', () => {
     it('does not call onPress when disabled', () => {
       const onPress = jest.fn();
       const { getByText } = render(
-        <Button title="Disabled" disabled onPress={onPress} />
+        <Button title='Disabled' disabled onPress={onPress} />
       );
       fireEvent.press(getByText('Disabled'));
       expect(onPress).not.toHaveBeenCalled();
@@ -381,7 +353,7 @@ describe('Button Component', () => {
 
     it('sets accessibility state to disabled', () => {
       const { getByTestId } = render(
-        <Button title="Disabled" disabled testID="disabled-btn" />
+        <Button title='Disabled' disabled testID='disabled-btn' />
       );
       const button = getByTestId('disabled-btn');
       expect(button.props.accessibilityState.disabled).toBe(true);
@@ -394,28 +366,24 @@ describe('Button Component', () => {
 
   describe('Loading State', () => {
     it('is not loading by default', () => {
-      const { queryByTestId } = render(<Button title="Not Loading" />);
+      const { queryByTestId } = render(<Button title='Not Loading' />);
       expect(queryByTestId('activity-indicator')).toBeNull();
     });
 
     it('shows ActivityIndicator when loading', () => {
-      const { UNSAFE_getByType } = render(
-        <Button title="Loading" loading />
-      );
+      const { UNSAFE_getByType } = render(<Button title='Loading' loading />);
       const ActivityIndicator = require('react-native').ActivityIndicator;
       expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     });
 
     it('hides title text when loading', () => {
-      const { queryByText } = render(
-        <Button title="Hidden" loading />
-      );
+      const { queryByText } = render(<Button title='Hidden' loading />);
       expect(queryByText('Hidden')).toBeNull();
     });
 
     it('disables button when loading', () => {
       const { getByTestId } = render(
-        <Button title="Loading" loading testID="loading-btn" />
+        <Button title='Loading' loading testID='loading-btn' />
       );
       const button = getByTestId('loading-btn');
       expect(button.props.disabled).toBe(true);
@@ -424,7 +392,12 @@ describe('Button Component', () => {
     it('does not call onPress when loading', () => {
       const onPress = jest.fn();
       const { getByTestId } = render(
-        <Button title="Loading" loading onPress={onPress} testID="loading-btn" />
+        <Button
+          title='Loading'
+          loading
+          onPress={onPress}
+          testID='loading-btn'
+        />
       );
       fireEvent.press(getByTestId('loading-btn'));
       expect(onPress).not.toHaveBeenCalled();
@@ -432,7 +405,7 @@ describe('Button Component', () => {
 
     it('sets accessibility state to busy when loading', () => {
       const { getByTestId } = render(
-        <Button title="Loading" loading testID="loading-btn" />
+        <Button title='Loading' loading testID='loading-btn' />
       );
       const button = getByTestId('loading-btn');
       expect(button.props.accessibilityState.busy).toBe(true);
@@ -440,7 +413,7 @@ describe('Button Component', () => {
 
     it('sets accessibility state to disabled when loading', () => {
       const { getByTestId } = render(
-        <Button title="Loading" loading testID="loading-btn" />
+        <Button title='Loading' loading testID='loading-btn' />
       );
       const button = getByTestId('loading-btn');
       expect(button.props.accessibilityState.disabled).toBe(true);
@@ -455,7 +428,7 @@ describe('Button Component', () => {
     it('calls onPress when pressed', () => {
       const onPress = jest.fn();
       const { getByText } = render(
-        <Button title="Press Me" onPress={onPress} />
+        <Button title='Press Me' onPress={onPress} />
       );
       fireEvent.press(getByText('Press Me'));
       expect(onPress).toHaveBeenCalledTimes(1);
@@ -464,7 +437,7 @@ describe('Button Component', () => {
     it('can be pressed multiple times', () => {
       const onPress = jest.fn();
       const { getByText } = render(
-        <Button title="Press Multiple" onPress={onPress} />
+        <Button title='Press Multiple' onPress={onPress} />
       );
       const button = getByText('Press Multiple');
       fireEvent.press(button);
@@ -474,7 +447,7 @@ describe('Button Component', () => {
     });
 
     it('works without onPress handler', () => {
-      const { getByText } = render(<Button title="No Handler" />);
+      const { getByText } = render(<Button title='No Handler' />);
       expect(() => fireEvent.press(getByText('No Handler'))).not.toThrow();
     });
   });
@@ -485,20 +458,20 @@ describe('Button Component', () => {
 
   describe('Icon', () => {
     it('renders without icon by default', () => {
-      const { queryByTestId } = render(<Button title="No Icon" />);
+      const { queryByTestId } = render(<Button title='No Icon' />);
       expect(queryByTestId('test-icon')).toBeNull();
     });
 
     it('renders with icon', () => {
       const { getByTestId } = render(
-        <Button title="With Icon" icon={<TestIcon />} />
+        <Button title='With Icon' icon={<TestIcon />} />
       );
       expect(getByTestId('test-icon')).toBeTruthy();
     });
 
     it('positions icon on left by default', () => {
       const { getByText, getByTestId } = render(
-        <Button title="Text" icon={<TestIcon />} />
+        <Button title='Text' icon={<TestIcon />} />
       );
       const content = getByText('Text').parent;
       const icon = getByTestId('test-icon');
@@ -508,7 +481,7 @@ describe('Button Component', () => {
 
     it('positions icon on left explicitly', () => {
       const { getByText, getByTestId } = render(
-        <Button title="Text" icon={<TestIcon />} iconPosition="left" />
+        <Button title='Text' icon={<TestIcon />} iconPosition='left' />
       );
       const content = getByText('Text').parent;
       const icon = getByTestId('test-icon');
@@ -518,7 +491,7 @@ describe('Button Component', () => {
 
     it('positions icon on right', () => {
       const { getByText, getByTestId } = render(
-        <Button title="Text" icon={<TestIcon />} iconPosition="right" />
+        <Button title='Text' icon={<TestIcon />} iconPosition='right' />
       );
       const content = getByText('Text').parent;
       const icon = getByTestId('test-icon');
@@ -528,7 +501,7 @@ describe('Button Component', () => {
 
     it('hides text when iconOnly is true', () => {
       const { queryByText, getByTestId } = render(
-        <Button title="Hidden" icon={<TestIcon />} iconOnly />
+        <Button title='Hidden' icon={<TestIcon />} iconOnly />
       );
       expect(queryByText('Hidden')).toBeNull();
       expect(getByTestId('test-icon')).toBeTruthy();
@@ -537,24 +510,24 @@ describe('Button Component', () => {
     it('applies circular shape for iconOnly button', () => {
       const { getByTestId } = render(
         <Button
-          title="Icon Only"
+          title='Icon Only'
           icon={<TestIcon />}
           iconOnly
-          testID="icon-only-btn"
+          testID='icon-only-btn'
         />
       );
       const button = getByTestId('icon-only-btn');
       const borderRadius = getStyleValue(button, 'borderRadius');
-      expect(borderRadius).toBe(9999); // theme.borderRadius.full
+      expect(borderRadius).toBe(22); // iconOnly 44/2 circular
     });
 
     it('applies minimum touch target for iconOnly button', () => {
       const { getByTestId } = render(
         <Button
-          title="Icon Only"
+          title='Icon Only'
           icon={<TestIcon />}
           iconOnly
-          testID="icon-only-btn"
+          testID='icon-only-btn'
         />
       );
       const button = getByTestId('icon-only-btn');
@@ -566,7 +539,7 @@ describe('Button Component', () => {
 
     it('wraps icon in View when iconOnly', () => {
       const { getByTestId, UNSAFE_root } = render(
-        <Button title="Icon Only" icon={<TestIcon />} iconOnly />
+        <Button title='Icon Only' icon={<TestIcon />} iconOnly />
       );
       const icon = getByTestId('test-icon');
       // Icon is wrapped - verify parent chain exists
@@ -575,8 +548,15 @@ describe('Button Component', () => {
       let current = icon.parent;
       let foundView = false;
       while (current && !foundView) {
-        const typeName = typeof current.type === 'string' ? current.type : current.type?.displayName || '';
-        if (typeName.includes('View') || current.type === 'View' || typeName === 'View') {
+        const typeName =
+          typeof current.type === 'string'
+            ? current.type
+            : current.type?.displayName || '';
+        if (
+          typeName.includes('View') ||
+          current.type === 'View' ||
+          typeName === 'View'
+        ) {
           foundView = true;
         }
         current = current.parent;
@@ -592,7 +572,7 @@ describe('Button Component', () => {
   describe('Full Width', () => {
     it('is not full width by default', () => {
       const { getByTestId } = render(
-        <Button title="Default Width" testID="default-btn" />
+        <Button title='Default Width' testID='default-btn' />
       );
       const button = getByTestId('default-btn');
       const width = getStyleValue(button, 'width');
@@ -601,7 +581,7 @@ describe('Button Component', () => {
 
     it('applies full width when fullWidth is true', () => {
       const { getByTestId } = render(
-        <Button title="Full Width" fullWidth testID="full-width-btn" />
+        <Button title='Full Width' fullWidth testID='full-width-btn' />
       );
       const button = getByTestId('full-width-btn');
       const width = getStyleValue(button, 'width');
@@ -610,7 +590,7 @@ describe('Button Component', () => {
 
     it('can be not full width explicitly', () => {
       const { getByTestId } = render(
-        <Button title="Not Full" fullWidth={false} testID="not-full-btn" />
+        <Button title='Not Full' fullWidth={false} testID='not-full-btn' />
       );
       const button = getByTestId('not-full-btn');
       const width = getStyleValue(button, 'width');
@@ -624,27 +604,25 @@ describe('Button Component', () => {
 
   describe('Accessibility', () => {
     it('has button role', () => {
-      const { getByTestId } = render(<Button title="Button" testID="btn" />);
+      const { getByTestId } = render(<Button title='Button' testID='btn' />);
       const button = getByTestId('btn');
       expect(button.props.accessibilityRole).toBe('button');
     });
 
     it('uses title as accessibility label by default', () => {
-      const { getByLabelText } = render(<Button title="Test Label" />);
+      const { getByLabelText } = render(<Button title='Test Label' />);
       expect(getByLabelText('Test Label')).toBeTruthy();
     });
 
     it('uses custom accessibility label', () => {
       const { getByLabelText } = render(
-        <Button title="Button" accessibilityLabel="Custom Label" />
+        <Button title='Button' accessibilityLabel='Custom Label' />
       );
       expect(getByLabelText('Custom Label')).toBeTruthy();
     });
 
     it('sets default accessibility state', () => {
-      const { getByTestId } = render(
-        <Button title="Button" testID="button" />
-      );
+      const { getByTestId } = render(<Button title='Button' testID='button' />);
       const button = getByTestId('button');
       expect(button.props.accessibilityState).toEqual({
         disabled: false,
@@ -655,8 +633,8 @@ describe('Button Component', () => {
     it('sets custom accessibility state', () => {
       const { getByTestId } = render(
         <Button
-          title="Button"
-          testID="button"
+          title='Button'
+          testID='button'
           accessibilityState={{ selected: true }}
         />
       );
@@ -667,8 +645,8 @@ describe('Button Component', () => {
     it('merges custom accessibility state with disabled', () => {
       const { getByTestId } = render(
         <Button
-          title="Button"
-          testID="button"
+          title='Button'
+          testID='button'
           disabled
           accessibilityState={{ checked: true }}
         />
@@ -680,8 +658,8 @@ describe('Button Component', () => {
     it('merges custom accessibility state with loading', () => {
       const { getByTestId } = render(
         <Button
-          title="Button"
-          testID="button"
+          title='Button'
+          testID='button'
           loading
           accessibilityState={{ expanded: true }}
         />
@@ -699,7 +677,7 @@ describe('Button Component', () => {
     it('applies custom style to button', () => {
       const customStyle = { marginTop: 20, marginBottom: 10 };
       const { getByTestId } = render(
-        <Button title="Styled" style={customStyle} testID="styled-btn" />
+        <Button title='Styled' style={customStyle} testID='styled-btn' />
       );
       const button = getByTestId('styled-btn');
       const styles = Array.isArray(button.props.style)
@@ -711,7 +689,7 @@ describe('Button Component', () => {
     it('applies custom textStyle to text', () => {
       const customTextStyle = { letterSpacing: 2 };
       const { getByText } = render(
-        <Button title="Styled Text" textStyle={customTextStyle} />
+        <Button title='Styled Text' textStyle={customTextStyle} />
       );
       const text = getByText('Styled Text');
       const styles = Array.isArray(text.props.style)
@@ -724,10 +702,10 @@ describe('Button Component', () => {
       const customStyle = { opacity: 0.8 };
       const { getByTestId } = render(
         <Button
-          title="Merged"
-          variant="primary"
+          title='Merged'
+          variant='primary'
           style={customStyle}
-          testID="merged-btn"
+          testID='merged-btn'
         />
       );
       const button = getByTestId('merged-btn');
@@ -740,7 +718,7 @@ describe('Button Component', () => {
     it('handles array of styles', () => {
       const styles = [{ marginTop: 10 }, { marginBottom: 5 }];
       const { getByTestId } = render(
-        <Button title="Array Styles" style={styles} testID="array-btn" />
+        <Button title='Array Styles' style={styles} testID='array-btn' />
       );
       const button = getByTestId('array-btn');
       const marginTop = getStyleValue(button, 'marginTop');
@@ -757,7 +735,7 @@ describe('Button Component', () => {
   describe('Shadows', () => {
     it('applies shadow by default', () => {
       const { getByTestId } = render(
-        <Button title="Shadow" testID="shadow-btn" />
+        <Button title='Shadow' testID='shadow-btn' />
       );
       const button = getByTestId('shadow-btn');
       const shadowOpacity = getStyleValue(button, 'shadowOpacity');
@@ -766,7 +744,7 @@ describe('Button Component', () => {
 
     it('removes shadow for transparent background', () => {
       const { getByTestId } = render(
-        <Button title="No Shadow" variant="ghost" testID="ghost-btn" />
+        <Button title='No Shadow' variant='ghost' testID='ghost-btn' />
       );
       const button = getByTestId('ghost-btn');
       const shadowOpacity = getStyleValue(button, 'shadowOpacity');
@@ -777,7 +755,7 @@ describe('Button Component', () => {
 
     it('removes shadow when disabled', () => {
       const { getByTestId } = render(
-        <Button title="Disabled" disabled testID="disabled-btn" />
+        <Button title='Disabled' disabled testID='disabled-btn' />
       );
       const button = getByTestId('disabled-btn');
       const shadowOpacity = getStyleValue(button, 'shadowOpacity');
@@ -796,11 +774,11 @@ describe('Button Component', () => {
       const onPress = jest.fn();
       const { getByTestId } = render(
         <Button
-          title="Disabled Loading"
+          title='Disabled Loading'
           disabled
           loading
           onPress={onPress}
-          testID="combined-btn"
+          testID='combined-btn'
         />
       );
       const button = getByTestId('combined-btn');
@@ -814,27 +792,27 @@ describe('Button Component', () => {
     it('handles fullWidth with iconOnly', () => {
       const { getByTestId } = render(
         <Button
-          title="Full Icon"
+          title='Full Icon'
           icon={<TestIcon />}
           iconOnly
           fullWidth
-          testID="full-icon-btn"
+          testID='full-icon-btn'
         />
       );
       const button = getByTestId('full-icon-btn');
       const width = getStyleValue(button, 'width');
       const borderRadius = getStyleValue(button, 'borderRadius');
       expect(width).toBe('100%');
-      expect(borderRadius).toBe(9999);
+      expect(borderRadius).toBe(22);
     });
 
     it('handles small size with icon', () => {
       const { getByTestId, getByText } = render(
         <Button
-          title="Small Icon"
-          size="sm"
+          title='Small Icon'
+          size='sm'
           icon={<TestIcon />}
-          testID="small-icon-btn"
+          testID='small-icon-btn'
         />
       );
       const button = getByTestId('small-icon-btn');
@@ -849,17 +827,17 @@ describe('Button Component', () => {
       const onPress = jest.fn();
       const { getByTestId } = render(
         <Button
-          title="All Props"
-          variant="success"
-          size="sm"
+          title='All Props'
+          variant='success'
+          size='sm'
           icon={<TestIcon />}
-          iconPosition="right"
+          iconPosition='right'
           fullWidth
           onPress={onPress}
           style={{ marginTop: 10 }}
           textStyle={{ fontSize: 16 }}
-          accessibilityLabel="Complete Button"
-          testID="complete-btn"
+          accessibilityLabel='Complete Button'
+          testID='complete-btn'
         />
       );
       const button = getByTestId('complete-btn');
@@ -867,7 +845,7 @@ describe('Button Component', () => {
       const width = getStyleValue(button, 'width');
       const marginTop = getStyleValue(button, 'marginTop');
 
-      expect(bgColor).toBe('#10B981');
+      expect(bgColor).toBe('#0EA5E9'); // success maps to theme.colors.primary
       expect(width).toBe('100%');
       expect(marginTop).toBe(10);
       expect(button.props.accessibilityLabel).toBe('Complete Button');
@@ -884,34 +862,35 @@ describe('Button Component', () => {
   describe('Edge Cases', () => {
     it('handles empty title', () => {
       const { getByTestId } = render(
-        <Button title="" testID="empty-title-btn" />
+        <Button title='' testID='empty-title-btn' />
       );
       expect(getByTestId('empty-title-btn')).toBeTruthy();
     });
 
     it('handles undefined onPress', () => {
       const { getByText } = render(
-        <Button title="No Handler" onPress={undefined} />
+        <Button title='No Handler' onPress={undefined} />
       );
       expect(() => fireEvent.press(getByText('No Handler'))).not.toThrow();
     });
 
     it('handles null icon', () => {
       const { queryByTestId } = render(
-        <Button title="Null Icon" icon={null as any} />
+        <Button title='Null Icon' icon={null as any} />
       );
       expect(queryByTestId('test-icon')).toBeNull();
     });
 
     it('handles undefined icon', () => {
       const { queryByTestId } = render(
-        <Button title="Undefined Icon" icon={undefined} />
+        <Button title='Undefined Icon' icon={undefined} />
       );
       expect(queryByTestId('test-icon')).toBeNull();
     });
 
     it('renders with very long title', () => {
-      const longTitle = 'This is a very long button title that might wrap to multiple lines';
+      const longTitle =
+        'This is a very long button title that might wrap to multiple lines';
       const { getByText } = render(<Button title={longTitle} />);
       expect(getByText(longTitle)).toBeTruthy();
     });
@@ -923,7 +902,7 @@ describe('Button Component', () => {
 
   describe('Text Styling', () => {
     it('applies default text styles', () => {
-      const { getByText } = render(<Button title="Text" />);
+      const { getByText } = render(<Button title='Text' />);
       const text = getByText('Text');
       const fontSize = getStyleValue(text, 'fontSize');
       const fontWeight = getStyleValue(text, 'fontWeight');
@@ -933,7 +912,7 @@ describe('Button Component', () => {
 
     it('applies tertiary text styles', () => {
       const { getByText } = render(
-        <Button title="Tertiary" variant="tertiary" />
+        <Button title='Tertiary' variant='tertiary' />
       );
       const text = getByText('Tertiary');
       const textDecoration = getStyleValue(text, 'textDecorationLine');
@@ -950,7 +929,7 @@ describe('Button Component', () => {
   describe('Layout', () => {
     it('applies base layout styles', () => {
       const { getByTestId } = render(
-        <Button title="Layout" testID="layout-btn" />
+        <Button title='Layout' testID='layout-btn' />
       );
       const button = getByTestId('layout-btn');
       const justifyContent = getStyleValue(button, 'justifyContent');
@@ -962,9 +941,7 @@ describe('Button Component', () => {
     });
 
     it('uses flexDirection row for content with icon', () => {
-      const { getByText } = render(
-        <Button title="Row" icon={<TestIcon />} />
-      );
+      const { getByText } = render(<Button title='Row' icon={<TestIcon />} />);
       const content = getByText('Row').parent;
       const flexDirection = getStyleValue(content, 'flexDirection');
       expect(flexDirection).toBe('row');
@@ -972,7 +949,7 @@ describe('Button Component', () => {
 
     it('centers items in content row', () => {
       const { getByText } = render(
-        <Button title="Centered" icon={<TestIcon />} />
+        <Button title='Centered' icon={<TestIcon />} />
       );
       const content = getByText('Centered').parent;
       const alignItems = getStyleValue(content, 'alignItems');

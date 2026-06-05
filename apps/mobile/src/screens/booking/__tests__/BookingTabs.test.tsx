@@ -64,7 +64,7 @@ describe('BookingTabs', () => {
     it('renders all three tabs', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -78,7 +78,7 @@ describe('BookingTabs', () => {
     it('renders with empty bookings array', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={[]}
         />
@@ -92,7 +92,7 @@ describe('BookingTabs', () => {
     it('renders tabs container with correct structure', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -106,7 +106,7 @@ describe('BookingTabs', () => {
       const singleBooking = [createMockBooking('1', 'upcoming')];
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={singleBooking}
         />
@@ -120,15 +120,15 @@ describe('BookingTabs', () => {
     it('renders tabs in correct order', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
   });
 
@@ -137,76 +137,76 @@ describe('BookingTabs', () => {
     it('shows upcoming tab as active when activeTab is upcoming', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      const upcomingTab = getByLabelText('Upcoming tab with 3 bookings');
+      const upcomingTab = getByLabelText('Upcoming tab, 3 bookings');
       expect(upcomingTab).toBeTruthy();
     });
 
     it('shows completed tab as active when activeTab is completed', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      const completedTab = getByLabelText('Completed tab with 2 bookings');
+      const completedTab = getByLabelText('Completed tab, 2 bookings');
       expect(completedTab).toBeTruthy();
     });
 
     it('shows cancelled tab as active when activeTab is cancelled', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="cancelled"
+          activeTab='cancelled'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      const cancelledTab = getByLabelText('Cancelled tab with 1 bookings');
+      const cancelledTab = getByLabelText('Cancelled tab, 1 bookings');
       expect(cancelledTab).toBeTruthy();
     });
 
     it('changes active tab styling when activeTab prop changes', () => {
       const { rerender, getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
 
       rerender(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
     });
 
     it('applies active styles only to selected tab', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
   });
 
@@ -215,13 +215,13 @@ describe('BookingTabs', () => {
     it('calls onTabChange with upcoming when upcoming tab is pressed', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Upcoming tab with 3 bookings'));
+      fireEvent.press(getByLabelText('Upcoming tab, 3 bookings'));
       expect(mockOnTabChange).toHaveBeenCalledWith('upcoming');
       expect(mockOnTabChange).toHaveBeenCalledTimes(1);
     });
@@ -229,13 +229,13 @@ describe('BookingTabs', () => {
     it('calls onTabChange with completed when completed tab is pressed', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Completed tab with 2 bookings'));
+      fireEvent.press(getByLabelText('Completed tab, 2 bookings'));
       expect(mockOnTabChange).toHaveBeenCalledWith('completed');
       expect(mockOnTabChange).toHaveBeenCalledTimes(1);
     });
@@ -243,13 +243,13 @@ describe('BookingTabs', () => {
     it('calls onTabChange with cancelled when cancelled tab is pressed', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Cancelled tab with 1 bookings'));
+      fireEvent.press(getByLabelText('Cancelled tab, 1 bookings'));
       expect(mockOnTabChange).toHaveBeenCalledWith('cancelled');
       expect(mockOnTabChange).toHaveBeenCalledTimes(1);
     });
@@ -257,13 +257,13 @@ describe('BookingTabs', () => {
     it('calls onTabChange when active tab is pressed again', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Upcoming tab with 3 bookings'));
+      fireEvent.press(getByLabelText('Upcoming tab, 3 bookings'));
       expect(mockOnTabChange).toHaveBeenCalledWith('upcoming');
       expect(mockOnTabChange).toHaveBeenCalledTimes(1);
     });
@@ -271,15 +271,15 @@ describe('BookingTabs', () => {
     it('handles rapid tab switching', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Completed tab with 2 bookings'));
-      fireEvent.press(getByLabelText('Cancelled tab with 1 bookings'));
-      fireEvent.press(getByLabelText('Upcoming tab with 3 bookings'));
+      fireEvent.press(getByLabelText('Completed tab, 2 bookings'));
+      fireEvent.press(getByLabelText('Cancelled tab, 1 bookings'));
+      fireEvent.press(getByLabelText('Upcoming tab, 3 bookings'));
 
       expect(mockOnTabChange).toHaveBeenCalledTimes(3);
       expect(mockOnTabChange).toHaveBeenNthCalledWith(1, 'completed');
@@ -290,13 +290,13 @@ describe('BookingTabs', () => {
     it('handles sequential tab presses to same tab', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      const upcomingTab = getByLabelText('Upcoming tab with 3 bookings');
+      const upcomingTab = getByLabelText('Upcoming tab, 3 bookings');
       fireEvent.press(upcomingTab);
       fireEvent.press(upcomingTab);
       fireEvent.press(upcomingTab);
@@ -308,22 +308,22 @@ describe('BookingTabs', () => {
     it('switches between all tabs sequentially', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
       // upcoming -> completed
-      fireEvent.press(getByLabelText('Completed tab with 2 bookings'));
+      fireEvent.press(getByLabelText('Completed tab, 2 bookings'));
       expect(mockOnTabChange).toHaveBeenLastCalledWith('completed');
 
       // completed -> cancelled
-      fireEvent.press(getByLabelText('Cancelled tab with 1 bookings'));
+      fireEvent.press(getByLabelText('Cancelled tab, 1 bookings'));
       expect(mockOnTabChange).toHaveBeenLastCalledWith('cancelled');
 
       // cancelled -> upcoming
-      fireEvent.press(getByLabelText('Upcoming tab with 3 bookings'));
+      fireEvent.press(getByLabelText('Upcoming tab, 3 bookings'));
       expect(mockOnTabChange).toHaveBeenLastCalledWith('upcoming');
 
       expect(mockOnTabChange).toHaveBeenCalledTimes(3);
@@ -335,7 +335,7 @@ describe('BookingTabs', () => {
     it('shows badge with count 3 for upcoming tab', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -347,7 +347,7 @@ describe('BookingTabs', () => {
     it('shows badge with count 2 for completed tab', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -359,7 +359,7 @@ describe('BookingTabs', () => {
     it('shows badge with count 1 for cancelled tab', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="cancelled"
+          activeTab='cancelled'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -371,7 +371,7 @@ describe('BookingTabs', () => {
     it('does not show badge when count is 0', () => {
       const { queryByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={[createMockBooking('1', 'upcoming')]}
         />
@@ -383,7 +383,7 @@ describe('BookingTabs', () => {
     it('does not show badges when all counts are 0', () => {
       const { queryByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={[]}
         />
@@ -397,7 +397,7 @@ describe('BookingTabs', () => {
     it('shows multiple badges when multiple tabs have bookings', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -415,7 +415,7 @@ describe('BookingTabs', () => {
 
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={manyBookings}
         />
@@ -431,7 +431,7 @@ describe('BookingTabs', () => {
 
       const { getByText } = render(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={manyBookings}
         />
@@ -443,7 +443,7 @@ describe('BookingTabs', () => {
     it('updates badge count when bookings change', () => {
       const { getByText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -451,14 +451,11 @@ describe('BookingTabs', () => {
 
       expect(getByText('3')).toBeTruthy();
 
-      const newBookings = [
-        ...mockBookings,
-        createMockBooking('7', 'upcoming'),
-      ];
+      const newBookings = [...mockBookings, createMockBooking('7', 'upcoming')];
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={newBookings}
         />
@@ -470,7 +467,7 @@ describe('BookingTabs', () => {
     it('removes badge when count becomes 0', () => {
       const { getByText, queryByText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -480,7 +477,7 @@ describe('BookingTabs', () => {
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={[]}
         />
@@ -496,37 +493,37 @@ describe('BookingTabs', () => {
     it('correctly counts upcoming bookings', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
     });
 
     it('correctly counts completed bookings', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
     });
 
     it('correctly counts cancelled bookings', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="cancelled"
+          activeTab='cancelled'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('handles all bookings with same status', () => {
@@ -537,15 +534,15 @@ describe('BookingTabs', () => {
 
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={allUpcoming}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 6 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 0 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 6 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 0 bookings')).toBeTruthy();
     });
 
     it('handles mixed booking statuses correctly', () => {
@@ -559,27 +556,27 @@ describe('BookingTabs', () => {
 
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mixedBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 1 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('recalculates counts when bookings prop updates', () => {
       const { getByLabelText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
 
       const updatedBookings = [
         ...mockBookings,
@@ -589,13 +586,13 @@ describe('BookingTabs', () => {
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={updatedBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 5 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 5 bookings')).toBeTruthy();
     });
   });
 
@@ -604,107 +601,107 @@ describe('BookingTabs', () => {
     it('all tabs have accessibility labels', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('upcoming tab has descriptive accessibility label', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
     });
 
     it('completed tab has descriptive accessibility label', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
     });
 
     it('cancelled tab has descriptive accessibility label', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="cancelled"
+          activeTab='cancelled'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('accessibility labels update with booking counts', () => {
       const { getByLabelText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
 
       const updatedBookings = [createMockBooking('1', 'upcoming')];
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={updatedBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 1 bookings')).toBeTruthy();
     });
 
     it('accessibility labels show 0 bookings correctly', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={[]}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 0 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 0 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 0 bookings')).toBeTruthy();
     });
 
     it('tabs are keyboard accessible', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      const upcomingTab = getByLabelText('Upcoming tab with 3 bookings');
-      const completedTab = getByLabelText('Completed tab with 2 bookings');
-      const cancelledTab = getByLabelText('Cancelled tab with 1 bookings');
+      const upcomingTab = getByLabelText('Upcoming tab, 3 bookings');
+      const completedTab = getByLabelText('Completed tab, 2 bookings');
+      const cancelledTab = getByLabelText('Cancelled tab, 1 bookings');
 
-      expect(upcomingTab.props.accessibilityRole).toBe('button');
-      expect(completedTab.props.accessibilityRole).toBe('button');
-      expect(cancelledTab.props.accessibilityRole).toBe('button');
+      expect(upcomingTab.props.accessibilityRole).toBe('tab');
+      expect(completedTab.props.accessibilityRole).toBe('tab');
+      expect(cancelledTab.props.accessibilityRole).toBe('tab');
     });
   });
 
@@ -713,7 +710,7 @@ describe('BookingTabs', () => {
     it('handles empty bookings array without errors', () => {
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={[]}
         />
@@ -733,25 +730,28 @@ describe('BookingTabs', () => {
 
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={singleBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 1 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 1 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('handles very large number of bookings', () => {
       const manyBookings = Array.from({ length: 1000 }, (_, i) =>
-        createMockBooking(`${i}`, i % 3 === 0 ? 'upcoming' : i % 3 === 1 ? 'completed' : 'cancelled')
+        createMockBooking(
+          `${i}`,
+          i % 3 === 0 ? 'upcoming' : i % 3 === 1 ? 'completed' : 'cancelled'
+        )
       );
 
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={manyBookings}
         />
@@ -769,14 +769,14 @@ describe('BookingTabs', () => {
 
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={invalidBookings}
         />
       );
 
       // Should show 0 bookings for all tabs since status is invalid
-      expect(getByLabelText('Upcoming tab with 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 0 bookings')).toBeTruthy();
     });
 
     it('handles duplicate booking IDs', () => {
@@ -788,15 +788,15 @@ describe('BookingTabs', () => {
 
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={duplicateBookings}
         />
       );
 
       // Should count all bookings even with duplicate IDs
-      expect(getByLabelText('Upcoming tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 1 bookings')).toBeTruthy();
     });
   });
 
@@ -805,26 +805,26 @@ describe('BookingTabs', () => {
     it('calls onTabChange with proper parameters', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Completed tab with 2 bookings'));
+      fireEvent.press(getByLabelText('Completed tab, 2 bookings'));
       expect(mockOnTabChange).toHaveBeenCalledWith('completed');
     });
 
     it('onTabChange is called with correct tab ID type', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Completed tab with 2 bookings'));
+      fireEvent.press(getByLabelText('Completed tab, 2 bookings'));
 
       expect(mockOnTabChange).toHaveBeenCalledWith('completed');
       expect(typeof mockOnTabChange.mock.calls[0][0]).toBe('string');
@@ -833,7 +833,7 @@ describe('BookingTabs', () => {
     it('does not call onTabChange on initial render', () => {
       render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -845,17 +845,20 @@ describe('BookingTabs', () => {
     it('does not call onTabChange when bookings update', () => {
       const { rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      const updatedBookings = [...mockBookings, createMockBooking('7', 'upcoming')];
+      const updatedBookings = [
+        ...mockBookings,
+        createMockBooking('7', 'upcoming'),
+      ];
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={updatedBookings}
         />
@@ -867,13 +870,13 @@ describe('BookingTabs', () => {
     it('calls onTabChange only once per press', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Completed tab with 2 bookings'));
+      fireEvent.press(getByLabelText('Completed tab, 2 bookings'));
 
       expect(mockOnTabChange).toHaveBeenCalledTimes(1);
     });
@@ -884,29 +887,29 @@ describe('BookingTabs', () => {
     it('updates active tab on prop change', () => {
       const { getByLabelText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
 
       rerender(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
     });
 
     it('updates badge counts on bookings change', () => {
       const { getByText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -914,11 +917,13 @@ describe('BookingTabs', () => {
 
       expect(getByText('3')).toBeTruthy();
 
-      const updatedBookings = mockBookings.filter((b) => b.status !== 'upcoming');
+      const updatedBookings = mockBookings.filter(
+        (b) => b.status !== 'upcoming'
+      );
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={updatedBookings}
         />
@@ -931,7 +936,7 @@ describe('BookingTabs', () => {
     it('handles multiple rapid prop changes', () => {
       const { rerender, getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -939,7 +944,7 @@ describe('BookingTabs', () => {
 
       rerender(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -947,46 +952,46 @@ describe('BookingTabs', () => {
 
       rerender(
         <BookingTabs
-          activeTab="cancelled"
+          activeTab='cancelled'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('maintains tab structure through rerenders', () => {
       const { getByLabelText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
 
       rerender(
         <BookingTabs
-          activeTab="completed"
+          activeTab='completed'
           onTabChange={mockOnTabChange}
           bookings={[]}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 0 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 0 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 0 bookings')).toBeTruthy();
     });
 
     it('updates onTabChange callback on prop change', () => {
       const newCallback = jest.fn();
       const { getByLabelText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -994,13 +999,13 @@ describe('BookingTabs', () => {
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={newCallback}
           bookings={mockBookings}
         />
       );
 
-      fireEvent.press(getByLabelText('Completed tab with 2 bookings'));
+      fireEvent.press(getByLabelText('Completed tab, 2 bookings'));
 
       expect(mockOnTabChange).not.toHaveBeenCalled();
       expect(newCallback).toHaveBeenCalledWith('completed');
@@ -1019,7 +1024,7 @@ describe('BookingTabs', () => {
 
       const { rerender } = render(
         <TestWrapper
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -1029,7 +1034,7 @@ describe('BookingTabs', () => {
 
       rerender(
         <TestWrapper
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -1040,14 +1045,17 @@ describe('BookingTabs', () => {
 
     it('efficiently handles large booking arrays', () => {
       const largeBookingArray = Array.from({ length: 10000 }, (_, i) =>
-        createMockBooking(`${i}`, i % 3 === 0 ? 'upcoming' : i % 3 === 1 ? 'completed' : 'cancelled')
+        createMockBooking(
+          `${i}`,
+          i % 3 === 0 ? 'upcoming' : i % 3 === 1 ? 'completed' : 'cancelled'
+        )
       );
 
       const startTime = Date.now();
 
       const { getByText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={largeBookingArray}
         />
@@ -1062,7 +1070,7 @@ describe('BookingTabs', () => {
     it('handles rapid rerenders without crashing', () => {
       const { rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
@@ -1087,67 +1095,67 @@ describe('BookingTabs', () => {
     it('renders tabs in order: Upcoming, Completed, Cancelled', () => {
       const { getByLabelText } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('maintains tab order regardless of active tab', () => {
       const { getByLabelText, rerender } = render(
         <BookingTabs
-          activeTab="cancelled"
+          activeTab='cancelled'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 2 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 2 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 1 bookings')).toBeTruthy();
     });
 
     it('maintains tab order when booking counts change', () => {
       const { getByLabelText, rerender } = render(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={mockBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 3 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 3 bookings')).toBeTruthy();
 
       const newBookings = [createMockBooking('1', 'completed')];
 
       rerender(
         <BookingTabs
-          activeTab="upcoming"
+          activeTab='upcoming'
           onTabChange={mockOnTabChange}
           bookings={newBookings}
         />
       );
 
-      expect(getByLabelText('Upcoming tab with 0 bookings')).toBeTruthy();
-      expect(getByLabelText('Completed tab with 1 bookings')).toBeTruthy();
-      expect(getByLabelText('Cancelled tab with 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Upcoming tab, 0 bookings')).toBeTruthy();
+      expect(getByLabelText('Completed tab, 1 bookings')).toBeTruthy();
+      expect(getByLabelText('Cancelled tab, 0 bookings')).toBeTruthy();
     });
   });
 });

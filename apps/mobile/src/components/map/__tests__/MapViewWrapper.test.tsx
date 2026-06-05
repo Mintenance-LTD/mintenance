@@ -16,7 +16,9 @@ describe('MapView Component', () => {
 
       const fallbackText = getByText('Map view available on mobile devices');
       expect(fallbackText).toBeDefined();
-      expect(fallbackText.props.children).toBe('Map view available on mobile devices');
+      expect(fallbackText.props.children).toBe(
+        'Map view available on mobile devices'
+      );
     });
 
     it('should render with children', () => {
@@ -61,11 +63,13 @@ describe('MapView Component', () => {
       expect(container.props.style).toMatchObject({ flex: 1 });
     });
 
-    it('should apply backgroundColor #f0f0f0', () => {
+    it('should apply backgroundColor backgroundSecondary', () => {
       const { UNSAFE_getByType } = render(<MapView />);
 
       const container = UNSAFE_getByType(View);
-      expect(container.props.style).toMatchObject({ backgroundColor: '#f0f0f0' });
+      expect(container.props.style).toMatchObject({
+        backgroundColor: '#F7F7F7',
+      });
     });
 
     it('should apply justifyContent center', () => {
@@ -88,7 +92,7 @@ describe('MapView Component', () => {
       const container = UNSAFE_getByType(View);
       expect(container.props.style).toEqual({
         flex: 1,
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#F7F7F7',
         justifyContent: 'center',
         alignItems: 'center',
       });
@@ -98,7 +102,10 @@ describe('MapView Component', () => {
   describe('Props Handling', () => {
     it('should accept and ignore additional props', () => {
       const { getByText } = render(
-        <MapView region={{ latitude: 0, longitude: 0 }} initialRegion={{ latitude: 1, longitude: 1 }} />
+        <MapView
+          region={{ latitude: 0, longitude: 0 }}
+          initialRegion={{ latitude: 1, longitude: 1 }}
+        />
       );
 
       expect(getByText('Map view available on mobile devices')).toBeDefined();
@@ -111,7 +118,7 @@ describe('MapView Component', () => {
     });
 
     it('should accept custom props via spreading', () => {
-      const { toJSON } = render(<MapView testID="map-view-component" />);
+      const { toJSON } = render(<MapView testID='map-view-component' />);
 
       expect(toJSON()).toBeTruthy();
     });
@@ -166,7 +173,7 @@ describe('Marker Component', () => {
 
     it('should accept title and description props', () => {
       const { toJSON } = render(
-        <Marker title="Test Marker" description="Test Description" />
+        <Marker title='Test Marker' description='Test Description' />
       );
 
       expect(toJSON()).toBeTruthy();
@@ -174,16 +181,14 @@ describe('Marker Component', () => {
 
     it('should spread additional props to View', () => {
       const { getByTestId } = render(
-        <Marker testID="custom-marker" accessibilityLabel="Map marker" />
+        <Marker testID='custom-marker' accessibilityLabel='Map marker' />
       );
 
       expect(getByTestId('custom-marker')).toBeDefined();
     });
 
     it('should accept style prop', () => {
-      const { toJSON } = render(
-        <Marker style={{ backgroundColor: 'red' }} />
-      );
+      const { toJSON } = render(<Marker style={{ backgroundColor: 'red' }} />);
 
       expect(toJSON()).toBeTruthy();
     });
@@ -289,13 +294,13 @@ describe('Integration Tests', () => {
 
   it('should support complex component tree', () => {
     const { getByText } = render(
-      <MapView testID="main-map">
-        <Marker testID="marker-1">
+      <MapView testID='main-map'>
+        <Marker testID='marker-1'>
           <View>
             <Text>Marker 1</Text>
           </View>
         </Marker>
-        <Marker testID="marker-2">
+        <Marker testID='marker-2'>
           <View>
             <Text>Marker 2</Text>
           </View>

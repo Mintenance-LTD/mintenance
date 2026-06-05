@@ -1,4 +1,3 @@
-
 /**
  * Tests for Environment Security Manager
  */
@@ -18,13 +17,17 @@ import {
 jest.mock('../../../config/supabase', () => ({
   supabase: {
     auth: {
-      getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      getUser: jest.fn(() =>
+        Promise.resolve({ data: { user: null }, error: null })
+      ),
+      getSession: jest.fn(() =>
+        Promise.resolve({ data: { session: null }, error: null })
+      ),
       signIn: jest.fn(),
       signUp: jest.fn(),
       signOut: jest.fn(),
       onAuthStateChange: jest.fn(() => ({
-        data: { subscription: { unsubscribe: jest.fn() } }
+        data: { subscription: { unsubscribe: jest.fn() } },
       })),
     },
     from: jest.fn((table) => ({
@@ -52,12 +55,18 @@ jest.mock('../../../config/supabase', () => ({
     })),
     storage: {
       from: jest.fn((bucket) => ({
-        upload: jest.fn(() => Promise.resolve({ data: { path: 'test.jpg' }, error: null })),
-        download: jest.fn(() => Promise.resolve({ data: new Blob(), error: null })),
+        upload: jest.fn(() =>
+          Promise.resolve({ data: { path: 'test.jpg' }, error: null })
+        ),
+        download: jest.fn(() =>
+          Promise.resolve({ data: new Blob(), error: null })
+        ),
         remove: jest.fn(() => Promise.resolve({ data: [], error: null })),
         list: jest.fn(() => Promise.resolve({ data: [], error: null })),
         getPublicUrl: jest.fn((path) => ({
-          data: { publicUrl: `https://test.supabase.co/storage/v1/object/public/${bucket}/${path}` }
+          data: {
+            publicUrl: `https://test.supabase.co/storage/v1/object/public/${bucket}/${path}`,
+          },
         })),
       })),
     },
@@ -69,18 +78,30 @@ jest.mock('../logger');
 
 describe('EnvironmentSecurity', () => {
   let instance: EnvironmentSecurity;
-  const originalEnv = process.env;
+  // Snapshot the *contents* of process.env, not the object reference.
+  // babel-preset-expo rewrites the source's static `process.env.EXPO_PUBLIC_*`
+  // reads against the original process.env binding, so reassigning the whole
+  // `process.env` object (the old pattern) silently detached the source from
+  // the test's mutations. Instead we mutate the same object in place and
+  // restore its snapshot after each test.
+  const envSnapshot = { ...process.env };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Create a clean copy of process.env for each test
-    process.env = { ...originalEnv };
+    // Reset process.env contents in place to the captured snapshot.
+    for (const key of Object.keys(process.env)) {
+      delete process.env[key];
+    }
+    Object.assign(process.env, envSnapshot);
     instance = EnvironmentSecurity.getInstance();
   });
 
   afterEach(() => {
-    // Restore original environment
-    process.env = originalEnv;
+    // Restore original environment contents in place.
+    for (const key of Object.keys(process.env)) {
+      delete process.env[key];
+    }
+    Object.assign(process.env, envSnapshot);
   });
 
   describe('Singleton Pattern', () => {
@@ -177,7 +198,10 @@ describe('EnvironmentSecurity', () => {
     it('should parse string values', () => {
       process.env.STRING_KEY = 'hello';
 
-      const value = instance.getTypedEnv('STRING_KEY', EnvironmentSecurity.parsers.string);
+      const value = instance.getTypedEnv(
+        'STRING_KEY',
+        EnvironmentSecurity.parsers.string
+      );
 
       expect(value).toBe('hello');
     });
@@ -185,7 +209,10 @@ describe('EnvironmentSecurity', () => {
     it('should parse number values', () => {
       process.env.NUMBER_KEY = '42';
 
-      const value = instance.getTypedEnv('NUMBER_KEY', EnvironmentSecurity.parsers.number);
+      const value = instance.getTypedEnv(
+        'NUMBER_KEY',
+        EnvironmentSecurity.parsers.number
+      );
 
       expect(value).toBe(42);
     });
@@ -194,8 +221,14 @@ describe('EnvironmentSecurity', () => {
       process.env.BOOL_TRUE = 'true';
       process.env.BOOL_FALSE = 'false';
 
-      const valueTrue = instance.getTypedEnv('BOOL_TRUE', EnvironmentSecurity.parsers.boolean);
-      const valueFalse = instance.getTypedEnv('BOOL_FALSE', EnvironmentSecurity.parsers.boolean);
+      const valueTrue = instance.getTypedEnv(
+        'BOOL_TRUE',
+        EnvironmentSecurity.parsers.boolean
+      );
+      const valueFalse = instance.getTypedEnv(
+        'BOOL_FALSE',
+        EnvironmentSecurity.parsers.boolean
+      );
 
       expect(valueTrue).toBe(true);
       expect(valueFalse).toBe(false);
@@ -204,13 +237,20 @@ describe('EnvironmentSecurity', () => {
     it('should parse URL values', () => {
       process.env.URL_KEY = 'https://example.com';
 
-      const value = instance.getTypedEnv('URL_KEY', EnvironmentSecurity.parsers.url);
+      const value = instance.getTypedEnv(
+        'URL_KEY',
+        EnvironmentSecurity.parsers.url
+      );
 
       expect(value).toBe('https://example.com/');
     });
 
     it('should use default value for missing key', () => {
-      const value = instance.getTypedEnv('MISSING_KEY', EnvironmentSecurity.parsers.number, 100);
+      const value = instance.getTypedEnv(
+        'MISSING_KEY',
+        EnvironmentSecurity.parsers.number,
+        100
+      );
 
       expect(value).toBe(100);
     });
@@ -218,14 +258,23 @@ describe('EnvironmentSecurity', () => {
     it('should use default value for parse error', () => {
       process.env.INVALID_NUMBER = 'not-a-number';
 
-      const value = instance.getTypedEnv('INVALID_NUMBER', EnvironmentSecurity.parsers.number, 0);
+      const value = instance.getTypedEnv(
+        'INVALID_NUMBER',
+        EnvironmentSecurity.parsers.number,
+        0
+      );
 
       expect(value).toBe(0);
     });
 
     it('should throw error for required missing key', () => {
       expect(() => {
-        instance.getTypedEnv('REQUIRED_MISSING', EnvironmentSecurity.parsers.string, undefined, true);
+        instance.getTypedEnv(
+          'REQUIRED_MISSING',
+          EnvironmentSecurity.parsers.string,
+          undefined,
+          true
+        );
       }).toThrow('Required environment variable missing');
     });
 
@@ -250,7 +299,9 @@ describe('EnvironmentSecurity', () => {
     });
 
     it('should throw on invalid number', () => {
-      expect(() => EnvironmentSecurity.parsers.number('abc')).toThrow('Not a valid number');
+      expect(() => EnvironmentSecurity.parsers.number('abc')).toThrow(
+        'Not a valid number'
+      );
     });
 
     it('should parse boolean true variants', () => {
@@ -266,7 +317,9 @@ describe('EnvironmentSecurity', () => {
     });
 
     it('should throw on invalid boolean', () => {
-      expect(() => EnvironmentSecurity.parsers.boolean('maybe')).toThrow('Not a valid boolean');
+      expect(() => EnvironmentSecurity.parsers.boolean('maybe')).toThrow(
+        'Not a valid boolean'
+      );
     });
 
     it('should parse valid URL', () => {
@@ -275,7 +328,9 @@ describe('EnvironmentSecurity', () => {
     });
 
     it('should throw on invalid URL', () => {
-      expect(() => EnvironmentSecurity.parsers.url('not-a-url')).toThrow('Not a valid URL');
+      expect(() => EnvironmentSecurity.parsers.url('not-a-url')).toThrow(
+        'Not a valid URL'
+      );
     });
   });
 
@@ -325,7 +380,10 @@ describe('EnvironmentSecurity', () => {
     it('getTypedEnv should work as helper', () => {
       process.env.HELPER_NUMBER = '789';
 
-      const value = getTypedEnv('HELPER_NUMBER', EnvironmentSecurity.parsers.number);
+      const value = getTypedEnv(
+        'HELPER_NUMBER',
+        EnvironmentSecurity.parsers.number
+      );
 
       expect(value).toBe(789);
     });
@@ -390,7 +448,9 @@ describe('EnvironmentSecurity', () => {
       const report = instance.generateSecurityReport();
 
       expect(report.environment).toBeDefined();
-      expect(['development', 'staging', 'production']).toContain(report.environment);
+      expect(['development', 'staging', 'production']).toContain(
+        report.environment
+      );
     });
 
     it('should have strict validation setting', () => {

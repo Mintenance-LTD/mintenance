@@ -140,6 +140,7 @@ export function PropertyHeader({
         </div>
       </div>
       <div
+        className='me-prop-stats'
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) auto',
@@ -166,7 +167,7 @@ export function PropertyHeader({
         />
         <Link
           href={`/jobs/create?property_id=${property.id}`}
-          className='btn btn-primary'
+          className='btn btn-primary me-prop-stats-cta'
         >
           <Plus size={14} strokeWidth={2} /> Post a job
         </Link>

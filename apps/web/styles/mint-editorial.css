@@ -1453,3 +1453,261 @@
 /* The theme switch lives at /settings → Appearance now (Phase 1). The
    floating dev pill that previously sat at top-right has been removed
    so the dashboard chrome matches the design exactly. */
+
+/* ============================================================
+ * Mobile nav drawer — homeowner Mint Editorial shell (.me-shell)
+ * ------------------------------------------------------------
+ * The 240px sidebar is fine on desktop, but on phones it stayed
+ * a fixed in-flow column and stole ~60% of the viewport, clipping
+ * page content (Export / Add property / cards) off the right edge.
+ * Below 768px the sidebar becomes an off-canvas drawer toggled by
+ * the topbar hamburger, and the content column gets the full width.
+ * Scoped to `.me-shell` so the contractor sidebar (which reuses the
+ * `.me-sidebar` class inside its own responsive shell) is untouched.
+ * ============================================================ */
+.me-shell .me-menu-btn {
+  display: none;
+}
+.me-shell .me-drawer-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .me-shell .me-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--me-line);
+    background: var(--me-surface);
+    color: var(--me-ink);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  /* Sidebar → off-canvas drawer */
+  .me-shell .me-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 60;
+    height: 100vh;
+    height: 100dvh;
+    width: 270px;
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: var(--me-shadow-pop);
+  }
+  .me-shell.me-drawer-open .me-sidebar {
+    transform: translateX(0);
+  }
+
+  /* Dimming backdrop behind the open drawer */
+  .me-shell .me-drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(17, 24, 28, 0.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  .me-shell.me-drawer-open .me-drawer-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Tighten chrome so the page fits a phone width */
+  .me-shell .me-topbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+  .me-shell .me-topbar .search-pill {
+    display: none;
+  }
+  .me-shell .me-content {
+    padding: 18px 16px 120px !important;
+  }
+}
+
+/* ============================================================
+ * Content-level mobile fixes (phone widths) — these address the
+ * "clashes" where multi-column page content was crammed into a
+ * phone width and overlapped. Scoped to .me-root (the theme scope)
+ * so they only affect Mint Editorial surfaces.
+ * ============================================================ */
+@media (max-width: 768px) {
+  /* Property sub-nav tabs — 7 tabs overflowed and overlapped each
+   * other. Make the row horizontally scrollable and stop tabs from
+   * shrinking so each label stays whole. */
+  .me-root .me-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .me-root .me-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .me-root .me-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 10px 12px;
+  }
+
+  /* Property Overview was a fixed 2-column grid (inline style) that
+   * never stacked, squeezing the right column (health/recent jobs)
+   * and the Major Systems table so badges overlapped labels. Stack
+   * to a single column on phones. */
+  .me-root .me-prop-overview {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Property header stat row was `repeat(3, 1fr) auto` with the
+   * "Post a job" button jammed into the 4th cell. Keep the 3 stat
+   * tiles in a row and drop the CTA onto its own full-width line. */
+  .me-root .me-prop-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .me-root .me-prop-stats-cta {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  /* Payments transactions list — a flex row with fixed-width cells
+   * (date 120 + amount 110 + status 140 + actions 140 = 510px) that
+   * overflowed the viewport and collided (date over amount, etc.).
+   * Hide the desktop column header and let each row wrap: description
+   * on the first line, then date / amount / status / actions flow
+   * beneath at natural width. */
+  .me-root .me-tx-head {
+    display: none;
+  }
+  .me-root .me-tx-row {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    padding: 14px 16px;
+  }
+  .me-root .me-tx-desc {
+    flex: 1 1 100%;
+  }
+  .me-root .me-tx-date,
+  .me-root .me-tx-amount,
+  .me-root .me-tx-status {
+    width: auto !important;
+    text-align: left !important;
+  }
+  .me-root .me-tx-actions {
+    width: auto !important;
+    margin-left: auto;
+  }
+
+  /* Scheduling home — `minmax(0,1fr) 320px` two-column grid (calendar +
+   * upcoming/need-help rail). On a phone the fixed 320px rail left
+   * almost no room for the calendar, so its 7-column month grid
+   * collapsed and overflowed the viewport. Stack to a single column so
+   * the calendar gets full width and the rail drops beneath it. */
+  .me-root .me-sched-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Financials / payments "Transaction history" — an inline-styled flex
+   * pseudo-table (Job / Tradesperson / Date / Amount / Status / Receipt)
+   * whose cells carry `flex: 1`/`flex: 1.6`, so on a phone all six
+   * shared one line and collided (date over job title). Hide the desktop
+   * header and let each row wrap: stop cells stretching, give the job
+   * title the full first line, push Receipt to the right. The inline
+   * flex on each cell is overridden here (hence !important). */
+  .me-root .me-fin-thead {
+    display: none;
+  }
+  .me-root .me-fin-trow {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .me-root .me-fin-trow > div {
+    flex: 0 0 auto !important;
+    text-align: left !important;
+  }
+  .me-root .me-fin-trow > div:first-child {
+    flex: 1 1 100% !important;
+  }
+  .me-root .me-fin-trow > div:last-child {
+    margin-left: auto;
+    width: auto !important;
+  }
+
+  /* Maintenance plan — "What's next" + Auto-rebook is a second
+   * `minmax(0,1.55fr) minmax(0,1fr)` grid that never stacked, so on a
+   * phone the What's-next card was ~230px wide and its rows overlapped
+   * (task title / "In 1d" / date / Auto-job badge all collided). Stack
+   * to one column. */
+  .me-root .me-mplan-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* The 12-month year strip can't fit 12 columns on a phone. Keep the
+   * inner grid at a usable min-width and let the card scroll
+   * horizontally instead of crushing every month to ~30px. */
+  .me-root .me-mplan-strip {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .me-root .me-mplan-strip > div {
+    min-width: 720px;
+  }
+
+  /* Settings — its own in-page layout (22%-wide nav rail + flex:1
+   * content) that never stacked, so on a phone the content column was
+   * clipped off the right edge ("Change" button cut, "Full" toggle
+   * clipped, email truncated). Stack the rail above the content and let
+   * the nav span full width. */
+  .me-root.settings-page .settings-shell {
+    flex-direction: column;
+  }
+  .me-root.settings-page .settings-nav {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Job detail — hero strip (1fr 320px) and body (1fr 360px) both pin a
+   * fixed-width right rail, crushing the left column on a phone (the
+   * "Job brief" text wrapped one word per line and the rail overlapped).
+   * Stack both to a single column; the rail drops beneath the content. */
+  .me-root .me-job-hero,
+  .me-root .me-job-body {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Compare-bids rows are a `44px 1fr 120px 140px 110px` grid (~514px)
+   * that overflowed a phone. Switch to a wrapping flex: avatar + name on
+   * the first line, price + earliest-slot on the second, the action
+   * buttons full-width on the third. */
+  .me-root .me-bid-row {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+  }
+  .me-root .me-bid-row > :nth-child(1) {
+    flex: 0 0 auto;
+  }
+  .me-root .me-bid-row > :nth-child(2) {
+    flex: 1 1 calc(100% - 58px);
+    min-width: 0;
+  }
+  .me-root .me-bid-row > :nth-child(3),
+  .me-root .me-bid-row > :nth-child(4) {
+    flex: 1 1 auto;
+  }
+  .me-root .me-bid-row > :nth-child(5) {
+    flex: 1 1 100%;
+  }
+  /* Stack the two action buttons into a row at full width */
+  .me-root .me-bid-row > :nth-child(5) {
+    flex-direction: row;
+  }
+}

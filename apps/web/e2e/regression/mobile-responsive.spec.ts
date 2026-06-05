@@ -342,3 +342,141 @@ test.describe('Mobile: No Horizontal Overflow', () => {
     await expectNoHorizontalOverflow(page);
   });
 });
+
+// ============================================================================
+// 5. RESPONSIVE-FIX SCREENSHOT REGRESSION
+// ----------------------------------------------------------------------------
+// Captures a full-page screenshot of every homeowner surface that received a
+// mobile-layout fix (the Mint Editorial shell + content-clash fixes shipped on
+// branch claude/busy-fermat-1VZ7a) and asserts no horizontal overflow on each.
+//
+// The screenshots are attached to the Playwright HTML report AND written to
+// test-results/mobile-screenshots/ so CI uploads them as a browsable artifact
+// — this is the self-serve visual record that replaces hand-screenshotting the
+// preview deploy. Mint Editorial is the DEFAULT theme (see middleware.ts
+// DEFAULT_THEME), so these pages render in their fixed form without extra
+// cookie setup.
+// ============================================================================
+
+test.describe('Mobile: Responsive-fix screenshots', () => {
+  const SHOT_DIR = 'test-results/mobile-screenshots';
+
+  /**
+   * Settle the page, assert no horizontal overflow, and capture a full-page
+   * screenshot both as a report attachment and as a CI artifact file.
+   * Returns false if the page redirected to auth (caller should skip).
+   */
+  async function captureAndAssert(
+    page: Page,
+    testInfo: import('@playwright/test').TestInfo,
+    name: string
+  ): Promise<boolean> {
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+
+    if (page.url().includes('/login') || page.url().includes('/auth')) {
+      return false;
+    }
+
+    const buffer = await page.screenshot({ fullPage: true });
+    await testInfo.attach(name, { body: buffer, contentType: 'image/png' });
+    // Also persist to a stable folder for the CI artifact upload.
+    const fs = await import('fs');
+    const path = await import('path');
+    fs.mkdirSync(SHOT_DIR, { recursive: true });
+    fs.writeFileSync(path.join(SHOT_DIR, `${name}.png`), buffer);
+
+    await expectNoHorizontalOverflow(page);
+    return true;
+  }
+
+  test('dashboard (shell drawer)', async ({ page }, testInfo) => {
+    await loginAsHomeowner(page);
+    await page.goto('/dashboard');
+    if (!(await captureAndAssert(page, testInfo, 'dashboard'))) test.skip();
+  });
+
+  test('payments table', async ({ page }, testInfo) => {
+    await loginAsHomeowner(page);
+    await page.goto('/payments');
+    if (!(await captureAndAssert(page, testInfo, 'payments'))) test.skip();
+  });
+
+  test('financials ledger', async ({ page }, testInfo) => {
+    await loginAsHomeowner(page);
+    await page.goto('/financials');
+    if (!(await captureAndAssert(page, testInfo, 'financials'))) test.skip();
+  });
+
+  test('scheduling calendar', async ({ page }, testInfo) => {
+    await loginAsHomeowner(page);
+    await page.goto('/scheduling');
+    if (!(await captureAndAssert(page, testInfo, 'scheduling'))) test.skip();
+  });
+
+  test('settings sections', async ({ page }, testInfo) => {
+    await loginAsHomeowner(page);
+    await page.goto('/settings');
+    if (!(await captureAndAssert(page, testInfo, 'settings'))) test.skip();
+  });
+
+  // Property detail (tabs / overview / stats / maintenance plan) needs a real
+  // property id. The seed creates two; navigate to the list and open the first.
+  test('property detail + tabs', async ({ page }, testInfo) => {
+    await loginAsHomeowner(page);
+    await page.goto('/properties');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+    if (page.url().includes('/login') || page.url().includes('/auth')) {
+      test.skip();
+      return;
+    }
+
+    const open = page
+      .getByRole('link', { name: /open|view|manage/i })
+      .or(page.locator('a[href*="/properties/"]'))
+      .first();
+    if (!(await open.isVisible().catch(() => false))) {
+      test.skip();
+      return;
+    }
+    await open.click();
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await captureAndAssert(page, testInfo, 'property-overview');
+
+    // Walk each property tab so the maintenance/year-strip + tab-scroll fixes
+    // are exercised and shot.
+    for (const tab of ['Maintenance', 'Documents', 'Timeline', 'Access', 'Assessments']) {
+      const tabBtn = page.getByRole('tab', { name: new RegExp(tab, 'i') }).first();
+      if (await tabBtn.isVisible().catch(() => false)) {
+        await tabBtn.click();
+        await page.waitForTimeout(800);
+        await captureAndAssert(page, testInfo, `property-${tab.toLowerCase()}`);
+      }
+    }
+  });
+
+  // Job detail (hero + body rails, compare-bids row) needs a real job id.
+  test('job detail + compare bids', async ({ page }, testInfo) => {
+    await loginAsHomeowner(page);
+    await page.goto('/jobs');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+    if (page.url().includes('/login') || page.url().includes('/auth')) {
+      test.skip();
+      return;
+    }
+
+    const jobLink = page
+      .locator('a[href*="/jobs/"]')
+      .filter({ hasNot: page.locator('a[href*="/jobs/create"]') })
+      .first();
+    if (!(await jobLink.isVisible().catch(() => false))) {
+      test.skip();
+      return;
+    }
+    await jobLink.click();
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await captureAndAssert(page, testInfo, 'job-detail');
+  });
+});

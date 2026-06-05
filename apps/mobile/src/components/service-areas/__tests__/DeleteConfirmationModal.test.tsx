@@ -33,7 +33,7 @@ describe('DeleteConfirmationModal', () => {
     area_name: 'Downtown Toronto',
     description: 'Main service area',
     area_type: 'radius',
-    center_latitude: 43.651070,
+    center_latitude: 43.65107,
     center_longitude: -79.347015,
     radius_km: 25,
     boundary_coordinates: null,
@@ -430,7 +430,7 @@ describe('DeleteConfirmationModal', () => {
       const content = getByText('Delete Service Area').parent;
       expect(content?.props.style).toEqual(
         expect.objectContaining({
-          backgroundColor: '#F7F7F7',
+          backgroundColor: '#FFFFFF',
         })
       );
     });
@@ -724,7 +724,11 @@ describe('DeleteConfirmationModal', () => {
         />
       );
 
-      expect(getByText('Are you sure you want to delete ""? This action cannot be undone.')).toBeTruthy();
+      expect(
+        getByText(
+          'Are you sure you want to delete ""? This action cannot be undone.'
+        )
+      ).toBeTruthy();
     });
 
     it('should maintain component structure on re-renders', () => {
@@ -768,7 +772,11 @@ describe('DeleteConfirmationModal', () => {
         />
       );
 
-      expect(getByText('Are you sure you want to delete "Area One"? This action cannot be undone.')).toBeTruthy();
+      expect(
+        getByText(
+          'Are you sure you want to delete "Area One"? This action cannot be undone.'
+        )
+      ).toBeTruthy();
 
       rerender(
         <DeleteConfirmationModal
@@ -779,7 +787,11 @@ describe('DeleteConfirmationModal', () => {
         />
       );
 
-      expect(getByText('Are you sure you want to delete "Area Two"? This action cannot be undone.')).toBeTruthy();
+      expect(
+        getByText(
+          'Are you sure you want to delete "Area Two"? This action cannot be undone.'
+        )
+      ).toBeTruthy();
     });
 
     it('should handle toggling visibility correctly', () => {

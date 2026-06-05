@@ -14,9 +14,14 @@ jest.mock('../../theme', () => ({
   theme: {
     colors: {
       background: '#FFFFFF',
+      surface: '#FFFFFF',
+      border: '#E5E7EB',
       borderLight: '#E5E7EB',
       textSecondary: '#6B7280',
       textPrimary: '#111827',
+      // Source reads theme.colors.textInverse for the transparent chart
+      // background gradient stops.
+      textInverse: '#ffffff',
     },
     borderRadius: {
       base: 8,
@@ -84,7 +89,7 @@ describe('FinanceChart', () => {
   describe('Component Rendering', () => {
     it('should render successfully with required props', () => {
       const { getByText } = render(
-        <FinanceChart type="line" data={mockLineData} title="Revenue Trend" />
+        <FinanceChart type='line' data={mockLineData} title='Revenue Trend' />
       );
 
       expect(getByText('Revenue Trend')).toBeTruthy();
@@ -92,7 +97,7 @@ describe('FinanceChart', () => {
 
     it('should render without subtitle when not provided', () => {
       const { queryByText } = render(
-        <FinanceChart type="line" data={mockLineData} title="Revenue Trend" />
+        <FinanceChart type='line' data={mockLineData} title='Revenue Trend' />
       );
 
       expect(queryByText(/subtitle/i)).toBeNull();
@@ -101,10 +106,10 @@ describe('FinanceChart', () => {
     it('should render with subtitle when provided', () => {
       const { getByText } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Revenue Trend"
-          subtitle="Monthly Performance"
+          title='Revenue Trend'
+          subtitle='Monthly Performance'
         />
       );
 
@@ -115,9 +120,9 @@ describe('FinanceChart', () => {
     it('should render with custom height when provided', () => {
       const { toJSON } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Revenue Trend"
+          title='Revenue Trend'
           height={300}
         />
       );
@@ -127,7 +132,7 @@ describe('FinanceChart', () => {
 
     it('should render with default height when not provided', () => {
       const { toJSON } = render(
-        <FinanceChart type="line" data={mockLineData} title="Revenue Trend" />
+        <FinanceChart type='line' data={mockLineData} title='Revenue Trend' />
       );
 
       expect(toJSON()).toBeTruthy();
@@ -136,9 +141,9 @@ describe('FinanceChart', () => {
     it('should render title text correctly', () => {
       const { getByText } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Test Chart Title"
+          title='Test Chart Title'
         />
       );
 
@@ -149,10 +154,10 @@ describe('FinanceChart', () => {
     it('should render subtitle text correctly', () => {
       const { getByText } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Test Chart"
-          subtitle="Test Subtitle"
+          title='Test Chart'
+          subtitle='Test Subtitle'
         />
       );
 
@@ -164,7 +169,7 @@ describe('FinanceChart', () => {
   describe('LineChart Rendering', () => {
     it('should render LineChart when type is "line"', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       expect(UNSAFE_getByType('LineChart')).toBeTruthy();
@@ -172,7 +177,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart with correct data prop', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -181,7 +186,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart with bezier curve enabled', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -190,7 +195,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart with dots enabled', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -199,7 +204,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart without shadow', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -208,7 +213,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart with vertical labels', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -217,7 +222,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart with horizontal labels', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -226,7 +231,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart starting from zero', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -237,9 +242,9 @@ describe('FinanceChart', () => {
       const customHeight = 250;
       const { UNSAFE_getByType } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Line Chart"
+          title='Line Chart'
           height={customHeight}
         />
       );
@@ -250,7 +255,7 @@ describe('FinanceChart', () => {
 
     it('should render LineChart with default height when not specified', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -261,7 +266,7 @@ describe('FinanceChart', () => {
   describe('BarChart Rendering', () => {
     it('should render BarChart when type is "bar"', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       expect(UNSAFE_getByType('BarChart')).toBeTruthy();
@@ -269,7 +274,7 @@ describe('FinanceChart', () => {
 
     it('should render BarChart with correct data prop', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -278,7 +283,7 @@ describe('FinanceChart', () => {
 
     it('should render BarChart with empty yAxisLabel', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -287,7 +292,7 @@ describe('FinanceChart', () => {
 
     it('should render BarChart with empty yAxisSuffix', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -296,7 +301,7 @@ describe('FinanceChart', () => {
 
     it('should render BarChart with vertical labels', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -305,7 +310,7 @@ describe('FinanceChart', () => {
 
     it('should render BarChart with horizontal labels', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -314,7 +319,7 @@ describe('FinanceChart', () => {
 
     it('should render BarChart starting from zero', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -323,7 +328,7 @@ describe('FinanceChart', () => {
 
     it('should render BarChart without bar tops', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -334,9 +339,9 @@ describe('FinanceChart', () => {
       const customHeight = 300;
       const { UNSAFE_getByType } = render(
         <FinanceChart
-          type="bar"
+          type='bar'
           data={mockBarData}
-          title="Bar Chart"
+          title='Bar Chart'
           height={customHeight}
         />
       );
@@ -349,7 +354,7 @@ describe('FinanceChart', () => {
   describe('PieChart Rendering', () => {
     it('should render PieChart when type is "pie"', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       expect(UNSAFE_getByType('PieChart')).toBeTruthy();
@@ -357,7 +362,7 @@ describe('FinanceChart', () => {
 
     it('should render PieChart with correct data prop', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -366,7 +371,7 @@ describe('FinanceChart', () => {
 
     it('should render PieChart with value accessor', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -375,7 +380,7 @@ describe('FinanceChart', () => {
 
     it('should render PieChart with transparent background', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -384,7 +389,7 @@ describe('FinanceChart', () => {
 
     it('should render PieChart with padding left', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -393,7 +398,7 @@ describe('FinanceChart', () => {
 
     it('should render PieChart with legend enabled', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -404,9 +409,9 @@ describe('FinanceChart', () => {
       const customHeight = 250;
       const { UNSAFE_getByType } = render(
         <FinanceChart
-          type="pie"
+          type='pie'
           data={mockPieData}
-          title="Pie Chart"
+          title='Pie Chart'
           height={customHeight}
         />
       );
@@ -419,7 +424,7 @@ describe('FinanceChart', () => {
   describe('Chart Type Switching', () => {
     it('should not render BarChart when type is "line"', () => {
       const { UNSAFE_queryByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       expect(UNSAFE_queryByType('BarChart')).toBeNull();
@@ -427,7 +432,7 @@ describe('FinanceChart', () => {
 
     it('should not render PieChart when type is "line"', () => {
       const { UNSAFE_queryByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       expect(UNSAFE_queryByType('PieChart')).toBeNull();
@@ -435,7 +440,7 @@ describe('FinanceChart', () => {
 
     it('should not render LineChart when type is "bar"', () => {
       const { UNSAFE_queryByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       expect(UNSAFE_queryByType('LineChart')).toBeNull();
@@ -443,7 +448,7 @@ describe('FinanceChart', () => {
 
     it('should not render PieChart when type is "bar"', () => {
       const { UNSAFE_queryByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       expect(UNSAFE_queryByType('PieChart')).toBeNull();
@@ -451,7 +456,7 @@ describe('FinanceChart', () => {
 
     it('should not render LineChart when type is "pie"', () => {
       const { UNSAFE_queryByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       expect(UNSAFE_queryByType('LineChart')).toBeNull();
@@ -459,7 +464,7 @@ describe('FinanceChart', () => {
 
     it('should not render BarChart when type is "pie"', () => {
       const { UNSAFE_queryByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       expect(UNSAFE_queryByType('BarChart')).toBeNull();
@@ -469,7 +474,7 @@ describe('FinanceChart', () => {
   describe('Chart Configuration', () => {
     it('should pass chart config to LineChart', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -481,7 +486,7 @@ describe('FinanceChart', () => {
 
     it('should pass chart config to BarChart', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="bar" data={mockBarData} title="Bar Chart" />
+        <FinanceChart type='bar' data={mockBarData} title='Bar Chart' />
       );
 
       const barChart = UNSAFE_getByType('BarChart');
@@ -493,7 +498,7 @@ describe('FinanceChart', () => {
 
     it('should pass pie chart config to PieChart', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Pie Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Pie Chart' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -505,7 +510,7 @@ describe('FinanceChart', () => {
 
     it('should configure chart with correct color function', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -514,29 +519,25 @@ describe('FinanceChart', () => {
 
     it('should configure chart with background gradient properties', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
-      expect(
-        lineChart.props.chartConfig.backgroundGradientFrom
-      ).toBe('#ffffff');
-      expect(
-        lineChart.props.chartConfig.backgroundGradientFromOpacity
-      ).toBe(0);
+      expect(lineChart.props.chartConfig.backgroundGradientFrom).toBe(
+        '#ffffff'
+      );
+      expect(lineChart.props.chartConfig.backgroundGradientFromOpacity).toBe(0);
       expect(lineChart.props.chartConfig.backgroundGradientTo).toBe('#ffffff');
       expect(lineChart.props.chartConfig.backgroundGradientToOpacity).toBe(0);
     });
 
     it('should configure chart with props for background lines', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
-      expect(
-        lineChart.props.chartConfig.propsForBackgroundLines
-      ).toBeDefined();
+      expect(lineChart.props.chartConfig.propsForBackgroundLines).toBeDefined();
       expect(
         lineChart.props.chartConfig.propsForBackgroundLines.strokeDasharray
       ).toBe('');
@@ -547,7 +548,7 @@ describe('FinanceChart', () => {
 
     it('should configure chart with props for labels', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Line Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Line Chart' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -567,7 +568,7 @@ describe('FinanceChart', () => {
       };
 
       const { getByText } = render(
-        <FinanceChart type="line" data={emptyLineData} title="Empty Chart" />
+        <FinanceChart type='line' data={emptyLineData} title='Empty Chart' />
       );
 
       expect(getByText('Empty Chart')).toBeTruthy();
@@ -580,7 +581,7 @@ describe('FinanceChart', () => {
       };
 
       const { getByText } = render(
-        <FinanceChart type="bar" data={emptyBarData} title="Empty Chart" />
+        <FinanceChart type='bar' data={emptyBarData} title='Empty Chart' />
       );
 
       expect(getByText('Empty Chart')).toBeTruthy();
@@ -590,7 +591,7 @@ describe('FinanceChart', () => {
       const emptyPieData: any[] = [];
 
       const { getByText } = render(
-        <FinanceChart type="pie" data={emptyPieData} title="Empty Chart" />
+        <FinanceChart type='pie' data={emptyPieData} title='Empty Chart' />
       );
 
       expect(getByText('Empty Chart')).toBeTruthy();
@@ -603,11 +604,7 @@ describe('FinanceChart', () => {
       };
 
       const { UNSAFE_getByType } = render(
-        <FinanceChart
-          type="line"
-          data={singlePointData}
-          title="Single Point"
-        />
+        <FinanceChart type='line' data={singlePointData} title='Single Point' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
@@ -617,17 +614,14 @@ describe('FinanceChart', () => {
     it('should render with multiple datasets in line chart', () => {
       const multiDatasetData = {
         labels: ['Jan', 'Feb', 'Mar'],
-        datasets: [
-          { data: [20, 45, 28] },
-          { data: [10, 30, 50] },
-        ],
+        datasets: [{ data: [20, 45, 28] }, { data: [10, 30, 50] }],
       };
 
       const { UNSAFE_getByType } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={multiDatasetData}
-          title="Multi Dataset"
+          title='Multi Dataset'
         />
       );
 
@@ -642,7 +636,7 @@ describe('FinanceChart', () => {
         'This is a very long title that should still render correctly without breaking the layout';
 
       const { getByText } = render(
-        <FinanceChart type="line" data={mockLineData} title={longTitle} />
+        <FinanceChart type='line' data={mockLineData} title={longTitle} />
       );
 
       expect(getByText(longTitle)).toBeTruthy();
@@ -654,9 +648,9 @@ describe('FinanceChart', () => {
 
       const { getByText } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Chart"
+          title='Chart'
           subtitle={longSubtitle}
         />
       );
@@ -668,7 +662,7 @@ describe('FinanceChart', () => {
       const specialTitle = 'Revenue & Expenses (2024) - Q1/Q2';
 
       const { getByText } = render(
-        <FinanceChart type="line" data={mockLineData} title={specialTitle} />
+        <FinanceChart type='line' data={mockLineData} title={specialTitle} />
       );
 
       expect(getByText(specialTitle)).toBeTruthy();
@@ -677,9 +671,9 @@ describe('FinanceChart', () => {
     it('should handle zero height prop', () => {
       const { UNSAFE_getByType } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Chart"
+          title='Chart'
           height={0}
         />
       );
@@ -691,9 +685,9 @@ describe('FinanceChart', () => {
     it('should handle very large height values', () => {
       const { UNSAFE_getByType } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Chart"
+          title='Chart'
           height={1000}
         />
       );
@@ -706,7 +700,7 @@ describe('FinanceChart', () => {
   describe('Component Structure', () => {
     it('should render header section', () => {
       const { getByText } = render(
-        <FinanceChart type="line" data={mockLineData} title="Test Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Test Chart' />
       );
 
       expect(getByText('Test Chart')).toBeTruthy();
@@ -714,7 +708,7 @@ describe('FinanceChart', () => {
 
     it('should render chart section', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Test Chart" />
+        <FinanceChart type='line' data={mockLineData} title='Test Chart' />
       );
 
       expect(UNSAFE_getByType('LineChart')).toBeTruthy();
@@ -722,7 +716,7 @@ describe('FinanceChart', () => {
 
     it('should render pie chart inside container', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Test Chart" />
+        <FinanceChart type='pie' data={mockPieData} title='Test Chart' />
       );
 
       expect(UNSAFE_getByType('PieChart')).toBeTruthy();
@@ -745,7 +739,7 @@ describe('FinanceChart', () => {
 
     it('should render with minimal required props', () => {
       const { getByText } = render(
-        <FinanceChart type="line" data={mockLineData} title="Minimal" />
+        <FinanceChart type='line' data={mockLineData} title='Minimal' />
       );
 
       expect(getByText('Minimal')).toBeTruthy();
@@ -754,10 +748,10 @@ describe('FinanceChart', () => {
     it('should render with all optional props', () => {
       const { getByText } = render(
         <FinanceChart
-          type="line"
+          type='line'
           data={mockLineData}
-          title="Full Props"
-          subtitle="All optional props included"
+          title='Full Props'
+          subtitle='All optional props included'
           height={280}
         />
       );
@@ -770,29 +764,29 @@ describe('FinanceChart', () => {
   describe('Color Function Coverage', () => {
     it('should call chartConfig color function with default opacity', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Test" />
+        <FinanceChart type='line' data={mockLineData} title='Test' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
       const colorFn = lineChart.props.chartConfig.color;
       const result = colorFn();
-      expect(result).toBe('rgba(0, 122, 255, 1)');
+      expect(result).toBe('rgba(16, 185, 129, 1)');
     });
 
     it('should call chartConfig color function with custom opacity', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="line" data={mockLineData} title="Test" />
+        <FinanceChart type='line' data={mockLineData} title='Test' />
       );
 
       const lineChart = UNSAFE_getByType('LineChart');
       const colorFn = lineChart.props.chartConfig.color;
       const result = colorFn(0.75);
-      expect(result).toBe('rgba(0, 122, 255, 0.75)');
+      expect(result).toBe('rgba(16, 185, 129, 0.75)');
     });
 
     it('should call pieChartConfig color function with default opacity', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Test" />
+        <FinanceChart type='pie' data={mockPieData} title='Test' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -803,7 +797,7 @@ describe('FinanceChart', () => {
 
     it('should call pieChartConfig color function with custom opacity', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Test" />
+        <FinanceChart type='pie' data={mockPieData} title='Test' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -814,7 +808,7 @@ describe('FinanceChart', () => {
 
     it('should call pieChartConfig color function with zero opacity', () => {
       const { UNSAFE_getByType } = render(
-        <FinanceChart type="pie" data={mockPieData} title="Test" />
+        <FinanceChart type='pie' data={mockPieData} title='Test' />
       );
 
       const pieChart = UNSAFE_getByType('PieChart');
@@ -830,7 +824,7 @@ describe('FinanceChart', () => {
         <FinanceChart
           type={'invalid' as any}
           data={mockLineData}
-          title="Invalid Type"
+          title='Invalid Type'
         />
       );
 
@@ -844,7 +838,7 @@ describe('FinanceChart', () => {
         <FinanceChart
           type={'invalid' as any}
           data={mockLineData}
-          title="Invalid Type"
+          title='Invalid Type'
         />
       );
 

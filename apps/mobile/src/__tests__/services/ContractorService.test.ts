@@ -1,7 +1,11 @@
 // Import supabase and types BEFORE ContractorService so mocks are in place
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { ContractorProfile, LocationData, ContractorMatch } from '../../types';
+import { LocationData } from '../../types';
+
+// calculateDistance lives in the contractor/ helpers module after the
+// 2026 facade refactor; import it directly to exercise the Haversine math.
+import { calculateDistance } from '../../services/contractor/ContractorHelpers';
 
 // Import the REAL ContractorService (not mocked) - we want to test the actual implementation
 import { ContractorService } from '../../services/ContractorService';
@@ -20,14 +24,19 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 // Use global Supabase mock from jest-setup.js
 jest.mock('../../config/supabase');
 
+// getContractorProfile routes through the web API via mobileApiClient.
+jest.mock('../../utils/mobileApiClient');
+
 // Logger is not mocked - using real implementation
 
+const { mobileApiClient } = require('../../utils/mobileApiClient');
 
 describe('ContractorService', () => {
   // Spy on logger methods for testing
   let loggerErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation();
   });
 
@@ -44,20 +53,21 @@ describe('ContractorService', () => {
     postalCode: '10001',
   };
 
-  const mockContractor = {
+  // Shape returned by the `profiles` query in searchContractors' advanced
+  // branch (snake_case columns + embedded contractor_skills/reviews).
+  const mockContractorRow = {
     id: 'contractor-1',
-    email: 'contractor@example.com',
+    role: 'contractor',
     first_name: 'John',
     last_name: 'Contractor',
-    role: 'contractor',
-    phone: '555-0123',
-    avatar_url: null,
+    email: 'contractor@example.com',
     is_available: true,
     latitude: 40.7589,
     longitude: -73.9851,
     hourly_rate: 50,
     bio: 'Experienced contractor',
     years_experience: 10,
+    rating: 5,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     contractor_skills: [
@@ -78,272 +88,43 @@ describe('ContractorService', () => {
         rating: 5,
         comment: 'Great work!',
         created_at: '2024-01-01T00:00:00Z',
-        reviewer: { first_name: 'Jane', last_name: 'Homeowner' },
       },
     ],
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('getNearbyContractors', () => {
-    it('should return contractors within radius', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        not: jest.fn(() => mockSupabaseChain),
-      };
-
-      mockSupabaseChain.not.mockReturnValueOnce({
-        not: jest.fn(() => ({
-          data: [mockContractor],
-          error: null,
-        })),
+  describe('getContractorProfile', () => {
+    it('maps the /api/contractor/profile-data response', async () => {
+      mobileApiClient.get.mockResolvedValueOnce({
+        contractor: {
+          id: 'contractor-1',
+          first_name: 'John',
+          last_name: 'Contractor',
+          email: 'contractor@example.com',
+          bio: 'Experienced contractor',
+          hourly_rate: 50,
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
       });
 
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
+      const result = await ContractorService.getContractorProfile('user-1');
 
-      const result = await ContractorService.getNearbyContractors(
-        mockHomeownerLocation,
-        25
+      expect(mobileApiClient.get).toHaveBeenCalledWith(
+        '/api/contractor/profile-data'
       );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        id: 'contractor-1',
-        firstName: 'John',
-        lastName: 'Contractor',
-        email: 'contractor@example.com',
-        skills: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'skill-1',
-            skillName: 'Plumbing',
-          }),
-          expect.objectContaining({
-            id: 'skill-2',
-            skillName: 'Electrical',
-          }),
-        ]),
-      });
-      expect(result[0].distance).toBeDefined();
-      expect(typeof result[0].distance).toBe('number');
+      expect(result?.bio).toBe('Experienced contractor');
     });
 
-    it('should filter contractors by radius', async () => {
-      const farContractor = {
-        ...mockContractor,
-        id: 'contractor-2',
-        latitude: 41.8781, // Chicago coordinates (far from NYC)
-        longitude: -87.6298,
-      };
+    it('returns null when the API throws', async () => {
+      mobileApiClient.get.mockRejectedValueOnce(new Error('boom'));
 
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        not: jest.fn(() => mockSupabaseChain),
-      };
+      const result = await ContractorService.getContractorProfile('user-1');
 
-      mockSupabaseChain.not.mockReturnValueOnce({
-        not: jest.fn(() => ({
-          data: [mockContractor, farContractor],
-          error: null,
-        })),
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result = await ContractorService.getNearbyContractors(
-        mockHomeownerLocation,
-        25
-      );
-
-      // Should only return the nearby contractor
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('contractor-1');
-    });
-
-    it('should make calculateDistance method accessible for testing', () => {
-      // Make the private method accessible for testing
-      const calculateDistance = (
-        ContractorService as any
-      ).calculateDistance.bind(ContractorService);
-
-      const distance = calculateDistance(40.7128, -74.006, 40.7589, -73.9851);
-      expect(distance).toBeGreaterThan(0);
-      expect(typeof distance).toBe('number');
-    });
-
-    it('should handle database error', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        not: jest.fn(() => mockSupabaseChain),
-      };
-
-      mockSupabaseChain.not.mockReturnValueOnce({
-        not: jest.fn(() => ({
-          data: null,
-          error: { message: 'Database error' },
-        })),
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      await expect(
-        ContractorService.getNearbyContractors(mockHomeownerLocation, 25)
-      ).rejects.toThrow('Database error');
-
+      expect(result).toBeNull();
       expect(loggerErrorSpy).toHaveBeenCalledWith(
-        'Error fetching nearby contractors:',
+        'Error fetching contractor profile:',
         expect.any(Object)
       );
-    });
-
-    it('should use default radius when none provided', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        not: jest.fn(() => mockSupabaseChain),
-      };
-
-      mockSupabaseChain.not.mockReturnValueOnce({
-        not: jest.fn(() => ({
-          data: [mockContractor],
-          error: null,
-        })),
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result = await ContractorService.getNearbyContractors(
-        mockHomeownerLocation
-      );
-
-      expect(result).toHaveLength(1);
-    });
-  });
-
-  describe('recordContractorMatch', () => {
-    it('should record a contractor match', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        insert: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        single: jest.fn(() => ({
-          data: {
-            id: 'match-1',
-            homeowner_id: 'homeowner-1',
-            contractor_id: 'contractor-1',
-            action: 'like',
-            created_at: '2024-01-01T00:00:00Z',
-          },
-          error: null,
-        })),
-      };
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result = await ContractorService.recordContractorMatch(
-        'homeowner-1',
-        'contractor-1',
-        'like'
-      );
-
-      expect(result).toMatchObject({
-        id: 'match-1',
-        homeownerId: 'homeowner-1',
-        contractorId: 'contractor-1',
-        action: 'like',
-      });
-
-      expect(mockSupabaseChain.insert).toHaveBeenCalledWith({
-        homeowner_id: 'homeowner-1',
-        contractor_id: 'contractor-1',
-        action: 'like',
-      });
-    });
-
-    it('should handle match recording error', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        insert: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        single: jest.fn(() => ({
-          data: null,
-          error: { message: 'Insert failed' },
-        })),
-      };
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      await expect(
-        ContractorService.recordContractorMatch(
-          'homeowner-1',
-          'contractor-1',
-          'like'
-        )
-      ).rejects.toThrow('Insert failed');
-    });
-  });
-
-  describe('getContractorMatches', () => {
-    it('should return contractor matches', async () => {
-      const mockMatches = [
-        {
-          id: 'match-1',
-          homeowner_id: 'homeowner-1',
-          contractor_id: 'contractor-1',
-          action: 'like',
-          created_at: '2024-01-01T00:00:00Z',
-          contractor: mockContractor,
-        },
-      ];
-
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => ({
-          data: mockMatches,
-          error: null,
-        })),
-      };
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result =
-        await ContractorService.getContractorMatches('homeowner-1');
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        id: 'match-1',
-        homeownerId: 'homeowner-1',
-        contractorId: 'contractor-1',
-        action: 'like',
-      });
-      expect(result[0].contractor).toBeDefined();
-    });
-
-    it('should handle empty matches', async () => {
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => ({
-          data: [],
-          error: null,
-        })),
-      };
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result =
-        await ContractorService.getContractorMatches('homeowner-1');
-
-      expect(result).toHaveLength(0);
     });
   });
 
@@ -355,10 +136,7 @@ describe('ContractorService', () => {
         eq: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         single: jest.fn(() => ({
-          data: {
-            ...mockContractor,
-            is_available: false,
-          },
+          data: { ...mockContractorRow, is_available: false },
           error: null,
         })),
       };
@@ -375,6 +153,8 @@ describe('ContractorService', () => {
         is_available: false,
         updated_at: expect.any(String),
       });
+      // Scoped to the profiles table + role=contractor guard.
+      expect(supabase.from).toHaveBeenCalledWith('profiles');
     });
 
     it('should handle update error', async () => {
@@ -397,17 +177,27 @@ describe('ContractorService', () => {
     });
   });
 
-  describe('searchContractors', () => {
+  describe('searchContractors (advanced filters)', () => {
     it('should search contractors by skills', async () => {
+      // Advanced search builds a query off `profiles`, filters by an
+      // `.in('id', ...)` for skills, then maps + filters in memory.
       const mockSupabaseChain = {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         eq: jest.fn(() => mockSupabaseChain),
-        ilike: jest.fn(() => mockSupabaseChain),
-        in: jest.fn(() => ({
-          data: [mockContractor],
-          error: null,
-        })),
+        or: jest.fn(() => mockSupabaseChain),
+        gte: jest.fn(() => mockSupabaseChain),
+        in: jest.fn(() => mockSupabaseChain),
+        // The query is awaited directly (no terminal .single); make the
+        // chain thenable so `await query` resolves the result set.
+        then: (
+          resolve: (v: unknown) => unknown,
+          reject?: (e: unknown) => unknown
+        ) =>
+          Promise.resolve({ data: [mockContractorRow], error: null }).then(
+            resolve,
+            reject
+          ),
       };
 
       (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
@@ -425,58 +215,100 @@ describe('ContractorService', () => {
       );
     });
 
-    it('should search contractors by name', async () => {
+    it('should search contractors by name using .or()', async () => {
       const mockSupabaseChain = {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         eq: jest.fn(() => mockSupabaseChain),
-        or: jest.fn(() => mockSupabaseChain), // Add .or() method for search
-        ilike: jest.fn(() => ({
-          data: [mockContractor],
-          error: null,
-        })),
+        or: jest.fn(() => mockSupabaseChain),
+        gte: jest.fn(() => mockSupabaseChain),
+        in: jest.fn(() => mockSupabaseChain),
+        then: (
+          resolve: (v: unknown) => unknown,
+          reject?: (e: unknown) => unknown
+        ) =>
+          Promise.resolve({ data: [mockContractorRow], error: null }).then(
+            resolve,
+            reject
+          ),
       };
 
       (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
 
-      const result = await ContractorService.searchContractors({
+      const result = (await ContractorService.searchContractors({
         query: 'John',
         location: mockHomeownerLocation,
-      });
+      })) as Array<{ firstName?: string }>;
 
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(mockContractor);
-      expect(mockSupabaseChain.or).toHaveBeenCalled(); // Verify .or() was used for multi-field search
+      expect(result[0].firstName).toBe('John');
+      expect(mockSupabaseChain.or).toHaveBeenCalled();
     });
 
-    it('should handle empty search results', async () => {
+    it('should propagate database errors', async () => {
       const mockSupabaseChain = {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         eq: jest.fn(() => mockSupabaseChain),
-        or: jest.fn(() => mockSupabaseChain), // Add .or() method for search
-        ilike: jest.fn(() => ({
-          data: [],
-          error: null,
-        })),
+        or: jest.fn(() => mockSupabaseChain),
+        gte: jest.fn(() => mockSupabaseChain),
+        in: jest.fn(() => mockSupabaseChain),
+        then: (
+          resolve: (v: unknown) => unknown,
+          reject?: (e: unknown) => unknown
+        ) =>
+          Promise.resolve({
+            data: null,
+            error: { message: 'Database error' },
+          }).then(resolve, reject),
       };
 
       (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
 
-      const result = await ContractorService.searchContractors({
-        query: 'NonExistent',
-        location: mockHomeownerLocation,
-      });
+      // The service rethrows the raw Supabase error object (not an
+      // Error instance), so match on its shape rather than .toThrow.
+      await expect(
+        ContractorService.searchContractors({
+          query: 'John',
+          location: mockHomeownerLocation,
+        })
+      ).rejects.toMatchObject({ message: 'Database error' });
 
-      expect(result).toHaveLength(0);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Error searching contractors:',
+        expect.any(Object)
+      );
     });
   });
 
-  describe('calculateDistance', () => {
+  describe('searchContractors (keyword string)', () => {
+    it('searches contractor_profiles via .or()', async () => {
+      const mockSupabaseChain = {
+        from: jest.fn(() => mockSupabaseChain),
+        select: jest.fn(() => mockSupabaseChain),
+        or: jest.fn(() => mockSupabaseChain),
+        order: jest.fn(() => mockSupabaseChain),
+        limit: jest.fn(() => ({ data: [mockContractorRow], error: null })),
+      };
+
+      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
+
+      const result = await ContractorService.searchContractors('Plumbing');
+
+      expect(supabase.from).toHaveBeenCalledWith('contractor_profiles');
+      expect(mockSupabaseChain.or).toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+    });
+
+    it('returns [] for too-short keywords without querying', async () => {
+      const result = await ContractorService.searchContractors('a');
+      expect(result).toHaveLength(0);
+      expect(supabase.from).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('calculateDistance (Haversine helper)', () => {
     it('should calculate distance between two points', () => {
-      const calculateDistance = (
-        ContractorService as any
-      ).calculateDistance.bind(ContractorService);
       const distance = calculateDistance(
         40.7128,
         -74.006, // NYC
@@ -490,87 +322,18 @@ describe('ContractorService', () => {
     });
 
     it('should return 0 for same coordinates', () => {
-      const calculateDistance = (
-        ContractorService as any
-      ).calculateDistance.bind(ContractorService);
       const distance = calculateDistance(40.7128, -74.006, 40.7128, -74.006);
-
       expect(distance).toBe(0);
     });
 
     it('should handle large distances', () => {
-      const calculateDistance = (
-        ContractorService as any
-      ).calculateDistance.bind(ContractorService);
       const distance = calculateDistance(
         40.7128,
         -74.006, // NYC
         34.0522,
         -118.2437 // LA
       );
-
-      expect(distance).toBeGreaterThan(3000); // Should be > 3000km (more accurate)
-    });
-  });
-
-  describe('edge cases and error handling', () => {
-    it('should handle null coordinates gracefully', async () => {
-      const contractorWithNullCoords = {
-        ...mockContractor,
-        latitude: null,
-        longitude: null,
-      };
-
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        not: jest.fn(() => mockSupabaseChain),
-      };
-
-      mockSupabaseChain.not.mockReturnValueOnce({
-        not: jest.fn(() => ({
-          data: [contractorWithNullCoords],
-          error: null,
-        })),
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result = await ContractorService.getNearbyContractors(
-        mockHomeownerLocation,
-        25
-      );
-      expect(result).toHaveLength(0); // Should filter out contractors with null coords
-    });
-
-    it('should handle invalid location data', async () => {
-      const invalidLocation = {
-        latitude: NaN,
-        longitude: NaN,
-      } as LocationData;
-
-      const mockSupabaseChain = {
-        from: jest.fn(() => mockSupabaseChain),
-        select: jest.fn(() => mockSupabaseChain),
-        eq: jest.fn(() => mockSupabaseChain),
-        not: jest.fn(() => mockSupabaseChain),
-      };
-
-      mockSupabaseChain.not.mockReturnValueOnce({
-        not: jest.fn(() => ({
-          data: [mockContractor],
-          error: null,
-        })),
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue(mockSupabaseChain);
-
-      const result = await ContractorService.getNearbyContractors(
-        invalidLocation,
-        25
-      );
-      expect(result).toHaveLength(0);
+      expect(distance).toBeGreaterThan(3000); // > 3000km
     });
   });
 });

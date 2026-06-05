@@ -10,7 +10,6 @@
 import React from 'react';
 import { render } from '../../../../__tests__/test-utils';
 import { PricingSummary } from '../PricingSummary';
-import { theme } from '../../../../theme';
 
 // Test data fixtures
 const createProps = (overrides = {}) => ({
@@ -68,12 +67,12 @@ describe('PricingSummary Component', () => {
 
     it('renders tax row with label and rate', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText('Tax (10%)')).toBeTruthy();
+      expect(getByText('VAT (10%)')).toBeTruthy();
     });
 
     it('renders total row with label', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText('Total')).toBeTruthy();
+      expect(getByText('Quote Total')).toBeTruthy();
     });
 
     it('renders discount row when discount is present', () => {
@@ -98,43 +97,43 @@ describe('PricingSummary Component', () => {
   describe('Subtotal Display', () => {
     it('displays subtotal value with 2 decimal places', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText('$1000.00')).toBeTruthy();
+      expect(getByText('£1,000.00')).toBeTruthy();
     });
 
     it('formats zero subtotal correctly', () => {
       const propsWithZero = createProps({ subtotal: 0 });
       const { getByTestId } = render(<PricingSummary {...propsWithZero} />);
-      expect(getByTestId('subtotal-value')).toHaveTextContent('$0.00');
+      expect(getByTestId('subtotal-value')).toHaveTextContent('£0.00');
     });
 
     it('formats large subtotal correctly', () => {
       const propsWithLarge = createProps({ subtotal: 99999.99 });
       const { getByText } = render(<PricingSummary {...propsWithLarge} />);
-      expect(getByText('$99999.99')).toBeTruthy();
+      expect(getByText('£99,999.99')).toBeTruthy();
     });
 
     it('formats small decimal subtotal correctly', () => {
       const propsWithSmall = createProps({ subtotal: 0.01 });
       const { getByTestId } = render(<PricingSummary {...propsWithSmall} />);
-      expect(getByTestId('subtotal-value')).toHaveTextContent('$0.01');
+      expect(getByTestId('subtotal-value')).toHaveTextContent('£0.01');
     });
 
     it('formats subtotal with single decimal correctly', () => {
       const propsWithSingle = createProps({ subtotal: 100.5 });
       const { getByText } = render(<PricingSummary {...propsWithSingle} />);
-      expect(getByText('$100.50')).toBeTruthy();
+      expect(getByText('£100.50')).toBeTruthy();
     });
 
     it('formats subtotal with no decimals correctly', () => {
       const propsWithWhole = createProps({ subtotal: 500 });
       const { getByText } = render(<PricingSummary {...propsWithWhole} />);
-      expect(getByText('$500.00')).toBeTruthy();
+      expect(getByText('£500.00')).toBeTruthy();
     });
 
     it('formats subtotal with multiple decimals correctly (rounds)', () => {
       const propsWithMulti = createProps({ subtotal: 123.456 });
       const { getByText } = render(<PricingSummary {...propsWithMulti} />);
-      expect(getByText('$123.46')).toBeTruthy();
+      expect(getByText('£123.46')).toBeTruthy();
     });
   });
 
@@ -146,7 +145,7 @@ describe('PricingSummary Component', () => {
     it('calculates markup amount correctly with 10% markup', () => {
       const { getByText } = render(<PricingSummary {...props} />);
       // 1000 * 10% = 100
-      expect(getByText('$100.00')).toBeTruthy();
+      expect(getByText('£100.00')).toBeTruthy();
     });
 
     it('displays markup percentage in label', () => {
@@ -157,44 +156,44 @@ describe('PricingSummary Component', () => {
     it('calculates after markup value correctly', () => {
       const { getByText } = render(<PricingSummary {...props} />);
       // 1000 + 100 = 1100
-      expect(getByText('$1100.00')).toBeTruthy();
+      expect(getByText('£1,100.00')).toBeTruthy();
     });
 
     it('handles zero markup percentage', () => {
       const propsNoMarkup = createProps({ markupPercentage: '0' });
       const { getByText } = render(<PricingSummary {...propsNoMarkup} />);
       expect(getByText('Markup (0%)')).toBeTruthy();
-      expect(getByText('$0.00')).toBeTruthy();
+      expect(getByText('£0.00')).toBeTruthy();
     });
 
     it('handles 25% markup correctly', () => {
       const props25 = createProps({
         subtotal: 1000,
-        markupPercentage: '25'
+        markupPercentage: '25',
       });
       const { getByText } = render(<PricingSummary {...props25} />);
       // 1000 * 25% = 250
-      expect(getByText('$250.00')).toBeTruthy();
+      expect(getByText('£250.00')).toBeTruthy();
       // 1000 + 250 = 1250
-      expect(getByText('$1250.00')).toBeTruthy();
+      expect(getByText('£1,250.00')).toBeTruthy();
     });
 
     it('handles 50% markup correctly', () => {
       const props50 = createProps({
         subtotal: 1000,
-        markupPercentage: '50'
+        markupPercentage: '50',
       });
       const { getByText } = render(<PricingSummary {...props50} />);
       // 1000 * 50% = 500
-      expect(getByText('$500.00')).toBeTruthy();
+      expect(getByText('£500.00')).toBeTruthy();
       // 1000 + 500 = 1500
-      expect(getByText('$1500.00')).toBeTruthy();
+      expect(getByText('£1,500.00')).toBeTruthy();
     });
 
     it('handles 100% markup correctly', () => {
       const props100 = createProps({
         subtotal: 1000,
-        markupPercentage: '100'
+        markupPercentage: '100',
       });
       const { getByText } = render(<PricingSummary {...props100} />);
       // 1000 * 100% = 1000
@@ -204,32 +203,32 @@ describe('PricingSummary Component', () => {
     it('handles fractional markup percentage', () => {
       const propsFractional = createProps({
         subtotal: 1000,
-        markupPercentage: '12.5'
+        markupPercentage: '12.5',
       });
       const { getByText } = render(<PricingSummary {...propsFractional} />);
       expect(getByText('Markup (12.5%)')).toBeTruthy();
       // 1000 * 12.5% = 125
-      expect(getByText('$125.00')).toBeTruthy();
+      expect(getByText('£125.00')).toBeTruthy();
     });
 
     it('handles very small markup percentage', () => {
       const propsSmall = createProps({
         subtotal: 10000,
-        markupPercentage: '0.5'
+        markupPercentage: '0.5',
       });
       const { getByText } = render(<PricingSummary {...propsSmall} />);
       // 10000 * 0.5% = 50
-      expect(getByText('$50.00')).toBeTruthy();
+      expect(getByText('£50.00')).toBeTruthy();
     });
 
     it('handles markup with decimal subtotal', () => {
       const propsDecimal = createProps({
         subtotal: 123.45,
-        markupPercentage: '10'
+        markupPercentage: '10',
       });
       const { getByText } = render(<PricingSummary {...propsDecimal} />);
       // 123.45 * 10% = 12.345 = 12.35 (rounded)
-      expect(getByText('$12.35')).toBeTruthy();
+      expect(getByText('£12.35')).toBeTruthy();
     });
   });
 
@@ -245,7 +244,7 @@ describe('PricingSummary Component', () => {
       });
       const { getByText } = render(<PricingSummary {...propsWithDiscount} />);
       expect(getByText('Discount (5%)')).toBeTruthy();
-      expect(getByText('-$50.00')).toBeTruthy();
+      expect(getByText('-£50.00')).toBeTruthy();
     });
 
     it('hides discount when percentage is zero', () => {
@@ -274,16 +273,16 @@ describe('PricingSummary Component', () => {
         discountAmount: 100,
       });
       const { getByText } = render(<PricingSummary {...propsWithDiscount} />);
-      expect(getByText('-$100.00')).toBeTruthy();
+      expect(getByText('-£100.00')).toBeTruthy();
     });
 
     it('formats small discount correctly', () => {
       const propsSmall = createProps({
         discountPercentage: '1',
-        discountAmount: 0.50,
+        discountAmount: 0.5,
       });
       const { getByText } = render(<PricingSummary {...propsSmall} />);
-      expect(getByText('-$0.50')).toBeTruthy();
+      expect(getByText('-£0.50')).toBeTruthy();
     });
 
     it('formats large discount correctly', () => {
@@ -292,7 +291,7 @@ describe('PricingSummary Component', () => {
         discountAmount: 5000.99,
       });
       const { getByText } = render(<PricingSummary {...propsLarge} />);
-      expect(getByText('-$5000.99')).toBeTruthy();
+      expect(getByText('-£5,000.99')).toBeTruthy();
     });
 
     it('displays discount percentage with decimal', () => {
@@ -312,12 +311,12 @@ describe('PricingSummary Component', () => {
   describe('Tax Display', () => {
     it('displays tax amount with 2 decimal places', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText('$110.00')).toBeTruthy();
+      expect(getByText('£110.00')).toBeTruthy();
     });
 
     it('displays tax rate in label', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText('Tax (10%)')).toBeTruthy();
+      expect(getByText('VAT (10%)')).toBeTruthy();
     });
 
     it('handles zero tax rate', () => {
@@ -326,8 +325,8 @@ describe('PricingSummary Component', () => {
         taxAmount: 0,
       });
       const { getByText } = render(<PricingSummary {...propsNoTax} />);
-      expect(getByText('Tax (0%)')).toBeTruthy();
-      expect(getByText('$0.00')).toBeTruthy();
+      expect(getByText('VAT (0%)')).toBeTruthy();
+      expect(getByText('£0.00')).toBeTruthy();
     });
 
     it('handles 5% tax rate', () => {
@@ -336,8 +335,8 @@ describe('PricingSummary Component', () => {
         taxAmount: 55,
       });
       const { getByText } = render(<PricingSummary {...props5} />);
-      expect(getByText('Tax (5%)')).toBeTruthy();
-      expect(getByText('$55.00')).toBeTruthy();
+      expect(getByText('VAT (5%)')).toBeTruthy();
+      expect(getByText('£55.00')).toBeTruthy();
     });
 
     it('handles 13% tax rate (GST/HST)', () => {
@@ -346,8 +345,8 @@ describe('PricingSummary Component', () => {
         taxAmount: 143,
       });
       const { getByText } = render(<PricingSummary {...props13} />);
-      expect(getByText('Tax (13%)')).toBeTruthy();
-      expect(getByText('$143.00')).toBeTruthy();
+      expect(getByText('VAT (13%)')).toBeTruthy();
+      expect(getByText('£143.00')).toBeTruthy();
     });
 
     it('handles fractional tax rate', () => {
@@ -356,8 +355,8 @@ describe('PricingSummary Component', () => {
         taxAmount: 97.63,
       });
       const { getByText } = render(<PricingSummary {...propsFractional} />);
-      expect(getByText('Tax (8.875%)')).toBeTruthy();
-      expect(getByText('$97.63')).toBeTruthy();
+      expect(getByText('VAT (8.875%)')).toBeTruthy();
+      expect(getByText('£97.63')).toBeTruthy();
     });
 
     it('formats small tax amount correctly', () => {
@@ -366,7 +365,7 @@ describe('PricingSummary Component', () => {
         taxAmount: 0.11,
       });
       const { getByText } = render(<PricingSummary {...propsSmall} />);
-      expect(getByText('$0.11')).toBeTruthy();
+      expect(getByText('£0.11')).toBeTruthy();
     });
 
     it('formats large tax amount correctly', () => {
@@ -375,7 +374,7 @@ describe('PricingSummary Component', () => {
         taxAmount: 9999.99,
       });
       const { getByText } = render(<PricingSummary {...propsLarge} />);
-      expect(getByText('$9999.99')).toBeTruthy();
+      expect(getByText('£9,999.99')).toBeTruthy();
     });
   });
 
@@ -386,7 +385,7 @@ describe('PricingSummary Component', () => {
   describe('Total Amount Display', () => {
     it('displays total amount with 2 decimal places', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText('$1210.00')).toBeTruthy();
+      expect(getByText('£1,210.00')).toBeTruthy();
     });
 
     it('displays correct total with zero values', () => {
@@ -400,7 +399,7 @@ describe('PricingSummary Component', () => {
         totalAmount: 0,
       });
       const { getByTestId } = render(<PricingSummary {...propsZero} />);
-      expect(getByTestId('total-value')).toHaveTextContent('$0.00');
+      expect(getByTestId('total-value')).toHaveTextContent('£0.00');
     });
 
     it('displays correct total with discount applied', () => {
@@ -414,33 +413,33 @@ describe('PricingSummary Component', () => {
         totalAmount: 1089,
       });
       const { getByText } = render(<PricingSummary {...propsWithDiscount} />);
-      expect(getByText('$1089.00')).toBeTruthy();
+      expect(getByText('£1,089.00')).toBeTruthy();
     });
 
     it('formats very large total correctly', () => {
       const propsLarge = createProps({
         subtotal: 999999,
-        totalAmount: 1099998.90,
+        totalAmount: 1099998.9,
       });
       const { getByTestId } = render(<PricingSummary {...propsLarge} />);
-      expect(getByTestId('total-value')).toHaveTextContent('$1099998.90');
+      expect(getByTestId('total-value')).toHaveTextContent('£1,099,998.90');
     });
 
     it('formats very small total correctly', () => {
       const propsSmall = createProps({
-        subtotal: 0.10,
+        subtotal: 0.1,
         totalAmount: 0.12,
       });
       const { getByText } = render(<PricingSummary {...propsSmall} />);
-      expect(getByText('$0.12')).toBeTruthy();
+      expect(getByText('£0.12')).toBeTruthy();
     });
 
     it('formats total with single decimal correctly', () => {
       const propsSingle = createProps({
-        totalAmount: 1234.50,
+        totalAmount: 1234.5,
       });
       const { getByText } = render(<PricingSummary {...propsSingle} />);
-      expect(getByText('$1234.50')).toBeTruthy();
+      expect(getByText('£1,234.50')).toBeTruthy();
     });
   });
 
@@ -472,9 +471,10 @@ describe('PricingSummary Component', () => {
         discountAmount: 50,
       });
       const { getByText } = render(<PricingSummary {...propsWithDiscount} />);
-      const discountValue = getByText('-$50.00');
+      const discountValue = getByText('-£50.00');
+      // Mint Editorial: discount rows render in the red accent (#EF4444).
       expect(discountValue.props.style).toContainEqual(
-        expect.objectContaining({ color: theme.colors.error })
+        expect.objectContaining({ color: '#EF4444' })
       );
     });
 
@@ -484,8 +484,10 @@ describe('PricingSummary Component', () => {
       const styles = Array.isArray(totalValue.props.style)
         ? totalValue.props.style
         : [totalValue.props.style];
+      // Mint Editorial: the total sits on the dark "ink" card and is rendered
+      // in the on-brand colour (white, me.onBrand = #FFFFFF).
       expect(styles).toContainEqual(
-        expect.objectContaining({ color: theme.colors.primary })
+        expect.objectContaining({ color: '#FFFFFF' })
       );
     });
   });
@@ -498,13 +500,13 @@ describe('PricingSummary Component', () => {
     it('handles negative subtotal gracefully', () => {
       const propsNegative = createProps({ subtotal: -100 });
       const { getByText } = render(<PricingSummary {...propsNegative} />);
-      expect(getByText('$-100.00')).toBeTruthy();
+      expect(getByText('-£100.00')).toBeTruthy();
     });
 
     it('handles negative total gracefully', () => {
       const propsNegative = createProps({ totalAmount: -50 });
       const { getByText } = render(<PricingSummary {...propsNegative} />);
-      expect(getByText('$-50.00')).toBeTruthy();
+      expect(getByText('-£50.00')).toBeTruthy();
     });
 
     it('handles very large markup percentage', () => {
@@ -525,7 +527,7 @@ describe('PricingSummary Component', () => {
     it('handles very large tax rate', () => {
       const propsLarge = createProps({ taxRate: '50' });
       const { getByText } = render(<PricingSummary {...propsLarge} />);
-      expect(getByText('Tax (50%)')).toBeTruthy();
+      expect(getByText('VAT (50%)')).toBeTruthy();
     });
 
     it('handles zero string markup percentage', () => {
@@ -541,8 +543,8 @@ describe('PricingSummary Component', () => {
       });
       const { getByTestId } = render(<PricingSummary {...propsDecimal} />);
       // Should round to 2 decimals
-      expect(getByTestId('subtotal-value')).toHaveTextContent('$123.46');
-      expect(getByTestId('total-value')).toHaveTextContent('$135.80');
+      expect(getByTestId('subtotal-value')).toHaveTextContent('£123.46');
+      expect(getByTestId('total-value')).toHaveTextContent('£135.80');
     });
 
     it('handles rounding up correctly', () => {
@@ -550,7 +552,7 @@ describe('PricingSummary Component', () => {
         subtotal: 100.995,
       });
       const { getByText } = render(<PricingSummary {...propsRoundUp} />);
-      expect(getByText('$101.00')).toBeTruthy();
+      expect(getByText('£101.00')).toBeTruthy();
     });
 
     it('handles rounding down correctly', () => {
@@ -558,7 +560,7 @@ describe('PricingSummary Component', () => {
         subtotal: 100.994,
       });
       const { getByText } = render(<PricingSummary {...propsRoundDown} />);
-      expect(getByText('$100.99')).toBeTruthy();
+      expect(getByText('£100.99')).toBeTruthy();
     });
   });
 
@@ -573,16 +575,16 @@ describe('PricingSummary Component', () => {
         markupPercentage: '15',
         discountAmount: 0,
         discountPercentage: '0',
-        taxAmount: 287.50,
+        taxAmount: 287.5,
         taxRate: '10',
-        totalAmount: 3162.50,
+        totalAmount: 3162.5,
       });
       const { getByText } = render(<PricingSummary {...scenario1} />);
-      expect(getByText('$2500.00')).toBeTruthy(); // Subtotal
-      expect(getByText('$375.00')).toBeTruthy(); // Markup (2500 * 15%)
-      expect(getByText('$2875.00')).toBeTruthy(); // After markup
-      expect(getByText('$287.50')).toBeTruthy(); // Tax
-      expect(getByText('$3162.50')).toBeTruthy(); // Total
+      expect(getByText('£2,500.00')).toBeTruthy(); // Subtotal
+      expect(getByText('£375.00')).toBeTruthy(); // Markup (2500 * 15%)
+      expect(getByText('£2,875.00')).toBeTruthy(); // After markup
+      expect(getByText('£287.50')).toBeTruthy(); // Tax
+      expect(getByText('£3,162.50')).toBeTruthy(); // Total
     });
 
     it('handles scenario: markup + discount + tax', () => {
@@ -596,13 +598,13 @@ describe('PricingSummary Component', () => {
         totalAmount: 5940,
       });
       const { getByText } = render(<PricingSummary {...scenario2} />);
-      expect(getByText('$5000.00')).toBeTruthy(); // Subtotal
-      expect(getByText('$1000.00')).toBeTruthy(); // Markup (5000 * 20%)
-      expect(getByText('$6000.00')).toBeTruthy(); // After markup
+      expect(getByText('£5,000.00')).toBeTruthy(); // Subtotal
+      expect(getByText('£1,000.00')).toBeTruthy(); // Markup (5000 * 20%)
+      expect(getByText('£6,000.00')).toBeTruthy(); // After markup
       expect(getByText('Discount (10%)')).toBeTruthy();
-      expect(getByText('-$600.00')).toBeTruthy(); // Discount
-      expect(getByText('$540.00')).toBeTruthy(); // Tax
-      expect(getByText('$5940.00')).toBeTruthy(); // Total
+      expect(getByText('-£600.00')).toBeTruthy(); // Discount
+      expect(getByText('£540.00')).toBeTruthy(); // Tax
+      expect(getByText('£5,940.00')).toBeTruthy(); // Total
     });
 
     it('handles scenario: no markup, with discount and tax', () => {
@@ -616,11 +618,11 @@ describe('PricingSummary Component', () => {
         totalAmount: 1485,
       });
       const { getByTestId } = render(<PricingSummary {...scenario3} />);
-      expect(getByTestId('subtotal-value')).toHaveTextContent('$1500.00');
-      expect(getByTestId('markup-value')).toHaveTextContent('$0.00'); // No markup
-      expect(getByTestId('discount-value')).toHaveTextContent('-$150.00');
-      expect(getByTestId('tax-value')).toHaveTextContent('$135.00');
-      expect(getByTestId('total-value')).toHaveTextContent('$1485.00');
+      expect(getByTestId('subtotal-value')).toHaveTextContent('£1,500.00');
+      expect(getByTestId('markup-value')).toHaveTextContent('£0.00'); // No markup
+      expect(getByTestId('discount-value')).toHaveTextContent('-£150.00');
+      expect(getByTestId('tax-value')).toHaveTextContent('£135.00');
+      expect(getByTestId('total-value')).toHaveTextContent('£1,485.00');
     });
 
     it('handles scenario: high markup, high discount, high tax', () => {
@@ -634,12 +636,12 @@ describe('PricingSummary Component', () => {
         totalAmount: 14850,
       });
       const { getByText } = render(<PricingSummary {...scenario4} />);
-      expect(getByText('$10000.00')).toBeTruthy();
-      expect(getByText('$5000.00')).toBeTruthy(); // Markup
-      expect(getByText('$15000.00')).toBeTruthy(); // After markup
-      expect(getByText('-$1500.00')).toBeTruthy();
-      expect(getByText('$1350.00')).toBeTruthy();
-      expect(getByText('$14850.00')).toBeTruthy();
+      expect(getByText('£10,000.00')).toBeTruthy();
+      expect(getByText('£5,000.00')).toBeTruthy(); // Markup
+      expect(getByText('£15,000.00')).toBeTruthy(); // After markup
+      expect(getByText('-£1,500.00')).toBeTruthy();
+      expect(getByText('£1,350.00')).toBeTruthy();
+      expect(getByText('£14,850.00')).toBeTruthy();
     });
 
     it('handles scenario: fractional percentages', () => {
@@ -655,7 +657,7 @@ describe('PricingSummary Component', () => {
       const { getByText } = render(<PricingSummary {...scenario5} />);
       expect(getByText('Markup (12.5%)')).toBeTruthy();
       expect(getByText('Discount (5.5%)')).toBeTruthy();
-      expect(getByText('Tax (9.25%)')).toBeTruthy();
+      expect(getByText('VAT (9.25%)')).toBeTruthy();
     });
 
     it('handles scenario: minimal values', () => {
@@ -669,7 +671,7 @@ describe('PricingSummary Component', () => {
         totalAmount: 0.02,
       });
       const { getByTestId } = render(<PricingSummary {...scenario6} />);
-      expect(getByTestId('subtotal-value')).toHaveTextContent('$0.01');
+      expect(getByTestId('subtotal-value')).toHaveTextContent('£0.01');
     });
   });
 
@@ -695,19 +697,23 @@ describe('PricingSummary Component', () => {
 
     it('always renders tax row', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText(/Tax/)).toBeTruthy();
+      // Match the VAT line-item label specifically; "Incl. VAT" subtext also
+      // contains "VAT" so a bare /VAT/ matches two nodes.
+      expect(getByText(/VAT \(/)).toBeTruthy();
     });
 
     it('always renders total row', () => {
       const { getByText } = render(<PricingSummary {...props} />);
-      expect(getByText('Total')).toBeTruthy();
+      expect(getByText('Quote Total')).toBeTruthy();
     });
 
     it('conditionally renders discount row based on percentage > 0', () => {
       const { queryByText } = render(<PricingSummary {...props} />);
       expect(queryByText(/Discount/)).toBeNull();
 
-      const { getByText } = render(<PricingSummary {...createProps({ discountPercentage: '5' })} />);
+      const { getByText } = render(
+        <PricingSummary {...createProps({ discountPercentage: '5' })} />
+      );
       expect(getByText(/Discount/)).toBeTruthy();
     });
 
@@ -737,11 +743,11 @@ describe('PricingSummary Component', () => {
   describe('Prop Updates', () => {
     it('updates subtotal when prop changes', () => {
       const { getByText, rerender } = render(<PricingSummary {...props} />);
-      expect(getByText('$1000.00')).toBeTruthy();
+      expect(getByText('£1,000.00')).toBeTruthy();
 
       const updatedProps = createProps({ subtotal: 2000 });
       rerender(<PricingSummary {...updatedProps} />);
-      expect(getByText('$2000.00')).toBeTruthy();
+      expect(getByText('£2,000.00')).toBeTruthy();
     });
 
     it('updates markup when percentage changes', () => {
@@ -755,24 +761,26 @@ describe('PricingSummary Component', () => {
 
     it('updates tax when rate changes', () => {
       const { getByText, rerender } = render(<PricingSummary {...props} />);
-      expect(getByText('Tax (10%)')).toBeTruthy();
+      expect(getByText('VAT (10%)')).toBeTruthy();
 
       const updatedProps = createProps({ taxRate: '15' });
       rerender(<PricingSummary {...updatedProps} />);
-      expect(getByText('Tax (15%)')).toBeTruthy();
+      expect(getByText('VAT (15%)')).toBeTruthy();
     });
 
     it('updates total when prop changes', () => {
       const { getByText, rerender } = render(<PricingSummary {...props} />);
-      expect(getByText('$1210.00')).toBeTruthy();
+      expect(getByText('£1,210.00')).toBeTruthy();
 
       const updatedProps = createProps({ totalAmount: 5000 });
       rerender(<PricingSummary {...updatedProps} />);
-      expect(getByText('$5000.00')).toBeTruthy();
+      expect(getByText('£5,000.00')).toBeTruthy();
     });
 
     it('shows discount when percentage changes from 0 to positive', () => {
-      const { queryByText, getByText, rerender } = render(<PricingSummary {...props} />);
+      const { queryByText, getByText, rerender } = render(
+        <PricingSummary {...props} />
+      );
       expect(queryByText(/Discount/)).toBeNull();
 
       const updatedProps = createProps({
@@ -788,7 +796,9 @@ describe('PricingSummary Component', () => {
         discountPercentage: '10',
         discountAmount: 100,
       });
-      const { getByText, queryByText, rerender } = render(<PricingSummary {...initialProps} />);
+      const { getByText, queryByText, rerender } = render(
+        <PricingSummary {...initialProps} />
+      );
       expect(getByText('Discount (10%)')).toBeTruthy();
 
       const updatedProps = createProps({
@@ -808,13 +818,13 @@ describe('PricingSummary Component', () => {
     it('calculates subtotalWithMarkup correctly', () => {
       const { getByText } = render(<PricingSummary {...props} />);
       // subtotalWithMarkup = 1000 * (1 + 10/100) = 1100
-      expect(getByText('$1100.00')).toBeTruthy();
+      expect(getByText('£1,100.00')).toBeTruthy();
     });
 
     it('calculates markup amount as difference', () => {
       const { getByText } = render(<PricingSummary {...props} />);
       // markupAmount = subtotalWithMarkup - subtotal = 1100 - 1000 = 100
-      expect(getByText('$100.00')).toBeTruthy();
+      expect(getByText('£100.00')).toBeTruthy();
     });
 
     it('handles parseFloat for markup percentage correctly', () => {
@@ -829,7 +839,7 @@ describe('PricingSummary Component', () => {
         markupPercentage: '10',
       });
       const { getByTestId } = render(<PricingSummary {...propsZeroSub} />);
-      expect(getByTestId('markup-value')).toHaveTextContent('$0.00'); // Markup amount should be 0
+      expect(getByTestId('markup-value')).toHaveTextContent('£0.00'); // Markup amount should be 0
     });
   });
 
@@ -838,10 +848,10 @@ describe('PricingSummary Component', () => {
   // ============================================================================
 
   describe('Formatting Consistency', () => {
-    it('formats all currency values with dollar sign', () => {
+    it('formats all currency values with the pound sign', () => {
       const { getAllByText } = render(<PricingSummary {...props} />);
-      const dollarValues = getAllByText(/^\$/);
-      expect(dollarValues.length).toBeGreaterThan(0);
+      const poundValues = getAllByText(/^£/);
+      expect(poundValues.length).toBeGreaterThan(0);
     });
 
     it('formats all currency values with 2 decimal places', () => {
@@ -853,20 +863,20 @@ describe('PricingSummary Component', () => {
     it('formats all percentage labels with % symbol', () => {
       const { getByText } = render(<PricingSummary {...props} />);
       expect(getByText(/Markup \(\d+%\)/)).toBeTruthy();
-      expect(getByText(/Tax \(\d+%\)/)).toBeTruthy();
+      expect(getByText(/VAT \(\d+%\)/)).toBeTruthy();
     });
 
     it('maintains consistent number formatting across all values', () => {
       const testProps = createProps({
         subtotal: 1234.5,
         markupPercentage: '10',
-        taxAmount: 135.80,
+        taxAmount: 135.8,
         totalAmount: 1505.75,
       });
       const { getByText } = render(<PricingSummary {...testProps} />);
-      expect(getByText('$1234.50')).toBeTruthy();
-      expect(getByText('$135.80')).toBeTruthy();
-      expect(getByText('$1505.75')).toBeTruthy();
+      expect(getByText('£1,234.50')).toBeTruthy();
+      expect(getByText('£135.80')).toBeTruthy();
+      expect(getByText('£1,505.75')).toBeTruthy();
     });
   });
 
@@ -875,7 +885,7 @@ describe('PricingSummary Component', () => {
   // ============================================================================
 
   describe('Real-World Scenarios', () => {
-    it('handles typical contractor quote: $5000 base, 25% markup, 10% tax', () => {
+    it('handles typical contractor quote: £5,000.00 base, 25% markup, 10% tax', () => {
       const realWorld1 = createProps({
         subtotal: 5000,
         markupPercentage: '25',
@@ -886,11 +896,11 @@ describe('PricingSummary Component', () => {
         totalAmount: 6875,
       });
       const { getByText } = render(<PricingSummary {...realWorld1} />);
-      expect(getByText('$5000.00')).toBeTruthy();
-      expect(getByText('$1250.00')).toBeTruthy(); // Markup
-      expect(getByText('$6250.00')).toBeTruthy(); // After markup
-      expect(getByText('$625.00')).toBeTruthy();
-      expect(getByText('$6875.00')).toBeTruthy();
+      expect(getByText('£5,000.00')).toBeTruthy();
+      expect(getByText('£1,250.00')).toBeTruthy(); // Markup
+      expect(getByText('£6,250.00')).toBeTruthy(); // After markup
+      expect(getByText('£625.00')).toBeTruthy();
+      expect(getByText('£6,875.00')).toBeTruthy();
     });
 
     it('handles early payment discount scenario', () => {
@@ -905,10 +915,10 @@ describe('PricingSummary Component', () => {
       });
       const { getByText } = render(<PricingSummary {...realWorld2} />);
       expect(getByText('Discount (5%)')).toBeTruthy();
-      expect(getByText('-$180.00')).toBeTruthy();
+      expect(getByText('-£180.00')).toBeTruthy();
     });
 
-    it('handles large commercial project: $50000 base', () => {
+    it('handles large commercial project: £50,000.00 base', () => {
       const realWorld3 = createProps({
         subtotal: 50000,
         markupPercentage: '15',
@@ -919,28 +929,28 @@ describe('PricingSummary Component', () => {
         totalAmount: 63250,
       });
       const { getByText } = render(<PricingSummary {...realWorld3} />);
-      expect(getByText('$50000.00')).toBeTruthy();
-      expect(getByText('$7500.00')).toBeTruthy(); // Markup
-      expect(getByText('$57500.00')).toBeTruthy(); // After markup
-      expect(getByText('$63250.00')).toBeTruthy();
+      expect(getByText('£50,000.00')).toBeTruthy();
+      expect(getByText('£7,500.00')).toBeTruthy(); // Markup
+      expect(getByText('£57,500.00')).toBeTruthy(); // After markup
+      expect(getByText('£63,250.00')).toBeTruthy();
     });
 
-    it('handles small repair job: $150 base', () => {
+    it('handles small repair job: £150.00 base', () => {
       const realWorld4 = createProps({
         subtotal: 150,
         markupPercentage: '30',
         discountAmount: 0,
         discountPercentage: '0',
-        taxAmount: 19.50,
+        taxAmount: 19.5,
         taxRate: '10',
-        totalAmount: 214.50,
+        totalAmount: 214.5,
       });
       const { getByText } = render(<PricingSummary {...realWorld4} />);
-      expect(getByText('$150.00')).toBeTruthy();
-      expect(getByText('$45.00')).toBeTruthy(); // Markup
-      expect(getByText('$195.00')).toBeTruthy(); // After markup
-      expect(getByText('$19.50')).toBeTruthy();
-      expect(getByText('$214.50')).toBeTruthy();
+      expect(getByText('£150.00')).toBeTruthy();
+      expect(getByText('£45.00')).toBeTruthy(); // Markup
+      expect(getByText('£195.00')).toBeTruthy(); // After markup
+      expect(getByText('£19.50')).toBeTruthy();
+      expect(getByText('£214.50')).toBeTruthy();
     });
   });
 });

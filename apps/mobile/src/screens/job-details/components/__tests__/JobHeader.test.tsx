@@ -10,7 +10,8 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { JobHeader } from '../JobHeader';
 import type { Job } from '@mintenance/types';
-import { theme } from '../../../../theme';
+import { theme, getStatusBadge } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 
 describe('JobHeader Component', () => {
   // Test data factory
@@ -54,7 +55,8 @@ describe('JobHeader Component', () => {
     });
 
     it('renders very long title', () => {
-      const longTitle = 'Complete Home Renovation Including Kitchen, Bathroom, Living Room, and Bedroom Updates with High-End Materials';
+      const longTitle =
+        'Complete Home Renovation Including Kitchen, Bathroom, Living Room, and Bedroom Updates with High-End Materials';
       const job = createMockJob({ title: longTitle });
       const { getByText } = render(<JobHeader job={job} />);
 
@@ -128,7 +130,7 @@ describe('JobHeader Component', () => {
       const statusText = getByText('COMPLETED');
       expect(statusText.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ color: theme.colors.success })
+          expect.objectContaining({ color: getStatusBadge('completed').text }),
         ])
       );
     });
@@ -140,7 +142,9 @@ describe('JobHeader Component', () => {
       const statusText = getByText('IN PROGRESS');
       expect(statusText.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ color: theme.colors.warning })
+          expect.objectContaining({
+            color: getStatusBadge('in_progress').text,
+          }),
         ])
       );
     });
@@ -152,7 +156,7 @@ describe('JobHeader Component', () => {
       const statusText = getByText('PENDING');
       expect(statusText.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ color: theme.colors.info })
+          expect.objectContaining({ color: getStatusBadge('pending').text }),
         ])
       );
     });
@@ -164,7 +168,7 @@ describe('JobHeader Component', () => {
       const statusText = getByText('CANCELLED');
       expect(statusText.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ color: theme.colors.error })
+          expect.objectContaining({ color: getStatusBadge('cancelled').text }),
         ])
       );
     });
@@ -176,7 +180,7 @@ describe('JobHeader Component', () => {
       const statusText = getByText('UNKNOWN');
       expect(statusText.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ color: theme.colors.textSecondary })
+          expect.objectContaining({ color: getStatusBadge('unknown').text }),
         ])
       );
     });
@@ -226,7 +230,9 @@ describe('JobHeader Component', () => {
       const { getByText } = render(<JobHeader job={job} />);
 
       // Date format is locale-dependent, just check it renders
-      const dateText = getByText(/15\/01\/2024|1\/15\/2024|15\/1\/2024|2024-01-15/);
+      const dateText = getByText(
+        /15\/01\/2024|1\/15\/2024|15\/1\/2024|2024-01-15/
+      );
       expect(dateText).toBeTruthy();
     });
 
@@ -234,7 +240,9 @@ describe('JobHeader Component', () => {
       const job = createMockJob({ created_at: '2024-03-20T14:45:30.000Z' });
       const { getByText } = render(<JobHeader job={job} />);
 
-      const dateText = getByText(/20\/03\/2024|3\/20\/2024|20\/3\/2024|2024-03-20/);
+      const dateText = getByText(
+        /20\/03\/2024|3\/20\/2024|20\/3\/2024|2024-03-20/
+      );
       expect(dateText).toBeTruthy();
     });
 
@@ -250,7 +258,9 @@ describe('JobHeader Component', () => {
       const job = createMockJob({ created_at: '2024-01-01T00:00:00.000Z' });
       const { getByText } = render(<JobHeader job={job} />);
 
-      const dateText = getByText(/01\/01\/2024|1\/1\/2024|1\/01\/2024|2024-01-01/);
+      const dateText = getByText(
+        /01\/01\/2024|1\/1\/2024|1\/01\/2024|2024-01-01/
+      );
       expect(dateText).toBeTruthy();
     });
 
@@ -258,7 +268,9 @@ describe('JobHeader Component', () => {
       const job = createMockJob({ created_at: '2024-02-29T12:00:00.000Z' });
       const { getByText } = render(<JobHeader job={job} />);
 
-      const dateText = getByText(/29\/02\/2024|2\/29\/2024|29\/2\/2024|2024-02-29/);
+      const dateText = getByText(
+        /29\/02\/2024|2\/29\/2024|29\/2\/2024|2024-02-29/
+      );
       expect(dateText).toBeTruthy();
     });
 
@@ -273,7 +285,9 @@ describe('JobHeader Component', () => {
 
   describe('Description Rendering', () => {
     it('renders description when provided', () => {
-      const job = createMockJob({ description: 'Fix the leaking kitchen faucet ASAP' });
+      const job = createMockJob({
+        description: 'Fix the leaking kitchen faucet ASAP',
+      });
       const { getByText } = render(<JobHeader job={job} />);
 
       expect(getByText('Fix the leaking kitchen faucet ASAP')).toBeTruthy();
@@ -359,7 +373,9 @@ describe('JobHeader Component', () => {
 
       // Status and date should be present
       expect(getByText('POSTED')).toBeTruthy();
-      expect(getByText(/15\/01\/2024|1\/15\/2024|15\/1\/2024|2024-01-15/)).toBeTruthy();
+      expect(
+        getByText(/15\/01\/2024|1\/15\/2024|15\/1\/2024|2024-01-15/)
+      ).toBeTruthy();
     });
 
     it('renders status badge with correct styling', () => {
@@ -370,9 +386,9 @@ describe('JobHeader Component', () => {
       expect(statusText.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.semibold,
-          })
+            fontSize: 12,
+            fontWeight: '600',
+          }),
         ])
       );
     });
@@ -458,9 +474,9 @@ describe('JobHeader Component', () => {
       const titleText = getByText(job.title);
       expect(titleText.props.style).toEqual(
         expect.objectContaining({
-          fontSize: theme.typography.fontSize['2xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
+          fontSize: 22,
+          fontWeight: '700',
+          color: me.ink,
         })
       );
     });
@@ -472,9 +488,9 @@ describe('JobHeader Component', () => {
       const descText = getByText('Test description');
       expect(descText.props.style).toEqual(
         expect.objectContaining({
-          fontSize: theme.typography.fontSize.md,
-          color: theme.colors.textSecondary,
-          lineHeight: 20,
+          fontSize: 15,
+          color: me.ink2,
+          lineHeight: 22,
         })
       );
     });
@@ -486,7 +502,9 @@ describe('JobHeader Component', () => {
       // Should have title, status, and date texts
       expect(getByText('Fix Kitchen Faucet')).toBeTruthy();
       expect(getByText('POSTED')).toBeTruthy();
-      expect(getByText(/15\/01\/2024|1\/15\/2024|15\/1\/2024|2024-01-15/)).toBeTruthy();
+      expect(
+        getByText(/15\/01\/2024|1\/15\/2024|15\/1\/2024|2024-01-15/)
+      ).toBeTruthy();
     });
   });
 
@@ -536,7 +554,9 @@ describe('JobHeader Component', () => {
     });
 
     it('handles status with multiple underscores', () => {
-      const job = createMockJob({ status: 'pending_contractor_approval' as any });
+      const job = createMockJob({
+        status: 'pending_contractor_approval' as any,
+      });
       const { getByText } = render(<JobHeader job={job} />);
 
       // First underscore should be replaced, rest remain

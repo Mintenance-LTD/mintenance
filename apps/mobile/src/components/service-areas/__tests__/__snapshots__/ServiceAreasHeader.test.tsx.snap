@@ -6,7 +6,7 @@ exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
     {
       "alignItems": "center",
       "backgroundColor": "#FFFFFF",
-      "borderBottomColor": "#F0F0F0",
+      "borderBottomColor": "#EBEBEB",
       "borderBottomWidth": 1,
       "flexDirection": "row",
       "justifyContent": "space-between",
@@ -44,6 +44,7 @@ exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
   </Text>
   <TouchableOpacity
     accessibilityLabel="Add service area"
+    onPress={[MockFunction]}
     style={
       {
         "padding": 8,
