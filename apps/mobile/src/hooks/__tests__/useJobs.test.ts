@@ -1,784 +1,337 @@
-import { renderHook, act } from '@testing-library/react-native';
+import { renderHook } from '@testing-library/react-native';
+
 /**
- * Tests for useJobs Hooks - Job Management Service Integration
+ * Real-coverage tests for src/hooks/useJobs.ts.
  *
- * Note: These tests focus on the JobService integration and validation logic.
- * Full React hook testing would require compatible testing library versions with React 19.
+ * Strategy: useJobs.ts is a thin composition layer over useOfflineQuery /
+ * useOfflineMutation. We mock those two primitives so each call captures the
+ * EXACT options object that useJobs.ts builds (queryKey, queryFn, enabled,
+ * staleTime, mutationFn, getQueryKey, optimisticUpdate, etc). We then render
+ * each hook with renderHook and execute the captured callbacks, which is what
+ * actually drives the lines/branches inside useJobs.ts (query-key strings,
+ * the createJob validation/transform, optimistic builders, the enabled gates).
+ *
+ * Real dependencies used (NOT mocked): queryKeys factory and validateJobDraft
+ * from @mintenance/api-contracts — so key construction + validation branches
+ * are genuinely exercised.
+ *
+ * COVERAGE CEILING: only useJob, useJobBids, useMyBidForJob, useCreateJob, and
+ * useAcceptBid are exported from useJobs.ts. The other 9 hooks (useJobs,
+ * useAvailableJobs, useJobsByHomeowner, useJobsByStatus, useSearchJobs,
+ * useUpdateJobStatus, useStartJob, useCompleteJob, useSubmitBid) are declared
+ * `const` WITHOUT `export` and are not re-exported anywhere in the repo
+ * (verified by grep). They are module-private with zero callers, so their lines
+ * are physically unreachable from any test.
  */
 
+import {
+  useJob,
+  useJobBids,
+  useMyBidForJob,
+  useCreateJob,
+  useAcceptBid,
+} from '../useJobs';
 import { JobService } from '../../services/JobService';
-import type { Job } from '../../types';
+import { BidService } from '../../services/BidService';
 
-// Mock JobService with all methods
+// ---- Capture layer for the offline primitives -----------------------------
+const capturedQueries: any[] = [];
+const capturedMutations: any[] = [];
+
+jest.mock('../useOfflineQuery', () => ({
+  useOfflineQuery: jest.fn((options: any) => {
+    capturedQueries.push(options);
+    return { data: undefined, isLoading: true, __options: options } as any;
+  }),
+  useOfflineMutation: jest.fn((options: any) => {
+    capturedMutations.push(options);
+    return {
+      mutate: jest.fn(),
+      mutateAsync: jest.fn(),
+      __options: options,
+    } as any;
+  }),
+}));
+
+// ---- Service mocks ---------------------------------------------------------
 jest.mock('../../services/JobService', () => ({
   JobService: {
-    getJobs: jest.fn(),
-    getAvailableJobs: jest.fn(),
-    getJobsByHomeowner: jest.fn(),
-    getJobsByStatus: jest.fn(),
     getJobById: jest.fn(),
     getBidsByJob: jest.fn(),
-    searchJobs: jest.fn(),
     createJob: jest.fn(),
-    updateJobStatus: jest.fn(),
-    startJob: jest.fn(),
-    completeJob: jest.fn(),
-    submitBid: jest.fn(),
     acceptBid: jest.fn(),
   },
 }));
 
-describe('useJobs Hooks Integration', () => {
-  const mockJob: Job = {
-    id: 'job-123',
-    title: 'Plumbing Repair',
-    description: 'Fix leaky faucet in bathroom',
+jest.mock('../../services/BidService', () => ({
+  BidService: {
+    getMyBidForJob: jest.fn(),
+  },
+}));
+
+const lastQuery = () => capturedQueries[capturedQueries.length - 1];
+const lastMutation = () => capturedMutations[capturedMutations.length - 1];
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  capturedQueries.length = 0;
+  capturedMutations.length = 0;
+});
+
+// =============================================================================
+// QUERY HOOKS (exported)
+// =============================================================================
+describe('useJob (detail)', () => {
+  it('builds detail key with retry/gcTime/staleTime, enabled when id present', async () => {
+    (JobService.getJobById as jest.Mock).mockResolvedValue({ id: 'job-1' });
+
+    renderHook(() => useJob('job-1'));
+    const opts = lastQuery();
+
+    expect(opts.queryKey).toEqual(['jobs', 'detail', 'job-1']);
+    expect(opts.enabled).toBe(true);
+    expect(opts.staleTime).toBe(30 * 1000);
+    expect(opts.retry).toBe(3);
+    expect(opts.gcTime).toBe(15 * 60 * 1000);
+
+    const result = await opts.queryFn();
+    expect(JobService.getJobById).toHaveBeenCalledWith('job-1');
+    expect(result).toEqual({ id: 'job-1' });
+  });
+
+  it('placeholderData returns the previous value (and passes through null/undefined)', () => {
+    renderHook(() => useJob('job-1'));
+    const opts = lastQuery();
+    const prev = { id: 'prev' } as any;
+    expect(opts.placeholderData(prev)).toBe(prev);
+    expect(opts.placeholderData(undefined)).toBeUndefined();
+    expect(opts.placeholderData(null)).toBeNull();
+  });
+
+  it('enabled false when jobId is empty', () => {
+    renderHook(() => useJob(''));
+    expect(lastQuery().enabled).toBe(false);
+  });
+});
+
+describe('useJobBids', () => {
+  it('default enabled true (id present), bids key, calls getBidsByJob', async () => {
+    (JobService.getBidsByJob as jest.Mock).mockResolvedValue([{ id: 'b1' }]);
+
+    renderHook(() => useJobBids('job-9'));
+    const opts = lastQuery();
+
+    expect(opts.queryKey).toEqual(['jobs', 'bids', 'job-9']);
+    expect(opts.enabled).toBe(true);
+    expect(opts.staleTime).toBe(30 * 1000);
+
+    const result = await opts.queryFn();
+    expect(JobService.getBidsByJob).toHaveBeenCalledWith('job-9');
+    expect(result).toEqual([{ id: 'b1' }]);
+  });
+
+  it('respects caller enabled=false even with a valid id', () => {
+    renderHook(() => useJobBids('job-9', { enabled: false }));
+    expect(lastQuery().enabled).toBe(false);
+  });
+
+  it('enabled false when jobId empty regardless of enabled flag', () => {
+    renderHook(() => useJobBids('', { enabled: true }));
+    expect(lastQuery().enabled).toBe(false);
+  });
+
+  it('defaults the enabled option to true when no options object is passed', () => {
+    renderHook(() => useJobBids('job-2'));
+    expect(lastQuery().enabled).toBe(true);
+  });
+});
+
+describe('useMyBidForJob', () => {
+  it('uses the contractor my-bid key, enabled true, calls BidService', async () => {
+    (BidService.getMyBidForJob as jest.Mock).mockResolvedValue({ id: 'mb' });
+
+    renderHook(() => useMyBidForJob('job-5'));
+    const opts = lastQuery();
+
+    expect(opts.queryKey).toEqual(['contractor', 'my-bid', 'job-5']);
+    expect(opts.enabled).toBe(true);
+    expect(opts.staleTime).toBe(30 * 1000);
+
+    const result = await opts.queryFn();
+    expect(BidService.getMyBidForJob).toHaveBeenCalledWith('job-5');
+    expect(result).toEqual({ id: 'mb' });
+  });
+
+  it('enabled false when disabled by caller', () => {
+    renderHook(() => useMyBidForJob('job-5', { enabled: false }));
+    expect(lastQuery().enabled).toBe(false);
+  });
+
+  it('enabled false when jobId missing', () => {
+    renderHook(() => useMyBidForJob(''));
+    expect(lastQuery().enabled).toBe(false);
+  });
+});
+
+// =============================================================================
+// MUTATION HOOKS (exported)
+// =============================================================================
+describe('useCreateJob', () => {
+  const valid = {
+    title: 'Fix bathroom plumbing issue',
+    description:
+      'Need a plumber to fix the leaky faucet in the main bathroom please',
     location: 'New York, NY',
     budget: 1000,
-    status: 'posted',
-    homeowner_id: 'homeowner-123',
+    homeownerId: 'homeowner-123',
     category: 'plumbing',
-    subcategory: 'leak-repair',
-    priority: 'high',
-    photos: [],
-    created_at: '2025-01-15T10:00:00Z',
-    updated_at: '2025-01-15T10:00:00Z',
+    urgency: 'high' as const,
+    photos: ['https://example.com/p1.jpg'],
   };
 
-  const mockBid = {
-    id: 'bid-123',
-    jobId: 'job-123',
-    contractorId: 'contractor-123',
-    amount: 900,
-    description: 'I can fix this',
-    status: 'pending',
-    createdAt: '2025-01-15T10:00:00Z',
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
+  it('configures entity/actionType and a homeowner getQueryKey', () => {
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
+    expect(opts.entity).toBe('job');
+    expect(opts.actionType).toBe('CREATE');
+    expect(opts.getQueryKey({ homeownerId: 'ho-9' } as any)).toEqual([
+      'jobs',
+      'list',
+      'homeowner:ho-9',
+    ]);
   });
 
-  describe('Query Hooks - Job Listing', () => {
-    describe('useJobs', () => {
-      it('should call JobService.getJobs with correct parameters', async () => {
-        (JobService.getJobs as jest.Mock).mockResolvedValue([mockJob]);
+  it('mutationFn validates, trims, and forwards to JobService.createJob', async () => {
+    (JobService.createJob as jest.Mock).mockResolvedValue({ id: 'new-job' });
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
 
-        const result = await JobService.getJobs(undefined, 20);
-
-        expect(JobService.getJobs).toHaveBeenCalledWith(undefined, 20);
-        expect(result).toEqual([mockJob]);
-      });
-
-      it('should support custom limit', async () => {
-        (JobService.getJobs as jest.Mock).mockResolvedValue([mockJob]);
-
-        await JobService.getJobs(undefined, 50);
-
-        expect(JobService.getJobs).toHaveBeenCalledWith(undefined, 50);
-      });
-
-      it('should handle empty results', async () => {
-        (JobService.getJobs as jest.Mock).mockResolvedValue([]);
-
-        const result = await JobService.getJobs(undefined, 20);
-
-        expect(result).toEqual([]);
-      });
+    const result = await opts.mutationFn({
+      ...valid,
+      title: '  Fix bathroom plumbing issue  ',
+      description:
+        '  Need a plumber to fix the leaky faucet in the main bathroom please  ',
+      location: '  New York, NY  ',
     });
 
-    describe('useAvailableJobs', () => {
-      it('should call JobService.getAvailableJobs', async () => {
-        (JobService.getAvailableJobs as jest.Mock).mockResolvedValue([mockJob]);
-
-        const result = await JobService.getAvailableJobs();
-
-        expect(JobService.getAvailableJobs).toHaveBeenCalled();
-        expect(result).toEqual([mockJob]);
-      });
-
-      it('should return only posted jobs', async () => {
-        const postedJobs = [
-          { ...mockJob, id: 'job-1', status: 'posted' },
-          { ...mockJob, id: 'job-2', status: 'posted' },
-        ];
-        (JobService.getAvailableJobs as jest.Mock).mockResolvedValue(
-          postedJobs
-        );
-
-        const result = await JobService.getAvailableJobs();
-
-        expect(result).toHaveLength(2);
-        expect(result.every((j: unknown) => j.status === 'posted')).toBe(true);
-      });
-    });
-
-    describe('useJobsByHomeowner', () => {
-      it('should call JobService.getJobsByHomeowner with homeownerId', async () => {
-        (JobService.getJobsByHomeowner as jest.Mock).mockResolvedValue([
-          mockJob,
-        ]);
-
-        const result = await JobService.getJobsByHomeowner('homeowner-123');
-
-        expect(JobService.getJobsByHomeowner).toHaveBeenCalledWith(
-          'homeowner-123'
-        );
-        expect(result).toEqual([mockJob]);
-      });
-
-      it('should handle different homeowner IDs', async () => {
-        (JobService.getJobsByHomeowner as jest.Mock).mockResolvedValue([]);
-
-        await JobService.getJobsByHomeowner('homeowner-456');
-
-        expect(JobService.getJobsByHomeowner).toHaveBeenCalledWith(
-          'homeowner-456'
-        );
-      });
-    });
-
-    describe('useJobsByStatus', () => {
-      it('should call JobService.getJobsByStatus with status', async () => {
-        (JobService.getJobsByStatus as jest.Mock).mockResolvedValue([mockJob]);
-
-        const result = await JobService.getJobsByStatus('posted');
-
-        expect(JobService.getJobsByStatus).toHaveBeenCalledWith('posted');
-        expect(result).toEqual([mockJob]);
-      });
-
-      it('should support optional userId parameter', async () => {
-        (JobService.getJobsByStatus as jest.Mock).mockResolvedValue([mockJob]);
-
-        await JobService.getJobsByStatus('in_progress', 'user-123');
-
-        expect(JobService.getJobsByStatus).toHaveBeenCalledWith(
-          'in_progress',
-          'user-123'
-        );
-      });
-
-      it('should handle all job statuses', async () => {
-        const statuses: Job['status'][] = [
-          'posted',
-          'assigned',
-          'in_progress',
-          'completed',
-        ];
-
-        for (const status of statuses) {
-          (JobService.getJobsByStatus as jest.Mock).mockResolvedValue([
-            { ...mockJob, status },
-          ]);
-
-          const result = await JobService.getJobsByStatus(status);
-
-          expect(result[0].status).toBe(status);
-        }
-      });
-    });
-  });
-
-  describe('Query Hooks - Individual Jobs', () => {
-    describe('useJob', () => {
-      it('should call JobService.getJobById with jobId', async () => {
-        (JobService.getJobById as jest.Mock).mockResolvedValue(mockJob);
-
-        const result = await JobService.getJobById('job-123');
-
-        expect(JobService.getJobById).toHaveBeenCalledWith('job-123');
-        expect(result).toEqual(mockJob);
-      });
-
-      it('should return null when job not found', async () => {
-        (JobService.getJobById as jest.Mock).mockResolvedValue(null);
-
-        const result = await JobService.getJobById('non-existent');
-
-        expect(result).toBeNull();
-      });
-    });
-
-    describe('useJobBids', () => {
-      it('should call JobService.getBidsByJob with jobId', async () => {
-        (JobService.getBidsByJob as jest.Mock).mockResolvedValue([mockBid]);
-
-        const result = await JobService.getBidsByJob('job-123');
-
-        expect(JobService.getBidsByJob).toHaveBeenCalledWith('job-123');
-        expect(result).toEqual([mockBid]);
-      });
-
-      it('should return empty array when no bids', async () => {
-        (JobService.getBidsByJob as jest.Mock).mockResolvedValue([]);
-
-        const result = await JobService.getBidsByJob('job-123');
-
-        expect(result).toEqual([]);
-      });
-
-      it('should return multiple bids', async () => {
-        const bids = [
-          { ...mockBid, id: 'bid-1', amount: 900 },
-          { ...mockBid, id: 'bid-2', amount: 950 },
-          { ...mockBid, id: 'bid-3', amount: 850 },
-        ];
-        (JobService.getBidsByJob as jest.Mock).mockResolvedValue(bids);
-
-        const result = await JobService.getBidsByJob('job-123');
-
-        expect(result).toHaveLength(3);
-      });
-    });
-
-    describe('useSearchJobs', () => {
-      it('should call JobService.searchJobs with query', async () => {
-        (JobService.searchJobs as jest.Mock).mockResolvedValue([mockJob]);
-
-        const result = await JobService.searchJobs('plumbing', {}, 20);
-
-        expect(JobService.searchJobs).toHaveBeenCalledWith('plumbing', {}, 20);
-        expect(result).toEqual([mockJob]);
-      });
-
-      it('should support custom limit', async () => {
-        (JobService.searchJobs as jest.Mock).mockResolvedValue([mockJob]);
-
-        await JobService.searchJobs('repair', {}, 50);
-
-        expect(JobService.searchJobs).toHaveBeenCalledWith('repair', {}, 50);
-      });
-
-      it('should return empty array for no matches', async () => {
-        (JobService.searchJobs as jest.Mock).mockResolvedValue([]);
-
-        const result = await JobService.searchJobs('nonexistent', {}, 20);
-
-        expect(result).toEqual([]);
-      });
-    });
-  });
-
-  describe('Mutation Hooks - Create Job', () => {
-    describe('useCreateJob - Validation', () => {
-      const validJobData = {
+    expect(result).toEqual({ id: 'new-job' });
+    expect(JobService.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
         title: 'Fix bathroom plumbing issue',
-        description: 'Need a plumber to fix leaky faucet in main bathroom',
+        description:
+          'Need a plumber to fix the leaky faucet in the main bathroom please',
         location: 'New York, NY',
-        budget: 1000,
-        homeownerId: 'homeowner-123',
-      };
-
-      it('should validate title is required', async () => {
-        const invalidData = { ...validJobData, title: '' };
-
-        expect(() => {
-          if (!invalidData.title.trim()) {
-            throw new Error('Job title is required');
-          }
-        }).toThrow('Job title is required');
-      });
-
-      it('should validate title minimum length (10 chars)', async () => {
-        const invalidData = { ...validJobData, title: 'Too short' };
-
-        expect(() => {
-          if (invalidData.title.trim().length < 10) {
-            throw new Error('Job title must be at least 10 characters long');
-          }
-        }).toThrow('Job title must be at least 10 characters long');
-      });
-
-      it('should validate title maximum length (100 chars)', async () => {
-        const invalidData = { ...validJobData, title: 'a'.repeat(101) };
-
-        expect(() => {
-          if (invalidData.title.trim().length > 100) {
-            throw new Error('Job title cannot exceed 100 characters');
-          }
-        }).toThrow('Job title cannot exceed 100 characters');
-      });
-
-      it('should validate description is required', async () => {
-        const invalidData = { ...validJobData, description: '' };
-
-        expect(() => {
-          if (!invalidData.description.trim()) {
-            throw new Error('Job description is required');
-          }
-        }).toThrow('Job description is required');
-      });
-
-      it('should validate description minimum length (20 chars)', async () => {
-        const invalidData = { ...validJobData, description: 'Too short desc' };
-
-        expect(() => {
-          if (invalidData.description.trim().length < 20) {
-            throw new Error(
-              'Job description must be at least 20 characters long'
-            );
-          }
-        }).toThrow('Job description must be at least 20 characters long');
-      });
-
-      it('should validate description maximum length (500 chars)', async () => {
-        const invalidData = { ...validJobData, description: 'a'.repeat(501) };
-
-        expect(() => {
-          if (invalidData.description.trim().length > 500) {
-            throw new Error('Job description cannot exceed 500 characters');
-          }
-        }).toThrow('Job description cannot exceed 500 characters');
-      });
-
-      it('should validate location is required', async () => {
-        const invalidData = { ...validJobData, location: '' };
-
-        expect(() => {
-          if (!invalidData.location.trim()) {
-            throw new Error('Job location is required');
-          }
-        }).toThrow('Job location is required');
-      });
-
-      it('should validate location minimum length (5 chars)', async () => {
-        const invalidData = { ...validJobData, location: 'NY' };
-
-        expect(() => {
-          if (invalidData.location.trim().length < 5) {
-            throw new Error('Please provide a more specific location');
-          }
-        }).toThrow('Please provide a more specific location');
-      });
-
-      it('should validate budget is required and positive', async () => {
-        const invalidData = { ...validJobData, budget: 0 };
-
-        expect(() => {
-          if (!invalidData.budget || invalidData.budget <= 0) {
-            throw new Error('Budget must be greater than 0');
-          }
-        }).toThrow('Budget must be greater than 0');
-      });
-
-      it('should validate budget maximum (£50,000)', async () => {
-        const invalidData = { ...validJobData, budget: 50001 };
-
-        expect(() => {
-          if (invalidData.budget > 50000) {
-            throw new Error('Budget cannot exceed £50,000');
-          }
-        }).toThrow('Budget cannot exceed £50,000');
-      });
-
-      it('should validate homeownerId is required', async () => {
-        const invalidData = { ...validJobData, homeownerId: '' };
-
-        expect(() => {
-          if (!invalidData.homeownerId) {
-            throw new Error('User authentication is required');
-          }
-        }).toThrow('User authentication is required');
-      });
-
-      it('should accept valid job data', async () => {
-        (JobService.createJob as jest.Mock).mockResolvedValue(mockJob);
-
-        const result = await JobService.createJob({
-          ...validJobData,
-          title: validJobData.title.trim(),
-          description: validJobData.description.trim(),
-          location: validJobData.location.trim(),
-        });
-
-        expect(JobService.createJob).toHaveBeenCalled();
-        expect(result).toEqual(mockJob);
-      });
-
-      it('should trim whitespace from title, description, location', async () => {
-        (JobService.createJob as jest.Mock).mockResolvedValue(mockJob);
-
-        const dataWithSpaces = {
-          ...validJobData,
-          title: '  Fix bathroom plumbing issue  ',
-          description:
-            '  Need a plumber to fix leaky faucet in main bathroom  ',
-          location: '  New York, NY  ',
-        };
-
-        await JobService.createJob({
-          ...dataWithSpaces,
-          title: dataWithSpaces.title.trim(),
-          description: dataWithSpaces.description.trim(),
-          location: dataWithSpaces.location.trim(),
-        });
-
-        expect(JobService.createJob).toHaveBeenCalledWith(
-          expect.objectContaining({
-            title: 'Fix bathroom plumbing issue',
-            description: 'Need a plumber to fix leaky faucet in main bathroom',
-            location: 'New York, NY',
-          })
-        );
-      });
-
-      it('should include optional fields when provided', async () => {
-        (JobService.createJob as jest.Mock).mockResolvedValue(mockJob);
-
-        const dataWithOptionals = {
-          ...validJobData,
-          category: 'plumbing',
-          subcategory: 'leak-repair',
-          urgency: 'high' as const,
-          photos: ['photo1.jpg', 'photo2.jpg'],
-        };
-
-        await JobService.createJob({
-          ...dataWithOptionals,
-          title: dataWithOptionals.title.trim(),
-          description: dataWithOptionals.description.trim(),
-          location: dataWithOptionals.location.trim(),
-        });
-
-        expect(JobService.createJob).toHaveBeenCalledWith(
-          expect.objectContaining({
-            category: 'plumbing',
-            subcategory: 'leak-repair',
-            urgency: 'high',
-            photos: ['photo1.jpg', 'photo2.jpg'],
-          })
-        );
-      });
-    });
+      })
+    );
   });
 
-  describe('Mutation Hooks - Job Status Updates', () => {
-    describe('useUpdateJobStatus', () => {
-      it('should call JobService.updateJobStatus', async () => {
-        (JobService.updateJobStatus as jest.Mock).mockResolvedValue({
-          ...mockJob,
-          status: 'assigned',
-        });
+  it('forwards rental + tenancy + requirements fields into the draft path', async () => {
+    (JobService.createJob as jest.Mock).mockResolvedValue({ id: 'rj' });
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
 
-        const result = await JobService.updateJobStatus(
-          'job-123',
-          'assigned',
-          'contractor-123'
-        );
-
-        expect(JobService.updateJobStatus).toHaveBeenCalledWith(
-          'job-123',
-          'assigned',
-          'contractor-123'
-        );
-        expect(result.status).toBe('assigned');
-      });
-
-      it('should update status without contractor', async () => {
-        (JobService.updateJobStatus as jest.Mock).mockResolvedValue({
-          ...mockJob,
-          status: 'in_progress',
-        });
-
-        await JobService.updateJobStatus('job-123', 'in_progress');
-
-        expect(JobService.updateJobStatus).toHaveBeenCalledWith(
-          'job-123',
-          'in_progress'
-        );
-      });
+    await opts.mutationFn({
+      ...valid,
+      is_rental_property: true,
+      tenancy_metadata: { tenantName: 'Jane' },
+      requirements: { contractor_before_photos: true },
     });
 
-    describe('useStartJob', () => {
-      it('should call JobService.startJob', async () => {
-        (JobService.startJob as jest.Mock).mockResolvedValue(undefined);
-
-        await JobService.startJob('job-123');
-
-        expect(JobService.startJob).toHaveBeenCalledWith('job-123');
-      });
-
-      it('should set status to in_progress optimistically', () => {
-        const optimisticUpdate = { status: 'in_progress' };
-
-        expect(optimisticUpdate.status).toBe('in_progress');
-      });
-    });
-
-    describe('useCompleteJob', () => {
-      it('should call JobService.completeJob', async () => {
-        (JobService.completeJob as jest.Mock).mockResolvedValue(undefined);
-
-        await JobService.completeJob('job-123');
-
-        expect(JobService.completeJob).toHaveBeenCalledWith('job-123');
-      });
-
-      it('should set status to completed optimistically', () => {
-        const optimisticUpdate = { status: 'completed' };
-
-        expect(optimisticUpdate.status).toBe('completed');
-      });
-    });
+    expect(JobService.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_rental_property: true,
+        tenancy_metadata: { tenantName: 'Jane' },
+        requirements: { contractor_before_photos: true },
+      })
+    );
   });
 
-  describe('Mutation Hooks - Bid Management', () => {
-    describe('useSubmitBid', () => {
-      it('should call JobService.submitBid with bid data', async () => {
-        const bidData = {
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
-          amount: 900,
-          description: 'I can fix this quickly',
-        };
-
-        (JobService.submitBid as jest.Mock).mockResolvedValue({
-          ...bidData,
-          id: 'bid-123',
-          status: 'pending',
-          createdAt: '2025-01-15T10:00:00Z',
-        });
-
-        const result = await JobService.submitBid(bidData);
-
-        expect(JobService.submitBid).toHaveBeenCalledWith(bidData);
-        expect(result.status).toBe('pending');
-      });
-
-      it('should create optimistic bid with temp ID', () => {
-        const variables = {
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
-          amount: 900,
-          description: 'I can fix this',
-        };
-
-        const optimisticBid = {
-          id: `temp_bid_${Date.now()}`,
-          ...variables,
-          status: 'pending' as const,
-          createdAt: new Date().toISOString(),
-        };
-
-        expect(optimisticBid.id).toMatch(/^temp_bid_\d+$/);
-        expect(optimisticBid.status).toBe('pending');
-      });
-    });
-
-    describe('useAcceptBid', () => {
-      // Audit step 11 (2026-04-29): JobService.acceptBid now requires
-      // both bidId + jobId so the underlying BidService route can be
-      // addressed without a server-side `bid → job_id` lookup. The
-      // hook (useAcceptBid) takes `{ bidId, jobId }` as the mutation
-      // argument and forwards both to JobService.
-      it('should call JobService.acceptBid with bidId + jobId', async () => {
-        (JobService.acceptBid as jest.Mock).mockResolvedValue(undefined);
-
-        await JobService.acceptBid('bid-123', 'job-456');
-
-        expect(JobService.acceptBid).toHaveBeenCalledWith(
-          'bid-123',
-          'job-456'
-        );
-      });
-
-      it('should handle bid acceptance transaction', async () => {
-        (JobService.acceptBid as jest.Mock).mockResolvedValue(undefined);
-
-        await JobService.acceptBid('bid-123', 'job-456');
-
-        // Verify the transaction was attempted
-        expect(JobService.acceptBid).toHaveBeenCalled();
-      });
-    });
+  it('throws "User authentication is required" when homeownerId missing', async () => {
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
+    await expect(
+      opts.mutationFn({ ...valid, homeownerId: '' })
+    ).rejects.toThrow('User authentication is required');
+    expect(JobService.createJob).not.toHaveBeenCalled();
   });
 
-  describe('Optimistic Updates', () => {
-    it('should create optimistic job with temp ID for createJob', () => {
-      const variables = {
-        title: 'Fix plumbing issue',
-        description: 'Need a plumber to fix leaky faucet',
-        location: 'New York, NY',
-        budget: 1000,
-        homeownerId: 'homeowner-123',
-      };
-
-      const optimisticJob = {
-        id: `temp_job_${Date.now()}`,
-        title: variables.title.trim(),
-        description: variables.description.trim(),
-        location: variables.location.trim(),
-        budget: variables.budget,
-        homeownerId: variables.homeownerId,
-        contractorId: null,
-        category: 'handyman',
-        subcategory: undefined,
-        urgency: 'medium',
-        status: 'posted' as const,
-        photos: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        bids: [],
-      };
-
-      expect(optimisticJob.id).toMatch(/^temp_job_\d+$/);
-      expect(optimisticJob.status).toBe('posted');
-      expect(optimisticJob.urgency).toBe('medium');
-      expect(optimisticJob.category).toBe('handyman');
-    });
-
-    it('should include optional fields in optimistic update', () => {
-      const variables = {
-        title: 'Fix plumbing',
-        description: 'Need plumber for bathroom',
-        location: 'Boston, MA',
-        budget: 1500,
-        homeownerId: 'homeowner-456',
-        category: 'plumbing',
-        subcategory: 'leak-repair',
-        urgency: 'high' as const,
-        photos: ['photo1.jpg'],
-      };
-
-      const optimisticJob = {
-        id: `temp_job_${Date.now()}`,
-        title: variables.title.trim(),
-        description: variables.description.trim(),
-        location: variables.location.trim(),
-        budget: variables.budget,
-        homeownerId: variables.homeownerId,
-        contractorId: null,
-        category: variables.category || 'handyman',
-        subcategory: variables.subcategory,
-        urgency: variables.urgency || 'medium',
-        status: 'posted' as const,
-        photos: variables.photos || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        bids: [],
-      };
-
-      expect(optimisticJob.category).toBe('plumbing');
-      expect(optimisticJob.subcategory).toBe('leak-repair');
-      expect(optimisticJob.urgency).toBe('high');
-      expect(optimisticJob.photos).toEqual(['photo1.jpg']);
-    });
+  it('surfaces the first validation error and never calls the service', async () => {
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
+    await expect(
+      opts.mutationFn({
+        ...valid,
+        title: 'x', // too short -> validateJobDraft fails
+        description: 'short',
+      })
+    ).rejects.toThrow(/.+/); // a real message is surfaced from validation
+    expect(JobService.createJob).not.toHaveBeenCalled();
   });
 
-  describe('Error Handling', () => {
-    it('should handle createJob errors', async () => {
-      (JobService.createJob as jest.Mock).mockRejectedValue(
-        new Error('Database error')
-      );
-
-      await expect(
-        JobService.createJob({
-          title: 'Test job title here',
-          description: 'Test description here that is long enough',
-          location: 'Test location',
-          budget: 1000,
-          homeownerId: 'homeowner-123',
-        })
-      ).rejects.toThrow('Database error');
-    });
-
-    it('should handle updateJobStatus errors', async () => {
-      (JobService.updateJobStatus as jest.Mock).mockRejectedValue(
-        new Error('Update failed')
-      );
-
-      await expect(
-        JobService.updateJobStatus('job-123', 'assigned')
-      ).rejects.toThrow('Update failed');
-    });
-
-    it('should handle submitBid errors', async () => {
-      (JobService.submitBid as jest.Mock).mockRejectedValue(
-        new Error('Bid submission failed')
-      );
-
-      await expect(
-        JobService.submitBid({
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
-          amount: 900,
-          description: 'Test bid',
-        })
-      ).rejects.toThrow('Bid submission failed');
-    });
-
-    it('should handle acceptBid errors', async () => {
-      (JobService.acceptBid as jest.Mock).mockRejectedValue(
-        new Error('Transaction failed')
-      );
-
-      await expect(JobService.acceptBid('bid-123', 'job-456')).rejects.toThrow(
-        'Transaction failed'
-      );
-    });
+  it('omits budget from the draft when undefined (still valid)', async () => {
+    (JobService.createJob as jest.Mock).mockResolvedValue({ id: 'nb' });
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
+    const { budget, ...noBudget } = valid;
+    await opts.mutationFn(noBudget);
+    expect(JobService.createJob).toHaveBeenCalled();
   });
 
-  describe('Edge Cases', () => {
-    it('should handle very long valid inputs', async () => {
-      (JobService.createJob as jest.Mock).mockResolvedValue(mockJob);
+  it('optimisticUpdate builds a temp posted job and applies defaults', () => {
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
 
-      const longValidData = {
-        title: 'a'.repeat(100), // Exactly 100 chars
-        description: 'b'.repeat(500), // Exactly 500 chars
-        location: 'New York, NY',
-        budget: 50000, // Exactly £50,000
-        homeownerId: 'homeowner-123',
-      };
+    const optimistic = opts.optimisticUpdate({
+      title: '  Title here long  ',
+      description: '  Some description text  ',
+      location: '  Somewhere  ',
+      homeownerId: 'ho-1',
+    }) as any;
 
-      await JobService.createJob({
-        ...longValidData,
-        title: longValidData.title.trim(),
-        description: longValidData.description.trim(),
-        location: longValidData.location.trim(),
-      });
+    expect(optimistic.id).toMatch(/^temp_job_\d+$/);
+    expect(optimistic.title).toBe('Title here long');
+    expect(optimistic.status).toBe('posted');
+    expect(optimistic.contractorId).toBeNull();
+    expect(optimistic.category).toBe('handyman'); // default branch
+    expect(optimistic.urgency).toBe('medium'); // default branch
+    expect(optimistic.photos).toEqual([]); // default branch
+    expect(optimistic.bids).toEqual([]);
+  });
 
-      expect(JobService.createJob).toHaveBeenCalled();
-    });
+  it('optimisticUpdate preserves provided category/urgency/photos', () => {
+    renderHook(() => useCreateJob());
+    const opts = lastMutation();
+    const optimistic = opts.optimisticUpdate({
+      title: 'Another job title',
+      description: 'Another description text',
+      location: 'Boston',
+      homeownerId: 'ho-2',
+      budget: 1500,
+      category: 'electrical',
+      subcategory: 'wiring',
+      urgency: 'emergency',
+      photos: ['x.jpg'],
+    }) as any;
 
-    it('should handle minimum valid budget', async () => {
-      (JobService.createJob as jest.Mock).mockResolvedValue(mockJob);
+    expect(optimistic.category).toBe('electrical');
+    expect(optimistic.subcategory).toBe('wiring');
+    expect(optimistic.urgency).toBe('emergency');
+    expect(optimistic.photos).toEqual(['x.jpg']);
+    expect(optimistic.budget).toBe(1500);
+  });
+});
 
-      await JobService.createJob({
-        title: 'Small repair job here',
-        description: 'Very small repair that needs attention',
-        location: 'Local area',
-        budget: 1, // Minimum valid budget
-        homeownerId: 'homeowner-123',
-      });
+describe('useAcceptBid', () => {
+  it('online-only UPDATE that forwards bidId + jobId', async () => {
+    (JobService.acceptBid as jest.Mock).mockResolvedValue(undefined);
+    renderHook(() => useAcceptBid());
+    const opts = lastMutation();
 
-      expect(JobService.createJob).toHaveBeenCalledWith(
-        expect.objectContaining({ budget: 1 })
-      );
-    });
+    expect(opts.entity).toBe('bid');
+    expect(opts.actionType).toBe('UPDATE');
+    expect(opts.onlineOnly).toBe(true);
 
-    it('should handle searchJobs with short query pattern', async () => {
-      // Pattern: Hook enabled only when query.length > 2
-      const shortQuery = 'ab'; // Length 2
-      const validQuery = 'abc'; // Length 3
-
-      expect(shortQuery.length > 2).toBe(false);
-      expect(validQuery.length > 2).toBe(true);
-    });
-
-    it('should handle jobs without optional contractor', async () => {
-      const jobWithoutContractor = {
-        ...mockJob,
-        contractor_id: undefined,
-      };
-
-      (JobService.getJobById as jest.Mock).mockResolvedValue(
-        jobWithoutContractor
-      );
-
-      const result = await JobService.getJobById('job-123');
-
-      expect(result.contractor_id).toBeUndefined();
-    });
+    await opts.mutationFn({ bidId: 'bid-1', jobId: 'job-1' });
+    expect(JobService.acceptBid).toHaveBeenCalledWith('bid-1', 'job-1');
   });
 });
