@@ -387,6 +387,7 @@ export function getPriorityCTA({
               jobId: job.id,
               amount,
               contractorId: job.contractor_id || '',
+              jobTitle: job.title,
             })
           }
           secondaryText='Secure payment in escrow'

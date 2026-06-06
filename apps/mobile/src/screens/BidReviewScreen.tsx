@@ -26,8 +26,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency } from '../utils/formatCurrency';
+import { queryKeys } from '../lib/queryClient';
 import { BidService, Bid } from '../services/BidService';
 // 2026-05-26 audit-59 P2: direct supabase contractor_quotes read removed.
 // /api/jobs/:id/bids already embeds the linked quote via the
@@ -92,6 +94,18 @@ export const BidReviewScreen: React.FC = () => {
     }
     setRecentlyRejected(null);
   }, []);
+
+  const queryClient = useQueryClient();
+  // 2026-06-06 audit: BidReview previously mutated bid state then
+  // goBack()'d without invalidating any cache, so JobDetails + JobsList
+  // kept showing the pre-accept "posted" state (and "View N Bids" CTA)
+  // until a manual refresh. Invalidate the job detail, its bids, and the
+  // job lists after every accept/reject/undo so the next render is fresh.
+  const invalidateJobCaches = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.details(jobId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.bids(jobId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+  }, [queryClient, jobId]);
 
   // Brief check-mark celebration on bid accept (~720ms total).
   const celebrationAnim = useRef(new Animated.Value(0)).current;
@@ -207,6 +221,7 @@ export const BidReviewScreen: React.FC = () => {
       // mutation route can be addressed without a server-side bid →
       // job lookup. `jobId` comes from `route.params` above.
       await BidService.acceptBid(bid.id, jobId);
+      invalidateJobCaches();
       // Fire the celebration overlay first so the user sees a clear
       // "accepted" beat before the modal Alert; awaited so the alert
       // doesn't pop on top of the fade-in.
@@ -268,6 +283,7 @@ export const BidReviewScreen: React.FC = () => {
     setProcessing(true);
     try {
       await BidService.rejectBid(bid.id, jobId);
+      invalidateJobCaches();
       // Step 4d: surface the undo banner for 5s after a successful
       // reject. The server-side undo window is 60s, so dismissing
       // the snackbar doesn't strand the user — they just lose the
@@ -297,6 +313,7 @@ export const BidReviewScreen: React.FC = () => {
     setProcessing(true);
     try {
       await BidService.unrejectBid(bid.id, jobId);
+      invalidateJobCaches();
       // Bring the rejected bid back into the deck so the user can
       // re-review it without leaving the screen.
       swiperRef.current?.unswipe();
