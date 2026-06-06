@@ -150,109 +150,13 @@ const ProfileScreen: React.FC = () => {
     [navigation]
   );
 
-  const businessMenuItems = useMemo(
-    () => [
-      {
-        label: 'Finance Dashboard',
-        icon: 'analytics-outline',
-        iconColor: me.brand,
-        iconBg: me.brandSoft,
-        onPress: () => navigation.navigate('FinanceDashboard'),
-      },
-      {
-        label: 'Invoice Management',
-        icon: 'receipt-outline',
-        iconColor: me.cat.electricalFg,
-        iconBg: me.cat.electricalBg,
-        onPress: () => navigation.navigate('InvoiceManagement'),
-      },
-      {
-        label: 'Client Management',
-        icon: 'people-outline',
-        iconColor: me.infoFg,
-        iconBg: me.infoBg,
-        onPress: () => navigation.navigate('CRMDashboard'),
-      },
-      {
-        label: 'Quote Builder',
-        icon: 'document-text-outline',
-        iconColor: me.cat.paintingFg,
-        iconBg: me.cat.paintingBg,
-        onPress: () => navigation.navigate('QuoteBuilder'),
-      },
-      {
-        label: 'Payouts',
-        icon: 'cash-outline',
-        iconColor: me.brand,
-        iconBg: me.brandSoft,
-        onPress: () => navigation.navigate('Payouts'),
-      },
-      {
-        label: 'Expenses',
-        icon: 'receipt-outline',
-        iconColor: me.errFg,
-        iconBg: me.errBg,
-        onPress: () => navigation.navigate('Expenses'),
-      },
-      {
-        label: 'Escrow Dashboard',
-        icon: 'lock-closed-outline',
-        iconColor: me.warnFg,
-        iconBg: me.warnBg,
-        onPress: () => navigation.navigate('EscrowDashboard'),
-      },
-    ],
-    [navigation]
-  );
-
-  const contractorToolsMenuItems = useMemo(
-    () => [
-      {
-        label: 'Service Areas',
-        icon: 'map-outline',
-        iconColor: me.cat.plumbingFg,
-        iconBg: me.cat.plumbingBg,
-        onPress: () => navigation.navigate('ServiceAreas'),
-      },
-      {
-        label: 'Certifications',
-        icon: 'ribbon-outline',
-        iconColor: me.brand,
-        iconBg: me.brandSoft,
-        onPress: () => navigation.navigate('Certifications'),
-      },
-      {
-        label: 'Documents',
-        icon: 'document-outline',
-        iconColor: me.ink2,
-        iconBg: me.bg2,
-        onPress: () => navigation.navigate('Documents'),
-      },
-      {
-        label: 'Time Tracking',
-        icon: 'time-outline',
-        iconColor: me.infoFg,
-        iconBg: me.infoBg,
-        onPress: () => navigation.navigate('TimeTracking'),
-      },
-      {
-        label: 'Reports & Analytics',
-        icon: 'bar-chart-outline',
-        iconColor: me.cat.electricalFg,
-        iconBg: me.cat.electricalBg,
-        onPress: () => navigation.navigate('Reporting'),
-      },
-      {
-        label: 'Edit Discovery Card',
-        icon: 'card',
-        iconColor: me.accent,
-        iconBg: me.warnBg,
-        onPress: () => navigation.navigate('ContractorCardEditor'),
-      },
-      // Portfolio Gallery: ARCHIVED - portfolio feature removed
-    ],
-    [navigation]
-  );
+  // NOTE: The contractor "Business Tools" and "Contractor Tools" menus that
+  // used to live here were removed 2026-06-05. They were computed but never
+  // rendered (dead code), and every target they pointed at — Finance, Invoices,
+  // Quotes, Clients, Expenses, Payouts, Escrow, Service Areas, Time Tracking,
+  // Reports, Documents — is already reachable via the dedicated Business tab
+  // (BusinessHubScreen, opened from the "Business Tools" Quick Access row).
+  // Re-adding them here would duplicate that surface.
 
   const supportMenuItems = useMemo(
     () => [
