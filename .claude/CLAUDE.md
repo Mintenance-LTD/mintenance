@@ -1,6 +1,6 @@
 # CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## CODE QUALITY AUDIT (Last audited: 2026-05-27, full-stack flow audit remediation)
+## CODE QUALITY AUDIT (Last audited: 2026-06-06, mobile backend schema-alignment audit)
 
 **Current State: A grade (~88/100)** — up from A-/B+ ~85/100 on 2026-05-23. The 2026-05-25 →
 2026-05-27 session ran a full-stack user-flow audit (4 parallel sub-agents covering web HO + web
@@ -8,7 +8,94 @@ contractor + mobile HO + mobile contractor; ~30 live-DB SQL queries via Supabase
 shipped 12 fixes across 4 P0s, 5 P1s, 4 P2s, plus a P0-4 recovery commit (parallel-agent stash
 interleaving displaced the original P0-4 hash). 9 separate audit findings were retracted as false
 alarms on closer inspection — every retraction now has a paper trail in the section below. See
-"2026-05-27 — full-stack flow audit remediation" for the full report.
+"2026-05-27 — full-stack flow audit remediation" for the full report. The 2026-06-06 session then
+ran a mobile backend schema-alignment audit (live Postgres error logs + `information_schema`
+cross-check), shipped 5 commits, applied 2 live migrations, and deleted ~45 files of orphaned dead
+code — see "2026-06-06" immediately below.
+
+### 2026-06-06 — mobile backend schema-alignment audit + dead-code removal
+
+**Scope:** Audited the mobile app's backend (web API routes it calls + its direct-Supabase reads)
+for places where code queries tables/columns that do not exist in the live schema, causing silent
+failures (`|| []` fallbacks hide the error, so screens render empty/zero rather than throwing). The
+highest-signal technique was reading the **live Postgres error log** (Supabase MCP `get_logs`) and
+cross-checking every flagged query against `information_schema`. 3 parallel verifier agents mapped
+the surfaces; every high-severity finding was independently re-verified against the live schema
+before any change (zero-false-claims). Branch `claude/full-stack-audit-JrhaX`.
+
+**Shipped (5 commits, all pushed; `tsc --noEmit` clean both apps):**
+
+| Commit      | Subject                                                                        |
+| ----------- | ------------------------------------------------------------------------------ |
+| `eb29c3497` | `fix(backend)` align reviews/bids/payments/profiles/messages queries w/ schema |
+| `8e3684929` | `fix(api)` job-detail homeowner card + refund 500 + bid-withdraw name          |
+| `11abd6419` | `feat(mobile)` live time-tracking timer + shareable reports                    |
+| `b3cba57ee` | `feat(db)` add bids.rejection_reason + quote template tables (live migrations) |
+| `49dfc5348` | `refactor(mobile)` delete orphaned business-suite dead code (~45 files)        |
+
+**Recurring live errors fixed (verified in `get_logs` before + schema after):**
+
+- `reviews.contractor_id does not exist` — the table keys the reviewed contractor via `reviewee_id`.
+  The wrong column was independently re-written in **10** files (TrustScore, AutoVerification,
+  BidAcceptance, DisputeResolution, daily-rundown, profile-data, customers, user+gdpr export-data).
+  All quietly returned 0 reviews / 0 rating via fallbacks. Added canonical
+  `getContractorRatingStats()` (`apps/web/lib/services/reviews/contractor-rating.ts`) so the column
+  name lives in one place and can't regress per-file.
+- `bids.bid_amount does not exist` → `amount`; `payments.contractor_id does not exist` → `payee_id`
+  (contractor reporting + profile pages were 500-ing).
+- `profiles.is_public does not exist` (most frequent error — crawler-driven sitemap) → dropped the
+  filter; `profiles.full_name` (bid-withdraw notification) → build from `first_name`/`last_name`.
+- `escrow_transactions.stripe_payment_intent_id does not exist` → only `payment_intent_id` exists.
+  This made **every refund 500** (`/api/payments/refund`, mobile `EscrowService.refundPayment`).
+- `messages.recipient_id`/`read_at` → `receiver_id`/`read`; `escrow.contractor_id` → `payee_id`
+  (contractor daily-rundown).
+- `contractor_profiles.specializations does not exist` → re-sourced market-insights competition
+  count from `profiles.skills`.
+- `GET /api/jobs/[id]` never joined the homeowner profile, so the mobile JobDetails "Posted by" card
+  (guarded on `job.homeowner`) silently never rendered. Added the join.
+
+**Live DB migrations applied via Supabase MCP (2, verified post-apply; advisor shows no new
+warnings; local files committed under `supabase/migrations/`):**
+
+- `20260606120000_add_bids_rejection_reason` — the reject + unreject bid routes already wrote
+  `bids.rejection_reason` but the column never existed, so reject-with-reason and every undo-reject
+  threw. Added the nullable column; **zero route-code change** needed.
+- `20260606120100_create_quote_templates` — created `quote_templates` + `quote_line_item_templates`
+  (owner-scoped RLS) that `/api/contractor/quote-templates` + mobile `TemplateCRUD` always queried
+  but were never created (saved-template feature 500'd). Columns mirror exactly what the route
+  reads/writes.
+
+**Features shipped (no migration needed):**
+
+- Live time-tracking timer (`TimeTrackingScreen`): Start creates a `running`
+  `contractor_time_entries` row, a ticking HH:MM:SS clock anchors off the persisted entry (survives
+  remount), Stop finalises the duration. The status CHECK already allowed `'running'`; POST route
+  now accepts `status` (defaults `'stopped'`).
+- Reporting export (`ReportingScreen`): the "Export to PDF" stub now builds a text report and opens
+  the OS share sheet via RN's built-in `Share` (works in the shipped binary; a true PDF would need
+  `expo-print` + an EAS rebuild).
+
+**Dead code deleted (~45 files, mobile `tsc` clean after):** the Client CRM, Marketing,
+Sustainability/ESG and BusinessDashboard service/component/hook layers were orphaned — **no screen
+mounted any of them** (verified by import-graph trace) and they queried ~12 tables that do not exist
+in the live DB (`client_segments`, `marketing_*`, `sustainability_metrics`, `green_certifications`,
+`sustainable_materials`, `contractor_esg_scores`, …). Removed
+`services/{client-management, marketing-management,sustainability}`, `SustainabilityEngine`,
+`BusinessAnalyticsService`, `hooks/{business-suite,useSustainability}`, `useBusinessSuite`, both
+`BusinessDashboard` components (+ their tests). `ContractorBusinessSuite` is slimmed to its only
+live arm — the **finance** facade (`FinanceDashboardScreen` via `useFinanceDashboard` + the invoice
+screens), which is untouched. This also resolved the "deferred missing-table" question: those ~12
+tables were only needed by the deleted code, so there is no remaining orphaned-table debt. **Note
+for the parallel coverage effort:** the deletion removed ~12 test files that session had written for
+the now-deleted modules — a concrete case of coverage being added to code that should be deleted.
+
+**Verification posture:** every column/table claim checked against live project
+`ukrjudtlvapiajkjbcrd`; `tsc --noEmit` clean on both apps for all edits + after the deletion; both
+migrations verified present + RLS-correct via live queries; security advisor unchanged (only the
+pre-existing spatial_ref_sys / extension-in-public / SECURITY DEFINER / Postgres-version warnings).
+**Not runtime-tested:** the two mobile features (live timer, Share export) were verified by types +
+logic only and need an on-device smoke test before an EAS release; the refund fix should get one
+real refund run on staging.
 
 ### 2026-05-27 — full-stack flow audit remediation
 

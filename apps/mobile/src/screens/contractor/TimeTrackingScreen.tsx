@@ -40,15 +40,14 @@ interface TimeEntry {
  * Layout:
  *   1. Lightweight back nav + serif "Time" header with eyebrow + sub
  *      "Track hours against any job".
- *   2. Mint hero card. *Note*: the deck shows a live "CURRENTLY
- *      TRACKING · <client> · 01:24:18" running clock with Pause /
- *      Stop&invoice. We do not yet have a live-timer column on
- *      `contractor_time_entries` — entries are written as completed
- *      duration rows via the AddTimeEntry flow. To stay honest, the
- *      hero renders the contractor's billable-this-week total in
- *      serif type with a "Bill this week" CTA when there's something
- *      to invoice. A future migration adding `started_at` /
- *      `paused_at` columns would let us swap this for a true clock.
+ *   2. Mint hero card. When a `running` time entry exists the hero
+ *      shows a live HH:MM:SS clock (anchored on the entry's date +
+ *      start_time so it survives a remount) with a Stop timer action;
+ *      otherwise it shows the contractor's billable-this-week total
+ *      with Start timer + Stop & invoice. Start/Stop persist through
+ *      /api/contractor/time-tracking (status 'running' -> 'stopped');
+ *      the table's status CHECK already allowed 'running' so no
+ *      migration was needed.
  *   3. Today + This week paired bento tiles.
  *   4. Recent entries grouped by weekday.
  *   5. Mint + FAB to add a new entry (kept for adding past hours).
