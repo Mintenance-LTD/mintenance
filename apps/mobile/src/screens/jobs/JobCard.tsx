@@ -26,10 +26,19 @@ export const JobCard: React.FC<JobCardProps> = ({
   isContractor,
   hasUserBid,
 }) => {
-  const daysAgo = Math.floor(
-    (Date.now() -
-      new Date(item.created_at || item.createdAt || Date.now()).getTime()) /
-      (1000 * 3600 * 24)
+  // Sample `now` ONCE and reuse it for both the baseline and the missing-date
+  // fallback. Calling Date.now() twice (outer + the `|| Date.now()` fallback)
+  // let the inner call run a few microseconds later than the outer, so when
+  // both date keys were missing the diff went slightly negative and floored to
+  // -1 → "-1d ago" instead of "Today". Math.max(0, …) also guards against a
+  // created_at timestamp that is marginally in the future (clock skew).
+  const now = Date.now();
+  const daysAgo = Math.max(
+    0,
+    Math.floor(
+      (now - new Date(item.created_at || item.createdAt || now).getTime()) /
+        (1000 * 3600 * 24)
+    )
   );
   // Drop null / undefined / empty-string entries — a broken photos
   // array shouldn't fool the `hasPhotos` check into rendering an

@@ -57,7 +57,11 @@ if (Platform.OS !== 'web') {
 /**
  * Log navigation events
  */
-function logNavigation(from: string, to: string, params?: unknown): void {
+export function logNavigation(
+  from: string,
+  to: string,
+  params?: unknown
+): void {
   logger.info('Navigation', {
     from,
     to,
@@ -69,7 +73,7 @@ function logNavigation(from: string, to: string, params?: unknown): void {
 /**
  * Log screen views
  */
-function logScreenView(
+export function logScreenView(
   screenName: string,
   metadata?: Record<string, unknown>
 ): void {
@@ -83,7 +87,7 @@ function logScreenView(
 /**
  * Log user interactions
  */
-function logInteraction(
+export function logInteraction(
   component: string,
   action: string,
   metadata?: Record<string, unknown>
@@ -99,7 +103,7 @@ function logInteraction(
 /**
  * Log API calls
  */
-function logApiCall(
+export function logApiCall(
   method: string,
   endpoint: string,
   status?: number,
@@ -127,7 +131,7 @@ function logApiCall(
 /**
  * Log performance metrics
  */
-function logPerformance(
+export function logPerformance(
   operation: string,
   duration: number,
   metadata?: Record<string, unknown>
@@ -143,7 +147,7 @@ function logPerformance(
 /**
  * Log storage operations
  */
-function logStorage(
+export function logStorage(
   operation: 'get' | 'set' | 'remove' | 'clear',
   key?: string,
   success: boolean = true,
@@ -166,7 +170,7 @@ function logStorage(
 /**
  * Log permission requests
  */
-function logPermission(
+export function logPermission(
   permission: string,
   status: string,
   metadata?: Record<string, unknown>
@@ -182,7 +186,7 @@ function logPermission(
 /**
  * Log push notification events
  */
-function logNotification(
+export function logNotification(
   event: 'received' | 'opened' | 'dismissed',
   notificationId?: string,
   metadata?: Record<string, unknown>
@@ -198,7 +202,7 @@ function logNotification(
 /**
  * Log authentication events
  */
-function logAuth(
+export function logAuth(
   action: 'login' | 'logout' | 'register' | 'refresh',
   success: boolean,
   method?: string,
@@ -221,7 +225,10 @@ function logAuth(
 /**
  * Log offline/online status changes
  */
-function logConnectivity(isConnected: boolean, connectionType?: string): void {
+export function logConnectivity(
+  isConnected: boolean,
+  connectionType?: string
+): void {
   logger.info('Connectivity changed', {
     isConnected,
     connectionType,
@@ -250,7 +257,7 @@ export function logMedia(
 /**
  * Log payment events
  */
-function logPayment(
+export function logPayment(
   action: string,
   amount?: number,
   currency?: string,
@@ -276,21 +283,21 @@ function logPayment(
 /**
  * Create a logger for a specific screen
  */
-function createScreenLogger(screenName: string): EnhancedLogger {
+export function createScreenLogger(screenName: string): EnhancedLogger {
   return logger.child({ screen: screenName });
 }
 
 /**
  * Create a logger for a specific service
  */
-function createServiceLogger(serviceName: string): EnhancedLogger {
+export function createServiceLogger(serviceName: string): EnhancedLogger {
   return logger.child({ service: serviceName });
 }
 
 /**
  * Log app crashes (to be called from error boundaries)
  */
-function logCrash(error: Error, errorInfo?: unknown): void {
+export function logCrash(error: Error, errorInfo?: unknown): void {
   logger.error('App crashed', error, {
     errorInfo: errorInfo ? JSON.stringify(errorInfo) : undefined,
     timestamp: new Date().toISOString(),
@@ -300,7 +307,7 @@ function logCrash(error: Error, errorInfo?: unknown): void {
 /**
  * Initialize crash reporting
  */
-function initializeCrashReporting(): void {
+export function initializeCrashReporting(): void {
   if (!__DEV__) {
     // Set up global error handler
     const originalHandler = ErrorUtils.getGlobalHandler();
@@ -322,7 +329,7 @@ function initializeCrashReporting(): void {
 /**
  * Log session start (to be called on app launch)
  */
-async function logSessionStart(): Promise<void> {
+export async function logSessionStart(): Promise<void> {
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
   await AsyncStorage.setItem('sessionId', sessionId);
@@ -336,7 +343,7 @@ async function logSessionStart(): Promise<void> {
 /**
  * Log session end (to be called on app background/close)
  */
-async function logSessionEnd(): Promise<void> {
+export async function logSessionEnd(): Promise<void> {
   const sessionId = await AsyncStorage.getItem('sessionId');
 
   logger.info('Session ended', {
@@ -346,7 +353,7 @@ async function logSessionEnd(): Promise<void> {
 }
 
 // Clean up on unmount
-function cleanup(): void {
+export function cleanup(): void {
   if (appStateSubscription) {
     appStateSubscription.remove();
   }

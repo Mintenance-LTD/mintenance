@@ -9,7 +9,7 @@ interface SkeletonProps {
   style?: ViewStyle;
 }
 
-const Skeleton: React.FC<SkeletonProps> = ({
+export const Skeleton: React.FC<SkeletonProps> = ({
   width = '100%',
   height = 20,
   borderRadius = 8,
@@ -63,7 +63,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
 };
 
 // Pre-built skeleton components for common UI patterns
-const SkeletonText: React.FC<{ lines?: number }> = ({ lines = 1 }) => (
+export const SkeletonText: React.FC<{ lines?: number }> = ({ lines = 1 }) => (
   <View>
     {Array.from({ length: lines }, (_, index) => (
       <Skeleton
@@ -76,15 +76,15 @@ const SkeletonText: React.FC<{ lines?: number }> = ({ lines = 1 }) => (
   </View>
 );
 
-const SkeletonAvatar: React.FC<{ size?: number }> = ({ size = 50 }) => (
+export const SkeletonAvatar: React.FC<{ size?: number }> = ({ size = 50 }) => (
   <Skeleton width={size} height={size} borderRadius={size / 2} />
 );
 
-const SkeletonButton: React.FC = () => (
+export const SkeletonButton: React.FC = () => (
   <Skeleton height={48} borderRadius={20} />
 );
 
-const SkeletonCard: React.FC = () => (
+export const SkeletonCard: React.FC = () => (
   <View style={styles.cardContainer}>
     <View style={styles.cardHeader}>
       <SkeletonAvatar size={48} />
@@ -102,7 +102,7 @@ const SkeletonCard: React.FC = () => (
   </View>
 );
 
-const SkeletonPostCard: React.FC = () => (
+export const SkeletonPostCard: React.FC = () => (
   <View style={styles.postCard}>
     {/* Post Header */}
     <View style={styles.postHeader}>
