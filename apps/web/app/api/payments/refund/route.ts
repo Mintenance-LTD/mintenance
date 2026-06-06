@@ -103,11 +103,15 @@ export const POST = withApiHandler(
         throw new ForbiddenError('Unauthorized');
       }
 
-      // Get escrow transaction (query both column names for payment intent ID)
+      // Get escrow transaction. NOTE: the live table only has
+      // `payment_intent_id` — there is no `stripe_payment_intent_id`
+      // column. Listing it made PostgREST reject the whole SELECT, so
+      // `escrowError` was always set and every refund 500'd with
+      // "Escrow transaction not found".
       const { data: escrow, error: escrowError } = await serverSupabase
         .from('escrow_transactions')
         .select(
-          'id, job_id, amount, status, payment_intent_id, stripe_payment_intent_id, created_at, released_at, refunded_at'
+          'id, job_id, amount, status, payment_intent_id, created_at, released_at, refunded_at'
         )
         .eq('id', escrowTransactionId)
         .eq('job_id', jobId)
@@ -150,9 +154,7 @@ export const POST = withApiHandler(
         );
       }
 
-      // Use whichever column has the payment intent ID
-      const paymentIntentId =
-        escrow.payment_intent_id || escrow.stripe_payment_intent_id;
+      const paymentIntentId = escrow.payment_intent_id;
       if (!paymentIntentId) {
         return NextResponse.json(
           { error: 'No payment intent ID found' },

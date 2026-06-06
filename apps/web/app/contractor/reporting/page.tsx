@@ -28,12 +28,12 @@ export default async function ContractorReportingPage2025() {
         .eq('contractor_id', user.id),
       serverSupabase
         .from('bids')
-        .select('id, bid_amount, status, created_at')
+        .select('id, amount, status, created_at')
         .eq('contractor_id', user.id),
       serverSupabase
         .from('payments')
         .select('id, amount, status, created_at, job_id')
-        .eq('contractor_id', user.id)
+        .eq('payee_id', user.id)
         .eq('status', 'completed'),
       serverSupabase
         .from('reviews')
@@ -194,7 +194,7 @@ export default async function ContractorReportingPage2025() {
   const recentPaymentsResult = await serverSupabase
     .from('payments')
     .select('amount, created_at')
-    .eq('contractor_id', user.id)
+    .eq('payee_id', user.id)
     .eq('status', 'completed')
     .gte('created_at', sevenDaysAgo.toISOString());
 

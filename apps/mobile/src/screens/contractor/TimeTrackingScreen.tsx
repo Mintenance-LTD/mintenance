@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import { useToast } from '../../components/ui/Toast';
 import { styles } from './time-tracking/styles';
 
 interface TimeEntry {
@@ -27,6 +29,8 @@ interface TimeEntry {
   hours: number;
   hourly_rate: number;
   billable: boolean;
+  status?: string;
+  startTime?: string;
 }
 
 /**
@@ -36,15 +40,14 @@ interface TimeEntry {
  * Layout:
  *   1. Lightweight back nav + serif "Time" header with eyebrow + sub
  *      "Track hours against any job".
- *   2. Mint hero card. *Note*: the deck shows a live "CURRENTLY
- *      TRACKING · <client> · 01:24:18" running clock with Pause /
- *      Stop&invoice. We do not yet have a live-timer column on
- *      `contractor_time_entries` — entries are written as completed
- *      duration rows via the AddTimeEntry flow. To stay honest, the
- *      hero renders the contractor's billable-this-week total in
- *      serif type with a "Bill this week" CTA when there's something
- *      to invoice. A future migration adding `started_at` /
- *      `paused_at` columns would let us swap this for a true clock.
+ *   2. Mint hero card. When a `running` time entry exists the hero
+ *      shows a live HH:MM:SS clock (anchored on the entry's date +
+ *      start_time so it survives a remount) with a Stop timer action;
+ *      otherwise it shows the contractor's billable-this-week total
+ *      with Start timer + Stop & invoice. Start/Stop persist through
+ *      /api/contractor/time-tracking (status 'running' -> 'stopped');
+ *      the table's status CHECK already allowed 'running' so no
+ *      migration was needed.
  *   3. Today + This week paired bento tiles.
  *   4. Recent entries grouped by weekday.
  *   5. Mint + FAB to add a new entry (kept for adding past hours).
@@ -61,10 +64,27 @@ const formatHours = (hours: number): string => {
 const fmtGBP = (n: number): string =>
   `£${Math.round(n).toLocaleString('en-GB')}`;
 
+const formatClock = (totalSeconds: number): string => {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':');
+};
+
+const nowTimeString = (): string => {
+  const d = new Date();
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, '0'))
+    .join(':');
+};
+
 export const TimeTrackingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<ProfileStackParamList>>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-time-tracking', user?.id],
@@ -88,6 +108,8 @@ export const TimeTrackingScreen: React.FC = () => {
           hours: ((e.duration_minutes as number) || 0) / 60,
           hourly_rate: (e.hourly_rate as number) || 0,
           billable: (e.is_billable as boolean) ?? false,
+          status: (e.status as string) || 'stopped',
+          startTime: (e.start_time as string) || undefined,
         })
       );
     },
@@ -95,17 +117,76 @@ export const TimeTrackingScreen: React.FC = () => {
   });
 
   const entries = data || [];
+  const runningEntry = entries.find((e) => e.status === 'running');
+  const finishedEntries = entries.filter((e) => e.status !== 'running');
 
-  const grouped = entries.reduce<Record<string, TimeEntry[]>>((acc, entry) => {
-    const dateKey = new Date(entry.date).toLocaleDateString('en-GB', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'short',
-    });
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(entry);
-    return acc;
-  }, {});
+  // Live timer tick. Elapsed is recomputed from the running entry's
+  // date + start_time anchor (the entry is persisted server-side), so the
+  // clock survives a screen remount or app backgrounding rather than living
+  // only in component memory.
+  useEffect(() => {
+    if (!runningEntry?.startTime) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const anchor = new Date(
+      `${runningEntry.date}T${runningEntry.startTime}`
+    ).getTime();
+    const tick = () => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - anchor) / 1000)));
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [runningEntry?.id, runningEntry?.startTime, runningEntry?.date]);
+
+  const handleStartTimer = async () => {
+    if (!user?.id) return;
+    try {
+      await mobileApiClient.post('/api/contractor/time-tracking', {
+        taskDescription: 'Timed work',
+        durationMinutes: 0,
+        date: new Date().toISOString().slice(0, 10),
+        startTime: nowTimeString(),
+        status: 'running',
+        isBillable: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ['contractor-time-tracking'] });
+    } catch {
+      toast.error('Could not start timer', 'Please try again.');
+    }
+  };
+
+  const handleStopTimer = async () => {
+    if (!runningEntry) return;
+    const minutes = Math.max(1, Math.round(elapsedSeconds / 60));
+    try {
+      await mobileApiClient.patch('/api/contractor/time-tracking', {
+        id: runningEntry.id,
+        status: 'stopped',
+        endTime: nowTimeString(),
+        durationMinutes: minutes,
+      });
+      queryClient.invalidateQueries({ queryKey: ['contractor-time-tracking'] });
+      toast.success('Timer stopped', `${formatHours(minutes / 60)} logged`);
+    } catch {
+      toast.error('Could not stop timer', 'Please try again.');
+    }
+  };
+
+  const grouped = finishedEntries.reduce<Record<string, TimeEntry[]>>(
+    (acc, entry) => {
+      const dateKey = new Date(entry.date).toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+      });
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(entry);
+      return acc;
+    },
+    {}
+  );
 
   const sections = Object.entries(grouped).map(([title, sectionData]) => ({
     title,
@@ -117,8 +198,10 @@ export const TimeTrackingScreen: React.FC = () => {
   const todayKey = now.toISOString().slice(0, 10);
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - now.getDay());
-  const thisWeekEntries = entries.filter((e) => new Date(e.date) >= weekStart);
-  const todayEntries = entries.filter(
+  const thisWeekEntries = finishedEntries.filter(
+    (e) => new Date(e.date) >= weekStart
+  );
+  const todayEntries = finishedEntries.filter(
     (e) => new Date(e.date).toISOString().slice(0, 10) === todayKey
   );
   const totalHoursToday = todayEntries.reduce((sum, e) => sum + e.hours, 0);
@@ -209,47 +292,92 @@ export const TimeTrackingScreen: React.FC = () => {
       </View>
 
       <View style={styles.heroCard}>
-        <Text style={styles.heroEyebrow}>
-          {canCreateInvoice ? 'Billable · this week' : 'This week'}
-        </Text>
-        <Text style={styles.heroBig}>
-          {formatHours(billableHoursWeek || totalHoursWeek)}
-        </Text>
-        {canCreateInvoice ? (
-          <Text style={styles.heroSub}>
-            {fmtGBP(estimatedEarnings)} ready to invoice across{' '}
-            {invoiceLineItems.length}{' '}
-            {invoiceLineItems.length === 1 ? 'job' : 'jobs'}
-          </Text>
+        {runningEntry ? (
+          <>
+            <Text style={styles.heroEyebrow}>Currently tracking</Text>
+            <Text style={styles.heroBig}>{formatClock(elapsedSeconds)}</Text>
+            <Text style={styles.heroSub}>
+              {runningEntry.task_description || 'Timed work'}
+              {runningEntry.job_title ? ` — ${runningEntry.job_title}` : ''}
+            </Text>
+            <View style={styles.heroBtnRow}>
+              <TouchableOpacity
+                style={styles.heroBtnSecondary}
+                onPress={() => navigation.navigate('AddTimeEntry')}
+                accessibilityRole='button'
+                accessibilityLabel='Log hours manually'
+              >
+                <Ionicons name='time-outline' size={16} color={me.onBrand} />
+                <Text style={styles.heroBtnSecondaryText}>Log hours</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.heroBtnPrimary}
+                onPress={handleStopTimer}
+                accessibilityRole='button'
+                accessibilityLabel='Stop timer and log the time'
+              >
+                <Ionicons
+                  name='stop-circle-outline'
+                  size={16}
+                  color={me.brand}
+                />
+                <Text style={styles.heroBtnPrimaryText}>Stop timer</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         ) : (
-          <Text style={styles.heroSub}>
-            Log billable hours to bill them in one tap.
-          </Text>
+          <>
+            <Text style={styles.heroEyebrow}>
+              {canCreateInvoice ? 'Billable · this week' : 'This week'}
+            </Text>
+            <Text style={styles.heroBig}>
+              {formatHours(billableHoursWeek || totalHoursWeek)}
+            </Text>
+            {canCreateInvoice ? (
+              <Text style={styles.heroSub}>
+                {fmtGBP(estimatedEarnings)} ready to invoice across{' '}
+                {invoiceLineItems.length}{' '}
+                {invoiceLineItems.length === 1 ? 'job' : 'jobs'}
+              </Text>
+            ) : (
+              <Text style={styles.heroSub}>
+                Start a timer or log billable hours to bill in one tap.
+              </Text>
+            )}
+            <View style={styles.heroBtnRow}>
+              <TouchableOpacity
+                style={styles.heroBtnSecondary}
+                onPress={handleStartTimer}
+                accessibilityRole='button'
+                accessibilityLabel='Start a live timer'
+              >
+                <Ionicons
+                  name='play-circle-outline'
+                  size={16}
+                  color={me.onBrand}
+                />
+                <Text style={styles.heroBtnSecondaryText}>Start timer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.heroBtnPrimary,
+                  !canCreateInvoice && styles.heroBtnDisabled,
+                ]}
+                onPress={handleCreateInvoice}
+                disabled={!canCreateInvoice}
+                accessibilityRole='button'
+                accessibilityLabel='Stop tracking and create invoice'
+              >
+                <Ionicons
+                  name='document-text-outline'
+                  size={16}
+                  color={me.brand}
+                />
+                <Text style={styles.heroBtnPrimaryText}>Stop & invoice</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
-        <View style={styles.heroBtnRow}>
-          <TouchableOpacity
-            style={styles.heroBtnSecondary}
-            onPress={() => navigation.navigate('AddTimeEntry')}
-            accessibilityRole='button'
-            accessibilityLabel='Log hours'
-          >
-            <Ionicons name='time-outline' size={16} color={me.onBrand} />
-            <Text style={styles.heroBtnSecondaryText}>Log hours</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.heroBtnPrimary,
-              !canCreateInvoice && styles.heroBtnDisabled,
-            ]}
-            onPress={handleCreateInvoice}
-            disabled={!canCreateInvoice}
-            accessibilityRole='button'
-            accessibilityLabel='Stop tracking and create invoice'
-          >
-            <Ionicons name='document-text-outline' size={16} color={me.brand} />
-            <Text style={styles.heroBtnPrimaryText}>Stop & invoice</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       <View style={styles.bentoRow}>

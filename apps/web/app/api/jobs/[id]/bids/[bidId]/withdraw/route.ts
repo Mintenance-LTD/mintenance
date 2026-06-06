@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -29,7 +32,9 @@ export const POST = withApiHandler(
     }
 
     if (bid.status !== 'pending') {
-      throw new BadRequestError(`Cannot withdraw a bid that is already ${bid.status}`);
+      throw new BadRequestError(
+        `Cannot withdraw a bid that is already ${bid.status}`
+      );
     }
 
     // Withdraw the bid (contractor's own bid)
@@ -39,7 +44,11 @@ export const POST = withApiHandler(
       .eq('id', bidId);
 
     if (withdrawError) {
-      logger.error('Failed to withdraw bid', withdrawError, { service: 'jobs', bidId, jobId });
+      logger.error('Failed to withdraw bid', withdrawError, {
+        service: 'jobs',
+        bidId,
+        jobId,
+      });
       throw withdrawError;
     }
 
@@ -61,11 +70,16 @@ export const POST = withApiHandler(
       if (job?.homeowner_id) {
         const { data: contractor } = await serverSupabase
           .from('profiles')
-          .select('full_name, company_name')
+          .select('first_name, last_name, company_name')
           .eq('id', user.id)
           .single();
 
-        const contractorName = contractor?.company_name || contractor?.full_name || 'A contractor';
+        const fullName = [contractor?.first_name, contractor?.last_name]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        const contractorName =
+          contractor?.company_name || fullName || 'A contractor';
 
         await NotificationService.createNotification({
           userId: job.homeowner_id,
@@ -76,11 +90,15 @@ export const POST = withApiHandler(
         });
       }
     } catch (notificationError) {
-      logger.error('Failed to send bid withdrawal notification', notificationError, {
-        service: 'jobs',
-        bidId,
-        jobId,
-      });
+      logger.error(
+        'Failed to send bid withdrawal notification',
+        notificationError,
+        {
+          service: 'jobs',
+          bidId,
+          jobId,
+        }
+      );
     }
 
     return NextResponse.json({

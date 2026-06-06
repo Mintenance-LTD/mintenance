@@ -100,7 +100,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from('profiles')
       .select('id, updated_at')
       .eq('role', 'contractor')
-      .eq('is_public', true)
       .order('updated_at', { ascending: false })
       .limit(500);
 

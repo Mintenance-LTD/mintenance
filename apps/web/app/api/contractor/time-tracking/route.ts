@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, BadRequestError } from '@/lib/errors/api-error';
@@ -14,17 +17,22 @@ export const GET = withApiHandler(
 
     const { data: entries, error } = await userDb
       .from('contractor_time_entries')
-      .select(`
+      .select(
+        `
         id, job_id, task_description, date, start_time, end_time,
         duration_minutes, hourly_rate, is_billable, status, notes, created_at,
         job:jobs!contractor_time_entries_job_id_fkey(id, title)
-      `)
+      `
+      )
       .eq('contractor_id', user.id)
       .order('date', { ascending: false })
       .order('start_time', { ascending: false });
 
     if (error) {
-      logger.error('Error fetching time entries', error, { service: 'time-tracking', userId: user.id });
+      logger.error('Error fetching time entries', error, {
+        service: 'time-tracking',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to fetch time entries');
     }
 
@@ -61,6 +69,10 @@ const createEntrySchema = z.object({
   hourlyRate: z.number().min(0).optional(),
   isBillable: z.boolean().optional(),
   notes: z.string().max(1000).optional(),
+  // 'running' lets the mobile live timer create an open entry it later
+  // finalises via PATCH (status -> 'stopped'). Defaults to 'stopped' for
+  // the normal "log past hours" flow which never sends a status.
+  status: z.enum(['running', 'stopped', 'invoiced']).optional(),
 });
 
 // POST: Create a new time entry
@@ -87,12 +99,16 @@ export const POST = withApiHandler(
         hourly_rate: d.hourlyRate || 0,
         is_billable: d.isBillable ?? true,
         notes: d.notes || null,
+        status: d.status ?? 'stopped',
       })
       .select('*')
       .single();
 
     if (error) {
-      logger.error('Error creating time entry', error, { service: 'time-tracking', userId: user.id });
+      logger.error('Error creating time entry', error, {
+        service: 'time-tracking',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to create time entry');
     }
 
@@ -118,7 +134,10 @@ export const DELETE = withApiHandler(
       .single();
 
     if (!existing) {
-      return NextResponse.json({ error: 'Time entry not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Time entry not found' },
+        { status: 404 }
+      );
     }
 
     const { error } = await userDb
@@ -128,7 +147,10 @@ export const DELETE = withApiHandler(
       .eq('contractor_id', user.id);
 
     if (error) {
-      logger.error('Error deleting time entry', error, { service: 'time-tracking', userId: user.id });
+      logger.error('Error deleting time entry', error, {
+        service: 'time-tracking',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to delete time entry');
     }
 
@@ -155,18 +177,28 @@ export const PATCH = withApiHandler(
       .single();
 
     if (!existing) {
-      return NextResponse.json({ error: 'Time entry not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Time entry not found' },
+        { status: 404 }
+      );
     }
 
-    const dbUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const dbUpdates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
     if (updates.jobId !== undefined) dbUpdates.job_id = updates.jobId;
-    if (updates.taskDescription !== undefined) dbUpdates.task_description = updates.taskDescription;
+    if (updates.taskDescription !== undefined)
+      dbUpdates.task_description = updates.taskDescription;
     if (updates.date !== undefined) dbUpdates.date = updates.date;
-    if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
+    if (updates.startTime !== undefined)
+      dbUpdates.start_time = updates.startTime;
     if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
-    if (updates.durationMinutes !== undefined) dbUpdates.duration_minutes = updates.durationMinutes;
-    if (updates.hourlyRate !== undefined) dbUpdates.hourly_rate = updates.hourlyRate;
-    if (updates.isBillable !== undefined) dbUpdates.is_billable = updates.isBillable;
+    if (updates.durationMinutes !== undefined)
+      dbUpdates.duration_minutes = updates.durationMinutes;
+    if (updates.hourlyRate !== undefined)
+      dbUpdates.hourly_rate = updates.hourlyRate;
+    if (updates.isBillable !== undefined)
+      dbUpdates.is_billable = updates.isBillable;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
@@ -177,7 +209,10 @@ export const PATCH = withApiHandler(
       .eq('contractor_id', user.id);
 
     if (error) {
-      logger.error('Error updating time entry', error, { service: 'time-tracking', userId: user.id });
+      logger.error('Error updating time entry', error, {
+        service: 'time-tracking',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to update time entry');
     }
 

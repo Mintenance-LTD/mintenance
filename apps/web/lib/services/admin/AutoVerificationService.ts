@@ -145,7 +145,7 @@ export class AutoVerificationService {
         const { data: ratingData, error: ratingError } = await serverSupabase
           .from('reviews')
           .select('rating')
-          .eq('contractor_id', contractorId);
+          .eq('reviewee_id', contractorId);
 
         if (ratingError) {
           logger.error('Failed to fetch reviews for auto-verification', {
