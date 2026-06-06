@@ -56,11 +56,17 @@ export const SettingsHubScreen: React.FC = () => {
     queryFn: async (): Promise<UserSettings> => {
       if (!user?.id) throw new Error('Not authenticated');
       try {
-        const res = await mobileApiClient.get<{ data: UserSettings }>(
+        // 2026-06-06 audit: GET /api/users/settings returns the settings
+        // object at the top level ({ ...defaults, ...stored }), NOT wrapped
+        // in { data }. Reading res.data was always undefined, so saved
+        // privacy/notification toggles never displayed — the screen always
+        // showed the hardcoded defaults and a disabled "Profile Visible"
+        // flipped back on after refetch. Read the response directly.
+        const res = await mobileApiClient.get<UserSettings>(
           '/api/users/settings'
         );
         return (
-          res.data || {
+          res || {
             notifications: { email: true, push: true, sms: false },
             privacy: { profileVisible: true, shareActivityData: false },
           }

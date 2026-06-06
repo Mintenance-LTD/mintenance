@@ -21,9 +21,11 @@ import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { me } from '../../design-system/mint-editorial';
+import { queryKeys } from '../../lib/queryClient';
 
 import { styles } from './quick-job-post/theme/styles';
 import {
@@ -45,6 +47,7 @@ export const QuickJobPostScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const params = route.params as QuickJobRouteParams | undefined;
   const initialCategory = params?.category ?? '';
@@ -103,6 +106,10 @@ export const QuickJobPostScreen: React.FC = () => {
       );
       return;
     }
+
+    // 2026-06-06 audit: refresh the job lists so the just-posted job shows
+    // on return without a manual pull-to-refresh.
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
 
     Alert.alert(
       'Job Posted!',

@@ -153,6 +153,19 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
       Alert.alert('Required', 'Please enter the address.');
       return;
     }
+    // 2026-06-06 audit: EditProperty skipped the UK-postcode validation
+    // AddProperty enforces, so an invalid postcode could be saved here and
+    // break geocoding / contractor radius matching. Validate when present.
+    if (
+      postcode.trim() &&
+      !/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(postcode.trim())
+    ) {
+      Alert.alert(
+        'Invalid Postcode',
+        'Please enter a valid UK postcode (e.g. SW1A 1AA).'
+      );
+      return;
+    }
     updateMutation.mutate();
   };
 
