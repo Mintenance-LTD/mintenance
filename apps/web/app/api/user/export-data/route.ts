@@ -84,7 +84,7 @@ export const POST = withApiHandler({}, async (request, { user }) => {
     userDb.from('invoices').select('*').eq('contractor_id', user.id),
     userDb.from('invoices').select('*').eq('client_id', user.id),
     userDb.from('reviews').select('*').eq('reviewer_id', user.id),
-    userDb.from('reviews').select('*').eq('contractor_id', user.id),
+    userDb.from('reviews').select('*').eq('reviewee_id', user.id),
     userDb.from('contracts').select('*').eq('homeowner_id', user.id),
     userDb.from('contracts').select('*').eq('contractor_id', user.id),
     userDb

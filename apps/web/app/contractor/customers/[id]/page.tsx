@@ -115,7 +115,7 @@ export default async function CustomerDetailPage({
     .from('reviews')
     .select('id, rating, comment, created_at')
     .eq('reviewer_id', customerId)
-    .eq('contractor_id', user.id)
+    .eq('reviewee_id', user.id)
     .order('created_at', { ascending: false });
 
   const customerName =

@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { getContractorRatingStats } from '@/lib/services/reviews/contractor-rating';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -85,17 +86,12 @@ export class BidAcceptanceAgent {
         return null;
       }
 
-      // Get contractor rating
-      const { data: reviews } = await serverSupabase
-        .from('reviews')
-        .select('rating')
-        .eq('contractor_id', bid.contractor_id);
-
-      const averageRating =
-        reviews && reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
-            reviews.length
-          : 0;
+      // Get contractor rating (canonical helper — reviewee_id keyed).
+      const ratingStats = await getContractorRatingStats(
+        serverSupabase,
+        bid.contractor_id
+      );
+      const averageRating = ratingStats.average;
 
       // Check if bid meets criteria.
       // 2026-05-23: jobBudget passed as null when the homeowner didn't
@@ -106,7 +102,7 @@ export class BidAcceptanceAgent {
         bidAmount: bid.amount || 0,
         jobBudget: job.budget ?? null,
         contractorRating: averageRating,
-        reviewCount: reviews?.length || 0,
+        reviewCount: ratingStats.count,
       });
 
       if (!meetsCriteria) {
@@ -121,9 +117,9 @@ export class BidAcceptanceAgent {
       matchScore += averageRating * 10; // 0-50 points from rating
 
       // Bonus from review count
-      if (reviews && reviews.length >= 10) {
+      if (ratingStats.count >= 10) {
         matchScore += 20;
-      } else if (reviews && reviews.length >= 5) {
+      } else if (ratingStats.count >= 5) {
         matchScore += 10;
       }
 

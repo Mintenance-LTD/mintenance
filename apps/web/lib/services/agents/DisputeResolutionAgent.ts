@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { getContractorRatingStats } from '@/lib/services/reviews/contractor-rating';
 import { AgentLogger } from './AgentLogger';
 import { DisputeWorkflowService } from '../disputes/DisputeWorkflowService';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -50,17 +51,12 @@ export class DisputeResolutionAgent {
         return null;
       }
 
-      // Get contractor (payee) rating
-      const { data: reviews } = await serverSupabase
-        .from('reviews')
-        .select('rating')
-        .eq('contractor_id', escrow.payee_id);
-
-      const averageRating =
-        reviews && reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
-            reviews.length
-          : 0;
+      // Get contractor (payee) rating (canonical helper — reviewee_id keyed).
+      const ratingStats = await getContractorRatingStats(
+        serverSupabase,
+        escrow.payee_id
+      );
+      const averageRating = ratingStats.average;
 
       // Auto-refund for low-value disputes with high-rated contractors
       const amount = escrow.amount || 0;

@@ -28,41 +28,67 @@ export const GET = withApiHandler(
     }
 
     // Aggregate by category
-    const categoryMap = new Map<string, { count: number; totalBudget: number; budgetEntries: number }>();
+    const categoryMap = new Map<
+      string,
+      { count: number; totalBudget: number; budgetEntries: number }
+    >();
     for (const job of jobs || []) {
       const cat = job.category || 'general';
-      const existing = categoryMap.get(cat) || { count: 0, totalBudget: 0, budgetEntries: 0 };
+      const existing = categoryMap.get(cat) || {
+        count: 0,
+        totalBudget: 0,
+        budgetEntries: 0,
+      };
       existing.count++;
       if (job.budget_min || job.budget_max) {
-        const avg = ((Number(job.budget_min) || 0) + (Number(job.budget_max) || 0)) / 2;
+        const avg =
+          ((Number(job.budget_min) || 0) + (Number(job.budget_max) || 0)) / 2;
         existing.totalBudget += avg;
         existing.budgetEntries++;
       }
       categoryMap.set(cat, existing);
     }
 
-    // Count contractors per category (competition)
+    // Count contractors per category (competition). Skills live on
+    // `profiles.skills` (a text array) keyed by role — `contractor_profiles`
+    // only holds Stripe/subscription columns and has no `specializations`,
+    // so the previous query silently returned nothing and every
+    // competition_count was 0.
     const { data: contractors } = await serverSupabase
-      .from('contractor_profiles')
-      .select('specializations')
-      .not('specializations', 'is', null);
+      .from('profiles')
+      .select('skills')
+      .eq('role', 'contractor')
+      .not('skills', 'is', null);
 
     const competitionMap = new Map<string, number>();
     for (const c of contractors || []) {
-      const specs = Array.isArray(c.specializations) ? c.specializations : [];
+      const specs = Array.isArray(c.skills) ? c.skills : [];
       for (const spec of specs) {
-        competitionMap.set(String(spec), (competitionMap.get(String(spec)) || 0) + 1);
+        competitionMap.set(
+          String(spec),
+          (competitionMap.get(String(spec)) || 0) + 1
+        );
       }
     }
 
-    const categories = Array.from(categoryMap.entries()).map(([category, data]) => ({
-      id: category,
-      category,
-      demand_level: data.count >= 5 ? 'high' : data.count >= 2 ? 'medium' : 'low' as 'high' | 'medium' | 'low',
-      avg_price: data.budgetEntries > 0 ? Math.round(data.totalBudget / data.budgetEntries) : 0,
-      job_count: data.count,
-      competition_count: competitionMap.get(category) || 0,
-    }));
+    const categories = Array.from(categoryMap.entries()).map(
+      ([category, data]) => ({
+        id: category,
+        category,
+        demand_level:
+          data.count >= 5
+            ? 'high'
+            : data.count >= 2
+              ? 'medium'
+              : ('low' as 'high' | 'medium' | 'low'),
+        avg_price:
+          data.budgetEntries > 0
+            ? Math.round(data.totalBudget / data.budgetEntries)
+            : 0,
+        job_count: data.count,
+        competition_count: competitionMap.get(category) || 0,
+      })
+    );
 
     categories.sort((a, b) => b.job_count - a.job_count);
 

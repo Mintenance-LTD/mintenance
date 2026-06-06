@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { getContractorRatingStats } from '@/lib/services/reviews/contractor-rating';
 
 const NEW_CONTRACTOR_HOLD_DAYS = 14;
 const TRUSTED_CONTRACTOR_HOLD_DAYS = 3;
@@ -38,7 +39,8 @@ export class TrustScoreService {
         .eq('contractor_id', contractorId);
 
       const totalJobs = jobs?.length || 0;
-      const completedJobs = jobs?.filter(j => j.status === 'completed').length || 0;
+      const completedJobs =
+        jobs?.filter((j) => j.status === 'completed').length || 0;
       const successfulJobs = completedJobs; // For now, completed = successful
 
       // Get dispute count
@@ -50,16 +52,13 @@ export class TrustScoreService {
 
       const disputeCount = disputes?.length || 0;
 
-      // Get average rating
-      const { data: reviews } = await serverSupabase
-        .from('reviews')
-        .select('rating')
-        .eq('contractor_id', contractorId);
-
-      const ratings = reviews?.map(r => r.rating).filter(Boolean) as number[] || [];
-      const averageRating = ratings.length > 0
-        ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
-        : null;
+      // Get average rating (canonical helper — reviews key the contractor
+      // via reviewee_id; see contractor-rating.ts for the why).
+      const ratingStats = await getContractorRatingStats(
+        serverSupabase,
+        contractorId
+      );
+      const averageRating = ratingStats.count > 0 ? ratingStats.average : null;
 
       // Calculate days on platform
       const createdAt = new Date(contractor.created_at);
@@ -87,7 +86,10 @@ export class TrustScoreService {
       const tenureScore = Math.min(onPlatformDays / 365, 1) * 0.1; // Max 1 year = full score
 
       // Total trust score
-      const trustScore = Math.max(0, Math.min(1, completionScore + disputeScore + ratingScore + tenureScore));
+      const trustScore = Math.max(
+        0,
+        Math.min(1, completionScore + disputeScore + ratingScore + tenureScore)
+      );
 
       // Update or insert trust score
       await this.updateTrustScore(contractorId, {
@@ -122,9 +124,8 @@ export class TrustScoreService {
     }
   ): Promise<void> {
     try {
-      await serverSupabase
-        .from('contractor_trust_scores')
-        .upsert({
+      await serverSupabase.from('contractor_trust_scores').upsert(
+        {
           contractor_id: contractorId,
           trust_score: data.trustScore,
           successful_jobs_count: data.successfulJobsCount,
@@ -132,9 +133,11 @@ export class TrustScoreService {
           average_rating: data.averageRating,
           on_platform_days: data.onPlatformDays,
           last_updated: new Date().toISOString(),
-        }, {
+        },
+        {
           onConflict: 'contractor_id',
-        });
+        }
+      );
     } catch (error) {
       logger.error('Error updating trust score', error, {
         service: 'TrustScoreService',
@@ -210,7 +213,10 @@ export class TrustScoreService {
         return baseDate; // Return base date if escrow not found
       }
 
-      const job = (escrow as Record<string, unknown>).jobs as Record<string, unknown>;
+      const job = (escrow as Record<string, unknown>).jobs as Record<
+        string,
+        unknown
+      >;
       const contractorId = job.contractor_id as string;
 
       // Get hold period
@@ -289,4 +295,3 @@ export class TrustScoreService {
     }
   }
 }
-
