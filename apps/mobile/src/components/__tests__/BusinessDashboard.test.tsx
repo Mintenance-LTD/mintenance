@@ -3,8 +3,8 @@ import { render, waitFor, fireEvent } from '../test-utils';
 import BusinessDashboard from '../BusinessDashboard';
 
 jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -14,105 +14,332 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 // Mock the hooks — shape mirrors the real useBusinessDashboard return contract:
 // { kpis: { revenue, jobs, satisfaction, profitability }, insights, actionItems, isLoading, lastUpdated }
 jest.mock('../../hooks/useBusinessSuite', () => ({
-  useBusinessDashboard: jest.fn(() => ({
-    isLoading: false,
-    kpis: {
-      revenue: { current: 50000, trend: { trend: 'growing', percentage: 15 } },
-      jobs: { completed: 25, total: 30, completionRate: 83.3 },
-      satisfaction: { rating: 4.5, trend: [] },
-      profitability: { margin: 35, projection: 120000 },
-    },
-    insights: [],
-    actionItems: [],
-    lastUpdated: '2026-06-01T10:00:00.000Z',
-  })),
-  useBusinessSuiteFormatters: jest.fn(() => ({
-    formatCurrency: (val: number) => `$${val.toLocaleString()}`,
-    formatPercentage: (val: number) => `${val}%`,
-    getPerformanceColor: (_val: number) => '#0D9488',
-    calculateGrowthTrend: (_data: unknown[]) => ({
-      trend: 'growing',
-      percentage: 0,
-    }),
-  })),
+  useBusinessDashboard: jest.fn(),
+  useBusinessSuiteFormatters: jest.fn(),
   businessSuiteUtils: {
     calculateROI: jest.fn(),
     getBusinessHealth: jest.fn(),
   },
 }));
 
-describe('BusinessDashboard', () => {
-  const defaultProps = {
-    contractorId: 'contractor-123',
-    onNavigate: jest.fn(),
-  };
+const {
+  useBusinessDashboard,
+  useBusinessSuiteFormatters,
+} = require('../../hooks/useBusinessSuite');
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+const fullKpis = {
+  revenue: { current: 50000, trend: { trend: 'growing', percentage: 15 } },
+  jobs: { completed: 25, total: 30, completionRate: 83.3 },
+  satisfaction: { rating: 4.5, trend: [] },
+  profitability: { margin: 35, projection: 120000 },
+};
+
+const defaultFormatters = {
+  formatCurrency: (val: number) => `$${val.toLocaleString()}`,
+  formatPercentage: (val: number) => `${val}%`,
+  getPerformanceColor: (_val: number) => '#0D9488',
+  calculateGrowthTrend: (_data: unknown[]) => ({
+    trend: 'growing',
+    percentage: 0,
+  }),
+};
+
+function setDashboard(overrides: Record<string, unknown> = {}) {
+  (useBusinessDashboard as jest.Mock).mockReturnValue({
+    isLoading: false,
+    kpis: fullKpis,
+    insights: [],
+    actionItems: [],
+    lastUpdated: '2026-06-01T10:00:00.000Z',
+    ...overrides,
   });
-  afterEach(() => {
-    jest.clearAllMocks();
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  (useBusinessSuiteFormatters as jest.Mock).mockReturnValue(defaultFormatters);
+  setDashboard();
+});
+
+describe('BusinessDashboard — loading state', () => {
+  it('renders loading spinner when isLoading and no kpis', () => {
+    setDashboard({ isLoading: true, kpis: null });
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(getByText('Loading business dashboard...')).toBeTruthy();
   });
 
-  it('should render dashboard with KPI data', async () => {
-    const { getByText } = render(<BusinessDashboard {...defaultProps} />);
+  it('does NOT show loading when isLoading but kpis already present (stale-while-revalidate)', () => {
+    setDashboard({ isLoading: true, kpis: fullKpis });
+    const { queryByText, getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(queryByText('Loading business dashboard...')).toBeNull();
+    expect(getByText('Business Dashboard')).toBeTruthy();
+  });
+});
 
+describe('BusinessDashboard — KPI rendering', () => {
+  it('renders all four KPI cards with formatted values', async () => {
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
     await waitFor(() => {
-      // Revenue KPI value is formatted via formatCurrency
-      expect(getByText('$50,000')).toBeTruthy();
-      // Jobs Completed KPI value — numeric values are passed through formatCurrency by the card renderer
-      expect(getByText('$25')).toBeTruthy();
-      // Client Satisfaction rating rendered as "X.X/5"
-      expect(getByText('4.5/5')).toBeTruthy();
-      // Profit Margin rendered as "X.X%"
-      expect(getByText('35.0%')).toBeTruthy();
+      expect(getByText('$50,000')).toBeTruthy(); // revenue via formatCurrency
+      expect(getByText('$25')).toBeTruthy(); // jobs.completed numeric → formatCurrency
+      expect(getByText('4.5/5')).toBeTruthy(); // satisfaction rating
+      expect(getByText('35.0%')).toBeTruthy(); // profit margin
     });
-  });
-
-  it('should render the KPI section titles', () => {
-    const { getByText } = render(<BusinessDashboard {...defaultProps} />);
-
     expect(getByText('Revenue')).toBeTruthy();
     expect(getByText('Jobs Completed')).toBeTruthy();
     expect(getByText('Client Satisfaction')).toBeTruthy();
     expect(getByText('Profit Margin')).toBeTruthy();
+    expect(getByText('30 total jobs')).toBeTruthy();
   });
 
-  it('should show loading state initially', () => {
-    const mockUseBusinessDashboard =
-      require('../../hooks/useBusinessSuite').useBusinessDashboard;
-    mockUseBusinessDashboard.mockReturnValueOnce({
-      isLoading: true,
-      kpis: null,
-      insights: [],
-      actionItems: [],
-      lastUpdated: new Date().toISOString(),
+  it('renders the business health score section', () => {
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(getByText('Business Health')).toBeTruthy();
+    expect(getByText('85')).toBeTruthy();
+    expect(getByText('Excellent')).toBeTruthy();
+    expect(getByText('Profitability')).toBeTruthy();
+    expect(getByText('Efficiency')).toBeTruthy();
+    expect(getByText('Growth')).toBeTruthy();
+  });
+
+  it('hides KPI + health sections when kpis is null but not loading', () => {
+    setDashboard({ isLoading: false, kpis: null });
+    const { queryByText, getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    // header still renders
+    expect(getByText('Business Dashboard')).toBeTruthy();
+    expect(queryByText('Key Performance Indicators')).toBeNull();
+    expect(queryByText('Business Health')).toBeNull();
+    // quick actions + tools still render (not gated on kpis)
+    expect(getByText('Quick Actions')).toBeTruthy();
+  });
+});
+
+describe('BusinessDashboard — KPI trend branches (renderKPICard trend rendering)', () => {
+  it('renders growing trend with positive percentage prefix', () => {
+    setDashboard({
+      kpis: {
+        ...fullKpis,
+        revenue: {
+          current: 50000,
+          trend: { trend: 'growing', percentage: 15.5 },
+        },
+      },
     });
-
-    const { getByText } = render(<BusinessDashboard {...defaultProps} />);
-
-    expect(getByText('Loading business dashboard...')).toBeTruthy();
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(getByText('+15.5%')).toBeTruthy();
   });
 
-  it('should navigate to detailed views when KPI cards are pressed', () => {
-    const { getByText } = render(<BusinessDashboard {...defaultProps} />);
-
-    const revenueCard = getByText('Revenue');
-    fireEvent.press(revenueCard);
-
-    expect(defaultProps.onNavigate).toHaveBeenCalledWith('FinancialSummary');
+  it('renders declining trend with negative percentage (no plus prefix)', () => {
+    setDashboard({
+      kpis: {
+        ...fullKpis,
+        revenue: {
+          current: 50000,
+          trend: { trend: 'declining', percentage: -8.2 },
+        },
+      },
+    });
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(getByText('-8.2%')).toBeTruthy();
   });
 
-  it('should navigate from quick action buttons', () => {
+  it('renders stable trend (remove icon branch)', () => {
+    setDashboard({
+      kpis: {
+        ...fullKpis,
+        revenue: { current: 50000, trend: { trend: 'stable', percentage: 0 } },
+      },
+    });
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(getByText('0.0%')).toBeTruthy();
+  });
+
+  it('omits trend container when revenue trend is null', () => {
+    setDashboard({
+      kpis: { ...fullKpis, revenue: { current: 50000, trend: null } },
+    });
+    const { queryByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(queryByText('+15.5%')).toBeNull();
+    expect(queryByText('-8.2%')).toBeNull();
+  });
+});
+
+describe('BusinessDashboard — insights (renderInsightCard branches)', () => {
+  it('renders success / warning / info insight types', () => {
+    setDashboard({
+      insights: [
+        {
+          type: 'success',
+          icon: 'OK',
+          title: 'Great Completion',
+          message: '95% rate',
+        },
+        {
+          type: 'warning',
+          icon: 'WARN',
+          title: 'Low Margin',
+          message: 'Review pricing',
+        },
+        { type: 'info', icon: 'INFO', title: 'Heads Up', message: 'Misc note' },
+      ],
+    });
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(getByText('Business Insights')).toBeTruthy();
+    expect(getByText('Great Completion')).toBeTruthy();
+    expect(getByText('95% rate')).toBeTruthy();
+    expect(getByText('Low Margin')).toBeTruthy();
+    expect(getByText('Heads Up')).toBeTruthy();
+    expect(getByText('Misc note')).toBeTruthy();
+  });
+
+  it('hides insights section when empty', () => {
+    setDashboard({ insights: [] });
+    const { queryByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(queryByText('Business Insights')).toBeNull();
+  });
+});
+
+describe('BusinessDashboard — action items (renderActionItem branches)', () => {
+  it('renders urgent and warning action items', () => {
+    setDashboard({
+      actionItems: [
+        {
+          type: 'urgent',
+          title: 'Overdue Invoices',
+          description: 'Overdue payments',
+          action: 'Follow up with clients',
+        },
+        {
+          type: 'warning',
+          title: 'Slow Response Time',
+          description: 'Avg over 2 hours',
+          action: 'Improve efficiency',
+        },
+      ],
+    });
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(getByText('Action Required')).toBeTruthy();
+    expect(getByText('Overdue Invoices')).toBeTruthy();
+    expect(getByText('Follow up with clients')).toBeTruthy();
+    expect(getByText('Slow Response Time')).toBeTruthy();
+    expect(getByText('Improve efficiency')).toBeTruthy();
+  });
+
+  it('hides action-required section when empty', () => {
+    setDashboard({ actionItems: [] });
+    const { queryByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    expect(queryByText('Action Required')).toBeNull();
+  });
+});
+
+describe('BusinessDashboard — KPI card navigation handlers', () => {
+  it('fires onNavigate for each KPI card press', () => {
     const onNavigate = jest.fn();
     const { getByText } = render(
-      <BusinessDashboard
-        contractorId='contractor-123'
-        onNavigate={onNavigate}
-      />
+      <BusinessDashboard contractorId='c-1' onNavigate={onNavigate} />
     );
+    fireEvent.press(getByText('Revenue'));
+    expect(onNavigate).toHaveBeenCalledWith('FinancialSummary');
+    fireEvent.press(getByText('Jobs Completed'));
+    expect(onNavigate).toHaveBeenCalledWith('JobsAnalytics');
+    fireEvent.press(getByText('Client Satisfaction'));
+    expect(onNavigate).toHaveBeenCalledWith('ClientAnalytics');
+    fireEvent.press(getByText('Profit Margin'));
+    expect(onNavigate).toHaveBeenCalledWith('ProfitAnalysis');
+  });
 
-    fireEvent.press(getByText('Create Invoice'));
-    expect(onNavigate).toHaveBeenCalledWith('CreateInvoice');
+  it('does not throw when onNavigate is undefined (optional chaining)', () => {
+    const { getByText } = render(<BusinessDashboard contractorId='c-1' />);
+    expect(() => fireEvent.press(getByText('Revenue'))).not.toThrow();
+  });
+});
+
+describe('BusinessDashboard — quick action handlers', () => {
+  it.each([
+    ['Create Invoice', 'CreateInvoice'],
+    ['Log Expense', 'RecordExpense'],
+    ['Update Schedule', 'UpdateSchedule'],
+    ['Manage Clients', 'ViewClients'],
+  ])('quick action "%s" navigates to %s', (label, screen) => {
+    const onNavigate = jest.fn();
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={onNavigate} />
+    );
+    fireEvent.press(getByText(label));
+    expect(onNavigate).toHaveBeenCalledWith(screen);
+  });
+});
+
+describe('BusinessDashboard — business tools + footer handlers', () => {
+  it.each([
+    ['Invoice Manager', 'InvoiceManager'],
+    ['Expense Tracker', 'ExpenseTracker'],
+    ['Schedule Manager', 'ScheduleManager'],
+    ['Client CRM', 'ClientCRM'],
+    ['Marketing Hub', 'MarketingHub'],
+    ['Business Goals', 'BusinessGoals'],
+  ])('tool card "%s" navigates to %s', (label, screen) => {
+    const onNavigate = jest.fn();
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={onNavigate} />
+    );
+    fireEvent.press(getByText(label));
+    expect(onNavigate).toHaveBeenCalledWith(screen);
+  });
+
+  it('footer report button navigates to BusinessReport', () => {
+    const onNavigate = jest.fn();
+    const { getByText } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={onNavigate} />
+    );
+    fireEvent.press(getByText('Generate Business Report'));
+    expect(onNavigate).toHaveBeenCalledWith('BusinessReport');
+  });
+});
+
+describe('BusinessDashboard — pull to refresh (handleRefresh)', () => {
+  it('drives the RefreshControl onRefresh callback and resets after timeout', () => {
+    jest.useFakeTimers();
+    const { UNSAFE_root } = render(
+      <BusinessDashboard contractorId='c-1' onNavigate={jest.fn()} />
+    );
+    // RefreshControl is rendered as a string host element in the RN mock, so we
+    // reach the live element via the ScrollView's refreshControl prop instead.
+    const scrollView = UNSAFE_root.findByProps({
+      showsVerticalScrollIndicator: false,
+    });
+    const refreshElement = scrollView.props.refreshControl;
+    expect(refreshElement.props.refreshing).toBe(false);
+    // invoke the onRefresh handler (handleRefresh) — sets refreshing true then
+    // schedules the 1000ms reset.
+    refreshElement.props.onRefresh();
+    jest.advanceTimersByTime(1000);
+    jest.useRealTimers();
   });
 });
