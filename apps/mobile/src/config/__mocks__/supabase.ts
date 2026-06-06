@@ -9,14 +9,37 @@ const createMockChain = () => {
     insert: jest.fn(() => chain),
     select: jest.fn(() => chain),
     eq: jest.fn(() => chain),
+    neq: jest.fn(() => chain),
     gte: jest.fn(() => chain),
     lte: jest.fn(() => chain),
+    gt: jest.fn(() => chain),
+    lt: jest.fn(() => chain),
     in: jest.fn(() => chain),
+    is: jest.fn(() => chain),
+    like: jest.fn(() => chain),
+    ilike: jest.fn(() => chain),
+    contains: jest.fn(() => chain),
+    containedBy: jest.fn(() => chain),
+    overlaps: jest.fn(() => chain),
+    or: jest.fn(() => chain),
+    not: jest.fn(() => chain),
+    match: jest.fn(() => chain),
+    filter: jest.fn(() => chain),
+    range: jest.fn(() => chain),
+    textSearch: jest.fn(() => chain),
+    delete: jest.fn(() => chain),
+    maybeSingle: jest.fn(() => {
+      const currentData = mockState.data;
+      return Promise.resolve({ data: currentData ?? null, error: null });
+    }),
     single: jest.fn(() => {
       const currentData = mockState.data;
       // Return proper response structure for single operations
       if (currentData === null || currentData === undefined) {
-        return Promise.resolve({ data: null, error: { code: 'PGRST116', message: 'Not found' } });
+        return Promise.resolve({
+          data: null,
+          error: { code: 'PGRST116', message: 'Not found' },
+        });
       }
       return Promise.resolve({ data: currentData, error: null });
     }),
@@ -38,7 +61,9 @@ const createMockChain = () => {
         return Promise.resolve(result).then(resolve);
       }
       // If currentData is an array, return it; if single item, wrap in array for list operations
-      const responseData = Array.isArray(currentData) ? currentData : [currentData];
+      const responseData = Array.isArray(currentData)
+        ? currentData
+        : [currentData];
       const result = { data: responseData, error: null };
       return Promise.resolve(result).then(resolve);
     }),
@@ -53,11 +78,19 @@ export const supabase = {
     subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })),
   })),
   auth: {
-    signUp: jest.fn(() => Promise.resolve({ data: { user: { id: 'u1' } }, error: null })),
-    signInWithPassword: jest.fn(() => Promise.resolve({ data: { user: { id: 'u1' } }, error: null })),
+    signUp: jest.fn(() =>
+      Promise.resolve({ data: { user: { id: 'u1' } }, error: null })
+    ),
+    signInWithPassword: jest.fn(() =>
+      Promise.resolve({ data: { user: { id: 'u1' } }, error: null })
+    ),
     signOut: jest.fn(() => Promise.resolve({ error: null })),
-    getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-    getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+    getUser: jest.fn(() =>
+      Promise.resolve({ data: { user: null }, error: null })
+    ),
+    getSession: jest.fn(() =>
+      Promise.resolve({ data: { session: null }, error: null })
+    ),
   },
 };
 
