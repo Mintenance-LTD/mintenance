@@ -36,10 +36,14 @@ interface ToolItem {
   screen: keyof ProfileStackParamList;
 }
 
-// 12 tiles, ordered to match the deck (top-down: Finance, Invoices →
+// 13 tiles, ordered to match the deck (top-down: Finance, Invoices →
 // Quotes, Clients → Expenses, Payouts → Calendar, Time → Reports,
-// Documents → Service Areas, Escrow). Order also reflects priority:
-// money-flow + customer-flow first, infrastructure second.
+// Documents → Certifications → Service Areas, Escrow). Order also
+// reflects priority: money-flow + customer-flow first, infrastructure
+// second. The Certifications tile is the sole live entry point into the
+// CertificationsScreen → AddCertification / DBSCheck sub-flow (the old
+// ProfileScreen contractorToolsMenuItems entry was dead code removed
+// 2026-06-05); without it those screens are unreachable in the app.
 const TOOLS: ToolItem[] = [
   {
     label: 'Finance',
@@ -120,6 +124,14 @@ const TOOLS: ToolItem[] = [
     iconColor: me.ink2,
     bgColor: me.bg3,
     screen: 'Documents',
+  },
+  {
+    label: 'Certifications',
+    subtitle: 'Credentials & DBS',
+    icon: 'ribbon',
+    iconColor: me.doc.certFg,
+    bgColor: me.doc.certBg,
+    screen: 'Certifications',
   },
   {
     label: 'Service Areas',

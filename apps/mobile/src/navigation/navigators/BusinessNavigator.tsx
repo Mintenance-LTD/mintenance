@@ -37,6 +37,7 @@ import {
   SafeTimeTrackingScreen,
   SafeAddTimeEntryScreen,
   SafeAddCertificationScreen,
+  SafeDBSCheckScreen,
   SafeReportingScreen,
   SafePayoutsScreen,
 } from './profile/ProfileBusinessNavigator';
@@ -146,6 +147,13 @@ const BusinessNavigator = () => {
         component={SafeAddCertificationScreen}
         options={{ presentation: 'modal' }}
       />
+      {/* DBSCheck registered here too (not just in ProfileNavigator) so
+          the "DBS Background Check" button inside CertificationsScreen
+          resolves when the screen is reached via the Business hub tile.
+          BusinessNavigator and ProfileNavigator are sibling tabs, so a
+          navigate('DBSCheck') from this stack can't fall through to the
+          ProfileNavigator registration. */}
+      <BusinessStack.Screen name='DBSCheck' component={SafeDBSCheckScreen} />
       <BusinessStack.Screen
         name='ContractorCardEditor'
         component={SafeContractorCardEditorScreen}
