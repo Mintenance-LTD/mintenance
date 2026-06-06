@@ -260,6 +260,39 @@ export async function handleGet(
     }
   }
 
+  // 2026-06-06 audit: the mobile JobDetails "Posted by" card reads
+  // job.homeowner.{first_name,last_name,profile_image_url,rating} but this
+  // handler only ever returned `homeowner_id`, so the card silently never
+  // rendered ({job.homeowner && ...} guard fell through). Fetch the poster's
+  // public-facing profile fields. The properties RLS pattern above shows the
+  // assigned contractor isn't always on the SELECT policy, so use
+  // serverSupabase; we expose name + avatar + rating only, never contact data.
+  let homeowner: {
+    first_name: string | null;
+    last_name: string | null;
+    profile_image_url: string | null;
+    rating: number | null;
+  } | null = null;
+  if (row.homeowner_id) {
+    const { data: hoRow } = await serverSupabase
+      .from('profiles')
+      .select('first_name, last_name, profile_image_url, avatar_url, rating')
+      .eq('id', row.homeowner_id as string)
+      .maybeSingle();
+    if (hoRow) {
+      const h = hoRow as Record<string, unknown>;
+      homeowner = {
+        first_name: (h.first_name as string | null) ?? null,
+        last_name: (h.last_name as string | null) ?? null,
+        profile_image_url:
+          (h.profile_image_url as string | null) ??
+          (h.avatar_url as string | null) ??
+          null,
+        rating: toNum(h.rating),
+      };
+    }
+  }
+
   const budget = toNum(row.budget);
   const budgetMin = toNum(row.budget_min);
   const budgetMax = toNum(row.budget_max);
@@ -304,6 +337,8 @@ export async function handleGet(
     longitude: toNum(row.longitude),
     homeowner_id: row.homeowner_id,
     contractor_id: row.contractor_id,
+    // 2026-06-06 audit: poster profile for the mobile "Posted by" HostCard.
+    homeowner,
     // 2026-05-24 audit-26 P2: pass through the completion flag so mobile
     // can drive the homeowner post-completion CTA (Review Work vs Leave
     // a Review) without round-tripping a separate query.
