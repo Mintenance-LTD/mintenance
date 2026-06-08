@@ -181,11 +181,11 @@ const ProfileScreen: React.FC = () => {
         iconBg: me.brandSoft,
         onPress: () => {
           Linking.openURL(
-            'mailto:support@mintenance.app?subject=Support%20Request'
+            'mailto:support@mintenance.co.uk?subject=Support%20Request'
           ).catch(() =>
             Alert.alert(
               'Contact Us',
-              'Unable to open email. Please contact support@mintenance.app'
+              'Unable to open email. Please contact support@mintenance.co.uk'
             )
           );
         },

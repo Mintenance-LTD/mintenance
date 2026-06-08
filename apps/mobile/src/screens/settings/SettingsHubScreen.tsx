@@ -17,10 +17,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 // supabase import removed — settings now use /api/users/settings endpoint
 import { me } from '../../design-system/mint-editorial';
+import { TERMS_URL, PRIVACY_URL } from '../../config/legal';
 
+// 2026-06-08: legal URLs are single-sourced from config/legal.ts so the
+// Settings and Profile screens can't drift apart again. The previous
+// inline constants pointed at mintenance.app (a domain used nowhere else).
 const LEGAL_URLS = {
-  privacyPolicy: 'https://mintenance.app/privacy',
-  termsAndConditions: 'https://mintenance.app/terms',
+  privacyPolicy: PRIVACY_URL,
+  termsAndConditions: TERMS_URL,
 } as const;
 
 interface UserSettings {
