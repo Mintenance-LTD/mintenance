@@ -82,7 +82,7 @@
     "expo-image": "~3.0.0",
     "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.10",
-    "expo-linear-gradient": "~15.0.8",
+    "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.13",
     "expo-local-authentication": "~17.0.8",
     "expo-location": "~19.0.8",
