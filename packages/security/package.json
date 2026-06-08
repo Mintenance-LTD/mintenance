@@ -22,7 +22,7 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.8",
     "@vitest/coverage-v8": "^4.0.15",
-    "eslint": "^9",
+    "eslint": "^10",
     "typescript-eslint": "^8"
   },
   "engines": {
