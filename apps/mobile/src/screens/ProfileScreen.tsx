@@ -98,15 +98,23 @@ const ProfileScreen: React.FC = () => {
         iconBg: me.cat.plumbingBg,
         onPress: () => navigation.navigate('Calendar'),
       },
-      {
-        label: 'Reviews',
-        icon: 'star-outline',
-        iconColor: me.accent,
-        iconBg: me.warnBg,
-        onPress: () => navigation.navigate('Reviews'),
-      },
+      // 2026-06-08: Reviews is contractor-only. ReviewsScreen calls
+      // GET /api/contractor/reviews (roles:['contractor']), so a homeowner
+      // tapping this row got a 403 → "Failed to load reviews". The Account
+      // menu section is rendered for every role, so gate the row itself.
+      ...(user?.role === 'contractor'
+        ? [
+            {
+              label: 'Reviews',
+              icon: 'star-outline',
+              iconColor: me.accent,
+              iconBg: me.warnBg,
+              onPress: () => navigation.navigate('Reviews'),
+            },
+          ]
+        : []),
     ],
-    [navigation, unreadNotifications]
+    [navigation, unreadNotifications, user?.role]
   );
 
   const propertiesMenuItems = useMemo(

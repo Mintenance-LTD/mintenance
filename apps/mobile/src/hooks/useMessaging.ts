@@ -160,6 +160,21 @@ export const useRealTimeMessages = (
 ) => {
   const queryClient = useQueryClient();
 
+  // 2026-06-08: keep the latest callbacks in refs so the subscription effect
+  // does NOT depend on their identity. MessagingScreen passes onNewMessage /
+  // onMessageUpdate as inline arrow functions (a new identity every render),
+  // and they were in this effect's dependency array — so every re-render tore
+  // the Supabase channel down and recreated it: a subscribe -> "Real-time
+  // subscription closed" -> re-subscribe storm that saturated the JS thread
+  // and froze the UI. With the callbacks in refs the channel is created once
+  // per (jobId, enabled).
+  const onNewMessageRef = React.useRef(onNewMessage);
+  const onMessageUpdateRef = React.useRef(onMessageUpdate);
+  React.useEffect(() => {
+    onNewMessageRef.current = onNewMessage;
+    onMessageUpdateRef.current = onMessageUpdate;
+  });
+
   React.useEffect(() => {
     if (!jobId || !enabled) return;
 
@@ -168,8 +183,8 @@ export const useRealTimeMessages = (
     const unsubscribe = MessagingService.subscribeToJobMessages(
       jobId,
       (newMessage) => {
-        // Call the provided callback
-        onNewMessage(newMessage);
+        // Call the provided callback (via ref so deps stay stable)
+        onNewMessageRef.current(newMessage);
 
         // Update React Query cache
         queryClient.setQueryData(
@@ -191,8 +206,8 @@ export const useRealTimeMessages = (
         });
       },
       (updatedMessage) => {
-        // Call the provided callback
-        onMessageUpdate(updatedMessage);
+        // Call the provided callback (via ref so deps stay stable)
+        onMessageUpdateRef.current(updatedMessage);
 
         // Update React Query cache
         queryClient.setQueryData(
@@ -215,7 +230,9 @@ export const useRealTimeMessages = (
       logger.info('Cleaning up real-time message subscription', { jobId });
       unsubscribe();
     };
-  }, [jobId, enabled, onNewMessage, onMessageUpdate, queryClient]);
+    // Callbacks intentionally excluded — accessed via refs above so the
+    // channel is created once per conversation instead of every render.
+  }, [jobId, enabled, queryClient]);
 };
 
 /**
