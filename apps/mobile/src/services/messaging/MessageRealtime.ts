@@ -108,7 +108,12 @@ export function subscribeToJobMessages(
               jobId: row.job_id,
               senderId: row.sender_id,
               receiverId: row.receiver_id,
-              messageText: row.message_text,
+              // 2026-06-08: the live `messages` table column is `content`,
+              // not `message_text`. Postgres CDC sends the real column name,
+              // so realtime rows only carry `content` — reading `message_text`
+              // alone made every realtime-pushed bubble render blank until an
+              // API refetch rehydrated it. Mirror fetchMessageById's fallback.
+              messageText: row.message_text || row.content || '',
               messageType: row.message_type || 'text',
               attachmentUrl: row.attachment_url,
               read: row.read ?? false,
@@ -138,7 +143,9 @@ export function subscribeToJobMessages(
               jobId: row.job_id,
               senderId: row.sender_id,
               receiverId: row.receiver_id,
-              messageText: row.message_text,
+              // 2026-06-08: see INSERT handler — realtime rows carry `content`,
+              // not `message_text`. Fall back so updated bubbles aren't blank.
+              messageText: row.message_text || row.content || '',
               messageType: row.message_type || 'text',
               attachmentUrl: row.attachment_url,
               read: row.read ?? false,

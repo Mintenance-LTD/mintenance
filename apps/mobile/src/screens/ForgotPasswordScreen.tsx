@@ -63,9 +63,31 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     };
   }, [success]);
 
+  // 2026-06-06 audit: the old resend called handleResetPassword, which
+  // does setSuccess(false) at its start — so every resend tore down the
+  // success view (and the countdown timer keyed on `success`) mid-request,
+  // flashing the form even on success. Resend in place: stay on the success
+  // screen, restart the timer only on success, and fall back to the form
+  // (where the error Banner lives) only if the resend genuinely fails.
   const handleResend = useCallback(async () => {
-    setResendTimer(30);
-    await handleResetPassword();
+    if (!validateForm()) return;
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      await AuthService.resetPassword(email);
+      setResendTimer(30);
+      logger.info('Password reset email re-sent', { email });
+    } catch (error) {
+      logger.error('Password reset resend failed', error);
+      setSuccess(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Failed to resend the reset email. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [email]);
 
   const clearError = useCallback(() => {

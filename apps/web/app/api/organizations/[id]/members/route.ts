@@ -43,6 +43,10 @@ export const GET = withApiHandler(
       .from('organization_memberships')
       .select('id, user_id, org_role, status, created_at')
       .eq('org_id', orgId)
+      // 2026-06-06 audit: without this filter, soft-removed members
+      // (DELETE sets status='removed') and any non-active rows stayed in
+      // the roster with their old role, and the header count over-reported.
+      .eq('status', 'active')
       .order('created_at', { ascending: true });
 
     if (error) {

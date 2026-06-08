@@ -108,11 +108,13 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       try {
         const { mobileApiClient } = await import('../../utils/mobileApiClient');
         // API returns property data at root level (not nested under .property)
+        // 2026-06-06 audit: `properties` has no `description` column (only
+        // access_notes), so the previous `description` prefill always read
+        // undefined. Dropped the phantom field.
         const p = await mobileApiClient.get<{
           property_type?: string;
           bedrooms?: number | null;
           year_built?: number | null;
-          description?: string | null;
         }>(`/api/properties/${propertyId}`);
         if (cancelled || !p) return;
         setPropertyInfo((prev) => ({
@@ -120,7 +122,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
           bedrooms: p.bedrooms != null ? String(p.bedrooms) : prev.bedrooms,
           yearBuilt:
             p.year_built != null ? String(p.year_built) : prev.yearBuilt,
-          description: p.description || prev.description,
+          description: prev.description,
         }));
         if (p.property_type) updateStepStatus('property_info', 'completed');
       } catch {

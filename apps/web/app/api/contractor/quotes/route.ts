@@ -37,7 +37,9 @@ export const GET = withApiHandler(
 
     let query = serverSupabase
       .from('contractor_quotes')
-      .select('id, title, client_name, client_email, status, total_amount, quote_date, created_at, sent_at, valid_until, line_items, quote_number, template_id')
+      .select(
+        'id, title, client_name, client_email, status, total_amount, subtotal, tax_amount, quote_date, created_at, sent_at, valid_until, line_items, quote_number, template_id'
+      )
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -50,30 +52,60 @@ export const GET = withApiHandler(
       throw new InternalServerError('Failed to fetch quotes');
     }
 
-    const transformedQuotes = quotes?.map((quote) => ({
-      id: quote.id,
-      jobTitle: quote.title,
-      customerName: quote.client_name,
-      customerEmail: quote.client_email,
-      status: quote.status,
-      amount: parseFloat(quote.total_amount || '0'),
-      createdDate: quote.quote_date || quote.created_at,
-      sentDate: quote.sent_at,
-      expiryDate: quote.valid_until || (quote.quote_date ? new Date(new Date(quote.quote_date).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null),
-      items: Array.isArray(quote.line_items) ? quote.line_items.length : 0,
-      quoteNumber: quote.quote_number,
-      templateUsed: quote.template_id,
-    })) || [];
+    const transformedQuotes =
+      quotes?.map((quote) => ({
+        id: quote.id,
+        jobTitle: quote.title,
+        customerName: quote.client_name,
+        customerEmail: quote.client_email,
+        status: quote.status,
+        amount: parseFloat(quote.total_amount || '0'),
+        createdDate: quote.quote_date || quote.created_at,
+        sentDate: quote.sent_at,
+        expiryDate:
+          quote.valid_until ||
+          (quote.quote_date
+            ? new Date(
+                new Date(quote.quote_date).getTime() + 30 * 24 * 60 * 60 * 1000
+              )
+                .toISOString()
+                .split('T')[0]
+            : null),
+        items: Array.isArray(quote.line_items) ? quote.line_items.length : 0,
+        quoteNumber: quote.quote_number,
+        templateUsed: quote.template_id,
+        // 2026-06-06 audit: the mobile app types this response as the
+        // canonical ContractorQuote shape — its quote cards + detail screen
+        // read total_amount/subtotal/tax_amount/client_name/project_title/
+        // created_at/valid_until/line_items directly. The list previously
+        // returned only the web-UI aliases above, so every mobile quote card
+        // and the detail screen hit `undefined.toFixed()` and crashed. Return
+        // both: the aliases (web) + the canonical, numeric-coerced fields
+        // (mobile). Additive — existing web consumers ignore the extra keys.
+        total_amount: parseFloat(quote.total_amount || '0'),
+        subtotal: parseFloat(quote.subtotal || '0'),
+        tax_amount: parseFloat(quote.tax_amount || '0'),
+        project_title: quote.title,
+        client_name: quote.client_name,
+        created_at: quote.created_at,
+        valid_until: quote.valid_until,
+        quote_number: quote.quote_number,
+        line_items: Array.isArray(quote.line_items) ? quote.line_items : [],
+      })) || [];
 
     const stats = {
       total: quotes?.length || 0,
       draft: quotes?.filter((q) => q.status === 'draft').length || 0,
       sent: quotes?.filter((q) => q.status === 'sent').length || 0,
       accepted: quotes?.filter((q) => q.status === 'accepted').length || 0,
-      declined: quotes?.filter((q) => q.status === 'declined' || q.status === 'rejected').length || 0,
-      totalRevenue: quotes
-        ?.filter((q) => q.status === 'accepted')
-        .reduce((sum, q) => sum + parseFloat(q.total_amount || '0'), 0) || 0,
+      declined:
+        quotes?.filter(
+          (q) => q.status === 'declined' || q.status === 'rejected'
+        ).length || 0,
+      totalRevenue:
+        quotes
+          ?.filter((q) => q.status === 'accepted')
+          .reduce((sum, q) => sum + parseFloat(q.total_amount || '0'), 0) || 0,
     };
 
     return NextResponse.json({ quotes: transformedQuotes, stats });
@@ -86,13 +118,25 @@ export const POST = withApiHandler(
     const validation = await validateRequest(request, createQuoteSchema);
     if (validation instanceof NextResponse) return validation;
     const {
-      title, clientName, clientEmail, clientPhone, clientAddress,
-      lineItems, subtotal, taxRate, taxAmount, totalAmount, validUntil, terms, notes,
+      title,
+      clientName,
+      clientEmail,
+      clientPhone,
+      clientAddress,
+      lineItems,
+      subtotal,
+      taxRate,
+      taxAmount,
+      totalAmount,
+      validUntil,
+      terms,
+      notes,
     } = validation.data;
 
     // Generate quote number using Supabase function
-    const { data: quoteNumber, error: numberError } = await serverSupabase
-      .rpc('generate_quote_number');
+    const { data: quoteNumber, error: numberError } = await serverSupabase.rpc(
+      'generate_quote_number'
+    );
 
     if (numberError) logger.error('Error generating quote number', numberError);
 

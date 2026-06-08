@@ -33,11 +33,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ModalStackParamList } from '../../navigation/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { queryKeys } from '../../lib/queryClient';
 import { JobService } from '../../services/JobService';
 import { LocationService } from '../../services/LocationService';
 import { me } from '../../design-system/mint-editorial';
@@ -148,6 +149,7 @@ export const EmergencyJobScreen: React.FC<Props> = ({ navigation, route }) => {
   const initialPropertyId = route.params?.propertyId;
   const [selectedKey, setSelectedKey] = useState<string>('leak');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: properties = [] } = useQuery({
     queryKey: ['properties', user?.id],
@@ -238,6 +240,9 @@ export const EmergencyJobScreen: React.FC<Props> = ({ navigation, route }) => {
       });
     },
     onSuccess: () => {
+      // 2026-06-06 audit: refresh job lists so the new emergency job shows
+      // on return without a manual pull-to-refresh.
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
       const where = displayAddress(selectedProperty);
       Alert.alert(
         'Posted',

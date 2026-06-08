@@ -17,10 +17,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 // supabase import removed — settings now use /api/users/settings endpoint
 import { me } from '../../design-system/mint-editorial';
+import { TERMS_URL, PRIVACY_URL } from '../../config/legal';
 
+// 2026-06-08: legal URLs are single-sourced from config/legal.ts so the
+// Settings and Profile screens can't drift apart again. The previous
+// inline constants pointed at mintenance.app (a domain used nowhere else).
 const LEGAL_URLS = {
-  privacyPolicy: 'https://mintenance.app/privacy',
-  termsAndConditions: 'https://mintenance.app/terms',
+  privacyPolicy: PRIVACY_URL,
+  termsAndConditions: TERMS_URL,
 } as const;
 
 interface UserSettings {
@@ -56,11 +60,17 @@ export const SettingsHubScreen: React.FC = () => {
     queryFn: async (): Promise<UserSettings> => {
       if (!user?.id) throw new Error('Not authenticated');
       try {
-        const res = await mobileApiClient.get<{ data: UserSettings }>(
+        // 2026-06-06 audit: GET /api/users/settings returns the settings
+        // object at the top level ({ ...defaults, ...stored }), NOT wrapped
+        // in { data }. Reading res.data was always undefined, so saved
+        // privacy/notification toggles never displayed — the screen always
+        // showed the hardcoded defaults and a disabled "Profile Visible"
+        // flipped back on after refetch. Read the response directly.
+        const res = await mobileApiClient.get<UserSettings>(
           '/api/users/settings'
         );
         return (
-          res.data || {
+          res || {
             notifications: { email: true, push: true, sms: false },
             privacy: { profileVisible: true, shareActivityData: false },
           }
