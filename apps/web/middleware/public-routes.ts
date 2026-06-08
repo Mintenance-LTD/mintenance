@@ -69,6 +69,12 @@ const UUID_CONTRACTOR_PROFILE_RE =
 export function isPublicRoute(pathname: string): boolean {
   if (pathname === '/') return true;
 
+  // Well-known association files (Apple Universal Links + Android App Links)
+  // MUST be fetchable with no auth — Apple/Google crawlers send no cookies.
+  // The middleware matcher runs on these paths, so without this whitelist they
+  // would be redirected to /login and universal-link verification would fail.
+  if (pathname.startsWith('/.well-known/')) return true;
+
   if (
     PUBLIC_PAGE_ROUTES.some(
       (route) => pathname === route || pathname.startsWith(route + '/')
