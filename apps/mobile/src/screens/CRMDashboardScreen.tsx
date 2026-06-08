@@ -249,8 +249,8 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         </Text>
         {total > 0 ? (
           <Text style={s.headerSub}>
-            {total} client{total !== 1 ? 's' : ''} \u00B7 {active} active \u00B7
-            \u00A3
+            {total} client{total !== 1 ? 's' : ''} {'\u00B7'} {active} active{' '}
+            {'\u00B7'} {'\u00A3'}
             {avgVal.toLocaleString()} avg value
           </Text>
         ) : (
