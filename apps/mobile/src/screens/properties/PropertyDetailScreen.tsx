@@ -498,12 +498,14 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         )}
       </View>
 
-      {property.notes && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>NOTES</Text>
-          <Text style={styles.notesText}>{property.notes}</Text>
-        </View>
-      )}
+      {/* 2026-06-08 audit: removed the dead "NOTES" block. `Property.notes`
+          is flagged "Not in DB but kept for backward compat" in
+          @mintenance/types and live `public.properties` has no `notes`
+          column (only `access_notes`, which the PropertyAccessSection below
+          already renders + edits). The GET route does `select('*')`, so
+          `property.notes` was always undefined and this block never
+          rendered. Matches audit-74's removal of the dead notes field from
+          AddProperty/EditProperty. */}
 
       <PropertyRoomsSection
         propertyId={propertyId}
