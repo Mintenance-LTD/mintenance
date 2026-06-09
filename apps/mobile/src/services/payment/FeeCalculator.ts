@@ -1,4 +1,3 @@
-import { supabase } from '../../config/supabase';
 import { apiRequest } from './apiHelper';
 
 export class FeeCalculator {
@@ -61,43 +60,41 @@ export class FeeCalculator {
   }
 
   /**
-   * 2026-05-26 audit-47 P1: previously read the orphan
-   * contractor_payout_accounts table (1 stale row live, never resynced
-   * with Stripe). Now reads the canonical readiness flags webhook
-   * handlers maintain on `profiles`. `accountComplete` requires both
-   * payouts_enabled AND transfers_active — same gate used by web
-   * accept-bid + release-escrow paths (audit-46 commit 0632eedf7).
+   * 2026-06-09 audit P0: the stripe_* profile columns were revoked from
+   * the authenticated role (20260508100543 lockdown), so the previous
+   * direct `profiles` select failed with "permission denied". Repointed
+   * to GET /api/payments/stripe-connect/status — the same readiness
+   * flags, read server-side. `accountComplete` still requires both
+   * payouts_enabled AND transfers_active (audit-46 gate).
+   *
+   * Like setupContractorPayout above, `_contractorId` is retained for
+   * call-site compatibility but ignored: the endpoint is contractor-only
+   * and identifies the caller from the auth cookie.
    */
-  static async getContractorPayoutStatus(contractorId: string): Promise<{
+  static async getContractorPayoutStatus(_contractorId?: string): Promise<{
     hasAccount: boolean;
     accountComplete: boolean;
     accountId?: string;
   }> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(
-        'stripe_connect_account_id, stripe_payouts_enabled, stripe_transfers_active'
-      )
-      .eq('id', contractorId)
-      .maybeSingle();
+    const res = await apiRequest<{
+      success: boolean;
+      status: {
+        accountId?: string | null;
+        payoutsEnabled?: boolean;
+        transfersActive?: boolean;
+        canReceivePayouts?: boolean;
+      } | null;
+    }>('/api/payments/stripe-connect/status', { method: 'GET' });
 
-    if (error) {
-      throw new Error(error.message || 'Failed to fetch payout status');
+    const status = res.status;
+    if (!status?.accountId) {
+      return { hasAccount: false, accountComplete: false };
     }
-    if (!data) return { hasAccount: false, accountComplete: false };
-
-    const row = data as Record<string, unknown>;
-    const accountId = row.stripe_connect_account_id as
-      | string
-      | null
-      | undefined;
-    const payoutsEnabled = row.stripe_payouts_enabled === true;
-    const transfersActive = row.stripe_transfers_active === true;
-
     return {
-      hasAccount: !!accountId,
-      accountComplete: !!accountId && payoutsEnabled && transfersActive,
-      accountId: accountId ?? undefined,
+      hasAccount: true,
+      accountComplete:
+        status.payoutsEnabled === true && status.transfersActive === true,
+      accountId: status.accountId,
     };
   }
 }
