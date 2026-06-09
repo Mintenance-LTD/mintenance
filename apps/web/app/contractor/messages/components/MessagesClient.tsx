@@ -689,7 +689,7 @@ export function MessagesClient() {
           >
             <div className='flex items-center justify-between mb-6'>
               <h3 className='text-lg font-semibold text-slate-900'>
-                Schedule Video Call
+                Start a Call
               </h3>
               <button
                 onClick={() => setShowVideoCallDialog(false)}
