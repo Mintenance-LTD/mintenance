@@ -37,6 +37,9 @@ interface MapRegion {
 
 interface JobsMapViewModel {
   region: MapRegion;
+  // 2026-06-09: false until region resolves from profile coords/GPS; the
+  // screen waits on it so the map opens on the user's area, not London.
+  regionResolved: boolean;
   jobs: JobMapItem[];
   searchQuery: string;
   selectedJob: JobMapItem | null;
@@ -97,6 +100,8 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     latitudeDelta: 0.15,
     longitudeDelta: 0.15,
   });
+  // Gate map + first job query until the real region resolves.
+  const [regionResolved, setRegionResolved] = useState(false);
   // Keep a ref so fetchJobs can read latest region without re-creating the callback
   const regionRef = useRef(region);
   regionRef.current = region;
@@ -199,6 +204,9 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         // If GPS denied and no profile coords, region stays as default (London)
       } catch (err) {
         logger.warn('Location initialisation failed', err);
+      } finally {
+        // Resolved in every path (coords / GPS / fallback / error).
+        if (isMounted.current) setRegionResolved(true);
       }
     })();
     return () => {
@@ -378,8 +386,9 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
   }, [userLocation, user?.id, selectedCategory]); // Depends on userLocation + user + category
 
   useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+    // Wait for the real region so the first query uses the user's area.
+    if (regionResolved) fetchJobs();
+  }, [regionResolved, fetchJobs]);
 
   // Region change: set hasPanned only after initial load is done
   const handleRegionChange = useCallback((newRegion: MapRegion) => {
@@ -462,6 +471,7 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
 
   return {
     region,
+    regionResolved,
     jobs: filteredJobs,
     searchQuery,
     selectedJob,
