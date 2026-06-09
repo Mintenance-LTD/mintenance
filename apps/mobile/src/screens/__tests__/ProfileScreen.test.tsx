@@ -270,7 +270,7 @@ describe('ProfileScreen', () => {
     const { getByText } = render(<ProfileScreen />);
     fireEvent.press(getByText('Contact Us'));
     expect(openURLSpy).toHaveBeenCalledWith(
-      'mailto:support@mintenance.app?subject=Support%20Request'
+      'mailto:support@mintenance.co.uk?subject=Support%20Request'
     );
   });
 
@@ -281,7 +281,7 @@ describe('ProfileScreen', () => {
     await waitFor(() =>
       expect(alertSpy).toHaveBeenCalledWith(
         'Contact Us',
-        expect.stringContaining('support@mintenance.app')
+        expect.stringContaining('support@mintenance.co.uk')
       )
     );
   });

@@ -3,7 +3,7 @@
  * White header, card sections, sticky floating total bar.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   View,
@@ -75,6 +75,11 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
   );
   useUnsavedChanges(isDirty);
 
+  // Display-only draft reference. Computed once on mount with a lazy
+  // initializer — previously this was `Date.now()` evaluated inline on
+  // every render, so the shown number reshuffled on every keystroke.
+  const [quoteNumber] = useState(() => `Q-${Date.now().toString().slice(-6)}`);
+
   if (viewModel.loading && viewModel.lineItems.length === 0) {
     return (
       <View style={styles.loadingContainer}>
@@ -84,8 +89,6 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
       </View>
     );
   }
-
-  const quoteNumber = `Q-${Date.now().toString().slice(-6)}`;
 
   // Step progress
   const step1Done = true;

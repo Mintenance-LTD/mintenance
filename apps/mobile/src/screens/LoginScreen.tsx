@@ -16,6 +16,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
@@ -183,7 +184,12 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Text style={styles.backLabel}>Back</Text>
                 </TouchableOpacity>
                 <View style={styles.brandMark}>
-                  <Ionicons name='leaf' size={16} color={me.onBrand} />
+                  <Image
+                    source={require('../../assets/logo-mark.png')}
+                    style={styles.brandMarkLogo}
+                    resizeMode='contain'
+                    accessibilityLabel='Mintenance'
+                  />
                 </View>
               </View>
             </FadeIn>
@@ -403,6 +409,11 @@ const styles = StyleSheet.create({
     backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  brandMarkLogo: {
+    width: 22,
+    height: 22,
+    tintColor: me.onBrand,
   },
   formHeading: {
     marginBottom: 22,

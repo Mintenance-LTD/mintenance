@@ -442,6 +442,13 @@ export class JobCRUDService {
       'end_date',
       'flexible_timeline',
       'property_id',
+      // 2026-06-08: GET /api/jobs/[id] joins the homeowner profile
+      // ({first_name,last_name,profile_image_url,rating}) specifically so
+      // JobDetailsScreen's "Posted by" card can render. formatJob was
+      // whitelisting fields and dropping `homeowner`, silently nullifying
+      // that backend join — the card (guarded on `job.homeowner`) never
+      // showed. Propagate it so the card renders.
+      'homeowner',
     ] as const;
     const jobAny = job as unknown as Record<string, unknown>;
     for (const key of extraKeys) {

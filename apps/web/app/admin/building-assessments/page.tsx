@@ -10,7 +10,11 @@ export default async function AdminBuildingAssessmentsPage() {
 
   const { data: assessments } = await supabase
     .from('building_assessments')
-    .select('*, user:profiles(id, first_name, last_name, email)')
+    // building_assessments has two FKs to profiles (user_id + validated_by) —
+    // the embed must name the FK or PostgREST rejects the query with HTTP 300.
+    .select(
+      '*, user:profiles!building_assessments_user_id_fkey(id, first_name, last_name, email)'
+    )
     .order('created_at', { ascending: false });
 
   const safeAssessments = assessments ?? [];

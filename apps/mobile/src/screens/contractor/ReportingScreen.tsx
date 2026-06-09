@@ -15,10 +15,12 @@
  *      jobs; our existing aggregation returns category buckets, so
  *      we surface those under their honest label rather than fake
  *      per-job names).
- *   5. "Export to PDF for accountant" CTA — honest stub for now
- *      (alert), wired so the visual identity matches the deck. A
- *      future PR can replace the alert with a real
- *      `/api/contractor/reports/pdf` round-trip + `expo-print`.
+ *   5. "Share report" CTA — exports the on-screen figures (net
+ *      revenue, monthly breakdown, top categories) through the OS
+ *      share sheet via React Native's built-in Share API, so it works
+ *      in the shipped binary with no extra native module. A future PR
+ *      can upgrade this to a branded PDF via `expo-print` (needs an EAS
+ *      rebuild) + a `/api/contractor/reports/pdf` round-trip.
  */
 import React, { useState, useMemo } from 'react';
 import {
@@ -30,6 +32,7 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -93,11 +96,49 @@ export const ReportingScreen: React.FC = () => {
     1
   );
 
-  const handleExport = () => {
-    Alert.alert(
-      'PDF export — coming soon',
-      "We're wiring up accountant-ready PDFs. For now, all of these numbers are exportable from the web dashboard — sign in at mintenance.co.uk/contractor."
-    );
+  const handleExport = async () => {
+    const lines: string[] = [
+      'Mintenance — contractor report',
+      selectedRange.label,
+      '',
+      `Net revenue: ${fmtGBP(stats.totalEarnings)}`,
+      `Jobs completed: ${stats.completedJobs}`,
+    ];
+
+    const monthsWithEarnings = stats.monthlyTrend.filter((m) => m.earnings > 0);
+    if (monthsWithEarnings.length > 0) {
+      lines.push('', 'Monthly breakdown:');
+      for (const m of monthsWithEarnings) {
+        lines.push(
+          `  ${m.month}: ${fmtGBP(m.earnings)} (${m.count} ${
+            m.count === 1 ? 'job' : 'jobs'
+          })`
+        );
+      }
+    }
+
+    if (stats.categoryBreakdown.length > 0) {
+      lines.push('', 'Top categories:');
+      for (const c of stats.categoryBreakdown) {
+        lines.push(
+          `  ${c.category}: ${c.count} ${c.count === 1 ? 'job' : 'jobs'}`
+        );
+      }
+    }
+
+    lines.push('', 'Generated from the Mintenance contractor app.');
+
+    try {
+      await Share.share({
+        title: `Mintenance report — ${selectedRange.label}`,
+        message: lines.join('\n'),
+      });
+    } catch {
+      Alert.alert(
+        'Could not open share sheet',
+        'Please try again, or sign in at mintenance.co.uk/contractor for the full dashboard.'
+      );
+    }
   };
 
   return (
@@ -265,12 +306,10 @@ export const ReportingScreen: React.FC = () => {
               style={styles.exportBtn}
               onPress={handleExport}
               accessibilityRole='button'
-              accessibilityLabel='Export to PDF for accountant'
+              accessibilityLabel='Share report for accountant'
             >
-              <Ionicons name='document-text-outline' size={16} color={me.ink} />
-              <Text style={styles.exportText}>
-                Export to PDF for accountant
-              </Text>
+              <Ionicons name='share-outline' size={16} color={me.ink} />
+              <Text style={styles.exportText}>Share report for accountant</Text>
             </TouchableOpacity>
           </>
         )}

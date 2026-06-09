@@ -314,3 +314,11 @@ training_data*.jsonl
 
 # Vercel CLI link metadata
 .vercel
+
+# UI/emulator debugging artifacts (audit 2026-06-09 — screenshots + uiautomator dumps land at random roots)
+ui.xml
+**/ui.xml
+/*.png
+apps/mobile/*.png
+apps/web/*.png
+/.design-bundle/

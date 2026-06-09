@@ -1,0 +1,175 @@
+/**
+ * useIdentitySetupGate — Tier 1 onboarding nudge to complete identity setup.
+ * Shown for an onboarded contractor whose verification_status is not yet
+ * pending/verified/rejected and who hasn't dismissed. Mocks AsyncStorage,
+ * supabase (local maybeSingle), useAuth, logger.
+ */
+import { renderHook, act, waitFor } from '@testing-library/react-native';
+
+const mockGetItem = jest.fn();
+const mockSetItem = jest.fn();
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: (...a: unknown[]) => mockGetItem(...a),
+    setItem: (...a: unknown[]) => mockSetItem(...a),
+  },
+}));
+
+const mockUseAuth = jest.fn();
+jest.mock('../../contexts/AuthContext', () => ({
+  __esModule: true,
+  useAuth: () => mockUseAuth(),
+}));
+
+const mockMaybeSingle = jest.fn();
+jest.mock('../../config/supabase', () => {
+  const chain: Record<string, unknown> = {};
+  chain.select = jest.fn(() => chain);
+  chain.eq = jest.fn(() => chain);
+  chain.maybeSingle = jest.fn(() => mockMaybeSingle());
+  return { __esModule: true, supabase: { from: jest.fn(() => chain) } };
+});
+
+jest.mock('../../utils/logger', () => ({
+  __esModule: true,
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+import { useIdentitySetupGate } from '../useIdentitySetupGate';
+
+const STORAGE_KEY = 'identity_setup_prompt_dismissed_at';
+const onboardedContractor = {
+  id: 'u1',
+  role: 'contractor',
+  onboarding_completed: true,
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockUseAuth.mockReturnValue({ user: onboardedContractor });
+  mockGetItem.mockResolvedValue(null);
+  mockSetItem.mockResolvedValue(undefined);
+  mockMaybeSingle.mockResolvedValue({
+    data: { verification_status: 'none' },
+    error: null,
+  });
+});
+
+describe('probe / shouldShow', () => {
+  it('is hidden for a signed-out user', async () => {
+    mockUseAuth.mockReturnValue({ user: null });
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('is hidden for a non-contractor', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { ...onboardedContractor, role: 'homeowner' },
+    });
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('is hidden until onboarding is complete', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { ...onboardedContractor, onboarding_completed: false },
+    });
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('is hidden when previously dismissed', async () => {
+    mockGetItem.mockResolvedValue(new Date().toISOString());
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('is hidden when the query errors', async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: null,
+      error: { message: 'db down' },
+    });
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('is shown when verification has not been submitted (none)', async () => {
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.shouldShow).toBe(true));
+  });
+
+  it('is shown when verification_status is null', async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: { verification_status: null },
+      error: null,
+    });
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.shouldShow).toBe(true));
+  });
+
+  it.each(['pending', 'verified', 'rejected'])(
+    'is hidden when already %s',
+    async (status) => {
+      mockMaybeSingle.mockResolvedValue({
+        data: { verification_status: status },
+        error: null,
+      });
+      const { result } = renderHook(() => useIdentitySetupGate());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.shouldShow).toBe(false);
+    }
+  );
+
+  it('is hidden when the probe throws', async () => {
+    mockMaybeSingle.mockRejectedValue(new Error('boom'));
+    const { result } = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.shouldShow).toBe(false);
+  });
+});
+
+describe('dismiss + refresh', () => {
+  async function ready() {
+    const hook = renderHook(() => useIdentitySetupGate());
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
+    return hook.result;
+  }
+
+  it('dismiss stamps the flag and hides', async () => {
+    const result = await ready();
+    await act(async () => {
+      await result.current.dismiss();
+    });
+    expect(mockSetItem).toHaveBeenCalledWith(STORAGE_KEY, expect.any(String));
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('dismiss swallows a persistence failure', async () => {
+    mockSetItem.mockRejectedValueOnce(new Error('disk full'));
+    const result = await ready();
+    await act(async () => {
+      await result.current.dismiss();
+    });
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('refresh re-probes', async () => {
+    const result = await ready();
+    mockMaybeSingle.mockClear();
+    await act(async () => {
+      await result.current.refresh();
+    });
+    expect(mockMaybeSingle).toHaveBeenCalled();
+  });
+});

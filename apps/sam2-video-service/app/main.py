@@ -60,16 +60,38 @@ trajectory_tracker: Optional[TrajectoryTracker] = None
 damage_aggregator: Optional[DamageAggregator] = None
 frame_extractor: Optional[FrameExtractor] = None
 
-# In-memory processing status store (use Redis in production).
-# Sprint 7 (6.3): Redis-backed variant scaffolded at
-# app/services/status_store.py (import `build_status_store`). Swap this
-# dict for that store in the next dedicated PR — the migration is
-# non-trivial because every route handler references `processing_status`
-# directly, and the typed shape (VideoProcessingStatus) needs to pass
-# through json.dumps / json.loads without losing Pydantic validators.
-# Scaffolding lives separately so the integration PR can test end-to-end
-# without being mixed into unrelated changes.
-processing_status: Dict[str, VideoProcessingStatus] = {}
+# Processing status store — Redis-backed when REDIS_URL is set, in-memory
+# fallback otherwise (audit 2026-06-09 closed the Sprint 7 (6.3) TODO: the
+# dict lost every in-flight job on container restart and blocked horizontal
+# scaling). Route handlers go through the load/save helpers below so the
+# Pydantic shape (VideoProcessingStatus) round-trips Redis JSON cleanly.
+from app.services.status_store import build_status_store
+
+status_store = build_status_store()
+
+# Hard ceiling on a single video job. The processor awaits between frame
+# batches, so asyncio.wait_for cancellation fires at batch boundaries.
+# Default 600s is generous for the 60s/2fps capability advertised by
+# /health; raise via env for bigger deployments.
+PROCESS_TIMEOUT_SECONDS = int(
+    os.environ.get("SAM2_PROCESS_TIMEOUT_SECONDS", "600")
+)
+
+
+def _save_status(status: VideoProcessingStatus) -> None:
+    status_store.set(status.processing_id, status.model_dump(mode="json"))
+
+
+def _load_status(processing_id: str) -> Optional[VideoProcessingStatus]:
+    raw = status_store.get(processing_id)
+    if raw is None:
+        return None
+    try:
+        return VideoProcessingStatus.model_validate(raw)
+    except Exception as e:  # corrupt/stale payload — drop rather than 500
+        logger.warning(f"Dropping corrupt status payload for {processing_id}: {e}")
+        status_store.delete(processing_id)
+        return None
 
 
 @asynccontextmanager
@@ -135,6 +157,13 @@ app = FastAPI(
 app.add_middleware(APIKeyAuthMiddleware)
 
 # CORS configuration
+if os.environ.get("API_KEY") and not os.environ.get("CORS_ORIGINS"):
+    # Authenticated (production-shaped) deployment still using the localhost
+    # default — almost certainly a misconfiguration (audit 2026-06-09 P3).
+    logger.warning(
+        "CORS_ORIGINS not set — defaulting to localhost origins. "
+        "Set CORS_ORIGINS to your production web origin(s)."
+    )
 allowed_origins = os.environ.get(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
 ).split(",")
@@ -250,13 +279,13 @@ async def process_video(
     processing_id = str(uuid.uuid4())
 
     # Initialize status
-    processing_status[processing_id] = VideoProcessingStatus(
+    _save_status(VideoProcessingStatus(
         processing_id=processing_id,
         status="queued",
         progress=0,
         started_at=datetime.utcnow(),
         message="Video queued for processing"
-    )
+    ))
 
     try:
         # Read and validate uploaded video
@@ -288,14 +317,25 @@ async def process_video(
             message="Video processing started"
         )
 
+    except HTTPException:
+        # Validation rejections (413/400) — mark failed and re-raise as-is
+        # rather than collapsing everything to a 500.
+        failed = _load_status(processing_id)
+        if failed:
+            failed.status = "failed"
+            failed.error = "Upload validation failed"
+            failed.completed_at = datetime.utcnow()
+            _save_status(failed)
+        raise
     except Exception as e:
-        processing_status[processing_id] = VideoProcessingStatus(
+        _save_status(VideoProcessingStatus(
             processing_id=processing_id,
             status="failed",
             progress=0,
+            started_at=datetime.utcnow(),
             error=str(e),
             completed_at=datetime.utcnow()
-        )
+        ))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -307,34 +347,67 @@ async def process_video_async(
     """
     Async video processing with progress tracking
     """
+    status = _load_status(processing_id) or VideoProcessingStatus(
+        processing_id=processing_id,
+        status="queued",
+        progress=0,
+        started_at=datetime.utcnow(),
+    )
     try:
         # Update status to processing
-        processing_status[processing_id].status = "processing"
-        processing_status[processing_id].message = "Extracting frames from video"
+        status.status = "processing"
+        status.message = "Extracting frames from video"
+        _save_status(status)
 
-        # Process the video
-        result = await video_processor.process_video(
-            video_path=video_path,
-            damage_types=damage_types,
-            progress_callback=lambda p, m: update_progress(processing_id, p, m)
+        # Process the video. wait_for puts a hard ceiling on a hung model —
+        # the processor awaits between frame batches, so cancellation fires
+        # at the next batch boundary (audit 2026-06-09 P2).
+        result = await asyncio.wait_for(
+            video_processor.process_video(
+                video_path=video_path,
+                damage_types=damage_types,
+                progress_callback=lambda p, m: update_progress(processing_id, p, m)
+            ),
+            timeout=PROCESS_TIMEOUT_SECONDS,
         )
 
         # Store result and update status
-        processing_status[processing_id].status = "completed"
-        processing_status[processing_id].progress = 100
-        processing_status[processing_id].completed_at = datetime.utcnow()
-        processing_status[processing_id].result = result
-        processing_status[processing_id].message = "Video processing completed successfully"
+        status = _load_status(processing_id) or status
+        status.status = "completed"
+        status.progress = 100
+        status.completed_at = datetime.utcnow()
+        status.result = result
+        status.message = "Video processing completed successfully"
+        _save_status(status)
 
         # Cleanup temporary video file
         if video_path.exists():
             video_path.unlink()
 
+    except asyncio.TimeoutError:
+        logger.error(
+            f"Video processing timed out for {processing_id} "
+            f"after {PROCESS_TIMEOUT_SECONDS}s"
+        )
+        status = _load_status(processing_id) or status
+        status.status = "failed"
+        status.error = (
+            f"Processing exceeded the {PROCESS_TIMEOUT_SECONDS}s limit "
+            "(SAM2_PROCESS_TIMEOUT_SECONDS)"
+        )
+        status.completed_at = datetime.utcnow()
+        _save_status(status)
+
+        if video_path.exists():
+            video_path.unlink()
+
     except Exception as e:
         logger.error(f"Video processing failed for {processing_id}: {e}")
-        processing_status[processing_id].status = "failed"
-        processing_status[processing_id].error = str(e)
-        processing_status[processing_id].completed_at = datetime.utcnow()
+        status = _load_status(processing_id) or status
+        status.status = "failed"
+        status.error = str(e)
+        status.completed_at = datetime.utcnow()
+        _save_status(status)
 
         # Cleanup on failure
         if video_path.exists():
@@ -343,9 +416,11 @@ async def process_video_async(
 
 def update_progress(processing_id: str, progress: int, message: str):
     """Update processing progress"""
-    if processing_id in processing_status:
-        processing_status[processing_id].progress = progress
-        processing_status[processing_id].message = message
+    status = _load_status(processing_id)
+    if status is not None:
+        status.progress = progress
+        status.message = message
+        _save_status(status)
 
 
 @app.get("/processing-status/{processing_id}")
@@ -361,13 +436,12 @@ async def get_processing_status(processing_id: str):
     """
     _validate_processing_id(processing_id)
 
-    if processing_id not in processing_status:
+    status = _load_status(processing_id)
+    if status is None:
         raise HTTPException(
             status_code=404,
             detail="Processing ID not found"
         )
-
-    status = processing_status[processing_id]
 
     return {
         "processing_id": status.processing_id,
@@ -377,7 +451,7 @@ async def get_processing_status(processing_id: str):
         "started_at": status.started_at,
         "completed_at": status.completed_at,
         "error": status.error,
-        "result": status.result if hasattr(status, 'result') else None
+        "result": status.result
     }
 
 
@@ -404,13 +478,13 @@ async def process_video_url(
     processing_id = str(uuid.uuid4())
 
     # Initialize status
-    processing_status[processing_id] = VideoProcessingStatus(
+    _save_status(VideoProcessingStatus(
         processing_id=processing_id,
         status="queued",
         progress=0,
         started_at=datetime.utcnow(),
         message="Downloading video from URL"
-    )
+    ))
 
     # Start background processing
     background_tasks.add_task(
@@ -435,8 +509,11 @@ async def process_video_from_url_async(
     """
     try:
         # Update status
-        processing_status[processing_id].status = "downloading"
-        processing_status[processing_id].message = "Downloading video"
+        status = _load_status(processing_id)
+        if status is not None:
+            status.status = "downloading"
+            status.message = "Downloading video"
+            _save_status(status)
 
         # Download video
         video_path = await video_processor.download_video(
@@ -453,9 +530,12 @@ async def process_video_from_url_async(
 
     except Exception as e:
         logger.error(f"Failed to process video from URL: {e}")
-        processing_status[processing_id].status = "failed"
-        processing_status[processing_id].error = str(e)
-        processing_status[processing_id].completed_at = datetime.utcnow()
+        status = _load_status(processing_id)
+        if status is not None:
+            status.status = "failed"
+            status.error = str(e)
+            status.completed_at = datetime.utcnow()
+            _save_status(status)
 
 
 @app.get("/aggregated-assessment/{processing_id}")
@@ -471,13 +551,12 @@ async def get_aggregated_assessment(processing_id: str):
     """
     _validate_processing_id(processing_id)
 
-    if processing_id not in processing_status:
+    status = _load_status(processing_id)
+    if status is None:
         raise HTTPException(
             status_code=404,
             detail="Processing ID not found"
         )
-
-    status = processing_status[processing_id]
 
     if status.status != "completed":
         raise HTTPException(
@@ -485,7 +564,7 @@ async def get_aggregated_assessment(processing_id: str):
             detail=f"Processing not completed. Current status: {status.status}"
         )
 
-    if not hasattr(status, 'result') or not status.result:
+    if not status.result:
         raise HTTPException(
             status_code=500,
             detail="No results available for completed processing"
@@ -505,8 +584,8 @@ async def cleanup_processing(processing_id: str):
     """
     _validate_processing_id(processing_id)
 
-    if processing_id in processing_status:
-        del processing_status[processing_id]
+    if status_store.get(processing_id) is not None:
+        status_store.delete(processing_id)
         return {"message": "Processing data cleaned up"}
 
     raise HTTPException(
@@ -524,14 +603,14 @@ async def get_active_processings():
         List of active processing jobs with their status
     """
     active = []
-    for pid, status in processing_status.items():
-        if status.status in ["queued", "processing", "downloading"]:
+    for pid, raw in status_store.list_active().items():
+        if raw.get("status") in ["queued", "processing", "downloading"]:
             active.append({
                 "processing_id": pid,
-                "status": status.status,
-                "progress": status.progress,
-                "started_at": status.started_at,
-                "message": status.message
+                "status": raw.get("status"),
+                "progress": raw.get("progress"),
+                "started_at": raw.get("started_at"),
+                "message": raw.get("message")
             })
 
     return {

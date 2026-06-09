@@ -33,6 +33,7 @@ import type { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
 export type IoniconName = keyof typeof Ionicons.glyphMap;
@@ -131,13 +132,16 @@ async function fetchProfileBits(
     });
   }
 
-  // Contractor-extra columns are included unconditionally; the
-  // homeowner case just ignores them. One round trip either way.
+  // The stripe_* columns are revoked from the authenticated role
+  // (20260508100543 lockdown), so the direct select carries only the
+  // client-readable columns; Connect readiness comes from the canonical
+  // server endpoint (contractors only — homeowners have no Connect
+  // account, so we skip the round trip).
   try {
     const { data: profile, error } = await supabase
       .from('profiles')
       .select(
-        'profile_image_url, avatar_url, company_name, verification_status, stripe_connect_account_id, stripe_payouts_enabled, stripe_transfers_active'
+        'profile_image_url, avatar_url, company_name, verification_status'
       )
       .eq('id', userId)
       .maybeSingle();
@@ -152,17 +156,36 @@ async function fetchProfileBits(
       bits.company_name = (p.company_name as string | null) ?? null;
       bits.verification_status =
         (p.verification_status as string | null) ?? null;
-      bits.stripe_connect_account_id =
-        (p.stripe_connect_account_id as string | null) ?? null;
-      bits.stripe_payouts_enabled =
-        (p.stripe_payouts_enabled as boolean | null) ?? null;
-      bits.stripe_transfers_active =
-        (p.stripe_transfers_active as boolean | null) ?? null;
     }
   } catch (err) {
     logger.warn('useOnboardingProgress: profile query threw', {
       error: err instanceof Error ? err.message : String(err),
     });
+  }
+
+  if (role === 'contractor') {
+    try {
+      const res = await mobileApiClient.get<{
+        success: boolean;
+        status: {
+          accountId?: string | null;
+          payoutsEnabled?: boolean;
+          transfersActive?: boolean;
+        } | null;
+      }>('/api/payments/stripe-connect/status');
+      // `status` is null when no Connect account exists yet — the
+      // EMPTY_BITS nulls already encode that ("setup payouts" step
+      // stays incomplete), so only overwrite on a present account.
+      if (res.status) {
+        bits.stripe_connect_account_id = res.status.accountId ?? null;
+        bits.stripe_payouts_enabled = res.status.payoutsEnabled ?? null;
+        bits.stripe_transfers_active = res.status.transfersActive ?? null;
+      }
+    } catch (err) {
+      logger.warn('useOnboardingProgress: connect status fetch failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   // Homeowners only — the primary-property check drives the "add

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../config/supabase';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
 
 export interface ContractorVerificationState {
@@ -40,21 +41,40 @@ export function useContractorVerification(
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select(
-            'admin_verified, phone_verified, stripe_customer_id, verification_status'
-          )
-          .eq('id', user.id)
-          .maybeSingle();
-        if (cancelled || !data) return;
-        const row = data as Record<string, unknown>;
+        // stripe_customer_id is column-revoked from the authenticated role
+        // (20260508100543 lockdown) — including it failed the WHOLE select
+        // with "permission denied" and left every badge stuck on "Pending".
+        // The payment badge now reads the contractor's Stripe Connect
+        // account (where job money actually lands) from the canonical
+        // server endpoint instead of the billing customer id.
+        const [profileResult, connectStatus] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('admin_verified, phone_verified, verification_status')
+            .eq('id', user.id)
+            .maybeSingle(),
+          mobileApiClient
+            .get<{
+              success: boolean;
+              status: { accountId?: string | null } | null;
+            }>('/api/payments/stripe-connect/status')
+            .then((res) => res.status)
+            .catch((err: unknown) => {
+              logger.warn(
+                'useContractorVerification: connect status fetch failed',
+                { error: err instanceof Error ? err.message : String(err) }
+              );
+              return null;
+            }),
+        ]);
+        if (cancelled || !profileResult.data) return;
+        const row = profileResult.data as Record<string, unknown>;
         setState({
           identityVerified: row.admin_verified === true,
           licenseVerified: row.verification_status === 'verified',
           paymentMethodLinked:
-            typeof row.stripe_customer_id === 'string' &&
-            row.stripe_customer_id.length > 0,
+            typeof connectStatus?.accountId === 'string' &&
+            connectStatus.accountId.length > 0,
           phoneVerified: row.phone_verified === true,
         });
       } catch (err) {

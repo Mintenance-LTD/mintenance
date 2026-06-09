@@ -47,7 +47,7 @@ interface PaymentScreenProps {
       jobId: string;
       amount: number;
       contractorId: string;
-      jobTitle: string;
+      jobTitle?: string;
       useEscrow?: boolean;
     };
   };
@@ -72,7 +72,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     jobId,
     amount,
     contractorId,
-    jobTitle,
+    jobTitle = 'Your job',
     useEscrow = true,
   } = route.params;
 

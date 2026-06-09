@@ -172,9 +172,15 @@ module.exports = {
         ],
       },
       appStoreUrl: 'https://apps.apple.com/app/mintenance/id0000000000',
+      // 2026-06-08: universal-link host migrated to the canonical UK domain
+      // mintenance.co.uk. Must match the JS prefixes in
+      // src/navigation/deepLinking.ts AND the server-hosted
+      // /.well-known/apple-app-site-association on mintenance.co.uk (whose
+      // appID is <TeamID>.com.mintenance.app). Changing this requires an
+      // EAS/native rebuild — JS-only OTA updates do not re-write entitlements.
       associatedDomains: [
-        'applinks:mintenance.app',
-        'applinks:www.mintenance.app',
+        'applinks:mintenance.co.uk',
+        'applinks:www.mintenance.co.uk',
       ],
     },
     android: {
@@ -198,6 +204,10 @@ module.exports = {
         : undefined,
       playStoreUrl:
         'https://play.google.com/store/apps/details?id=com.mintenance.app',
+      // 2026-06-08: App Links host migrated to mintenance.co.uk. autoVerify
+      // requires /.well-known/assetlinks.json on mintenance.co.uk to list this
+      // package (com.mintenance.app) + the release signing-cert SHA-256.
+      // Requires an EAS/native rebuild to re-generate AndroidManifest.
       intentFilters: [
         {
           action: 'VIEW',
@@ -205,11 +215,11 @@ module.exports = {
           data: [
             {
               scheme: 'https',
-              host: 'mintenance.app',
+              host: 'mintenance.co.uk',
             },
             {
               scheme: 'https',
-              host: 'www.mintenance.app',
+              host: 'www.mintenance.co.uk',
             },
           ],
           category: ['BROWSABLE', 'DEFAULT'],
@@ -334,11 +344,14 @@ module.exports = {
       // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      // App metadata — used at runtime and by store submission tooling
-      privacyPolicyUrl: 'https://mintenance.app/privacy',
-      termsOfServiceUrl: 'https://mintenance.app/terms',
-      supportUrl: 'https://mintenance.app/support',
-      marketingUrl: 'https://mintenance.app',
+      // App metadata — used at runtime and by store submission tooling.
+      // 2026-06-08: migrated off legacy mintenance.app to the canonical UK
+      // domain, matching config/legal.ts (TERMS_URL/PRIVACY_URL) and the
+      // universal-link host above.
+      privacyPolicyUrl: 'https://mintenance.co.uk/privacy',
+      termsOfServiceUrl: 'https://mintenance.co.uk/terms',
+      supportUrl: 'https://mintenance.co.uk/support',
+      marketingUrl: 'https://mintenance.co.uk',
       // 2026-05-27 audit-79 P2: the Android native config above accepts
       // either GOOGLE_MAPS_API_KEY (non-public, EAS secret) or
       // EXPO_PUBLIC_GOOGLE_MAPS_API_KEY (baked into JS bundle). The

@@ -102,7 +102,12 @@ export const GET = withApiHandler(
     let messageQuery = serverSupabase
       .from('messages')
       .select(
-        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
+        // 2026-06-08: join the sender profile so mapActualMessageRow can
+        // resolve `senderName` (row.sender). Without this embed every
+        // incoming bubble rendered "Unknown User". FK verified:
+        // messages_sender_id_fkey -> profiles. Service-role read, so the
+        // profiles RLS/grant restrictions don't apply here.
+        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at, sender:profiles!messages_sender_id_fkey(id, first_name, last_name, role, email, company_name)'
       )
       .eq('job_id', jobId)
       .order('created_at', { ascending: false })

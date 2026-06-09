@@ -104,7 +104,10 @@ export const MarketingScreen: React.FC = () => {
       <ErrorView message='Failed to load marketing data' onRetry={refetch} />
     );
 
-  const { stats, recentReviews } = data;
+  // 2026-06-06 audit: default recentReviews so a partial response can't
+  // crash the render with `undefined.length`.
+  const { stats } = data;
+  const recentReviews = data.recentReviews ?? [];
   const statCards = [
     {
       label: 'Win Rate',

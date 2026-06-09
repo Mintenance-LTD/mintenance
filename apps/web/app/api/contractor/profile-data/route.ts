@@ -40,7 +40,7 @@ export const GET = withApiHandler(
         .select(
           `*, reviewer:reviewer_id (first_name, last_name, profile_image_url), job:job_id (title, category)`
         )
-        .eq('contractor_id', user.id)
+        .eq('reviewee_id', user.id)
         .order('created_at', { ascending: false }),
       serverSupabase
         .from('jobs')

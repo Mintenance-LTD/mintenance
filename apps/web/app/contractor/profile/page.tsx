@@ -82,7 +82,7 @@ export default async function ContractorProfilePage2025() {
       .limit(20),
     serverSupabase
       .from('bids')
-      .select('id, status, bid_amount')
+      .select('id, status, amount')
       .eq('contractor_id', user.id),
   ]);
 
@@ -141,7 +141,7 @@ export default async function ContractorProfilePage2025() {
   // Calculate total earnings
   const totalEarnings = bids
     .filter((b) => b.status === 'accepted')
-    .reduce((sum, b) => sum + (b.bid_amount || 0), 0);
+    .reduce((sum, b) => sum + (b.amount || 0), 0);
 
   return (
     <ErrorBoundary>

@@ -37,6 +37,7 @@ import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
 const STORAGE_KEY = 'stripe_connect_prompt_dismissed_at';
@@ -75,12 +76,25 @@ export function useStripeConnectPromptGate(): StripeConnectPromptGate {
         return;
       }
 
-      const [profileResult, bidsResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('stripe_charges_enabled')
-          .eq('id', user.id)
-          .maybeSingle(),
+      // stripe_charges_enabled is column-revoked from the authenticated role
+      // (20260508100543 lockdown), so it must come from the server. The
+      // canonical readiness endpoint reads the same profiles flags the Stripe
+      // webhooks maintain. `status` is null when no Connect account exists —
+      // which for this gate means "not enabled", i.e. show the prompt.
+      const [connectResult, bidsResult] = await Promise.all([
+        mobileApiClient
+          .get<{
+            success: boolean;
+            status: { chargesEnabled?: boolean } | null;
+          }>('/api/payments/stripe-connect/status')
+          .then((res) => ({ ok: true as const, status: res.status }))
+          .catch((err: unknown) => {
+            logger.warn(
+              'useStripeConnectPromptGate: connect status fetch failed',
+              { error: err instanceof Error ? err.message : String(err) }
+            );
+            return { ok: false as const, status: null };
+          }),
         supabase
           .from('bids')
           .select('id', { count: 'exact', head: true })
@@ -88,10 +102,7 @@ export function useStripeConnectPromptGate(): StripeConnectPromptGate {
           .in('status', ACCEPTED_STATUSES),
       ]);
 
-      if (profileResult.error) {
-        logger.warn('useStripeConnectPromptGate: profile query failed', {
-          error: profileResult.error.message,
-        });
+      if (!connectResult.ok) {
         setShouldShow(false);
         setLoading(false);
         return;
@@ -105,10 +116,7 @@ export function useStripeConnectPromptGate(): StripeConnectPromptGate {
         return;
       }
 
-      const profile = profileResult.data as {
-        stripe_charges_enabled: boolean | null;
-      } | null;
-      const chargesEnabled = profile?.stripe_charges_enabled === true;
+      const chargesEnabled = connectResult.status?.chargesEnabled === true;
       const winningBidCount = bidsResult.count ?? 0;
 
       setShouldShow(winningBidCount > 0 && !chargesEnabled);

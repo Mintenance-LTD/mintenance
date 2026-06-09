@@ -26,6 +26,10 @@ ultralytics>=8.4.6
 aiohttp==3.9.1
 aiofiles==23.2.1
 
+# Job-status persistence (optional — used when REDIS_URL is set; the
+# service degrades to an in-memory store without it, see status_store.py)
+redis==5.0.4
+
 # Utilities
 python-dotenv==1.0.0
 psutil==5.9.6

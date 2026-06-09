@@ -98,6 +98,8 @@ export type JobsStackParamList = {
     amount: number;
     contractorId: string;
     contractorName?: string;
+    jobTitle?: string;
+    useEscrow?: boolean;
   };
   JobTimeline: { jobId: string };
   Dispute: { jobId: string; jobTitle: string };

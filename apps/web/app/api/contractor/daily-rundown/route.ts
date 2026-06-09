@@ -33,8 +33,8 @@ export const GET = withApiHandler(
       supabase
         .from('messages')
         .select('id, created_at', { count: 'exact', head: true })
-        .eq('recipient_id', user.id)
-        .is('read_at', null),
+        .eq('receiver_id', user.id)
+        .eq('read', false),
       supabase
         .from('notifications')
         .select('id, type, title, created_at', { count: 'exact' })
@@ -46,13 +46,13 @@ export const GET = withApiHandler(
       supabase
         .from('reviews')
         .select('id, rating, comment, created_at')
-        .eq('contractor_id', user.id)
+        .eq('reviewee_id', user.id)
         .gte('created_at', todayISO)
         .limit(50),
       supabase
         .from('escrow_transactions')
         .select('amount')
-        .eq('contractor_id', user.id)
+        .eq('payee_id', user.id)
         .eq('status', 'released')
         .gte('updated_at', todayISO)
         .limit(100),

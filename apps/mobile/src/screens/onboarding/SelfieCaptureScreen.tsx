@@ -143,12 +143,16 @@ export const SelfieCaptureScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.permissionButton}
             onPress={requestPermission}
+            accessibilityRole='button'
+            accessibilityLabel='Allow camera access'
           >
             <Text style={styles.permissionButtonText}>Allow Camera</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.cancelLink}
             onPress={() => navigation.goBack()}
+            accessibilityRole='button'
+            accessibilityLabel='Cancel and go back'
           >
             <Text style={styles.cancelLinkText}>Cancel</Text>
           </TouchableOpacity>
@@ -172,6 +176,11 @@ export const SelfieCaptureScreen: React.FC = () => {
             ]}
             onPress={handleConfirm}
             disabled={uploading}
+            accessibilityRole='button'
+            accessibilityLabel={
+              uploading ? 'Uploading photo' : 'Use this photo'
+            }
+            accessibilityState={{ disabled: uploading }}
           >
             {uploading ? (
               <ActivityIndicator color={me.onBrand} />
@@ -183,6 +192,8 @@ export const SelfieCaptureScreen: React.FC = () => {
             style={styles.secondaryButton}
             onPress={handleRetake}
             disabled={uploading}
+            accessibilityRole='button'
+            accessibilityLabel='Retake photo'
           >
             <Text style={styles.secondaryButtonText}>Retake</Text>
           </TouchableOpacity>

@@ -117,7 +117,7 @@ export const POST = withApiHandler(
       serverSupabase.from('invoices').select('*').eq('contractor_id', user.id),
       serverSupabase.from('invoices').select('*').eq('client_id', user.id),
       serverSupabase.from('reviews').select('*').eq('reviewer_id', user.id),
-      serverSupabase.from('reviews').select('*').eq('contractor_id', user.id),
+      serverSupabase.from('reviews').select('*').eq('reviewee_id', user.id),
       // contracts has homeowner_id / contractor_id directly per the
       // schema verified in prior audits.
       serverSupabase.from('contracts').select('*').eq('homeowner_id', user.id),

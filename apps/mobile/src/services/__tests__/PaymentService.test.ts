@@ -53,8 +53,9 @@ jest.mock('../../utils/mobileApiClient', () => ({
   },
 }));
 
-// Supabase is still used directly for: contracts (createPaymentIntent), payments table
-// (getPaymentHistory string path), and profiles (getContractorPayoutStatus).
+// Supabase is still used directly for: contracts (createPaymentIntent) and the payments
+// table (getPaymentHistory string path). getContractorPayoutStatus moved to the API
+// client 2026-06-09 (profiles stripe_* columns are revoked from the authenticated role).
 jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
@@ -869,25 +870,26 @@ describe('PaymentService', () => {
   });
 
   describe('getContractorPayoutStatus', () => {
+    // 2026-06-09 audit P0: repointed from a direct profiles select (the
+    // stripe_* columns are revoked from the authenticated role) to
+    // GET /api/payments/stripe-connect/status via mobileApiClient.
     it('should return payout status for contractor with a complete account', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        maybeSingle: jest.fn().mockResolvedValue({
-          data: {
-            stripe_connect_account_id: 'acct_123',
-            stripe_payouts_enabled: true,
-            stripe_transfers_active: true,
-          },
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.get.mockResolvedValue({
+        success: true,
+        status: {
+          accountId: 'acct_123',
+          payoutsEnabled: true,
+          transfersActive: true,
+          canReceivePayouts: true,
+        },
+      });
 
       const result =
         await PaymentService.getContractorPayoutStatus('contractor-123');
 
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(mockApi.get).toHaveBeenCalledWith(
+        '/api/payments/stripe-connect/status'
+      );
       expect(result).toEqual({
         hasAccount: true,
         accountComplete: true,
@@ -895,16 +897,29 @@ describe('PaymentService', () => {
       });
     });
 
-    it('should return no account status when contractor not found', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        maybeSingle: jest.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should return incomplete status when payouts are not yet enabled', async () => {
+      mockApi.get.mockResolvedValue({
+        success: true,
+        status: {
+          accountId: 'acct_123',
+          payoutsEnabled: false,
+          transfersActive: false,
+          canReceivePayouts: false,
+        },
+      });
+
+      const result =
+        await PaymentService.getContractorPayoutStatus('contractor-123');
+
+      expect(result).toEqual({
+        hasAccount: true,
+        accountComplete: false,
+        accountId: 'acct_123',
+      });
+    });
+
+    it('should return no account status when no Connect account exists', async () => {
+      mockApi.get.mockResolvedValue({ success: true, status: null });
 
       const result =
         await PaymentService.getContractorPayoutStatus('contractor-123');
@@ -915,16 +930,8 @@ describe('PaymentService', () => {
       });
     });
 
-    it('should throw error for other database errors', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        maybeSingle: jest.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Database connection failed' },
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should propagate API errors', async () => {
+      mockApi.get.mockRejectedValue(new Error('Database connection failed'));
 
       await expect(
         PaymentService.getContractorPayoutStatus('contractor-123')

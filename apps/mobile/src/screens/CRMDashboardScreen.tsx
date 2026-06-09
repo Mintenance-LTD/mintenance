@@ -249,8 +249,8 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         </Text>
         {total > 0 ? (
           <Text style={s.headerSub}>
-            {total} client{total !== 1 ? 's' : ''} \u00B7 {active} active \u00B7
-            \u00A3
+            {total} client{total !== 1 ? 's' : ''} {'\u00B7'} {active} active{' '}
+            {'\u00B7'} {'\u00A3'}
             {avgVal.toLocaleString()} avg value
           </Text>
         ) : (
@@ -331,6 +331,30 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           />
         }
       />
+      {/* 2026-06-06 audit: AddClient screen + POST /api/contractor/clients
+          were fully built but unreachable — CRMDashboard had no entry
+          point, so a contractor could never add a manual client. */}
+      <TouchableOpacity
+        onPress={() =>
+          (navigation.navigate as (...a: unknown[]) => void)('AddClient')
+        }
+        accessibilityRole='button'
+        accessibilityLabel='Add a client'
+        style={{
+          position: 'absolute',
+          right: 20,
+          bottom: 32,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: me.brand,
+          alignItems: 'center',
+          justifyContent: 'center',
+          ...me.shadow.card,
+        }}
+      >
+        <Ionicons name='add' size={28} color={me.onBrand} />
+      </TouchableOpacity>
     </View>
   );
 };
