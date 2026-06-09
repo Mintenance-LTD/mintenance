@@ -1,0 +1,17 @@
+-- Fix P0 (audit 2026-06-09): the 2026-04-06/2026-05-08 column-level lockdown of
+-- public.profiles (20260406132954_restrict_profiles_sensitive_columns +
+-- 20260508100543_lock_profiles_privileged_columns_table_level) revoked
+-- table-level SELECT and re-granted a safe column list, but missed two columns
+-- the shipped mobile binary reads directly via the authenticated role.
+-- PostgREST rejects the whole select if any requested column is unauthorized,
+-- so every affected query failed wholesale with "permission denied for table
+-- profiles" (recurring in the live Postgres error log) and the mobile
+-- onboarding gates failed silent and never showed:
+--   - useBackgroundCheckGate  (verification_status)
+--   - useIdentitySetupGate    (verification_status)
+--   - useSelfieCaptureGate    (profile_photo_is_selfie, verification_status)
+-- These two columns are non-sensitive: the related admin_verified / verified /
+-- background_check_status flags were already in the granted list. The stripe_*
+-- columns intentionally remain revoked from authenticated; the mobile reads of
+-- those are being moved server-side instead.
+GRANT SELECT (verification_status, profile_photo_is_selfie) ON public.profiles TO authenticated;

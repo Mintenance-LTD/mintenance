@@ -11,6 +11,7 @@ import {
   formatCurrencyRange,
 } from '../../utils/formatCurrency';
 import {
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
@@ -477,125 +478,137 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
 
       {/* FULL-BLEED MAP — fills entire screen */}
       {shouldRenderNativeMap ? (
-        <MapView
-          ref={mapRef}
-          provider={MAP_PROVIDER}
-          style={StyleSheet.absoluteFillObject}
-          region={viewModel.region}
-          onRegionChangeComplete={viewModel.handleRegionChange}
-          onPress={() => viewModel.handleJobSelect(null)}
-          showsUserLocation={viewModel.locationGranted}
-          showsMyLocationButton={false}
-        >
-          {/* Contractor location pin */}
-          {viewModel.userLocation && (
-            <Marker
-              coordinate={viewModel.userLocation}
-              anchor={{ x: 0.5, y: 0.5 }}
-              zIndex={100}
-            >
-              <View style={styles.userMarker}>
-                <View style={styles.userMarkerInner}>
-                  <Ionicons name='person' size={14} color='#FFFFFF' />
-                </View>
-                <Text style={styles.userMarkerLabel}>You</Text>
-              </View>
-            </Marker>
-          )}
-
-          {viewModel.jobs.map((job) => {
-            // Defensive guards — any of these can crash react-native-maps
-            // mid-render: null category → TypeError on toLowerCase(),
-            // NaN/undefined lat-lng → native Marker throws on coord parse.
-            // Skipping an invalid row is preferable to crashing the whole
-            // Find Jobs tab.
-            const lat =
-              typeof job.latitude === 'number' && Number.isFinite(job.latitude)
-                ? job.latitude
-                : null;
-            const lng =
-              typeof job.longitude === 'number' &&
-              Number.isFinite(job.longitude)
-                ? job.longitude
-                : null;
-            if (lat === null || lng === null) return null;
-            const isSelected = viewModel.selectedJob?.id === job.id;
-            const catKey = (job.category ?? 'general').toLowerCase();
-            const cat = CATEGORY_MARKERS[catKey] ??
-              CATEGORY_MARKERS.general ?? {
-                icon: 'construct' as const,
-                bg: '#6B7280',
-              };
-            // 2026-05-23 audit-14: live DB stores 'emergency' as the
-            // top-tier urgency (per the `jobs.urgency` CHECK constraint
-            // — same set used by the tenant-report fix in audit-13).
-            // The legacy 'urgent' string is gone from the data model.
-            // Accepting either keeps any in-flight legacy rows working
-            // while ensuring real emergency jobs get the pulse ring.
-            const isUrgent =
-              job.urgency === 'emergency' || job.urgency === 'urgent';
-
-            return (
+        viewModel.regionResolved ? (
+          <MapView
+            ref={mapRef}
+            provider={MAP_PROVIDER}
+            style={StyleSheet.absoluteFillObject}
+            region={viewModel.region}
+            onRegionChangeComplete={viewModel.handleRegionChange}
+            onPress={() => viewModel.handleJobSelect(null)}
+            showsUserLocation={viewModel.locationGranted}
+            showsMyLocationButton={false}
+          >
+            {/* Contractor location pin */}
+            {viewModel.userLocation && (
               <Marker
-                key={job.id}
-                coordinate={{ latitude: lat, longitude: lng }}
-                onPress={() => {
-                  viewModel.handleJobSelect(job);
-                  const index = viewModel.jobs.findIndex(
-                    (j) => j.id === job.id
-                  );
-                  // 2026-05-26 audit-49 P1: scrollToIndex without
-                  // getItemLayout can throw when the target card hasn't
-                  // been measured yet. Wrap in try/catch and fall back
-                  // to scrollToOffset, which doesn't need layout info.
-                  // CARD_WIDTH + 12 mirrors the snapToInterval used on
-                  // the carousel FlatList, so the offset lands the
-                  // selected card in the same position.
-                  if (index >= 0 && carouselRef.current) {
-                    try {
-                      carouselRef.current.scrollToIndex({
-                        index,
-                        animated: true,
-                      });
-                    } catch {
-                      carouselRef.current.scrollToOffset({
-                        offset: index * (CARD_WIDTH + 12),
-                        animated: true,
-                      });
-                    }
-                  }
-                }}
-                anchor={{ x: 0.5, y: 1 }}
+                coordinate={viewModel.userLocation}
+                anchor={{ x: 0.5, y: 0.5 }}
+                zIndex={100}
               >
-                <View style={styles.markerWrapper}>
-                  {/* Outer ring when selected */}
-                  <View
-                    style={[
-                      styles.markerPin,
-                      { backgroundColor: isSelected ? '#FFFFFF' : cat.bg },
-                      isSelected && { borderColor: cat.bg, borderWidth: 3 },
-                    ]}
-                  >
-                    <Ionicons
-                      name={cat.icon}
-                      size={isSelected ? 18 : 16}
-                      color={isSelected ? cat.bg : me.onBrand}
-                    />
+                <View style={styles.userMarker}>
+                  <View style={styles.userMarkerInner}>
+                    <Ionicons name='person' size={14} color='#FFFFFF' />
                   </View>
-                  {/* Arrow */}
-                  <View
-                    style={[
-                      styles.markerArrow,
-                      { borderTopColor: isSelected ? '#FFFFFF' : cat.bg },
-                    ]}
-                  />
-                  {/* Urgent pulse dot */}
-                  {isUrgent && <View style={styles.urgentDot} />}
+                  <Text style={styles.userMarkerLabel}>You</Text>
                 </View>
               </Marker>
-            );
-          })}
-        </MapView>
+            )}
+
+            {viewModel.jobs.map((job) => {
+              // Defensive guards — any of these can crash react-native-maps
+              // mid-render: null category → TypeError on toLowerCase(),
+              // NaN/undefined lat-lng → native Marker throws on coord parse.
+              // Skipping an invalid row is preferable to crashing the whole
+              // Find Jobs tab.
+              const lat =
+                typeof job.latitude === 'number' &&
+                Number.isFinite(job.latitude)
+                  ? job.latitude
+                  : null;
+              const lng =
+                typeof job.longitude === 'number' &&
+                Number.isFinite(job.longitude)
+                  ? job.longitude
+                  : null;
+              if (lat === null || lng === null) return null;
+              const isSelected = viewModel.selectedJob?.id === job.id;
+              const catKey = (job.category ?? 'general').toLowerCase();
+              const cat = CATEGORY_MARKERS[catKey] ??
+                CATEGORY_MARKERS.general ?? {
+                  icon: 'construct' as const,
+                  bg: '#6B7280',
+                };
+              // 2026-05-23 audit-14: live DB stores 'emergency' as the
+              // top-tier urgency (per the `jobs.urgency` CHECK constraint
+              // — same set used by the tenant-report fix in audit-13).
+              // The legacy 'urgent' string is gone from the data model.
+              // Accepting either keeps any in-flight legacy rows working
+              // while ensuring real emergency jobs get the pulse ring.
+              const isUrgent =
+                job.urgency === 'emergency' || job.urgency === 'urgent';
+
+              return (
+                <Marker
+                  key={job.id}
+                  coordinate={{ latitude: lat, longitude: lng }}
+                  onPress={() => {
+                    viewModel.handleJobSelect(job);
+                    const index = viewModel.jobs.findIndex(
+                      (j) => j.id === job.id
+                    );
+                    // 2026-05-26 audit-49 P1: scrollToIndex without
+                    // getItemLayout can throw when the target card hasn't
+                    // been measured yet. Wrap in try/catch and fall back
+                    // to scrollToOffset, which doesn't need layout info.
+                    // CARD_WIDTH + 12 mirrors the snapToInterval used on
+                    // the carousel FlatList, so the offset lands the
+                    // selected card in the same position.
+                    if (index >= 0 && carouselRef.current) {
+                      try {
+                        carouselRef.current.scrollToIndex({
+                          index,
+                          animated: true,
+                        });
+                      } catch {
+                        carouselRef.current.scrollToOffset({
+                          offset: index * (CARD_WIDTH + 12),
+                          animated: true,
+                        });
+                      }
+                    }
+                  }}
+                  anchor={{ x: 0.5, y: 1 }}
+                >
+                  <View style={styles.markerWrapper}>
+                    {/* Outer ring when selected */}
+                    <View
+                      style={[
+                        styles.markerPin,
+                        { backgroundColor: isSelected ? '#FFFFFF' : cat.bg },
+                        isSelected && { borderColor: cat.bg, borderWidth: 3 },
+                      ]}
+                    >
+                      <Ionicons
+                        name={cat.icon}
+                        size={isSelected ? 18 : 16}
+                        color={isSelected ? cat.bg : me.onBrand}
+                      />
+                    </View>
+                    {/* Arrow */}
+                    <View
+                      style={[
+                        styles.markerArrow,
+                        { borderTopColor: isSelected ? '#FFFFFF' : cat.bg },
+                      ]}
+                    />
+                    {/* Urgent pulse dot */}
+                    {isUrgent && <View style={styles.urgentDot} />}
+                  </View>
+                </Marker>
+              );
+            })}
+          </MapView>
+        ) : (
+          // Resolving the contractor's region (saved coords / GPS). Show a
+          // spinner instead of the London default flashing underneath.
+          <View style={styles.mapUnavailable} pointerEvents='none'>
+            <ActivityIndicator size='large' color={me.brand} />
+            <Text style={styles.mapUnavailableTitle}>
+              Finding jobs near you…
+            </Text>
+          </View>
+        )
       ) : (
         // pointerEvents='none' load-bearing: this absoluteFillObject
         // view absorbs taps meant for the job carousel below.

@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Alert,
   Modal,
@@ -16,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import haptics from '../../utils/haptics';
 import { theme } from '../../theme';
+import { styles } from './VideoCallScheduler.styles';
 
 interface VideoCallSchedulerProps {
   jobId: string;
@@ -41,11 +41,15 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   onScheduled,
 }) => {
   const { user } = useAuth();
-  const [selectedTime, setSelectedTime] = useState<Date>(new Date(Date.now() + 30 * 60 * 1000)); // 30 minutes from now
+  const [selectedTime, setSelectedTime] = useState<Date>(
+    new Date(Date.now() + 30 * 60 * 1000)
+  ); // 30 minutes from now
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
-  const [callType, setCallType] = useState<'consultation' | 'update' | 'review'>('consultation');
+  const [callType, setCallType] = useState<
+    'consultation' | 'update' | 'review'
+  >('consultation');
 
   // Generate quick schedule options
   const getQuickOptions = useCallback((): ScheduleOption[] => {
@@ -78,7 +82,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
       },
     ];
 
-    return options.filter(option => option.time > now);
+    return options.filter((option) => option.time > now);
   }, []);
 
   const formatDateTime = useCallback((date: Date): string => {
@@ -87,7 +91,11 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    const dateToCheck = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dateToCheck = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
 
     let dateStr = '';
     if (dateToCheck.getTime() === today.getTime()) {
@@ -101,7 +109,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
     const timeStr = date.toLocaleTimeString([], {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
 
     return `${dateStr} at ${timeStr}`;
@@ -133,7 +141,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
         user.id,
         participantIds,
         selectedTime.toISOString(),
-        callType,
+        callType
       );
 
       if (scheduledCall?.id) {
@@ -158,7 +166,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
       logger.error('Failed to schedule video call:', error);
       Alert.alert(
         'Scheduling Failed',
-        'Unable to schedule the video call. Please try again.',
+        'Unable to schedule the call. Please try again.',
         [{ text: 'OK' }]
       );
     } finally {
@@ -194,17 +202,17 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   return (
     <Modal
       visible={isVisible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      animationType='slide'
+      presentationStyle='pageSheet'
       onRequestClose={onClose}
     >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Schedule Video Call</Text>
+          <Text style={styles.headerTitle}>Schedule a Call</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -215,7 +223,11 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             <View style={styles.participantCard}>
               <View style={styles.participantRow}>
                 <View style={styles.participantAvatar}>
-                  <Ionicons name="person" size={20} color={theme.colors.textPrimary} />
+                  <Ionicons
+                    name='person'
+                    size={20}
+                    color={theme.colors.textPrimary}
+                  />
                 </View>
                 <Text style={styles.participantName}>You</Text>
                 <View style={styles.hostBadge}>
@@ -224,7 +236,11 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
               </View>
               <View style={styles.participantRow}>
                 <View style={styles.participantAvatar}>
-                  <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
+                  <Ionicons
+                    name='person'
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
                 </View>
                 <Text style={styles.participantName}>{otherUserName}</Text>
               </View>
@@ -317,11 +333,19 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                   setShowDatePicker(true);
                 }}
               >
-                <Ionicons name="calendar" size={20} color={theme.colors.textPrimary} />
+                <Ionicons
+                  name='calendar'
+                  size={20}
+                  color={theme.colors.textPrimary}
+                />
                 <Text style={styles.dateTimeButtonText}>
                   {formatDateTime(selectedTime)}
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='chevron-forward'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -330,12 +354,18 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           <View style={styles.summaryContainer}>
             <View style={styles.summaryCard}>
               <View style={styles.summaryHeader}>
-                <Ionicons name="time" size={20} color={theme.colors.textPrimary} />
+                <Ionicons
+                  name='time'
+                  size={20}
+                  color={theme.colors.textPrimary}
+                />
                 <Text style={styles.summaryTitle}>Scheduled for</Text>
               </View>
-              <Text style={styles.summaryDateTime}>{formatDateTime(selectedTime)}</Text>
+              <Text style={styles.summaryDateTime}>
+                {formatDateTime(selectedTime)}
+              </Text>
               <Text style={styles.summaryType}>
-                {callTypeOptions.find(opt => opt.value === callType)?.label}
+                {callTypeOptions.find((opt) => opt.value === callType)?.label}
               </Text>
             </View>
           </View>
@@ -369,7 +399,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
         {showDatePicker && (
           <DateTimePicker
             value={selectedTime}
-            mode="datetime"
+            mode='datetime'
             display={Platform.OS === 'ios' ? 'compact' : 'default'}
             onChange={onDateChange}
             minimumDate={new Date()}
@@ -379,227 +409,5 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  placeholder: {
-    width: 32,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  section: {
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 12,
-  },
-  participantCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  participantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  participantAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  participantName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-  },
-  hostBadge: {
-    backgroundColor: theme.colors.textPrimary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  hostBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textInverse,
-  },
-  callTypeContainer: {
-    gap: 8,
-  },
-  callTypeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  callTypeOptionSelected: {
-    backgroundColor: theme.colors.textPrimary,
-  },
-  callTypeLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-  },
-  callTypeLabelSelected: {
-    color: theme.colors.textInverse,
-  },
-  quickOptionsContainer: {
-    gap: 8,
-  },
-  quickOption: {
-    backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderRadius: 12,
-  },
-  quickOptionSelected: {
-    backgroundColor: 'rgba(34, 34, 34, 0.06)',
-    borderWidth: 2,
-    borderColor: theme.colors.textPrimary,
-  },
-  quickOptionLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  quickOptionLabelSelected: {
-    color: theme.colors.textPrimary,
-  },
-  quickOptionTime: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  quickOptionTimeSelected: {
-    color: theme.colors.textPrimary,
-  },
-  customTimeContainer: {
-    gap: 8,
-  },
-  dateTimeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  dateTimeButtonText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-  },
-  summaryContainer: {
-    marginTop: 24,
-    marginBottom: 24,
-  },
-  summaryCard: {
-    backgroundColor: theme.colors.surface,
-    padding: 20,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  summaryDateTime: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  summaryType: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  scheduleButton: {
-    backgroundColor: theme.colors.textPrimary,
-  },
-  scheduleButtonDisabled: {
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  scheduleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textInverse,
-  },
-});
 
 export default VideoCallScheduler;

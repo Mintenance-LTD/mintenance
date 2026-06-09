@@ -17,10 +17,10 @@
 
 | URL | Status | Notes |
 |-----|--------|-------|
-| Privacy Policy | https://mintenance.app/privacy | REQUIRED before submission |
-| Terms of Service | https://mintenance.app/terms | REQUIRED for iOS |
-| Support URL | https://mintenance.app/support | REQUIRED for iOS |
-| Marketing URL | https://mintenance.app | Optional but recommended |
+| Privacy Policy | https://mintenance.co.uk/privacy | REQUIRED before submission |
+| Terms of Service | https://mintenance.co.uk/terms | REQUIRED for iOS |
+| Support URL | https://mintenance.co.uk/support | REQUIRED for iOS |
+| Marketing URL | https://mintenance.co.uk | Optional but recommended |
 
 These URLs must be live and publicly accessible before submission.
 
@@ -203,7 +203,7 @@ Fill the data safety form with:
 - [ ] App Store Connect app record is created
 - [ ] Bundle ID matches: com.mintenance.app
 - [ ] Push notification capability is enabled in Apple Developer portal
-- [ ] Associated Domains configured (applinks:mintenance.app)
+- [ ] Associated Domains configured (applinks:mintenance.co.uk)
 - [ ] App Privacy answers completed in App Store Connect
 - [ ] Build uploaded via `eas submit -p ios`
 

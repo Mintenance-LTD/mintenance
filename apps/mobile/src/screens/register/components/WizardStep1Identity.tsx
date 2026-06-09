@@ -82,6 +82,7 @@ export const WizardStep1Identity: React.FC<WizardStep1IdentityProps> = ({
         size='lg'
         fullWidth
         required
+        containerStyle={styles.fieldSpacing}
       />
 
       <Input
@@ -125,6 +126,7 @@ export const WizardStep1Identity: React.FC<WizardStep1IdentityProps> = ({
         size='lg'
         fullWidth
         required
+        containerStyle={styles.confirmSpacing}
       />
 
       <TermsSection
@@ -150,5 +152,12 @@ const styles = StyleSheet.create({
     color: me.ink2,
     marginBottom: 16,
     lineHeight: 18,
+  },
+  fieldSpacing: {
+    marginBottom: 16,
+  },
+  confirmSpacing: {
+    marginTop: 16,
+    marginBottom: 16,
   },
 });

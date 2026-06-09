@@ -272,13 +272,26 @@ export async function handleGet(
     last_name: string | null;
     profile_image_url: string | null;
     rating: number | null;
+    jobs_count: number | null;
   } | null = null;
   if (row.homeowner_id) {
-    const { data: hoRow } = await serverSupabase
-      .from('profiles')
-      .select('first_name, last_name, profile_image_url, avatar_url, rating')
-      .eq('id', row.homeowner_id as string)
-      .maybeSingle();
+    // 2026-06-08 audit: run the profile read + the poster's job count in
+    // parallel. The count feeds the "N jobs posted" subtitle on the mobile
+    // "Posted by" card (JobDetailsScreen). Job.homeowner.jobs_count is
+    // already declared in @mintenance/types but was never populated, so
+    // the subtitle stayed blank — add a cheap head/count query here.
+    const [hoRes, jobsCountRes] = await Promise.all([
+      serverSupabase
+        .from('profiles')
+        .select('first_name, last_name, profile_image_url, avatar_url, rating')
+        .eq('id', row.homeowner_id as string)
+        .maybeSingle(),
+      serverSupabase
+        .from('jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('homeowner_id', row.homeowner_id as string),
+    ]);
+    const hoRow = hoRes.data;
     if (hoRow) {
       const h = hoRow as Record<string, unknown>;
       homeowner = {
@@ -289,6 +302,7 @@ export async function handleGet(
           (h.avatar_url as string | null) ??
           null,
         rating: toNum(h.rating),
+        jobs_count: jobsCountRes.count ?? null,
       };
     }
   }

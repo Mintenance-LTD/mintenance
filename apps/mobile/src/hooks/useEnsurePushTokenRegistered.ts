@@ -40,6 +40,7 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationService } from '../services/NotificationService';
 import { logger } from '../utils/logger';
@@ -70,6 +71,21 @@ export function useEnsurePushTokenRegistered(): void {
       if (cancelled) return;
       if (registeredForUserId.current === userId) return;
       if (inFlight.current) return;
+
+      // Emulators / simulators cannot obtain a remote push token from
+      // FCM/APNs — `getExpoPushTokenAsync` always returns null there.
+      // That is expected, not a failure, so skip the whole attempt
+      // (and crucially the Sentry capture below) on non-physical
+      // devices. On real devices a null token IS a genuine config
+      // problem, so the capture path stays live for them.
+      if (!Device.isDevice) {
+        if (trigger === 'mount') {
+          logger.debug(
+            '[push-retry] skipped — push tokens require a physical device'
+          );
+        }
+        return;
+      }
 
       inFlight.current = true;
       try {

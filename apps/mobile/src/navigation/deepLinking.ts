@@ -22,8 +22,8 @@ import { logger } from '../utils/logger';
  *   mintenance://messages/:id      -> Messaging screen
  *   mintenance://contractors/:id   -> ContractorProfile modal
  *   mintenance://notifications     -> Notifications modal
- *   mintenance://profile           -> Profile tab
- *   https://mintenance.app/jobs/X  -> JobDetails (universal link)
+ *   mintenance://profile             -> Profile tab
+ *   https://mintenance.co.uk/jobs/X  -> JobDetails (universal link)
  *
  * Push notification deep links are bridged via getInitialURL and subscribe
  * below, converting notification data into navigation URLs that React
@@ -99,10 +99,16 @@ const linkingConfig: LinkingOptions<RootStackParamList>['config'] = {
 // configuration (custom scheme + universal links).
 
 export const linking: LinkingOptions<RootStackParamList> = {
+  // 2026-06-08: universal-link host migrated from the legacy mintenance.app
+  // to the canonical UK product domain mintenance.co.uk (matches the
+  // config/legal.ts + Settings/Profile migration). Must stay in lockstep with
+  // the iOS associatedDomains + Android intentFilters in app.config.js and the
+  // server-hosted .well-known association files on mintenance.co.uk. Requires
+  // an EAS/native rebuild to take effect.
   prefixes: [
     'mintenance://',
-    'https://mintenance.app',
-    'https://www.mintenance.app',
+    'https://mintenance.co.uk',
+    'https://www.mintenance.co.uk',
   ],
   config: linkingConfig,
 

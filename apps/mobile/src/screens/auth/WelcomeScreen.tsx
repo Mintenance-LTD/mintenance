@@ -19,6 +19,7 @@
 
 import React, { useState } from 'react';
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -37,7 +38,7 @@ type WelcomeScreenNavigationProp = NativeStackNavigationProp<
   'Welcome'
 >;
 
-type RoleChoice = 'homeowner' | 'contractor' | 'both';
+type RoleChoice = 'homeowner' | 'contractor';
 
 interface RoleTile {
   id: RoleChoice;
@@ -62,34 +63,15 @@ const ROLE_TILES: ReadonlyArray<RoleTile> = [
     subtitle: 'Find local jobs, get paid fast, build reviews.',
     accessibilityLabel: 'Continue as a tradesperson',
   },
-  {
-    id: 'both',
-    icon: 'swap-horizontal-outline',
-    title: 'Both',
-    subtitle: 'Switch between modes from your profile.',
-    accessibilityLabel: 'Continue with both modes',
-  },
 ];
-
-const LeafGlyph = ({
-  size = 28,
-  color = me.onBrand,
-}: {
-  size?: number;
-  color?: string;
-}) => <Ionicons name='leaf' size={size} color={color} />;
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
   const [selected, setSelected] = useState<RoleChoice>('homeowner');
 
   const handleContinue = () => {
-    // "Both" routes through homeowner today — the multi-role toggle
-    // lives in profile post-signup. Roles map 1:1 to the existing
-    // Register screen param.
-    const role: 'homeowner' | 'contractor' =
-      selected === 'contractor' ? 'contractor' : 'homeowner';
-    navigation.navigate('Register', { role });
+    // Role maps 1:1 to the existing Register screen param.
+    navigation.navigate('Register', { role: selected });
   };
 
   const handleSignIn = () => {
@@ -105,7 +87,12 @@ export const WelcomeScreen: React.FC = () => {
       >
         <View style={styles.brandRow}>
           <View style={styles.brandMark}>
-            <LeafGlyph />
+            <Image
+              source={require('../../../assets/logo-mark.png')}
+              style={styles.brandMarkLogo}
+              resizeMode='contain'
+              accessibilityLabel='Mintenance'
+            />
           </View>
         </View>
 
@@ -117,7 +104,7 @@ export const WelcomeScreen: React.FC = () => {
         </Text>
 
         <Text style={styles.eyebrow}>How will you use Mintenance?</Text>
-        <Text style={styles.subSmall}>You can switch any time.</Text>
+        <Text style={styles.subSmall}>Pick the option that fits you best.</Text>
 
         <View style={styles.tiles}>
           {ROLE_TILES.map((tile) => {
@@ -210,6 +197,11 @@ const styles = StyleSheet.create({
     backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  brandMarkLogo: {
+    width: 38,
+    height: 38,
+    tintColor: me.onBrand,
   },
   title: {
     fontFamily: me.font.display,
