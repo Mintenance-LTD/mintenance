@@ -263,9 +263,17 @@ export const BidReviewScreen: React.FC = () => {
         ]
       );
     } catch (err) {
+      // 2026-06-10 P1: the deck consumes the card BEFORE the mutation
+      // resolves (onSwipedRight fires post-swipe), and on the last card
+      // onSwipedAll has already flipped allReviewed. A failed accept
+      // therefore showed "All Bids Reviewed" while the bid stayed
+      // pending in the DB — unreachable until app restart. Restore the
+      // card and the deck state so the bid remains actionable.
+      swiperRef.current?.unswipe();
+      setAllReviewed(false);
       Alert.alert(
-        'Error',
-        err instanceof Error
+        'Could not accept bid',
+        err instanceof Error && err.message
           ? err.message
           : 'Failed to accept bid. Please try again.'
       );
@@ -295,9 +303,13 @@ export const BidReviewScreen: React.FC = () => {
         undoTimerRef.current = null;
       }, 5000);
     } catch (err) {
+      // 2026-06-10 P1: see handleAccept — restore the visually-swiped
+      // card and deck state when the mutation fails.
+      swiperRef.current?.unswipe();
+      setAllReviewed(false);
       Alert.alert(
-        'Error',
-        err instanceof Error
+        'Could not reject bid',
+        err instanceof Error && err.message
           ? err.message
           : 'Failed to reject bid. Please try again.'
       );
