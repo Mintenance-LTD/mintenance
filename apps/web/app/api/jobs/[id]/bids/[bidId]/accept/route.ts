@@ -175,7 +175,16 @@ export const POST = withApiHandler(
       // real readiness flags webhook handlers maintain
       // (stripe_payouts_enabled + stripe_transfers_active are both
       // boolean live; verified 2026-05-25 via information_schema).
-      const { data: contractor } = await userDb
+      //
+      // 2026-06-10 P0 regression fix: this MUST use the service-role
+      // client. The 2026-06-09 profiles column-grant lockdown revoked
+      // SELECT on stripe_* columns from `authenticated`, so the prior
+      // userDb read 403'd wholesale, the (discarded) error left
+      // `contractor` null, and EVERY bid acceptance failed with
+      // "payment account setup" even for fully-onboarded contractors.
+      // The flags never leave the server — this is an internal
+      // authorization check on a route already ownership-gated above.
+      const { data: contractor } = await serverSupabase
         .from('profiles')
         .select(
           'stripe_connect_account_id, stripe_payouts_enabled, stripe_transfers_active, first_name, last_name'
