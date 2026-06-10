@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AppState, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
@@ -291,33 +292,40 @@ export default function App(): React.JSX.Element {
     stripePublishableKey || (isDev ? 'pk_test_placeholder' : '');
 
   return (
-    <SafeAreaProvider>
-      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-        <ErrorBoundary
-          onError={(error, info) => {
-            Sentry.captureException(error, {
-              contexts: { react: { componentStack: info.componentStack } },
-            });
-          }}
-        >
-          <StripeProvider
-            publishableKey={safeStripePublishableKey}
-            merchantIdentifier='merchant.com.mintenance.app'
-            urlScheme='mintenance'
+    // GestureHandlerRootView is required for RNGH v2's GestureDetector
+    // (SwipeableCardWrapper on Bid Review, BeforeAfterSlider on photo
+    // review) — without it those screens throw a render error on mount.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+          <ErrorBoundary
+            onError={(error, info) => {
+              Sentry.captureException(error, {
+                contexts: { react: { componentStack: info.componentStack } },
+              });
+            }}
           >
-            <ThemeProvider>
-              <QueryProvider>
-                <AuthProvider>
-                  <AppNavigator />
-                  <StatusBar style='auto' />
-                </AuthProvider>
-              </QueryProvider>
-            </ThemeProvider>
-          </StripeProvider>
-        </ErrorBoundary>
+            <StripeProvider
+              publishableKey={safeStripePublishableKey}
+              merchantIdentifier='merchant.com.mintenance.app'
+              urlScheme='mintenance'
+            >
+              <ThemeProvider>
+                <QueryProvider>
+                  <AuthProvider>
+                    <AppNavigator />
+                    <StatusBar style='auto' />
+                  </AuthProvider>
+                </QueryProvider>
+              </ThemeProvider>
+            </StripeProvider>
+          </ErrorBoundary>
 
-        {showSplash && <AnimatedSplash onFinish={() => setShowSplash(false)} />}
-      </View>
-    </SafeAreaProvider>
+          {showSplash && (
+            <AnimatedSplash onFinish={() => setShowSplash(false)} />
+          )}
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
