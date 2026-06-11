@@ -19,6 +19,7 @@ import {
 import { getConfigManager, getConfigInitError } from './middleware/config';
 import { validateCsrf, setCsrfCookie } from './middleware/csrf';
 import { handleApiRateLimit } from './middleware/rate-limit';
+import { requireCronAuth } from '@/lib/cron-auth';
 import {
   handleSupabaseAuth,
   verifyJwtToken,
@@ -159,6 +160,31 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/')) {
     const rateLimitResult = await handleApiRateLimit(request, pathname);
     if (rateLimitResult.response) return rateLimitResult.response;
+  }
+
+  // ============================================================================
+  // CRON ROUTES — authenticate with the cron secret, not a user session.
+  //
+  // 2026-06-11 P0: production Vercel crons authenticate with
+  // `Authorization: Bearer ${CRON_SECRET}` — a shared secret, not a JWT —
+  // so they failed `isValidJwtFormat` below, fell through to the cookie
+  // session path, and were 401'd by redirectToLogin before ever reaching
+  // the route. Result: ZERO successful production cron executions since
+  // the cron_job_runs infra landed (2026-02-24) — verified live: the table
+  // held no rows besides local test invocations, despite 30 schedules in
+  // vercel.json (hourly escrow-auto-release, payment-reconciliation,
+  // contractor payouts, PII/retention cleanup, all reminder campaigns...).
+  //
+  // Validate the cron credential HERE with the same requireCronAuth the
+  // routes use (Bearer secret or HMAC x-cron-signature; fails closed when
+  // no secret is configured). withCronHandler re-verifies inside the route
+  // — all 30 /api/cron routes use it (verified 2026-06-11) — so this is
+  // defense-in-depth, not a bypass. Rate limiting above still applies.
+  // ============================================================================
+  if (pathname.startsWith('/api/cron/')) {
+    const cronAuthError = requireCronAuth(request);
+    if (cronAuthError) return cronAuthError;
+    return NextResponse.next();
   }
 
   // Mobile clients send Bearer token in Authorization header instead of cookies.
