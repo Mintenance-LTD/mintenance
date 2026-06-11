@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 
 // Simple console logger for config file
 const logger = {
@@ -118,6 +119,25 @@ try {
   }
 }
 
+// Resolve a Firebase config file for googleServicesFile.
+// EAS file-type env vars contain the absolute path of the file on the build
+// VM (the file itself is NOT in the project upload — it is gitignored and
+// .easignore'd). Locally, the env var is unset and the repo-root copy is used.
+const resolveGoogleServicesFile = (envVar, localPath) => {
+  const fromEnv = process.env[envVar];
+  if (fromEnv && fs.existsSync(fromEnv)) {
+    return fromEnv;
+  }
+  if (fs.existsSync(path.join(__dirname, localPath))) {
+    return localPath;
+  }
+  logger.warn(
+    `⚠️  ${envVar} not set and ${localPath} not found — build will have no ` +
+      'Firebase config; push notifications will NOT work in this binary.'
+  );
+  return undefined;
+};
+
 module.exports = {
   expo: {
     name: 'Mintenance',
@@ -143,11 +163,15 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: 'com.mintenance.app',
       buildNumber: '16',
-      // EAS writes GoogleService-Info.plist to the project root during build
-      // Set GOOGLE_SERVICES_PLIST=1 in env (or use EAS Secrets) to enable
-      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST
-        ? './GoogleService-Info.plist'
-        : undefined,
+      // EAS file env vars resolve to a PATH on the build VM — use that value
+      // directly. Fall back to the local file for non-EAS builds. The repo
+      // copy is gitignored AND .easignore'd, so the literal './…' path never
+      // exists on the EAS builder; pointing at it shipped builds with no
+      // Firebase config (push tokens could never be issued).
+      googleServicesFile: resolveGoogleServicesFile(
+        'GOOGLE_SERVICES_PLIST',
+        './GoogleService-Info.plist'
+      ),
       infoPlist: {
         NSLocationWhenInUseUsageDescription:
           'This app needs location access to find nearby contractors and show job locations.',
@@ -197,11 +221,11 @@ module.exports = {
       },
       package: 'com.mintenance.app',
       versionCode: 16,
-      // EAS writes google-services.json to the project root during build
-      // Set GOOGLE_SERVICES_JSON=1 in env (or use EAS Secrets) to enable
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON
-        ? './google-services.json'
-        : undefined,
+      // See iOS googleServicesFile note: env var IS the file path on EAS.
+      googleServicesFile: resolveGoogleServicesFile(
+        'GOOGLE_SERVICES_JSON',
+        './google-services.json'
+      ),
       playStoreUrl:
         'https://play.google.com/store/apps/details?id=com.mintenance.app',
       // 2026-06-08: App Links host migrated to mintenance.co.uk. autoVerify
