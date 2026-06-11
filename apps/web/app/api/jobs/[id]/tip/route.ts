@@ -82,8 +82,16 @@ export const POST = withApiHandler(
       throw new BadRequestError('No contractor assigned to this job');
     }
 
-    // 2. Look up contractor's Stripe Connect account
-    const { data: contractor, error: contractorError } = await db
+    // 2. Look up contractor's Stripe Connect account.
+    //
+    // 2026-06-11: must use the service-role client — the 2026-06-09
+    // profiles column-grant lockdown revoked SELECT on stripe_* columns
+    // for `authenticated`, so reading the CONTRACTOR's row through the
+    // homeowner's RLS client 403s wholesale and every tip failed with a
+    // misleading "Contractor profile not found". Same regression class
+    // as the bid-accept gate (fixed in 12129500b). The account id never
+    // leaves the server — it only feeds the PaymentIntent transfer.
+    const { data: contractor, error: contractorError } = await serverSupabase
       .from('profiles')
       .select('id, stripe_connect_account_id, first_name, last_name')
       .eq('id', job.contractor_id)

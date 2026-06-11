@@ -564,6 +564,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         budget,
         navigation,
         contractStatus: viewModel.contractStatus,
+        contractHomeownerSigned: viewModel.contractHomeownerSigned,
         escrowStatus: viewModel.escrowStatus,
         hasReviewed: viewModel.hasReviewed,
         beforePhotoCount: viewModel.beforePhotoCount,

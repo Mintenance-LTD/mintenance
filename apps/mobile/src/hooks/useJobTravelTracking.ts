@@ -213,7 +213,18 @@ export function useJobTravelTracking({
           err instanceof Error ? err.message : 'Failed to start tracking';
         setError(errorMessage);
         setIsTracking(false);
-        Alert.alert('Error', errorMessage);
+        // 2026-06-11 P1: only surface a blocking modal for an explicit
+        // "I'm on my way" tap (opts.createTrip). The silent auto-start
+        // path re-runs every time the assigned-job screen mounts / when
+        // isTracking flips, so popping an Alert here spammed a blocking
+        // "Error / OK" dialog every ~30s whenever GPS was unavailable
+        // (indoors, permission off, emulator) — it covered the contract
+        // + job-detail screens on a loop and made them unusable. The
+        // error is still kept in state + logged; the en-route section UI
+        // reflects it without hijacking the whole screen.
+        if (opts.createTrip) {
+          Alert.alert('Error', errorMessage);
+        }
         logger.error('Error starting travel tracking', err);
       }
     },

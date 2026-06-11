@@ -22,8 +22,13 @@ export const POST = withApiHandler({}, async (request, { user }) => {
     performed_by: user.id,
   });
 
-  // Export user data — RLS ensures only the user's own data is returned
-  const { data: userData } = await userDb
+  // Export user data. 2026-06-11: the profiles read must be service-role —
+  // the 2026-06-09 column-grant lockdown means SELECT * via the RLS client
+  // fails wholesale (any non-granted column poisons the select), and the
+  // discarded error made this GDPR export silently ship profile: null.
+  // The export is the user's OWN row (explicit id filter on an auth-gated
+  // route), and a subject-access export should include every column.
+  const { data: userData } = await serverSupabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)

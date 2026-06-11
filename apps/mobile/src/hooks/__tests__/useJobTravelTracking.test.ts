@@ -233,6 +233,42 @@ describe('guards', () => {
     );
     expect(mockServiceStartJob).not.toHaveBeenCalled();
   });
+
+  // 2026-06-11 P1: a silent auto-start failure (opts.createTrip falsy)
+  // must NOT pop a blocking Alert — the auto-start effect re-runs on
+  // every assigned-job screen mount, so an Alert there looped a modal
+  // over the contract/job screens whenever GPS was unavailable. The
+  // explicit "I'm on my way" tap (createTrip: true) still alerts.
+  it('does NOT Alert when a silent auto-start fails, but still sets error', async () => {
+    mockServiceStartJob.mockRejectedValueOnce(
+      new Error('Current location is unavailable')
+    );
+    const { result } = renderHook(() =>
+      useJobTravelTracking({ jobId: 'job-1', destination })
+    );
+    await act(async () => {
+      await result.current.startTracking();
+    });
+    expect(result.current.error).toBe('Current location is unavailable');
+    expect(result.current.isTracking).toBe(false);
+    expect(mockAlert).not.toHaveBeenCalled();
+  });
+
+  it('DOES Alert when an explicit "I\'m on my way" start fails', async () => {
+    mockServiceStartJob.mockRejectedValueOnce(
+      new Error('Current location is unavailable')
+    );
+    const { result } = renderHook(() =>
+      useJobTravelTracking({ jobId: 'job-1', destination })
+    );
+    await act(async () => {
+      await result.current.startTracking({ createTrip: true });
+    });
+    expect(mockAlert).toHaveBeenCalledWith(
+      'Error',
+      'Current location is unavailable'
+    );
+  });
 });
 
 describe('jobId registry path', () => {

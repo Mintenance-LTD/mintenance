@@ -7,13 +7,13 @@ let config;
 try {
   // Try to load Expo's default config
   const { getDefaultConfig } = require('expo/metro-config');
-  
+
   // Handle both sync and async getDefaultConfig
   const defaultConfig = getDefaultConfig(__dirname);
-  
+
   if (defaultConfig && typeof defaultConfig.then === 'function') {
     // Async version - return promise for EAS
-    module.exports = defaultConfig.then(config => {
+    module.exports = defaultConfig.then((config) => {
       return extendConfig(config);
     });
   } else {
@@ -48,6 +48,18 @@ function extendConfig(baseConfig) {
   if (!baseConfig.resolver) {
     baseConfig.resolver = {};
   }
+
+  // watchFolders covers the whole monorepo, so Metro's file watcher also
+  // walks apps/web/.next — Next.js dev constantly creates/deletes dirs in
+  // there, and the Windows FallbackWatcher crashes Metro with ENOENT when a
+  // dir vanishes mid-walk. Build output is never bundled, so block it.
+  const nextBuildDir = /apps[\/\\]web[\/\\]\.next[\/\\].*/;
+  const existingBlockList = baseConfig.resolver.blockList;
+  baseConfig.resolver.blockList = Array.isArray(existingBlockList)
+    ? [...existingBlockList, nextBuildDir]
+    : existingBlockList
+      ? [existingBlockList, nextBuildDir]
+      : [nextBuildDir];
   if (!baseConfig.resolver.nodeModulesPaths) {
     baseConfig.resolver.nodeModulesPaths = [];
   }
@@ -66,18 +78,28 @@ function extendConfig(baseConfig) {
   // This is critical for monorepo packages like @mintenance/ai-core that
   // point react-native to TypeScript source instead of compiled dist/
   if (!baseConfig.resolver.resolverMainFields) {
-    baseConfig.resolver.resolverMainFields = ["react-native", "browser", "main"];
-  } else if (!baseConfig.resolver.resolverMainFields.includes("react-native")) {
-    baseConfig.resolver.resolverMainFields.unshift("react-native");
+    baseConfig.resolver.resolverMainFields = [
+      'react-native',
+      'browser',
+      'main',
+    ];
+  } else if (!baseConfig.resolver.resolverMainFields.includes('react-native')) {
+    baseConfig.resolver.resolverMainFields.unshift('react-native');
   }
 
   // Ensure .ts and .tsx extensions are resolved from monorepo packages
-  const defaultSourceExts = baseConfig.resolver.sourceExts || ["js", "jsx", "json", "ts", "tsx"];
-  if (!defaultSourceExts.includes("ts")) {
-    defaultSourceExts.push("ts");
+  const defaultSourceExts = baseConfig.resolver.sourceExts || [
+    'js',
+    'jsx',
+    'json',
+    'ts',
+    'tsx',
+  ];
+  if (!defaultSourceExts.includes('ts')) {
+    defaultSourceExts.push('ts');
   }
-  if (!defaultSourceExts.includes("tsx")) {
-    defaultSourceExts.push("tsx");
+  if (!defaultSourceExts.includes('tsx')) {
+    defaultSourceExts.push('tsx');
   }
   baseConfig.resolver.sourceExts = defaultSourceExts;
 
@@ -112,8 +134,15 @@ function extendConfig(baseConfig) {
       ? originalEnhanceMiddleware(metroMiddleware, metroServer)
       : metroMiddleware;
     return (req, res, next) => {
-      if (req.url && req.url.includes('.bundle') && req.headers && req.headers.accept) {
-        req.headers.accept = req.headers.accept.replace(/multipart\/mixed,?\s*/g, '').trim() || '*/*';
+      if (
+        req.url &&
+        req.url.includes('.bundle') &&
+        req.headers &&
+        req.headers.accept
+      ) {
+        req.headers.accept =
+          req.headers.accept.replace(/multipart\/mixed,?\s*/g, '').trim() ||
+          '*/*';
       }
       return middleware(req, res, next);
     };
@@ -127,8 +156,8 @@ function getMinimalConfig() {
     projectRoot: __dirname,
     watchFolders: [path.resolve(__dirname, '../..')],
     resolver: {
-      resolverMainFields: ["react-native", "browser", "main"],
-      sourceExts: ["js", "jsx", "json", "ts", "tsx"],
+      resolverMainFields: ['react-native', 'browser', 'main'],
+      sourceExts: ['js', 'jsx', 'json', 'ts', 'tsx'],
       nodeModulesPaths: [
         path.resolve(__dirname, 'node_modules'),
         path.resolve(__dirname, '../../node_modules'),

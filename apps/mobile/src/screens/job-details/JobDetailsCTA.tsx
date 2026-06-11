@@ -32,6 +32,10 @@ export interface CTAContext {
   budget: number;
   navigation: JobDetailsScreenNavigationProp;
   contractStatus: string | null;
+  // True once the homeowner has signed. Disambiguates the two
+  // `pending_contractor` sub-states: false = fresh contract to prepare,
+  // true = homeowner signed and the contractor must now counter-sign.
+  contractHomeownerSigned: boolean;
   escrowStatus: string | null;
   hasReviewed: boolean;
   // 2026-05-25 audit-P0-3: count of before-photos already uploaded for
@@ -63,6 +67,7 @@ export function getPriorityCTA({
   budget,
   navigation,
   contractStatus,
+  contractHomeownerSigned,
   escrowStatus,
   hasReviewed,
   beforePhotoCount,
@@ -161,7 +166,30 @@ export function getPriorityCTA({
   }
 
   // Contractor stages matching web app workflow:
-  // 1. contract_preparing: no contract or draft -> "Prepare Contract"
+  // 1a. contract_signing: status is pending_contractor BUT the homeowner
+  // has already signed -> the contractor must counter-SIGN, not re-prepare.
+  // 2026-06-11 P1: this sub-state was previously folded into "Prepare
+  // Contract" below, leaving the contractor with no path to sign once the
+  // homeowner had signed. The contract could never reach `accepted`, so
+  // escrow could never be funded and the deal deadlocked. Route to the
+  // signable ContractView (same screen the homeowner signs on).
+  if (
+    isAssignedContractor &&
+    job.status === 'assigned' &&
+    contractStatus === 'pending_contractor' &&
+    contractHomeownerSigned
+  ) {
+    return (
+      <StickyBottomCTA
+        buttonText='Sign Contract'
+        onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+        secondaryText='The homeowner has signed — review and sign to finalise'
+      />
+    );
+  }
+
+  // 1b. contract_preparing: no contract or draft, or a fresh
+  // pending_contractor the homeowner hasn't signed yet -> "Prepare Contract"
   if (
     isAssignedContractor &&
     job.status === 'assigned' &&

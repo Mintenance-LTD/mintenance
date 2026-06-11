@@ -11,7 +11,6 @@
 import { stripe } from '@/lib/stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { HOMEOWNER_PAYMENT_METHOD_TYPES } from '../connect/config';
 import type { SetupIntentCreateResponse } from '../connect/types';
 
 /**
@@ -70,7 +69,16 @@ export async function createSetupIntentForUser(
 
   const setupIntent = await stripe.setupIntents.create({
     customer: customerId,
-    payment_method_types: [...HOMEOWNER_PAYMENT_METHOD_TYPES],
+    // 2026-06-11: let Stripe present whatever payment methods the account
+    // actually has enabled (Cards always; Bacs Direct Debit where it's been
+    // activated) rather than a hardcoded ['card','bacs_debit']. The previous
+    // explicit list made the ENTIRE setup-intent 500 — blocking card entry
+    // too — on any account where bacs_debit isn't configured (e.g. a fresh
+    // test/sandbox account). Pairs with the mobile PaymentSheet
+    // (initPaymentSheet + presentPaymentSheet), which renders exactly the
+    // enabled methods. Mirrors the escrow PaymentIntent in
+    // app/api/payments/create-intent/route.ts, which already does this.
+    automatic_payment_methods: { enabled: true },
     usage: 'off_session',
     metadata: { mintenance_user_id: userId },
   });
