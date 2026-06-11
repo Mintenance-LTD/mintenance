@@ -252,9 +252,19 @@ describe('guards', () => {
     expect(result.current.error).toBe('Current location is unavailable');
     expect(result.current.isTracking).toBe(false);
     expect(mockAlert).not.toHaveBeenCalled();
+    // 2026-06-11: silent auto-start failure logs at WARN, not ERROR, so
+    // it doesn't red-box in dev / Sentry-spam in prod.
+    expect(mockLoggerWarn).toHaveBeenCalledWith(
+      'Silent travel-tracking auto-start failed (will retry)',
+      expect.objectContaining({ error: 'Current location is unavailable' })
+    );
+    expect(mockLoggerError).not.toHaveBeenCalledWith(
+      'Error starting travel tracking',
+      expect.anything()
+    );
   });
 
-  it('DOES Alert when an explicit "I\'m on my way" start fails', async () => {
+  it('DOES Alert + error-logs when an explicit "I\'m on my way" start fails', async () => {
     mockServiceStartJob.mockRejectedValueOnce(
       new Error('Current location is unavailable')
     );
@@ -267,6 +277,10 @@ describe('guards', () => {
     expect(mockAlert).toHaveBeenCalledWith(
       'Error',
       'Current location is unavailable'
+    );
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      'Error starting travel tracking',
+      expect.anything()
     );
   });
 });
@@ -524,7 +538,7 @@ describe('meeting path', () => {
 });
 
 describe('error paths', () => {
-  it('surfaces a start failure via error + Alert and resets isTracking', async () => {
+  it('surfaces a silent start failure via error state + warn log and resets isTracking', async () => {
     mockServiceStartJob.mockRejectedValue(new Error('GPS down'));
     const { result } = renderHook(() =>
       useJobTravelTracking({ jobId: 'job-1', destination })
@@ -534,7 +548,13 @@ describe('error paths', () => {
     });
     expect(result.current.error).toBe('GPS down');
     expect(result.current.isTracking).toBe(false);
-    expect(mockLoggerError).toHaveBeenCalledWith(
+    // Silent auto-start (no createTrip): warn, not error — see 2026-06-11
+    // fix so it doesn't red-box in dev / Sentry-spam in prod.
+    expect(mockLoggerWarn).toHaveBeenCalledWith(
+      'Silent travel-tracking auto-start failed (will retry)',
+      expect.objectContaining({ error: 'GPS down' })
+    );
+    expect(mockLoggerError).not.toHaveBeenCalledWith(
       'Error starting travel tracking',
       expect.anything()
     );

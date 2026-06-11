@@ -223,9 +223,21 @@ export function useJobTravelTracking({
         // error is still kept in state + logged; the en-route section UI
         // reflects it without hijacking the whole screen.
         if (opts.createTrip) {
+          // Explicit "I'm on my way" tap — the user is waiting on this, so
+          // surface it loudly (modal + error-level capture).
           Alert.alert('Error', errorMessage);
+          logger.error('Error starting travel tracking', err);
+        } else {
+          // 2026-06-11: silent auto-start. A GPS-unavailable failure here
+          // is an expected, recoverable condition (indoors, permission
+          // off, emulator) that re-runs on every assigned-job mount.
+          // Logging it at error level red-boxed the screen in dev (a
+          // LogBox console-error overlay) and would spam Sentry in prod.
+          // Downgrade to warn — same intent as the Alert gating above.
+          logger.warn('Silent travel-tracking auto-start failed (will retry)', {
+            error: errorMessage,
+          });
         }
-        logger.error('Error starting travel tracking', err);
       }
     },
     [destination, jobId, meetingId, user, onLocationUpdate]
