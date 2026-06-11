@@ -49,9 +49,7 @@ export async function handleChargeRefunded(
         refunded_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .or(
-        `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
-      )
+      .eq('payment_intent_id', paymentIntentId)
       .select()
       .single();
 
@@ -172,9 +170,7 @@ export async function handleChargeFailed(
         status: 'failed',
         updated_at: new Date().toISOString(),
       })
-      .or(
-        `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
-      )
+      .eq('payment_intent_id', paymentIntentId)
       .select()
       .single();
 

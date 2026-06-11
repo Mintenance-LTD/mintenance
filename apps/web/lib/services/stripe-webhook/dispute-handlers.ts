@@ -59,9 +59,7 @@ export async function handleDisputeCreated(
           auto_release_enabled: false,
           updated_at: new Date().toISOString(),
         })
-        .or(
-          `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
-        )
+        .eq('payment_intent_id', paymentIntentId)
         .select('id, payer_id, payee_id, job_id')
         .single();
 
@@ -207,9 +205,7 @@ export async function handleDisputeClosed(
         auto_release_enabled: !isLost,
         updated_at: new Date().toISOString(),
       })
-      .or(
-        `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
-      )
+      .eq('payment_intent_id', paymentIntentId)
       .select('id, payer_id, payee_id, job_id')
       .single();
 

@@ -48,9 +48,7 @@ export async function handlePaymentIntentSucceeded(
     const { data: existing, error: lookupError } = await serverSupabase
       .from('escrow_transactions')
       .select('id, status')
-      .or(
-        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
-      )
+      .eq('payment_intent_id', paymentIntent.id)
       .maybeSingle();
 
     if (lookupError) {
@@ -241,9 +239,7 @@ export async function handlePaymentIntentFailed(
         status: 'failed',
         updated_at: new Date().toISOString(),
       })
-      .or(
-        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
-      )
+      .eq('payment_intent_id', paymentIntent.id)
       .select()
       .single();
 
@@ -308,9 +304,7 @@ export async function handlePaymentIntentCanceled(
         status: 'canceled',
         updated_at: new Date().toISOString(),
       })
-      .or(
-        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
-      )
+      .eq('payment_intent_id', paymentIntent.id)
       .select()
       .single();
 

@@ -405,6 +405,22 @@ export const POST = withApiHandler(
       // check prevents duplicates reaching Stripe; this is a second layer.
       const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}_${job.contractor_id}`;
 
+      // 2026-06-11 P1: attach the payer's Stripe customer to the
+      // PaymentIntent. When the homeowner pays with a SAVED card, that
+      // payment method is attached to their customer, and Stripe rejects
+      // confirmation unless the PaymentIntent also carries that customer
+      // ("The payment_method ... belongs to the Customer ... Please
+      // include the Customer in the customer parameter"). Without this,
+      // every escrow funding via a saved card failed at confirm time.
+      // Read via service-role (stripe_customer_id is grant-locked). Omit
+      // when absent (first-time payer entering a fresh card still works).
+      const { data: payerProfile } = await serverSupabase
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .single();
+      const payerCustomerId = payerProfile?.stripe_customer_id ?? undefined;
+
       // Create Stripe PaymentIntent with timeout to prevent hanging requests.
       // Amount is derived server-side from the accepted bid, NOT the client payload.
       const paymentIntent = await stripeWithTimeout(
@@ -413,6 +429,7 @@ export const POST = withApiHandler(
             {
               amount: Math.round(authoritativeAmount * 100), // Convert to cents
               currency: (currency || 'gbp').toLowerCase(),
+              ...(payerCustomerId ? { customer: payerCustomerId } : {}),
               description:
                 metadata?.description || `Payment for job: ${job.title}`,
               metadata: {
