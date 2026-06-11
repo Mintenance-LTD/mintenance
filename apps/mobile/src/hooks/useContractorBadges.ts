@@ -38,14 +38,18 @@ export interface ContractorBadgesResult {
   refresh: () => Promise<void>;
 }
 
+// 2026-06-11: profiles is column-grant locked (2026-06-09 lockdown) —
+// the authenticated role can only SELECT a whitelist of columns, and a
+// select containing ANY non-granted column 403s wholesale. license_type,
+// license_expiry, insurance_expiry and dbs_expiry are NOT granted, so the
+// previous select failed entirely and no contractor badge ever rendered.
+// Keep the profile probe to granted columns only; license / insurance /
+// DBS facts come from their own record tables below (which is where the
+// real data lives anyway — the profile copies were never written, per the
+// 2026-05-24 audit-25 note).
 const SELECT_FIELDS =
   'admin_verified, verification_status, background_check_status, ' +
-  'license_type, license_expiry, rating, total_jobs_completed, ' +
-  // Added 2026-04-22 by the Phase 3 migration that landed these
-  // columns (20260422000001_contractor_insurance_dbs_badge_fields).
-  // The utility already reads them — fetching them here flips the
-  // Insured + DBS Checked badges on once data arrives.
-  'insurance_expiry, dbs_expiry';
+  'rating, total_jobs_completed';
 
 export function useContractorBadges(): ContractorBadgesResult {
   const { user } = useAuth();
@@ -67,7 +71,7 @@ export function useContractorBadges(): ContractorBadgesResult {
       // never turned on. Query the live record tables in parallel
       // and use their latest active expiry when the profile column
       // is null.
-      const [profileRes, insuranceRes, dbsRes] = await Promise.all([
+      const [profileRes, insuranceRes, dbsRes, licenseRes] = await Promise.all([
         supabase
           .from('profiles')
           .select(SELECT_FIELDS)
@@ -84,6 +88,17 @@ export function useContractorBadges(): ContractorBadgesResult {
         supabase
           .from('contractor_dbs_checks')
           .select('expiry_date, status')
+          .eq('contractor_id', user.id)
+          .eq('status', 'active')
+          .order('expiry_date', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        // 2026-06-11: license facts from the record table (own-row
+        // RLS), mirroring insurance/DBS — the profile copies are
+        // grant-locked and were never written.
+        supabase
+          .from('contractor_licenses')
+          .select('name, expiry_date, status')
           .eq('contractor_id', user.id)
           .eq('status', 'active')
           .order('expiry_date', { ascending: false })
@@ -109,18 +124,20 @@ export function useContractorBadges(): ContractorBadgesResult {
       }
 
       const insuranceExpiry =
-        (profileData as { insurance_expiry?: string | null })
-          .insurance_expiry ??
         (insuranceRes.data as { expiry_date?: string | null } | null)
-          ?.expiry_date ??
-        null;
+          ?.expiry_date ?? null;
       const dbsExpiry =
-        (profileData as { dbs_expiry?: string | null }).dbs_expiry ??
         (dbsRes.data as { expiry_date?: string | null } | null)?.expiry_date ??
         null;
+      const license = licenseRes.data as {
+        name?: string | null;
+        expiry_date?: string | null;
+      } | null;
 
       setProfile({
         ...profileData,
+        license_type: license?.name ?? null,
+        license_expiry: license?.expiry_date ?? null,
         insurance_expiry: insuranceExpiry,
         dbs_expiry: dbsExpiry,
       } as ContractorBadgeInput);
