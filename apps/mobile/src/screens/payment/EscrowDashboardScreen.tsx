@@ -44,7 +44,7 @@ interface EscrowRecord {
   status: string;
   created_at: string;
   job_title: string;
-  payer_name?: string;
+  counterparty_name?: string;
 }
 
 /**
@@ -131,25 +131,34 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
       // 2026-05-23 audit: use explicit FK form for the job embed —
       // matches PaymentHistoryScreen + the homeowner /financials API
       // route. The payer embed was already explicit (profiles!payer_id).
+      // 2026-06-10: embed BOTH parties and show the counterparty — the
+      // card used to always render payer_name, so a homeowner (the
+      // payer) saw their own name instead of which contractor the
+      // money is held for.
       const { data, error } = await supabase
         .from('escrow_transactions')
         .select(
-          'id, amount, status, created_at, job:jobs!escrow_transactions_job_id_fkey(title), payer:profiles!payer_id(first_name, last_name)'
+          'id, amount, status, created_at, payer_id, payee_id, job:jobs!escrow_transactions_job_id_fkey(title), payer:profiles!payer_id(first_name, last_name), payee:profiles!payee_id(first_name, last_name)'
         )
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      const fullName = (
+        p: { first_name?: string; last_name?: string } | null
+      ): string =>
+        p ? [p.first_name, p.last_name].filter(Boolean).join(' ') : '';
+
       const mapped: EscrowRecord[] = (data ?? []).map(
         (row: Record<string, unknown>) => {
-          const payer = row.payer as {
-            first_name?: string;
-            last_name?: string;
-          } | null;
-          const payerName = payer
-            ? [payer.first_name, payer.last_name].filter(Boolean).join(' ')
-            : '';
+          const isPayer = (row.payer_id as string) === user.id;
+          const counterpartyName = fullName(
+            (isPayer ? row.payee : row.payer) as {
+              first_name?: string;
+              last_name?: string;
+            } | null
+          );
           return {
             id: row.id as string,
             amount: row.amount as number,
@@ -158,7 +167,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
             job_title:
               ((row.job as Record<string, unknown>)?.title as string) ??
               'Untitled job',
-            payer_name: payerName || undefined,
+            counterparty_name: counterpartyName || undefined,
           };
         }
       );
@@ -187,8 +196,8 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderRecord = ({ item }: { item: EscrowRecord }) => {
     const stage: 0 | 1 | 2 | 3 = STAGE_BY_STATUS[item.status] ?? 1;
-    const subline = item.payer_name
-      ? `${item.payer_name} · ${heldSinceLabel(item.created_at)}`
+    const subline = item.counterparty_name
+      ? `${item.counterparty_name} · ${heldSinceLabel(item.created_at)}`
       : heldSinceLabel(item.created_at);
     return (
       <View style={styles.recordCard}>

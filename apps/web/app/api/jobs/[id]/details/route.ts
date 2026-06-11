@@ -31,6 +31,7 @@ interface JobAccessRow {
 interface ContractRow {
   id: string;
   status: string | null;
+  homeowner_signed_at: string | null;
 }
 
 interface EscrowRow {
@@ -99,7 +100,7 @@ export const GET = withApiHandler(
     ] = await Promise.allSettled([
       serverSupabase
         .from('contracts')
-        .select('id, status')
+        .select('id, status, homeowner_signed_at')
         .eq('job_id', jobId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -174,6 +175,12 @@ export const GET = withApiHandler(
 
     return NextResponse.json({
       contractStatus: contract?.status ?? null,
+      // Lets the mobile CTA tell apart the two `pending_contractor`
+      // sub-states: a fresh contract the contractor must PREPARE vs. one
+      // the homeowner has already signed and the contractor must now
+      // counter-SIGN. Without it the CTA always shows "Prepare Contract"
+      // and the deal deadlocks after the homeowner signs.
+      contractHomeownerSigned: !!contract?.homeowner_signed_at,
       escrowStatus: escrow?.status ?? null,
       hasReviewed: !!review,
       buildingAssessment: assessment
