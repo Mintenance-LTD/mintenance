@@ -22,6 +22,7 @@ import type { Job } from '@mintenance/types';
 
 interface JobDetailsAggregate {
   contractStatus: string | null;
+  contractHomeownerSigned?: boolean;
   escrowStatus: string | null;
   hasReviewed: boolean;
   buildingAssessment: {
@@ -48,6 +49,7 @@ interface JobDetailsState {
   jobLoading: boolean;
   jobError: unknown;
   contractStatus: string | null;
+  contractHomeownerSigned: boolean;
   escrowStatus: string | null;
   hasReviewed: boolean;
   beforePhotoCount: number;
@@ -71,6 +73,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [contractStatus, setContractStatus] = useState<string | null>(null);
+  const [contractHomeownerSigned, setContractHomeownerSigned] = useState(false);
   const [escrowStatus, setEscrowStatus] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [beforePhotoCount, setBeforePhotoCount] = useState(0);
@@ -136,6 +139,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
         if (cancelled || !aggregate) return;
 
         setContractStatus(aggregate.contractStatus ?? null);
+        setContractHomeownerSigned(!!aggregate.contractHomeownerSigned);
         setEscrowStatus(aggregate.escrowStatus ?? null);
         setHasReviewed(!!aggregate.hasReviewed);
         setBeforePhotoCount(aggregate.beforePhotoCount ?? 0);
@@ -220,6 +224,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     jobLoading,
     jobError,
     contractStatus,
+    contractHomeownerSigned,
     escrowStatus,
     hasReviewed,
     beforePhotoCount,
