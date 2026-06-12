@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { isTaxonomyV3ClassId } from './taxonomy/taxonomy-v3';
 
 /**
  * Optional number preprocessor that handles null, undefined, empty strings, and invalid numbers
@@ -164,6 +165,19 @@ const specialistReferralSchema = z.object({
 
 export const AI_ASSESSMENT_SCHEMA = z.object({
   damageType: z.string().optional(),
+  // v3 surveyor taxonomy class — tolerant: anything outside the canonical id
+  // set (including null, the prompt's "no match" value) degrades to undefined
+  // rather than rejecting the whole assessment.
+  taxonomyClassId: z.preprocess(
+    (val) => (isTaxonomyV3ClassId(val) ? val : undefined),
+    z.string().optional()
+  ),
+  probableCause: z.string().max(1000).optional(),
+  needsOnsiteInspection: z.preprocess(
+    (val) => (typeof val === 'boolean' ? val : undefined),
+    z.boolean().optional()
+  ),
+  onsiteInspectionReason: z.string().max(1000).optional(),
   severity: damageSeverityEnum,
   confidence: optionalNumber().pipe(z.number().min(0).max(100).optional()),
   location: z.string().optional(),

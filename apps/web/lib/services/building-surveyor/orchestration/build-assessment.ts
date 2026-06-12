@@ -69,6 +69,12 @@ interface AIAssessment {
   urgencyReasoning?: string;
   homeownerExplanation?: unknown;
   contractorAdvice?: unknown;
+  ricsConditionRating?: 1 | 2 | 3;
+  specialistReferrals?: import('../types').SpecialistReferral[];
+  taxonomyClassId?: string;
+  probableCause?: string;
+  needsOnsiteInspection?: boolean;
+  onsiteInspectionReason?: string;
 }
 
 /**
@@ -213,7 +219,32 @@ export async function buildFinalAssessment(
     finalContractorAdvice = defaultContractorAdvice;
   }
 
+  // Surveyor-report fields. ricsConditionRating/specialistReferrals were
+  // previously dropped on this path (only assessment-structurer.ts passed
+  // them through) — the prompt has asked for them since they were added.
+  const surveyorFields: Partial<Phase1BuildingAssessment> = {
+    ...(aiAssessment.ricsConditionRating && {
+      ricsConditionRating: aiAssessment.ricsConditionRating,
+    }),
+    ...(aiAssessment.specialistReferrals?.length && {
+      specialistReferrals: aiAssessment.specialistReferrals,
+    }),
+    ...(aiAssessment.taxonomyClassId && {
+      taxonomyClassId: aiAssessment.taxonomyClassId,
+    }),
+    ...(aiAssessment.probableCause && {
+      probableCause: aiAssessment.probableCause,
+    }),
+    ...(aiAssessment.needsOnsiteInspection && {
+      needsOnsiteInspection: true,
+      ...(aiAssessment.onsiteInspectionReason && {
+        onsiteInspectionReason: aiAssessment.onsiteInspectionReason,
+      }),
+    }),
+  };
+
   return {
+    ...surveyorFields,
     damageAssessment: {
       damageType: aiAssessment.damageType || 'unknown_damage',
       severity: isValidSeverity(aiAssessment.severity)
