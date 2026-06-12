@@ -200,9 +200,46 @@ export const AIAssessmentScreen: React.FC = () => {
 
             {result && (
               <>
+                {result.needsOnsiteInspection && (
+                  <Card
+                    variant='elevated'
+                    padding='md'
+                    style={styles.resultCard}
+                  >
+                    <View style={styles.resultHeader}>
+                      <Ionicons name='search' size={20} color={me.brand} />
+                      <Text style={styles.resultTitle}>
+                        Onsite inspection recommended
+                      </Text>
+                    </View>
+                    <Text style={styles.actionText}>
+                      The AI could not diagnose this reliably from the photo
+                      alone
+                      {result.onsiteInspectionReason
+                        ? `: ${result.onsiteInspectionReason}`
+                        : '.'}{' '}
+                      Treat the result below as indicative only.
+                    </Text>
+                  </Card>
+                )}
+
                 <Card variant='elevated' padding='md' style={styles.resultCard}>
                   <View style={styles.resultHeader}>
                     <Text style={styles.resultTitle}>Assessment Result</Text>
+                    {result.ricsConditionRating && (
+                      <Badge
+                        variant={
+                          result.ricsConditionRating === 1
+                            ? 'success'
+                            : result.ricsConditionRating === 2
+                              ? 'warning'
+                              : 'error'
+                        }
+                        size='sm'
+                      >
+                        {`CONDITION ${result.ricsConditionRating}`}
+                      </Badge>
+                    )}
                     <Badge
                       variant={
                         result.severity === 'early'
@@ -225,6 +262,14 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.resultLabel}>Category</Text>
                     <Text style={styles.resultValue}>{result.category}</Text>
                   </View>
+                  {result.probableCause && (
+                    <View style={styles.resultRow}>
+                      <Text style={styles.resultLabel}>Probable Cause</Text>
+                      <Text style={[styles.resultValue, { flexShrink: 1 }]}>
+                        {result.probableCause}
+                      </Text>
+                    </View>
+                  )}
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Estimated Cost</Text>
                     <Text style={[styles.resultValue, { color: me.ink }]}>
@@ -235,7 +280,8 @@ export const AIAssessmentScreen: React.FC = () => {
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Confidence</Text>
                     <Text style={styles.resultValue}>
-                      {Math.round(result.confidence * 100)}%
+                      {/* confidence is already a 0-100 percentage */}
+                      {Math.round(result.confidence)}%
                     </Text>
                   </View>
                 </Card>

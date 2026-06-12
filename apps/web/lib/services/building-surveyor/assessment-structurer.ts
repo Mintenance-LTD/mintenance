@@ -222,5 +222,21 @@ export async function structureAssessment(
       aiResponse.specialistReferrals as SpecialistReferral[];
   }
 
+  // v3 surveyor taxonomy + diagnostic causation (additive)
+  if (aiResponse.taxonomyClassId) {
+    assessment.taxonomyClassId = aiResponse.taxonomyClassId;
+  }
+  if (aiResponse.probableCause) {
+    assessment.probableCause = aiResponse.probableCause;
+  }
+
+  // Abstention: photos insufficient for a reliable diagnosis
+  if (aiResponse.needsOnsiteInspection) {
+    assessment.needsOnsiteInspection = true;
+    if (aiResponse.onsiteInspectionReason) {
+      assessment.onsiteInspectionReason = aiResponse.onsiteInspectionReason;
+    }
+  }
+
   return assessment;
 }

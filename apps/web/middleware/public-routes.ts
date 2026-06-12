@@ -44,6 +44,7 @@ const PUBLIC_API_ROUTES_EXACT = new Set([
   '/api/building-surveyor/demo-feedback',
   '/api/csp-report', // browser-generated CSP violation reports
   '/api/theme', // Phase-1 design rebrand toggle — sets a styling-only cookie
+  '/api/newsletter', // anonymous footer signup — route declares auth:false + own rate limit
 ]);
 
 /** Prefix-matched public API routes. Sub-paths ARE allowed. */

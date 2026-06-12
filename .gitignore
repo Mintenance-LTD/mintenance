@@ -244,6 +244,8 @@ yolo11n.pt
 !tsconfig*.json
 !*.config.json
 !class_mapping*.json
+# Surveyor taxonomy — canonical source imported by prompt-builder at runtime
+!apps/web/lib/services/building-surveyor/taxonomy/taxonomy_v3.json
 *.html
 !index.html
 *.js

@@ -1,6 +1,14 @@
 /**
- * Assessment generator: GPT-4o or Mint AI in-house VLM (feature-flagged / endpoint).
- * Phase 4: MINT_AI_VLM_ENDPOINT set -> in-house VLM; USE_MINT_AI_VLM=true -> stub (GPT-4o); else -> GPT-4o.
+ * Assessment generator: GPT-4o or Mint AI in-house VLM, routed by VLM_ROUTING_MODE.
+ *
+ * Modes (default: shadow_only — matches StudentRoutingGate):
+ *   shadow_only  -> GPT-4o serves; student runs in background via
+ *                   StudentShadowService (orchestration/training-capture.ts)
+ *   teacher_only -> GPT-4o serves; no student call
+ *   auto         -> StudentRoutingGate picks per-category (safety-gated)
+ *   student_only -> Mint AI serves directly (explicit opt-in; GPT-4o fallback)
+ *
+ * USE_MINT_AI_VLM=true without an endpoint -> stub (GPT-4o, logged as stub).
  */
 
 import { logger } from '@mintenance/shared';
@@ -232,11 +240,15 @@ async function mintAiStub(
   messages: GeneratorMessage[],
   apiKey: string
 ): Promise<GeneratorResult> {
-  logger.info('Mint AI VLM enabled (stub: using GPT-4o)', {
-    service: 'AssessmentGenerator',
-  });
   const result = await callGPT4o(messages, apiKey);
-  return { ...result, model: 'mint-ai-vlm' };
+  // Keep the real model name: this label flows into cost tracking and
+  // building_assessments analytics, and stamping 'mint-ai-vlm' here made
+  // GPT-4o output indistinguishable from genuine student output downstream.
+  logger.info('Mint AI VLM stub active — request served by GPT-4o', {
+    service: 'AssessmentGenerator',
+    servedBy: result.model,
+  });
+  return result;
 }
 
 /**
@@ -397,7 +409,14 @@ export async function getGeneratorContent(
     }
   }
 
-  if (MINT_AI_VLM_ENDPOINT) {
+  // Serving the student directly to users is an explicit opt-in
+  // (VLM_ROUTING_MODE=student_only). In shadow_only (default) and
+  // teacher_only the teacher serves every request; the student still runs
+  // fire-and-forget via StudentShadowService when the endpoint is set.
+  // Without this guard, merely configuring MINT_AI_VLM_ENDPOINT flipped
+  // production onto the student regardless of routing mode.
+  const routingMode = process.env.VLM_ROUTING_MODE?.trim() || 'shadow_only';
+  if (MINT_AI_VLM_ENDPOINT && routingMode === 'student_only') {
     try {
       return await callMintAiVLM(enrichedMessages, apiKey);
     } catch (err) {
@@ -408,7 +427,7 @@ export async function getGeneratorContent(
       return callGPT4o(enrichedMessages, apiKey);
     }
   }
-  if (USE_MINT_AI_VLM) {
+  if (USE_MINT_AI_VLM && !MINT_AI_VLM_ENDPOINT) {
     return mintAiStub(enrichedMessages, apiKey);
   }
   return callGPT4o(enrichedMessages, apiKey);

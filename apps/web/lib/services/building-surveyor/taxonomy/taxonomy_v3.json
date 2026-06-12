@@ -1,0 +1,304 @@
+{
+  "version": "v3-draft-1",
+  "description": "Mint AI v3 target taxonomy, aligned to RICS Home Survey Standard condition ratings. Expands the 11 v2 canonical classes to surveyor-grade defect categories. Each class carries: the v2 class(es) it splits from (empty = net-new, needs data acquisition), string aliases used to normalise model output, a safetyCritical flag (routing must keep these on the teacher until gates pass), and per-class release gates consumed by evaluate_vlm.py. DRAFT: class list and gate thresholds are a product decision — review before training v3.",
+  "conditionRatings": {
+    "1": "No repair currently needed. Maintain in the normal way.",
+    "2": "Defect requiring repair or replacement, but not serious or urgent.",
+    "3": "Serious defect requiring urgent repair, replacement or further investigation."
+  },
+  "defaultGates": {
+    "minAccuracy": 0.75,
+    "minSafetyRecall": 0.95,
+    "minEvalSamples": 25
+  },
+  "safetyCriticalGates": {
+    "minAccuracy": 0.85,
+    "minSafetyRecall": 0.98,
+    "minEvalSamples": 25
+  },
+  "classes": [
+    {
+      "id": "crack_subsidence",
+      "label": "Subsidence / progressive structural cracking",
+      "group": "structural_movement",
+      "v2Classes": ["wall_crack", "foundation_crack"],
+      "aliases": ["subsidence", "subsidence crack", "structural crack", "stepped crack", "stairstep crack", "foundation_crack", "foundation crack"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "crack_settlement",
+      "label": "Historic / minor settlement cracking",
+      "group": "structural_movement",
+      "v2Classes": ["wall_crack"],
+      "aliases": ["settlement crack", "minor crack", "hairline crack", "wall_crack", "wall crack", "crack"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "crack_thermal_shrinkage",
+      "label": "Thermal / shrinkage cracking (plaster, render)",
+      "group": "structural_movement",
+      "v2Classes": ["wall_crack"],
+      "aliases": ["thermal crack", "shrinkage crack", "plaster crack", "render crack"],
+      "safetyCritical": false,
+      "typicalConditionRating": 1
+    },
+    {
+      "id": "lintel_failure",
+      "label": "Lintel failure / dropped masonry over opening",
+      "group": "structural_movement",
+      "v2Classes": [],
+      "aliases": ["lintel failure", "lintel", "dropped lintel", "failed lintel"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "bulging_bowing_wall",
+      "label": "Bulging / bowing / leaning wall",
+      "group": "structural_movement",
+      "v2Classes": [],
+      "aliases": ["bulging wall", "bowing wall", "leaning wall", "wall bulge"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "damp_rising",
+      "label": "Rising damp",
+      "group": "damp_moisture",
+      "v2Classes": ["mold_damp"],
+      "aliases": ["rising damp", "rising_damp"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "damp_penetrating",
+      "label": "Penetrating damp",
+      "group": "damp_moisture",
+      "v2Classes": ["water_damage"],
+      "aliases": ["penetrating damp", "penetrating_damp", "damp patch", "water_damage", "water damage", "water staining"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "damp_condensation_mould",
+      "label": "Condensation damp / surface mould",
+      "group": "damp_moisture",
+      "v2Classes": ["mold_damp"],
+      "aliases": ["condensation", "mould", "mold", "black mould", "mold_damp", "mould growth", "surface mould"],
+      "safetyCritical": true,
+      "typicalConditionRating": 2,
+      "notes": "Health hazard (respiratory) — Awaab's Law makes landlord response statutory; treat as safety-critical for routing."
+    },
+    {
+      "id": "water_ingress_leak",
+      "label": "Active water ingress from above (roof / overflow / trace leak)",
+      "group": "damp_moisture",
+      "v2Classes": ["water_damage"],
+      "aliases": ["water ingress", "ceiling leak", "leak from above", "ceiling stain", "water stain ceiling"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "pipe_leak_active",
+      "label": "Active plumbing leak (visible water escape)",
+      "group": "services",
+      "v2Classes": ["pipe_leak"],
+      "aliases": ["pipe_leak", "pipe leak", "leaking pipe", "burst pipe", "plumbing leak", "leak"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "plumbing_fixture_fault",
+      "label": "Plumbing fixture fault (failed seals, taps, WC, traps)",
+      "group": "services",
+      "v2Classes": ["pipe_leak"],
+      "aliases": ["fixture fault", "failed seal", "tap leak", "toilet leak", "dripping tap"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "electrical_hazard",
+      "label": "Electrical hazard (exposed wiring, scorched fittings)",
+      "group": "services",
+      "v2Classes": [],
+      "aliases": ["electrical hazard", "exposed wiring", "scorched socket", "electrical fault", "burnt socket"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "gas_appliance_concern",
+      "label": "Gas appliance concern (staining / flueing / corrosion at boiler)",
+      "group": "services",
+      "v2Classes": [],
+      "aliases": ["gas appliance", "boiler corrosion", "flue defect", "gas concern", "boiler fault"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "roof_covering_damage",
+      "label": "Roof covering damage (slipped / missing / broken tiles, felt failure)",
+      "group": "roof_external",
+      "v2Classes": ["roof_damage"],
+      "aliases": ["roof_damage", "roof damage", "missing tiles", "slipped tiles", "broken tiles", "felt failure"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "roof_structure_deflection",
+      "label": "Roof structure deflection (sagging ridge, deflected timbers)",
+      "group": "roof_external",
+      "v2Classes": ["roof_damage"],
+      "aliases": ["sagging roof", "roof deflection", "sagging ridge", "roof sag"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "flashing_gutter_failure",
+      "label": "Flashing / gutter / downpipe failure",
+      "group": "roof_external",
+      "v2Classes": ["roof_damage"],
+      "aliases": ["flashing failure", "gutter failure", "leaking gutter", "downpipe", "blocked gutter", "lead flashing"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "chimney_defect",
+      "label": "Chimney defect (leaning stack, eroded pointing, failed flaunching)",
+      "group": "roof_external",
+      "v2Classes": [],
+      "aliases": ["chimney defect", "chimney", "leaning chimney", "chimney stack"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "masonry_pointing_erosion",
+      "label": "Masonry / pointing erosion, spalled brickwork",
+      "group": "roof_external",
+      "v2Classes": ["wall_crack", "general_damage"],
+      "aliases": ["pointing erosion", "spalled brick", "spalling", "eroded mortar", "repointing needed", "masonry erosion"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "render_failure",
+      "label": "Render failure (cracked, blown, detached render)",
+      "group": "roof_external",
+      "v2Classes": ["wall_crack"],
+      "aliases": ["render failure", "blown render", "cracked render", "detached render"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "external_joinery_rot",
+      "label": "External joinery decay (fascias, soffits, frames)",
+      "group": "roof_external",
+      "v2Classes": [],
+      "aliases": ["fascia rot", "soffit rot", "rotten frame", "external joinery", "rotten fascia"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "dry_rot",
+      "label": "Dry rot (Serpula lacrymans)",
+      "group": "timber_pest",
+      "v2Classes": [],
+      "aliases": ["dry rot", "dry_rot", "serpula"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "wet_rot",
+      "label": "Wet rot",
+      "group": "timber_pest",
+      "v2Classes": [],
+      "aliases": ["wet rot", "wet_rot", "timber decay", "rot"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "woodworm_infestation",
+      "label": "Wood-boring insect infestation (woodworm)",
+      "group": "timber_pest",
+      "v2Classes": [],
+      "aliases": ["woodworm", "wood boring insect", "beetle infestation", "flight holes"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "glazing_broken",
+      "label": "Broken / cracked glazing",
+      "group": "windows_doors",
+      "v2Classes": ["window_broken"],
+      "aliases": ["window_broken", "broken window", "cracked glass", "broken glazing", "smashed window"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "window_door_failure",
+      "label": "Window / door unit failure (misted units, dropped doors, failed seals)",
+      "group": "windows_doors",
+      "v2Classes": ["window_broken"],
+      "aliases": ["misted unit", "failed double glazing", "dropped door", "window seal failure", "condensation between panes"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "plaster_ceiling_damage",
+      "label": "Plaster / ceiling damage (cracked, sagging, water-damaged plaster)",
+      "group": "internal_finishes",
+      "v2Classes": ["general_damage"],
+      "aliases": ["ceiling damage", "plaster damage", "sagging ceiling", "ceiling crack", "damaged plaster"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "floor_damage",
+      "label": "Floor damage (deflection, damaged boards / screed)",
+      "group": "internal_finishes",
+      "v2Classes": ["floor_damage"],
+      "aliases": ["floor_damage", "floor damage", "damaged floorboards", "uneven floor", "floor deflection"],
+      "safetyCritical": false,
+      "typicalConditionRating": 2
+    },
+    {
+      "id": "tiling_sealant_failure",
+      "label": "Tiling / sealant failure (cracked tiles, failed silicone)",
+      "group": "internal_finishes",
+      "v2Classes": ["general_damage"],
+      "aliases": ["cracked tiles", "failed sealant", "failed silicone", "tile damage", "grout failure"],
+      "safetyCritical": false,
+      "typicalConditionRating": 1
+    },
+    {
+      "id": "fire_smoke_damage",
+      "label": "Fire / smoke damage",
+      "group": "other",
+      "v2Classes": [],
+      "aliases": ["fire damage", "smoke damage", "scorch damage", "charring"],
+      "safetyCritical": true,
+      "typicalConditionRating": 3
+    },
+    {
+      "id": "vegetation_invasive",
+      "label": "Invasive vegetation (Japanese knotweed, ivy into masonry)",
+      "group": "other",
+      "v2Classes": [],
+      "aliases": ["japanese knotweed", "knotweed", "invasive vegetation", "ivy damage"],
+      "safetyCritical": false,
+      "typicalConditionRating": 3,
+      "notes": "Knotweed is a lender red-flag in the UK — condition 3 despite no structural urgency."
+    },
+    {
+      "id": "no_defect",
+      "label": "No defect / good condition (negative anchor)",
+      "group": "negative",
+      "v2Classes": ["good_fitting", "fixture"],
+      "aliases": ["no defect", "good condition", "good_fitting", "fixture", "no damage", "none"],
+      "safetyCritical": false,
+      "typicalConditionRating": 1,
+      "gates": { "minAccuracy": 0.9, "minSafetyRecall": 0.95, "minEvalSamples": 25 },
+      "notes": "False-positive control: a surveyor model that invents defects is worse than useless. Gate is deliberately stricter."
+    }
+  ]
+}

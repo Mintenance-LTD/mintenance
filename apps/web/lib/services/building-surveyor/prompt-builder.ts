@@ -4,6 +4,7 @@
  */
 
 import type { AssessmentContext, RICSConditionRating } from './types';
+import { buildTaxonomyPromptSection } from './taxonomy/taxonomy-v3';
 
 /**
  * Sanitise user-provided text before injecting into prompts.
@@ -159,6 +160,10 @@ ${damageTypeGuidance}
 You must respond with valid JSON matching this exact structure:
 {
   "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth'${safeDamageTypes?.length ? ` or one of: ${safeDamageTypes.slice(0, 5).join(', ')}` : ''})",
+  "taxonomyClassId": "string | null (the single best-matching class id from the SURVEYOR DEFECT TAXONOMY below; null if none fits or photos are insufficient)",
+  "probableCause": "string (most likely cause in surveyor diagnostic language, e.g. 'failed pointing above window head allowing penetrating damp')",
+  "needsOnsiteInspection": boolean (true when the photos are insufficient to diagnose reliably),
+  "onsiteInspectionReason": "string (only when needsOnsiteInspection is true — what cannot be determined from the photos and why)",
   "severity": "early" | "developing" | "significant" | "dangerous",
   "confidence": number (0-100),
   "location": "string (specific location in property)",
@@ -228,6 +233,20 @@ You must respond with valid JSON matching this exact structure:
     }
   ]
 }
+
+SURVEYOR DEFECT TAXONOMY (for "taxonomyClassId" — pick the single best match):
+${buildTaxonomyPromptSection()}
+
+Taxonomy rules:
+- "taxonomyClassId" must be exactly one id from the list above, or null
+- Distinguish carefully within groups (e.g. rising vs penetrating vs condensation damp; subsidence vs settlement vs thermal cracking) — the differential diagnosis is the value you add
+- For [safety-critical] classes be conservative: if plausible from the evidence, prefer the safety-critical class and reflect it in safetyHazards
+- "damageType" keeps its existing vocabulary — do not put taxonomy ids there
+
+WHEN PHOTOS ARE INSUFFICIENT (the surveyor's honesty rule):
+- If blur, distance, lighting, or a hidden cause prevents a reliable diagnosis, set "needsOnsiteInspection": true, explain in "onsiteInspectionReason", set confidence below 40, and set "taxonomyClassId": null
+- Never guess a specific defect to avoid an inconclusive answer — name candidate classes in "description" instead
+- An inconclusive answer with a clear reason is a GOOD assessment; a confident wrong diagnosis is the worst possible output
 
 RICS Condition Rating guidance:
 - Rating 1 (GREEN): No repair is currently needed. Normal maintenance only.

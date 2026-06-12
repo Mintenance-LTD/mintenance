@@ -303,6 +303,24 @@ export const HomeownerDashboard: React.FC = () => {
                 Emergency? Tap for the fast path
               </Text>
             </TouchableOpacity>
+
+            {/* AI damage check — entry point for the single-photo Mint AI
+                assessment modal. The screen existed since the Mint AI v2
+                rollout but had no navigation path (2026-06-11 audit P1). */}
+            <TouchableOpacity
+              style={styles.aiCheckPill}
+              onPress={() =>
+                navigation.navigate('Modal', { screen: 'AIAssessment' })
+              }
+              accessibilityRole='button'
+              accessibilityLabel='Run an AI damage check from a photo'
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name='sparkles' size={14} color={me.brand} />
+              <Text style={styles.aiCheckPillText}>
+                Spotted damage? Get an instant AI check
+              </Text>
+            </TouchableOpacity>
           </View>
         </FadeIn>
 

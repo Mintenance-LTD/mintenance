@@ -4,8 +4,10 @@
 
 echo "🔍 Running pre-commit checks..."
 
-# Block any attempt to commit a .env file
-STAGED_ENV=$(git diff --cached --name-only | grep -E '\.env(\.|$)' || true)
+# Block any attempt to commit a .env file.
+# .env.example / .env.*.example are tracked placeholder templates (no
+# secrets) and have always been committed — exempt them.
+STAGED_ENV=$(git diff --cached --name-only | grep -E '\.env(\.|$)' | grep -vE '\.example$' || true)
 if [ -n "$STAGED_ENV" ]; then
   echo "❌ SECURITY: .env file is staged for commit: $STAGED_ENV"
   echo "Run: git reset HEAD $STAGED_ENV"

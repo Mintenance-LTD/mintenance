@@ -36,11 +36,15 @@ describe('isPublicRoute', () => {
     expect(isPublicRoute('/api/csrf')).toBe(true);
     expect(isPublicRoute('/api/diag')).toBe(true);
     expect(isPublicRoute('/api/csp-report')).toBe(true);
+    // Anonymous footer newsletter signup — was 401-ing in production
+    // because the route's auth:false never ran (middleware blocked first).
+    expect(isPublicRoute('/api/newsletter')).toBe(true);
   });
 
   it('does NOT match sub-paths of exact public API routes', () => {
     expect(isPublicRoute('/api/diag/internals')).toBe(false);
     expect(isPublicRoute('/api/csrf/rotate')).toBe(false);
+    expect(isPublicRoute('/api/newsletter/admin')).toBe(false);
   });
 
   it('returns true for /api/auth/* sub-paths (prefix match)', () => {
