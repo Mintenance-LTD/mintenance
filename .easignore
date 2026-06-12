@@ -63,6 +63,14 @@ Screenshots/
 # ============================================================================
 # BUILD ARTIFACTS AND CACHES
 # ============================================================================
+# CRITICAL: locally-generated native projects MUST NOT reach the EAS builder.
+# If android/ is present in the upload, EAS SKIPS `expo prebuild`, so nothing
+# in app.config.js applies — no googleServicesFile (push notifications dead),
+# no config plugins, and dev-client gets compiled into release builds.
+# (.easignore REPLACES .gitignore for the upload, so being gitignored is not
+# enough — they must be excluded here too.)
+apps/mobile/android/
+apps/mobile/ios/
 .expo/
 .expo-shared/
 dist/
