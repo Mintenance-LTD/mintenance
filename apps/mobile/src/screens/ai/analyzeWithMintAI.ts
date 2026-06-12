@@ -22,7 +22,14 @@ export interface AnalysisResult {
   estimatedCostMax: number;
   recommendedActions: string[];
   category: string;
+  /** 0-100 percentage (not 0-1). */
   confidence: number;
+  /** RICS condition rating: 1 routine, 2 repair needed, 3 serious/urgent. */
+  ricsConditionRating?: 1 | 2 | 3;
+  probableCause?: string;
+  /** Abstention: photos insufficient for a reliable diagnosis. */
+  needsOnsiteInspection?: boolean;
+  onsiteInspectionReason?: string;
 }
 
 /** Subset of Phase1BuildingAssessment the mobile screen actually uses. */
@@ -39,6 +46,10 @@ interface BuildingAssessmentResponse {
     summary?: string;
   };
   homeownerExplanation?: string;
+  ricsConditionRating?: 1 | 2 | 3;
+  probableCause?: string;
+  needsOnsiteInspection?: boolean;
+  onsiteInspectionReason?: string;
 }
 
 /** Rough cost band per severity. Used when the backend doesn't return a cost range. */
@@ -99,6 +110,10 @@ function toAnalysisResult(
     confidence: Math.round(
       Math.max(0, Math.min(1, maxDetectionConfidence)) * 100
     ),
+    ricsConditionRating: mintResp.ricsConditionRating,
+    probableCause: mintResp.probableCause,
+    needsOnsiteInspection: mintResp.needsOnsiteInspection,
+    onsiteInspectionReason: mintResp.onsiteInspectionReason,
   };
 }
 
@@ -109,7 +124,13 @@ function toAnalysisResult(
  * docs/MINT_AI_VLM_v2.md §9.
  */
 async function uploadImage(uri: string): Promise<string> {
-  const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+  // content:// URIs often carry no extension — naive split('.').pop()
+  // returns the whole URI. Clamp to a known image extension so the
+  // storage path stays sane and the bucket mime allowlist accepts it.
+  const rawExt = uri.split('.').pop()?.toLowerCase() ?? '';
+  const ext = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'].includes(rawExt)
+    ? rawExt
+    : 'jpg';
   const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
   const filePath = `quick-ai/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 

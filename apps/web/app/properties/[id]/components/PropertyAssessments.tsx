@@ -23,6 +23,8 @@ interface PropertyAssessment {
   createdAt: string | null;
   updatedAt: string | null;
   thumbnailUrl: string | null;
+  ricsConditionRating: number | null;
+  needsOnsiteInspection: boolean;
 }
 
 interface PropertyAssessmentsProps {
@@ -34,6 +36,13 @@ const URGENCY_BADGE: Record<string, string> = {
   needs_attention: 'bg-amber-100 text-amber-700',
   urgent: 'bg-orange-100 text-orange-700',
   emergency: 'bg-red-100 text-red-700',
+};
+
+// RICS condition rating: 1 = routine, 2 = repair needed, 3 = serious/urgent
+const RICS_BADGE: Record<number, string> = {
+  1: 'bg-green-100 text-green-700',
+  2: 'bg-amber-100 text-amber-700',
+  3: 'bg-red-100 text-red-700',
 };
 
 const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
@@ -202,6 +211,20 @@ export default function PropertyAssessments({
                   {a.severity && (
                     <span className='px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 capitalize'>
                       {a.severity}
+                    </span>
+                  )}
+                  {a.ricsConditionRating != null &&
+                    RICS_BADGE[a.ricsConditionRating] && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${RICS_BADGE[a.ricsConditionRating]}`}
+                        title='RICS condition rating: 1 = routine, 2 = repair needed, 3 = serious/urgent'
+                      >
+                        Condition {a.ricsConditionRating}
+                      </span>
+                    )}
+                  {a.needsOnsiteInspection && (
+                    <span className='px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700'>
+                      Needs onsite inspection
                     </span>
                   )}
                 </div>

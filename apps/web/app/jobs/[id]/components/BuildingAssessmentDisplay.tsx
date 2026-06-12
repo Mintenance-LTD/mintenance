@@ -9,8 +9,6 @@ import React, { useState } from 'react';
 import {
   AlertCircle,
   CheckCircle,
-  AlertTriangle,
-  Info,
   ChevronDown,
   ChevronUp,
   Sparkles,
@@ -25,6 +23,13 @@ import {
   getRiskIcon,
   getRiskLevelFromScore,
 } from './building-assessment-helpers';
+import {
+  RicsConditionBadge,
+  OnsiteInspectionNotice,
+  SurveyorDiagnosis,
+  SpecialistReferralsSection,
+  CategoryMismatchNotice,
+} from './BuildingAssessmentSurveyorSections';
 
 interface BuildingAssessmentDisplayProps {
   assessment: Phase1BuildingAssessment | null;
@@ -186,6 +191,7 @@ export function BuildingAssessmentDisplay({
             </div>
           </div>
           <div className='flex items-center gap-3'>
+            <RicsConditionBadge rating={assessment.ricsConditionRating} />
             <span className='px-3 py-1 bg-teal-100 text-teal-700 text-sm font-medium rounded-full'>
               {Math.round(confidence)}% Confidence
             </span>
@@ -200,39 +206,17 @@ export function BuildingAssessmentDisplay({
 
       {expanded && (
         <div className='border-t border-gray-200'>
-          {/* Category-mismatch caveat */}
-          {categoryMismatch && (
-            <div className='px-6 pt-6'>
-              <div className='flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4'>
-                <AlertTriangle
-                  className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5'
-                  aria-hidden='true'
-                />
-                <div className='text-sm text-amber-900'>
-                  <p className='font-semibold mb-1'>
-                    Assessment may not match the job you posted
-                  </p>
-                  <p>
-                    You posted this job under{' '}
-                    <span className='font-medium capitalize'>
-                      {jobCategory?.replace(/_/g, ' ')}
-                    </span>
-                    , but the AI detected{' '}
-                    <span className='font-medium capitalize'>
-                      {assessment.damageAssessment.damageType.replace(
-                        /_/g,
-                        ' '
-                      )}
-                    </span>{' '}
-                    in your photos. The {Math.round(confidence)}% confidence
-                    reflects photo analysis only. Please check the details below
-                    and correct the category or re-upload photos if the AI
-                    picked up the wrong issue.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          <OnsiteInspectionNotice
+            needsOnsiteInspection={assessment.needsOnsiteInspection}
+            reason={assessment.onsiteInspectionReason}
+          />
+
+          <CategoryMismatchNotice
+            show={categoryMismatch}
+            jobCategory={jobCategory}
+            damageType={assessment.damageAssessment.damageType}
+            confidence={confidence}
+          />
 
           {/* Damage Assessment */}
           <div className='p-6'>
@@ -263,6 +247,11 @@ export function BuildingAssessmentDisplay({
                 </p>
               </div>
             </div>
+
+            <SurveyorDiagnosis
+              taxonomyClassId={assessment.taxonomyClassId}
+              probableCause={assessment.probableCause}
+            />
 
             {/* Detected Items */}
             {(assessment.damageAssessment.detectedItems?.length ?? 0) > 0 && (
@@ -442,6 +431,10 @@ export function BuildingAssessmentDisplay({
               </div>
             </div>
           )}
+
+          <SpecialistReferralsSection
+            referrals={assessment.specialistReferrals}
+          />
 
           {/* Urgency */}
           <div className='px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500'>
