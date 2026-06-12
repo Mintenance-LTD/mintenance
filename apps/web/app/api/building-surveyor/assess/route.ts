@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import crypto from 'crypto';
 import { LRUCache } from 'lru-cache';
@@ -557,35 +557,67 @@ export const POST = withApiHandler(
         }
 
         // Shadow-mode data collection: record GPT-4o teacher output to
-        // gpt4_training_labels so the student VLM has a training corpus to
-        // fine-tune on once MINT_AI_VLM_ENDPOINT is deployed. Fire-and-forget
-        // because capture must never block or fail a live assessment.
-        //
-        // Historical context: before this call, the hybrid inference path
-        // (HybridInferenceService.assessDamage, which is the default prod
-        // path) never populated gpt4_training_labels — only the non-hybrid
-        // AssessmentOrchestrator branch called recordGPT4Output via
-        // captureTrainingDataAsync. That gap meant prod had 1 row in
-        // gpt4_training_labels after 473 real assessments. This hook closes
-        // the gap on both branches.
-        deps.KnowledgeDistillationService.recordGPT4Output(
-          savedAssessmentId,
-          assessment,
-          imageUrls,
-          context
-            ? {
-                location: context.location,
-                propertyType: context.propertyType,
-                ageOfProperty: context.ageOfProperty,
-                propertyDetails: context.propertyDetails,
-              }
-            : undefined
-        ).catch((err) => {
-          deps.logger.warn('Training data capture failed (non-critical)', {
-            service: 'building-surveyor-api',
-            assessmentId: savedAssessmentId,
-            error: err instanceof Error ? err.message : String(err),
+        // gpt4_training_labels AND run the student VLM shadow comparison.
+        // This must live HERE: the prod request path is runAgent ->
+        // BuildingSurveyorService -> stages, which never reaches
+        // AssessmentOrchestrator's captureTrainingDataAsync (the only other
+        // shadow trigger). And it must be wrapped in after(): Vercel freezes
+        // the instance the moment the response is sent, which killed every
+        // fire-and-forget capture (1 row in gpt4_training_labels after 473
+        // assessments; 0 shadow rows ever). after() keeps the instance alive
+        // until this finishes — maxDuration=300s leaves ample headroom for
+        // the student's 60-90s Modal cold start.
+        const teacherAssessment = assessment;
+        after(async () => {
+          await deps.KnowledgeDistillationService.recordGPT4Output(
+            savedAssessmentId,
+            teacherAssessment,
+            imageUrls,
+            context
+              ? {
+                  location: context.location,
+                  propertyType: context.propertyType,
+                  ageOfProperty: context.ageOfProperty,
+                  propertyDetails: context.propertyDetails,
+                }
+              : undefined
+          ).catch((err) => {
+            deps.logger.warn('Training data capture failed (non-critical)', {
+              service: 'building-surveyor-api',
+              assessmentId: savedAssessmentId,
+              error: err instanceof Error ? err.message : String(err),
+            });
           });
+
+          if (process.env.MINT_AI_VLM_ENDPOINT && config.openaiApiKey) {
+            try {
+              const [{ StudentShadowService }, { PromptBuilder }] =
+                await Promise.all([
+                  import('@/lib/services/building-surveyor/distillation/StudentShadowService'),
+                  import('@/lib/services/building-surveyor/orchestration/PromptBuilder'),
+                ]);
+              const shadowMessages = PromptBuilder.buildMessages(
+                imageUrls,
+                context,
+                teacherAssessment.evidence?.roboflowDetections ?? [],
+                teacherAssessment.evidence?.visionAnalysis ?? null
+              );
+              await StudentShadowService.runShadowComparison(
+                savedAssessmentId,
+                imageUrls,
+                teacherAssessment,
+                // Same structural cast as AssessmentOrchestrator's shadow path
+                shadowMessages as import('@/lib/services/building-surveyor/generator/AssessmentGenerator').GeneratorMessage[],
+                config.openaiApiKey
+              );
+            } catch (err) {
+              deps.logger.warn('Shadow comparison failed (non-critical)', {
+                service: 'building-surveyor-api',
+                assessmentId: savedAssessmentId,
+                error: err instanceof Error ? err.message : String(err),
+              });
+            }
+          }
         });
 
         const autoValidationResult =
