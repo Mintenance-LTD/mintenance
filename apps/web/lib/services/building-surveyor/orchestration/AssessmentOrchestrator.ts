@@ -231,27 +231,41 @@ export class AssessmentOrchestrator {
         });
       }
 
-      // 7. Async training capture (non-blocking)
+      // 7. Async training capture — non-blocking for the response, but the
+      // promise must outlive it: Vercel freezes the function instance as
+      // soon as the response is sent, which killed the shadow student call
+      // mid-flight (Modal cold start is 60-90s; verified 2026-06-12 — the
+      // teacher cost record landed, the shadow row never did). after()
+      // keeps the instance alive until the capture completes. Outside a
+      // request scope (tests, scripts) it throws — fall back to plain
+      // fire-and-forget there.
       const shadowMessages = PromptBuilder.buildMessages(
         validatedImageUrls,
         context,
         roboflowDetections,
         visionAnalysis
       );
-      captureTrainingDataAsync(
-        context?.assessmentId,
-        validatedImageUrls,
-        assessment,
-        sam3Data.result,
-        context,
-        shadowMessages,
-        config.openaiApiKey
-      ).catch((error) => {
-        logger.warn('Failed to capture training data (non-critical)', {
-          service: 'AssessmentOrchestrator',
-          error,
+      const runTrainingCapture = () =>
+        captureTrainingDataAsync(
+          context?.assessmentId,
+          validatedImageUrls,
+          assessment,
+          sam3Data.result,
+          context,
+          shadowMessages,
+          config.openaiApiKey
+        ).catch((error) => {
+          logger.warn('Failed to capture training data (non-critical)', {
+            service: 'AssessmentOrchestrator',
+            error,
+          });
         });
-      });
+      try {
+        const { after } = await import('next/server');
+        after(runTrainingCapture);
+      } catch {
+        void runTrainingCapture();
+      }
 
       const totalDuration = Date.now() - startedAt;
       this.recordMetric('assessment.complete', {
