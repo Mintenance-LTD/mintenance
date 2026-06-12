@@ -236,6 +236,14 @@ export interface Phase1BuildingAssessment {
   ricsConditionRating?: RICSConditionRating;
   /** Specialist referrals — "know what you don't know" */
   specialistReferrals?: SpecialistReferral[];
+  /** v3 surveyor taxonomy class id (taxonomy/taxonomy_v3.json) */
+  taxonomyClassId?: string;
+  /** Most likely cause in surveyor diagnostic language */
+  probableCause?: string;
+  /** Abstention: photos insufficient for a reliable diagnosis */
+  needsOnsiteInspection?: boolean;
+  /** Why the photos were insufficient (set when needsOnsiteInspection) */
+  onsiteInspectionReason?: string;
   /** Cross-property pattern insights from previous assessments */
   patternInsights?: PropertyPatternInsight;
   evidence?: {

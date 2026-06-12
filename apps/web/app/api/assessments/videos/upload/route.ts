@@ -135,12 +135,14 @@ export const POST = withApiHandler(
           property_id: propertyId || null,
           domain: 'building',
           damage_type: 'video_walkthrough',
-          severity: 'pending_review',
+          // Placeholder values constrained by the building_assessments
+          // CHECKs — the AI pipeline overwrites them after analysis.
+          severity: 'early',
           confidence: 0,
           safety_score: 0,
           compliance_score: 0,
           insurance_risk_score: 0,
-          urgency: 'normal',
+          urgency: 'monitor',
           video_url: videoUrl,
           assessment_data: {
             source: 'mobile_video',

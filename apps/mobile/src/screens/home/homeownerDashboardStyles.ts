@@ -73,6 +73,27 @@ export const styles = StyleSheet.create({
     color: me.errFg,
     letterSpacing: 0.2,
   },
+  // AI damage-check pill — brand-soft sibling of the emergency pill.
+  // Entry point for the single-photo Mint AI assessment modal.
+  aiCheckPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 9999,
+    backgroundColor: me.brandSoft,
+    borderWidth: 1,
+    borderColor: me.brandSoft,
+    marginTop: 8,
+  },
+  aiCheckPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: me.brand,
+    letterSpacing: 0.2,
+  },
   // Quick Post 2×2 trade grid — flat surfaces with brand-soft
   // icon tiles. Each tile preselects a category on tap.
   quickPostSection: {

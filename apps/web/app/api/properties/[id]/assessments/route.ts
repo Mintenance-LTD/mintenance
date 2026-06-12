@@ -35,6 +35,12 @@ interface AssessmentRow {
   validation_status: string | null;
   created_at: string | null;
   updated_at: string | null;
+  // Surveyor fields plucked from assessment_data JSONB. Web-written rows
+  // carry them top-level; mobile-patched rows nest them under ai_analysis.
+  rics: number | null;
+  rics_ai: number | null;
+  onsite: boolean | null;
+  onsite_ai: boolean | null;
 }
 
 export const GET = withApiHandler(
@@ -55,7 +61,11 @@ export const GET = withApiHandler(
       .from('building_assessments')
       .select(
         'id, user_id, property_id, domain, damage_type, severity, ' +
-          'confidence, urgency, validation_status, created_at, updated_at'
+          'confidence, urgency, validation_status, created_at, updated_at, ' +
+          'rics:assessment_data->ricsConditionRating, ' +
+          'rics_ai:assessment_data->ai_analysis->ricsConditionRating, ' +
+          'onsite:assessment_data->needsOnsiteInspection, ' +
+          'onsite_ai:assessment_data->ai_analysis->needsOnsiteInspection'
       )
       .eq('property_id', propertyId)
       .order('created_at', { ascending: false })
@@ -107,6 +117,8 @@ export const GET = withApiHandler(
         createdAt: a.created_at,
         updatedAt: a.updated_at,
         thumbnailUrl: thumbnails[a.id] ?? null,
+        ricsConditionRating: a.rics ?? a.rics_ai ?? null,
+        needsOnsiteInspection: Boolean(a.onsite ?? a.onsite_ai),
       })),
     });
   }

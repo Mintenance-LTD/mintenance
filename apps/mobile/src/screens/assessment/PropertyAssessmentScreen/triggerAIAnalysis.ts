@@ -257,7 +257,10 @@ export async function triggerAIAnalysis(
           assessment_data_patch: {
             ai_analysis: result,
             ai_analysed_at: new Date().toISOString(),
-            ai_model: 'mint-ai-vlm',
+            // The serving model (GPT-4o teacher vs Mint AI student) is routed
+            // server-side by VLM_ROUTING_MODE and not exposed in the response,
+            // so the client must not claim a specific model here.
+            ai_model: 'building-surveyor/assess',
           },
         }
       );
