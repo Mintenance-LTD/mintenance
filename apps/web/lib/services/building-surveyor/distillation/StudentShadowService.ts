@@ -140,7 +140,10 @@ export class StudentShadowService {
         latencyMs,
       });
     } catch (error) {
-      logger.debug('Shadow comparison failed (non-critical)', {
+      // warn, not debug: this is the only signal when the student endpoint
+      // is misconfigured (bad key, wrong URL, Modal down) — debug-level made
+      // every failure invisible in production logs.
+      logger.warn('Shadow comparison failed (non-critical)', {
         service: 'StudentShadowService',
         assessmentId,
         error: error instanceof Error ? error.message : String(error),

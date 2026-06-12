@@ -11,21 +11,16 @@ import { logger } from '@mintenance/shared';
 import { KnowledgeDistillationService } from '../KnowledgeDistillationService';
 import { SAM3Service } from '../SAM3Service';
 import { StudentShadowService } from '../distillation/StudentShadowService';
-import type {
-  AssessmentContext,
-  Phase1BuildingAssessment,
-} from '../types';
+import type { AssessmentContext, Phase1BuildingAssessment } from '../types';
 
 export async function captureTrainingDataAsync(
   assessmentId: string | undefined,
   imageUrls: string[],
   assessment: Phase1BuildingAssessment,
-  sam3Result: Awaited<
-    ReturnType<typeof SAM3Service.segmentDamageTypes>
-  > | null,
+  sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null,
   context?: AssessmentContext,
   promptMessages?: Array<{ role: string; content: unknown }>,
-  apiKey?: string,
+  apiKey?: string
 ): Promise<void> {
   try {
     if (!assessmentId) {
@@ -47,7 +42,7 @@ export async function captureTrainingDataAsync(
             propertyDetails: context.propertyDetails,
             region: context.region,
           }
-        : undefined,
+        : undefined
     );
 
     if (sam3Result?.success) {
@@ -56,7 +51,7 @@ export async function captureTrainingDataAsync(
           assessmentId,
           imageUrls[i],
           sam3Result,
-          i,
+          i
         );
       }
     }
@@ -67,9 +62,9 @@ export async function captureTrainingDataAsync(
         imageUrls,
         assessment,
         promptMessages as import('../generator/AssessmentGenerator').GeneratorMessage[],
-        apiKey,
+        apiKey
       ).catch((err) => {
-        logger.debug('Shadow comparison failed (non-critical)', {
+        logger.warn('Shadow comparison failed (non-critical)', {
           service: 'AssessmentOrchestrator',
           error: err instanceof Error ? err.message : String(err),
         });
