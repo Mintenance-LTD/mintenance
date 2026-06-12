@@ -294,6 +294,18 @@ module.exports = {
               pickFirst: ['**/libc++_shared.so', '**/libjsc.so'],
             },
             proguardFiles: ['proguard-android-optimize.txt'],
+            // Ported from the (no longer uploaded) android/app/proguard-rules.pro.
+            // Without the Stripe rules, :app:minifyReleaseWithR8 fails on
+            // missing com.stripe.android.pushProvisioning.* classes referenced
+            // by @stripe/stripe-react-native (build 4a20efcb).
+            extraProguardRules: [
+              '# react-native-reanimated',
+              '-keep class com.swmansion.reanimated.** { *; }',
+              '-keep class com.facebook.react.turbomodule.** { *; }',
+              '# Stripe push provisioning (proprietary library not bundled in build)',
+              '-dontwarn com.stripe.android.pushProvisioning.**',
+              '-keep class com.stripe.android.pushProvisioning.** { *; }',
+            ].join('\n'),
           },
           ios: {
             newArchEnabled: true,
