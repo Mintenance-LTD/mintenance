@@ -40,10 +40,15 @@ import { parseArgs } from 'node:util';
 // trained on bootstrap data and shadow-comparison data sees the same schema.
 // ---------------------------------------------------------------------------
 
+// KEEP IN SYNC with TrainingDataExporter.ts TRAINING_SYSTEM_PROMPT.
+// Teaches the multi-finding surveyor output so a v3 student learns to read the
+// whole scene rather than collapse it to a single defect.
 const TRAINING_SYSTEM_PROMPT =
-  'You are a UK building damage assessment AI. Analyze the provided images and return a JSON object with these sections: damageAssessment, safetyHazards, compliance, insuranceRisk, urgency, homeownerExplanation, contractorAdvice. ' +
-  'Use 4-tier severity: "early" (cosmetic/minor), "developing" (progressing, needs attention), "significant" (serious, risk of spread), "dangerous" (structural/safety risk, urgent repair). ' +
-  'Include recommendedTrades in contractorAdvice: choose from plumber, electrician, roofer, structural_engineer, plasterer, general_builder, damp_specialist, gas_engineer, drainage, locksmith, glazier, pest_control. ' +
+  'You are a UK building surveyor assessment AI. Analyse the attached images and return a single JSON object. ' +
+  'Read the WHOLE scene: report EVERY distinct defect, element by element, in a "findings" array — one entry per defect: {element, taxonomyClassId, damageType, severity, conditionRating, description, probableCause, confidence, isPrimary}. Mark exactly one finding "isPrimary": true (the most serious) and mirror it into the top-level damageAssessment/taxonomyClassId/severity. Set top-level "ricsConditionRating" to the WORST conditionRating across all findings. Also return a one-line "sceneSummary". ' +
+  'Use 4-tier severity: "early" (cosmetic/minor), "developing" (progressing), "significant" (serious, risk of spread), "dangerous" (structural/safety risk, urgent). RICS conditionRating: 1 = routine maintenance, 2 = repair needed, 3 = serious/urgent. ' +
+  'If the photos are insufficient to diagnose reliably, set "needsOnsiteInspection": true with a reason and confidence below 40 — never guess a defect, and do not quote a firm cost. ' +
+  'Also return: safetyHazards, compliance, insuranceRisk, urgency, homeownerExplanation, contractorAdvice (with recommendedTrades from: plumber, electrician, roofer, structural_engineer, plasterer, general_builder, damp_specialist, gas_engineer, drainage, locksmith, glazier, pest_control). ' +
   'Be precise, safety-conscious, and evidence-based.';
 
 const DEFAULT_USER_PROMPT =
@@ -64,6 +69,10 @@ const { values: args } = parseArgs({
     'with-outcomes': { type: 'boolean', default: false },
     split: { type: 'string', default: '0.9' },
     'dry-run': { type: 'boolean', default: false },
+    // v3 multi-finding gate: abort if fewer than N rows carry a multi-element
+    // findings[] target. Training a multi-finding student on single-defect data
+    // reinforces the tunnel vision it is meant to fix. Default 0 = warn only.
+    'require-multi-finding': { type: 'string', default: '0' },
   },
 });
 
@@ -334,15 +343,38 @@ async function main() {
     const evidence = buildEvidenceSummary(evidenceMap.get(a.id));
     const outcome = outcomesMap.get(a.id);
     const conversation = toQwenConversation(a, imageUrls, evidence, outcome);
+    const findings = a.assessment_data?.findings;
     rows.push({
       id: a.id,
       confidence: a.confidence,
       category: a.damage_type ?? a.assessment_data?.damageAssessment?.damageType ?? 'unknown',
+      multiFinding: Array.isArray(findings) && findings.length >= 2,
       conversation,
     });
   }
 
   console.log(`Built ${rows.length} training rows (${skipped} skipped for missing images).`);
+
+  // v3 multi-finding readiness gate.
+  const multiFindingCount = rows.filter((r) => r.multiFinding).length;
+  const requireMultiFinding = parseInt(args['require-multi-finding'], 10) || 0;
+  const pct = rows.length > 0 ? Math.round((multiFindingCount / rows.length) * 100) : 0;
+  console.log(
+    `Multi-finding coverage: ${multiFindingCount}/${rows.length} rows (${pct}%) carry findings[] with 2+ elements.`,
+  );
+  if (multiFindingCount === 0) {
+    console.warn(
+      'WARNING: zero multi-finding rows. A student trained on this data will ' +
+        'stay single-defect (the tunnel vision Phase 1/2 exist to fix). Deploy ' +
+        'the multi-finding teacher and let the corpus accumulate before training v3.',
+    );
+  }
+  if (multiFindingCount < requireMultiFinding) {
+    console.error(
+      `ERROR: --require-multi-finding=${requireMultiFinding} but only ${multiFindingCount} multi-finding rows available. Aborting.`,
+    );
+    process.exit(1);
+  }
 
   if (args['balance-categories']) {
     const before = rows.length;
@@ -382,13 +414,20 @@ async function main() {
 
   // Print summary of what to do next
   console.log('\nNext steps:');
-  console.log('  1. Upload training_data.jsonl to Modal or local GPU');
+  console.log('  1. Upload the dataset to Modal or local GPU');
   console.log('  2. Run: python scripts/vlm-training/train_qwen_vlm.py \\');
   console.log(`       --data ${outputPath} --val-data ${valOutputPath} \\`);
-  console.log('       --output ./adapters/mint-vlm-v1 --epochs 3');
-  console.log('  3. Or use Modal: see vlm_training_worker/README.md');
-  console.log('  4. After training, set MINT_AI_VLM_ENDPOINT in .env.local');
-  console.log('  5. StudentShadowService will start populating vlm_shadow_comparisons');
+  console.log('       --output ./adapters/mint-vlm-v3 --epochs 3');
+  console.log('  3. Evaluate with the gated harness (per-class + multi-finding):');
+  console.log('       python scripts/vlm-training/evaluate_vlm.py --data <val> \\');
+  console.log(
+    '         --taxonomy apps/web/lib/services/building-surveyor/taxonomy/taxonomy_v3.json --enforce-gates',
+  );
+  console.log(
+    '  NOTE: for a v3 multi-finding student, run this export with ' +
+      '--require-multi-finding=<N> so it aborts unless the corpus has accumulated ' +
+      'enough multi-finding examples (deploy the Phase 1 teacher first).',
+  );
 }
 
 main().catch((err) => {

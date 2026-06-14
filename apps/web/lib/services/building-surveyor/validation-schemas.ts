@@ -163,6 +163,29 @@ const specialistReferralSchema = z.object({
     .default('routine'),
 });
 
+// One defect within an assessment. Every field degrades gracefully so a
+// single malformed finding never rejects the whole assessment.
+const findingSchema = z.object({
+  element: z.string().max(100).optional().default('general'),
+  taxonomyClassId: z.preprocess(
+    (val) => (isTaxonomyV3ClassId(val) ? val : undefined),
+    z.string().optional()
+  ),
+  damageType: z.string().max(200).optional().default('general_damage'),
+  severity: damageSeverityEnum,
+  conditionRating: z.preprocess(
+    (val) => (val === 1 || val === 2 || val === 3 ? val : undefined),
+    z.union([z.literal(1), z.literal(2), z.literal(3)]).optional()
+  ),
+  description: z.string().max(2000).optional().default(''),
+  probableCause: z.string().max(1000).optional(),
+  confidence: optionalNumber().pipe(z.number().min(0).max(100).optional()),
+  isPrimary: z.preprocess(
+    (val) => (typeof val === 'boolean' ? val : undefined),
+    z.boolean().optional()
+  ),
+});
+
 export const AI_ASSESSMENT_SCHEMA = z.object({
   damageType: z.string().optional(),
   // v3 surveyor taxonomy class — tolerant: anything outside the canonical id
@@ -178,6 +201,10 @@ export const AI_ASSESSMENT_SCHEMA = z.object({
     z.boolean().optional()
   ),
   onsiteInspectionReason: z.string().max(1000).optional(),
+  // Multi-finding: all distinct defects across visible elements. Singular
+  // fields are the derived "primary" finding (see assessment-structurer).
+  findings: z.array(findingSchema).max(20).optional().default([]),
+  sceneSummary: z.string().max(2000).optional(),
   severity: damageSeverityEnum,
   confidence: optionalNumber().pipe(z.number().min(0).max(100).optional()),
   location: z.string().optional(),

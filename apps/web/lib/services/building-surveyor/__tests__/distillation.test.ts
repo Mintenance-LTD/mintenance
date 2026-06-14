@@ -493,7 +493,10 @@ describe('TrainingDataExporter.toQwenConversation', () => {
 
     expect(systemContent).not.toContain('PROPRIETARY');
     expect(systemContent).not.toContain('secret');
-    expect(systemContent).toContain('building damage assessment');
+    // Generic surveyor training prompt (multi-finding). Intent: no proprietary
+    // prompt leakage, and it teaches the building-surveyor output shape.
+    expect(systemContent).toContain('building surveyor assessment');
+    expect(systemContent).toContain('findings');
   });
 
   it('user content includes text and image_url entries', () => {

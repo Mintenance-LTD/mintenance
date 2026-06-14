@@ -165,6 +165,33 @@ export interface ContractorAdvice {
 /** RICS Condition Rating (1 = Green/routine, 2 = Amber/repair soon, 3 = Red/urgent) */
 export type RICSConditionRating = 1 | 2 | 3;
 
+/**
+ * One distinct defect within an assessment. A scene usually has several
+ * (e.g. exposed wiring + decaying timber + perished masonry), so the AI
+ * returns a `findings[]` array instead of collapsing to a single defect.
+ * The singular top-level fields (damageAssessment, taxonomyClassId,
+ * ricsConditionRating, …) are derived from this list for back-compat:
+ * the most serious finding becomes the "primary".
+ */
+export interface AssessmentFinding {
+  /** Building element affected, e.g. 'electrical_services', 'roof_timbers', 'main_walls', 'ceilings'. */
+  element: string;
+  /** v3 surveyor taxonomy class id (taxonomy/taxonomy_v3.json), if one fits. */
+  taxonomyClassId?: string;
+  /** Legacy free-text damage type vocabulary (back-compat with single-defect consumers). */
+  damageType: string;
+  severity: DamageSeverity;
+  /** RICS condition rating for this specific finding. */
+  conditionRating?: RICSConditionRating;
+  description: string;
+  /** Probable cause in surveyor diagnostic language. */
+  probableCause?: string;
+  /** 0-100. */
+  confidence: number;
+  /** True for the single most serious finding (the one mirrored into the top-level fields). */
+  isPrimary?: boolean;
+}
+
 export interface SpecialistReferral {
   /** Type of specialist needed (e.g. 'structural_engineer', 'asbestos_surveyor') */
   specialistType: string;
@@ -244,6 +271,15 @@ export interface Phase1BuildingAssessment {
   needsOnsiteInspection?: boolean;
   /** Why the photos were insufficient (set when needsOnsiteInspection) */
   onsiteInspectionReason?: string;
+  /**
+   * All distinct defects across the visible building elements. The singular
+   * fields above (damageAssessment, taxonomyClassId, ricsConditionRating) are
+   * the derived "primary" finding; ricsConditionRating is the worst rating
+   * across this list. Empty/absent on legacy single-defect rows.
+   */
+  findings?: AssessmentFinding[];
+  /** Whole-scene narrative — what the property looks like overall (incl. work-in-progress vs defect). */
+  sceneSummary?: string;
   /** Cross-property pattern insights from previous assessments */
   patternInsights?: PropertyPatternInsight;
   evidence?: {

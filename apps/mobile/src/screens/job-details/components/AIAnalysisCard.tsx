@@ -27,7 +27,12 @@ import {
   RepairsSection,
   UrgencyFooter,
 } from './AssessmentSections';
-import { SurveyorSection, InspectionNeededSection } from './SurveyorSections';
+import {
+  SurveyorSection,
+  InspectionNeededSection,
+  SceneSummarySection,
+  FindingsList,
+} from './SurveyorSections';
 
 interface AssessmentData {
   damageAssessment?: {
@@ -42,6 +47,16 @@ interface AssessmentData {
   probableCause?: string;
   needsOnsiteInspection?: boolean;
   onsiteInspectionReason?: string;
+  sceneSummary?: string;
+  findings?: Array<{
+    element: string;
+    damageType: string;
+    severity: string;
+    conditionRating?: number;
+    description?: string;
+    probableCause?: string;
+    isPrimary?: boolean;
+  }>;
   safetyHazards?: {
     hasCriticalHazards: boolean;
     overallSafetyScore: number;
@@ -160,6 +175,7 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
           {a.needsOnsiteInspection && (
             <InspectionNeededSection reason={a.onsiteInspectionReason} />
           )}
+          <SceneSummarySection summary={a.sceneSummary} />
           {a.damageAssessment && (
             <DamageSection
               damageType={a.damageAssessment.damageType}
@@ -173,6 +189,7 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
             taxonomyClassId={a.taxonomyClassId}
             probableCause={a.probableCause}
           />
+          <FindingsList findings={a.findings} />
           {a.homeownerExplanation && (
             <HomeownerSection
               whatIsIt={a.homeownerExplanation.whatIsIt}
