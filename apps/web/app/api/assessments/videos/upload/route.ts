@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
+import { SAM2VideoService } from '@/lib/services/building-surveyor/SAM2VideoService';
 
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -101,16 +102,49 @@ export const POST = withApiHandler(
       throw new Error('Failed to sign video URL');
     }
 
+    // Kick off server-side SAM2 video processing. The SAM2 API key lives
+    // only on the server (never in the app bundle), so the phone no longer
+    // calls SAM2 directly — the status poll + cron fuse the result into
+    // this row (see VideoAssessmentFusion).
+    const sam2ProcessingId = await SAM2VideoService.startProcessing(videoUrl);
+    const sam2Meta: Record<string, unknown> = sam2ProcessingId
+      ? {
+          sam2_processing_id: sam2ProcessingId,
+          sam2_started_at: new Date().toISOString(),
+        }
+      : { sam2_status: 'unavailable' };
+    // No processing job (service unconfigured/unreachable) → don't leave the
+    // row spinning in 'processing' forever; route it to manual review.
+    const videoValidationStatus = sam2ProcessingId
+      ? 'processing'
+      : 'needs_review';
+
     // Create or update assessment record
     let dbAssessmentId = assessmentId;
 
     if (assessmentId) {
-      // Link video to existing assessment
+      // Link video to an existing assessment, merging SAM2 metadata into
+      // whatever assessment_data the photo flow already wrote.
+      const { data: existing } = await serverSupabase
+        .from('building_assessments')
+        .select('assessment_data')
+        .eq('id', assessmentId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const mergedData = {
+        ...((existing?.assessment_data as Record<string, unknown> | null) ??
+          {}),
+        ...sam2Meta,
+        video_uploaded_at: new Date().toISOString(),
+      };
+
       const { error: updateError } = await serverSupabase
         .from('building_assessments')
         .update({
           video_url: videoUrl,
-          validation_status: 'processing',
+          validation_status: videoValidationStatus,
+          assessment_data: mergedData,
           updated_at: new Date().toISOString(),
         })
         .eq('id', assessmentId)
@@ -136,7 +170,7 @@ export const POST = withApiHandler(
           domain: 'building',
           damage_type: 'video_walkthrough',
           // Placeholder values constrained by the building_assessments
-          // CHECKs — the AI pipeline overwrites them after analysis.
+          // CHECKs — SAM2 fusion overwrites them after analysis.
           severity: 'early',
           confidence: 0,
           safety_score: 0,
@@ -147,8 +181,9 @@ export const POST = withApiHandler(
           assessment_data: {
             source: 'mobile_video',
             video_uploaded_at: new Date().toISOString(),
+            ...sam2Meta,
           },
-          validation_status: 'processing',
+          validation_status: videoValidationStatus,
         })
         .select('id')
         .single();
@@ -164,27 +199,25 @@ export const POST = withApiHandler(
       dbAssessmentId = newAssessment.id;
     }
 
-    // 2026-04-30 audit P0-3: previously triggered an unauthenticated
-    // fire-and-forget POST to /api/building-surveyor/assess with a string
-    // `context` field. Both shapes were wrong: the route requires auth
-    // (rejects the call as 401) and `context` is an object schema, not a
-    // string (Zod 400). Mobile already calls triggerAIAnalysis() with a
-    // valid bearer + correct shape after photo uploads — the cron
-    // agent-processor picks up assessments left in 'processing'. Drop
-    // the broken trigger here rather than let it pretend to work.
+    // The SAM2 job (kicked off above) runs async. The mobile/web client
+    // polls GET /api/assessments/:id/status, which fuses the completed
+    // result into this row in near real-time; the video-assessment-processor
+    // cron is the backstop for clients that stop polling.
 
     logger.info('Video uploaded for assessment', {
       service: 'assessment-video',
       assessmentId: dbAssessmentId,
       videoUrl,
       userId: user.id,
+      sam2ProcessingId: sam2ProcessingId ?? null,
     });
 
     return NextResponse.json({
       success: true,
       assessmentId: dbAssessmentId,
       videoUrl,
-      status: 'processing',
+      status: videoValidationStatus,
+      processingId: sam2ProcessingId ?? null,
     });
   }
 );

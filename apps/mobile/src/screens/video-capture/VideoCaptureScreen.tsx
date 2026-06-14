@@ -251,14 +251,23 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
       logger.info('Video queued for processing', { videoId });
 
-      Alert.alert(
-        'Video Uploaded',
-        'Your video has been queued for processing.'
-      );
-
+      // Mark the wizard step complete (when launched from the assessment
+      // wizard), then open the live processing status screen. This is the
+      // call site that un-orphans VideoProcessingStatusScreen — it shows
+      // SAM2 progress and the fused result polled from the server.
       if (onComplete) {
         onComplete(videoId);
       }
+
+      (
+        navigation as {
+          navigate: (screen: string, params?: Record<string, unknown>) => void;
+        }
+      ).navigate('VideoProcessingStatus', {
+        videoId,
+        assessmentId,
+        propertyId,
+      });
     } catch (error) {
       logger.error('Video processing failed', { error });
       Alert.alert(

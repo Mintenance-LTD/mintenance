@@ -2,11 +2,12 @@
  * Video Capture and Processing Service
  *
  * Singleton wrapper that owns the in-memory upload queue and
- * orchestrates the per-item lifecycle (upload → SAM2 process → poll →
- * persist). Refactored 2026-05-09: types, guidance data, SAM2 client,
- * upload helper, file utilities, and queue persistence extracted into
- * `video/upload/`. This file is now ~270 lines focused on the queue
- * + lifecycle orchestration.
+ * orchestrates the per-item lifecycle. The phone uploads the video to the
+ * web API; SAM2 processing + fusion into the assessment row now happen
+ * server-side (the upload route kicks off the job, the status poll + cron
+ * fuse the result). The status screen polls /api/assessments/:id/status
+ * for the AI result. Refactored 2026-05-09; upload/file/queue helpers live
+ * in `video/upload/`.
  */
 
 import { logger } from '@mintenance/shared';
@@ -18,10 +19,6 @@ import {
   getVideoMetadata,
 } from './video/upload/file-utils';
 import {
-  getSam2ProcessingStatus,
-  processSam2Video,
-} from './video/upload/sam2-client';
-import {
   uploadVideo as runUpload,
   type UploadVideoOptions,
   type UploadVideoResult,
@@ -30,7 +27,6 @@ import {
   getProcessingResults as readProcessingResults,
   loadQueue,
   saveQueue,
-  storeProcessingResults,
 } from './video/upload/queue-storage';
 import {
   VIDEO_CONSTRAINTS,
@@ -135,17 +131,6 @@ class VideoService {
     return runUpload(videoPath, options, onProgress);
   }
 
-  async processSAM2Video(
-    videoUrl: string,
-    damageTypes?: string[]
-  ): Promise<string> {
-    return processSam2Video(videoUrl, damageTypes);
-  }
-
-  async getSAM2ProcessingStatus(processingId: string): Promise<unknown> {
-    return getSam2ProcessingStatus(processingId);
-  }
-
   async getProcessingResults(videoId: string): Promise<unknown> {
     return readProcessingResults(videoId);
   }
@@ -218,34 +203,14 @@ class VideoService {
           });
           // Pin server-issued assessmentId so retries reuse the same row.
           item!.assessmentId = uploadOutcome.assessmentId;
-          const { url } = uploadOutcome;
 
-          item!.status = 'processing';
-          const processingId = await processSam2Video(url);
-
-          let processingComplete = false;
-          let attempts = 0;
-          const maxAttempts = 60; // 2 min @ 2-second intervals
-
-          while (!processingComplete && attempts < maxAttempts) {
-            const status = (await getSam2ProcessingStatus(processingId)) as {
-              status: string;
-              result?: unknown;
-              error?: string;
-            };
-
-            if (status.status === 'completed') {
-              processingComplete = true;
-              item!.status = 'completed';
-              await storeProcessingResults(item!.id, status.result);
-            } else if (status.status === 'failed') {
-              throw new Error(status.error || 'Processing failed');
-            }
-
-            attempts++;
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-          }
-
+          // Upload done. SAM2 processing + fusion into the assessment row
+          // now happen server-side (the upload route kicked off the job).
+          // The phone no longer calls SAM2 directly — that path shipped the
+          // service URL in the app bundle and ran with no API key. The
+          // VideoProcessingStatusScreen polls /api/assessments/:id/status
+          // for the fused AI result.
+          item!.status = 'completed';
           this.uploadQueue.shift();
           this.currentUpload = null;
         } catch (error) {
