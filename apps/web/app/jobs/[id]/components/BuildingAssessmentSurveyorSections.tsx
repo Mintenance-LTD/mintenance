@@ -10,7 +10,11 @@
 
 import React from 'react';
 import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
-import type { SpecialistReferral } from '@/lib/services/building-surveyor/types';
+import type {
+  ContractorAdvice,
+  SpecialistReferral,
+} from '@/lib/services/building-surveyor/types';
+import { formatMoney } from '@/lib/utils/currency';
 
 // RICS condition rating: 1 = green/routine, 2 = amber/repair soon, 3 = red/urgent
 const RICS_BADGE: Record<1 | 2 | 3, { label: string; className: string }> = {
@@ -131,6 +135,85 @@ export function SurveyorDiagnosis({
         <div>
           <p className='text-sm text-gray-500 mb-1'>Probable Cause</p>
           <p className='text-gray-700 text-sm'>{probableCause}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Cost Estimate. When the AI has abstained (needsOnsiteInspection), a firm
+ * price contradicts "cannot assess from photos", so we reframe it as an
+ * indicative band with an explicit caveat instead of a confident figure.
+ */
+export function CostEstimateSection({
+  contractorAdvice,
+  needsOnsiteInspection,
+}: {
+  contractorAdvice?: ContractorAdvice;
+  needsOnsiteInspection?: boolean;
+}) {
+  const estimatedCost = contractorAdvice?.estimatedCost;
+  return (
+    <div className='p-6 border-t border-gray-200'>
+      <h4 className='font-medium text-gray-900 mb-4'>
+        {needsOnsiteInspection ? 'Indicative Cost' : 'Cost Estimate'}
+      </h4>
+      <div className='bg-blue-50 rounded-lg p-4'>
+        {needsOnsiteInspection ? (
+          <>
+            <div className='flex items-center justify-between mb-2'>
+              <span className='text-sm text-gray-600'>Likely range</span>
+              <span className='text-2xl font-bold text-blue-600'>
+                {(estimatedCost?.max ?? 0) > 0
+                  ? `${formatMoney(estimatedCost?.min ?? 0)} – ${formatMoney(estimatedCost?.max ?? 0)}`
+                  : 'To be confirmed'}
+              </span>
+            </div>
+            <div className='text-xs text-gray-600'>
+              Scope and final cost can only be confirmed by an onsite inspection
+              — treat this as a rough guide only.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className='flex items-center justify-between mb-3'>
+              <span className='text-sm text-gray-600'>Estimated Cost</span>
+              <span className='text-2xl font-bold text-blue-600'>
+                {formatMoney(estimatedCost?.recommended ?? 0)}
+              </span>
+            </div>
+            <div className='text-sm text-gray-600'>
+              Range: {formatMoney(estimatedCost?.min ?? 0)} –{' '}
+              {formatMoney(estimatedCost?.max ?? 0)}
+            </div>
+          </>
+        )}
+        {contractorAdvice?.estimatedTime && (
+          <div className='text-xs text-gray-500 mt-1'>
+            Estimated time: {contractorAdvice.estimatedTime}
+          </div>
+        )}
+      </div>
+
+      {(contractorAdvice?.materials?.length ?? 0) > 0 && (
+        <div className='mt-4'>
+          <p className='text-sm font-medium text-gray-700 mb-2'>Materials:</p>
+          <div className='space-y-1'>
+            {contractorAdvice!.materials.map((material, index) => (
+              <div
+                key={index}
+                className='flex items-center justify-between text-sm'
+              >
+                <span className='text-gray-600'>
+                  {material.name} ({material.quantity})
+                </span>
+                <span className='font-medium'>
+                  {formatMoney(material.estimatedCost)}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -247,6 +247,7 @@ WHEN PHOTOS ARE INSUFFICIENT (the surveyor's honesty rule):
 - If blur, distance, lighting, or a hidden cause prevents a reliable diagnosis, set "needsOnsiteInspection": true, explain in "onsiteInspectionReason", set confidence below 40, and set "taxonomyClassId": null
 - Never guess a specific defect to avoid an inconclusive answer — name candidate classes in "description" instead
 - An inconclusive answer with a clear reason is a GOOD assessment; a confident wrong diagnosis is the worst possible output
+- Do NOT state precise costs you cannot justify. When "needsOnsiteInspection" is true (or the repair scope is genuinely undefined), a real surveyor will not quote a firm price. Reflect this: keep contractorAdvice.estimatedCost as a WIDE indicative band only, and make the homeownerExplanation/contractorAdvice wording say the scope and final cost must be confirmed on inspection. A confident £450 next to "I cannot assess this from photos" is exactly the contradiction to avoid.
 
 RICS Condition Rating guidance:
 - Rating 1 (GREEN): No repair is currently needed. Normal maintenance only.
