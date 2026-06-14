@@ -32,6 +32,20 @@ const assessmentCache = new LRUCache<string, Phase1BuildingAssessment>({
   allowStale: false,
 });
 
+// In-flight coalescing: cacheKey -> epoch ms the owning request started.
+// The LRU + DB caches only help AFTER the first request writes its row, so
+// concurrent identical-image assessments (job-create preview + post-submit
+// attach + re-run all fire the same images) each ran the full GPT pipeline.
+// Verified live 2026-06-13: one cache_key produced 2 shadow comparisons.
+// Vercel Fluid Compute reuses one instance across concurrent requests, so a
+// module-level marker lets late arrivals wait for the owner's row instead of
+// recomputing. TTL self-heals if an owner dies before cleanup; the guard can
+// only save work, never block a genuinely new assessment.
+const inFlightCacheKeys = new Map<string, number>();
+const INFLIGHT_TTL_MS = 90_000;
+const INFLIGHT_POLL_MS = 1_500;
+const INFLIGHT_MAX_POLLS = 16; // ~24s ceiling, well under maxDuration (300s)
+
 function generateCacheKey(imageUrls: string[]): string {
   // SHA-256 hex is exactly 64 chars, which fits the VARCHAR(64) cache_key column.
   // The table name (building_assessments) provides the namespace implicitly.
@@ -217,6 +231,51 @@ export const POST = withApiHandler(
         cacheSource: 'database',
       });
     }
+
+    // ── In-flight coalescing ──────────────────────────────────────────────
+    // If an identical-image assessment is already running on this instance,
+    // wait briefly for its freshly-written row rather than re-running the GPT
+    // pipeline. Bounded wait: on timeout we fall through and compute normally,
+    // so this can only save duplicate work — never block a real assessment.
+    const ownerStartedAt = inFlightCacheKeys.get(cacheKey);
+    if (ownerStartedAt && Date.now() - ownerStartedAt < INFLIGHT_TTL_MS) {
+      for (let attempt = 0; attempt < INFLIGHT_MAX_POLLS; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, INFLIGHT_POLL_MS));
+        const { data: coalesced } = await deps.serverSupabase
+          .from('building_assessments')
+          .select('assessment_data')
+          .eq('cache_key', cacheKey)
+          .single();
+        const coalescedData = coalesced?.assessment_data as
+          | Record<string, unknown>
+          | undefined;
+        if (coalescedData?.damageAssessment) {
+          assessmentCache.set(
+            cacheKey,
+            coalescedData as unknown as Phase1BuildingAssessment
+          );
+          deps.logger.info('Assessment coalesced to in-flight request', {
+            service: 'building-surveyor-api',
+            userId: user.id,
+          });
+          return NextResponse.json({
+            ...coalescedData,
+            cached: true,
+            cacheSource: 'coalesced',
+          });
+        }
+        // Owner cleared its marker without writing a row (it errored) — stop
+        // waiting and compute ourselves.
+        if (!inFlightCacheKeys.has(cacheKey)) break;
+      }
+      // Fell through (owner too slow or failed): proceed to compute normally.
+    }
+    // Claim ownership for this cacheKey; release after the response is sent.
+    // No await sits between the get-check above and this set, so at most one
+    // owner exists per instance. after() runs on every return path; the TTL
+    // covers the throw-before-cleanup case.
+    inFlightCacheKeys.set(cacheKey, Date.now());
+    after(() => inFlightCacheKeys.delete(cacheKey));
 
     // A/B Testing Integration (if enabled)
     if (AB_TEST_ENABLED && AB_TEST_EXPERIMENT_ID) {
