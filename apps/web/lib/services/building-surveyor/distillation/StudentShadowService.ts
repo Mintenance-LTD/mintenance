@@ -15,8 +15,9 @@ import { callMintAiVLM } from '../generator/AssessmentGenerator';
 import { CostControlService } from '../../ai/CostControlService';
 import { MINT_AI_MODEL_ID } from '../../ai/mint-ai-constants';
 import type { GeneratorMessage } from '../generator/AssessmentGenerator';
-import type { Phase1BuildingAssessment } from '../types';
+import type { Phase1BuildingAssessment, DamageSeverity } from '../types';
 import type { ShadowComparisonResult } from './types';
+import { compareFindings } from './findings-comparison';
 
 // Product-facing model ID written to vlm_shadow_comparisons.student_model
 // and used as the lookup key in CostControlService. See mint-ai-constants.ts
@@ -249,6 +250,8 @@ export class StudentShadowService {
         costUsd,
         damageCategory: teacher.damageAssessment.damageType,
         imageCount,
+        // Student produced nothing — every teacher finding was missed.
+        findingsComparison: compareFindings(teacher, null),
       };
     }
 
@@ -289,12 +292,15 @@ export class StudentShadowService {
       safetyPrecision = correct / studentHazards.length;
     }
 
-    // Weighted overall agreement
+    // Weighted overall agreement (primary-finding metric — kept for continuity)
     const overallAgreement =
       (damageTypeMatch ? 0.35 : 0) +
       (severityMatch ? 0.25 : 0) +
       (urgencyMatch ? 0.15 : 0) +
       safetyRecall * 0.25;
+
+    // Set-based multi-finding comparison (Phase 2).
+    const findingsComparison = compareFindings(teacher, student);
 
     return {
       assessmentId,
@@ -314,6 +320,7 @@ export class StudentShadowService {
       costUsd,
       damageCategory: teacher.damageAssessment.damageType,
       imageCount,
+      findingsComparison,
     };
   }
 
@@ -467,6 +474,38 @@ export class StudentShadowService {
           ? String(ca.complexity)
           : 'medium') as 'low' | 'medium' | 'high',
       },
+      // Multi-finding: parse the student's findings[] when present so the
+      // set-based comparison can score them. v2 students typically omit this
+      // (single-defect) — that is the gap Phase 2 quantifies.
+      findings: Array.isArray(raw.findings)
+        ? (raw.findings as Array<Record<string, unknown>>).map((f) => ({
+            element: String(f.element ?? 'general'),
+            taxonomyClassId: f.taxonomyClassId
+              ? String(f.taxonomyClassId)
+              : undefined,
+            damageType: String(f.damageType ?? 'general_damage'),
+            severity: ([
+              'early',
+              'developing',
+              'significant',
+              'dangerous',
+            ].includes(String(f.severity))
+              ? String(f.severity)
+              : 'developing') as DamageSeverity,
+            conditionRating:
+              f.conditionRating === 1 ||
+              f.conditionRating === 2 ||
+              f.conditionRating === 3
+                ? (f.conditionRating as 1 | 2 | 3)
+                : undefined,
+            description: String(f.description ?? ''),
+            probableCause: f.probableCause
+              ? String(f.probableCause)
+              : undefined,
+            confidence: Number(f.confidence) || 0,
+            isPrimary: Boolean(f.isPrimary),
+          }))
+        : [],
     };
   }
 
@@ -562,6 +601,14 @@ export class StudentShadowService {
         cost_usd: comparison.costUsd,
         damage_category: comparison.damageCategory,
         image_count: comparison.imageCount,
+        // Multi-finding set metrics (Phase 2). Scalars for easy dashboarding,
+        // full detail in the JSONB.
+        findings_comparison: comparison.findingsComparison ?? null,
+        findings_precision: comparison.findingsComparison?.precision ?? null,
+        findings_recall: comparison.findingsComparison?.recall ?? null,
+        findings_f1: comparison.findingsComparison?.f1 ?? null,
+        safety_finding_recall:
+          comparison.findingsComparison?.safetyFindingRecall ?? null,
       })
       .select('id')
       .single();

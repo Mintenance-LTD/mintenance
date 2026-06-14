@@ -40,6 +40,14 @@ export function isTaxonomyV3ClassId(value: unknown): value is string {
   return typeof value === 'string' && TAXONOMY_V3_CLASS_IDS.has(value);
 }
 
+export const SAFETY_CRITICAL_CLASS_IDS: ReadonlySet<string> = new Set(
+  TAXONOMY_V3.classes.filter((c) => c.safetyCritical).map((c) => c.id)
+);
+
+export function isSafetyCriticalTaxonomyClass(value: unknown): boolean {
+  return typeof value === 'string' && SAFETY_CRITICAL_CLASS_IDS.has(value);
+}
+
 /**
  * Compact, grouped class list for the system prompt (~25 lines). Group
  * headers help the model narrow before picking; safety-critical classes are
