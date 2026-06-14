@@ -67,17 +67,27 @@ export async function getProcessingResults(videoId: string): Promise<unknown> {
         status: string;
         isComplete: boolean;
         isFailed: boolean;
-        assessment: unknown;
+        assessment: { data?: { sam2_aggregated?: unknown } } | null;
       }>(`/api/assessments/${serverAssessmentId}/status`);
 
-      if (res.isComplete && res.assessment) {
-        return {
-          aggregated_assessment: res.assessment,
-          status: 'completed',
-        };
+      // The server fuses the SAM2 video result into assessment_data.
+      // sam2_aggregated — that's the AggregatedDamageAssessment shape the
+      // VideoProcessingStatusScreen renders.
+      const sam2 = res.assessment?.data?.sam2_aggregated;
+      if (res.isComplete && sam2) {
+        return { aggregated_assessment: sam2, status: 'completed' };
       }
       if (res.isFailed) {
-        return { status: 'failed', error: 'Assessment processing failed' };
+        return { status: 'failed', error: 'Video analysis failed' };
+      }
+      // SAM2 unavailable at upload → routed to manual review. Terminal
+      // state for the status screen rather than an endless spinner.
+      if (res.status === 'needs_review') {
+        return {
+          status: 'failed',
+          error:
+            'AI video analysis is unavailable right now — your video was saved for manual review.',
+        };
       }
       return null;
     }

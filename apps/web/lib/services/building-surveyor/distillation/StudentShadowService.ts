@@ -25,6 +25,59 @@ const STUDENT_MODEL_NAME = MINT_AI_MODEL_ID;
 
 export class StudentShadowService {
   /**
+   * Modal scales the student endpoint to zero between calls. A cold POST to
+   * /v1/chat/completions can return a 5xx during the ~60-90s boot, and the
+   * shared fetchWithOpenAIRetry only retries 429s — so the shadow silently
+   * lost every cold-start comparison (verified live 2026-06-14: teacher +
+   * training label landed, but the student call threw before writing a row).
+   *
+   * Warm the container first with a lightweight GET to /health, which only
+   * returns 200 once vLLM and the LoRA adapter are loaded (its body reports
+   * the active adapter). The subsequent inference call then lands warm.
+   * Best-effort: on timeout/error we proceed anyway — never worse than today.
+   */
+  private static async warmStudentEndpoint(apiKey: string): Promise<void> {
+    const endpoint = process.env.MINT_AI_VLM_ENDPOINT?.trim();
+    if (!endpoint) return;
+
+    let healthUrl: string;
+    try {
+      const url = new URL(endpoint);
+      // .../v1/chat/completions -> .../health (same Modal app/container)
+      url.pathname = url.pathname.replace(/\/v1\/.*$/, '/health');
+      if (!url.pathname.endsWith('/health')) url.pathname = '/health';
+      url.search = '';
+      healthUrl = url.toString();
+    } catch {
+      return;
+    }
+
+    const token = process.env.MINT_AI_VLM_API_KEY?.trim() || apiKey;
+    const controller = new AbortController();
+    // Cap below the route's after() budget (maxDuration 300s) with room for
+    // the inference call that follows.
+    const timer = setTimeout(() => controller.abort(), 110_000);
+    try {
+      const res = await fetch(healthUrl, {
+        method: 'GET',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: controller.signal,
+      });
+      logger.debug('Student endpoint warm-up complete', {
+        service: 'StudentShadowService',
+        status: res.status,
+      });
+    } catch (err) {
+      logger.debug('Student endpoint warm-up failed (proceeding anyway)', {
+        service: 'StudentShadowService',
+        error: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
    * Fire-and-forget: call the student VLM with the same messages the teacher
    * received, compare outputs, and log the comparison. Never throws — all
    * errors are caught and logged.
@@ -49,8 +102,22 @@ export class StudentShadowService {
         return;
       }
 
-      // Call the student VLM with the same prompt
-      const studentResult = await callMintAiVLM(messages, apiKey);
+      // Warm the (scale-to-zero) student container, then call it. One retry
+      // covers the residual race where /health reports ready a moment before
+      // vLLM accepts the first inference request.
+      await this.warmStudentEndpoint(apiKey);
+      let studentResult;
+      try {
+        studentResult = await callMintAiVLM(messages, apiKey);
+      } catch (firstErr) {
+        logger.debug('Student call failed after warm-up, retrying once', {
+          service: 'StudentShadowService',
+          error:
+            firstErr instanceof Error ? firstErr.message : String(firstErr),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 8000));
+        studentResult = await callMintAiVLM(messages, apiKey);
+      }
       const latencyMs = Date.now() - startMs;
 
       // Parse student output
