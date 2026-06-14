@@ -29,6 +29,8 @@ import {
   SpecialistReferralsSection,
   CategoryMismatchNotice,
   CostEstimateSection,
+  SceneSummary,
+  FindingsSection,
 } from './BuildingAssessmentSurveyorSections';
 
 interface BuildingAssessmentDisplayProps {
@@ -210,6 +212,8 @@ export function BuildingAssessmentDisplay({
             reason={assessment.onsiteInspectionReason}
           />
 
+          <SceneSummary summary={assessment.sceneSummary} />
+
           <CategoryMismatchNotice
             show={categoryMismatch}
             jobCategory={jobCategory}
@@ -291,6 +295,8 @@ export function BuildingAssessmentDisplay({
               </div>
             )}
           </div>
+
+          <FindingsSection findings={assessment.findings} />
 
           {/* Safety Hazards */}
           {assessment.safetyHazards.hasCriticalHazards && (

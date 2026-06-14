@@ -159,6 +159,20 @@ ${damageTypeGuidance}
 
 You must respond with valid JSON matching this exact structure:
 {
+  "findings": [
+    {
+      "element": "building element affected, e.g. electrical_services | roof_timbers | roof_covering | main_walls | ceilings | floors | windows | external_joinery | services_plumbing | chimney",
+      "taxonomyClassId": "string | null (best-matching class id from the SURVEYOR DEFECT TAXONOMY below; null if none fits)",
+      "damageType": "string (free-text damage type)",
+      "severity": "early" | "developing" | "significant" | "dangerous",
+      "conditionRating": 1 | 2 | 3,
+      "description": "string (what is visible on this element)",
+      "probableCause": "string (likely cause in surveyor language)",
+      "confidence": number (0-100),
+      "isPrimary": boolean (true for exactly ONE finding — the most serious)
+    }
+  ],
+  "sceneSummary": "string (one or two sentences describing the property/scene overall — e.g. 'room appears mid-strip-out, several elements exposed'; distinguish active works from defects)",
   "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth'${safeDamageTypes?.length ? ` or one of: ${safeDamageTypes.slice(0, 5).join(', ')}` : ''})",
   "taxonomyClassId": "string | null (the single best-matching class id from the SURVEYOR DEFECT TAXONOMY below; null if none fits or photos are insufficient)",
   "probableCause": "string (most likely cause in surveyor diagnostic language, e.g. 'failed pointing above window head allowing penetrating damp')",
@@ -242,6 +256,13 @@ Taxonomy rules:
 - Distinguish carefully within groups (e.g. rising vs penetrating vs condensation damp; subsidence vs settlement vs thermal cracking) — the differential diagnosis is the value you add
 - For [safety-critical] classes be conservative: if plausible from the evidence, prefer the safety-critical class and reflect it in safetyHazards
 - "damageType" keeps its existing vocabulary — do not put taxonomy ids there
+
+READ THE WHOLE SCENE (do not tunnel-vision on one defect):
+- A real surveyor reports EVERY distinct defect visible, element by element. A photo of a stripped-out room can show exposed wiring AND decaying timber AND perished masonry AND damp staining at once — that is four findings, not one.
+- Populate "findings" with one entry per distinct defect/element. Do not merge unrelated defects into a single finding, and do not omit a clearly visible defect just because another is more serious.
+- Mark exactly ONE finding "isPrimary": true — the most serious (highest severity, then highest confidence). Mirror that primary finding into the top-level singular fields ("damageType", "taxonomyClassId", "severity", "probableCause", "description", "confidence").
+- Set the top-level "ricsConditionRating" to the WORST conditionRating across all findings (a scene is only as good as its most serious defect).
+- If you genuinely see only one defect, return a single-element "findings" array — that is fine.
 
 WHEN PHOTOS ARE INSUFFICIENT (the surveyor's honesty rule):
 - If blur, distance, lighting, or a hidden cause prevents a reliable diagnosis, set "needsOnsiteInspection": true, explain in "onsiteInspectionReason", set confidence below 40, and set "taxonomyClassId": null
