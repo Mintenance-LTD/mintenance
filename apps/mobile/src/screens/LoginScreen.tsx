@@ -41,6 +41,7 @@ import { useI18n } from '../hooks/useI18n';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
+import BiometricLoginButton from '../components/BiometricLoginButton';
 import { me } from '../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
@@ -297,7 +298,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                 }}
                 accessibilityRole='checkbox'
                 accessibilityState={{ checked: rememberEmail }}
-                accessibilityLabel='Remember email'
+                accessibilityLabel='Remember my email'
                 accessibilityHint='When enabled, your email address is saved for next time. Your password is never saved.'
                 testID='remember-email-toggle'
               >
@@ -311,7 +312,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                     <Ionicons name='checkmark' size={14} color={me.onBrand} />
                   ) : null}
                 </View>
-                <Text style={styles.rememberLabel}>Keep me signed in</Text>
+                <Text style={styles.rememberLabel}>Remember my email</Text>
               </TouchableOpacity>
 
               <Button
@@ -333,6 +334,8 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                 }
               />
             </View>
+
+            <BiometricLoginButton />
 
             <View style={styles.footerRow}>
               <Text style={styles.footerLabel}>New here?</Text>
