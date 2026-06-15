@@ -42,9 +42,10 @@ export class BuildingSurveyorService {
    */
   static async assessDamage(
     imageUrls: string[],
-    context?: AssessmentContext
+    context?: AssessmentContext,
+    options?: { skipCapture?: boolean }
   ): Promise<Phase1BuildingAssessment> {
-    return AssessmentOrchestrator.assessDamage(imageUrls, context);
+    return AssessmentOrchestrator.assessDamage(imageUrls, context, options);
   }
 
   /**
