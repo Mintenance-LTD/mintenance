@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { AdminJobTrackingModal } from './AdminJobTrackingModal';
 
 export function ActionsDropdown({
   jobId,
@@ -19,6 +20,7 @@ export function ActionsDropdown({
   const [open, setOpen] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [trackingOpen, setTrackingOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleCancelJob = async () => {
@@ -112,6 +114,16 @@ export function ActionsDropdown({
             icon='fileText'
             onClose={() => setOpen(false)}
           />
+          {(jobStatus === 'assigned' || jobStatus === 'in_progress') && (
+            <DropdownButton
+              label='Live Tracking'
+              icon='mapPin'
+              onClick={() => {
+                setOpen(false);
+                setTrackingOpen(true);
+              }}
+            />
+          )}
           {(jobStatus === 'completed' || jobStatus === 'in_progress') && (
             <DropdownLink
               href='/admin/escrow/reviews'
@@ -220,6 +232,13 @@ export function ActionsDropdown({
             </div>
           </div>
         </div>
+      )}
+
+      {trackingOpen && (
+        <AdminJobTrackingModal
+          jobId={jobId}
+          onClose={() => setTrackingOpen(false)}
+        />
       )}
     </div>
   );
