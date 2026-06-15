@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, Text, StyleSheet, View, Alert, Platform } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { BiometricService } from '../services/BiometricService';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 interface BiometricLoginButtonProps {
   onSuccess?: () => void;
@@ -85,6 +85,7 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Quick Sign In</Text>
+
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleBiometricLogin}
@@ -95,8 +96,8 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
       >
         <Ionicons
           name='finger-print'
-          size={32}
-          color={loading ? theme.colors.textTertiary : theme.colors.textPrimary}
+          size={20}
+          color={loading ? me.ink3 : me.brand}
         />
         <Text style={[styles.buttonText, loading && styles.buttonTextDisabled]}>
           {loading ? 'Authenticating...' : `Use ${biometricType}`}
@@ -108,45 +109,38 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 20,
     alignItems: 'center',
-    marginVertical: 24,
   },
   label: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
+    fontSize: 13,
+    color: me.ink3,
+    fontWeight: '600',
     marginBottom: 12,
-    fontWeight: '500',
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'stretch',
+    height: 52,
+    borderRadius: me.radius.btn,
+    borderWidth: 1,
+    borderColor: me.line,
+    backgroundColor: me.surface,
+    ...me.shadow.btn,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    fontSize: 18,
-    color: theme.colors.textPrimary,
-    fontWeight: '500',
-    marginLeft: 8,
+    fontSize: 15,
+    color: me.ink,
+    fontWeight: '600',
   },
   buttonTextDisabled: {
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
 });
 

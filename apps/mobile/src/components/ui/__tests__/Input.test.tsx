@@ -6,14 +6,14 @@ import { Input } from '../Input';
 describe('Input', () => {
   describe('Rendering', () => {
     it('should render with default props', () => {
-      const { getByTestId } = render(<Input testID="test-input" />);
+      const { getByTestId } = render(<Input testID='test-input' />);
 
       expect(getByTestId('test-input')).toBeDefined();
     });
 
     it('should render with placeholder', () => {
       const { getByPlaceholderText } = render(
-        <Input placeholder="Enter text" />
+        <Input placeholder='Enter text' />
       );
 
       expect(getByPlaceholderText('Enter text')).toBeDefined();
@@ -21,14 +21,14 @@ describe('Input', () => {
 
     it('should render with value', () => {
       const { getByDisplayValue } = render(
-        <Input value="test value" onChangeText={() => {}} />
+        <Input value='test value' onChangeText={() => {}} />
       );
 
       expect(getByDisplayValue('test value')).toBeDefined();
     });
 
     it('should render with default variant', () => {
-      const { getByTestId } = render(<Input testID="test-input" />);
+      const { getByTestId } = render(<Input testID='test-input' />);
 
       const input = getByTestId('test-input');
       expect(input).toBeDefined();
@@ -38,7 +38,7 @@ describe('Input', () => {
   describe('Variant Props', () => {
     it('should render with default variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" variant="default" />
+        <Input testID='test-input' variant='default' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -46,7 +46,7 @@ describe('Input', () => {
 
     it('should render with outline variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" variant="outline" />
+        <Input testID='test-input' variant='outline' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -54,7 +54,7 @@ describe('Input', () => {
 
     it('should render with filled variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" variant="filled" />
+        <Input testID='test-input' variant='filled' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -62,7 +62,7 @@ describe('Input', () => {
 
     it('should render with focused variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" variant="focused" />
+        <Input testID='test-input' variant='focused' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -70,7 +70,7 @@ describe('Input', () => {
 
     it('should render with error variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" variant="error" />
+        <Input testID='test-input' variant='error' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -81,7 +81,7 @@ describe('Input', () => {
     it('should apply containerStyle prop', () => {
       const customStyle = { marginTop: 20 };
       const { getByTestId } = render(
-        <Input testID="test-input" containerStyle={customStyle} />
+        <Input testID='test-input' containerStyle={customStyle} />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -90,7 +90,7 @@ describe('Input', () => {
     it('should apply style prop to TextInput', () => {
       const customStyle = { fontSize: 18 };
       const { getByTestId } = render(
-        <Input testID="test-input" style={customStyle} />
+        <Input testID='test-input' style={customStyle} />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -99,7 +99,7 @@ describe('Input', () => {
     it('should apply multiple containerStyles as array', () => {
       const styles = [{ marginTop: 10 }, { marginBottom: 20 }];
       const { getByTestId } = render(
-        <Input testID="test-input" containerStyle={styles} />
+        <Input testID='test-input' containerStyle={styles} />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -110,7 +110,7 @@ describe('Input', () => {
     it('should call onChangeText when text changes', () => {
       const handleChange = jest.fn();
       const { getByTestId } = render(
-        <Input testID="test-input" onChangeText={handleChange} />
+        <Input testID='test-input' onChangeText={handleChange} />
       );
 
       const input = getByTestId('test-input');
@@ -123,7 +123,7 @@ describe('Input', () => {
     it('should call onFocus when input is focused', () => {
       const handleFocus = jest.fn();
       const { getByTestId } = render(
-        <Input testID="test-input" onFocus={handleFocus} />
+        <Input testID='test-input' onFocus={handleFocus} />
       );
 
       const input = getByTestId('test-input');
@@ -135,7 +135,7 @@ describe('Input', () => {
     it('should call onBlur when input loses focus', () => {
       const handleBlur = jest.fn();
       const { getByTestId } = render(
-        <Input testID="test-input" onBlur={handleBlur} />
+        <Input testID='test-input' onBlur={handleBlur} />
       );
 
       const input = getByTestId('test-input');
@@ -147,7 +147,7 @@ describe('Input', () => {
     it('should call onSubmitEditing when submit is triggered', () => {
       const handleSubmit = jest.fn();
       const { getByTestId } = render(
-        <Input testID="test-input" onSubmitEditing={handleSubmit} />
+        <Input testID='test-input' onSubmitEditing={handleSubmit} />
       );
 
       const input = getByTestId('test-input');
@@ -163,7 +163,7 @@ describe('Input', () => {
 
       const { getByTestId } = render(
         <Input
-          testID="test-input"
+          testID='test-input'
           onChangeText={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -184,7 +184,7 @@ describe('Input', () => {
   describe('TextInput Props', () => {
     it('should pass through editable prop', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" editable={false} />
+        <Input testID='test-input' editable={false} />
       );
 
       const input = getByTestId('test-input');
@@ -193,7 +193,7 @@ describe('Input', () => {
 
     it('should pass through secureTextEntry prop', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" secureTextEntry />
+        <Input testID='test-input' secureTextEntry />
       );
 
       const input = getByTestId('test-input');
@@ -202,7 +202,7 @@ describe('Input', () => {
 
     it('should pass through keyboardType prop', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" keyboardType="email-address" />
+        <Input testID='test-input' keyboardType='email-address' />
       );
 
       const input = getByTestId('test-input');
@@ -211,7 +211,7 @@ describe('Input', () => {
 
     it('should pass through autoCapitalize prop', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" autoCapitalize="none" />
+        <Input testID='test-input' autoCapitalize='none' />
       );
 
       const input = getByTestId('test-input');
@@ -220,7 +220,7 @@ describe('Input', () => {
 
     it('should pass through autoCorrect prop', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" autoCorrect={false} />
+        <Input testID='test-input' autoCorrect={false} />
       );
 
       const input = getByTestId('test-input');
@@ -229,7 +229,7 @@ describe('Input', () => {
 
     it('should pass through maxLength prop', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" maxLength={100} />
+        <Input testID='test-input' maxLength={100} />
       );
 
       const input = getByTestId('test-input');
@@ -237,9 +237,7 @@ describe('Input', () => {
     });
 
     it('should pass through multiline prop', () => {
-      const { getByTestId } = render(
-        <Input testID="test-input" multiline />
-      );
+      const { getByTestId } = render(<Input testID='test-input' multiline />);
 
       const input = getByTestId('test-input');
       expect(input.props.multiline).toBe(true);
@@ -247,7 +245,7 @@ describe('Input', () => {
 
     it('should pass through numberOfLines prop', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" multiline numberOfLines={4} />
+        <Input testID='test-input' multiline numberOfLines={4} />
       );
 
       const input = getByTestId('test-input');
@@ -258,7 +256,7 @@ describe('Input', () => {
   describe('Ref Forwarding', () => {
     it('should accept ref prop without errors', () => {
       const ref = createRef<TextInput>();
-      const { getByTestId } = render(<Input ref={ref} testID="test-input" />);
+      const { getByTestId } = render(<Input ref={ref} testID='test-input' />);
 
       // Ref forwarding is supported - component renders successfully
       expect(getByTestId('test-input')).toBeDefined();
@@ -267,7 +265,7 @@ describe('Input', () => {
     it('should render with ref and value', () => {
       const ref = createRef<TextInput>();
       const { getByDisplayValue } = render(
-        <Input ref={ref} value="test" onChangeText={() => {}} />
+        <Input ref={ref} value='test' onChangeText={() => {}} />
       );
 
       expect(getByDisplayValue('test')).toBeDefined();
@@ -277,7 +275,7 @@ describe('Input', () => {
   describe('Placeholder Color', () => {
     it('should use default placeholder color from variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" placeholder="Enter text" />
+        <Input testID='test-input' placeholder='Enter text' />
       );
 
       const input = getByTestId('test-input');
@@ -286,7 +284,7 @@ describe('Input', () => {
 
     it('should use variant-specific placeholder color for filled variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" variant="filled" placeholder="Enter text" />
+        <Input testID='test-input' variant='filled' placeholder='Enter text' />
       );
 
       const input = getByTestId('test-input');
@@ -297,8 +295,8 @@ describe('Input', () => {
       const customColor = '#FF5733';
       const { getByTestId } = render(
         <Input
-          testID="test-input"
-          placeholder="Enter text"
+          testID='test-input'
+          placeholder='Enter text'
           placeholderTextColor={customColor}
         />
       );
@@ -311,7 +309,7 @@ describe('Input', () => {
   describe('Edge Cases', () => {
     it('should handle empty string value', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" value="" onChangeText={() => {}} />
+        <Input testID='test-input' value='' onChangeText={() => {}} />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -319,7 +317,7 @@ describe('Input', () => {
 
     it('should handle undefined value', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" value={undefined} />
+        <Input testID='test-input' value={undefined} />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -365,64 +363,66 @@ describe('Input', () => {
   describe('Custom Props', () => {
     it('should handle label prop (not rendered but accepted)', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" label="Username" />
+        <Input testID='test-input' label='Username' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
     });
 
-    it('should handle leftIcon prop (not rendered but accepted)', () => {
-      const { getByTestId } = render(
-        <Input testID="test-input" leftIcon="user" />
+    it('renders leftIcon when provided', () => {
+      const { getByText } = render(
+        <Input testID='test-input' leftIcon='mail-outline' />
       );
 
-      expect(getByTestId('test-input')).toBeDefined();
+      // The @expo/vector-icons mock renders Ionicons as <Text>{name}</Text>.
+      expect(getByText('mail-outline')).toBeTruthy();
     });
 
-    it('should handle rightIcon prop (not rendered but accepted)', () => {
-      const { getByTestId } = render(
-        <Input testID="test-input" rightIcon="search" />
+    it('renders rightIcon when provided', () => {
+      const { getByText } = render(
+        <Input testID='test-input' rightIcon='eye-outline' />
       );
 
-      expect(getByTestId('test-input')).toBeDefined();
+      expect(getByText('eye-outline')).toBeTruthy();
     });
 
-    it('should handle onRightIconPress prop (not used but accepted)', () => {
+    it('fires onRightIconPress when the right icon is pressed (password reveal toggle)', () => {
       const handlePress = jest.fn();
-      const { getByTestId } = render(
-        <Input testID="test-input" rightIcon="close" onRightIconPress={handlePress} />
+      const { getByLabelText } = render(
+        <Input
+          testID='test-input'
+          rightIcon='eye-outline'
+          onRightIconPress={handlePress}
+        />
       );
 
-      expect(getByTestId('test-input')).toBeDefined();
+      fireEvent.press(getByLabelText('eye-outline button'));
+      expect(handlePress).toHaveBeenCalledTimes(1);
     });
 
     it('should handle size prop (not used but accepted)', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" size="large" />
+        <Input testID='test-input' size='large' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
     });
 
     it('should handle fullWidth prop (not used but accepted)', () => {
-      const { getByTestId } = render(
-        <Input testID="test-input" fullWidth />
-      );
+      const { getByTestId } = render(<Input testID='test-input' fullWidth />);
 
       expect(getByTestId('test-input')).toBeDefined();
     });
 
     it('should handle required prop (not used but accepted)', () => {
-      const { getByTestId } = render(
-        <Input testID="test-input" required />
-      );
+      const { getByTestId } = render(<Input testID='test-input' required />);
 
       expect(getByTestId('test-input')).toBeDefined();
     });
 
     it('should handle state prop (not used but accepted)', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" state="error" />
+        <Input testID='test-input' state='error' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -430,7 +430,7 @@ describe('Input', () => {
 
     it('should handle errorText prop (not rendered but accepted)', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" errorText="This field is required" />
+        <Input testID='test-input' errorText='This field is required' />
       );
 
       expect(getByTestId('test-input')).toBeDefined();
@@ -441,8 +441,8 @@ describe('Input', () => {
     it('should handle variant with custom styles', () => {
       const { getByTestId } = render(
         <Input
-          testID="test-input"
-          variant="filled"
+          testID='test-input'
+          variant='filled'
           containerStyle={{ margin: 10 }}
           style={{ fontSize: 16 }}
         />
@@ -454,9 +454,9 @@ describe('Input', () => {
     it('should handle password input configuration', () => {
       const { getByTestId } = render(
         <Input
-          testID="test-input"
+          testID='test-input'
           secureTextEntry
-          autoCapitalize="none"
+          autoCapitalize='none'
           autoCorrect={false}
         />
       );
@@ -470,9 +470,9 @@ describe('Input', () => {
     it('should handle email input configuration', () => {
       const { getByTestId } = render(
         <Input
-          testID="test-input"
-          keyboardType="email-address"
-          autoCapitalize="none"
+          testID='test-input'
+          keyboardType='email-address'
+          autoCapitalize='none'
           autoCorrect={false}
         />
       );
@@ -484,11 +484,7 @@ describe('Input', () => {
 
     it('should handle disabled input with variant', () => {
       const { getByTestId } = render(
-        <Input
-          testID="test-input"
-          variant="filled"
-          editable={false}
-        />
+        <Input testID='test-input' variant='filled' editable={false} />
       );
 
       const input = getByTestId('test-input');
@@ -501,18 +497,18 @@ describe('Input', () => {
 
       const { getByTestId } = render(
         <Input
-          testID="test-input"
-          variant="outline"
-          label="Email"
-          leftIcon="mail"
-          rightIcon="close"
+          testID='test-input'
+          variant='outline'
+          label='Email'
+          leftIcon='mail'
+          rightIcon='close'
           onRightIconPress={handlePress}
-          size="large"
+          size='large'
           fullWidth
           required
-          state="error"
-          errorText="Invalid email"
-          placeholder="Enter email"
+          state='error'
+          errorText='Invalid email'
+          placeholder='Enter email'
           onChangeText={handleChange}
         />
       );
@@ -524,7 +520,7 @@ describe('Input', () => {
   describe('Accessibility', () => {
     it('should support accessibility label', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" accessibilityLabel="Username input" />
+        <Input testID='test-input' accessibilityLabel='Username input' />
       );
 
       const input = getByTestId('test-input');
@@ -533,7 +529,7 @@ describe('Input', () => {
 
     it('should support accessibility hint', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" accessibilityHint="Enter your username" />
+        <Input testID='test-input' accessibilityHint='Enter your username' />
       );
 
       const input = getByTestId('test-input');
@@ -541,9 +537,7 @@ describe('Input', () => {
     });
 
     it('should support testID prop', () => {
-      const { getByTestId } = render(
-        <Input testID="custom-input-id" />
-      );
+      const { getByTestId } = render(<Input testID='custom-input-id' />);
 
       expect(getByTestId('custom-input-id')).toBeDefined();
     });
@@ -552,7 +546,7 @@ describe('Input', () => {
   describe('Theme Integration', () => {
     it('should use theme colors for default variant', () => {
       const { getByTestId } = render(
-        <Input testID="test-input" variant="default" />
+        <Input testID='test-input' variant='default' />
       );
 
       const input = getByTestId('test-input');
@@ -560,9 +554,7 @@ describe('Input', () => {
     });
 
     it('should fallback to theme color when variant color is undefined', () => {
-      const { getByTestId } = render(
-        <Input testID="test-input" />
-      );
+      const { getByTestId } = render(<Input testID='test-input' />);
 
       const input = getByTestId('test-input');
       expect(input.props.placeholderTextColor).toBeDefined();
