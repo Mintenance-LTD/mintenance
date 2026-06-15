@@ -77,10 +77,15 @@ export class AssessmentOrchestrator {
 
   /**
    * Orchestrate a complete building damage assessment.
+   *
+   * options.skipCapture: skip the training/shadow capture (step 7). Used by
+   * the video walkthrough, which assesses each frame and then fires ONE shadow
+   * on the merged result — not N shadows (one per frame).
    */
   static async assessDamage(
     imageUrls: string[],
-    context?: AssessmentContext
+    context?: AssessmentContext,
+    options?: { skipCapture?: boolean }
   ): Promise<Phase1BuildingAssessment> {
     const startedAt = Date.now();
     const config = getConfig();
@@ -260,11 +265,15 @@ export class AssessmentOrchestrator {
             error,
           });
         });
-      try {
-        const { after } = await import('next/server');
-        after(runTrainingCapture);
-      } catch {
-        void runTrainingCapture();
+      // Skipped for per-frame walkthrough assessments — the walkthrough fires
+      // ONE shadow on the merged result instead of one per frame.
+      if (!options?.skipCapture) {
+        try {
+          const { after } = await import('next/server');
+          after(runTrainingCapture);
+        } catch {
+          void runTrainingCapture();
+        }
       }
 
       const totalDuration = Date.now() - startedAt;
