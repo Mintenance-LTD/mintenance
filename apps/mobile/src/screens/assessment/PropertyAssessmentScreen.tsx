@@ -172,6 +172,19 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
     });
   };
 
+  // Standalone VLM walkthrough (Phase C): record → assess on-device keyframes →
+  // show the survey immediately. Distinct from the wizard's deferred video step.
+  const handleStartWalkthrough = () => {
+    if (!propertyId) {
+      Alert.alert(
+        'Add property first',
+        'Save the property details before running an AI walkthrough.'
+      );
+      return;
+    }
+    navigation.navigate('VideoCapture', { propertyId, walkthrough: true });
+  };
+
   // ---------------------------------------------------------------------------
   // Step 3 — Photos (pick from camera or gallery directly)
   // ---------------------------------------------------------------------------
@@ -500,6 +513,14 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
           >
             <Icon name='videocam' size={22} color='#FFFFFF' />
             <Text style={styles.primaryActionText}>Start Video Capture</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.primaryAction, styles.walkthroughAction]}
+            onPress={handleStartWalkthrough}
+            activeOpacity={0.8}
+          >
+            <Icon name='auto-awesome' size={22} color={me.onBrand} />
+            <Text style={styles.primaryActionText}>Instant AI Walkthrough</Text>
           </TouchableOpacity>
         </View>
 

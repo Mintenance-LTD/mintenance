@@ -199,11 +199,18 @@ export type ProfileStackParamList = {
     | { propertyId?: string; propertyAddress?: string }
     | undefined;
   AddProperty: undefined;
-  VideoCapture: { assessmentId?: string; propertyId?: string } | undefined;
+  VideoCapture:
+    | { assessmentId?: string; propertyId?: string; walkthrough?: boolean }
+    | undefined;
   VideoProcessingStatus: {
     videoId: string;
     assessmentId?: string;
     propertyId?: string;
+  };
+  WalkthroughResult: {
+    assessment: Record<string, unknown>;
+    frameCount?: number;
+    framesAssessed?: number;
   };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;

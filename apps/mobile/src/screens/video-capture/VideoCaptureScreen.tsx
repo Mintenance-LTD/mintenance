@@ -29,6 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from 'react-i18next';
 import VideoService, { VideoGuidancePhase } from '../../services/VideoService';
+import { runWalkthrough } from '../../services/walkthrough/KeyframeWalkthroughService';
 import { logger } from '@mintenance/shared';
 import Reanimated, {
   useAnimatedStyle,
@@ -52,12 +53,19 @@ interface Props {
       assessmentId?: string;
       propertyId?: string;
       onComplete?: (videoId: string) => void;
+      /**
+       * Standalone VLM walkthrough mode (Phase C): instead of queuing the
+       * video for server-side SAM2, extract keyframes on-device, assess them
+       * via /api/assessments/walkthrough, and show the survey immediately.
+       */
+      walkthrough?: boolean;
     };
   };
 }
 
 export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { assessmentId, propertyId, onComplete } = route.params || {};
+  const { assessmentId, propertyId, onComplete, walkthrough } =
+    route.params || {};
   const { t } = useTranslation();
 
   // Camera setup
@@ -220,8 +228,55 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     }, 1000);
   };
 
+  // Standalone VLM walkthrough: extract keyframes on-device, assess via the
+  // walkthrough route, then show the survey. Synchronous (no SAM2 polling).
+  const processWalkthrough = async () => {
+    if (!capturedVideo) return;
+    if (!propertyId && !assessmentId) {
+      Alert.alert(
+        'Missing property',
+        'A property is required to run an AI walkthrough.'
+      );
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await runWalkthrough({
+        videoUri: capturedVideo.uri,
+        durationMs: recordingDuration * 1000,
+        propertyId,
+      });
+      onComplete?.(result.assessmentId);
+      (
+        navigation as {
+          navigate: (screen: string, params?: Record<string, unknown>) => void;
+        }
+      ).navigate('WalkthroughResult', {
+        assessment: result.assessment,
+        frameCount: result.frameCount,
+        framesAssessed: result.framesAssessed,
+      });
+    } catch (error) {
+      logger.error('Walkthrough processing failed', { error });
+      Alert.alert(
+        'Walkthrough failed',
+        error instanceof Error
+          ? error.message
+          : 'Could not analyse the walkthrough. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const processVideo = async () => {
     if (!capturedVideo) return;
+
+    if (walkthrough) {
+      await processWalkthrough();
+      return;
+    }
 
     setIsProcessing(true);
     setUploadProgress(0);
