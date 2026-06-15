@@ -46,9 +46,23 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+/** One usable frame: the URL that was assessed and its per-frame survey. */
+export interface FrameAssessmentResult {
+  url: string;
+  assessment: Phase1BuildingAssessment;
+}
+
 export interface WalkthroughResult {
   /** Merged property survey, or null if no frame could be assessed. */
   assessment: Phase1BuildingAssessment | null;
+  /**
+   * Per-frame results for the frames that assessed cleanly (order-preserved,
+   * failed frames dropped). The caller persists ONE merged row but records the
+   * teacher corpus PER FRAME — pairing each frame's findings with that frame's
+   * own pixels, never the merged set (which would teach the student to
+   * hallucinate defects seen only in other frames).
+   */
+  perFrameAssessments: FrameAssessmentResult[];
   frameCount: number;
   framesAssessed: number;
 }
@@ -81,13 +95,16 @@ export async function assessWalkthrough(
     }
   );
 
-  const usable = perFrame.filter(
-    (r): r is Phase1BuildingAssessment => r != null
-  );
+  // Pair each result with the frame URL that produced it (order-preserved by
+  // mapWithConcurrency), then drop the frames that failed.
+  const pairs: FrameAssessmentResult[] = perFrame
+    .map((assessment, i) => ({ url: frameUrls[i], assessment }))
+    .filter((p): p is FrameAssessmentResult => p.assessment != null);
 
   return {
-    assessment: buildWalkthroughAssessment(usable),
+    assessment: buildWalkthroughAssessment(pairs.map((p) => p.assessment)),
+    perFrameAssessments: pairs,
     frameCount: frameUrls.length,
-    framesAssessed: usable.length,
+    framesAssessed: pairs.length,
   };
 }

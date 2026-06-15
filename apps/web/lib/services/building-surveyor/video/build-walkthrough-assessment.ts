@@ -58,8 +58,12 @@ function dedupBy<T>(items: T[], key: (t: T) => string): T[] {
   return out;
 }
 
-/** Most-severe frame (tie → highest primary confidence) scaffolds defect-specific sections. */
-function pickLeadFrame(
+/**
+ * Most-severe frame (tie → highest primary confidence). Scaffolds the
+ * defect-specific sections of the merged survey, and is the apples-to-apples
+ * frame the walkthrough route fires its single student shadow against.
+ */
+export function pickLeadFrame(
   frames: Phase1BuildingAssessment[]
 ): Phase1BuildingAssessment {
   return frames.reduce((lead, f) => {

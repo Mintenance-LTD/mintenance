@@ -23,6 +23,7 @@ import {
   SafePropertyAssessmentScreen,
   SafeVideoCaptureScreen,
   SafeVideoProcessingStatusScreen,
+  SafeWalkthroughResultScreen,
   SafeJobPhotoUploadScreen,
   SafeAddPropertyScreen,
   SafePaymentHistoryScreen,
@@ -249,6 +250,11 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='VideoProcessingStatus'
         component={SafeVideoProcessingStatusScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='WalkthroughResult'
+        component={SafeWalkthroughResultScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen
