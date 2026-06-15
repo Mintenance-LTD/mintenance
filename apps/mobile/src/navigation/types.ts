@@ -254,6 +254,10 @@ export type ProfileStackParamList = {
   // Favorites: ARCHIVED - contractor-discovery feature removed
   // GDPR/Account management screens
   MFASecurity: undefined;
+  // Biometric (Face ID / Fingerprint) sign-in management — the
+  // BiometricSettings component was built + tested but never mounted;
+  // wired through SettingsHub → Account & Security (2026-06-15).
+  BiometricSettings: undefined;
   DataExport: undefined;
   DeleteAccount: undefined;
   // Newer settings screens that previously had no nav target — wired
