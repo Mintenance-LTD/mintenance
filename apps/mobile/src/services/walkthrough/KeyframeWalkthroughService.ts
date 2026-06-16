@@ -11,7 +11,6 @@
  * No native SAM2 dependency, no service URL in the bundle.
  */
 import { logger } from '@mintenance/shared';
-import * as VideoThumbnails from 'expo-video-thumbnails';
 import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
@@ -77,6 +76,10 @@ export async function extractKeyframes(
   durationMs: number,
   count: number
 ): Promise<string[]> {
+  // Lazy-load the native module: importing it at startup would evaluate
+  // requireNativeModule() during app launch, so any autolink/binary hiccup
+  // would crash the whole app instead of just degrading this one feature.
+  const VideoThumbnails = await import('expo-video-thumbnails');
   const timestamps = frameTimestampsMs(durationMs, count);
   const uris: string[] = [];
   for (const time of timestamps) {
