@@ -187,6 +187,13 @@ export const SettingsHubScreen: React.FC = () => {
       onPress: () => navigation.navigate('MFASecurity'),
     },
     {
+      label: 'Biometric Sign-In',
+      icon: 'finger-print',
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
+      onPress: () => navigation.navigate('BiometricSettings'),
+    },
+    {
       label: 'Payment Methods',
       icon: 'card-outline',
       iconColor: me.brand,

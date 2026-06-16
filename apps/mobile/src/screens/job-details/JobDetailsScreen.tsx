@@ -24,6 +24,8 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
+import { ContractorOnTheWayBanner } from './components/ContractorOnTheWayBanner';
+import { useContractorLiveLocation } from '../../hooks/useContractorLiveLocation';
 import {
   JobAccessCard,
   type PropertyAccess,
@@ -140,6 +142,17 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const job = viewModel.job;
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
+
+  // Live contractor position for the homeowner's "on the way" banner + map.
+  // One subscription, fed to the banner, the ETA card and JobLocationMap.
+  // Gated to the homeowner of an assigned/in_progress job with a contractor
+  // so contractors and stale jobs never open a needless channel.
+  const contractorLive = useContractorLiveLocation(job?.id, {
+    enabled:
+      isOwner &&
+      !!job?.contractor_id &&
+      (job?.status === 'assigned' || job?.status === 'in_progress'),
+  });
 
   // Homeowners get the full list from useJobBids; contractors get
   // their own single bid (zero or one row) from useMyBidForJob. The
@@ -312,6 +325,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           daysAgo={daysAgo}
         />
 
+        {isOwner && contractorLive.isTraveling && (
+          <ContractorOnTheWayBanner eta={contractorLive.eta} />
+        )}
+
         <View style={styles.divider} />
 
         {job.homeowner && (
@@ -368,6 +385,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 address={locationStr}
                 latitude={job.latitude}
                 longitude={job.longitude}
+                contractorLocation={contractorLive.position}
               />
             </View>
           </>
@@ -479,7 +497,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <>
             <View style={styles.divider} />
             <View style={styles.sectionPadded}>
-              <HomeownerLocationRequest jobId={job.id} />
+              <HomeownerLocationRequest jobId={job.id} live={contractorLive} />
             </View>
           </>
         )}
