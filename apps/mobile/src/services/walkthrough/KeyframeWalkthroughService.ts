@@ -109,9 +109,17 @@ async function uploadFrames(
   for (let i = 0; i < frameUris.length; i++) {
     try {
       const uri = frameUris[i]!;
-      const filePath = `walkthroughs/${folderId}/${i}.jpg`;
+      // Path MUST start with `quick-ai/` — the assessment-photos RLS INSERT
+      // policy only allows first-folder `quick-ai` (any authed user) or
+      // `assessments/{owned-assessment-id}`. We have no assessment id yet
+      // (the route creates the row from these URLs), so quick-ai is correct.
+      const filePath = `quick-ai/${folderId}/${i}.jpg`;
+      // Read bytes via blob → Response (the proven RN-safe path used by the
+      // photo upload flow; a direct response.arrayBuffer() can come back empty
+      // on some RN/Hermes builds).
       const response = await fetch(uri);
-      const arrayBuffer = await response.arrayBuffer();
+      const blob = await response.blob();
+      const arrayBuffer = await new Response(blob).arrayBuffer();
       const { error } = await supabase.storage
         .from('assessment-photos')
         .upload(filePath, arrayBuffer, {
