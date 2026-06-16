@@ -109,7 +109,11 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 16,
-    marginTop: -20,
+    // Positive gap so these shadowed cards sit clearly BELOW the hero's
+    // "This month / In escrow" row instead of overlapping it (was -20, which
+    // pulled them up into the hero card and clashed). marginBottom keeps the
+    // separation to the Budget Overview card below.
+    marginTop: 8,
     marginBottom: 16,
   },
   statCard: {
