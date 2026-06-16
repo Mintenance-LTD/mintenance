@@ -8,7 +8,6 @@ import {
   NotFoundError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { VideoAssessmentFusion } from '@/lib/services/building-surveyor/VideoAssessmentFusion';
 
 /**
  * GET /api/assessments/:id/status
@@ -43,31 +42,6 @@ export const GET = withApiHandler(
     // Only allow owner or admin to view
     if (assessment.user_id !== user.id && user.role !== 'admin') {
       throw new NotFoundError('Assessment not found');
-    }
-
-    // If a SAM2 video job is in flight for this assessment, poll + fuse it
-    // now so the polling client sees the result without waiting for the
-    // backstop cron. Idempotent + CAS-guarded inside the fusion service.
-    const adata = assessment.assessment_data as Record<string, unknown> | null;
-    if (
-      assessment.validation_status === 'processing' &&
-      adata?.sam2_processing_id &&
-      adata?.sam2_fused !== true
-    ) {
-      const fuse =
-        await VideoAssessmentFusion.fuseAssessmentVideo(assessmentId);
-      if (fuse.changed) {
-        const { data: fresh } = await serverSupabase
-          .from('building_assessments')
-          .select(
-            'id, user_id, property_id, domain, damage_type, severity, confidence, ' +
-              'safety_score, compliance_score, insurance_risk_score, urgency, ' +
-              'assessment_data, validation_status, video_url, created_at, updated_at'
-          )
-          .eq('id', assessmentId)
-          .single();
-        if (fresh) Object.assign(assessment, fresh);
-      }
     }
 
     // Fetch associated images
