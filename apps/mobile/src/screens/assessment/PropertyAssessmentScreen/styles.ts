@@ -145,5 +145,4 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   primaryActionText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
-  walkthroughAction: { marginTop: 12, backgroundColor: me.brand },
 });
