@@ -36,7 +36,6 @@
     { "path": "/api/cron/recurring-job-creator",        "schedule": "0 6 * * *"   },
     { "path": "/api/cron/escrow-auto-release",          "schedule": "0 * * * *"   },
     { "path": "/api/cron/agent-processor",              "schedule": "0 1 * * *"   },
-    { "path": "/api/cron/video-assessment-processor",   "schedule": "*/5 * * * *" },
     { "path": "/api/cron/no-show-reminders",            "schedule": "0 11 * * *"  },
     { "path": "/api/cron/notification-processor",       "schedule": "0 12 * * *"  },
     { "path": "/api/cron/distillation-processor",       "schedule": "0 13 * * *"  },

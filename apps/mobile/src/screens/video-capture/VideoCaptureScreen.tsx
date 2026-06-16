@@ -64,8 +64,7 @@ interface Props {
 }
 
 export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { assessmentId, propertyId, onComplete, walkthrough } =
-    route.params || {};
+  const { assessmentId, propertyId, onComplete } = route.params || {};
   const { t } = useTranslation();
 
   // Camera setup
@@ -87,7 +86,6 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const [showGuidance, setShowGuidance] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [torchOn, setTorchOn] = useState(false);
 
   // Animation values
@@ -270,68 +268,12 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  // Recording is processed exclusively through the VLM walkthrough now — the
+  // SAM2 upload/queue/status path was retired. (The screen is only ever entered
+  // with walkthrough mode; the flag is kept for clarity.)
   const processVideo = async () => {
     if (!capturedVideo) return;
-
-    if (walkthrough) {
-      await processWalkthrough();
-      return;
-    }
-
-    setIsProcessing(true);
-    setUploadProgress(0);
-
-    try {
-      const compressedPath = capturedVideo.uri.replace(
-        '.mp4',
-        '_compressed.mp4'
-      );
-      const compressionResult = await VideoService.compressVideo(
-        capturedVideo.uri,
-        compressedPath
-      );
-
-      if (!compressionResult.success) {
-        throw new Error('Video compression failed');
-      }
-
-      const videoId = await VideoService.queueVideo(
-        compressionResult.outputPath,
-        compressionResult.metadata,
-        {
-          assessmentId,
-          propertyId,
-        }
-      );
-
-      logger.info('Video queued for processing', { videoId });
-
-      // Mark the wizard step complete (when launched from the assessment
-      // wizard), then open the live processing status screen. This is the
-      // call site that un-orphans VideoProcessingStatusScreen — it shows
-      // SAM2 progress and the fused result polled from the server.
-      if (onComplete) {
-        onComplete(videoId);
-      }
-
-      (
-        navigation as {
-          navigate: (screen: string, params?: Record<string, unknown>) => void;
-        }
-      ).navigate('VideoProcessingStatus', {
-        videoId,
-        assessmentId,
-        propertyId,
-      });
-    } catch (error) {
-      logger.error('Video processing failed', { error });
-      Alert.alert(
-        'Processing Error',
-        'Failed to process video. Please try again.'
-      );
-    } finally {
-      setIsProcessing(false);
-    }
+    await processWalkthrough();
   };
 
   const retakeVideo = () => {
@@ -556,10 +498,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <>
-                  <Text style={styles.confirmButtonText}>Processing...</Text>
-                  <Text style={styles.uploadProgress}>{uploadProgress}%</Text>
-                </>
+                <Text style={styles.confirmButtonText}>Processing...</Text>
               ) : (
                 <>
                   <Icon name='check' size={24} color='white' />

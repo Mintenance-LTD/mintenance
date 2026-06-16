@@ -202,11 +202,6 @@ export type ProfileStackParamList = {
   VideoCapture:
     | { assessmentId?: string; propertyId?: string; walkthrough?: boolean }
     | undefined;
-  VideoProcessingStatus: {
-    videoId: string;
-    assessmentId?: string;
-    propertyId?: string;
-  };
   WalkthroughResult: {
     assessment: Record<string, unknown>;
     frameCount?: number;
