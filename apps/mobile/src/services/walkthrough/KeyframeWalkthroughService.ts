@@ -11,7 +11,6 @@
  * No native SAM2 dependency, no service URL in the bundle.
  */
 import { logger } from '@mintenance/shared';
-import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 /** Server caps a walkthrough at 20 frames; we stay well under for cost + time. */
@@ -21,12 +20,6 @@ export const MIN_WALKTHROUGH_FRAMES = 2;
 const SECONDS_PER_FRAME = 4;
 /** A walkthrough is N vision calls server-side — give it real headroom. */
 const WALKTHROUGH_TIMEOUT_MS = 240_000;
-
-const EXT_CONTENT_TYPES: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-};
 
 export interface WalkthroughContext {
   propertyType?: string;
@@ -100,59 +93,15 @@ export async function extractKeyframes(
   return uris;
 }
 
-/** Upload local keyframe URIs to the public assessment-photos bucket. */
-async function uploadFrames(
-  frameUris: string[],
-  folderId: string
-): Promise<string[]> {
-  const urls: string[] = [];
-  for (let i = 0; i < frameUris.length; i++) {
-    try {
-      const uri = frameUris[i]!;
-      // Path MUST start with `quick-ai/` — the assessment-photos RLS INSERT
-      // policy only allows first-folder `quick-ai` (any authed user) or
-      // `assessments/{owned-assessment-id}`. We have no assessment id yet
-      // (the route creates the row from these URLs), so quick-ai is correct.
-      const filePath = `quick-ai/${folderId}/${i}.jpg`;
-      // Read bytes via blob → Response (the proven RN-safe path used by the
-      // photo upload flow; a direct response.arrayBuffer() can come back empty
-      // on some RN/Hermes builds).
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const arrayBuffer = await new Response(blob).arrayBuffer();
-      const { error } = await supabase.storage
-        .from('assessment-photos')
-        .upload(filePath, arrayBuffer, {
-          contentType: EXT_CONTENT_TYPES.jpg,
-          upsert: true,
-        });
-      if (error) {
-        logger.warn('Keyframe upload failed', {
-          service: 'KeyframeWalkthroughService',
-          index: i,
-          error: error.message,
-        });
-        continue;
-      }
-      const { data } = supabase.storage
-        .from('assessment-photos')
-        .getPublicUrl(filePath);
-      urls.push(data.publicUrl);
-    } catch (err) {
-      logger.warn('Keyframe upload error', {
-        service: 'KeyframeWalkthroughService',
-        index: i,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-  return urls;
-}
-
 /**
- * Run the full on-device walkthrough: extract keyframes → upload → POST to the
- * VLM walkthrough route → return the merged property survey. Anchors on a real
- * propertyId or assessmentId (the route refuses an orphan).
+ * Run the full on-device walkthrough: extract keyframes → POST the frame IMAGES
+ * as multipart to the walkthrough route → return the merged property survey.
+ *
+ * The frames are sent as files over the proven Bearer-authed API; the SERVER
+ * uploads them to storage with the service role. Client-side direct-to-storage
+ * uploads from React Native never landed bytes, so all upload now lives
+ * server-side. Anchors on a real propertyId or jobId (the route refuses an
+ * orphan).
  */
 export async function runWalkthrough(params: {
   videoUri: string;
@@ -174,28 +123,33 @@ export async function runWalkthrough(params: {
     );
   }
 
-  const folderId = `${propertyId ?? jobId}-${Date.now()}`;
-  const frameUrls = await uploadFrames(frameUris, folderId);
-  if (frameUrls.length < MIN_WALKTHROUGH_FRAMES) {
-    throw new Error('Failed to upload walkthrough frames. Please try again.');
-  }
+  const form = new FormData();
+  frameUris.forEach((uri, i) => {
+    // React Native file part — a {uri,name,type} object is how RN streams a
+    // local file through multipart without reading the bytes in JS (the read
+    // path that was unreliable on Hermes).
+    form.append('frames', {
+      uri,
+      name: `${i}.jpg`,
+      type: 'image/jpeg',
+    } as unknown as Blob);
+  });
+  if (propertyId) form.append('propertyId', propertyId);
+  if (jobId) form.append('jobId', jobId);
+  form.append('domain', 'building');
+  if (context) form.append('context', JSON.stringify(context));
 
   logger.info('Posting walkthrough frames for assessment', {
     service: 'KeyframeWalkthroughService',
-    frameCount: frameUrls.length,
+    frameCount: frameUris.length,
     propertyId,
     jobId,
   });
 
-  const result = await mobileApiClient.post<WalkthroughRunResult>(
+  const result = await mobileApiClient.postFormData<WalkthroughRunResult>(
     '/api/assessments/walkthrough',
-    {
-      frameUrls,
-      ...(propertyId ? { propertyId } : {}),
-      ...(jobId ? { jobId } : {}),
-      ...(context ? { context } : {}),
-    },
-    { timeout: WALKTHROUGH_TIMEOUT_MS }
+    form,
+    WALKTHROUGH_TIMEOUT_MS
   );
 
   if (!result?.assessmentId) {

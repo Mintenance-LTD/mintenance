@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -8,7 +7,6 @@ import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { checkAICostBudget } from '@/lib/ai/cost-budget';
 import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurveyorConfig';
-import { validateImageUrls } from '@/app/api/building-surveyor/assess/_image-validation';
 import { assessWalkthrough } from '@/lib/services/building-surveyor/video/walkthrough-assessment';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 import {
@@ -24,44 +22,31 @@ export const maxDuration = 300;
 
 const MIN_FRAMES = 2; // fewer than 2 is just a photo assess — use /building-surveyor/assess
 const MAX_FRAMES = 20; // cost ceiling: 20 GPT-4o vision calls per walkthrough
+const FRAME_BUCKET = 'assessment-photos';
 
-const walkthroughSchema = z
-  .object({
-    frameUrls: z.array(z.string().url()).min(MIN_FRAMES).max(MAX_FRAMES),
-    propertyId: z.string().uuid().optional(),
-    jobId: z.string().uuid().optional(),
-    domain: z.string().optional(),
-    // Context is passed straight to the surveyor pipeline; keep it permissive.
-    context: z.record(z.string(), z.unknown()).optional(),
-  })
-  .refine((b) => Boolean(b.propertyId || b.jobId), {
-    message: 'propertyId or jobId is required to anchor the walkthrough',
-  });
-
-function cacheKeyFor(frameUrls: string[]): string {
-  return crypto
-    .createHash('sha256')
-    .update([...frameUrls].sort().join('|'))
-    .digest('hex');
-}
+const SERVICE = 'assessment-walkthrough';
 
 /**
- * POST /api/assessments/walkthrough
+ * POST /api/assessments/walkthrough  (multipart/form-data)
  *
  * VLM-native video walkthrough (no SAM2). The mobile client extracts keyframes
- * on-device, uploads them, and posts the frame URLs here. Each frame runs
- * through the normal surveyor pipeline; the per-frame results are merged into
- * ONE property survey and persisted as a single building_assessments row.
+ * on-device and POSTs the frame IMAGES here as multipart files — the server
+ * uploads them to storage with the service role (no client-side storage RLS),
+ * runs each frame through the surveyor VLM, merges the per-frame findings into
+ * ONE property survey, and persists a single building_assessments row.
  *
- * Training capture is PER FRAME (cheap DB writes, each frame's findings paired
- * with that frame's own pixels). The student VLM shadow fires exactly ONCE, on
- * the lead (most-severe) frame — apples-to-apples, one Modal cold-start, not N.
+ * Why server-mediated upload: client-side direct-to-Supabase uploads from React
+ * Native never landed bytes (0 objects ever in the bucket), while every
+ * server-mediated upload works. The phone now only sends files over the proven
+ * Bearer-authed API; the server owns storage.
+ *
+ * Form fields: frames (1+ image files), propertyId | jobId (anchor), domain?,
+ * context? (JSON string).
  */
 export const POST = withApiHandler(
   { auth: true, rateLimit: { maxRequests: 3 } },
   async (request, { user }) => {
-    // Per-user rolling AI cost cap — a walkthrough is N vision calls, so this
-    // guard matters more here than on a single assess.
+    // Per-user rolling AI cost cap — a walkthrough is N vision calls.
     const budget = await checkAICostBudget(user.id);
     if (!budget.allowed) {
       return NextResponse.json(
@@ -76,29 +61,45 @@ export const POST = withApiHandler(
       );
     }
 
-    const body = await request.json();
-    const parsed = walkthroughSchema.safeParse(body);
-    if (!parsed.success) {
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
       throw new BadRequestError(
-        parsed.error.issues[0]?.message ?? 'Invalid walkthrough request'
+        'Expected multipart/form-data with frame images'
       );
     }
-    const {
-      frameUrls,
-      propertyId,
-      jobId,
-      domain: bodyDomain,
-      context,
-    } = parsed.data;
 
-    // HTTPS + SSRF validation (same gate as the photo assess route).
-    validateImageUrls(frameUrls, {
-      BadRequestError,
-      logger,
-      userId: user.id,
-    });
+    const propertyId = (form.get('propertyId') as string | null) || undefined;
+    const jobId = (form.get('jobId') as string | null) || undefined;
+    const domain = (form.get('domain') as string | null) || 'building';
+    const contextRaw = form.get('context') as string | null;
+    let context: AssessmentContext | undefined;
+    if (contextRaw) {
+      try {
+        context = JSON.parse(contextRaw) as AssessmentContext;
+      } catch {
+        throw new BadRequestError('context must be valid JSON');
+      }
+    }
 
-    // Tenant ownership: authorize the property anchor (mirrors videos/upload).
+    const files = form
+      .getAll('frames')
+      .filter((f): f is File => f instanceof File && f.size > 0);
+
+    if (!propertyId && !jobId) {
+      throw new BadRequestError(
+        'propertyId or jobId is required to anchor the walkthrough'
+      );
+    }
+    if (files.length < MIN_FRAMES) {
+      throw new BadRequestError(`At least ${MIN_FRAMES} frames are required`);
+    }
+    if (files.length > MAX_FRAMES) {
+      throw new BadRequestError(`At most ${MAX_FRAMES} frames are allowed`);
+    }
+
+    // Tenant ownership: authorize the property anchor (mirrors videos flow).
     if (propertyId) {
       const { authorized } = await PropertyTeamService.authorize(
         user.id,
@@ -107,7 +108,7 @@ export const POST = withApiHandler(
       );
       if (!authorized) {
         logger.warn('Walkthrough denied — property access', {
-          service: 'assessment-walkthrough',
+          service: SERVICE,
           userId: user.id,
           propertyId,
         });
@@ -115,19 +116,34 @@ export const POST = withApiHandler(
       }
     }
 
-    const domain = bodyDomain ?? 'building';
-    const cacheKey = cacheKeyFor(frameUrls);
+    // Upload the frames server-side (service role → no client storage RLS).
+    const folderId = `${propertyId ?? jobId}-${Date.now()}`;
+    const frameUrls = await uploadFramesToStorage(files, folderId);
+    if (frameUrls.length < MIN_FRAMES) {
+      logger.error('Walkthrough frame upload failed server-side', {
+        service: SERVICE,
+        userId: user.id,
+        received: files.length,
+        stored: frameUrls.length,
+      });
+      return NextResponse.json(
+        { error: 'Failed to store walkthrough frames. Please try again.' },
+        { status: 502 }
+      );
+    }
+
+    const cacheKey = crypto
+      .createHash('sha256')
+      .update([...frameUrls].sort().join('|'))
+      .digest('hex');
 
     // Fan out across frames and merge into one property survey.
     const { assessment, perFrameAssessments, frameCount, framesAssessed } =
-      await assessWalkthrough(
-        frameUrls,
-        context as AssessmentContext | undefined
-      );
+      await assessWalkthrough(frameUrls, context);
 
     if (!assessment || perFrameAssessments.length === 0) {
       logger.warn('Walkthrough produced no usable frame assessment', {
-        service: 'assessment-walkthrough',
+        service: SERVICE,
         userId: user.id,
         frameCount,
       });
@@ -142,7 +158,6 @@ export const POST = withApiHandler(
       );
     }
 
-    // Persist ONE merged row. Mirror the proven assess-route insert columns.
     const assessmentId = await persistWalkthroughRow({
       userId: user.id,
       jobId,
@@ -151,7 +166,6 @@ export const POST = withApiHandler(
       cacheKey,
       assessment,
     });
-
     if (!assessmentId) {
       throw new Error('Failed to persist walkthrough assessment');
     }
@@ -167,23 +181,22 @@ export const POST = withApiHandler(
       );
     } catch (imgErr) {
       logger.warn('Failed to save walkthrough frame images', {
-        service: 'assessment-walkthrough',
+        service: SERVICE,
         assessmentId,
         error: imgErr instanceof Error ? imgErr.message : String(imgErr),
       });
     }
 
-    // Training corpus (per-frame) + ONE lead-frame student shadow, scheduled on
-    // after() so the work outlives the response.
+    // Training corpus (per-frame) + ONE lead-frame student shadow, after().
     scheduleWalkthroughTraining({
       assessmentId,
       perFrameAssessments,
-      context: context as AssessmentContext | undefined,
+      context,
       openaiApiKey: getConfig().openaiApiKey,
     });
 
     logger.info('Walkthrough assessment completed', {
-      service: 'assessment-walkthrough',
+      service: SERVICE,
       userId: user.id,
       assessmentId,
       frameCount,
@@ -200,3 +213,47 @@ export const POST = withApiHandler(
     });
   }
 );
+
+/**
+ * Upload keyframe files to the public assessment-photos bucket under quick-ai/.
+ * Runs with the service role, so client-side storage RLS is not involved. A
+ * frame that fails to store is logged and skipped (a bad frame must not sink
+ * the walk); the surviving public URLs are returned in order.
+ */
+async function uploadFramesToStorage(
+  files: File[],
+  folderId: string
+): Promise<string[]> {
+  const urls: string[] = [];
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const buffer = Buffer.from(await files[i]!.arrayBuffer());
+      const path = `quick-ai/${folderId}/${i}.jpg`;
+      const { error } = await serverSupabase.storage
+        .from(FRAME_BUCKET)
+        .upload(path, buffer, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+      if (error) {
+        logger.warn('Walkthrough frame store failed', {
+          service: SERVICE,
+          index: i,
+          error: error.message,
+        });
+        continue;
+      }
+      const { data } = serverSupabase.storage
+        .from(FRAME_BUCKET)
+        .getPublicUrl(path);
+      urls.push(data.publicUrl);
+    } catch (err) {
+      logger.warn('Walkthrough frame store error', {
+        service: SERVICE,
+        index: i,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return urls;
+}
