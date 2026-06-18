@@ -143,15 +143,25 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
+  // The contractor only travels to the property once the contract is signed
+  // by both parties (`accepted`) — or once work is already under way
+  // (`in_progress`). Before the contract is accepted the job sits at the
+  // "Contract" lifecycle step with no scheduled visit, so the "on the way"
+  // banner, ETA card, live map and location section must stay hidden even if a
+  // stale `contractor_locations` row exists. (Reported 2026-06-18: banner was
+  // showing during the unsigned Contract phase because the gate keyed only off
+  // `assigned`/`in_progress` and ignored contract acceptance.)
+  const contractAccepted = viewModel.contractStatus === 'accepted';
+  const canShowContractorTravel =
+    job?.status === 'in_progress' ||
+    (job?.status === 'assigned' && contractAccepted);
+
   // Live contractor position for the homeowner's "on the way" banner + map.
   // One subscription, fed to the banner, the ETA card and JobLocationMap.
-  // Gated to the homeowner of an assigned/in_progress job with a contractor
-  // so contractors and stale jobs never open a needless channel.
+  // Gated to the homeowner of a contract-accepted (or in_progress) job with a
+  // contractor so contractors and pre-signed/stale jobs never open a channel.
   const contractorLive = useContractorLiveLocation(job?.id, {
-    enabled:
-      isOwner &&
-      !!job?.contractor_id &&
-      (job?.status === 'assigned' || job?.status === 'in_progress'),
+    enabled: isOwner && !!job?.contractor_id && canShowContractorTravel,
   });
 
   // Homeowners get the full list from useJobBids; contractors get
@@ -266,8 +276,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   // production has never had a job in that state. Showing it on
   // `assigned` too lets the contractor share location during travel —
   // the actual product intent. Auto-start still requires permission.
-  const showLocationTracking =
-    job.status === 'assigned' || job.status === 'in_progress';
+  // 2026-06-18: additionally require the contract to be accepted before
+  // `assigned` qualifies, so the section never appears during the unsigned
+  // Contract phase (see `canShowContractorTravel` above).
+  const showLocationTracking = canShowContractorTravel;
 
   return (
     <View style={styles.container}>
