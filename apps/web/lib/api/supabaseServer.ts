@@ -17,6 +17,52 @@ function getSupabaseUrl(): string {
   }
   return url;
 }
+/**
+ * 2026-06-18: Fail loudly when the anon/publishable key is pasted into the
+ * service-role slot. That misconfiguration boots fine but silently runs every
+ * server operation as `anon` (RLS-restricted), surfacing far downstream as
+ * confusing 42501 "permission denied" errors — e.g. a deployment whose
+ * SUPABASE_SERVICE_ROLE_KEY held the anon key, which 503'd
+ * /api/contracts/[id]/accept ("permission denied for function
+ * try_claim_idempotency_key") and would silently corrupt any RLS-bypassing
+ * write. Detect it at first use instead of letting it limp.
+ *
+ * Only rejects a key we can positively identify as NON-service-role:
+ *   - legacy JWT (header.payload.sig) whose `role` claim is not "service_role"
+ *   - new-format publishable key (sb_publishable_*)
+ * Anything else (service_role JWT, sb_secret_*, opaque/unparseable) is accepted
+ * untouched, so valid current and future key formats are never blocked.
+ */
+function assertServiceRoleKeyShape(key: string): void {
+  if (key.startsWith('sb_publishable_')) {
+    throw new Error(
+      '[Supabase] SUPABASE_SERVICE_ROLE_KEY is a publishable (anon) key. ' +
+        'Server operations would run with restricted privileges. Use the ' +
+        'secret service key from Supabase → Settings → API.'
+    );
+  }
+  const parts = key.split('.');
+  if (parts.length !== 3) return; // not a legacy JWT (e.g. sb_secret_*) — accept
+  let role: string | undefined;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(parts[1], 'base64').toString('utf8')
+    );
+    role = typeof payload?.role === 'string' ? payload.role : undefined;
+  } catch {
+    return; // unparseable payload — don't block; real auth will surface issues
+  }
+  if (role && role !== 'service_role') {
+    throw new Error(
+      `[Supabase] SUPABASE_SERVICE_ROLE_KEY has role="${role}", expected ` +
+        '"service_role" — the anon key was likely pasted into the ' +
+        'service-role slot. Server operations would silently run with ' +
+        'restricted privileges (manifesting as 42501 "permission denied"). ' +
+        'Set the service_role key from Supabase → Settings → API.'
+    );
+  }
+}
+
 function getSupabaseServiceKey(): string {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) {
@@ -24,6 +70,7 @@ function getSupabaseServiceKey(): string {
       '[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY environment variable. Server operations will fail without the service role key.'
     );
   }
+  assertServiceRoleKeyShape(key);
   return key;
 }
 
