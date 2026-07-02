@@ -98,6 +98,12 @@ export const PATCH = withApiHandler(
     // could mass-approve fraudulent licences in a few minutes —
     // demand fresh MFA proof.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'credential_verification_decision',
+      category: 'verification',
+      targetType: 'credential_verification',
+      description: 'Approved or rejected a contractor credential verification',
+    },
   },
   async (request, { user }) => {
     const raw = await request.json().catch(() => null);
