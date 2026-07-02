@@ -162,7 +162,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.mintenance.app',
-      buildNumber: '16',
+      buildNumber: '17',
       // EAS file env vars resolve to a PATH on the build VM — use that value
       // directly. Fall back to the local file for non-EAS builds. The repo
       // copy is gitignored AND .easignore'd, so the literal './…' path never
@@ -220,7 +220,7 @@ module.exports = {
         },
       },
       package: 'com.mintenance.app',
-      versionCode: 16,
+      versionCode: 17,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
