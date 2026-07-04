@@ -172,6 +172,11 @@ const makeJob = (overrides: any = {}) => ({
 
 const makeVm = (overrides: any = {}): any => ({
   region: baseRegion,
+  // 2026-06-27: the screen renders a "Finding jobs near you…" spinner
+  // instead of the MapView until the viewmodel resolves the contractor's
+  // region (saved coords / GPS). Default resolved so map tests exercise
+  // the map branch; the spinner branch has its own test below.
+  regionResolved: true,
   jobs: [],
   searchQuery: '',
   selectedJob: null,
@@ -653,6 +658,13 @@ describe('ExploreMapScreen — marker tap', () => {
 });
 
 describe('ExploreMapScreen — map unavailable fallback', () => {
+  it('shows the region-resolving spinner instead of the map until regionResolved', () => {
+    mockVmState = makeVm({ regionResolved: false });
+    const { getByText, queryByTestId } = render(<ExploreMapScreen />);
+    expect(getByText('Finding jobs near you…')).toBeTruthy();
+    expect(queryByTestId('map-view')).toBeNull();
+  });
+
   it('renders the fallback view instead of the map', () => {
     mockShouldRenderNativeMap = false;
     mockVmState = makeVm({ jobs: [makeJob()], jobCount: 1 });

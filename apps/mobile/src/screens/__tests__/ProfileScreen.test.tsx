@@ -223,14 +223,19 @@ describe('ProfileScreen', () => {
     expect(mockRootNavigate).not.toHaveBeenCalled();
   });
 
-  it('navigates to PaymentMethods, Calendar, Reviews', () => {
+  it('navigates to PaymentMethods and Calendar', () => {
     const { getByText } = render(<ProfileScreen />);
     fireEvent.press(getByText('Payment Methods'));
     expect(mockNavigate).toHaveBeenCalledWith('PaymentMethods');
     fireEvent.press(getByText('Calendar'));
     expect(mockNavigate).toHaveBeenCalledWith('Calendar');
-    fireEvent.press(getByText('Reviews'));
-    expect(mockNavigate).toHaveBeenCalledWith('Reviews');
+  });
+
+  it('does not render the Reviews row for homeowners (contractor-only API)', () => {
+    // 2026-06-08: Reviews row is gated to contractors — ReviewsScreen calls
+    // GET /api/contractor/reviews which 403s for homeowners.
+    const { queryByText } = render(<ProfileScreen />);
+    expect(queryByText('Reviews')).toBeNull();
   });
 
   // -------------------------------------------------------------------------
@@ -380,6 +385,12 @@ describe('ProfileScreen', () => {
         expect.anything(),
         'BusinessTab'
       );
+    });
+
+    it('navigates to Reviews (contractor-only Account row)', () => {
+      const { getByText } = render(<ProfileScreen />);
+      fireEvent.press(getByText('Reviews'));
+      expect(mockNavigate).toHaveBeenCalledWith('Reviews');
     });
 
     it('navigates contractor Quick Access rows', () => {
