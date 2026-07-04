@@ -134,9 +134,9 @@ describe('SmartJobAnalysis', () => {
     });
   });
 
-  // TODO: Fix fake timers + waitFor incompatibility in Vitest v4 (known issue)
-  // These tests time out because waitFor's internal polling is also frozen by fake timers
-  describe.skip('Suggestions Display', () => {
+  // Re-enabled 2026-07-02: the Vitest v4 fake-timers + waitFor deadlock no
+  // longer reproduces on the current vitest/RTL versions.
+  describe('Suggestions Display', () => {
     beforeEach(async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
@@ -184,8 +184,7 @@ describe('SmartJobAnalysis', () => {
     });
   });
 
-  // TODO: Fix fake timers + waitFor incompatibility in Vitest v4
-  describe.skip('User Interactions', () => {
+  describe('User Interactions', () => {
     beforeEach(async () => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,

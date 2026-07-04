@@ -12,7 +12,11 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { createTestJob, fillForm, waitForNetworkIdle } from './helpers/test-data';
+import {
+  createTestJob,
+  fillForm,
+  waitForNetworkIdle,
+} from './helpers/test-data';
 
 test.describe('Authenticated Job Posting Flow', () => {
   // No beforeEach needed - session is pre-loaded via storageState
@@ -27,19 +31,25 @@ test.describe('Authenticated Job Posting Flow', () => {
     await expect(page).not.toHaveURL(/login/);
 
     // Wait for the loading spinner to disappear
-    await page.waitForFunction(() => {
-      const loadingText = document.body.textContent || '';
-      return !loadingText.includes('Loading...');
-    }, { timeout: 30000 }).catch(() => {
-      // If loading doesn't finish, test will fail on assertions below
-    });
+    await page
+      .waitForFunction(
+        () => {
+          const loadingText = document.body.textContent || '';
+          return !loadingText.includes('Loading...');
+        },
+        { timeout: 30000 }
+      )
+      .catch(() => {
+        // If loading doesn't finish, test will fail on assertions below
+      });
 
     // Wait a bit more for React hydration
     await page.waitForTimeout(3000);
 
     // Look for ANY content that indicates the page loaded
     const pageText = await page.textContent('body');
-    const hasContent = pageText && pageText.length > 50 && !pageText.includes('Loading...');
+    const hasContent =
+      pageText && pageText.length > 50 && !pageText.includes('Loading...');
 
     // Alternatively, check if URL is still correct (not redirected)
     const isOnCorrectPage = page.url().includes('/jobs/create');
@@ -82,7 +92,9 @@ test.describe('Authenticated Job Posting Flow', () => {
     }
 
     // Submit form (look for submit/next button)
-    const submitButton = page.getByRole('button', { name: /post.*job|create.*job|submit|next/i }).first();
+    const submitButton = page
+      .getByRole('button', { name: /post.*job|create.*job|submit|next/i })
+      .first();
     await submitButton.click();
 
     // Wait for submission
@@ -113,11 +125,13 @@ test.describe('Authenticated Job Posting Flow', () => {
     await page.waitForTimeout(3000);
 
     // Look for "Save as draft" button
-    const draftButton = page.getByRole('button', { name: /save.*draft|draft/i });
+    const draftButton = page.getByRole('button', {
+      name: /save.*draft|draft/i,
+    });
     const hasDraftButton = await draftButton.isVisible().catch(() => false);
 
     if (!hasDraftButton) {
-      // Draft feature not implemented - skip test
+      // skipped: runtime bail — save-as-draft feature not implemented on /jobs/create (2026-07-02 triage)
       console.log('Draft functionality not found - feature not implemented');
       test.skip();
       return;
@@ -148,8 +162,15 @@ test.describe('Authenticated Job Posting Flow', () => {
     await page.waitForTimeout(3000);
 
     // Verify page content loaded - look for any of these indicators
-    const hasHeading = await page.getByRole('heading', { name: /your jobs|my jobs|jobs/i }).first().isVisible().catch(() => false);
-    const hasNavigation = await page.getByRole('navigation').isVisible().catch(() => false);
+    const hasHeading = await page
+      .getByRole('heading', { name: /your jobs|my jobs|jobs/i })
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasNavigation = await page
+      .getByRole('navigation')
+      .isVisible()
+      .catch(() => false);
     const pageContent = await page.textContent('body');
     const hasContent = pageContent && pageContent.length > 100;
 
@@ -166,11 +187,16 @@ test.describe('Authenticated Job Posting Flow', () => {
     await page.waitForTimeout(3000);
 
     // Check if multi-step form (has step indicators)
-    const hasSteps = await page.getByText(/step|1.*2.*3|details.*photos.*budget/i).isVisible().catch(() => false);
+    const hasSteps = await page
+      .getByText(/step|1.*2.*3|details.*photos.*budget/i)
+      .isVisible()
+      .catch(() => false);
 
     if (!hasSteps) {
-      // Single-page form, test already covered by "homeowner can create a basic job"
-      console.log('Multi-step form not found - using single-page form (already tested)');
+      // skipped: runtime bail — step indicators not detected; single-page path covered by the basic-job test (2026-07-02 triage)
+      console.log(
+        'Multi-step form not found - using single-page form (already tested)'
+      );
       test.skip();
       return;
     }
@@ -207,14 +233,19 @@ test.describe('Authenticated Job Posting Flow', () => {
         }
 
         // Submit
-        const submitButton = page.getByRole('button', { name: /post|submit|finish/i });
+        const submitButton = page.getByRole('button', {
+          name: /post|submit|finish/i,
+        });
         await submitButton.click();
 
         await waitForNetworkIdle(page);
 
         // Verify success
-        const hasSuccessIndicator = await page.getByText(/success|created/i).isVisible().catch(() => false) ||
-          page.url().includes('/jobs/');
+        const hasSuccessIndicator =
+          (await page
+            .getByText(/success|created/i)
+            .isVisible()
+            .catch(() => false)) || page.url().includes('/jobs/');
 
         expect(hasSuccessIndicator).toBeTruthy();
       }
@@ -235,12 +266,17 @@ test.describe('Job Management', () => {
     await page.waitForTimeout(3000);
 
     // Find an "Edit" button or link
-    const editButton = page.getByRole('link', { name: /edit/i }).or(page.getByRole('button', { name: /edit/i })).first();
+    const editButton = page
+      .getByRole('link', { name: /edit/i })
+      .or(page.getByRole('button', { name: /edit/i }))
+      .first();
     const hasEditButton = await editButton.isVisible().catch(() => false);
 
     if (!hasEditButton) {
-      // No jobs exist to edit or feature not implemented
-      console.log('No edit button found - either no jobs exist or feature not implemented');
+      // skipped: runtime bail — no editable job in the e2e environment (no jobs, or edit CTA missing) (2026-07-02 triage)
+      console.log(
+        'No edit button found - either no jobs exist or feature not implemented'
+      );
       test.skip();
       return;
     }
@@ -271,12 +307,16 @@ test.describe('Job Management', () => {
     await page.waitForTimeout(3000);
 
     // Find a "Delete" button
-    const deleteButton = page.getByRole('button', { name: /delete|remove/i }).first();
+    const deleteButton = page
+      .getByRole('button', { name: /delete|remove/i })
+      .first();
     const hasDeleteButton = await deleteButton.isVisible().catch(() => false);
 
     if (!hasDeleteButton) {
-      // No delete button (may have bids, no jobs, or feature not implemented)
-      console.log('No delete button found - either no jobs exist, jobs have bids, or feature not implemented');
+      // skipped: runtime bail — no deletable job in the e2e environment (no jobs, bids present, or CTA missing) (2026-07-02 triage)
+      console.log(
+        'No delete button found - either no jobs exist, jobs have bids, or feature not implemented'
+      );
       test.skip();
       return;
     }
@@ -286,10 +326,13 @@ test.describe('Job Management', () => {
     await page.waitForTimeout(1000);
 
     // Should see confirmation dialog
-    const confirmButton = page.getByRole('button', { name: /confirm|yes.*delete/i });
+    const confirmButton = page.getByRole('button', {
+      name: /confirm|yes.*delete/i,
+    });
     const hasConfirmButton = await confirmButton.isVisible().catch(() => false);
 
     if (!hasConfirmButton) {
+      // skipped: runtime bail — delete confirmation dialog did not appear (selector drift candidate) (2026-07-02 triage)
       console.log('No confirmation dialog found');
       test.skip();
       return;
@@ -299,6 +342,8 @@ test.describe('Job Management', () => {
     await waitForNetworkIdle(page);
 
     // Should see success message
-    await expect(page.getByText(/deleted|removed/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/deleted|removed/i)).toBeVisible({
+      timeout: 10000,
+    });
   });
 });

@@ -29,6 +29,7 @@ test.describe('Authenticated Contractor Flow', () => {
   // KNOWN LIMITATION: Auth persistence issue across multiple tests
   // Root cause: Playwright storage state + Next.js middleware + Supabase localStorage incompatibility
   // Fix requires: Auth architecture refactor (JWT httpOnly cookies or test-mode API)
+  // skipped: storage-state auth does not persist across tests; needs auth refactor or test-mode API (2026-07-02 triage)
   test.skip('contractor can view available jobs', async ({ page }) => {
     await page.goto('/contractor/discover');
     await page.waitForLoadState('networkidle');
@@ -43,7 +44,9 @@ test.describe('Authenticated Contractor Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // Find first job card or link
-    const jobLink = page.getByRole('link', { name: /view.*detail|details|see.*job/i }).first();
+    const jobLink = page
+      .getByRole('link', { name: /view.*detail|details|see.*job/i })
+      .first();
     const jobCard = page.locator('[data-testid="job-card"]').first();
 
     if (await jobLink.isVisible().catch(() => false)) {
@@ -58,7 +61,7 @@ test.describe('Authenticated Contractor Flow', () => {
       await jobCard.click();
       await expect(page).toHaveURL(/\/jobs\//);
     } else {
-      // No jobs available
+      // skipped: runtime bail — no jobs seeded in the e2e environment (2026-07-02 triage)
       test.skip();
     }
   });
@@ -77,6 +80,7 @@ test.describe('Authenticated Contractor Flow', () => {
     } else if (await firstJobLink.isVisible().catch(() => false)) {
       await firstJobLink.click();
     } else {
+      // skipped: runtime bail — no job cards/links present in the e2e environment (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -85,17 +89,25 @@ test.describe('Authenticated Contractor Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // Look for "Submit Bid" or "Place Bid" button
-    const bidButton = page.getByRole('button', { name: /submit.*bid|place.*bid|bid.*now/i });
+    const bidButton = page.getByRole('button', {
+      name: /submit.*bid|place.*bid|bid.*now/i,
+    });
 
     if (await bidButton.isVisible().catch(() => false)) {
       await bidButton.click();
 
       // Should see bid form
-      await expect(page.getByLabel(/quote|amount|price/i)).toBeVisible({ timeout: 5000 });
+      await expect(page.getByLabel(/quote|amount|price/i)).toBeVisible({
+        timeout: 5000,
+      });
     } else {
       // May already be on bid form, or feature not implemented
-      const hasBidForm = await page.getByLabel(/quote|amount/i).isVisible().catch(() => false);
+      const hasBidForm = await page
+        .getByLabel(/quote|amount/i)
+        .isVisible()
+        .catch(() => false);
       if (!hasBidForm) {
+        // skipped: runtime bail — bid form not reachable (no jobs, or CTA renamed) (2026-07-02 triage)
         test.skip();
       }
     }
@@ -111,6 +123,7 @@ test.describe('Authenticated Contractor Flow', () => {
     // Find and click first job
     const firstJobLink = page.locator('a[href*="/jobs/"]').first();
     if (!(await firstJobLink.isVisible().catch(() => false))) {
+      // skipped: runtime bail — no job links in the e2e environment (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -119,7 +132,9 @@ test.describe('Authenticated Contractor Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // Click bid button
-    const bidButton = page.getByRole('button', { name: /submit.*bid|place.*bid/i });
+    const bidButton = page.getByRole('button', {
+      name: /submit.*bid|place.*bid/i,
+    });
     if (await bidButton.isVisible().catch(() => false)) {
       await bidButton.click();
       await page.waitForTimeout(500);
@@ -142,18 +157,24 @@ test.describe('Authenticated Contractor Flow', () => {
     }
 
     // Submit bid
-    const submitButton = page.getByRole('button', { name: /submit|send.*bid/i });
+    const submitButton = page.getByRole('button', {
+      name: /submit|send.*bid/i,
+    });
     await submitButton.click();
 
     await waitForNetworkIdle(page);
 
     // Should see success message or redirect
-    const successMessage = await page.getByText(/success|submitted|sent/i).isVisible().catch(() => false);
+    const successMessage = await page
+      .getByText(/success|submitted|sent/i)
+      .isVisible()
+      .catch(() => false);
     const redirectedAway = !page.url().includes('/bid');
 
     expect(successMessage || redirectedAway).toBeTruthy();
   });
 
+  // skipped: storage-state auth does not persist across tests (same root cause as above) (2026-07-02 triage)
   test.skip('contractor can view their submitted bids', async ({ page }) => {
     // SKIP: Auth persistence issue (see comment above)
     await page.goto('/contractor/dashboard');
@@ -163,11 +184,14 @@ test.describe('Authenticated Contractor Flow', () => {
     expect(bodyText && bodyText.length > 100).toBeTruthy();
   });
 
+  // skipped: storage-state auth does not persist across tests (same root cause as above) (2026-07-02 triage)
   test.skip('contractor can view their profile', async ({ page }) => {
     // SKIP: Auth persistence issue (see comment above)
     await page.goto('/contractor/profile');
     await expect(page).not.toHaveURL(/login/);
-    await expect(page.getByText(/profile|about|skill|experience/i)).toBeVisible();
+    await expect(
+      page.getByText(/profile|about|skill|experience/i)
+    ).toBeVisible();
   });
 
   test('contractor can edit their profile', async ({ page }) => {
@@ -193,7 +217,7 @@ test.describe('Authenticated Contractor Flow', () => {
         await expect(page.getByText(/saved|updated/i)).toBeVisible();
       }
     } else {
-      // Edit functionality not available on this page
+      // skipped: runtime bail — edit CTA not present on /contractor/profile (2026-07-02 triage)
       test.skip();
     }
   });
@@ -210,11 +234,20 @@ test.describe('Contractor Job Filtering', () => {
       await waitForNetworkIdle(page);
 
       // Jobs should be filtered (implementation-specific verification)
-      const jobsPresent = await page.getByText(/job|project/i).isVisible().catch(() => false);
-      const noResultsMessage = await page.getByText(/no.*job|no.*result/i).isVisible().catch(() => false);
+      const jobsPresent = await page
+        .getByText(/job|project/i)
+        .isVisible()
+        .catch(() => false);
+      const noResultsMessage = await page
+        .getByText(/no.*job|no.*result/i)
+        .isVisible()
+        .catch(() => false);
 
       expect(jobsPresent || noResultsMessage).toBeTruthy();
     } else {
+      // skipped: runtime bail — ALWAYS fires: this describe never calls page.goto(),
+      // so the category filter can never be visible. Needs a goto('/contractor/discover')
+      // in a beforeEach to become a real test. (2026-07-02 triage)
       test.skip();
     }
   });
@@ -236,6 +269,7 @@ test.describe('Contractor Job Filtering', () => {
       const hasResults = await page.locator('body').textContent();
       expect(hasResults).toBeTruthy();
     } else {
+      // skipped: runtime bail — ALWAYS fires: no page.goto() in this describe (see above) (2026-07-02 triage)
       test.skip();
     }
   });

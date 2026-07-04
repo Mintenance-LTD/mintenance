@@ -9,8 +9,8 @@
  */
 
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { Text, View, TouchableOpacity } from 'react-native';
+import { render } from '@testing-library/react-native';
+import { Text, View } from 'react-native';
 import { ProfileHeader } from '../ProfileHeader';
 
 // ============================================================================
@@ -154,138 +154,6 @@ describe('ProfileHeader Component', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Edit Button Tests
-  // --------------------------------------------------------------------------
-
-  describe.skip('Edit Button', () => {
-    it('does not render edit button by default', () => {
-      const { queryByText } = render(<ProfileHeader {...defaultProps} />);
-      expect(queryByText('Edit')).toBeNull();
-    });
-
-    it('does not render edit button when showEditButton is false', () => {
-      const { queryByText } = render(
-        <ProfileHeader {...defaultProps} showEditButton={false} />
-      );
-      expect(queryByText('Edit')).toBeNull();
-    });
-
-    it('renders edit button when showEditButton is true', () => {
-      const { getByText } = render(<ProfileHeader {...propsWithEdit} />);
-      expect(getByText('Edit')).toBeTruthy();
-    });
-
-    it('renders edit button with pencil icon', () => {
-      const { getByTestId } = render(<ProfileHeader {...propsWithEdit} />);
-      expect(getByTestId('ionicon-pencil')).toBeTruthy();
-    });
-
-    it('calls onEditPress when edit button is pressed', () => {
-      const onEditPress = jest.fn();
-      const { getByText } = render(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      fireEvent.press(getByText('Edit'));
-      expect(onEditPress).toHaveBeenCalledTimes(1);
-    });
-
-    it('handles multiple edit button presses', () => {
-      const onEditPress = jest.fn();
-      const { getByText } = render(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      const editButton = getByText('Edit');
-      fireEvent.press(editButton);
-      fireEvent.press(editButton);
-      fireEvent.press(editButton);
-
-      expect(onEditPress).toHaveBeenCalledTimes(3);
-    });
-
-    it('edit button is TouchableOpacity', () => {
-      const { getByText } = render(<ProfileHeader {...propsWithEdit} />);
-      const editText = getByText('Edit');
-      const editButton = editText.parent;
-      expect(editButton?.type).toBe(TouchableOpacity);
-    });
-
-    it('does not call onEditPress when button not shown', () => {
-      const onEditPress = jest.fn();
-      render(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton={false}
-          onEditPress={onEditPress}
-        />
-      );
-      expect(onEditPress).not.toHaveBeenCalled();
-    });
-
-    it('renders edit button inside avatar container', () => {
-      const { getByText } = render(<ProfileHeader {...propsWithEdit} />);
-      const editButton = getByText('Edit');
-      expect(editButton).toBeTruthy();
-    });
-
-    it('edit button contains both icon and text', () => {
-      const { getByText, getByTestId } = render(
-        <ProfileHeader {...propsWithEdit} />
-      );
-      expect(getByTestId('ionicon-pencil')).toBeTruthy();
-      expect(getByText('Edit')).toBeTruthy();
-    });
-  });
-
-  // --------------------------------------------------------------------------
-  // Edit Button Icon Tests
-  // --------------------------------------------------------------------------
-
-  describe.skip('Edit Button Icon', () => {
-    it('pencil icon has correct name prop', () => {
-      render(<ProfileHeader {...propsWithEdit} />);
-      const pencilIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'pencil'
-      );
-      expect(pencilIconCall).toBeTruthy();
-      expect(pencilIconCall[0].name).toBe('pencil');
-    });
-
-    it('pencil icon has correct size', () => {
-      render(<ProfileHeader {...propsWithEdit} />);
-      const pencilIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'pencil'
-      );
-      expect(pencilIconCall[0].size).toBe(14);
-    });
-
-    it('pencil icon has correct color', () => {
-      render(<ProfileHeader {...propsWithEdit} />);
-      const pencilIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'pencil'
-      );
-      expect(pencilIconCall[0].color).toBe('#FFFFFF');
-    });
-
-    it('does not render pencil icon when edit button hidden', () => {
-      render(<ProfileHeader {...defaultProps} showEditButton={false} />);
-      const pencilIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'pencil'
-      );
-      expect(pencilIconCall).toBeFalsy();
-    });
-  });
-
-  // --------------------------------------------------------------------------
   // Location Icon Tests
   // --------------------------------------------------------------------------
 
@@ -320,22 +188,6 @@ describe('ProfileHeader Component', () => {
     it('always renders location icon', () => {
       const { getByTestId } = render(<ProfileHeader {...defaultProps} />);
       expect(getByTestId('ionicon-location-outline')).toBeTruthy();
-    });
-
-    it.skip('renders location icon with edit button shown', () => {
-      render(<ProfileHeader {...propsWithEdit} />);
-      const locationIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'location-outline'
-      );
-      expect(locationIconCall).toBeTruthy();
-    });
-
-    it.skip('renders location icon with edit button hidden', () => {
-      render(<ProfileHeader {...defaultProps} showEditButton={false} />);
-      const locationIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'location-outline'
-      );
-      expect(locationIconCall).toBeTruthy();
     });
   });
 
@@ -473,14 +325,6 @@ describe('ProfileHeader Component', () => {
       expect(getByText('Montréal, Québec')).toBeTruthy();
     });
 
-    it.skip('renders empty string location', () => {
-      const { queryByText } = render(
-        <ProfileHeader name='Test User' location='' />
-      );
-      // Empty text element should still be in tree
-      expect(queryByText('')).toBeTruthy();
-    });
-
     it('renders single character location', () => {
       const { getByText } = render(
         <ProfileHeader name='Test User' location='A' />
@@ -507,17 +351,6 @@ describe('ProfileHeader Component', () => {
       expect(getByText('Test Location')).toBeTruthy();
     });
 
-    it.skip('renders with showEditButton true but no onEditPress', () => {
-      const { getByText } = render(
-        <ProfileHeader
-          name='Test User'
-          location='Test Location'
-          showEditButton
-        />
-      );
-      expect(getByText('Edit')).toBeTruthy();
-    });
-
     it('renders with onEditPress but showEditButton false', () => {
       const onEditPress = jest.fn();
       const { queryByText } = render(
@@ -530,21 +363,6 @@ describe('ProfileHeader Component', () => {
       );
       expect(queryByText('Edit')).toBeNull();
     });
-
-    it.skip('renders with all props provided', () => {
-      const onEditPress = jest.fn();
-      const { getByText } = render(
-        <ProfileHeader
-          name='John Smith'
-          location='New York, NY'
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-      expect(getByText('John Smith')).toBeTruthy();
-      expect(getByText('New York, NY')).toBeTruthy();
-      expect(getByText('Edit')).toBeTruthy();
-    });
   });
 
   // --------------------------------------------------------------------------
@@ -552,42 +370,6 @@ describe('ProfileHeader Component', () => {
   // --------------------------------------------------------------------------
 
   describe('Styling', () => {
-    it.skip('container has correct styling', () => {
-      const { UNSAFE_root } = render(<ProfileHeader {...defaultProps} />);
-      const viewElements = UNSAFE_root.findAllByType(View as any);
-      const container = viewElements[0];
-      const styles = Array.isArray(container?.props.style)
-        ? container.props.style.flat()
-        : [container?.props.style];
-
-      expect(styles).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }),
-        ])
-      );
-    });
-
-    it.skip('name has correct text styling', () => {
-      const { getByText } = render(<ProfileHeader {...defaultProps} />);
-      const nameElement = getByText('John Smith');
-      const styles = Array.isArray(nameElement.props.style)
-        ? nameElement.props.style.flat()
-        : [nameElement.props.style];
-
-      expect(styles).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            color: '#171717',
-            fontWeight: '600',
-          }),
-        ])
-      );
-    });
-
     it('location text has correct styling', () => {
       const { getByText } = render(<ProfileHeader {...defaultProps} />);
       const locationElement = getByText('New York, NY');
@@ -599,23 +381,6 @@ describe('ProfileHeader Component', () => {
         expect.arrayContaining([
           expect.objectContaining({
             color: '#768079',
-          }),
-        ])
-      );
-    });
-
-    it.skip('edit button text has correct styling', () => {
-      const { getByText } = render(<ProfileHeader {...propsWithEdit} />);
-      const editText = getByText('Edit');
-      const styles = Array.isArray(editText.props.style)
-        ? editText.props.style.flat()
-        : [editText.props.style];
-
-      expect(styles).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            color: '#FFFFFF',
-            fontWeight: '600',
           }),
         ])
       );
@@ -704,25 +469,6 @@ describe('ProfileHeader Component', () => {
 
       expect(verifiedDot).toBeTruthy();
     });
-
-    it.skip('edit button is absolutely positioned when shown', () => {
-      const { getByText } = render(<ProfileHeader {...propsWithEdit} />);
-      const editText = getByText('Edit');
-      const editButton = editText.parent;
-      const styles = Array.isArray(editButton?.props.style)
-        ? editButton.props.style.flat()
-        : [editButton?.props.style];
-
-      expect(styles).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            position: 'absolute',
-            bottom: 0,
-            right: 0,
-          }),
-        ])
-      );
-    });
   });
 
   // --------------------------------------------------------------------------
@@ -749,74 +495,6 @@ describe('ProfileHeader Component', () => {
       rerender(<ProfileHeader name='John Smith' location='Los Angeles, CA' />);
       expect(getByText('Los Angeles, CA')).toBeTruthy();
     });
-
-    it.skip('updates when showEditButton changes from false to true', () => {
-      const onEditPress = jest.fn();
-      const { rerender, queryByText, getByText } = render(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton={false}
-          onEditPress={onEditPress}
-        />
-      );
-      expect(queryByText('Edit')).toBeNull();
-
-      rerender(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-      expect(getByText('Edit')).toBeTruthy();
-    });
-
-    it.skip('updates when showEditButton changes from true to false', () => {
-      const onEditPress = jest.fn();
-      const { rerender, getByText, queryByText } = render(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-      expect(getByText('Edit')).toBeTruthy();
-
-      rerender(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton={false}
-          onEditPress={onEditPress}
-        />
-      );
-      expect(queryByText('Edit')).toBeNull();
-    });
-
-    it.skip('updates when all props change simultaneously', () => {
-      const onEditPress1 = jest.fn();
-      const onEditPress2 = jest.fn();
-      const { rerender, getByText } = render(
-        <ProfileHeader
-          name='Alice'
-          location='Boston, MA'
-          showEditButton={false}
-          onEditPress={onEditPress1}
-        />
-      );
-
-      rerender(
-        <ProfileHeader
-          name='Bob'
-          location='Seattle, WA'
-          showEditButton
-          onEditPress={onEditPress2}
-        />
-      );
-
-      expect(getByText('Bob')).toBeTruthy();
-      expect(getByText('Seattle, WA')).toBeTruthy();
-      expect(getByText('Edit')).toBeTruthy();
-    });
   });
 
   // --------------------------------------------------------------------------
@@ -824,24 +502,6 @@ describe('ProfileHeader Component', () => {
   // --------------------------------------------------------------------------
 
   describe('Integration Tests', () => {
-    it.skip('renders complete profile header with all features', () => {
-      const onEditPress = jest.fn();
-      const { getByText, getByTestId } = render(
-        <ProfileHeader
-          name='John Smith'
-          location='New York, NY'
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      expect(getByText('John Smith')).toBeTruthy();
-      expect(getByText('New York, NY')).toBeTruthy();
-      expect(getByText('Edit')).toBeTruthy();
-      expect(getByTestId('ionicon-location-outline')).toBeTruthy();
-      expect(getByTestId('ionicon-pencil')).toBeTruthy();
-    });
-
     it('renders minimal profile header without edit', () => {
       const { getByText, getByTestId, queryByText } = render(
         <ProfileHeader name='John Smith' location='New York, NY' />
@@ -852,53 +512,6 @@ describe('ProfileHeader Component', () => {
       expect(getByTestId('ionicon-location-outline')).toBeTruthy();
       expect(queryByText('Edit')).toBeNull();
     });
-
-    it.skip('handles complete user interaction flow', () => {
-      const onEditPress = jest.fn();
-      const { getByText } = render(
-        <ProfileHeader
-          name='John Smith'
-          location='New York, NY'
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      // User views profile
-      expect(getByText('John Smith')).toBeTruthy();
-      expect(getByText('New York, NY')).toBeTruthy();
-
-      // User clicks edit
-      fireEvent.press(getByText('Edit'));
-      expect(onEditPress).toHaveBeenCalledTimes(1);
-    });
-
-    it.skip('maintains state across multiple renders', () => {
-      const onEditPress = jest.fn();
-      const { rerender, getByText } = render(
-        <ProfileHeader
-          name='John Smith'
-          location='New York, NY'
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      expect(getByText('John Smith')).toBeTruthy();
-
-      // Re-render with same props
-      rerender(
-        <ProfileHeader
-          name='John Smith'
-          location='New York, NY'
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      expect(getByText('John Smith')).toBeTruthy();
-      expect(getByText('Edit')).toBeTruthy();
-    });
   });
 
   // --------------------------------------------------------------------------
@@ -906,33 +519,6 @@ describe('ProfileHeader Component', () => {
   // --------------------------------------------------------------------------
 
   describe('Edge Cases', () => {
-    it.skip('handles rapid edit button presses', () => {
-      const onEditPress = jest.fn();
-      const { getByText } = render(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      const editButton = getByText('Edit');
-      for (let i = 0; i < 10; i++) {
-        fireEvent.press(editButton);
-      }
-
-      expect(onEditPress).toHaveBeenCalledTimes(10);
-    });
-
-    it.skip('handles undefined onEditPress gracefully', () => {
-      expect(() => {
-        const { getByText } = render(
-          <ProfileHeader {...defaultProps} showEditButton />
-        );
-        fireEvent.press(getByText('Edit'));
-      }).not.toThrow();
-    });
-
     it('handles extremely long name and location', () => {
       const longName = 'A'.repeat(200);
       const longLocation = 'B'.repeat(200);
@@ -954,20 +540,6 @@ describe('ProfileHeader Component', () => {
 
       expect(getByText('John 🔧 Smith (Professional)')).toBeTruthy();
       expect(getByText('New York, NY 🗽 10001')).toBeTruthy();
-    });
-
-    it.skip('handles multiple icons correctly', () => {
-      render(<ProfileHeader {...propsWithEdit} />);
-
-      const locationIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'location-outline'
-      );
-      const pencilIconCall = mockIonicons.mock.calls.find(
-        (call) => call[0].name === 'pencil'
-      );
-
-      expect(locationIconCall).toBeTruthy();
-      expect(pencilIconCall).toBeTruthy();
     });
 
     it('handles whitespace-only name', () => {
@@ -1078,36 +650,6 @@ describe('ProfileHeader Component', () => {
 
       expect(nameElement.type).toBe(Text);
       expect(locationElement.type).toBe(Text);
-    });
-
-    it.skip('edit button is tappable', () => {
-      const onEditPress = jest.fn();
-      const { getByText } = render(
-        <ProfileHeader
-          {...defaultProps}
-          showEditButton
-          onEditPress={onEditPress}
-        />
-      );
-
-      const editButton = getByText('Edit').parent;
-      expect(editButton?.type).toBe(TouchableOpacity);
-    });
-
-    it.skip('maintains proper semantic structure', () => {
-      const { getByText, getByTestId } = render(
-        <ProfileHeader {...propsWithEdit} />
-      );
-
-      // Name should be prominent
-      expect(getByText('John Smith')).toBeTruthy();
-
-      // Location should be with icon
-      expect(getByText('New York, NY')).toBeTruthy();
-      expect(getByTestId('ionicon-location-outline')).toBeTruthy();
-
-      // Edit should be actionable
-      expect(getByText('Edit')).toBeTruthy();
     });
   });
 

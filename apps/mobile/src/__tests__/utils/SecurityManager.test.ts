@@ -798,13 +798,6 @@ describe('SecurityManager', () => {
         SENSITIVE_DATA_KEYS: ['password', 'token', 'secret', 'key'],
       });
     });
-
-    it.skip('should include current rate limit status', async () => {
-      // SKIPPED: rate limit internal map was moved from SecurityManager to
-      // InputValidationMiddleware. SecurityManager.generateSecurityReport()
-      // no longer tracks a local rateLimitStatus array — that behavior is
-      // owned by InputValidationMiddleware and tested in its own suite.
-    });
   });
 
   describe('Private Helper Methods', () => {
@@ -895,17 +888,6 @@ describe('SecurityManager', () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain('Text exceeds maximum length');
-    });
-
-    it.skip('should handle concurrent rate limit checks', async () => {
-      // SKIPPED: concurrent counter behavior is owned by
-      // InputValidationMiddleware's persistent rate limiter, not
-      // SecurityManager. See InputValidationMiddleware.test.ts.
-    });
-
-    it.skip('should handle malformed JSON in AsyncStorage', async () => {
-      // SKIPPED: AsyncStorage JSON handling moved to
-      // InputValidationMiddleware. See InputValidationMiddleware.test.ts.
     });
   });
 
