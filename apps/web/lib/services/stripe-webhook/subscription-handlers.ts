@@ -4,7 +4,9 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import type { SendNotificationFn } from './webhook-helpers';
 
 /**
- * Subscription created/updated — sync status to profiles and contractor_profiles.
+ * Subscription created/updated — sync status to profiles and the
+ * role-specific subscription table (contractor_subscriptions /
+ * homeowner_subscriptions).
  */
 export async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription,

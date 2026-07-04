@@ -1,7 +1,7 @@
 /**
  * Schema Validation Script
  * Validates all database tables and fields used in the 2025 codebase
- * 
+ *
  * Run with: npx tsx scripts/validate-schema-2025.ts
  */
 
@@ -34,7 +34,14 @@ interface TableDefinition {
 const tables: TableDefinition[] = [
   {
     name: 'users',
-    requiredFields: ['id', 'email', 'role', 'first_name', 'last_name', 'created_at'],
+    requiredFields: [
+      'id',
+      'email',
+      'role',
+      'first_name',
+      'last_name',
+      'created_at',
+    ],
     description: 'Core user accounts',
   },
   {
@@ -42,29 +49,54 @@ const tables: TableDefinition[] = [
     requiredFields: ['id', 'user_id', 'created_at'],
     description: 'Homeowner-specific profile data',
   },
-  {
-    name: 'contractor_profiles',
-    requiredFields: ['id', 'user_id', 'created_at'],
-    description: 'Contractor-specific profile data',
-  },
+  // contractor-profiles side table removed 2026-07-04: retired (contractor
+  // data is canonical on `profiles`; tier state on contractor_subscriptions).
   {
     name: 'jobs',
-    requiredFields: ['id', 'title', 'description', 'status', 'budget', 'homeowner_id', 'created_at'],
+    requiredFields: [
+      'id',
+      'title',
+      'description',
+      'status',
+      'budget',
+      'homeowner_id',
+      'created_at',
+    ],
     description: 'Job postings and assignments',
   },
   {
     name: 'bids',
-    requiredFields: ['id', 'job_id', 'contractor_id', 'bid_amount', 'status', 'created_at'],
+    requiredFields: [
+      'id',
+      'job_id',
+      'contractor_id',
+      'bid_amount',
+      'status',
+      'created_at',
+    ],
     description: 'Contractor bids on jobs',
   },
   {
     name: 'contractor_quotes',
-    requiredFields: ['id', 'contractor_id', 'total_amount', 'status', 'created_at'],
+    requiredFields: [
+      'id',
+      'contractor_id',
+      'total_amount',
+      'status',
+      'created_at',
+    ],
     description: 'Detailed contractor quotes',
   },
   {
     name: 'payments',
-    requiredFields: ['id', 'amount', 'status', 'payer_id', 'payee_id', 'created_at'],
+    requiredFields: [
+      'id',
+      'amount',
+      'status',
+      'payer_id',
+      'payee_id',
+      'created_at',
+    ],
     description: 'Payment transactions',
   },
   {
@@ -94,7 +126,14 @@ const tables: TableDefinition[] = [
   },
   {
     name: 'notifications',
-    requiredFields: ['id', 'user_id', 'type', 'message', 'is_read', 'created_at'],
+    requiredFields: [
+      'id',
+      'user_id',
+      'type',
+      'message',
+      'is_read',
+      'created_at',
+    ],
     description: 'User notifications',
   },
   {
@@ -133,24 +172,24 @@ async function checkTableExists(tableName: string): Promise<boolean> {
 async function getTableFields(tableName: string): Promise<string[]> {
   try {
     const { data, error } = await supabase.from(tableName).select('*').limit(1);
-    
+
     if (error) {
       throw new Error(error.message);
     }
-    
+
     if (!data || data.length === 0) {
       // Try to get schema info another way
       const { data: schemaData, error: schemaError } = await supabase
         .rpc('get_table_columns', { table_name: tableName })
         .single();
-      
+
       if (!schemaError && schemaData) {
         return schemaData.columns || [];
       }
-      
+
       return [];
     }
-    
+
     return Object.keys(data[0]);
   } catch (error) {
     console.warn(`⚠️  Could not determine fields for ${tableName}:`, error);
@@ -163,7 +202,7 @@ async function getTableRowCount(tableName: string): Promise<number> {
     const { count, error } = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true });
-    
+
     if (error) throw error;
     return count || 0;
   } catch {
@@ -171,7 +210,9 @@ async function getTableRowCount(tableName: string): Promise<number> {
   }
 }
 
-async function validateTable(table: TableDefinition): Promise<ValidationResult> {
+async function validateTable(
+  table: TableDefinition
+): Promise<ValidationResult> {
   const result: ValidationResult = {
     table: table.name,
     exists: false,
@@ -187,7 +228,7 @@ async function validateTable(table: TableDefinition): Promise<ValidationResult> 
   try {
     // Check if table exists and is accessible
     result.exists = await checkTableExists(table.name);
-    
+
     if (!result.exists) {
       result.error = 'Table does not exist or is not accessible';
       return result;
@@ -237,10 +278,14 @@ async function validateSchema() {
       console.log(`  ❌ Table does not exist\n`);
     } else if (result.fields.missing.length > 0) {
       console.log(`  ⚠️  Missing fields: ${result.fields.missing.join(', ')}`);
-      console.log(`  ✅ Found ${result.fields.found.length} fields, ${result.rowCount} rows\n`);
+      console.log(
+        `  ✅ Found ${result.fields.found.length} fields, ${result.rowCount} rows\n`
+      );
     } else {
       console.log(`  ✅ All required fields present`);
-      console.log(`  📋 ${result.fields.found.length} fields, ${result.rowCount} rows\n`);
+      console.log(
+        `  📋 ${result.fields.found.length} fields, ${result.rowCount} rows\n`
+      );
     }
   }
 
@@ -252,11 +297,15 @@ async function validateSchema() {
   // Summary
   const missingTables = results.filter((r) => !r.exists);
   const missingFields = results.filter((r) => r.fields.missing.length > 0);
-  const allValid = results.every((r) => r.exists && r.fields.missing.length === 0);
+  const allValid = results.every(
+    (r) => r.exists && r.fields.missing.length === 0
+  );
 
   console.log('📊 Validation Summary:');
   console.log(`   Total tables: ${tables.length}`);
-  console.log(`   ✅ Valid: ${results.length - missingTables.length - missingFields.length}`);
+  console.log(
+    `   ✅ Valid: ${results.length - missingTables.length - missingFields.length}`
+  );
   console.log(`   ❌ Missing tables: ${missingTables.length}`);
   console.log(`   ⚠️  Missing fields: ${missingFields.length}\n`);
 
@@ -280,7 +329,9 @@ async function validateSchema() {
     console.log('✅ All tables validated successfully!\n');
     process.exit(0);
   } else {
-    console.log('❌ Schema validation failed. Please review the results above.\n');
+    console.log(
+      '❌ Schema validation failed. Please review the results above.\n'
+    );
     process.exit(1);
   }
 }
@@ -290,4 +341,3 @@ validateSchema().catch((error) => {
   console.error('❌ Validation error:', error);
   process.exit(1);
 });
-

@@ -6,20 +6,19 @@ export interface DatabaseError {
 /**
  * Contractor profile row returned by `getContractorProfile`.
  *
- * Audit re-review (2026-04-29): the previous shape claimed fields
- * the live `contractor_profiles` table doesn't have. Verified
- * against the schema (migration `20260208001000`) — that table only
- * carries `id, stripe_*, subscription_*, hourly_rate, created_at,
- * updated_at`. The remaining fields below either live on `profiles`
- * (the canonical-route `/api/contractor/profile-data` reads them
- * from there) or don't exist as columns yet.
+ * 2026-07-04: the legacy contractor-profiles side table is RETIRED
+ * (it only ever carried `id, stripe_*, subscription_*, hourly_rate`
+ * and holds 0 rows). Every field below is sourced from canonical
+ * `profiles` via `/api/contractor/profile-data` — including
+ * `hourly_rate`, which now reads `profiles.hourly_rate` — or doesn't
+ * exist as a column yet.
  *
  * Field-by-field source-of-truth comments inline. Anything tagged
  * "**Not yet in DB**" returns `[]` / `undefined` from the API and
  * the screens fall back gracefully.
  */
 export interface DatabaseContractorProfileRow {
-  /** `profiles.id` (= `contractor_profiles.id`, same UUID). */
+  /** `profiles.id`. */
   id: string;
   /** Mirror of `id` for callers that pre-date the column rename. */
   user_id: string;
@@ -33,7 +32,7 @@ export interface DatabaseContractorProfileRow {
    *  `business_address` column; the contractor's home and trade
    *  address have always been the same column. */
   business_address?: string;
-  /** `contractor_profiles.hourly_rate`. */
+  /** `profiles.hourly_rate`. */
   hourly_rate?: number;
   /** **Not yet in DB.** Returned as `undefined` from the API. */
   years_experience?: number;

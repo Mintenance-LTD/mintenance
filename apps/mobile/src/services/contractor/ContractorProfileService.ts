@@ -6,9 +6,9 @@ import type { DatabaseContractorProfileRow, DatabaseError } from './types';
 
 /**
  * Shape of the `contractor` block returned by the canonical
- * `/api/contractor/profile-data` route. The route bundles
- * `profiles.*` (where the contractor's identity actually lives) +
- * `contractor_profiles.hourly_rate` into one object.
+ * `/api/contractor/profile-data` route. Every field — including
+ * `hourly_rate` — is sourced from `profiles` (the legacy Stripe-only
+ * side table is retired, 2026-07-04).
  */
 interface ProfileDataContractor {
   id: string;
@@ -38,13 +38,13 @@ interface ProfileDataContractor {
  * Fetch a contractor's extended profile.
  *
  * Audit re-review (2026-04-29): migrated off the direct-Supabase
- * read of `contractor_profiles.*`. That table's actual column set
- * is `id, stripe_*, subscription_*, hourly_rate, created_at,
- * updated_at` (migration `20260208001000`) — every other field
+ * read of the legacy Stripe-only side table (retired 2026-07-04).
+ * Its actual column set was `id, stripe_*, subscription_*,
+ * hourly_rate, created_at, updated_at` — every other field
  * `DatabaseContractorProfileRow` claimed lived on `profiles` (or
  * didn't exist anywhere), so the previous read returned
  * `business_address: undefined`, `portfolio_images: undefined`,
- * etc., for every user.
+ * etc., for every user. `hourly_rate` is now on `profiles` too.
  *
  * Now: routes through `GET /api/contractor/profile-data` which
  * sources every field from the table that actually owns it.

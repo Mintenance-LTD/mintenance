@@ -282,10 +282,13 @@ describe('ContractorService', () => {
   });
 
   describe('searchContractors (keyword string)', () => {
-    it('searches contractor_profiles via .or()', async () => {
+    it('searches profiles (role=contractor) via .or()', async () => {
+      // Legacy contractor-profiles side table retired 2026-07: keyword
+      // search reads canonical `profiles` with a grant-safe column list.
       const mockSupabaseChain = {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
+        eq: jest.fn(() => mockSupabaseChain),
         or: jest.fn(() => mockSupabaseChain),
         order: jest.fn(() => mockSupabaseChain),
         limit: jest.fn(() => ({ data: [mockContractorRow], error: null })),
@@ -295,7 +298,8 @@ describe('ContractorService', () => {
 
       const result = await ContractorService.searchContractors('Plumbing');
 
-      expect(supabase.from).toHaveBeenCalledWith('contractor_profiles');
+      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(mockSupabaseChain.eq).toHaveBeenCalledWith('role', 'contractor');
       expect(mockSupabaseChain.or).toHaveBeenCalled();
       expect(result).toHaveLength(1);
     });

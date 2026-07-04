@@ -42,8 +42,8 @@ describe('ContractorService - Simple Tests', () => {
 
   describe('getContractorProfile', () => {
     it('should fetch contractor profile via /api/contractor/profile-data', async () => {
-      // The route bundles profiles.* + contractor_profiles.hourly_rate
-      // into a `contractor` block.
+      // The route bundles profiles.* (including hourly_rate) into a
+      // `contractor` block.
       const apiResponse = {
         contractor: {
           id: 'contractor-1',
@@ -111,12 +111,10 @@ describe('ContractorService - Simple Tests', () => {
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        single: jest
-          .fn()
-          .mockResolvedValue({
-            data: null,
-            error: { message: 'Update failed' },
-          }),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Update failed' },
+        }),
       };
 
       supabase.from.mockReturnValue(mockChain);
@@ -139,6 +137,7 @@ describe('ContractorService - Simple Tests', () => {
 
       const mockChain = {
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
         or: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
         limit: jest
@@ -152,7 +151,8 @@ describe('ContractorService - Simple Tests', () => {
         'plumbing'
       )) as Array<{ skills?: string[] }>;
 
-      expect(supabase.from).toHaveBeenCalledWith('contractor_profiles');
+      // Legacy contractor-profiles side table retired 2026-07: keyword search reads profiles.
+      expect(supabase.from).toHaveBeenCalledWith('profiles');
       expect(mockChain.or).toHaveBeenCalled();
       expect(result).toHaveLength(1);
       expect(result[0].skills).toContain('plumbing');
