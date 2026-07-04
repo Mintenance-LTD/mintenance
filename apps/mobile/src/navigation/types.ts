@@ -113,7 +113,9 @@ export type JobsStackParamList = {
     contractorName?: string;
     jobTitle?: string;
   };
-  JobSignOff: { jobId: string };
+  // 2026-07-02 P1-9: `JobSignOff` route removed. It had been a redirect
+  // stub to PhotoReview since audit-52 (2026-05-26); PhotoReview
+  // (HomeownerPhotoReviewScreen) is the sole completion-review surface.
   JobEdit: { jobId: string };
 };
 

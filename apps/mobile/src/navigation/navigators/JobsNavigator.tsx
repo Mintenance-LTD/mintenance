@@ -21,7 +21,12 @@ import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadSc
 import { ContractViewScreen } from '../../screens/job-details/ContractViewScreen';
 import { ContractPreparationScreen } from '../../screens/job-details/ContractPreparationScreen';
 import { ReviewSubmissionScreen } from '../../screens/job-details/ReviewSubmissionScreen';
-import { JobSignOffScreen } from '../../screens/job-details/JobSignOffScreen';
+// 2026-07-02 P1-9: JobSignOffScreen deleted. It had been a redirect stub
+// to PhotoReview since audit-52 (2026-05-26). Verified before removal:
+// zero navigate('JobSignOff') call sites, no deep-link path, no
+// notification route, and no persisted navigation state that could
+// rehydrate the old route. HomeownerPhotoReviewScreen (route
+// 'PhotoReview') is the canonical homeowner completion-review surface.
 import { ExploreMapScreen } from '../../screens/explore-map/ExploreMapScreen';
 import JobEditScreen from '../../screens/job-form/JobEditScreen';
 
@@ -101,12 +106,6 @@ const SafeContractPreparationScreen = withScreenErrorBoundary(
 const SafeReviewSubmissionScreen = withScreenErrorBoundary(
   ReviewSubmissionScreen,
   'Review Submission',
-  { fallbackRoute: 'JobDetails' }
-);
-
-const SafeJobSignOffScreen = withScreenErrorBoundary(
-  JobSignOffScreen,
-  'Job Sign Off',
   { fallbackRoute: 'JobDetails' }
 );
 
@@ -253,15 +252,6 @@ const JobsNavigator: React.FC = () => {
         options={{
           title: 'Leave Review',
           presentation: 'modal',
-          gestureEnabled: true,
-        }}
-      />
-      <JobsStack.Screen
-        name='JobSignOff'
-        component={SafeJobSignOffScreen}
-        options={{
-          title: 'Review Work',
-          headerShown: false,
           gestureEnabled: true,
         }}
       />
