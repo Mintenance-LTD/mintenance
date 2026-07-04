@@ -29,6 +29,7 @@ const patchSchema = z
     position: z.number().int().min(0).optional(),
     completed: z.boolean().optional(),
   })
+  .strict()
   .refine(
     (v) =>
       v.label !== undefined ||

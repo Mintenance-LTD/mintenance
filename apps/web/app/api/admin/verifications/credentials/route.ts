@@ -24,7 +24,7 @@ const PatchSchema = z.object({
   decision: z.enum(['verified', 'rejected']),
   rejected_reason: z.string().max(500).optional(),
   expires_at: z.string().datetime().optional(),
-});
+}).strict();
 
 export const GET = withApiHandler(
   { roles: ['admin'], rateLimit: { maxRequests: 60 } },

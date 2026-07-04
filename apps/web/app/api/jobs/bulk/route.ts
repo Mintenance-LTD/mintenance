@@ -7,12 +7,14 @@ import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { z } from 'zod';
 
-const bulkJobSchema = z.object({
-  title: z.string().min(1).max(200),
-  description: z.string().max(5000).optional(),
-  category: z.string().max(128).optional(),
-  propertyIds: z.array(z.string().uuid()).min(1).max(50),
-});
+const bulkJobSchema = z
+  .object({
+    title: z.string().min(1).max(200),
+    description: z.string().max(5000).optional(),
+    category: z.string().max(128).optional(),
+    propertyIds: z.array(z.string().uuid()).min(1).max(50),
+  })
+  .strict();
 
 /**
  * POST /api/jobs/bulk
@@ -24,13 +26,17 @@ export const POST = withApiHandler(
     // Check agency tier (early access included)
     const tier = await getEffectiveHomeownerTier(user.id);
     if (!hasFeatureAccess('HOMEOWNER_BULK_OPERATIONS', 'homeowner', tier)) {
-      throw new ForbiddenError('Bulk job posting requires an Agency subscription');
+      throw new ForbiddenError(
+        'Bulk job posting requires an Agency subscription'
+      );
     }
 
     const body = await req.json();
     const parsed = bulkJobSchema.safeParse(body);
     if (!parsed.success) {
-      throw new BadRequestError(parsed.error.issues[0]?.message || 'Invalid input');
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message || 'Invalid input'
+      );
     }
 
     const { title, description, category, propertyIds } = parsed.data;
@@ -42,19 +48,27 @@ export const POST = withApiHandler(
       .eq('owner_id', user.id)
       .in('id', propertyIds);
 
-    const ownedIds = new Set((ownedProperties || []).map(p => p.id));
-    const unauthorizedIds = propertyIds.filter(id => !ownedIds.has(id));
+    const ownedIds = new Set((ownedProperties || []).map((p) => p.id));
+    const unauthorizedIds = propertyIds.filter((id) => !ownedIds.has(id));
     if (unauthorizedIds.length > 0) {
-      throw new ForbiddenError(`You do not own ${unauthorizedIds.length} of the selected properties`);
+      throw new ForbiddenError(
+        `You do not own ${unauthorizedIds.length} of the selected properties`
+      );
     }
 
-    const results: { propertyId: string; jobId?: string; error?: string }[] = [];
+    const results: { propertyId: string; jobId?: string; error?: string }[] =
+      [];
 
     for (const propertyId of propertyIds) {
       try {
         const job = await JobCreationService.getInstance().createJob(
           { id: user.id, role: 'homeowner' },
-          { title, description, category: category || undefined, property_id: propertyId },
+          {
+            title,
+            description,
+            category: category || undefined,
+            property_id: propertyId,
+          }
         );
         results.push({ propertyId, jobId: job.id });
       } catch (err) {
@@ -65,13 +79,16 @@ export const POST = withApiHandler(
       }
     }
 
-    const created = results.filter(r => r.jobId).length;
-    const failed = results.filter(r => r.error);
+    const created = results.filter((r) => r.jobId).length;
+    const failed = results.filter((r) => r.error);
 
-    return NextResponse.json({
-      created,
-      failed: failed.length,
-      results,
-    }, { status: 201 });
-  },
+    return NextResponse.json(
+      {
+        created,
+        failed: failed.length,
+        results,
+      },
+      { status: 201 }
+    );
+  }
 );

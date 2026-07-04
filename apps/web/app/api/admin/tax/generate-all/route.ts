@@ -7,13 +7,15 @@ import { logger } from '@mintenance/shared';
 
 // ── Validation ──────────────────────────────────────────────────────
 
-const generateAllSchema = z.object({
-  year: z
-    .number()
-    .int()
-    .min(2020, 'Year must be 2020 or later')
-    .max(new Date().getFullYear(), 'Year cannot be in the future'),
-});
+const generateAllSchema = z
+  .object({
+    year: z
+      .number()
+      .int()
+      .min(2020, 'Year must be 2020 or later')
+      .max(new Date().getFullYear(), 'Year cannot be in the future'),
+  })
+  .strict();
 
 // ── POST Handler ────────────────────────────────────────────────────
 

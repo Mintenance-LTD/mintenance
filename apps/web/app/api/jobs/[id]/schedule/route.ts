@@ -20,11 +20,13 @@ interface ScheduleUpdateData {
   scheduled_duration_hours?: number;
 }
 
-const scheduleSchema = z.object({
-  scheduled_start_date: z.string().datetime(),
-  scheduled_end_date: z.string().datetime().optional(),
-  scheduled_duration_hours: z.number().int().positive().optional(),
-});
+const scheduleSchema = z
+  .object({
+    scheduled_start_date: z.string().datetime(),
+    scheduled_end_date: z.string().datetime().optional(),
+    scheduled_duration_hours: z.number().int().positive().optional(),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },

@@ -4,10 +4,12 @@ import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const approveEscrowSchema = z.object({
-  escrowId: z.string().uuid('Invalid escrow ID'),
-  notes: z.string().optional(),
-});
+const approveEscrowSchema = z
+  .object({
+    escrowId: z.string().uuid('Invalid escrow ID'),
+    notes: z.string().optional(),
+  })
+  .strict();
 
 /**
  * POST /api/admin/escrow/approve — approve release of a held escrow.

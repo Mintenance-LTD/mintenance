@@ -4,10 +4,12 @@ import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const holdEscrowSchema = z.object({
-  escrowId: z.string().uuid('Invalid escrow ID'),
-  reason: z.string().min(10, 'Reason must be at least 10 characters'),
-});
+const holdEscrowSchema = z
+  .object({
+    escrowId: z.string().uuid('Invalid escrow ID'),
+    reason: z.string().min(10, 'Reason must be at least 10 characters'),
+  })
+  .strict();
 
 /**
  * POST /api/admin/escrow/hold — place an escrow on admin review hold.

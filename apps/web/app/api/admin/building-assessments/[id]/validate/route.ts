@@ -3,10 +3,12 @@ import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 
-const validateAssessmentSchema = z.object({
-  validated: z.boolean(),
-  notes: z.string().max(2000).optional(),
-});
+const validateAssessmentSchema = z
+  .object({
+    validated: z.boolean(),
+    notes: z.string().max(2000).optional(),
+  })
+  .strict();
 
 /**
  * POST /api/admin/building-assessments/[id]/validate

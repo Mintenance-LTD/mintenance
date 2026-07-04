@@ -5,9 +5,11 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 
-const batchTransferSchema = z.object({
-  feeTransferIds: z.array(z.string().uuid('Invalid fee transfer ID')).min(1),
-});
+const batchTransferSchema = z
+  .object({
+    feeTransferIds: z.array(z.string().uuid('Invalid fee transfer ID')).min(1),
+  })
+  .strict();
 
 /**
  * POST /api/admin/escrow/fee-transfer/batch

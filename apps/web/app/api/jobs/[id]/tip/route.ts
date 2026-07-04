@@ -43,13 +43,15 @@ import { stripe } from '@/lib/stripe';
  * Backed by migration 20260520000006_job_tips.sql.
  */
 
-const tipSchema = z.object({
-  amount: z
-    .number()
-    .min(1, 'Minimum tip is £1')
-    .max(500, 'Maximum tip is £500 — contact support for larger amounts'),
-  note: z.string().max(500).optional(),
-});
+const tipSchema = z
+  .object({
+    amount: z
+      .number()
+      .min(1, 'Minimum tip is £1')
+      .max(500, 'Maximum tip is £500 — contact support for larger amounts'),
+    note: z.string().max(500).optional(),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   { roles: ['homeowner'], rateLimit: { maxRequests: 10 } },

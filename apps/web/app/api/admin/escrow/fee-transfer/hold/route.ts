@@ -5,10 +5,12 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 
-const holdFeeTransferSchema = z.object({
-  feeTransferId: z.string().uuid('Invalid fee transfer ID'),
-  reason: z.string().min(1, 'Reason is required'),
-});
+const holdFeeTransferSchema = z
+  .object({
+    feeTransferId: z.string().uuid('Invalid fee transfer ID'),
+    reason: z.string().min(1, 'Reason is required'),
+  })
+  .strict();
 
 /**
  * POST /api/admin/escrow/fee-transfer/hold
