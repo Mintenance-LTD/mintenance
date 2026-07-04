@@ -34,6 +34,11 @@ BEGIN
 END;
 $$;
 
+-- Trigger firing does not require EXECUTE by the DML-ing role, and the
+-- Supabase advisor flags SECURITY DEFINER functions exposed via
+-- /rest/v1/rpc — lock it down (revoked live 2026-07-04).
+REVOKE EXECUTE ON FUNCTION public.sync_contractor_skills_to_profiles() FROM PUBLIC, anon, authenticated;
+
 DROP TRIGGER IF EXISTS trigger_sync_contractor_skills ON public.contractor_skills;
 CREATE TRIGGER trigger_sync_contractor_skills
 AFTER INSERT OR UPDATE OR DELETE ON public.contractor_skills
