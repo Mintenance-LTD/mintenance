@@ -17,9 +17,11 @@ Standing punch list (refreshed by the 2026-07-02/04 tech-debt sessions):
   storageState/Supabase sessions don't survive middleware — needs a test-auth API or cookie JWT),
   plus seed-data gaps and selector drift. All annotated in-file (2026-07-04 triage). Known bug:
   `authenticated-contractor-flow` "Job Filtering" describe never calls `page.goto()`.
-- **`contractor_profiles` retirement** — Stripe webhook handlers still write subscription state to
-  `contractor_profiles` while tier resolution reads `contractor_subscriptions`; migrate the ~6 read
-  - 3 write paths onto `profiles`, then drop the table.
+- **`contractor_profiles` retirement — code done, drop pending deploy** (2026-07-04): all reads
+  repointed to `profiles`/`contractor_subscriptions`, webhooks now sync `contractor_subscriptions`
+  (fixing the tier-demotion bug: cancellations never demoted fee tier), and migration
+  `20260704090000` drops the table — it applies at deploy time with the new code; do NOT apply it
+  live while prod runs pre-merge code.
 - **Client/schema payload mismatches** (found by the `.strict()` sweep; chip task_2391747c):
   embedded-checkout sends `bidId` (silently dropped), admin generate-1099 sends
   `{contractorId, year}` vs schema `{taxYear, contractorIds?}` (400s in prod), security-dashboard
