@@ -7,29 +7,36 @@ findings, shipped fixes, live DB migrations, verified metrics, and false-alarm r
 [docs/AUDIT_LOG.md](../docs/AUDIT_LOG.md). **Read it before re-auditing anything** — many "obvious"
 findings were already fixed there or formally retracted with evidence.
 
-Standing punch list (refreshed by the 2026-07-02 tech-debt audit):
+Standing punch list (refreshed by the 2026-07-02/04 tech-debt sessions):
 
 - **Ship the pending EAS mobile build** — committed mobile fixes (push tokens, biometric settings,
-  homeowner tracking, walkthrough client) are not in users' hands; iOS plist + versionCode bump
-  outstanding.
-- **Disabled-test triage** — ~316 skipped/disabled tests (222 `xit`); clusters in
-  `e2e/regression/mobile-responsive.spec.ts`, `authenticated-contractor-flow.spec.ts`, mobile
-  `ProfileHeader.test.tsx`. Rule: no test stays skipped without a comment saying why.
+  homeowner tracking, walkthrough client, P1-9 screen removal) are not in users' hands. Build 17 is
+  prepped; iOS is blocked ONLY on the missing `GOOGLE_SERVICES_PLIST` EAS secret (download
+  GoogleService-Info.plist from the Firebase console).
+- **E2E re-enablement** — 45 annotated e2e skips remain; ~30 trace to one root cause (Playwright
+  storageState/Supabase sessions don't survive middleware — needs a test-auth API or cookie JWT),
+  plus seed-data gaps and selector drift. All annotated in-file (2026-07-04 triage). Known bug:
+  `authenticated-contractor-flow` "Job Filtering" describe never calls `page.goto()`.
 - **`contractor_profiles` retirement** — Stripe webhook handlers still write subscription state to
   `contractor_profiles` while tier resolution reads `contractor_subscriptions`; migrate the ~6 read
   - 3 write paths onto `profiles`, then drop the table.
-- **P1-9** — duplicate mobile completion screens (`JobSignOffScreen` vs
-  `HomeownerPhotoReviewScreen`); pick canonical.
-- **Incremental**: Zod `.strict()` at ~28% of schemas (169 non-strict); hex literals in 187 web
-  files (ride the Mint Editorial redesign); ~650 source files over the 300-line MDC limit (split
-  only when touching for other reasons); no `turbo.json`/CI build caching.
+- **Client/schema payload mismatches** (found by the `.strict()` sweep; chip task_2391747c):
+  embedded-checkout sends `bidId` (silently dropped), admin generate-1099 sends
+  `{contractorId, year}` vs schema `{taxYear, contractorIds?}` (400s in prod), security-dashboard
+  sends `ip` vs `ipAddress`.
+- **Incremental**: Zod `.strict()` at ~40% (95/236; shared `lib/validation/schemas.ts` is the next
+  blast-radius chunk); hex literals in 187 web files (ride the Mint Editorial redesign); ~650 source
+  files over the 300-line MDC limit (split only when touching for other reasons).
 - **P1-8** — mobile escrow funding via Stripe RN SDK (needs native dep + EAS rebuild); homeowner
   currently redirects to web.
 
-Closed by the 2026-07-02 session: walkthrough frame-upload route regression tests (23),
-TimeTrackingScreen + ReportingScreen unit tests (29), last unlogged admin mutation route wired to
-`logActivity` (33/33), `apps/sam2-video-service` deleted, root-level business drafts moved to
-`docs/business/`, audit history split out of this file.
+Closed by the 2026-07-02/04 sessions: walkthrough regression tests (23), TimeTracking/Reporting
+tests (29), admin activity logging 33/33, sam2 service deleted, audit history split to
+docs/AUDIT_LOG.md, build-17 bump, Turborepo + CI cache adopted (package builds 14.5s→0.2s cached;
+old build chain had silently omitted `@mintenance/data-access`), P1-9 closed (JobSignOffScreen
+deleted — was an unreachable stub), 24 request-body schemas `.strict()`ed, disabled-test triage
+complete (the "~316 disabled" figure was a grep artifact matching `process.exit(`; real count was 89
+→ 6 re-enabled, 30 dead deleted, 56 tracked — unit-test skips reference issues #1154/#1155).
 
 ## SECTION 1: ABSOLUTE VERIFICATION REQUIREMENTS - NO FALSE RESULTS
 
