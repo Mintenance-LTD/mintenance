@@ -17,9 +17,10 @@ export async function handleSubscriptionUpdated(
   });
 
   try {
-    const customerId = typeof subscription.customer === 'string'
-      ? subscription.customer
-      : subscription.customer?.id;
+    const customerId =
+      typeof subscription.customer === 'string'
+        ? subscription.customer
+        : subscription.customer?.id;
 
     if (!customerId) {
       logger.warn('Subscription missing customer ID', {
@@ -56,12 +57,14 @@ export async function handleSubscriptionUpdated(
       paused: 'paused',
     };
     const mappedStatus = statusMap[subscription.status] || subscription.status;
-    const homeownerStatus = mappedStatus === 'cancelled' ? 'canceled' : mappedStatus;
+    const homeownerStatus =
+      mappedStatus === 'cancelled' ? 'canceled' : mappedStatus;
 
     // Determine tier from price metadata or product
     const priceId = subscription.items?.data?.[0]?.price?.id;
-    const tierFromMetadata = subscription.metadata?.tier
-      || subscription.items?.data?.[0]?.price?.metadata?.tier;
+    const tierFromMetadata =
+      subscription.metadata?.tier ||
+      subscription.items?.data?.[0]?.price?.metadata?.tier;
 
     // Update profiles.subscription_status
     const { error: profileError } = await serverSupabase
@@ -73,32 +76,82 @@ export async function handleSubscriptionUpdated(
       .eq('id', user.id);
 
     if (profileError) {
-      logger.error('Failed to update profile subscription status', profileError, {
-        service: 'stripe-webhook',
-        userId: user.id,
-      });
+      logger.error(
+        'Failed to update profile subscription status',
+        profileError,
+        {
+          service: 'stripe-webhook',
+          userId: user.id,
+        }
+      );
     }
 
     // Update role-specific subscription table/profile
     if (user.role === 'contractor') {
-      const contractorUpdate: Record<string, unknown> = {
-        subscription_status: mappedStatus,
-        updated_at: new Date().toISOString(),
+      // contractor_subscriptions is the tier source of truth
+      // (FeeCalculationService.resolveContractorTier filters
+      // status IN ('active','trial')). Previously this branch wrote the
+      // retired contractor_profiles shadow table — keyed on a user_id
+      // column that table never had, so Stripe status transitions never
+      // reached tier resolution and cancelled contractors kept
+      // discounted fee rates.
+      const csStatusMap: Record<string, string> = {
+        active: 'active',
+        past_due: 'past_due',
+        cancelled: 'canceled',
+        unpaid: 'unpaid',
+        incomplete: 'unpaid',
+        expired: 'expired',
+        trialing: 'trial',
+        paused: 'expired',
       };
-      if (tierFromMetadata) {
-        contractorUpdate.subscription_tier = tierFromMetadata;
-      }
-
-      const { error: contractorError } = await serverSupabase
-        .from('contractor_profiles')
-        .update(contractorUpdate)
-        .eq('user_id', user.id);
-
-      if (contractorError) {
-        logger.error('Failed to update contractor_profiles subscription', contractorError, {
+      const csStatus = csStatusMap[mappedStatus];
+      if (!csStatus) {
+        logger.warn('Unmapped Stripe status for contractor_subscriptions', {
           service: 'stripe-webhook',
           userId: user.id,
+          stripeStatus: subscription.status,
         });
+      } else {
+        const contractorUpdate: Record<string, unknown> = {
+          status: csStatus,
+          current_period_start: subscription.current_period_start
+            ? new Date(subscription.current_period_start * 1000).toISOString()
+            : null,
+          current_period_end: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : null,
+          cancel_at_period_end: subscription.cancel_at_period_end || false,
+          canceled_at: subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000).toISOString()
+            : null,
+          updated_at: new Date().toISOString(),
+        };
+        if (
+          tierFromMetadata &&
+          ['free', 'basic', 'professional', 'enterprise'].includes(
+            tierFromMetadata
+          )
+        ) {
+          contractorUpdate.plan_type = tierFromMetadata;
+        }
+
+        const { error: contractorError } = await serverSupabase
+          .from('contractor_subscriptions')
+          .update(contractorUpdate)
+          .eq('stripe_subscription_id', subscription.id);
+
+        if (contractorError) {
+          logger.error(
+            'Failed to update contractor_subscriptions',
+            contractorError,
+            {
+              service: 'stripe-webhook',
+              userId: user.id,
+              subscriptionId: subscription.id,
+            }
+          );
+        }
       }
     } else if (user.role === 'homeowner') {
       const { error: homeownerSubError } = await serverSupabase
@@ -120,12 +173,16 @@ export async function handleSubscriptionUpdated(
         .eq('stripe_subscription_id', subscription.id);
 
       if (homeownerSubError) {
-        logger.error('Failed to update homeowner_subscriptions subscription', homeownerSubError, {
-          service: 'stripe-webhook',
-          userId: user.id,
-          mappedStatus,
-          homeownerStatus,
-        });
+        logger.error(
+          'Failed to update homeowner_subscriptions subscription',
+          homeownerSubError,
+          {
+            service: 'stripe-webhook',
+            userId: user.id,
+            mappedStatus,
+            homeownerStatus,
+          }
+        );
       }
     }
 
@@ -155,7 +212,9 @@ export async function handleSubscriptionUpdated(
       tier: tierFromMetadata,
     });
   } catch (error) {
-    logger.error('Error in handleSubscriptionUpdated', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleSubscriptionUpdated', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -173,9 +232,10 @@ export async function handleSubscriptionDeleted(
   });
 
   try {
-    const customerId = typeof subscription.customer === 'string'
-      ? subscription.customer
-      : subscription.customer?.id;
+    const customerId =
+      typeof subscription.customer === 'string'
+        ? subscription.customer
+        : subscription.customer?.id;
 
     if (!customerId) {
       logger.warn('Subscription missing customer ID', {
@@ -218,20 +278,33 @@ export async function handleSubscriptionDeleted(
 
     // Downgrade role-specific subscription states
     if (user.role === 'contractor') {
+      // Cancel the row in contractor_subscriptions (tier source of truth)
+      // so resolveContractorTier stops matching status IN ('active','trial')
+      // and the contractor reverts to the default fee rate. The retired
+      // contractor_profiles shadow write this replaces never worked (no
+      // user_id column), so cancellations previously never demoted tier.
       const { error: contractorError } = await serverSupabase
-        .from('contractor_profiles')
+        .from('contractor_subscriptions')
         .update({
-          subscription_status: 'none',
-          subscription_tier: 'free',
+          status: 'canceled',
+          canceled_at: subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000).toISOString()
+            : new Date().toISOString(),
+          cancel_at_period_end: false,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id);
+        .eq('stripe_subscription_id', subscription.id);
 
       if (contractorError) {
-        logger.error('Failed to downgrade contractor subscription', contractorError, {
-          service: 'stripe-webhook',
-          userId: user.id,
-        });
+        logger.error(
+          'Failed to downgrade contractor subscription',
+          contractorError,
+          {
+            service: 'stripe-webhook',
+            userId: user.id,
+            subscriptionId: subscription.id,
+          }
+        );
       }
     } else if (user.role === 'homeowner') {
       const { error: homeownerError } = await serverSupabase
@@ -244,10 +317,14 @@ export async function handleSubscriptionDeleted(
         .eq('stripe_subscription_id', subscription.id);
 
       if (homeownerError) {
-        logger.error('Failed to downgrade homeowner subscription', homeownerError, {
-          service: 'stripe-webhook',
-          userId: user.id,
-        });
+        logger.error(
+          'Failed to downgrade homeowner subscription',
+          homeownerError,
+          {
+            service: 'stripe-webhook',
+            userId: user.id,
+          }
+        );
       }
     }
 
@@ -265,7 +342,9 @@ export async function handleSubscriptionDeleted(
       userId: user.id,
     });
   } catch (error) {
-    logger.error('Error in handleSubscriptionDeleted', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleSubscriptionDeleted', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }

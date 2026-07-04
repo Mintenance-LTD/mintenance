@@ -16,9 +16,10 @@ export async function handleInvoicePaymentSucceeded(
   });
 
   try {
-    const customerId = typeof invoice.customer === 'string'
-      ? invoice.customer
-      : invoice.customer?.id;
+    const customerId =
+      typeof invoice.customer === 'string'
+        ? invoice.customer
+        : invoice.customer?.id;
 
     if (!customerId) {
       logger.warn('Invoice missing customer ID', {
@@ -43,15 +44,15 @@ export async function handleInvoicePaymentSucceeded(
       return;
     }
 
-    const subscriptionId = typeof invoice.subscription === 'string'
-      ? invoice.subscription
-      : invoice.subscription?.id;
+    const subscriptionId =
+      typeof invoice.subscription === 'string'
+        ? invoice.subscription
+        : invoice.subscription?.id;
 
     // Record in invoice_payments table
     try {
-      await serverSupabase
-        .from('invoice_payments')
-        .upsert({
+      await serverSupabase.from('invoice_payments').upsert(
+        {
           invoice_id: invoice.id,
           user_id: user.id,
           subscription_id: subscriptionId || null,
@@ -61,7 +62,9 @@ export async function handleInvoicePaymentSucceeded(
           status: 'paid',
           paid_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'invoice_id' });
+        },
+        { onConflict: 'invoice_id' }
+      );
     } catch (recordError) {
       logger.error('Failed to record invoice payment', recordError, {
         service: 'stripe-webhook',
@@ -94,7 +97,9 @@ export async function handleInvoicePaymentSucceeded(
       amount: invoice.amount_paid,
     });
   } catch (error) {
-    logger.error('Error in handleInvoicePaymentSucceeded', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleInvoicePaymentSucceeded', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -112,9 +117,10 @@ export async function handleInvoicePaymentFailed(
   });
 
   try {
-    const customerId = typeof invoice.customer === 'string'
-      ? invoice.customer
-      : invoice.customer?.id;
+    const customerId =
+      typeof invoice.customer === 'string'
+        ? invoice.customer
+        : invoice.customer?.id;
 
     if (!customerId) {
       logger.warn('Invoice missing customer ID', {
@@ -139,15 +145,15 @@ export async function handleInvoicePaymentFailed(
       return;
     }
 
-    const subscriptionId = typeof invoice.subscription === 'string'
-      ? invoice.subscription
-      : invoice.subscription?.id;
+    const subscriptionId =
+      typeof invoice.subscription === 'string'
+        ? invoice.subscription
+        : invoice.subscription?.id;
 
     // Record failed payment in invoice_payments
     try {
-      await serverSupabase
-        .from('invoice_payments')
-        .upsert({
+      await serverSupabase.from('invoice_payments').upsert(
+        {
           invoice_id: invoice.id,
           user_id: user.id,
           subscription_id: subscriptionId || null,
@@ -156,7 +162,9 @@ export async function handleInvoicePaymentFailed(
           currency: invoice.currency,
           status: 'failed',
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'invoice_id' });
+        },
+        { onConflict: 'invoice_id' }
+      );
     } catch (recordError) {
       logger.error('Failed to record invoice payment failure', recordError, {
         service: 'stripe-webhook',
@@ -175,13 +183,30 @@ export async function handleInvoicePaymentFailed(
         .eq('id', user.id);
 
       if (user.role === 'contractor') {
-        await serverSupabase
-          .from('contractor_profiles')
+        // Mark the contractor_subscriptions row past_due so tier
+        // resolution (status IN ('active','trial')) stops granting the
+        // discounted fee rate while payment is delinquent. Replaces a
+        // write to the retired contractor_profiles shadow table.
+        const { error: csError } = await serverSupabase
+          .from('contractor_subscriptions')
           .update({
-            subscription_status: 'past_due',
+            status: 'past_due',
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', user.id);
+          .eq('stripe_subscription_id', subscriptionId)
+          .in('status', ['active', 'trial', 'past_due']);
+
+        if (csError) {
+          logger.error(
+            'Failed to mark contractor_subscriptions past_due',
+            csError,
+            {
+              service: 'stripe-webhook',
+              userId: user.id,
+              subscriptionId,
+            }
+          );
+        }
       }
     }
 
@@ -203,7 +228,8 @@ export async function handleInvoicePaymentFailed(
     // Send email notification
     try {
       const { EmailService } = await import('@/lib/email-service');
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
 
       await EmailService.sendEmail({
         to: user.email,
@@ -229,7 +255,9 @@ export async function handleInvoicePaymentFailed(
       });
     }
   } catch (error) {
-    logger.error('Error in handleInvoicePaymentFailed', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleInvoicePaymentFailed', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
