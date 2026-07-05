@@ -15,6 +15,7 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
 
 // Payment initiation schema
 const initiatePaymentSchema = z.object({
@@ -35,7 +36,8 @@ async function createPaymentIntent(
     job_id?: string;
     status: string;
   },
-  payerId: string
+  payerId: string,
+  platformFeeCents: number
 ) {
   try {
     const { data: contractor } = await serverSupabase
@@ -48,11 +50,7 @@ async function createPaymentIntent(
       throw new Error('Contractor has not set up payment processing');
     }
 
-    const platformFeePercent = 5;
     const amountCents = Math.round(invoice.total_amount * 100);
-    const platformFeeCents = Math.round(
-      amountCents * (platformFeePercent / 100)
-    );
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
@@ -288,8 +286,26 @@ export const POST = withApiHandler(
       }
     }
 
+    // 2026-07-04: tier-aware platform fee. This route shipped with a
+    // hardcoded 5% and was missed in the 2026-05-23 tiered-pricing rollout,
+    // under-collecting on free/basic (12%) and professional (8%) invoices.
+    // Same pattern as payments/embedded-checkout: resolve tier, then let
+    // FeeCalculationService produce the single fee breakdown used for both
+    // the Stripe application fee and the payments-row bookkeeping.
+    const contractorTier = await FeeCalculationService.resolveContractorTier(
+      invoice.contractor_id
+    );
+    const feeBreakdown = FeeCalculationService.calculateFees(
+      invoice.total_amount,
+      { contractorTier }
+    );
+
     // Create Stripe payment intent
-    const paymentIntent = await createPaymentIntent(invoice, user.id);
+    const paymentIntent = await createPaymentIntent(
+      invoice,
+      user.id,
+      Math.round(feeBreakdown.platformFee * 100)
+    );
 
     // Create escrow transaction
     const escrow = await createEscrowTransaction(
@@ -312,9 +328,9 @@ export const POST = withApiHandler(
         stripe_payment_intent_id: paymentIntent.id,
         status: 'pending',
         description: `Payment for invoice ${invoice.invoice_number}`,
-        platform_fee: invoice.total_amount * 0.05,
-        processing_fee: invoice.total_amount * 0.029 + 0.3,
-        net_amount: invoice.total_amount * 0.921 - 0.3,
+        platform_fee: feeBreakdown.platformFee,
+        processing_fee: feeBreakdown.stripeFee,
+        net_amount: feeBreakdown.contractorAmount,
       })
       .select()
       .single();
