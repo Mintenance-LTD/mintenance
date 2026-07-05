@@ -4,10 +4,12 @@ import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldServ
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 
-const rejectEscrowSchema = z.object({
-  escrowId: z.string().uuid('Invalid escrow ID'),
-  reason: z.string().min(10, 'Reason must be at least 10 characters'),
-});
+const rejectEscrowSchema = z
+  .object({
+    escrowId: z.string().uuid('Invalid escrow ID'),
+    reason: z.string().min(10, 'Reason must be at least 10 characters'),
+  })
+  .strict();
 
 /**
  * POST /api/admin/escrow/reject

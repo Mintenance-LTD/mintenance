@@ -134,19 +134,21 @@ export class AdvancedSearchService {
       const offset = (page - 1) * limit;
 
       // Build the query with filters.
-      // 2026-05-09: was joining the legacy `users!contractor_profiles_user_id_fkey`,
-      // but `contractor_profiles` PK is itself a FK into `profiles.id`
-      // (constraint `contractor_profiles_id_fkey`), and the `users`
-      // table no longer exists as a base table. Embed via profiles.
-      let supabaseQuery = supabase.from('contractor_profiles').select(
-        `
-          *,
-          user:profiles!contractor_profiles_id_fkey(
-            id, email, first_name, last_name, phone, avatar_url
-          )
-        `,
-        { count: 'exact' }
-      );
+      // 2026-07-04: repointed from the retired contractor-profiles
+      // side table (it only ever held Stripe/subscription columns, so
+      // this search 400'd/returned nothing). Canonical contractor data
+      // — skills, hourly_rate, bio, rating, availability — lives on
+      // `profiles` with role='contractor'. Columns below stay within
+      // the authenticated column-grant list on `profiles`.
+      let supabaseQuery = supabase
+        .from('profiles')
+        .select(
+          `id, email, first_name, last_name, phone, avatar_url, bio,
+           skills, hourly_rate, years_experience, rating, is_available,
+           total_jobs_completed, portfolio_images, created_at, updated_at`,
+          { count: 'exact' }
+        )
+        .eq('role', 'contractor');
 
       // Text search across multiple fields
       if (query.trim()) {
@@ -169,22 +171,18 @@ export class AdvancedSearchService {
           .lte('hourly_rate', filters.priceRange.max);
       }
 
-      // Availability filtering
+      // Availability filtering — `profiles` models availability as a
+      // boolean `is_available`, not the old granular availability enum.
+      // Any non-flexible preference narrows to currently-available.
       if (filters.availability !== 'flexible') {
-        supabaseQuery = supabaseQuery.eq('availability', filters.availability);
+        supabaseQuery = supabaseQuery.eq('is_available', true);
       }
 
-      // Insurance and background check filtering
-      if (filters.hasInsurance !== undefined) {
-        supabaseQuery = supabaseQuery.eq('has_insurance', filters.hasInsurance);
-      }
-
-      if (filters.isBackgroundChecked !== undefined) {
-        supabaseQuery = supabaseQuery.eq(
-          'background_checked',
-          filters.isBackgroundChecked
-        );
-      }
+      // NOTE: hasInsurance / isBackgroundChecked filters were never
+      // functional (the columns never existed on the searched table).
+      // Insurance lives on `contractor_insurance` and background-check
+      // state on `profiles.background_check_status`; wiring them needs
+      // a join/status mapping — intentionally not guessed here.
 
       // Apply pagination
       supabaseQuery = supabaseQuery
@@ -212,23 +210,23 @@ export class AdvancedSearchService {
 
       // Transform data to match Contractor interface
       const contractors = (data || []).map((profile) => ({
-        id: profile.user?.id || '',
-        email: profile.user?.email || '',
-        first_name: profile.user?.first_name || '',
-        last_name: profile.user?.last_name || '',
-        phone: profile.user?.phone || '',
+        id: profile.id || '',
+        email: profile.email || '',
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        phone: profile.phone || '',
         role: 'contractor' as const,
-        avatar_url: profile.user?.avatar_url || '',
+        avatar_url: profile.avatar_url || '',
         created_at: profile.created_at,
         updated_at: profile.updated_at,
         // Contractor-specific fields
         bio: profile.bio || '',
         skills: profile.skills || [],
         hourly_rate: profile.hourly_rate || 0,
-        experience_years: profile.experience_years || 0,
-        availability: profile.availability || 'flexible',
+        experience_years: profile.years_experience || 0,
+        availability: profile.is_available === false ? 'busy' : 'flexible',
         rating: profile.rating || 0,
-        total_jobs: profile.total_jobs || 0,
+        total_jobs: profile.total_jobs_completed || 0,
         portfolioImages: profile.portfolio_images || [],
         reviews: ((profile as Record<string, unknown>).reviews ??
           []) as ContractorProfile['reviews'],
@@ -453,9 +451,12 @@ export class AdvancedSearchService {
     _filters: AdvancedSearchFilters
   ): Promise<SearchFacets> {
     try {
+      // 2026-07-04: facets read canonical `profiles` (role='contractor');
+      // the retired side table had none of these columns.
       const { data: contractors, error } = await supabase
-        .from('contractor_profiles')
-        .select('skills, hourly_rate, rating, availability');
+        .from('profiles')
+        .select('skills, hourly_rate, rating, is_available')
+        .eq('role', 'contractor');
 
       if (error || !contractors) {
         return {
@@ -499,10 +500,11 @@ export class AdvancedSearchService {
         if (r >= 4) ratings['4+ stars']++;
         if (r >= 3) ratings['3+ stars']++;
 
-        if (c.availability) {
-          availability[c.availability] =
-            (availability[c.availability] || 0) + 1;
-        }
+        // `profiles` models availability as a boolean flag.
+        const availabilityKey =
+          c.is_available === false ? 'unavailable' : 'available';
+        availability[availabilityKey] =
+          (availability[availabilityKey] || 0) + 1;
       }
 
       return { skills, priceRanges, ratings, locations: {}, availability };

@@ -29,9 +29,13 @@ import {
   BadRequestError,
 } from '@/lib/errors/api-error';
 
-const BodySchema = z.object({
-  email: z.string().email().max(256),
-});
+// `.strict()` rejects unknown body keys — sole client (AddCoSignerDialog)
+// sends exactly { email }.
+const BodySchema = z
+  .object({
+    email: z.string().email().max(256),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   { roles: ['homeowner'], rateLimit: { maxRequests: 20 } },

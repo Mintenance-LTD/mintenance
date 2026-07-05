@@ -15,8 +15,9 @@ import { callMintAiVLM } from '../generator/AssessmentGenerator';
 import { CostControlService } from '../../ai/CostControlService';
 import { MINT_AI_MODEL_ID } from '../../ai/mint-ai-constants';
 import type { GeneratorMessage } from '../generator/AssessmentGenerator';
-import type { Phase1BuildingAssessment } from '../types';
+import type { Phase1BuildingAssessment, DamageSeverity } from '../types';
 import type { ShadowComparisonResult } from './types';
+import { compareFindings } from './findings-comparison';
 
 // Product-facing model ID written to vlm_shadow_comparisons.student_model
 // and used as the lookup key in CostControlService. See mint-ai-constants.ts
@@ -24,6 +25,59 @@ import type { ShadowComparisonResult } from './types';
 const STUDENT_MODEL_NAME = MINT_AI_MODEL_ID;
 
 export class StudentShadowService {
+  /**
+   * Modal scales the student endpoint to zero between calls. A cold POST to
+   * /v1/chat/completions can return a 5xx during the ~60-90s boot, and the
+   * shared fetchWithOpenAIRetry only retries 429s — so the shadow silently
+   * lost every cold-start comparison (verified live 2026-06-14: teacher +
+   * training label landed, but the student call threw before writing a row).
+   *
+   * Warm the container first with a lightweight GET to /health, which only
+   * returns 200 once vLLM and the LoRA adapter are loaded (its body reports
+   * the active adapter). The subsequent inference call then lands warm.
+   * Best-effort: on timeout/error we proceed anyway — never worse than today.
+   */
+  private static async warmStudentEndpoint(apiKey: string): Promise<void> {
+    const endpoint = process.env.MINT_AI_VLM_ENDPOINT?.trim();
+    if (!endpoint) return;
+
+    let healthUrl: string;
+    try {
+      const url = new URL(endpoint);
+      // .../v1/chat/completions -> .../health (same Modal app/container)
+      url.pathname = url.pathname.replace(/\/v1\/.*$/, '/health');
+      if (!url.pathname.endsWith('/health')) url.pathname = '/health';
+      url.search = '';
+      healthUrl = url.toString();
+    } catch {
+      return;
+    }
+
+    const token = process.env.MINT_AI_VLM_API_KEY?.trim() || apiKey;
+    const controller = new AbortController();
+    // Cap below the route's after() budget (maxDuration 300s) with room for
+    // the inference call that follows.
+    const timer = setTimeout(() => controller.abort(), 110_000);
+    try {
+      const res = await fetch(healthUrl, {
+        method: 'GET',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: controller.signal,
+      });
+      logger.debug('Student endpoint warm-up complete', {
+        service: 'StudentShadowService',
+        status: res.status,
+      });
+    } catch (err) {
+      logger.debug('Student endpoint warm-up failed (proceeding anyway)', {
+        service: 'StudentShadowService',
+        error: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   /**
    * Fire-and-forget: call the student VLM with the same messages the teacher
    * received, compare outputs, and log the comparison. Never throws — all
@@ -49,8 +103,22 @@ export class StudentShadowService {
         return;
       }
 
-      // Call the student VLM with the same prompt
-      const studentResult = await callMintAiVLM(messages, apiKey);
+      // Warm the (scale-to-zero) student container, then call it. One retry
+      // covers the residual race where /health reports ready a moment before
+      // vLLM accepts the first inference request.
+      await this.warmStudentEndpoint(apiKey);
+      let studentResult;
+      try {
+        studentResult = await callMintAiVLM(messages, apiKey);
+      } catch (firstErr) {
+        logger.debug('Student call failed after warm-up, retrying once', {
+          service: 'StudentShadowService',
+          error:
+            firstErr instanceof Error ? firstErr.message : String(firstErr),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 8000));
+        studentResult = await callMintAiVLM(messages, apiKey);
+      }
       const latencyMs = Date.now() - startMs;
 
       // Parse student output
@@ -182,6 +250,8 @@ export class StudentShadowService {
         costUsd,
         damageCategory: teacher.damageAssessment.damageType,
         imageCount,
+        // Student produced nothing — every teacher finding was missed.
+        findingsComparison: compareFindings(teacher, null),
       };
     }
 
@@ -222,12 +292,15 @@ export class StudentShadowService {
       safetyPrecision = correct / studentHazards.length;
     }
 
-    // Weighted overall agreement
+    // Weighted overall agreement (primary-finding metric — kept for continuity)
     const overallAgreement =
       (damageTypeMatch ? 0.35 : 0) +
       (severityMatch ? 0.25 : 0) +
       (urgencyMatch ? 0.15 : 0) +
       safetyRecall * 0.25;
+
+    // Set-based multi-finding comparison (Phase 2).
+    const findingsComparison = compareFindings(teacher, student);
 
     return {
       assessmentId,
@@ -247,6 +320,7 @@ export class StudentShadowService {
       costUsd,
       damageCategory: teacher.damageAssessment.damageType,
       imageCount,
+      findingsComparison,
     };
   }
 
@@ -400,6 +474,38 @@ export class StudentShadowService {
           ? String(ca.complexity)
           : 'medium') as 'low' | 'medium' | 'high',
       },
+      // Multi-finding: parse the student's findings[] when present so the
+      // set-based comparison can score them. v2 students typically omit this
+      // (single-defect) — that is the gap Phase 2 quantifies.
+      findings: Array.isArray(raw.findings)
+        ? (raw.findings as Array<Record<string, unknown>>).map((f) => ({
+            element: String(f.element ?? 'general'),
+            taxonomyClassId: f.taxonomyClassId
+              ? String(f.taxonomyClassId)
+              : undefined,
+            damageType: String(f.damageType ?? 'general_damage'),
+            severity: ([
+              'early',
+              'developing',
+              'significant',
+              'dangerous',
+            ].includes(String(f.severity))
+              ? String(f.severity)
+              : 'developing') as DamageSeverity,
+            conditionRating:
+              f.conditionRating === 1 ||
+              f.conditionRating === 2 ||
+              f.conditionRating === 3
+                ? (f.conditionRating as 1 | 2 | 3)
+                : undefined,
+            description: String(f.description ?? ''),
+            probableCause: f.probableCause
+              ? String(f.probableCause)
+              : undefined,
+            confidence: Number(f.confidence) || 0,
+            isPrimary: Boolean(f.isPrimary),
+          }))
+        : [],
     };
   }
 
@@ -495,6 +601,14 @@ export class StudentShadowService {
         cost_usd: comparison.costUsd,
         damage_category: comparison.damageCategory,
         image_count: comparison.imageCount,
+        // Multi-finding set metrics (Phase 2). Scalars for easy dashboarding,
+        // full detail in the JSONB.
+        findings_comparison: comparison.findingsComparison ?? null,
+        findings_precision: comparison.findingsComparison?.precision ?? null,
+        findings_recall: comparison.findingsComparison?.recall ?? null,
+        findings_f1: comparison.findingsComparison?.f1 ?? null,
+        safety_finding_recall:
+          comparison.findingsComparison?.safetyFindingRecall ?? null,
       })
       .select('id')
       .single();

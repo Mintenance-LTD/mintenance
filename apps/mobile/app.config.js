@@ -162,7 +162,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.mintenance.app',
-      buildNumber: '16',
+      buildNumber: '17',
       // EAS file env vars resolve to a PATH on the build VM — use that value
       // directly. Fall back to the local file for non-EAS builds. The repo
       // copy is gitignored AND .easignore'd, so the literal './…' path never
@@ -220,7 +220,7 @@ module.exports = {
         },
       },
       package: 'com.mintenance.app',
-      versionCode: 16,
+      versionCode: 17,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
@@ -294,6 +294,18 @@ module.exports = {
               pickFirst: ['**/libc++_shared.so', '**/libjsc.so'],
             },
             proguardFiles: ['proguard-android-optimize.txt'],
+            // Ported from the (no longer uploaded) android/app/proguard-rules.pro.
+            // Without the Stripe rules, :app:minifyReleaseWithR8 fails on
+            // missing com.stripe.android.pushProvisioning.* classes referenced
+            // by @stripe/stripe-react-native (build 4a20efcb).
+            extraProguardRules: [
+              '# react-native-reanimated',
+              '-keep class com.swmansion.reanimated.** { *; }',
+              '-keep class com.facebook.react.turbomodule.** { *; }',
+              '# Stripe push provisioning (proprietary library not bundled in build)',
+              '-dontwarn com.stripe.android.pushProvisioning.**',
+              '-keep class com.stripe.android.pushProvisioning.** { *; }',
+            ].join('\n'),
           },
           ios: {
             newArchEnabled: true,

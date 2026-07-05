@@ -9,6 +9,7 @@ import { logger } from '@mintenance/shared';
 import { SafetyAnalysisService } from '../SafetyAnalysisService';
 import { ComplianceService } from '../ComplianceService';
 import { InsuranceRiskService } from '../InsuranceRiskService';
+import { normalizeFindings } from '../findings-utils';
 import type {
   AssessmentContext,
   Phase1BuildingAssessment,
@@ -75,6 +76,8 @@ interface AIAssessment {
   probableCause?: string;
   needsOnsiteInspection?: boolean;
   onsiteInspectionReason?: string;
+  findings?: import('../types').AssessmentFinding[];
+  sceneSummary?: string;
 }
 
 /**
@@ -219,12 +222,33 @@ export async function buildFinalAssessment(
     finalContractorAdvice = defaultContractorAdvice;
   }
 
+  // Multi-finding normalisation: build the findings list + derive the primary
+  // and the worst condition rating across findings.
+  const primarySeverity = isValidSeverity(aiAssessment.severity)
+    ? (aiAssessment.severity as DamageSeverity)
+    : undefined;
+  const normalized = normalizeFindings(aiAssessment.findings, {
+    damageType: aiAssessment.damageType,
+    taxonomyClassId: aiAssessment.taxonomyClassId,
+    severity: primarySeverity,
+    confidence: aiAssessment.confidence,
+    description: aiAssessment.description,
+    probableCause: aiAssessment.probableCause,
+    ricsConditionRating: aiAssessment.ricsConditionRating,
+  });
+
   // Surveyor-report fields. ricsConditionRating/specialistReferrals were
   // previously dropped on this path (only assessment-structurer.ts passed
   // them through) — the prompt has asked for them since they were added.
   const surveyorFields: Partial<Phase1BuildingAssessment> = {
-    ...(aiAssessment.ricsConditionRating && {
-      ricsConditionRating: aiAssessment.ricsConditionRating,
+    ...((normalized.worstConditionRating ??
+      aiAssessment.ricsConditionRating) && {
+      ricsConditionRating:
+        normalized.worstConditionRating ?? aiAssessment.ricsConditionRating,
+    }),
+    ...(normalized.findings.length > 0 && { findings: normalized.findings }),
+    ...(aiAssessment.sceneSummary && {
+      sceneSummary: aiAssessment.sceneSummary,
     }),
     ...(aiAssessment.specialistReferrals?.length && {
       specialistReferrals: aiAssessment.specialistReferrals,

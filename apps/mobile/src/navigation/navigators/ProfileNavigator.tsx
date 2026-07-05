@@ -7,6 +7,7 @@ import type { ProfileStackParamList } from '../types';
 // list comments documenting each.
 import { AccessibilitySettingsScreen } from '../../screens/settings/AccessibilitySettingsScreen';
 import { NotificationPreferencesScreen } from '../../screens/settings/NotificationPreferencesScreen';
+import { BiometricSettingsScreen } from '../../screens/settings/BiometricSettingsScreen';
 
 // Account-related screen wrappers
 import {
@@ -22,7 +23,7 @@ import {
   SafeEditPropertyScreen,
   SafePropertyAssessmentScreen,
   SafeVideoCaptureScreen,
-  SafeVideoProcessingStatusScreen,
+  SafeWalkthroughResultScreen,
   SafeJobPhotoUploadScreen,
   SafeAddPropertyScreen,
   SafePaymentHistoryScreen,
@@ -247,8 +248,8 @@ const ProfileNavigator = () => {
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen
-        name='VideoProcessingStatus'
-        component={SafeVideoProcessingStatusScreen}
+        name='WalkthroughResult'
+        component={SafeWalkthroughResultScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen
@@ -380,6 +381,11 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='MFASecurity'
         component={SafeMFASecurityScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='BiometricSettings'
+        component={BiometricSettingsScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen

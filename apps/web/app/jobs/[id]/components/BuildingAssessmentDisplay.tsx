@@ -15,7 +15,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
-import { formatMoney } from '@/lib/utils/currency';
 import { getCsrfToken } from '@/lib/csrf-client';
 import {
   damageMatchesCategory,
@@ -29,6 +28,9 @@ import {
   SurveyorDiagnosis,
   SpecialistReferralsSection,
   CategoryMismatchNotice,
+  CostEstimateSection,
+  SceneSummary,
+  FindingsSection,
 } from './BuildingAssessmentSurveyorSections';
 
 interface BuildingAssessmentDisplayProps {
@@ -157,7 +159,6 @@ export function BuildingAssessmentDisplay({
     100 - (assessment.safetyHazards.overallSafetyScore ?? 80)
   );
   const confidence = assessment.damageAssessment.confidence ?? 0;
-  const estimatedCost = assessment.contractorAdvice?.estimatedCost;
 
   // Category mismatch caveat: if the AI-detected damageType looks unrelated
   // to the job's declared category, the user shouldn't take the confidence
@@ -210,6 +211,8 @@ export function BuildingAssessmentDisplay({
             needsOnsiteInspection={assessment.needsOnsiteInspection}
             reason={assessment.onsiteInspectionReason}
           />
+
+          <SceneSummary summary={assessment.sceneSummary} />
 
           <CategoryMismatchNotice
             show={categoryMismatch}
@@ -293,6 +296,8 @@ export function BuildingAssessmentDisplay({
             )}
           </div>
 
+          <FindingsSection findings={assessment.findings} />
+
           {/* Safety Hazards */}
           {assessment.safetyHazards.hasCriticalHazards && (
             <div className='p-6 bg-red-50 border-t border-red-100'>
@@ -325,53 +330,10 @@ export function BuildingAssessmentDisplay({
             </div>
           )}
 
-          {/* Cost Estimate */}
-          <div className='p-6 border-t border-gray-200'>
-            <h4 className='font-medium text-gray-900 mb-4'>Cost Estimate</h4>
-            <div className='bg-blue-50 rounded-lg p-4'>
-              <div className='flex items-center justify-between mb-3'>
-                <span className='text-sm text-gray-600'>Estimated Cost</span>
-                <span className='text-2xl font-bold text-blue-600'>
-                  {formatMoney(estimatedCost?.recommended ?? 0)}
-                </span>
-              </div>
-              <div className='text-sm text-gray-600'>
-                Range: {formatMoney(estimatedCost?.min ?? 0)} –{' '}
-                {formatMoney(estimatedCost?.max ?? 0)}
-              </div>
-              {assessment.contractorAdvice?.estimatedTime && (
-                <div className='text-xs text-gray-500 mt-1'>
-                  Estimated time: {assessment.contractorAdvice.estimatedTime}
-                </div>
-              )}
-            </div>
-
-            {/* Materials Breakdown */}
-            {(assessment.contractorAdvice?.materials?.length ?? 0) > 0 && (
-              <div className='mt-4'>
-                <p className='text-sm font-medium text-gray-700 mb-2'>
-                  Materials:
-                </p>
-                <div className='space-y-1'>
-                  {assessment.contractorAdvice!.materials.map(
-                    (material, index) => (
-                      <div
-                        key={index}
-                        className='flex items-center justify-between text-sm'
-                      >
-                        <span className='text-gray-600'>
-                          {material.name} ({material.quantity})
-                        </span>
-                        <span className='font-medium'>
-                          {formatMoney(material.estimatedCost)}
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <CostEstimateSection
+            contractorAdvice={assessment.contractorAdvice}
+            needsOnsiteInspection={assessment.needsOnsiteInspection}
+          />
 
           {/* Insurance Risk */}
           <div className='p-6 border-t border-gray-200'>

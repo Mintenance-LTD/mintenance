@@ -85,10 +85,16 @@ export class TrainingDataExporter {
    * Generic system prompt for training data — strips proprietary prompt engineering.
    * Retains the structural instruction so the student learns the output schema.
    */
+  // KEEP IN SYNC with scripts/vlm-training/export_bootstrap_dataset.mjs
+  // (the bootstrap exporter is a standalone .mjs that cannot import this TS).
+  // Teaches the multi-finding surveyor output so a v3 student learns to read
+  // the whole scene rather than collapse it to a single defect.
   private static readonly TRAINING_SYSTEM_PROMPT =
-    'You are a UK building damage assessment AI. Analyze the provided images and return a JSON object with these sections: damageAssessment, safetyHazards, compliance, insuranceRisk, urgency, homeownerExplanation, contractorAdvice. ' +
-    'Use 4-tier severity: "early" (cosmetic/minor), "developing" (progressing, needs attention), "significant" (serious, risk of spread), "dangerous" (structural/safety risk, urgent repair). ' +
-    'Include recommendedTrades in contractorAdvice: choose from plumber, electrician, roofer, structural_engineer, plasterer, general_builder, damp_specialist, gas_engineer, drainage, locksmith, glazier, pest_control. ' +
+    'You are a UK building surveyor assessment AI. Analyse the attached images and return a single JSON object. ' +
+    'Read the WHOLE scene: report EVERY distinct defect, element by element, in a "findings" array — one entry per defect: {element, taxonomyClassId, damageType, severity, conditionRating, description, probableCause, confidence, isPrimary}. Mark exactly one finding "isPrimary": true (the most serious) and mirror it into the top-level damageAssessment/taxonomyClassId/severity. Set top-level "ricsConditionRating" to the WORST conditionRating across all findings. Also return a one-line "sceneSummary". ' +
+    'Use 4-tier severity: "early" (cosmetic/minor), "developing" (progressing), "significant" (serious, risk of spread), "dangerous" (structural/safety risk, urgent). RICS conditionRating: 1 = routine maintenance, 2 = repair needed, 3 = serious/urgent. ' +
+    'If the photos are insufficient to diagnose reliably, set "needsOnsiteInspection": true with a reason and confidence below 40 — never guess a defect, and do not quote a firm cost. ' +
+    'Also return: safetyHazards, compliance, insuranceRisk, urgency, homeownerExplanation, contractorAdvice (with recommendedTrades from: plumber, electrician, roofer, structural_engineer, plasterer, general_builder, damp_specialist, gas_engineer, drainage, locksmith, glazier, pest_control). ' +
     'Be precise, safety-conscious, and evidence-based.';
 
   /**

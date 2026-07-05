@@ -7,14 +7,16 @@ import { logger } from '@mintenance/shared';
 
 // ── Validation ──────────────────────────────────────────────────────
 
-const markFiledSchema = z.object({
-  contractorId: z.string().uuid('Contractor ID must be a valid UUID'),
-  year: z
-    .number()
-    .int()
-    .min(2020, 'Year must be 2020 or later')
-    .max(new Date().getFullYear(), 'Year cannot be in the future'),
-});
+const markFiledSchema = z
+  .object({
+    contractorId: z.string().uuid('Contractor ID must be a valid UUID'),
+    year: z
+      .number()
+      .int()
+      .min(2020, 'Year must be 2020 or later')
+      .max(new Date().getFullYear(), 'Year cannot be in the future'),
+  })
+  .strict();
 
 // ── POST Handler ────────────────────────────────────────────────────
 

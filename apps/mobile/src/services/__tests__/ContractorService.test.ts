@@ -9,7 +9,7 @@
  *   addContractorSkill        -> supabase contractor_skills insert
  *   updateContractorLocation  -> supabase profiles update (lat/lng only)
  *   updateContractorAvailability -> supabase profiles update
- *   searchContractors         -> supabase contractor_profiles (string) / profiles (advanced)
+ *   searchContractors         -> supabase profiles (both string + advanced branches)
  *
  * The previous suite tested removed methods (getNearbyContractors,
  * findNearbyContractors, swipeContractor, getLikedContractors, getMatches)
@@ -215,9 +215,11 @@ describe('ContractorService', () => {
   });
 
   describe('searchContractors', () => {
-    it('should search contractors by string query against contractor_profiles', async () => {
+    it('should search contractors by string query against profiles', async () => {
+      // Legacy contractor-profiles side table retired 2026-07: keyword
+      // search reads the canonical `profiles` table (role='contractor').
       const searchResults = [
-        { ...mockContractor, skills: 'plumbing,electrical' },
+        { ...mockContractor, skills: ['plumbing', 'electrical'] },
       ];
 
       (supabase.from as jest.Mock).mockReturnValue(
@@ -226,7 +228,7 @@ describe('ContractorService', () => {
 
       const result = await ContractorService.searchContractors('plumbing');
 
-      expect(supabase.from).toHaveBeenCalledWith('contractor_profiles');
+      expect(supabase.from).toHaveBeenCalledWith('profiles');
       expect(result).toEqual(searchResults);
     });
 

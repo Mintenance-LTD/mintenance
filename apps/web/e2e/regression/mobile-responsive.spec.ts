@@ -60,7 +60,9 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 // ============================================================================
 
 test.describe('Mobile: Navigation Menu', () => {
-  test('landing page shows hamburger menu at mobile viewport', async ({ page }) => {
+  test('landing page shows hamburger menu at mobile viewport', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
@@ -104,7 +106,7 @@ test.describe('Mobile: Navigation Menu', () => {
       .first();
 
     if (!(await hamburger.isVisible().catch(() => false))) {
-      // No hamburger menu - may use a different mobile nav pattern
+      // skipped: runtime bail — no hamburger menu; app may use a different mobile nav pattern (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -113,7 +115,9 @@ test.describe('Mobile: Navigation Menu', () => {
     await page.waitForTimeout(500); // Wait for animation
 
     // After clicking, navigation links should be visible
-    const navLinks = page.locator('nav a, [role="navigation"] a, [data-testid="mobile-nav"] a');
+    const navLinks = page.locator(
+      'nav a, [role="navigation"] a, [data-testid="mobile-nav"] a'
+    );
     const linkCount = await navLinks.count();
 
     // Should have at least one navigation link visible
@@ -131,6 +135,7 @@ test.describe('Mobile: Navigation Menu', () => {
       .first();
 
     if (!(await hamburger.isVisible().catch(() => false))) {
+      // skipped: runtime bail — no hamburger menu; app may use a different mobile nav pattern (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -150,7 +155,9 @@ test.describe('Mobile: Navigation Menu', () => {
 
       // After navigation, the mobile menu overlay should be gone
       // (or we should be on a new page entirely)
-      const menuOverlay = page.locator('[data-testid="mobile-menu-overlay"], [data-testid="mobile-nav"]');
+      const menuOverlay = page.locator(
+        '[data-testid="mobile-menu-overlay"], [data-testid="mobile-nav"]'
+      );
       const overlayVisible = await menuOverlay.isVisible().catch(() => false);
 
       // Either overlay is hidden, or we navigated to a different URL
@@ -172,17 +179,23 @@ test.describe('Mobile: Job List', () => {
     await page.waitForTimeout(2000);
 
     if (page.url().includes('/login') || page.url().includes('/auth')) {
+      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
       test.skip();
       return;
     }
 
     // Cards should be full-width on mobile (no side-by-side layout)
-    const cards = page.locator('[data-testid="job-card"], [class*="card"], table tbody tr');
+    const cards = page.locator(
+      '[data-testid="job-card"], [class*="card"], table tbody tr'
+    );
     const cardCount = await cards.count();
 
     if (cardCount === 0) {
       // Empty state is valid
-      const hasEmptyState = await page.getByText(/no.*job|no.*result|create.*first/i).isVisible().catch(() => false);
+      const hasEmptyState = await page
+        .getByText(/no.*job|no.*result|create.*first/i)
+        .isVisible()
+        .catch(() => false);
       expect(hasEmptyState).toBeTruthy();
       return;
     }
@@ -195,7 +208,9 @@ test.describe('Mobile: Job List', () => {
     }
   });
 
-  test('jobs page is scrollable without horizontal overflow', async ({ page }) => {
+  test('jobs page is scrollable without horizontal overflow', async ({
+    page,
+  }) => {
     await loginAsHomeowner(page);
 
     await page.goto('/jobs');
@@ -203,6 +218,7 @@ test.describe('Mobile: Job List', () => {
     await page.waitForTimeout(2000);
 
     if (page.url().includes('/login') || page.url().includes('/auth')) {
+      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -256,14 +272,21 @@ test.describe('Mobile: Form Submission', () => {
     await page.waitForTimeout(2000);
 
     if (page.url().includes('/login') || page.url().includes('/auth')) {
+      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
       test.skip();
       return;
     }
 
     // Form should be present
     const hasForm =
-      (await page.locator('[data-testid="job-create-form"]').isVisible().catch(() => false)) ||
-      (await page.getByLabel(/title|job title/i).isVisible().catch(() => false));
+      (await page
+        .locator('[data-testid="job-create-form"]')
+        .isVisible()
+        .catch(() => false)) ||
+      (await page
+        .getByLabel(/title|job title/i)
+        .isVisible()
+        .catch(() => false));
 
     expect(hasForm).toBeTruthy();
 
@@ -276,7 +299,7 @@ test.describe('Mobile: Form Submission', () => {
       .first();
 
     // Scroll to button if needed
-    if (await actionBtn.count() > 0) {
+    if ((await actionBtn.count()) > 0) {
       await actionBtn.scrollIntoViewIfNeeded().catch(() => {});
       await expect(actionBtn).toBeVisible();
     }
@@ -304,13 +327,16 @@ test.describe('Mobile: No Horizontal Overflow', () => {
     });
   }
 
-  test('dashboard has no horizontal overflow (authenticated)', async ({ page }) => {
+  test('dashboard has no horizontal overflow (authenticated)', async ({
+    page,
+  }) => {
     await loginAsHomeowner(page);
     await page.goto('/dashboard');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     if (page.url().includes('/login') || page.url().includes('/auth')) {
+      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -318,13 +344,16 @@ test.describe('Mobile: No Horizontal Overflow', () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test('job creation page has no horizontal overflow (authenticated)', async ({ page }) => {
+  test('job creation page has no horizontal overflow (authenticated)', async ({
+    page,
+  }) => {
     await loginAsHomeowner(page);
     await page.goto('/jobs/create');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     if (page.url().includes('/login') || page.url().includes('/auth')) {
+      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -332,7 +361,9 @@ test.describe('Mobile: No Horizontal Overflow', () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test('contractor discover page has no horizontal overflow', async ({ page }) => {
+  test('contractor discover page has no horizontal overflow', async ({
+    page,
+  }) => {
     // This tests the contractor view at mobile
     await page.goto('/contractor/discover');
     await page.waitForLoadState('domcontentloaded');
@@ -393,30 +424,35 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
   test('dashboard (shell drawer)', async ({ page }, testInfo) => {
     await loginAsHomeowner(page);
     await page.goto('/dashboard');
+    // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'dashboard'))) test.skip();
   });
 
   test('payments table', async ({ page }, testInfo) => {
     await loginAsHomeowner(page);
     await page.goto('/payments');
+    // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'payments'))) test.skip();
   });
 
   test('financials ledger', async ({ page }, testInfo) => {
     await loginAsHomeowner(page);
     await page.goto('/financials');
+    // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'financials'))) test.skip();
   });
 
   test('scheduling calendar', async ({ page }, testInfo) => {
     await loginAsHomeowner(page);
     await page.goto('/scheduling');
+    // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'scheduling'))) test.skip();
   });
 
   test('settings sections', async ({ page }, testInfo) => {
     await loginAsHomeowner(page);
     await page.goto('/settings');
+    // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
     if (!(await captureAndAssert(page, testInfo, 'settings'))) test.skip();
   });
 
@@ -428,6 +464,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.waitForTimeout(1500);
     if (page.url().includes('/login') || page.url().includes('/auth')) {
+      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -437,6 +474,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
       .or(page.locator('a[href*="/properties/"]'))
       .first();
     if (!(await open.isVisible().catch(() => false))) {
+      // skipped: runtime bail — no property link visible (seed data missing) (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -446,8 +484,16 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
 
     // Walk each property tab so the maintenance/year-strip + tab-scroll fixes
     // are exercised and shot.
-    for (const tab of ['Maintenance', 'Documents', 'Timeline', 'Access', 'Assessments']) {
-      const tabBtn = page.getByRole('tab', { name: new RegExp(tab, 'i') }).first();
+    for (const tab of [
+      'Maintenance',
+      'Documents',
+      'Timeline',
+      'Access',
+      'Assessments',
+    ]) {
+      const tabBtn = page
+        .getByRole('tab', { name: new RegExp(tab, 'i') })
+        .first();
       if (await tabBtn.isVisible().catch(() => false)) {
         await tabBtn.click();
         await page.waitForTimeout(800);
@@ -463,6 +509,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.waitForTimeout(1500);
     if (page.url().includes('/login') || page.url().includes('/auth')) {
+      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
       test.skip();
       return;
     }
@@ -472,6 +519,7 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
       .filter({ hasNot: page.locator('a[href*="/jobs/create"]') })
       .first();
     if (!(await jobLink.isVisible().catch(() => false))) {
+      // skipped: runtime bail — no job link visible (seed data missing) (2026-07-02 triage)
       test.skip();
       return;
     }

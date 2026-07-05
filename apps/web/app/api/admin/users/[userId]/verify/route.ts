@@ -13,10 +13,12 @@ import {
 } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 
-const verifySchema = z.object({
-  action: z.enum(['approve', 'reject']),
-  reason: z.string().optional(),
-});
+const verifySchema = z
+  .object({
+    action: z.enum(['approve', 'reject']),
+    reason: z.string().optional(),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   {

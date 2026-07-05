@@ -1,8 +1,10 @@
 /**
  * useStripeConnectPromptGate — Tier 2 nudge after a contractor wins a bid but
- * Stripe charges are not yet enabled. Probes profiles (maybeSingle) + bids
- * (count via .in()) in parallel. No onboarding_completed pre-check.
- * Mocks AsyncStorage, supabase, useAuth, logger.
+ * Stripe charges are not yet enabled. Probes the canonical readiness endpoint
+ * GET /api/payments/stripe-connect/status (stripe_charges_enabled is
+ * column-revoked from the authenticated role, so it must come from the
+ * server) + bids (count via .in()) in parallel. No onboarding_completed
+ * pre-check. Mocks AsyncStorage, mobileApiClient, supabase, useAuth, logger.
  */
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 
@@ -22,13 +24,21 @@ jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-const mockProfile = jest.fn();
+// Connect readiness comes from the server endpoint, never a profiles select
+// (column-grant lockdown 20260508100543).
+const mockConnectStatusGet = jest.fn();
+jest.mock('../../utils/mobileApiClient', () => ({
+  __esModule: true,
+  mobileApiClient: {
+    get: (...a: unknown[]) => mockConnectStatusGet(...a),
+  },
+}));
+
 const mockBidsCount = jest.fn();
 jest.mock('../../config/supabase', () => {
   const chain: Record<string, unknown> = {};
   chain.select = jest.fn(() => chain);
   chain.eq = jest.fn(() => chain);
-  chain.maybeSingle = jest.fn(() => mockProfile()); // profiles path
   chain.in = jest.fn(() => mockBidsCount()); // bids count path
   return { __esModule: true, supabase: { from: jest.fn(() => chain) } };
 });
@@ -53,9 +63,9 @@ beforeEach(() => {
   mockUseAuth.mockReturnValue({ user: contractor });
   mockGetItem.mockResolvedValue(null);
   mockSetItem.mockResolvedValue(undefined);
-  mockProfile.mockResolvedValue({
-    data: { stripe_charges_enabled: false },
-    error: null,
+  mockConnectStatusGet.mockResolvedValue({
+    success: true,
+    status: { chargesEnabled: false },
   });
   mockBidsCount.mockResolvedValue({ count: 1, error: null });
 });
@@ -82,8 +92,8 @@ describe('probe / shouldShow', () => {
     expect(result.current.shouldShow).toBe(false);
   });
 
-  it('is hidden when the profile query errors', async () => {
-    mockProfile.mockResolvedValue({ data: null, error: { message: 'p down' } });
+  it('is hidden when the connect status fetch fails', async () => {
+    mockConnectStatusGet.mockRejectedValue(new Error('p down'));
     const { result } = renderHook(() => useStripeConnectPromptGate());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.shouldShow).toBe(false);
@@ -104,10 +114,18 @@ describe('probe / shouldShow', () => {
     await waitFor(() => expect(result.current.shouldShow).toBe(true));
   });
 
+  it('is shown when no Connect account exists yet (status null)', async () => {
+    // The endpoint returns status: null when the contractor has never
+    // started Connect onboarding — the gate's core audience.
+    mockConnectStatusGet.mockResolvedValue({ success: true, status: null });
+    const { result } = renderHook(() => useStripeConnectPromptGate());
+    await waitFor(() => expect(result.current.shouldShow).toBe(true));
+  });
+
   it('is hidden when charges are already enabled', async () => {
-    mockProfile.mockResolvedValue({
-      data: { stripe_charges_enabled: true },
-      error: null,
+    mockConnectStatusGet.mockResolvedValue({
+      success: true,
+      status: { chargesEnabled: true },
     });
     const { result } = renderHook(() => useStripeConnectPromptGate());
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -122,7 +140,9 @@ describe('probe / shouldShow', () => {
   });
 
   it('is hidden when the probe throws', async () => {
-    mockProfile.mockRejectedValue(new Error('boom'));
+    // The connect fetch has its own .catch, so exercise the outer
+    // try/catch via the AsyncStorage dismissal read.
+    mockGetItem.mockRejectedValue(new Error('boom'));
     const { result } = renderHook(() => useStripeConnectPromptGate());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.shouldShow).toBe(false);
@@ -156,10 +176,12 @@ describe('dismiss + refresh', () => {
 
   it('refresh re-probes', async () => {
     const result = await ready();
-    mockProfile.mockClear();
+    mockConnectStatusGet.mockClear();
     await act(async () => {
       await result.current.refresh();
     });
-    expect(mockProfile).toHaveBeenCalled();
+    expect(mockConnectStatusGet).toHaveBeenCalledWith(
+      '/api/payments/stripe-connect/status'
+    );
   });
 });

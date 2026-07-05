@@ -8,6 +8,18 @@ const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
 const MAX_TOKEN_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+// 2026-06-15: stop the post-login "Enable biometrics?" prompt from nagging
+// on every single sign-in. We remember how many times the user tapped
+// "Not Now" and back off with a growing window; after a few declines we
+// stop auto-prompting entirely. The user can still enable it from
+// Settings → Account & Security → Biometric Sign-In (which clears this).
+const BIOMETRIC_PROMPT_DECLINE_KEY = 'biometric_prompt_decline';
+const DECLINE_BACKOFF_MS = [
+  7 * 24 * 60 * 60 * 1000, // after the 1st decline: don't ask for 7 days
+  30 * 24 * 60 * 60 * 1000, // after the 2nd decline: don't ask for 30 days
+];
+const MAX_DECLINES_BEFORE_SUPPRESS = 3;
+
 export interface BiometricCredentials {
   email: string;
   refreshToken: string; // Only store refresh token for security
@@ -101,7 +113,9 @@ export class BiometricService {
 
       // Only refresh token is required for biometric storage
       if (!tokens?.refreshToken) {
-        throw new Error('Refresh token is required to enable biometric authentication');
+        throw new Error(
+          'Refresh token is required to enable biometric authentication'
+        );
       }
 
       // Security: Only store refresh token, not access token
@@ -117,6 +131,9 @@ export class BiometricService {
         JSON.stringify(credentials)
       );
       await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+
+      // Enabling resets the auto-prompt decline backoff.
+      await this.clearPromptDecline();
 
       trackUserAction('biometric.enable_success', { email });
       addBreadcrumb('Biometric authentication enabled', 'biometric');
@@ -190,11 +207,15 @@ export class BiometricService {
         } catch (parseError) {
           // If JSON is corrupted, clear the credentials and throw
           await BiometricService.clearBiometricData();
-          throw new Error('Invalid biometric credentials. Please enable biometric authentication again.');
+          throw new Error(
+            'Invalid biometric credentials. Please enable biometric authentication again.'
+          );
         }
 
         if (!credentials.refreshToken) {
-          throw new Error('Saved biometric credentials are incomplete. Please sign in again.');
+          throw new Error(
+            'Saved biometric credentials are incomplete. Please sign in again.'
+          );
         }
 
         // Validate token age
@@ -205,7 +226,9 @@ export class BiometricService {
             email: credentials.email,
             ageInDays: Math.floor(tokenAge / (24 * 60 * 60 * 1000)),
           });
-          throw new Error('Biometric credentials have expired. Please sign in again to re-enable biometric authentication.');
+          throw new Error(
+            'Biometric credentials have expired. Please sign in again to re-enable biometric authentication.'
+          );
         }
 
         // Log token age for monitoring
@@ -248,6 +271,11 @@ export class BiometricService {
       return;
     }
 
+    // Respect the user's recent "Not Now" choices — don't nag every login.
+    if (await this.shouldSuppressPrompt()) {
+      return;
+    }
+
     const supportedTypes = await this.getSupportedTypes();
     const typeNames = supportedTypes.map((type) =>
       this.getTypeDisplayName(type)
@@ -263,6 +291,7 @@ export class BiometricService {
           style: 'cancel',
           onPress: () => {
             trackUserAction('biometric.setup_declined', { email });
+            void this.recordPromptDeclined();
           },
         },
         {
@@ -297,6 +326,57 @@ export class BiometricService {
       addBreadcrumb('Biometric data cleared', 'biometric');
     } catch (error) {
       logger.error('Error clearing biometric data:', error);
+    }
+  }
+
+  // ---- Auto-prompt decline backoff (2026-06-15) ----------------------
+
+  /** Record that the user tapped "Not Now" on the enable-biometrics prompt. */
+  static async recordPromptDeclined(): Promise<void> {
+    try {
+      const raw = await SecureStore.getItemAsync(BIOMETRIC_PROMPT_DECLINE_KEY);
+      const prev = raw ? (JSON.parse(raw) as { count?: number }) : { count: 0 };
+      const next = { count: (prev.count ?? 0) + 1, lastAt: Date.now() };
+      await SecureStore.setItemAsync(
+        BIOMETRIC_PROMPT_DECLINE_KEY,
+        JSON.stringify(next)
+      );
+    } catch (error) {
+      // Non-fatal — worst case the prompt simply shows again next time.
+      logger.warn('Failed to record biometric prompt decline', { error });
+    }
+  }
+
+  /**
+   * Whether the post-login "Enable biometrics?" prompt should be suppressed
+   * because the user recently declined it. Fails open (returns false) on any
+   * read error so a storage glitch never permanently hides the prompt.
+   */
+  static async shouldSuppressPrompt(): Promise<boolean> {
+    try {
+      const raw = await SecureStore.getItemAsync(BIOMETRIC_PROMPT_DECLINE_KEY);
+      if (!raw) return false;
+      const { count = 0, lastAt = 0 } = JSON.parse(raw) as {
+        count?: number;
+        lastAt?: number;
+      };
+      if (count <= 0) return false;
+      if (count >= MAX_DECLINES_BEFORE_SUPPRESS) return true;
+      const backoffWindow =
+        DECLINE_BACKOFF_MS[
+          Math.min(count - 1, DECLINE_BACKOFF_MS.length - 1)
+        ] ?? 0;
+      return Date.now() - lastAt < backoffWindow;
+    } catch {
+      return false;
+    }
+  }
+
+  private static async clearPromptDecline(): Promise<void> {
+    try {
+      await SecureStore.deleteItemAsync(BIOMETRIC_PROMPT_DECLINE_KEY);
+    } catch {
+      /* non-fatal */
     }
   }
 }

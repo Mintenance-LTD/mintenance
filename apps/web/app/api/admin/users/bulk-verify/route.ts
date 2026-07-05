@@ -9,11 +9,13 @@ import { z } from 'zod';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 
-const bulkVerifySchema = z.object({
-  userIds: z.array(z.string().uuid()).min(1).max(100),
-  action: z.enum(['approve', 'reject']),
-  reason: z.string().optional(),
-});
+const bulkVerifySchema = z
+  .object({
+    userIds: z.array(z.string().uuid()).min(1).max(100),
+    action: z.enum(['approve', 'reject']),
+    reason: z.string().optional(),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   {

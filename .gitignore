@@ -241,6 +241,7 @@ yolo11n.pt
 !infrastructure/**/*.sh
 *.json
 !package*.json
+!turbo.json
 !tsconfig*.json
 !*.config.json
 !class_mapping*.json
@@ -324,3 +325,6 @@ ui.xml
 apps/mobile/*.png
 apps/web/*.png
 /.design-bundle/
+
+# Turborepo local cache
+.turbo/

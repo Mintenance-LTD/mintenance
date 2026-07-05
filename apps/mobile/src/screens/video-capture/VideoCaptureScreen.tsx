@@ -29,6 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from 'react-i18next';
 import VideoService, { VideoGuidancePhase } from '../../services/VideoService';
+import { runWalkthrough } from '../../services/walkthrough/KeyframeWalkthroughService';
 import { logger } from '@mintenance/shared';
 import Reanimated, {
   useAnimatedStyle,
@@ -52,6 +53,12 @@ interface Props {
       assessmentId?: string;
       propertyId?: string;
       onComplete?: (videoId: string) => void;
+      /**
+       * Standalone VLM walkthrough mode (Phase C): instead of queuing the
+       * video for server-side SAM2, extract keyframes on-device, assess them
+       * via /api/assessments/walkthrough, and show the survey immediately.
+       */
+      walkthrough?: boolean;
     };
   };
 }
@@ -79,7 +86,6 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const [showGuidance, setShowGuidance] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [torchOn, setTorchOn] = useState(false);
 
   // Animation values
@@ -220,54 +226,54 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     }, 1000);
   };
 
-  const processVideo = async () => {
+  // Standalone VLM walkthrough: extract keyframes on-device, assess via the
+  // walkthrough route, then show the survey. Synchronous (no SAM2 polling).
+  const processWalkthrough = async () => {
     if (!capturedVideo) return;
+    if (!propertyId && !assessmentId) {
+      Alert.alert(
+        'Missing property',
+        'A property is required to run an AI walkthrough.'
+      );
+      return;
+    }
 
     setIsProcessing(true);
-    setUploadProgress(0);
-
     try {
-      const compressedPath = capturedVideo.uri.replace(
-        '.mp4',
-        '_compressed.mp4'
-      );
-      const compressionResult = await VideoService.compressVideo(
-        capturedVideo.uri,
-        compressedPath
-      );
-
-      if (!compressionResult.success) {
-        throw new Error('Video compression failed');
-      }
-
-      const videoId = await VideoService.queueVideo(
-        compressionResult.outputPath,
-        compressionResult.metadata,
-        {
-          assessmentId,
-          propertyId,
+      const result = await runWalkthrough({
+        videoUri: capturedVideo.uri,
+        durationMs: recordingDuration * 1000,
+        propertyId,
+      });
+      onComplete?.(result.assessmentId);
+      (
+        navigation as {
+          navigate: (screen: string, params?: Record<string, unknown>) => void;
         }
-      );
-
-      logger.info('Video queued for processing', { videoId });
-
-      Alert.alert(
-        'Video Uploaded',
-        'Your video has been queued for processing.'
-      );
-
-      if (onComplete) {
-        onComplete(videoId);
-      }
+      ).navigate('WalkthroughResult', {
+        assessment: result.assessment,
+        frameCount: result.frameCount,
+        framesAssessed: result.framesAssessed,
+      });
     } catch (error) {
-      logger.error('Video processing failed', { error });
+      logger.error('Walkthrough processing failed', { error });
       Alert.alert(
-        'Processing Error',
-        'Failed to process video. Please try again.'
+        'Walkthrough failed',
+        error instanceof Error
+          ? error.message
+          : 'Could not analyse the walkthrough. Please try again.'
       );
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Recording is processed exclusively through the VLM walkthrough now — the
+  // SAM2 upload/queue/status path was retired. (The screen is only ever entered
+  // with walkthrough mode; the flag is kept for clarity.)
+  const processVideo = async () => {
+    if (!capturedVideo) return;
+    await processWalkthrough();
   };
 
   const retakeVideo = () => {
@@ -492,10 +498,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <>
-                  <Text style={styles.confirmButtonText}>Processing...</Text>
-                  <Text style={styles.uploadProgress}>{uploadProgress}%</Text>
-                </>
+                <Text style={styles.confirmButtonText}>Processing...</Text>
               ) : (
                 <>
                   <Icon name='check' size={24} color='white' />

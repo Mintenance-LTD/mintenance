@@ -113,7 +113,9 @@ export type JobsStackParamList = {
     contractorName?: string;
     jobTitle?: string;
   };
-  JobSignOff: { jobId: string };
+  // 2026-07-02 P1-9: `JobSignOff` route removed. It had been a redirect
+  // stub to PhotoReview since audit-52 (2026-05-26); PhotoReview
+  // (HomeownerPhotoReviewScreen) is the sole completion-review surface.
   JobEdit: { jobId: string };
 };
 
@@ -199,11 +201,13 @@ export type ProfileStackParamList = {
     | { propertyId?: string; propertyAddress?: string }
     | undefined;
   AddProperty: undefined;
-  VideoCapture: { assessmentId?: string; propertyId?: string } | undefined;
-  VideoProcessingStatus: {
-    videoId: string;
-    assessmentId?: string;
-    propertyId?: string;
+  VideoCapture:
+    | { assessmentId?: string; propertyId?: string; walkthrough?: boolean }
+    | undefined;
+  WalkthroughResult: {
+    assessment: Record<string, unknown>;
+    frameCount?: number;
+    framesAssessed?: number;
   };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;
@@ -247,6 +251,10 @@ export type ProfileStackParamList = {
   // Favorites: ARCHIVED - contractor-discovery feature removed
   // GDPR/Account management screens
   MFASecurity: undefined;
+  // Biometric (Face ID / Fingerprint) sign-in management — the
+  // BiometricSettings component was built + tested but never mounted;
+  // wired through SettingsHub → Account & Security (2026-06-15).
+  BiometricSettings: undefined;
   DataExport: undefined;
   DeleteAccount: undefined;
   // Newer settings screens that previously had no nav target — wired

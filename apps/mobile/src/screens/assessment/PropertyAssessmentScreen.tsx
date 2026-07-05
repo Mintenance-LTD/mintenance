@@ -162,11 +162,21 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
   // row when the user submits) — the queue carries propertyId through
   // into VideoService.uploadVideo so the server creates one row, not two.
   // ---------------------------------------------------------------------------
+  // Video step launches the VLM walkthrough: record → assess on-device keyframes
+  // → show the survey immediately. Replaces the retired SAM2 upload pipeline.
   const handleStartVideoCapture = () => {
+    if (!propertyId) {
+      Alert.alert(
+        'Add property first',
+        'Save the property details before running an AI walkthrough.'
+      );
+      return;
+    }
     navigation.navigate('VideoCapture', {
       propertyId,
-      onComplete: (uri: string) => {
-        setVideoUri(uri);
+      walkthrough: true,
+      onComplete: (assessmentId: string) => {
+        setVideoUri(assessmentId);
         updateStepStatus('video_walkthrough', 'completed');
       },
     });
@@ -498,8 +508,8 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
             onPress={handleStartVideoCapture}
             activeOpacity={0.8}
           >
-            <Icon name='videocam' size={22} color='#FFFFFF' />
-            <Text style={styles.primaryActionText}>Start Video Capture</Text>
+            <Icon name='auto-awesome' size={22} color={me.onBrand} />
+            <Text style={styles.primaryActionText}>AI Video Walkthrough</Text>
           </TouchableOpacity>
         </View>
 

@@ -7,33 +7,14 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// ─── Select strings ─────────────────────────────────────────────
-
-/** Contractor profile with user join. */
-export const CONTRACTOR_PROFILE_SELECT = `
-  id, user_id, bio, profile_image_url, company_name, company_logo,
-  business_address, hourly_rate, years_experience, service_radius,
-  availability, portfolio_images, specialties, certifications,
-  license_number, latitude, longitude,
-  user:profiles!user_id(first_name, last_name, email)
-` as const;
-
 // ─── Query functions ─────────────────────────────────────────────
 
-/**
- * Fetch contractor profile with user details.
- * Replaces mobile's ContractorProfileService.getContractorProfile().
- */
-export async function fetchContractorProfile(
-  client: SupabaseClient,
-  userId: string
-) {
-  return client
-    .from('contractor_profiles')
-    .select(CONTRACTOR_PROFILE_SELECT)
-    .eq('user_id', userId)
-    .single();
-}
+// NOTE (2026-07-04): fetchContractorProfile / CONTRACTOR_PROFILE_SELECT
+// were deleted — they queried the retired contractor-profiles side
+// table with columns that never existed there (user_id, skills, bio,
+// ...), had zero callers on web or mobile, and mobile's
+// ContractorProfileService.getContractorProfile() already routes
+// through GET /api/contractor/profile-data (profiles-backed).
 
 /**
  * Compute contractor stats from the database.

@@ -24,6 +24,7 @@ import { processUrgency } from './urgency-processor';
 import { enrichMaterialsWithDatabase } from './material-enrichment';
 import { logger } from '@mintenance/shared';
 import { DAMAGE_TYPE_TO_TRADES } from './tools/damage-type-mapping';
+import { normalizeFindings } from './findings-utils';
 
 /**
  * Structure AI response into Phase1BuildingAssessment
@@ -236,6 +237,28 @@ export async function structureAssessment(
     if (aiResponse.onsiteInspectionReason) {
       assessment.onsiteInspectionReason = aiResponse.onsiteInspectionReason;
     }
+  }
+
+  // Multi-finding: normalise the findings list + singular shim. Synthesises a
+  // single finding from the primary fields when the model only returned the
+  // legacy singular shape; bumps ricsConditionRating to the worst finding.
+  const normalized = normalizeFindings(aiResponse.findings, {
+    damageType: aiResponse.damageType,
+    taxonomyClassId: aiResponse.taxonomyClassId,
+    severity,
+    confidence: aiResponse.confidence,
+    description: aiResponse.description,
+    probableCause: aiResponse.probableCause,
+    ricsConditionRating: assessment.ricsConditionRating,
+  });
+  if (normalized.findings.length > 0) {
+    assessment.findings = normalized.findings;
+  }
+  if (normalized.worstConditionRating) {
+    assessment.ricsConditionRating = normalized.worstConditionRating;
+  }
+  if (aiResponse.sceneSummary) {
+    assessment.sceneSummary = aiResponse.sceneSummary;
   }
 
   return assessment;

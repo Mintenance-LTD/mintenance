@@ -30,6 +30,8 @@ export interface ShadowComparisonResult {
   costUsd: number;
   damageCategory: string;
   imageCount: number;
+  /** Set-based multi-finding comparison. Absent on legacy single-defect rows. */
+  findingsComparison?: import('./findings-comparison').FindingsComparison;
 }
 
 // ============================================================================
@@ -73,7 +75,10 @@ export interface ExperienceBufferStats {
 // Student Routing (Phase 4)
 // ============================================================================
 
-export type StudentRoutingDecision = 'student_only' | 'teacher_only' | 'shadow_compare';
+export type StudentRoutingDecision =
+  | 'student_only'
+  | 'teacher_only'
+  | 'shadow_compare';
 
 export interface StudentRoutingResult {
   decision: StudentRoutingDecision;

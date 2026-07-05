@@ -35,28 +35,30 @@ export const GET = withApiHandler(
   }
 );
 
-const announcementSchema = z.object({
-  title: z
-    .string()
-    .min(1)
-    .max(200)
-    .transform((val) => sanitizeText(val, 200)),
-  content: z
-    .string()
-    .min(1)
-    .max(5000)
-    .transform((val) => sanitizeMessage(val)),
-  announcement_type: z
-    .enum(['general', 'maintenance', 'security', 'feature'])
-    .optional(),
-  target_audience: z
-    .enum(['all', 'homeowners', 'contractors', 'verified_contractors'])
-    .optional(),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
-  is_published: z.boolean().optional(),
-  expires_at: z.string().nullable().optional(),
-  created_by: z.string().uuid(),
-});
+const announcementSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .max(200)
+      .transform((val) => sanitizeText(val, 200)),
+    content: z
+      .string()
+      .min(1)
+      .max(5000)
+      .transform((val) => sanitizeMessage(val)),
+    announcement_type: z
+      .enum(['general', 'maintenance', 'security', 'feature'])
+      .optional(),
+    target_audience: z
+      .enum(['all', 'homeowners', 'contractors', 'verified_contractors'])
+      .optional(),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+    is_published: z.boolean().optional(),
+    expires_at: z.string().nullable().optional(),
+    created_by: z.string().uuid(),
+  })
+  .strict();
 
 /**
  * POST /api/admin/announcements

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,21 +7,35 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../../utils/mapAvailability';
+
+interface ContractorLocation {
+  latitude: number;
+  longitude: number;
+  heading?: number | null;
+}
 
 interface Props {
   address: string;
   latitude: number;
   longitude: number;
+  /**
+   * Optional live contractor position. When present (homeowner viewing an
+   * assigned job whose contractor is sharing), the map adds a heading-
+   * rotated contractor marker, a dashed line to the job, and auto-fits the
+   * view to both points so the homeowner can watch them approach.
+   */
+  contractorLocation?: ContractorLocation | null;
 }
 
 export const JobLocationMap: React.FC<Props> = ({
   address,
   latitude,
   longitude,
+  contractorLocation,
 }) => {
   // Defensive numeric guard: Postgres NUMERIC columns are serialised
   // by supabase-js as strings, and prior versions of this file passed
@@ -32,6 +46,46 @@ export const JobLocationMap: React.FC<Props> = ({
   const lat = typeof latitude === 'number' ? latitude : Number(latitude);
   const lng = typeof longitude === 'number' ? longitude : Number(longitude);
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
+  // Same coercion for the live contractor position.
+  const contractor = useMemo(() => {
+    if (!contractorLocation) return null;
+    const cLat = Number(contractorLocation.latitude);
+    const cLng = Number(contractorLocation.longitude);
+    if (!Number.isFinite(cLat) || !Number.isFinite(cLng)) return null;
+    const heading =
+      contractorLocation.heading != null
+        ? Number(contractorLocation.heading)
+        : null;
+    return {
+      latitude: cLat,
+      longitude: cLng,
+      heading: Number.isFinite(heading as number) ? heading : null,
+    };
+  }, [contractorLocation]);
+
+  // Controlled region — fits both points when the contractor is en route so
+  // the map follows them in; memoised so the static case never re-centers.
+  const region = useMemo(() => {
+    if (!contractor) {
+      return {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.008,
+        longitudeDelta: 0.008,
+      };
+    }
+    const minLat = Math.min(lat, contractor.latitude);
+    const maxLat = Math.max(lat, contractor.latitude);
+    const minLng = Math.min(lng, contractor.longitude);
+    const maxLng = Math.max(lng, contractor.longitude);
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: Math.max((maxLat - minLat) * 1.6, 0.01),
+      longitudeDelta: Math.max((maxLng - minLng) * 1.6, 0.01),
+    };
+  }, [lat, lng, contractor]);
 
   // 2026-05-23 audit: matches the guard already in ExploreMapScreen.
   // On Android without a Google Maps key the native MapView module
@@ -54,14 +108,24 @@ export const JobLocationMap: React.FC<Props> = ({
     if (url) Linking.openURL(url);
   };
 
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Ionicons name='location' size={18} color={me.brand} />
+      <Text style={styles.title}>Job Location</Text>
+      {contractor && (
+        <View style={styles.liveBadge}>
+          <View style={styles.liveDot} />
+          <Text style={styles.liveBadgeText}>Live</Text>
+        </View>
+      )}
+    </View>
+  );
+
   // Address-only fallback: no coords OR Android-without-key.
   if (!hasValidCoords || !shouldRenderNativeMap) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Ionicons name='location' size={18} color={me.brand} />
-          <Text style={styles.title}>Job Location</Text>
-        </View>
+        {renderHeader()}
         <Text style={styles.address}>{address}</Text>
         {hasValidCoords && (
           <TouchableOpacity
@@ -81,26 +145,48 @@ export const JobLocationMap: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Ionicons name='location' size={18} color={me.brand} />
-        <Text style={styles.title}>Job Location</Text>
-      </View>
+      {renderHeader()}
       <Text style={styles.address}>{address}</Text>
       <View style={styles.mapWrap}>
         <MapView
           style={styles.map}
-          initialRegion={{
-            latitude: lat,
-            longitude: lng,
-            latitudeDelta: 0.008,
-            longitudeDelta: 0.008,
-          }}
+          region={region}
           scrollEnabled={false}
           zoomEnabled={false}
           pitchEnabled={false}
           rotateEnabled={false}
         >
           <Marker coordinate={{ latitude: lat, longitude: lng }} />
+          {contractor && (
+            <>
+              <Polyline
+                coordinates={[
+                  {
+                    latitude: contractor.latitude,
+                    longitude: contractor.longitude,
+                  },
+                  { latitude: lat, longitude: lng },
+                ]}
+                strokeColor={me.brand}
+                strokeWidth={3}
+                lineDashPattern={[6, 6]}
+              />
+              <Marker
+                coordinate={{
+                  latitude: contractor.latitude,
+                  longitude: contractor.longitude,
+                }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                flat
+                rotation={contractor.heading ?? 0}
+                title='Contractor'
+              >
+                <View style={styles.contractorMarker}>
+                  <Ionicons name='arrow-up' size={16} color={me.onBrand} />
+                </View>
+              </Marker>
+            </>
+          )}
         </MapView>
       </View>
       <TouchableOpacity
@@ -136,6 +222,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: me.ink,
   },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginLeft: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: me.brandSoft,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: me.brand,
+  },
+  liveBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
   address: {
     fontSize: 14,
     color: me.ink2,
@@ -150,6 +259,16 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  contractorMarker: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: me.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: me.onBrand,
   },
   directionsBtn: {
     flexDirection: 'row',

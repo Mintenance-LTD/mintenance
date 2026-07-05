@@ -7,9 +7,15 @@ import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const removeMethodSchema = z.object({
-  paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
-});
+// `.strict()` rejects unknown body keys — verified clients (web settings
+// pages + mobile PaymentMethodService) send exactly { paymentMethodId }.
+const removeMethodSchema = z
+  .object({
+    paymentMethodId: z
+      .string()
+      .regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
+  })
+  .strict();
 
 /**
  * DELETE /api/payments/remove-method
@@ -44,7 +50,8 @@ export const DELETE = withApiHandler(
       .eq('id', user.id)
       .single();
     if (stripeData) {
-      stripeCustomerId = (stripeData as Record<string, unknown>).stripe_customer_id as string | null;
+      stripeCustomerId = (stripeData as Record<string, unknown>)
+        .stripe_customer_id as string | null;
     }
 
     // Fallback: search Stripe by email
@@ -55,7 +62,10 @@ export const DELETE = withApiHandler(
         .eq('id', user.id)
         .single();
       if (profileData?.email) {
-        const existing = await stripe.customers.list({ email: profileData.email, limit: 1 });
+        const existing = await stripe.customers.list({
+          email: profileData.email,
+          limit: 1,
+        });
         stripeCustomerId = existing.data[0]?.id || null;
       }
     }
@@ -63,10 +73,13 @@ export const DELETE = withApiHandler(
     if (!stripeCustomerId) {
       logger.warn('User has no Stripe customer record', {
         service: 'payments',
-        userId: user.id
+        userId: user.id,
       });
       return NextResponse.json(
-        { error: 'Customer account not found. Please add a payment method first.' },
+        {
+          error:
+            'Customer account not found. Please add a payment method first.',
+        },
         { status: 404 }
       );
     }
@@ -77,7 +90,7 @@ export const DELETE = withApiHandler(
         userId: user.id,
         paymentMethodId,
         expectedCustomerId: stripeCustomerId,
-        actualCustomerId: paymentMethod.customer
+        actualCustomerId: paymentMethod.customer,
       });
       return NextResponse.json(
         { error: 'Payment method does not belong to user' },
@@ -101,7 +114,7 @@ export const DELETE = withApiHandler(
     logger.info('Payment method removed successfully', {
       service: 'payments',
       userId: user.id,
-      paymentMethodId
+      paymentMethodId,
     });
 
     return NextResponse.json({

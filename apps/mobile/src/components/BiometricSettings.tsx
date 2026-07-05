@@ -6,13 +6,12 @@ import {
   Switch,
   TouchableOpacity,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { BiometricService } from '../services/BiometricService';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 const BiometricSettings: React.FC = () => {
   const { enableBiometric, disableBiometric, user } = useAuth();
@@ -114,7 +113,7 @@ const BiometricSettings: React.FC = () => {
           <Ionicons
             name='information-circle-outline'
             size={24}
-            color={theme.colors.textTertiary}
+            color={me.ink3}
           />
           <Text style={styles.unavailableText}>
             Biometric authentication is not available on this device or no
@@ -128,7 +127,7 @@ const BiometricSettings: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name='finger-print' size={24} color={theme.colors.textPrimary} />
+        <Ionicons name='finger-print' size={24} color={me.ink} />
         <Text style={styles.title}>Biometric Authentication</Text>
       </View>
 
@@ -148,12 +147,10 @@ const BiometricSettings: React.FC = () => {
           onValueChange={handleToggleBiometric}
           disabled={loading}
           trackColor={{
-            false: theme.colors.border,
-            true: theme.colors.textPrimary,
+            false: me.line,
+            true: me.brand,
           }}
-          thumbColor={
-            isEnabled ? theme.colors.surface : theme.colors.textTertiary
-          }
+          thumbColor={me.surface}
           accessibilityLabel='Enable biometric sign-in'
           accessibilityRole='switch'
           accessibilityState={{ checked: isEnabled }}
@@ -172,7 +169,7 @@ const BiometricSettings: React.FC = () => {
           <Ionicons
             name='checkmark-circle-outline'
             size={20}
-            color={theme.colors.textPrimary}
+            color={me.brand}
           />
           <Text style={styles.testButtonText}>
             Test Biometric Authentication
@@ -181,11 +178,7 @@ const BiometricSettings: React.FC = () => {
       )}
 
       <View style={styles.infoBox}>
-        <Ionicons
-          name='shield-checkmark-outline'
-          size={16}
-          color='#3B82F6'
-        />
+        <Ionicons name='shield-checkmark-outline' size={16} color={me.infoFg} />
         <Text style={styles.infoText}>
           Your biometric data is stored securely on your device and never shared
           with our servers.
@@ -197,21 +190,11 @@ const BiometricSettings: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginVertical: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    ...me.shadow.card,
   },
   header: {
     flexDirection: 'row',
@@ -221,12 +204,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 8,
   },
   subtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 16,
   },
   settingRow: {
@@ -242,12 +225,12 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 18,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   testButton: {
@@ -255,29 +238,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     marginBottom: 16,
   },
   testButtonText: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
     marginLeft: 8,
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.infoBg,
     padding: 12,
     borderRadius: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: me.infoFg,
   },
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
     marginLeft: 8,
   },
@@ -285,13 +268,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
   },
   unavailableText: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginLeft: 12,
     lineHeight: 20,
   },

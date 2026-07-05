@@ -14,7 +14,7 @@ import { EditPropertyScreen } from '../../../screens/properties/EditPropertyScre
 import { PropertyAssessmentScreen } from '../../../screens/assessment/PropertyAssessmentScreen';
 import { AddPropertyScreen } from '../../../screens/properties/AddPropertyScreen';
 import { VideoCaptureScreen } from '../../../screens/video-capture/VideoCaptureScreen';
-import { VideoProcessingStatusScreen } from '../../../screens/video-capture/VideoProcessingStatusScreen';
+import { WalkthroughResultScreen } from '../../../screens/video-capture/WalkthroughResultScreen';
 import { JobPhotoUploadScreen } from '../../../screens/job-details/JobPhotoUploadScreen';
 import { PaymentHistoryScreen } from '../../../screens/payment/PaymentHistoryScreen';
 import { SubscriptionScreen } from '../../../screens/subscription/SubscriptionScreen';
@@ -106,11 +106,11 @@ export const SafeVideoCaptureScreen = withScreenErrorBoundary(
   'Video Capture',
   { fallbackRoute: 'PropertyAssessment' }
 );
-export const SafeVideoProcessingStatusScreen = withScreenErrorBoundary(
-  VideoProcessingStatusScreen as unknown as React.ComponentType<
+export const SafeWalkthroughResultScreen = withScreenErrorBoundary(
+  WalkthroughResultScreen as unknown as React.ComponentType<
     Record<string, unknown>
   >,
-  'Video Processing',
+  'Walkthrough Survey',
   { fallbackRoute: 'PropertyAssessment' }
 );
 export const SafeJobPhotoUploadScreen = withScreenErrorBoundary(

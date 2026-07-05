@@ -5,9 +5,11 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 
-const releaseFeeTransferSchema = z.object({
-  feeTransferId: z.string().uuid('Invalid fee transfer ID'),
-});
+const releaseFeeTransferSchema = z
+  .object({
+    feeTransferId: z.string().uuid('Invalid fee transfer ID'),
+  })
+  .strict();
 
 /**
  * POST /api/admin/escrow/fee-transfer/release

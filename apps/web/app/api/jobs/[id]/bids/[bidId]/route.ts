@@ -7,7 +7,11 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { BadRequestError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 import { z } from 'zod';
 
 /**
@@ -65,14 +69,21 @@ export const GET = withApiHandler(
   }
 );
 
-const updateBidSchema = z.object({
-  amount: z.number().positive().optional(),
-  message: z.string().max(2000).optional(),
-  estimated_duration_days: z.number().positive().optional(),
-  proposed_start_date: z.string().optional(),
-}).refine((data) => Object.keys(data).length > 0, {
-  message: 'At least one field must be provided',
-});
+// `.strict()` rejects unknown body keys instead of silently dropping them —
+// this route previously swallowed `estimated_duration` (see audit-59 P2 note
+// in mobile BidService.updateBid). Verified client (BidSubmissionScreen edit
+// mode) sends exactly the four accepted keys.
+const updateBidSchema = z
+  .object({
+    amount: z.number().positive().optional(),
+    message: z.string().max(2000).optional(),
+    estimated_duration_days: z.number().positive().optional(),
+    proposed_start_date: z.string().optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
+  });
 
 export const PATCH = withApiHandler(
   { roles: ['contractor'] },
@@ -102,7 +113,9 @@ export const PATCH = withApiHandler(
     const body = await request.json();
     const parsed = updateBidSchema.safeParse(body);
     if (!parsed.success) {
-      throw new BadRequestError(parsed.error.issues[0]?.message || 'Invalid bid data');
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message || 'Invalid bid data'
+      );
     }
 
     const updates: Record<string, unknown> = {
@@ -118,7 +131,10 @@ export const PATCH = withApiHandler(
       .single();
 
     if (updateError) {
-      logger.error('Failed to update bid', updateError, { service: 'bids', bidId });
+      logger.error('Failed to update bid', updateError, {
+        service: 'bids',
+        bidId,
+      });
       throw updateError;
     }
 

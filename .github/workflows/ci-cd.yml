@@ -46,6 +46,17 @@ jobs:
         run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
+      # Turbo local cache: package builds / type-check / lint are content-
+      # hashed, so unchanged workspaces replay from .turbo instead of
+      # rebuilding. Keyed on SHA with branch-agnostic fallback.
+      - name: Turbo cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
       - name: Build shared packages
         run: npm run build:packages
 

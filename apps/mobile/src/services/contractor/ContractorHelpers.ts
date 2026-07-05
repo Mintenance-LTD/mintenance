@@ -67,7 +67,7 @@ export function mapUserToContractorProfile(
   };
 }
 
-/** Map a contractor_profiles row to a ContractorProfile. */
+/** Map a DatabaseContractorProfileRow (profile-data API shape) to a ContractorProfile. */
 export function mapDatabaseToContractorProfile(
   data: DatabaseContractorProfileRow
 ): ContractorProfile {
