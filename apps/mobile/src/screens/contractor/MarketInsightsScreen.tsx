@@ -45,7 +45,7 @@ export const MarketInsightsScreen: React.FC = () => {
   // 2026-05-23 audit: the screen used to read from a `market_insights`
   // table that doesn't exist on live. The canonical source is the
   // /api/contractor/market-insights endpoint which derives the same
-  // shape from real jobs + contractor_profiles.specializations — the
+  // shape from real jobs + profiles.skills — the
   // server already returns the exact { categories: DemandCategory[] }
   // payload this screen needs, so the swap is a 1:1 replacement.
   const { data, isLoading, error, refetch } = useQuery({

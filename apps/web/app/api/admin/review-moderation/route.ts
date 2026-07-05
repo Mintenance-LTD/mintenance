@@ -77,10 +77,12 @@ export const GET = withApiHandler(
   }
 );
 
-const actionSchema = z.object({
-  reviewId: z.string().uuid(),
-  action: z.enum(['approve', 'block']),
-});
+const actionSchema = z
+  .object({
+    reviewId: z.string().uuid(),
+    action: z.enum(['approve', 'block']),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   {

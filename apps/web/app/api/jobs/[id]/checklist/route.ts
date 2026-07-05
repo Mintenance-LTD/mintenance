@@ -25,13 +25,15 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
  * Backed by `job_checklist_items` (migration 20260520000004).
  */
 
-const createSchema = z.object({
-  label: z
-    .string()
-    .min(1, 'Label is required')
-    .max(200, 'Label must be 200 characters or fewer'),
-  position: z.number().int().min(0).optional(),
-});
+const createSchema = z
+  .object({
+    label: z
+      .string()
+      .min(1, 'Label is required')
+      .max(200, 'Label must be 200 characters or fewer'),
+    position: z.number().int().min(0).optional(),
+  })
+  .strict();
 
 async function assertJobAccess(
   request: NextRequest,

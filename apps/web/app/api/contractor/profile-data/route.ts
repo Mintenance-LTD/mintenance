@@ -16,18 +16,18 @@ export const GET = withApiHandler(
       reviewsResult,
       completedJobsResult,
       postsResult,
-      contractorProfileResult,
     ] = await Promise.all([
       serverSupabase
         .from('profiles')
         // Audit re-review (2026-04-29): added `portfolio_images` so
         // the mobile contractor edit screen can read it from the
-        // canonical API instead of the direct-Supabase
-        // `contractor_profiles.*` read it used to fall back on (the
-        // `portfolio_images` column actually lives on `profiles`,
-        // not `contractor_profiles` — migration 20260208000000).
+        // canonical API (the column lives on `profiles` —
+        // migration 20260208000000).
+        // 2026-07-04: `hourly_rate` also reads from `profiles`
+        // directly — the legacy side table it used to come from is
+        // retired (it only ever held Stripe/subscription columns).
         .select(
-          'id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, is_available, latitude, longitude, address, postcode, portfolio_images, created_at, updated_at'
+          'id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, is_available, latitude, longitude, address, postcode, portfolio_images, hourly_rate, created_at, updated_at'
         )
         .eq('id', user.id)
         .single(),
@@ -59,11 +59,6 @@ export const GET = withApiHandler(
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(20),
-      serverSupabase
-        .from('contractor_profiles')
-        .select('hourly_rate')
-        .eq('id', user.id)
-        .single(),
     ]);
 
     const contractor = contractorResult.data;
@@ -71,7 +66,6 @@ export const GET = withApiHandler(
     const reviews = reviewsResult.data;
     const completedJobs = completedJobsResult.data;
     const posts = postsResult.data;
-    const contractorProfile = contractorProfileResult.data;
 
     // Calculate profile completion
     const profileFields = [
@@ -100,7 +94,7 @@ export const GET = withApiHandler(
     return NextResponse.json({
       contractor: {
         ...contractor,
-        hourly_rate: contractorProfile?.hourly_rate ?? null,
+        hourly_rate: contractor?.hourly_rate ?? null,
       },
       skills: skills || [],
       reviews: reviews || [],

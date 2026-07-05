@@ -6,16 +6,18 @@ import { join } from 'path';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 
-const applyMigrationSchema = z.object({
-  migrationFile: z
-    .string()
-    .min(1)
-    .max(200)
-    .regex(
-      /^[a-zA-Z0-9_\-]+\.sql$/,
-      'Migration file must be a valid .sql filename (no path separators)'
-    ),
-});
+const applyMigrationSchema = z
+  .object({
+    migrationFile: z
+      .string()
+      .min(1)
+      .max(200)
+      .regex(
+        /^[a-zA-Z0-9_\-]+\.sql$/,
+        'Migration file must be a valid .sql filename (no path separators)'
+      ),
+  })
+  .strict();
 
 /**
  * POST /api/admin/migrations/apply

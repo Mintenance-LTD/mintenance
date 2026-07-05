@@ -2,13 +2,12 @@
  * Tests for AuthService - Authentication Operations
  * Following the pattern from BidManagementService.test.ts
  *
- * NOTE: 6 tests are currently .skip'd because AuthService evolved since they
- * were written:
- *   - signIn/getCurrentUser now use a different profile-fetch fallback path
- *     with different logger messages and different Supabase client calls
- *   - updateUserProfile uses a dynamic import that jest-vm can't execute
- *   - onAuthStateChange subscription shape changed
- * These should be rewritten against the current AuthService implementation.
+ * NOTE: 5 tests are .skip'd (2026-07-02 triage) because AuthService evolved
+ * since they were written: profile reads/writes now go through mobileApiClient
+ * (packages/api-client), so the supabase.from('profiles') mocks are never hit
+ * and the tests perform real fetches with retry backoff. They need a rewrite
+ * against mobileApiClient mocks. (The onAuthStateChange test was fixed and
+ * re-enabled — the service forwards the full (event, session) pair.)
  */
 
 import { AuthService, SignUpData } from '../AuthService';
@@ -262,6 +261,7 @@ describe('AuthService', () => {
       expect(result.session).toEqual(mockSession);
     });
 
+    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
     it.skip('should return fallback user data when profile fetch fails', async () => {
       const mockAuthResponse = {
         data: {
@@ -350,6 +350,7 @@ describe('AuthService', () => {
   });
 
   describe('getCurrentUser', () => {
+    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
     it.skip('should get current user with profile successfully', async () => {
       (supabase.auth.getSession as jest.Mock).mockResolvedValue({
         data: { session: mockSession },
@@ -390,6 +391,7 @@ describe('AuthService', () => {
       expect(supabase.from).not.toHaveBeenCalled();
     });
 
+    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
     it.skip('should return fallback user when profile fetch fails', async () => {
       (supabase.auth.getSession as jest.Mock).mockResolvedValue({
         data: { session: mockSession },
@@ -454,6 +456,7 @@ describe('AuthService', () => {
   });
 
   describe('updateUserProfile', () => {
+    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
     it.skip('should update user profile successfully', async () => {
       const updates = {
         first_name: 'Jane',
@@ -492,6 +495,7 @@ describe('AuthService', () => {
       expect(supabase.from).not.toHaveBeenCalled();
     });
 
+    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
     it.skip('should throw error when update fails', async () => {
       const error = new Error('Update failed');
       const mockFrom = {
@@ -575,7 +579,7 @@ describe('AuthService', () => {
   });
 
   describe('onAuthStateChange', () => {
-    it.skip('should subscribe to auth state changes', () => {
+    it('should subscribe to auth state changes', () => {
       const mockCallback = jest.fn();
       const mockUnsubscribe = jest.fn();
 
@@ -594,7 +598,10 @@ describe('AuthService', () => {
         .calls[0][0];
       authHandler('SIGNED_IN', mockSession);
 
-      expect(mockCallback).toHaveBeenCalledWith(mockSession);
+      // Re-enabled 2026-07-02: AuthService forwards the full (event, session)
+      // pair from supabase.auth.onAuthStateChange — the old assertion expected
+      // the legacy session-only signature.
+      expect(mockCallback).toHaveBeenCalledWith('SIGNED_IN', mockSession);
       expect(subscription.unsubscribe).toBe(mockUnsubscribe);
     });
   });

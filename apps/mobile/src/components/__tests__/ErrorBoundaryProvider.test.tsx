@@ -47,9 +47,8 @@ jest.mock('../ErrorBoundary', () => {
     render() {
       if (this.state.hasError) {
         if (typeof this.props.fallback === 'function') {
-          return this.props.fallback(
-            this.state.error,
-            () => this.setState({ hasError: false, error: null })
+          return this.props.fallback(this.state.error, () =>
+            this.setState({ hasError: false, error: null })
           );
         }
         return this.props.fallback || null;
@@ -90,9 +89,9 @@ jest.mock('../ScreenErrorBoundary', () => {
           return this.props.fallbackComponent(this.state.error, this.retry);
         }
         return (
-          <View testID="screen-error-fallback">
+          <View testID='screen-error-fallback'>
             <Text>Screen Error: {this.props.screenName}</Text>
-            <TouchableOpacity testID="retry-button" onPress={this.retry}>
+            <TouchableOpacity testID='retry-button' onPress={this.retry}>
               <Text>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -129,7 +128,11 @@ jest.mock('../AsyncErrorBoundary', () => {
   const React = require('react');
   const { ErrorBoundary } = require('../ErrorBoundary');
 
-  const MockAsyncErrorBoundary = ({ children, operationName, onRetry }: any) => {
+  const MockAsyncErrorBoundary = ({
+    children,
+    operationName,
+    onRetry,
+  }: any) => {
     const handleError = (error: Error, errorInfo: any) => {
       const { logger } = require('../../utils/logger');
       logger.error(`Async operation error in ${operationName}:`, error);
@@ -146,28 +149,29 @@ jest.mock('../AsyncErrorBoundary', () => {
 });
 
 // Test components
-const ThrowError: React.FC<{ message?: string }> = ({ message = 'Test error' }) => {
+const ThrowError: React.FC<{ message?: string }> = ({
+  message = 'Test error',
+}) => {
   throw new Error(message);
 };
 
-const WorkingComponent: React.FC = () => <Text testID="working-component">Works!</Text>;
+const WorkingComponent: React.FC = () => (
+  <Text testID='working-component'>Works!</Text>
+);
 
 const AsyncComponent: React.FC = () => {
   const { handleAsyncError } = useErrorHandler();
 
   const throwAsync = async () => {
-    await handleAsyncError(
-      async () => {
-        throw new Error('Async test error');
-      },
-      'test-context'
-    );
+    await handleAsyncError(async () => {
+      throw new Error('Async test error');
+    }, 'test-context');
   };
 
   return (
     <View>
-      <Text testID="async-component">Async Component</Text>
-      <TouchableOpacity testID="throw-async" onPress={throwAsync}>
+      <Text testID='async-component'>Async Component</Text>
+      <TouchableOpacity testID='throw-async' onPress={throwAsync}>
         <Text>Throw Async</Text>
       </TouchableOpacity>
     </View>
@@ -200,7 +204,7 @@ describe('ErrorBoundaryProvider', () => {
       try {
         render(
           <AppErrorBoundary>
-            <ThrowError message="Global app error" />
+            <ThrowError message='Global app error' />
           </AppErrorBoundary>
         );
       } catch (e) {
@@ -219,7 +223,7 @@ describe('ErrorBoundaryProvider', () => {
       try {
         render(
           <AppErrorBoundary>
-            <ThrowError message="Sentry test error" />
+            <ThrowError message='Sentry test error' />
           </AppErrorBoundary>
         );
       } catch (e) {
@@ -290,7 +294,7 @@ describe('ErrorBoundaryProvider', () => {
 
     it('should pass through component props', () => {
       const ComponentWithProps: React.FC<{ title: string }> = ({ title }) => (
-        <Text testID="props-component">{title}</Text>
+        <Text testID='props-component'>{title}</Text>
       );
 
       const WrappedComponent = withScreenErrorBoundary(
@@ -298,7 +302,7 @@ describe('ErrorBoundaryProvider', () => {
         'PropsScreen'
       );
 
-      const { getByText } = render(<WrappedComponent title="Test Title" />);
+      const { getByText } = render(<WrappedComponent title='Test Title' />);
       expect(getByText('Test Title')).toBeTruthy();
     });
 
@@ -330,7 +334,7 @@ describe('ErrorBoundaryProvider', () => {
         if (shouldThrow) {
           throw new Error('Conditional error');
         }
-        return <Text testID="recovered">Recovered!</Text>;
+        return <Text testID='recovered'>Recovered!</Text>;
       };
 
       const WrappedComponent = withScreenErrorBoundary(
@@ -371,10 +375,7 @@ describe('ErrorBoundaryProvider', () => {
     });
 
     it('should catch query errors and log with query name', () => {
-      const WrappedComponent = withQueryErrorBoundary(
-        ThrowError,
-        'userQuery'
-      );
+      const WrappedComponent = withQueryErrorBoundary(ThrowError, 'userQuery');
 
       try {
         render(<WrappedComponent />);
@@ -402,7 +403,7 @@ describe('ErrorBoundaryProvider', () => {
 
     it('should pass through component props', () => {
       const ComponentWithProps: React.FC<{ count: number }> = ({ count }) => (
-        <Text testID="query-props">{count}</Text>
+        <Text testID='query-props'>{count}</Text>
       );
 
       const WrappedComponent = withQueryErrorBoundary(
@@ -438,10 +439,7 @@ describe('ErrorBoundaryProvider', () => {
     });
 
     it('should catch async operation errors', () => {
-      const WrappedComponent = withAsyncErrorBoundary(
-        ThrowError,
-        'asyncOp'
-      );
+      const WrappedComponent = withAsyncErrorBoundary(ThrowError, 'asyncOp');
 
       try {
         render(<WrappedComponent />);
@@ -480,7 +478,7 @@ describe('ErrorBoundaryProvider', () => {
 
     it('should pass through component props', () => {
       const ComponentWithProps: React.FC<{ status: string }> = ({ status }) => (
-        <Text testID="async-props">{status}</Text>
+        <Text testID='async-props'>{status}</Text>
       );
 
       const WrappedComponent = withAsyncErrorBoundary(
@@ -488,7 +486,7 @@ describe('ErrorBoundaryProvider', () => {
         'statusOp'
       );
 
-      const { getByText } = render(<WrappedComponent status="loading" />);
+      const { getByText } = render(<WrappedComponent status='loading' />);
       expect(getByText('loading')).toBeTruthy();
     });
   });
@@ -498,28 +496,34 @@ describe('ErrorBoundaryProvider', () => {
     // dynamic imports without --experimental-vm-modules flag. The actual functionality works
     // in production; these tests verify the core logging behavior.
 
+    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
     it.skip('should provide handleError function (skipped: dynamic import)', async () => {
       // This test is skipped due to Jest's limitation with dynamic imports
       // The hook uses import('../config/sentry') which requires --experimental-vm-modules
       // The core functionality (logging) is tested, Sentry integration works in production
     });
 
+    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
     it.skip('should use default context when not provided (skipped: dynamic import)', async () => {
       // Skipped for same reason as above
     });
 
+    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
     it.skip('should provide handleAsyncError function (skipped: dynamic import)', async () => {
       // Skipped for same reason as above
     });
 
+    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
     it.skip('should re-throw error in handleAsyncError (skipped: dynamic import)', async () => {
       // Skipped for same reason as above
     });
 
+    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
     it.skip('should report to Sentry in handleError (skipped: dynamic import)', async () => {
       // Skipped for same reason as above
     });
 
+    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
     it.skip('should handle Sentry import failure gracefully (skipped: dynamic import)', async () => {
       // Skipped for same reason as above
     });
@@ -591,7 +595,7 @@ describe('ErrorBoundaryProvider', () => {
       const { getByTestId } = render(
         <AppErrorBoundary>
           <WorkingComponent />
-          <ScreenErrorBoundary screenName="NestedScreen">
+          <ScreenErrorBoundary screenName='NestedScreen'>
             <InnerError />
           </ScreenErrorBoundary>
         </AppErrorBoundary>

@@ -104,16 +104,30 @@ export async function searchContractors(
         return [];
       }
       const sanitized = sanitizeForSQL(searchTerm);
+      // 2026-07-04: repointed from the retired contractor-profiles
+      // side table (it only ever held Stripe/subscription columns, so
+      // this select 400'd). skills/bio/company_name live on `profiles`.
+      // IMPORTANT: `profiles` is column-grant locked for the
+      // authenticated role — the column list below is copied from the
+      // proven advanced-branch select further down; adding an
+      // ungranted column 403s the whole query.
+      // `skills` is text[], so keyword matching uses array containment
+      // (`cs`) rather than ilike.
       const { data, error } = await supabase
-        .from('contractor_profiles')
-        .select('*')
+        .from('profiles')
+        .select(
+          'id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at'
+        )
+        .eq('role', 'contractor')
         .or(
-          `skills.ilike.%${sanitized}%,bio.ilike.%${sanitized}%,company_name.ilike.%${sanitized}%`
+          `bio.ilike.%${sanitized}%,company_name.ilike.%${sanitized}%,skills.cs.{${sanitized}}`
         )
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
-      return (data || []) as DatabaseContractorProfileRow[];
+      // Raw profiles rows pass through unchanged (pre-existing caller
+      // contract); the row shape is a superset of what callers read.
+      return (data || []) as unknown as DatabaseContractorProfileRow[];
     }
 
     const adv = params;

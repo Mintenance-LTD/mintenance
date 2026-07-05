@@ -50,8 +50,8 @@ export const GET = withApiHandler(
     }
 
     // Count contractors per category (competition). Skills live on
-    // `profiles.skills` (a text array) keyed by role — `contractor_profiles`
-    // only holds Stripe/subscription columns and has no `specializations`,
+    // `profiles.skills` (a text array) keyed by role — the retired
+    // Stripe-only side table this used to query had no `specializations`,
     // so the previous query silently returned nothing and every
     // competition_count was 0.
     const { data: contractors } = await serverSupabase

@@ -11,7 +11,12 @@ export class ContractorDataService {
     criteria: MatchingCriteria
   ): Promise<ContractorProfile[]> {
     try {
-      // Get contractors with their profile data joined from contractor_profiles table
+      // Get contractors from canonical `profiles`.
+      // 2026-07-04: the nested contractor-profiles(...) embed was
+      // removed — that retired side table never had business_name /
+      // years_experience / service_radius_km / availability_status,
+      // so the embed 400'd the whole query. company_name, hourly_rate
+      // and years_experience live directly on `profiles`.
       const { data: contractors, error } = await serverSupabase
         .from('profiles')
         .select(
@@ -31,13 +36,9 @@ export class ContractorDataService {
           rating,
           total_jobs_completed,
           is_available,
-          contractor_profiles (
-            business_name,
-            hourly_rate,
-            years_experience,
-            service_radius_km,
-            availability_status
-          )
+          company_name,
+          hourly_rate,
+          years_experience
         `
         )
         .eq('role', 'contractor')
@@ -71,11 +72,6 @@ export class ContractorDataService {
             .select('id, rating, comment, created_at, reviewee_id')
             .eq('reviewee_id', contractor.id)
             .limit(50);
-
-          // Get contractor profile data (if exists)
-          const profile = Array.isArray(contractor.contractor_profiles)
-            ? contractor.contractor_profiles[0]
-            : contractor.contractor_profiles;
 
           // Calculate distance if we have coordinates
           let distance = 0;
@@ -141,51 +137,34 @@ export class ContractorDataService {
               ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
               : 0);
 
-          // Map availability_status to the expected format
-          const mapAvailabilityStatus = (
-            status: string | null | undefined
-          ): 'immediate' | 'this_week' | 'this_month' | 'busy' => {
-            if (!status) return 'this_week';
-            const statusLower = status.toLowerCase();
-            if (
-              statusLower.includes('immediate') ||
-              statusLower.includes('available now')
-            )
-              return 'immediate';
-            if (
-              statusLower.includes('this week') ||
-              statusLower.includes('available')
-            )
-              return 'this_week';
-            if (statusLower.includes('this month')) return 'this_month';
-            if (
-              statusLower.includes('busy') ||
-              statusLower.includes('unavailable')
-            )
-              return 'busy';
-            return 'this_week'; // Default
-          };
-
           return {
             ...contractor,
             skills: contractorSkills,
             reviews,
             distance,
             companyName:
-              profile?.business_name ||
+              contractor.company_name ||
               `${contractor.first_name} ${contractor.last_name} Services`,
             yearsExperience:
-              profile?.years_experience ||
+              contractor.years_experience ||
               Math.floor(
                 (Date.now() - new Date(contractor.created_at).getTime()) /
                   (1000 * 60 * 60 * 24 * 365)
               ) ||
               1,
-            hourlyRate: profile?.hourly_rate
-              ? Number(profile.hourly_rate)
+            hourlyRate: contractor.hourly_rate
+              ? Number(contractor.hourly_rate)
               : null,
-            serviceRadius: profile?.service_radius_km || 25, // Convert km to miles if needed, or keep as km
-            availability: mapAvailabilityStatus(profile?.availability_status),
+            // No service-radius column exists on `profiles` (the old
+            // service_radius_km never existed anywhere) — default 25.
+            serviceRadius: 25,
+            // `profiles` models availability as boolean is_available;
+            // the query already filters is_available=true, so map to
+            // the pre-existing default bucket.
+            availability:
+              contractor.is_available === false
+                ? ('busy' as const)
+                : ('this_week' as const),
             specialties: contractorSkills.map((s) => s.skillName),
             rating: averageRating,
             totalJobsCompleted: contractor.total_jobs_completed || 0,
@@ -269,28 +248,16 @@ export class ContractorDataService {
     timeframe: MatchingCriteria['timeframe']
   ): Promise<'immediate' | 'this_week' | 'this_month' | 'busy'> {
     try {
-      // Fetch contractor profile to get actual availability status
+      // 2026-07-04: availability reads canonical `profiles.is_available`
+      // (the old availability_status column never existed anywhere).
       const { data: profile } = await serverSupabase
-        .from('contractor_profiles')
-        .select('availability_status')
-        .eq('user_id', contractorId)
+        .from('profiles')
+        .select('is_available')
+        .eq('id', contractorId)
         .single();
 
-      if (profile?.availability_status) {
-        const statusLower = profile.availability_status.toLowerCase();
-        if (
-          statusLower.includes('immediate') ||
-          statusLower.includes('available now')
-        )
-          return 'immediate';
-        if (
-          statusLower.includes('this week') ||
-          statusLower.includes('available')
-        )
-          return 'this_week';
-        if (statusLower.includes('this month')) return 'this_month';
-        if (statusLower.includes('busy') || statusLower.includes('unavailable'))
-          return 'busy';
+      if (profile?.is_available === false) {
+        return 'busy';
       }
 
       // Fallback to timeframe-based estimation if no profile data

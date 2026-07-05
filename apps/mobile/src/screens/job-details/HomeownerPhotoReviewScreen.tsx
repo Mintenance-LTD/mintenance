@@ -3,6 +3,15 @@
  *
  * Phase 9 of the job lifecycle: Homeowner reviews before/after photos
  * and approves or requests changes to completed work.
+ *
+ * 2026-07-02 P1-9: this is the CANONICAL (and only) homeowner
+ * completion-review surface, registered as the `PhotoReview` route.
+ * The former duplicate, JobSignOffScreen (`JobSignOff` route), was a
+ * text-only approve UX that bypassed photo evidence; audit-52
+ * (2026-05-26) demoted it to a redirect stub and it has now been
+ * deleted along with its route. All entry points (JobDetails sticky
+ * CTA, JobQuickActions sign-off, deep link `jobs/:jobId/photos`)
+ * land here. Do not re-introduce a parallel sign-off screen.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';

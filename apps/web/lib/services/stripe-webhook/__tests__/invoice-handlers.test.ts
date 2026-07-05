@@ -1,16 +1,34 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import type Stripe from 'stripe';
 
-const { mockFrom, mockLoggerInfo, mockLoggerWarn, mockLoggerError } = vi.hoisted(() => ({
-  mockFrom: vi.fn(),
-  mockLoggerInfo: vi.fn(),
-  mockLoggerWarn: vi.fn(),
-  mockLoggerError: vi.fn(),
-}));
+const { mockFrom, mockLoggerInfo, mockLoggerWarn, mockLoggerError } =
+  vi.hoisted(() => ({
+    mockFrom: vi.fn(),
+    mockLoggerInfo: vi.fn(),
+    mockLoggerWarn: vi.fn(),
+    mockLoggerError: vi.fn(),
+  }));
 
-function buildChain(overrides?: { singleData?: unknown; singleError?: unknown }) {
+function buildChain(overrides?: {
+  singleData?: unknown;
+  singleError?: unknown;
+}) {
   const chain: Record<string, any> = {};
-  for (const m of ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'or', 'order', 'limit', 'range', 'contains']) {
+  for (const m of [
+    'select',
+    'insert',
+    'update',
+    'delete',
+    'upsert',
+    'eq',
+    'neq',
+    'or',
+    'in',
+    'order',
+    'limit',
+    'range',
+    'contains',
+  ]) {
     chain[m] = vi.fn().mockReturnValue(chain);
   }
   chain.single = vi.fn().mockResolvedValue({
@@ -27,7 +45,11 @@ vi.mock('@/lib/api/supabaseServer', () => {
 });
 
 vi.mock('@mintenance/shared', () => ({
-  logger: { info: mockLoggerInfo, warn: mockLoggerWarn, error: mockLoggerError },
+  logger: {
+    info: mockLoggerInfo,
+    warn: mockLoggerWarn,
+    error: mockLoggerError,
+  },
 }));
 
 // Mock email service to prevent dynamic import failures
@@ -37,7 +59,10 @@ vi.mock('@/lib/email-service', () => ({
   },
 }));
 
-import { handleInvoicePaymentSucceeded, handleInvoicePaymentFailed } from '../invoice-handlers';
+import {
+  handleInvoicePaymentSucceeded,
+  handleInvoicePaymentFailed,
+} from '../invoice-handlers';
 
 const USER_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
@@ -76,7 +101,7 @@ describe('handleInvoicePaymentSucceeded', () => {
         status: 'paid',
         amount_paid: 2000,
       }),
-      expect.objectContaining({ onConflict: 'invoice_id' }),
+      expect.objectContaining({ onConflict: 'invoice_id' })
     );
   });
 
@@ -95,7 +120,7 @@ describe('handleInvoicePaymentSucceeded', () => {
       USER_ID,
       'Subscription Reactivated',
       expect.stringContaining('fully active'),
-      'subscription_reactivated',
+      'subscription_reactivated'
     );
   });
 
@@ -114,24 +139,27 @@ describe('handleInvoicePaymentSucceeded', () => {
   it('returns early when customer ID is missing', async () => {
     await handleInvoicePaymentSucceeded(
       makeInvoice({ customer: undefined as unknown as string }),
-      mockNotify,
+      mockNotify
     );
 
     expect(mockLoggerWarn).toHaveBeenCalledWith(
       'Invoice missing customer ID',
-      expect.any(Object),
+      expect.any(Object)
     );
   });
 
   it('returns early when user not found', async () => {
-    const chain = buildChain({ singleData: null, singleError: { message: 'not found' } });
+    const chain = buildChain({
+      singleData: null,
+      singleError: { message: 'not found' },
+    });
     mockFrom.mockReturnValue(chain);
 
     await handleInvoicePaymentSucceeded(makeInvoice(), mockNotify);
 
     expect(mockLoggerWarn).toHaveBeenCalledWith(
       'User not found for invoice customer',
-      expect.objectContaining({ customerId: 'cus_test_123' }),
+      expect.objectContaining({ customerId: 'cus_test_123' })
     );
   });
 
@@ -146,7 +174,10 @@ describe('handleInvoicePaymentSucceeded', () => {
     });
     await handleInvoicePaymentSucceeded(invoice, mockNotify);
 
-    expect(chain.eq).toHaveBeenCalledWith('stripe_customer_id', 'cus_object_123');
+    expect(chain.eq).toHaveBeenCalledWith(
+      'stripe_customer_id',
+      'cus_object_123'
+    );
   });
 });
 
@@ -163,7 +194,10 @@ describe('handleInvoicePaymentFailed', () => {
     });
     mockFrom.mockReturnValue(chain);
 
-    await handleInvoicePaymentFailed(makeInvoice({ amount_due: 3000 }), mockNotify);
+    await handleInvoicePaymentFailed(
+      makeInvoice({ amount_due: 3000 }),
+      mockNotify
+    );
 
     expect(mockFrom).toHaveBeenCalledWith('invoice_payments');
     expect(chain.upsert).toHaveBeenCalledWith(
@@ -174,7 +208,7 @@ describe('handleInvoicePaymentFailed', () => {
         amount_paid: 0,
         amount_due: 3000,
       }),
-      expect.objectContaining({ onConflict: 'invoice_id' }),
+      expect.objectContaining({ onConflict: 'invoice_id' })
     );
   });
 
@@ -186,7 +220,7 @@ describe('handleInvoicePaymentFailed', () => {
 
     await handleInvoicePaymentFailed(
       makeInvoice({ subscription: 'sub_123' }),
-      mockNotify,
+      mockNotify
     );
 
     expect(chain.update).toHaveBeenCalledWith(
@@ -194,7 +228,7 @@ describe('handleInvoicePaymentFailed', () => {
     );
   });
 
-  it('updates contractor_profiles when user is contractor', async () => {
+  it('marks contractor_subscriptions past_due when user is contractor', async () => {
     const chain = buildChain({
       singleData: { id: USER_ID, email: 'user@test.com', role: 'contractor' },
     });
@@ -202,10 +236,20 @@ describe('handleInvoicePaymentFailed', () => {
 
     await handleInvoicePaymentFailed(
       makeInvoice({ subscription: 'sub_123' }),
-      mockNotify,
+      mockNotify
     );
 
-    expect(mockFrom).toHaveBeenCalledWith('contractor_profiles');
+    expect(mockFrom).toHaveBeenCalledWith('contractor_subscriptions');
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'past_due' })
+    );
+    expect(chain.eq).toHaveBeenCalledWith('stripe_subscription_id', 'sub_123');
+    // Only live-ish rows are demoted — a canceled sub must not resurrect.
+    expect(chain.in).toHaveBeenCalledWith('status', [
+      'active',
+      'trial',
+      'past_due',
+    ]);
   });
 
   it('sends in-app notification', async () => {
@@ -220,19 +264,19 @@ describe('handleInvoicePaymentFailed', () => {
       USER_ID,
       'Payment Failed',
       expect.stringContaining('unable to process your subscription payment'),
-      'invoice_payment_failed',
+      'invoice_payment_failed'
     );
   });
 
   it('returns early when customer ID is missing', async () => {
     await handleInvoicePaymentFailed(
       makeInvoice({ customer: undefined as unknown as string }),
-      mockNotify,
+      mockNotify
     );
 
     expect(mockLoggerWarn).toHaveBeenCalledWith(
       'Invoice missing customer ID',
-      expect.any(Object),
+      expect.any(Object)
     );
   });
 });

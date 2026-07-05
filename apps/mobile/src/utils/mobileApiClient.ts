@@ -215,17 +215,30 @@ class MobileApiClient extends ApiClient {
    * same wait-for-refresh queue: retry once with the freshly-minted
    * access token before surfacing the upload error to the caller.
    */
-  async postFormData<T>(url: string, formData: FormData): Promise<T> {
+  async postFormData<T>(
+    url: string,
+    formData: FormData,
+    timeoutMs?: number
+  ): Promise<T> {
     const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
 
     const doRequest = async (token: string | null): Promise<Response> => {
-      return fetch(fullUrl, {
-        method: 'POST',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: formData,
-      });
+      const controller = timeoutMs ? new AbortController() : undefined;
+      const timer = controller
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : undefined;
+      try {
+        return await fetch(fullUrl, {
+          method: 'POST',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: formData,
+          signal: controller?.signal,
+        });
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
     };
 
     const initialToken = await getAuthToken();

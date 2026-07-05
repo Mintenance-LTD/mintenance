@@ -3,15 +3,21 @@
  * Tests for POST /api/assessments/walkthrough
  * Route: apps/web/app/api/assessments/walkthrough/route.ts
  *
- * SEC-001 (CWE-639) regression suite: the jobId anchor must be authorized —
- * only the job's homeowner, assigned contractor, or a property-team member on
- * the job's property may bind a walkthrough assessment to it. Also covers the
- * pre-existing propertyId guard and the happy paths.
+ * Regression suite for commit 5d3c94407 "fix(walkthrough): server-mediated
+ * frame upload (root-cause fix)". The mobile client POSTs keyframe images as
+ * multipart FormData; the server uploads them to the assessment-photos bucket
+ * with the service role (the previous RN direct-to-storage path never landed
+ * a single byte).
  *
- * The anchor-authorization helper
- * (app/api/building-surveyor/assess/_anchor-authorization.ts) is NOT mocked —
- * these tests exercise it for real against mocked Supabase/PropertyTeam layers.
+ * Covers: authentication, AI cost budget gate, multipart parsing, field
+ * validation (anchor, frame count, context JSON), property authorization,
+ * server-side storage upload (bucket/path/options), storage failure -> 502,
+ * partial frame failure tolerance, VLM dispatch, cache-key determinism,
+ * persistence dispatch + failure, best-effort assessment_images insert,
+ * training scheduling, and the cache_key dedup behaviour of
+ * persistWalkthroughRow (23505 conflict -> in-place update).
  */
+import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -20,12 +26,15 @@ import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({
   getCurrentUserFromCookies: vi.fn(),
   getCurrentUserFromBearerToken: vi.fn(),
-  supabaseFrom: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
-  checkAICostBudget: vi.fn(),
+  supabaseFrom: vi.fn(),
+  supabaseStorageFrom: vi.fn(),
+  storageUpload: vi.fn(),
+  storageGetPublicUrl: vi.fn(),
   propertyTeamAuthorize: vi.fn(),
-  validateImageUrls: vi.fn(),
+  checkAICostBudget: vi.fn(),
+  getConfig: vi.fn(),
   assessWalkthrough: vi.fn(),
   persistWalkthroughRow: vi.fn(),
   scheduleWalkthroughTraining: vi.fn(),
@@ -58,7 +67,6 @@ vi.mock('@mintenance/shared', () => ({
   TIME_MS: { MINUTE: 60000, HOUR: 3600000 },
 }));
 vi.mock('@/lib/logger', () => ({ logger: mocks.logger }));
-
 vi.mock('@/lib/ai/cost-budget', () => ({
   checkAICostBudget: mocks.checkAICostBudget,
 }));

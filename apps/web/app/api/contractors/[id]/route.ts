@@ -96,6 +96,7 @@ export const GET = withApiHandler(
           is_available,
           portfolio_images,
           total_jobs_completed,
+          hourly_rate,
           created_at
         `
           )
@@ -108,13 +109,6 @@ export const GET = withApiHandler(
           .from('contractor_skills')
           .select('skill_name')
           .eq('contractor_id', id);
-
-        // Fetch hourly rate from contractor_profiles
-        const { data: contractorProfileData } = await serverSupabase
-          .from('contractor_profiles')
-          .select('hourly_rate')
-          .eq('id', id)
-          .single();
 
         // 2026-05-23 audit: surface insurance for the "insured" trust
         // pill on contractor public profiles. The mobile
@@ -438,7 +432,10 @@ export const GET = withApiHandler(
           phone: contractor.phone,
           email: contractor.email,
           skills: skills,
-          hourly_rate: contractorProfileData?.hourly_rate ?? undefined,
+          // 2026-07-04: hourly_rate reads from canonical profiles
+          // (contractor-profiles side table retired — it only ever
+          // held Stripe/subscription columns).
+          hourly_rate: contractor.hourly_rate ?? undefined,
           created_at: contractor.created_at,
           verified: contractor.admin_verified || false,
           postcode_prefix: postcodePrefix || undefined,

@@ -24,7 +24,7 @@ const PatchSchema = z.object({
   decision: z.enum(['verified', 'rejected']),
   rejected_reason: z.string().max(500).optional(),
   expires_at: z.string().datetime().optional(),
-});
+}).strict();
 
 export const GET = withApiHandler(
   { roles: ['admin'], rateLimit: { maxRequests: 60 } },
@@ -98,6 +98,12 @@ export const PATCH = withApiHandler(
     // could mass-approve fraudulent licences in a few minutes —
     // demand fresh MFA proof.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'credential_verification_decision',
+      category: 'verification',
+      targetType: 'credential_verification',
+      description: 'Approved or rejected a contractor credential verification',
+    },
   },
   async (request, { user }) => {
     const raw = await request.json().catch(() => null);

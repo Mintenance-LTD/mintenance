@@ -181,7 +181,7 @@ export async function getFeaturedContractors(
           company_name: contractor.company_name,
           city: contractor.city,
           profile_image: contractor.profile_image_url,
-          hourly_rate: null, // Can be fetched from contractor_profiles if needed
+          hourly_rate: null, // Can be fetched from profiles.hourly_rate if needed
           rating: Math.round(rating * 10) / 10, // Round to 1 decimal
           review_count: reviewCount,
           verified: contractor.admin_verified || false,
@@ -329,7 +329,7 @@ export async function searchContractors(params: {
           company_name: contractor.company_name,
           city: contractor.city,
           profile_image: contractor.profile_image_url,
-          hourly_rate: null, // Can be fetched from contractor_profiles if needed
+          hourly_rate: null, // Can be fetched from profiles.hourly_rate if needed
           rating: Math.round(rating * 10) / 10,
           review_count: reviewCount,
           verified: contractor.admin_verified || false,
@@ -523,7 +523,7 @@ export async function getContractorProfile(
       company_name: contractor.company_name,
       city: contractor.city,
       profile_image: contractor.profile_image_url,
-      hourly_rate: null, // Can be fetched from contractor_profiles if needed
+      hourly_rate: null, // Can be fetched from profiles.hourly_rate if needed
       rating: Math.round(rating * 10) / 10,
       review_count: reviewCount,
       verified: contractor.admin_verified || false,

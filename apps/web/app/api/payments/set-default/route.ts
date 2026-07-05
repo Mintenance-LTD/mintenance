@@ -7,9 +7,15 @@ import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const setDefaultSchema = z.object({
-  paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
-});
+// `.strict()` rejects unknown body keys — verified clients (web settings
+// pages + mobile PaymentMethodService) send exactly { paymentMethodId }.
+const setDefaultSchema = z
+  .object({
+    paymentMethodId: z
+      .string()
+      .regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
+  })
+  .strict();
 
 /**
  * POST /api/payments/set-default
@@ -34,7 +40,8 @@ export const POST = withApiHandler(
       .eq('id', user.id)
       .single();
     if (stripeData) {
-      stripeCustomerId = (stripeData as Record<string, unknown>).stripe_customer_id as string | null;
+      stripeCustomerId = (stripeData as Record<string, unknown>)
+        .stripe_customer_id as string | null;
     }
 
     // Fallback: search Stripe by email
@@ -45,7 +52,10 @@ export const POST = withApiHandler(
         .eq('id', user.id)
         .single();
       if (profileData?.email) {
-        const existing = await stripe.customers.list({ email: profileData.email, limit: 1 });
+        const existing = await stripe.customers.list({
+          email: profileData.email,
+          limit: 1,
+        });
         stripeCustomerId = existing.data[0]?.id || null;
       }
     }
