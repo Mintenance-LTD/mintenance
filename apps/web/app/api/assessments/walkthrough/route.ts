@@ -4,11 +4,11 @@ import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
-import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
+import { BadRequestError } from '@/lib/errors/api-error';
 import { checkAICostBudget } from '@/lib/ai/cost-budget';
 import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurveyorConfig';
 import { validateImageUrls } from '@/app/api/building-surveyor/assess/_image-validation';
+import { authorizeAssessmentAnchors } from '@/app/api/building-surveyor/assess/_anchor-authorization';
 import { assessWalkthrough } from '@/lib/services/building-surveyor/video/walkthrough-assessment';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 import {
@@ -98,22 +98,16 @@ export const POST = withApiHandler(
       userId: user.id,
     });
 
-    // Tenant ownership: authorize the property anchor (mirrors videos/upload).
-    if (propertyId) {
-      const { authorized } = await PropertyTeamService.authorize(
-        user.id,
-        propertyId,
-        'view'
-      );
-      if (!authorized) {
-        logger.warn('Walkthrough denied — property access', {
-          service: 'assessment-walkthrough',
-          userId: user.id,
-          propertyId,
-        });
-        throw new ForbiddenError('You do not have access to this property');
-      }
-    }
+    // Tenant ownership: authorize BOTH anchors. The propertyId check mirrors
+    // videos/upload; the jobId check closes SEC-001 (CWE-639) — without it any
+    // authenticated user could persist an assessment bound to someone else's
+    // job via the service-role client.
+    await authorizeAssessmentAnchors({
+      userId: user.id,
+      jobId,
+      propertyId,
+      service: 'assessment-walkthrough',
+    });
 
     const domain = bodyDomain ?? 'building';
     const cacheKey = cacheKeyFor(frameUrls);

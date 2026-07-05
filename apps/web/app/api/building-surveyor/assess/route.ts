@@ -8,6 +8,7 @@ import { canonicalizeDamageType } from '@/lib/services/building-surveyor/normali
 import { checkAICostBudget } from '@/lib/ai/cost-budget';
 import { loadDependencies } from './_deps';
 import { validateImageUrls } from './_image-validation';
+import { authorizeAssessmentAnchors } from './_anchor-authorization';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -185,6 +186,15 @@ export const POST = withApiHandler(
       BadRequestError: deps.BadRequestError,
       logger: deps.logger,
       userId: user.id,
+    });
+
+    // SEC-001 (CWE-639): the jobId/propertyId anchors must belong to the
+    // caller — the row is persisted via the service-role client (no RLS).
+    await authorizeAssessmentAnchors({
+      userId: user.id,
+      jobId: bodyJobId,
+      propertyId: bodyPropertyId,
+      service: 'building-surveyor-api',
     });
 
     // Check in-memory cache first
