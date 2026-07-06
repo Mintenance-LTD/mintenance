@@ -3,6 +3,13 @@ import { User } from '@mintenance/types';
 import { setSentryFunctions, logger } from '../utils/logger';
 import { config, isFeatureEnabled } from './environment';
 
+/**
+ * @deprecated Not wired into the app. Sentry is initialised directly in
+ * App.tsx (which owns the PII-redaction `beforeSend` scrubber), and App.tsx
+ * also wires the logger→Sentry bridge via `setSentryFunctions`. Do NOT call
+ * this — it would re-init Sentry with a config that lacks that scrubber.
+ * Kept only because its unit tests document the bridge contract.
+ */
 export const initSentry = () => {
   // Check if crash reporting is enabled and if we have a DSN
   if (!isFeatureEnabled('enableCrashReporting') || !config.sentryDsn) {

@@ -1,23 +1,27 @@
 // @vitest-environment node
 /**
- * Tests for POST /api/assessments/walkthrough
+ * Tests for POST /api/assessments/walkthrough  (multipart/form-data)
  * Route: apps/web/app/api/assessments/walkthrough/route.ts
  *
- * Regression suite for commit 5d3c94407 "fix(walkthrough): server-mediated
- * frame upload (root-cause fix)". The mobile client POSTs keyframe images as
- * multipart FormData; the server uploads them to the assessment-photos bucket
- * with the service role (the previous RN direct-to-storage path never landed
- * a single byte).
+ * The mobile client extracts keyframes on-device and POSTs the frame IMAGES
+ * here as multipart FormData under the field name `frames`. The server:
+ *   - gates on the per-user AI cost budget (429),
+ *   - parses the multipart body (400 if it isn't multipart),
+ *   - requires an anchor (propertyId | jobId) and 2..20 frames,
+ *   - authorizes the anchor via authorizeAssessmentAnchors (throws Forbidden),
+ *   - uploads each frame to the `assessment-photos` bucket with the service
+ *     role, SKIPPING oversize (>8MB) or non-image (magic-byte) frames
+ *     (SEC-002 hardening) — surviving < MIN_FRAMES -> 502,
+ *   - fans the surviving frame URLs through the VLM (assessWalkthrough),
+ *   - persists ONE building_assessments row (persistWalkthroughRow) -> 500 if
+ *     null, 422 if no assessment was produced,
+ *   - returns 200 with { ...assessment, assessmentId, frameCount, framesAssessed }.
  *
- * Covers: authentication, AI cost budget gate, multipart parsing, field
- * validation (anchor, frame count, context JSON), property authorization,
- * server-side storage upload (bucket/path/options), storage failure -> 502,
- * partial frame failure tolerance, VLM dispatch, cache-key determinism,
- * persistence dispatch + failure, best-effort assessment_images insert,
- * training scheduling, and the cache_key dedup behaviour of
- * persistWalkthroughRow (23505 conflict -> in-place update).
+ * This suite was rewritten from an older URL-based version of the route (which
+ * POSTed JSON `{ frameUrls }` and authorized via PropertyTeamService +
+ * validateImageUrls). The production route is multipart; the tests below drive
+ * it with real FormData + File objects carrying real image magic bytes.
  */
-import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -29,12 +33,10 @@ const mocks = vi.hoisted(() => ({
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   supabaseFrom: vi.fn(),
-  supabaseStorageFrom: vi.fn(),
   storageUpload: vi.fn(),
   storageGetPublicUrl: vi.fn(),
-  propertyTeamAuthorize: vi.fn(),
+  authorizeAssessmentAnchors: vi.fn(),
   checkAICostBudget: vi.fn(),
-  getConfig: vi.fn(),
   assessWalkthrough: vi.fn(),
   persistWalkthroughRow: vi.fn(),
   scheduleWalkthroughTraining: vi.fn(),
@@ -52,6 +54,13 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    storage: {
+      from: () => ({
+        upload: (...args: unknown[]) => mocks.storageUpload(...args),
+        getPublicUrl: (...args: unknown[]) =>
+          mocks.storageGetPublicUrl(...args),
+      }),
+    },
   },
 }));
 
@@ -67,12 +76,16 @@ vi.mock('@mintenance/shared', () => ({
   TIME_MS: { MINUTE: 60000, HOUR: 3600000 },
 }));
 vi.mock('@/lib/logger', () => ({ logger: mocks.logger }));
+
 vi.mock('@/lib/ai/cost-budget', () => ({
   checkAICostBudget: mocks.checkAICostBudget,
 }));
 
-vi.mock('@/lib/services/property-team/PropertyTeamService', () => ({
-  PropertyTeamService: { authorize: mocks.propertyTeamAuthorize },
+// The real route authorizes anchors through this helper, which THROWS a
+// ForbiddenError on unauthorized. Mock it: resolve by default; individual
+// tests make it reject to exercise the 403 propagation.
+vi.mock('@/app/api/building-surveyor/assess/_anchor-authorization', () => ({
+  authorizeAssessmentAnchors: mocks.authorizeAssessmentAnchors,
 }));
 
 vi.mock(
@@ -81,10 +94,6 @@ vi.mock(
     getConfig: vi.fn(() => ({ openaiApiKey: 'test-openai-key' })),
   })
 );
-
-vi.mock('@/app/api/building-surveyor/assess/_image-validation', () => ({
-  validateImageUrls: mocks.validateImageUrls,
-}));
 
 vi.mock(
   '@/lib/services/building-surveyor/video/walkthrough-assessment',
@@ -96,15 +105,6 @@ vi.mock(
 vi.mock('@/app/api/assessments/walkthrough/_persist-and-capture', () => ({
   persistWalkthroughRow: mocks.persistWalkthroughRow,
   scheduleWalkthroughTraining: mocks.scheduleWalkthroughTraining,
-}));
-
-vi.mock('@/lib/idempotency', () => ({
-  getIdempotencyKeyFromRequest: vi.fn(() => 'test-idempotency-key'),
-  checkIdempotency: vi.fn().mockResolvedValue(null),
-  storeIdempotencyResult: vi.fn().mockResolvedValue(undefined),
-  releaseOnError: vi.fn(
-    async (_key: string, _op: string, fn: () => Promise<unknown>) => fn()
-  ),
 }));
 
 vi.mock('@/lib/errors/api-error', async () => {
@@ -187,15 +187,10 @@ vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 // Fixtures + helpers
 // ---------------------------------------------------------------------------
 const HOMEOWNER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-const CONTRACTOR_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-const ATTACKER_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const JOB_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const PROPERTY_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
-const FRAME_URLS = [
-  'https://storage.googleapis.com/test/frame-0.jpg',
-  'https://storage.googleapis.com/test/frame-1.jpg',
-];
+const PUBLIC_URL = 'https://storage.example/test/frame.jpg';
 
 const fakeAssessment = {
   damageAssessment: {
@@ -221,40 +216,50 @@ function userOf(id: string, role: 'homeowner' | 'contractor') {
   };
 }
 
-function walkthroughRequest(body: Record<string, unknown>): NextRequest {
-  return new NextRequest(
-    new URL('/api/assessments/walkthrough', 'http://localhost:3000'),
-    {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-forwarded-for': '127.0.0.1',
-        'x-csrf-token': 'test-csrf-token',
-      },
-      body: JSON.stringify(body),
-    }
-  );
+/** A valid JPEG frame: FF D8 FF E0 header + padding (>= 12 bytes). */
+function jpegFile(name = 'f.jpg'): File {
+  const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...Array(20).fill(0)]);
+  return new File([bytes], name, { type: 'image/jpeg' });
 }
 
-/** Configure serverSupabase.from for the jobs lookup + frame-image insert. */
-function setupSupabaseMock(job: unknown) {
-  mocks.supabaseFrom.mockImplementation((table: string) => {
-    if (table === 'jobs') {
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: job,
-              error: job ? null : { message: 'not found' },
-            }),
-          }),
-        }),
-      };
-    }
-    if (table === 'assessment_images') {
-      return { insert: vi.fn().mockResolvedValue({ error: null }) };
-    }
-    return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
+/** A non-image frame: plain text bytes that match no image signature. */
+function junkFile(name = 'note.txt'): File {
+  const bytes = Buffer.from('this is not an image at all as text....');
+  return new File([bytes], name, { type: 'image/jpeg' });
+}
+
+/** A frame whose byte size exceeds the 8MB cap (valid JPEG header). */
+function oversizeFile(name = 'huge.jpg'): File {
+  const size = 8 * 1024 * 1024 + 10;
+  const bytes = new Uint8Array(size);
+  bytes[0] = 0xff;
+  bytes[1] = 0xd8;
+  bytes[2] = 0xff;
+  bytes[3] = 0xe0;
+  return new File([bytes], name, { type: 'image/jpeg' });
+}
+
+/** Build a multipart POST with the given frame files + anchor/extra fields. */
+function multipartRequest(
+  frames: File[],
+  fields: Record<string, string> = {}
+): NextRequest {
+  const fd = new FormData();
+  for (const f of frames) fd.append('frames', f);
+  for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+  return new NextRequest('http://localhost:3000/api/assessments/walkthrough', {
+    method: 'POST',
+    body: fd,
+    // undici derives the multipart content-type + boundary from the FormData body.
+  });
+}
+
+/** A JSON (non-multipart) POST — request.formData() will reject. */
+function jsonRequest(body: Record<string, unknown>): NextRequest {
+  return new NextRequest('http://localhost:3000/api/assessments/walkthrough', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
   });
 }
 
@@ -262,6 +267,7 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(
     userOf(HOMEOWNER_ID, 'homeowner')
   );
+  mocks.getCurrentUserFromBearerToken.mockResolvedValue(null);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
     allowed: true,
@@ -270,19 +276,25 @@ function setupDefaultMocks() {
     retryAfter: 0,
   });
   mocks.checkAICostBudget.mockResolvedValue({ allowed: true });
-  mocks.validateImageUrls.mockReturnValue(undefined);
-  mocks.propertyTeamAuthorize.mockResolvedValue({
-    authorized: false,
-    role: null,
+  mocks.authorizeAssessmentAnchors.mockResolvedValue(undefined);
+  mocks.storageUpload.mockResolvedValue({ error: null });
+  mocks.storageGetPublicUrl.mockReturnValue({
+    data: { publicUrl: PUBLIC_URL },
+  });
+  mocks.supabaseFrom.mockImplementation((table: string) => {
+    if (table === 'assessment_images') {
+      return { insert: vi.fn().mockResolvedValue({ error: null }) };
+    }
+    return { insert: vi.fn().mockResolvedValue({ error: null }) };
   });
   mocks.assessWalkthrough.mockResolvedValue({
     assessment: fakeAssessment,
-    perFrameAssessments: FRAME_URLS.map((url) => ({
-      url,
-      assessment: fakeAssessment,
-    })),
-    frameCount: FRAME_URLS.length,
-    framesAssessed: FRAME_URLS.length,
+    perFrameAssessments: [
+      { url: PUBLIC_URL, assessment: fakeAssessment },
+      { url: PUBLIC_URL, assessment: fakeAssessment },
+    ],
+    frameCount: 2,
+    framesAssessed: 2,
   });
   mocks.persistWalkthroughRow.mockResolvedValue('assessment-1');
   mocks.scheduleWalkthroughTraining.mockReturnValue(undefined);
@@ -291,7 +303,7 @@ function setupDefaultMocks() {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
-describe('POST /api/assessments/walkthrough', () => {
+describe('POST /api/assessments/walkthrough (multipart)', () => {
   let POST: typeof import('@/app/api/assessments/walkthrough/route').POST;
 
   beforeEach(async () => {
@@ -300,150 +312,185 @@ describe('POST /api/assessments/walkthrough', () => {
     POST = mod.POST;
   });
 
-  // ---- SEC-001: jobId anchor IDOR ----
-  it("should return 403 when jobId belongs to another user's job", async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue(
-      userOf(ATTACKER_ID, 'homeowner')
-    );
-    setupSupabaseMock({
-      homeowner_id: HOMEOWNER_ID,
-      contractor_id: CONTRACTOR_ID,
-      property_id: null,
-    });
+  // ---- Auth ----
+  it('returns 401 when unauthenticated', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue(null);
+    mocks.getCurrentUserFromBearerToken.mockResolvedValue(null);
 
     const res = await POST(
-      walkthroughRequest({ frameUrls: FRAME_URLS, jobId: JOB_ID })
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], { jobId: JOB_ID })
     );
-    expect(res.status).toBe(403);
-
-    const body = await res.json();
-    expect(body.error.message).toContain('access to this job');
-    // The guard must fire BEFORE any AI spend or persistence.
+    expect(res.status).toBe(401);
+    expect(mocks.authorizeAssessmentAnchors).not.toHaveBeenCalled();
     expect(mocks.assessWalkthrough).not.toHaveBeenCalled();
-    expect(mocks.persistWalkthroughRow).not.toHaveBeenCalled();
   });
 
-  it('should return 403 when the job does not exist', async () => {
-    setupSupabaseMock(null);
-
-    const res = await POST(
-      walkthroughRequest({ frameUrls: FRAME_URLS, jobId: JOB_ID })
-    );
-    expect(res.status).toBe(403);
-    expect(mocks.persistWalkthroughRow).not.toHaveBeenCalled();
-  });
-
-  // ---- Happy paths ----
-  it("should accept the job's homeowner and persist the walkthrough", async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue(
-      userOf(HOMEOWNER_ID, 'homeowner')
-    );
-    setupSupabaseMock({
-      homeowner_id: HOMEOWNER_ID,
-      contractor_id: CONTRACTOR_ID,
-      property_id: null,
+  // ---- AI cost budget gate ----
+  it('returns 429 with the budget reason code when over the AI cap', async () => {
+    mocks.checkAICostBudget.mockResolvedValue({
+      allowed: false,
+      reason: 'monthly_cap_exceeded',
     });
 
     const res = await POST(
-      walkthroughRequest({ frameUrls: FRAME_URLS, jobId: JOB_ID })
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], { jobId: JOB_ID })
+    );
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.code).toBe('monthly_cap_exceeded');
+    // Gate fires before parsing / authorizing / spending.
+    expect(mocks.authorizeAssessmentAnchors).not.toHaveBeenCalled();
+    expect(mocks.storageUpload).not.toHaveBeenCalled();
+  });
+
+  // ---- Multipart parsing ----
+  it('returns 400 when the body is not multipart/form-data', async () => {
+    const res = await POST(jsonRequest({ frameUrls: ['x'], jobId: JOB_ID }));
+    expect(res.status).toBe(400);
+    expect(mocks.authorizeAssessmentAnchors).not.toHaveBeenCalled();
+  });
+
+  // ---- Field validation ----
+  it('returns 400 when neither jobId nor propertyId anchors the walk', async () => {
+    const res = await POST(multipartRequest([jpegFile(), jpegFile('g.jpg')]));
+    expect(res.status).toBe(400);
+    expect(mocks.authorizeAssessmentAnchors).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when fewer than 2 valid frames are supplied', async () => {
+    const res = await POST(multipartRequest([jpegFile()], { jobId: JOB_ID }));
+    expect(res.status).toBe(400);
+    expect(mocks.authorizeAssessmentAnchors).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when more than 20 frames are supplied', async () => {
+    const frames = Array.from({ length: 21 }, (_, i) => jpegFile(`f${i}.jpg`));
+    const res = await POST(multipartRequest(frames, { jobId: JOB_ID }));
+    expect(res.status).toBe(400);
+    expect(mocks.authorizeAssessmentAnchors).not.toHaveBeenCalled();
+  });
+
+  // ---- Happy path ----
+  it('uploads, assesses, persists and returns 200 for 2 valid frames + jobId', async () => {
+    const res = await POST(
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], { jobId: JOB_ID })
     );
     expect(res.status).toBe(200);
 
     const body = await res.json();
     expect(body.assessmentId).toBe('assessment-1');
     expect(body.frameCount).toBe(2);
+    expect(body.framesAssessed).toBe(2);
+
+    expect(mocks.authorizeAssessmentAnchors).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: HOMEOWNER_ID, jobId: JOB_ID })
+    );
+    // Both valid frames uploaded.
+    expect(mocks.storageUpload).toHaveBeenCalledTimes(2);
+    expect(mocks.assessWalkthrough).toHaveBeenCalledTimes(1);
     expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
       expect.objectContaining({ userId: HOMEOWNER_ID, jobId: JOB_ID })
     );
+    expect(mocks.scheduleWalkthroughTraining).toHaveBeenCalledTimes(1);
   });
 
-  it('should accept the assigned contractor', async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue(
-      userOf(CONTRACTOR_ID, 'contractor')
-    );
-    setupSupabaseMock({
-      homeowner_id: HOMEOWNER_ID,
-      contractor_id: CONTRACTOR_ID,
-      property_id: null,
-    });
-
+  it('accepts a propertyId anchor', async () => {
     const res = await POST(
-      walkthroughRequest({ frameUrls: FRAME_URLS, jobId: JOB_ID })
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+        propertyId: PROPERTY_ID,
+      })
     );
     expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.assessmentId).toBe('assessment-1');
-    expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: CONTRACTOR_ID, jobId: JOB_ID })
+    expect(mocks.authorizeAssessmentAnchors).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: HOMEOWNER_ID, propertyId: PROPERTY_ID })
     );
   });
 
-  it("should accept a property-team member on the job's property", async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue(
-      userOf(ATTACKER_ID, 'homeowner') // not a job party...
+  // ---- Authorization failure propagates ----
+  it('propagates 403 when the anchor is not authorized and does not upload or persist', async () => {
+    const { ForbiddenError } = await import('@/lib/errors/api-error');
+    mocks.authorizeAssessmentAnchors.mockRejectedValue(
+      new ForbiddenError('You do not have access to this job')
     );
-    setupSupabaseMock({
-      homeowner_id: HOMEOWNER_ID,
-      contractor_id: CONTRACTOR_ID,
-      property_id: PROPERTY_ID,
-    });
-    // ...but IS on the property team.
-    mocks.propertyTeamAuthorize.mockResolvedValue({
-      authorized: true,
-      role: 'manager',
-    });
 
     const res = await POST(
-      walkthroughRequest({ frameUrls: FRAME_URLS, jobId: JOB_ID })
-    );
-    expect(res.status).toBe(200);
-    expect(mocks.propertyTeamAuthorize).toHaveBeenCalledWith(
-      ATTACKER_ID,
-      PROPERTY_ID,
-      'view'
-    );
-  });
-
-  // ---- propertyId anchor guard (pre-existing, must be preserved) ----
-  it('should return 403 when propertyId is not authorized', async () => {
-    setupSupabaseMock(null);
-    mocks.propertyTeamAuthorize.mockResolvedValue({
-      authorized: false,
-      role: null,
-    });
-
-    const res = await POST(
-      walkthroughRequest({ frameUrls: FRAME_URLS, propertyId: PROPERTY_ID })
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], { jobId: JOB_ID })
     );
     expect(res.status).toBe(403);
-
     const body = await res.json();
-    expect(body.error.message).toContain('access to this property');
+    expect(body.error.message).toContain('access to this job');
+
+    expect(mocks.storageUpload).not.toHaveBeenCalled();
     expect(mocks.assessWalkthrough).not.toHaveBeenCalled();
+    expect(mocks.persistWalkthroughRow).not.toHaveBeenCalled();
   });
 
-  it('should accept an authorized propertyId anchor', async () => {
-    setupSupabaseMock(null);
-    mocks.propertyTeamAuthorize.mockResolvedValue({
-      authorized: true,
-      role: 'owner',
+  // ---- SEC-002: non-image / oversize frames are skipped ----
+  it('SEC-002: skips a non-image frame — 2 real + 1 junk still succeeds with 2 uploads', async () => {
+    const res = await POST(
+      multipartRequest([jpegFile(), jpegFile('g.jpg'), junkFile()], {
+        jobId: JOB_ID,
+      })
+    );
+    expect(res.status).toBe(200);
+    // Only the two real images made it past the magic-byte check.
+    expect(mocks.storageUpload).toHaveBeenCalledTimes(2);
+  });
+
+  it('SEC-002: 1 real + 1 junk -> survivors < MIN_FRAMES -> 502', async () => {
+    const res = await POST(
+      multipartRequest([jpegFile(), junkFile()], { jobId: JOB_ID })
+    );
+    expect(res.status).toBe(502);
+    // Only the one real frame was uploaded; the junk frame was skipped.
+    expect(mocks.storageUpload).toHaveBeenCalledTimes(1);
+    expect(mocks.assessWalkthrough).not.toHaveBeenCalled();
+    expect(mocks.persistWalkthroughRow).not.toHaveBeenCalled();
+  });
+
+  it('SEC-002: skips an oversize (>8MB) frame — 1 real + 1 oversize -> 502', async () => {
+    const res = await POST(
+      multipartRequest([jpegFile(), oversizeFile()], { jobId: JOB_ID })
+    );
+    expect(res.status).toBe(502);
+    // Oversize frame is skipped before reading bytes; only the real one uploads.
+    expect(mocks.storageUpload).toHaveBeenCalledTimes(1);
+  });
+
+  // ---- Upload / assess / persist failure branches ----
+  it('returns 502 when all storage uploads fail', async () => {
+    mocks.storageUpload.mockResolvedValue({ error: { message: 'boom' } });
+
+    const res = await POST(
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], { jobId: JOB_ID })
+    );
+    expect(res.status).toBe(502);
+    expect(mocks.assessWalkthrough).not.toHaveBeenCalled();
+    expect(mocks.persistWalkthroughRow).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 when assessWalkthrough yields no assessment', async () => {
+    mocks.assessWalkthrough.mockResolvedValue({
+      assessment: null,
+      perFrameAssessments: [],
+      frameCount: 2,
+      framesAssessed: 0,
     });
 
     const res = await POST(
-      walkthroughRequest({ frameUrls: FRAME_URLS, propertyId: PROPERTY_ID })
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], { jobId: JOB_ID })
     );
-    expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.assessmentId).toBe('assessment-1');
+    expect(res.status).toBe(422);
+    expect(mocks.persistWalkthroughRow).not.toHaveBeenCalled();
   });
 
-  // ---- Schema anchor requirement ----
-  it('should return 400 when neither jobId nor propertyId is provided', async () => {
-    setupSupabaseMock(null);
+  it('returns 500 when persistWalkthroughRow returns null', async () => {
+    mocks.persistWalkthroughRow.mockResolvedValue(null);
 
-    const res = await POST(walkthroughRequest({ frameUrls: FRAME_URLS }));
-    expect(res.status).toBe(400);
+    const res = await POST(
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], { jobId: JOB_ID })
+    );
+    expect(res.status).toBe(500);
+    expect(mocks.scheduleWalkthroughTraining).not.toHaveBeenCalled();
   });
 });

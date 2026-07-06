@@ -19,6 +19,11 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 const bodySchema = z.object({
   priceId: z.string().min(1, 'Price ID is required'),
   jobId: z.string().uuid().optional(),
+  // Winning bid this payment settles, when the checkout is launched from a
+  // bid (see BidCard → /checkout). Recorded in session metadata for
+  // payment↔bid reconciliation; previously the client sent it and the
+  // server silently dropped it.
+  bidId: z.string().uuid().optional(),
   contractorId: z.string().uuid().optional(),
   quantity: z.number().int().positive().optional().default(1),
   paymentType: z
@@ -40,7 +45,7 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { priceId, jobId, contractorId, quantity, paymentType } =
+    const { priceId, jobId, bidId, contractorId, quantity, paymentType } =
       validation.data;
 
     // Get price details to calculate amount
@@ -146,6 +151,10 @@ export const POST = withApiHandler(
 
     if (jobId) {
       metadata.jobId = jobId;
+    }
+
+    if (bidId) {
+      metadata.bidId = bidId;
     }
 
     if (contractorId) {

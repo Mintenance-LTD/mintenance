@@ -16,11 +16,11 @@ import {
   UserX,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getCsrfHeaders } from '@/lib/csrf-client';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 import { SecurityEventsList } from './components/SecurityEventsList';
 import type { SecurityEvent } from './components/SecurityEventsList';
+import { fetchSecurityDashboard, postSecurityAction } from './_securityApi';
 
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(
@@ -57,51 +57,6 @@ const staggerItem = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
-
-interface SecurityDashboardData {
-  metrics: {
-    totalEvents: number;
-    criticalAlerts: number;
-    activeThreats: number;
-    blockedIps: number;
-    securityScore: number;
-    twoFactorEnabled: number;
-  };
-  recentEvents: SecurityEvent[];
-  eventsByDay: Array<{
-    day: string;
-    total: number;
-    threats: number;
-    blocked: number;
-  }>;
-  threatsByType: Array<{ type: string; count: number }>;
-}
-
-async function fetchSecurityDashboard(): Promise<SecurityDashboardData> {
-  const response = await fetch('/api/admin/security-dashboard');
-  if (!response.ok) {
-    throw new Error('Failed to fetch security dashboard data');
-  }
-  return response.json();
-}
-
-async function postSecurityAction(payload: {
-  action: 'block_ip' | 'unblock_ip' | 'resolve_event';
-  ip?: string;
-  eventId?: string;
-}): Promise<{ success: boolean }> {
-  const csrfHeaders = await getCsrfHeaders();
-  const response = await fetch('/api/admin/security-dashboard', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to perform security action');
-  }
-  return response.json();
-}
 
 export default function AdminSecurityDashboard2025() {
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
@@ -207,7 +162,10 @@ export default function AdminSecurityDashboard2025() {
             </div>
             <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-8'>
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className='bg-white/10 rounded-xl p-4 min-h-[88px] animate-pulse' />
+                <div
+                  key={i}
+                  className='bg-white/10 rounded-xl p-4 min-h-[88px] animate-pulse'
+                />
               ))}
             </div>
           </div>

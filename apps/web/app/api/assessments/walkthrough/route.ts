@@ -6,7 +6,6 @@ import { logger } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { checkAICostBudget } from '@/lib/ai/cost-budget';
 import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurveyorConfig';
-import { validateImageUrls } from '@/app/api/building-surveyor/assess/_image-validation';
 import { authorizeAssessmentAnchors } from '@/app/api/building-surveyor/assess/_anchor-authorization';
 import { assessWalkthrough } from '@/lib/services/building-surveyor/video/walkthrough-assessment';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
@@ -23,7 +22,36 @@ export const maxDuration = 300;
 
 const MIN_FRAMES = 2; // fewer than 2 is just a photo assess — use /building-surveyor/assess
 const MAX_FRAMES = 20; // cost ceiling: 20 GPT-4o vision calls per walkthrough
+const MAX_FRAME_BYTES = 8 * 1024 * 1024; // 8MB/frame — a keyframe is well under this
 const FRAME_BUCKET = 'assessment-photos';
+
+// Leading-byte signatures for the image formats a phone keyframe can be.
+// Frames are stored under image/jpeg, but iOS may hand us HEIC and some
+// pipelines PNG/WebP — accept real images, reject anything else so the
+// public bucket can't be stuffed with junk under a forced content-type.
+function isSupportedImage(buf: Buffer): boolean {
+  if (buf.length < 12) return false;
+  // JPEG  FF D8 FF
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true;
+  // PNG   89 50 4E 47
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47)
+    return true;
+  // WebP  "RIFF"…"WEBP"
+  if (
+    buf.toString('ascii', 0, 4) === 'RIFF' &&
+    buf.toString('ascii', 8, 12) === 'WEBP'
+  )
+    return true;
+  // HEIC/HEIF  …."ftyp"<brand>
+  if (
+    buf.toString('ascii', 4, 8) === 'ftyp' &&
+    ['heic', 'heix', 'hevc', 'heif', 'mif1', 'msf1'].includes(
+      buf.toString('ascii', 8, 12)
+    )
+  )
+    return true;
+  return false;
+}
 
 const SERVICE = 'assessment-walkthrough';
 
@@ -82,6 +110,25 @@ export const POST = withApiHandler(
       } catch {
         throw new BadRequestError('context must be valid JSON');
       }
+    }
+
+    // NOTE: this extraction + frame-count validation was dropped in the
+    // `main` merge (e7edaff6e) that reconciled the multipart handler with an
+    // older URL-based branch, leaving `files` undefined. Restored here.
+    const files = form
+      .getAll('frames')
+      .filter((f): f is File => f instanceof File && f.size > 0);
+
+    if (!propertyId && !jobId) {
+      throw new BadRequestError(
+        'propertyId or jobId is required to anchor the walkthrough'
+      );
+    }
+    if (files.length < MIN_FRAMES) {
+      throw new BadRequestError(`At least ${MIN_FRAMES} frames are required`);
+    }
+    if (files.length > MAX_FRAMES) {
+      throw new BadRequestError(`At most ${MAX_FRAMES} frames are allowed`);
     }
 
     // Tenant ownership: authorize BOTH anchors. The propertyId check mirrors
@@ -206,7 +253,27 @@ async function uploadFramesToStorage(
   const urls: string[] = [];
   for (let i = 0; i < files.length; i++) {
     try {
-      const buffer = Buffer.from(await files[i]!.arrayBuffer());
+      const file = files[i]!;
+      // SEC-002 hardening: skip oversize or non-image frames rather than
+      // stamping arbitrary bytes with image/jpeg. Skips count like failed
+      // uploads — the caller's MIN_FRAMES gate rejects the walk if too many
+      // frames drop out.
+      if (file.size > MAX_FRAME_BYTES) {
+        logger.warn('Walkthrough frame skipped — over size cap', {
+          service: SERVICE,
+          index: i,
+          size: file.size,
+        });
+        continue;
+      }
+      const buffer = Buffer.from(await file.arrayBuffer());
+      if (!isSupportedImage(buffer)) {
+        logger.warn('Walkthrough frame skipped — not a recognised image', {
+          service: SERVICE,
+          index: i,
+        });
+        continue;
+      }
       const path = `quick-ai/${folderId}/${i}.jpg`;
       const { error } = await serverSupabase.storage
         .from(FRAME_BUCKET)
