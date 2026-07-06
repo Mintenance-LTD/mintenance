@@ -18,6 +18,13 @@ export const metadata: Metadata = {
     'View job details, contractor bids, and project status for your maintenance request.',
 };
 
+interface PortfolioPostRow {
+  contractor_id: string;
+  media_urls: string[] | null;
+  title: string | null;
+  project_category: string | null;
+}
+
 export default async function JobDetailPage2025({
   params,
 }: {
@@ -65,40 +72,47 @@ export default async function JobDetailPage2025({
     redirect('/jobs');
   }
 
-  // Fetch related data. Include the access-info columns (migration
-  // 20260520000003) so the "Access shared with contractor" card on
-  // the right rail can render. Wrap in try/catch-style maybeSingle
-  // so installs without the migration applied gracefully degrade.
-  const { data: property } = job.property_id
-    ? await serverSupabase
-        .from('properties')
-        .select(
-          'id, property_name, address, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'
-        )
-        .eq('id', job.property_id)
-        .maybeSingle()
-    : { data: null };
-
-  const { data: contractor } = job.contractor_id
-    ? await serverSupabase
-        .from('profiles')
-        .select(
-          'id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number'
-        )
-        .eq('id', job.contractor_id)
-        .single()
-    : { data: null };
-
-  // Fetch bids with contractor info, quote breakdown, and the
-  // schedule + warranty fields the BidCard now surfaces so the
-  // homeowner can compare bids on more than just price. Quote embed
-  // pulls subtotal/tax/total/terms in addition to line_items —
-  // populated by `app/api/contractor/submit-bid/quote-processor.ts`
-  // for every bid, previously invisible on this page.
-  const { data: bids, error: bidsError } = await serverSupabase
-    .from('bids')
-    .select(
-      `
+  // 2026-07-06 audit #6: fetch everything that depends only on the job/user id
+  // in ONE parallel batch instead of a sequential waterfall. property +
+  // contractor are conditional on the job carrying those ids; the rest key off
+  // the job or the current user. Supabase query builders never reject (they
+  // resolve to `{ data, error }`, even the `.single()` calls that return an
+  // error on zero rows), so Promise.all is safe here. Bids embeds contractor +
+  // quote; access columns on `property` (migration 20260520000003) feed the
+  // "Access shared with contractor" card and degrade gracefully via maybeSingle.
+  const [
+    { data: property },
+    { data: contractor },
+    { data: bids, error: bidsError },
+    { data: photos },
+    { data: photoEvidence },
+    { data: buildingAssessment },
+    { data: contract },
+    { data: escrowTransaction },
+    { data: userProfile },
+  ] = await Promise.all([
+    job.property_id
+      ? serverSupabase
+          .from('properties')
+          .select(
+            'id, property_name, address, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'
+          )
+          .eq('id', job.property_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    job.contractor_id
+      ? serverSupabase
+          .from('profiles')
+          .select(
+            'id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number'
+          )
+          .eq('id', job.contractor_id)
+          .single()
+      : Promise.resolve({ data: null }),
+    serverSupabase
+      .from('bids')
+      .select(
+        `
       id,
       amount,
       description,
@@ -134,8 +148,44 @@ export default async function JobDetailPage2025({
         quote_number
       )
     `
-    )
-    .eq('job_id', resolvedParams.id);
+      )
+      .eq('job_id', resolvedParams.id),
+    serverSupabase
+      .from('job_attachments')
+      .select('*')
+      .eq('job_id', resolvedParams.id)
+      .order('uploaded_at', { ascending: false }),
+    serverSupabase
+      .from('job_photos_metadata')
+      .select('id, photo_url, photo_type, created_at')
+      .eq('job_id', resolvedParams.id)
+      .in('photo_type', ['before', 'after'])
+      .order('created_at', { ascending: true }),
+    serverSupabase
+      .from('building_assessments')
+      .select('*')
+      .eq('job_id', resolvedParams.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single(),
+    serverSupabase
+      .from('contracts')
+      .select('id, status, contractor_signed_at, homeowner_signed_at')
+      .eq('job_id', resolvedParams.id)
+      .single(),
+    serverSupabase
+      .from('escrow_transactions')
+      .select('id, status')
+      .eq('job_id', resolvedParams.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    serverSupabase
+      .from('profiles')
+      .select('profile_image_url, email, first_name, last_name, phone')
+      .eq('id', user.id)
+      .single(),
+  ]);
 
   if (bidsError) {
     logger.error('JobDetailPage2025 - Bids query error', {
@@ -144,47 +194,58 @@ export default async function JobDetailPage2025({
     });
   }
 
-  // Fetch portfolio images in batch
+  // Second parallel batch: everything that needs a phase-1 result. Portfolio
+  // images + review counts key off the bids' contractor ids; storage
+  // re-signing keys off the fetched photos (the `Job-storage` bucket is
+  // private since the 2026-04-17 hardening migration, so legacy/expired URLs
+  // must be re-signed at render time — external URLs pass through).
   const contractorIds = bids?.map((b) => b.contractor_id).filter(Boolean) || [];
+  const [portfolioResult, reviewResult, jobPhotoUrls] = await Promise.all([
+    contractorIds.length > 0
+      ? serverSupabase
+          .from('contractor_posts')
+          .select('contractor_id, media_urls, title, project_category')
+          .in('contractor_id', contractorIds)
+          .in('post_type', ['portfolio', 'work_showcase'])
+          .eq('is_active', true)
+          .not('media_urls', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as PortfolioPostRow[] }),
+    contractorIds.length > 0
+      ? serverSupabase
+          .from('reviews')
+          .select('reviewee_id')
+          .in('reviewee_id', contractorIds)
+      : Promise.resolve({ data: [] as Array<{ reviewee_id: string | null }> }),
+    resignJobStorageUrls(
+      (photos ?? []).map((p) => p.file_url as string | null)
+    ),
+  ]);
+
+  // Build the portfolio image map from the fetched posts.
   const portfolioMap = new Map();
-  if (contractorIds.length > 0) {
-    const { data: portfolioPosts } = await serverSupabase
-      .from('contractor_posts')
-      .select('contractor_id, media_urls, title, project_category')
-      .in('contractor_id', contractorIds)
-      .in('post_type', ['portfolio', 'work_showcase'])
-      .eq('is_active', true)
-      .not('media_urls', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    portfolioPosts?.forEach((post) => {
-      if (!portfolioMap.has(post.contractor_id)) {
-        portfolioMap.set(post.contractor_id, []);
-      }
-      const images = (post.media_urls || []).map((url: string) => ({
-        url,
-        title: post.title || 'Previous Work',
-        category: post.project_category || 'General',
-      }));
-      portfolioMap.get(post.contractor_id).push(...images);
-    });
-  }
-
-  // Fetch review counts per contractor in one round-trip so the bid
-  // card can show "4.5 stars (12 reviews)" instead of just the rating
-  // number. Mirrors the mobile BidReviewCard which already renders
-  // reviews_count; web was showing only avatar + name + amount.
-  const reviewCountMap = new Map<string, number>();
-  if (contractorIds.length > 0) {
-    const { data: reviewRows } = await serverSupabase
-      .from('reviews')
-      .select('reviewee_id')
-      .in('reviewee_id', contractorIds);
-    for (const row of reviewRows ?? []) {
-      const id = row.reviewee_id as string | null;
-      if (id) reviewCountMap.set(id, (reviewCountMap.get(id) || 0) + 1);
+  const portfolioPosts = (portfolioResult.data ?? []) as PortfolioPostRow[];
+  portfolioPosts.forEach((post) => {
+    if (!portfolioMap.has(post.contractor_id)) {
+      portfolioMap.set(post.contractor_id, []);
     }
+    const images = (post.media_urls || []).map((url: string) => ({
+      url,
+      title: post.title || 'Previous Work',
+      category: post.project_category || 'General',
+    }));
+    portfolioMap.get(post.contractor_id).push(...images);
+  });
+
+  // Review counts per contractor so the bid card can show "(12 reviews)".
+  const reviewCountMap = new Map<string, number>();
+  const reviewRows = (reviewResult.data ?? []) as Array<{
+    reviewee_id: string | null;
+  }>;
+  for (const row of reviewRows) {
+    const id = row.reviewee_id;
+    if (id) reviewCountMap.set(id, (reviewCountMap.get(id) || 0) + 1);
   }
 
   // Process bids (WFE-P1-3: drop bids whose contractor relationship is null
@@ -224,46 +285,12 @@ export default async function JobDetailPage2025({
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
 
-  // Fetch job photos
-  // NOTE: job_attachments uses 'uploaded_at' not 'created_at'
-  const { data: photos } = await serverSupabase
-    .from('job_attachments')
-    .select('*')
-    .eq('job_id', resolvedParams.id)
-    .order('uploaded_at', { ascending: false });
-
-  // Re-sign any `Job-storage` URLs at render time. The bucket is now
-  // `public=false` (2026-04-17 storage-hardening migration), so legacy
-  // public URLs 404 and old signed URLs expire. Re-signing on read
-  // keeps display working without touching stored rows or forcing a
-  // backfill migration. External URLs pass through.
-  const jobPhotoUrls = await resignJobStorageUrls(
-    (photos ?? []).map((p) => p.file_url as string | null)
-  );
-
-  // Fetch before/after photo evidence
-  const { data: photoEvidence } = await serverSupabase
-    .from('job_photos_metadata')
-    .select('id, photo_url, photo_type, created_at')
-    .eq('job_id', resolvedParams.id)
-    .in('photo_type', ['before', 'after'])
-    .order('created_at', { ascending: true });
-
   const beforePhotos = (photoEvidence || []).filter(
     (p) => p.photo_type === 'before'
   );
   const afterPhotos = (photoEvidence || []).filter(
     (p) => p.photo_type === 'after'
   );
-
-  // Fetch building assessment
-  const { data: buildingAssessment } = await serverSupabase
-    .from('building_assessments')
-    .select('*')
-    .eq('job_id', resolvedParams.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
 
   interface BidWithContractor {
     id: string;
@@ -316,45 +343,13 @@ export default async function JobDetailPage2025({
     };
   }
 
-  // Get accepted bid
-  const acceptedBid = (bidsWithContractors as BidWithContractor[] | null)?.find(
-    (bid: BidWithContractor) => bid.status === 'accepted'
-  );
-
-  // Fetch contract
-  const { data: contract } = await serverSupabase
-    .from('contracts')
-    .select('id, status, contractor_signed_at, homeowner_signed_at')
-    .eq('job_id', resolvedParams.id)
-    .single();
-
   const contractStatus = !contract
     ? 'none'
     : contract.status === 'accepted'
       ? 'accepted'
       : 'pending';
 
-  // Fetch escrow transaction status for lifecycle tracking
-  const { data: escrowTransaction } = await serverSupabase
-    .from('escrow_transactions')
-    .select('id, status')
-    .eq('job_id', resolvedParams.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   const escrowStatus = escrowTransaction?.status || 'none';
-
-  const userDisplayName =
-    user.first_name && user.last_name
-      ? `${user.first_name} ${user.last_name}`.trim()
-      : user.email;
-
-  const { data: userProfile } = await serverSupabase
-    .from('profiles')
-    .select('profile_image_url, email, first_name, last_name, phone')
-    .eq('id', user.id)
-    .single();
 
   // Format bids for Professional component
   const formattedBids = (bidsWithContractors as BidWithContractor[]).map(
