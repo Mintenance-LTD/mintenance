@@ -16,6 +16,16 @@ import {
 } from 'lucide-react';
 import { formatRelativeDate } from './JobDetailHelpers';
 import type { Contractor } from './JobDetailHelpers';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 /* ==========================================
    TYPE DEFINITIONS
@@ -65,6 +75,17 @@ export interface Bid {
 
 export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
   const [accepting, setAccepting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  // 2026-07-06 audit #8: replaced native confirm()/alert() with accessible
+  // Radix dialogs (focus-trapped, Escape-dismissable, screen-reader announced
+  // as role="alertdialog"). `feedback` drives the result dialog; the reload
+  // side effects that used to follow the blocking alert() now run when that
+  // dialog is dismissed.
+  const [feedback, setFeedback] = useState<{
+    title: string;
+    message: string;
+    reloadOnDismiss?: boolean;
+  } | null>(null);
 
   const contractorName =
     bid.contractor.company_name ||
@@ -72,15 +93,7 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       ? `${bid.contractor.first_name} ${bid.contractor.last_name}`
       : bid.contractor.email);
 
-  const handleAcceptBid = async () => {
-    if (
-      !confirm(
-        `Are you sure you want to accept ${contractorName}'s bid of \u00A3${bid.amount.toLocaleString()}?`
-      )
-    ) {
-      return;
-    }
-
+  const performAccept = async () => {
     setAccepting(true);
     try {
       const csrfHeaders = await getCsrfHeaders();
@@ -111,45 +124,69 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
           errorMsg.includes('payment account setup') ||
           errorMsg.includes('payment setup')
         ) {
-          const message =
-            `Payment Setup Required\n\n` +
-            `This contractor has not completed their payment account setup yet. ` +
-            `They need to set up their Stripe Connect account to receive payments before you can accept their bid.\n\n` +
-            `What to do:\n` +
-            `- Contact the contractor and ask them to complete payment setup\n` +
-            `- Or choose a different contractor who has completed payment setup\n\n` +
-            `Once the contractor completes their payment setup, you'll be able to accept their bid.`;
-          alert(message);
+          setFeedback({
+            title: 'Payment setup required',
+            message:
+              `This contractor has not completed their payment account setup yet. ` +
+              `They need to set up their Stripe Connect account to receive payments before you can accept their bid.\n\n` +
+              `What to do:\n` +
+              `- Contact the contractor and ask them to complete payment setup\n` +
+              `- Or choose a different contractor who has completed payment setup`,
+          });
         } else if (response.status === 409) {
-          alert(
-            'A bid has already been accepted for this job. Refreshing the page...'
-          );
-          window.location.reload();
+          setFeedback({
+            title: 'Bid already accepted',
+            message:
+              'A bid has already been accepted for this job. The page will refresh so you can see the latest status.',
+            reloadOnDismiss: true,
+          });
         } else if (response.status === 403) {
-          alert(`Access denied: ${errorMsg}`);
+          setFeedback({ title: 'Access denied', message: errorMsg });
         } else if (response.status === 404) {
-          alert(`Error: ${errorMsg}`);
-          window.location.reload();
+          setFeedback({
+            title: 'Bid not found',
+            message: errorMsg,
+            reloadOnDismiss: true,
+          });
         } else {
-          alert(`Failed to accept bid: ${errorMsg}`);
+          setFeedback({ title: 'Could not accept bid', message: errorMsg });
         }
 
         setAccepting(false);
         return;
       }
 
-      const result = await response.json();
+      await response.json();
 
-      // Success - show confirmation and reload
-      alert(`Bid accepted successfully! The contractor has been notified.`);
-      window.location.reload(); // Refresh to show updated status
+      // Success \u2014 announce, then reload when the dialog is dismissed. Keep
+      // `accepting` true so the button stays disabled through the reload.
+      setFeedback({
+        title: 'Bid accepted',
+        message: 'The contractor has been notified.',
+        reloadOnDismiss: true,
+      });
     } catch (error) {
       logger.error('Error accepting bid:', error, { service: 'ui' });
-      alert(
-        `Failed to accept bid: ${error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'}\n\n` +
-          `If this problem persists, please refresh the page and try again.`
-      );
+      setFeedback({
+        title: 'Could not accept bid',
+        message: `${
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred. Please try again.'
+        }\n\nIf this problem persists, please refresh the page and try again.`,
+      });
       setAccepting(false);
+    }
+  };
+
+  // Fires once when the feedback dialog closes (OK, Escape, or overlay),
+  // running the reload side effect that used to follow the blocking alert().
+  const handleFeedbackClose = (open: boolean) => {
+    if (open) return;
+    const shouldReload = feedback?.reloadOnDismiss;
+    setFeedback(null);
+    if (shouldReload) {
+      window.location.reload();
     }
   };
 
@@ -362,7 +399,7 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
         </Link>
         {bid.status === 'pending' && (
           <button
-            onClick={handleAcceptBid}
+            onClick={() => setConfirmOpen(true)}
             disabled={accepting}
             className='btn-primary text-sm flex-1 disabled:opacity-50 disabled:cursor-not-allowed'
           >
@@ -370,6 +407,41 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
           </button>
         )}
       </div>
+
+      {/* Accessible confirmation (replaces window.confirm) */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Accept this bid?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Accept {contractorName}&apos;s bid of £
+              {bid.amount.toLocaleString()}? The contractor will be notified and
+              the other bids on this job will be declined.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={performAccept}>
+              Accept bid
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Accessible result dialog (replaces window.alert) */}
+      <AlertDialog open={feedback !== null} onOpenChange={handleFeedbackClose}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{feedback?.title}</AlertDialogTitle>
+            <AlertDialogDescription className='whitespace-pre-line'>
+              {feedback?.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

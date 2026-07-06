@@ -373,38 +373,6 @@ describe('PaymentService', () => {
     });
   });
 
-  describe('releaseEscrowPayment', () => {
-    it('should release escrow payment successfully', async () => {
-      mockApi.get.mockResolvedValue({
-        id: 'escrow-123',
-        amount: 100,
-        payment_intent_id: 'pi_test_123',
-        job: { contractor_id: 'contractor-123' },
-      });
-      mockApi.post.mockResolvedValue({});
-
-      await PaymentService.releaseEscrowPayment('escrow-123');
-
-      expect(mockApi.get).toHaveBeenCalledWith('/api/escrow/escrow-123/status');
-      expect(mockApi.post).toHaveBeenCalledWith(
-        '/api/payments/release-escrow',
-        {
-          transactionId: 'escrow-123',
-          contractorId: 'contractor-123',
-          amount: 100,
-        }
-      );
-    });
-
-    it('should handle transaction not found error', async () => {
-      mockApi.get.mockRejectedValue(new Error('Not found'));
-
-      await expect(
-        PaymentService.releaseEscrowPayment('escrow-123')
-      ).rejects.toThrow('Not found');
-    });
-  });
-
   describe('refundEscrowPayment', () => {
     it('should refund escrow payment successfully', async () => {
       mockApi.post.mockResolvedValue({});

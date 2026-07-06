@@ -27,7 +27,7 @@ jest.mock('../../services/JobService', () => ({
     completeJob: jest.fn(),
     submitBid: jest.fn(),
     acceptBid: jest.fn(),
-  }
+  },
 }));
 
 jest.mock('../../services/PaymentService', () => ({
@@ -39,7 +39,7 @@ jest.mock('../../services/PaymentService', () => ({
     savePaymentMethod: jest.fn(),
     getPaymentMethods: jest.fn(),
     deletePaymentMethod: jest.fn(),
-  }
+  },
 }));
 
 jest.mock('../../services/MessagingService', () => ({
@@ -50,7 +50,7 @@ jest.mock('../../services/MessagingService', () => ({
     markAsRead: jest.fn(),
     deleteMessage: jest.fn(),
     deleteConversation: jest.fn(),
-  }
+  },
 }));
 
 jest.mock('../../services/NotificationService', () => ({
@@ -61,7 +61,7 @@ jest.mock('../../services/NotificationService', () => ({
     markAllAsRead: jest.fn(),
     deleteNotification: jest.fn(),
     updateSettings: jest.fn(),
-  }
+  },
 }));
 
 jest.mock('../../services/AuthService', () => ({
@@ -75,7 +75,7 @@ jest.mock('../../services/AuthService', () => ({
     resetPassword: jest.fn(),
     verifyEmail: jest.fn(),
     onAuthStateChange: jest.fn(),
-  }
+  },
 }));
 
 // Mock all external services
@@ -221,7 +221,7 @@ describe('End-to-End User Journeys', () => {
         currency: 'usd',
         status: 'requires_payment_method',
         clientSecret: 'pi_test_secret',
-        metadata: { jobId: testJobId }
+        metadata: { jobId: testJobId },
       });
 
       PaymentService.createEscrowPayment = jest.fn().mockResolvedValueOnce({
@@ -240,7 +240,11 @@ describe('End-to-End User Journeys', () => {
       const paymentIntent = await PaymentService.createPaymentIntent(
         testAmount,
         'usd',
-        { jobId: testJobId, contractorId: mockContractor.id, clientId: mockHomeowner.id }
+        {
+          jobId: testJobId,
+          contractorId: mockContractor.id,
+          clientId: mockHomeowner.id,
+        }
       );
       const escrowTransaction = await PaymentService.createEscrowPayment(
         testJobId,
@@ -257,7 +261,8 @@ describe('End-to-End User Journeys', () => {
       // Step 6: Real-time messaging
       logger.debug('💬 Step 6: Real-time messaging');
 
-      const sendMessageMock = jest.fn()
+      const sendMessageMock = jest
+        .fn()
         .mockResolvedValueOnce({
           id: 'msg-1',
           jobId: testJobId,
@@ -323,20 +328,23 @@ describe('End-to-End User Journeys', () => {
         { type: 'message_received', jobId: testJobId }
       );
 
-      expect(NotificationService.sendPushNotification).toHaveBeenCalledTimes(
-        2
-      );
+      expect(NotificationService.sendPushNotification).toHaveBeenCalledTimes(2);
 
       // Step 8: Job completion and payment release
       logger.debug('🏁 Step 8: Job completion');
 
       JobService.completeJob = jest.fn().mockResolvedValueOnce(undefined);
-      PaymentService.releaseEscrowPayment = jest
+      PaymentService.releaseEscrow = jest
         .fn()
-        .mockResolvedValueOnce(undefined);
+        .mockResolvedValueOnce({ success: true });
 
       await JobService.completeJob(testJobId);
-      await PaymentService.releaseEscrowPayment(escrowTransaction.id);
+      await PaymentService.releaseEscrow({
+        paymentIntentId: 'pi_test_journey',
+        jobId: testJobId,
+        contractorId: mockContractor.id,
+        amount: testAmount,
+      });
 
       // Step 9: Final notification
       logger.debug('🎉 Step 9: Completion notification');
@@ -355,7 +363,7 @@ describe('End-to-End User Journeys', () => {
       expect(PaymentService.createPaymentIntent).toHaveBeenCalled();
       expect(MessagingService.sendMessage).toHaveBeenCalledTimes(2);
       expect(JobService.completeJob).toHaveBeenCalled();
-      expect(PaymentService.releaseEscrowPayment).toHaveBeenCalled();
+      expect(PaymentService.releaseEscrow).toHaveBeenCalled();
 
       logger.debug('✅ Complete job workflow test passed!');
     }, 10000); // 10 second timeout for complex test
@@ -372,7 +380,9 @@ describe('End-to-End User Journeys', () => {
         .mockRejectedValueOnce(new Error('Payment method declined'));
 
       try {
-        await PaymentService.createPaymentIntent(testAmount, 'usd', { jobId: testJobId });
+        await PaymentService.createPaymentIntent(testAmount, 'usd', {
+          jobId: testJobId,
+        });
         fail('Expected payment to fail');
       } catch (error) {
         expect(error.message).toBe('Payment method declined');
@@ -508,9 +518,7 @@ describe('End-to-End User Journeys', () => {
       );
 
       // Should call batch API once, not individual calls
-      expect(NotificationService.sendBulkNotification).toHaveBeenCalledTimes(
-        1
-      );
+      expect(NotificationService.sendBulkNotification).toHaveBeenCalledTimes(1);
     });
   });
 

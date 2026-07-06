@@ -6,7 +6,11 @@ import {
   validateImageUpload,
   MAX_FILE_SIZES,
 } from '@/lib/utils/fileValidation';
-import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // File upload security configuration
@@ -69,6 +73,34 @@ export const POST = withApiHandler(
       throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
     }
 
+    // Resolve and AUTHORIZE the optional job_id ONCE, before the upload loop.
+    // This route runs under the service-role client (RLS bypassed), so without
+    // an explicit ownership check any authenticated user could drop photos into
+    // another job's storage folder by supplying its id (IDOR). When job_id is
+    // omitted (photos uploaded during job creation, before the job row exists),
+    // fall back to the shared `job-photos/` prefix.
+    let jobId: string | null = null;
+    const rawJobId = formData.get('job_id');
+    if (typeof rawJobId === 'string' && rawJobId.length > 0) {
+      const UUID_RE =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(rawJobId)) {
+        throw new BadRequestError('Invalid job_id');
+      }
+      const { data: jobRow, error: jobErr } = await serverSupabase
+        .from('jobs')
+        .select('id, homeowner_id, contractor_id')
+        .eq('id', rawJobId)
+        .single();
+      if (jobErr || !jobRow) {
+        throw new BadRequestError('Job not found');
+      }
+      if (jobRow.homeowner_id !== user.id && jobRow.contractor_id !== user.id) {
+        throw new ForbiddenError('You do not have access to this job');
+      }
+      jobId = rawJobId;
+    }
+
     // Upload each photo to Supabase Storage
     const uploadedUrls: string[] = [];
     const failedFiles: string[] = [];
@@ -113,8 +145,7 @@ export const POST = withApiHandler(
       // Generate safe filename with user ID and timestamp to prevent collisions
       const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // Include job_id in path if provided (matches RLS policy folder check pattern)
-      const jobId = formData.get('job_id') as string | null;
+      // job_id was validated + ownership-checked above; safe to use as prefix.
       const fileName = jobId
         ? `${jobId}/${safeFileName}`
         : `job-photos/${safeFileName}`;

@@ -245,6 +245,9 @@ function setupPhotoMocks(
     jobError?: unknown;
     escrowData?: unknown;
     updateError?: unknown;
+    // Rows returned by the completion UPDATE ... .select('id'). Defaults to one
+    // row (winner). Pass [] to simulate losing the concurrent-completion race.
+    updateRows?: Array<{ id: string }>;
   } = {}
 ) {
   const jobResult = {
@@ -255,7 +258,12 @@ function setupPhotoMocks(
     data: 'escrowData' in overrides ? overrides.escrowData : { id: 'escrow-1' },
     error: null,
   };
-  const updateResult = { error: overrides.updateError ?? null };
+  const updateResult = {
+    data: overrides.updateError
+      ? null
+      : (overrides.updateRows ?? [{ id: 'job-1' }]),
+    error: overrides.updateError ?? null,
+  };
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'jobs') {
@@ -265,8 +273,13 @@ function setupPhotoMocks(
             single: vi.fn().mockResolvedValue(jobResult),
           }),
         }),
+        // Completion path: .update().eq('id').eq('status','in_progress').select('id')
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue(updateResult),
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue(updateResult),
+            }),
+          }),
         }),
       };
     }
@@ -540,6 +553,28 @@ describe('POST /api/jobs/[id]/photos/after', () => {
     expect(res.status).toBe(200);
 
     const body = await res.json();
+    expect(body.jobCompleted).toBe(false);
+  });
+
+  // ---- Concurrent completion race: CAS guard ----
+  it('should NOT auto-complete when the status-guarded update matches zero rows (lost race)', async () => {
+    // Job reads as in_progress and escrow is held, but the CAS update
+    // (.eq status in_progress) returns zero rows because a concurrent
+    // after-photo upload already flipped the job to completed. The route
+    // must not report jobCompleted or fan out a second completion.
+    setupPhotoMocks({ updateRows: [] });
+
+    const formData = new FormData();
+    formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
+    const res = await POST(req, segmentData('job-1'));
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.success).toBe(true);
     expect(body.jobCompleted).toBe(false);
   });
 

@@ -24,7 +24,6 @@ export class PaymentService {
   // ── Escrow ───────────────────────────────────────────────────────────────
   static createEscrowTransaction = EscrowService.createEscrowTransaction;
   static holdPaymentInEscrow = EscrowService.holdPaymentInEscrow;
-  static releaseEscrowPayment = EscrowService.releaseEscrowPayment;
   static refundEscrowPayment = EscrowService.refundEscrowPayment;
   static releaseEscrow = EscrowService.releaseEscrow;
   static refundPayment = EscrowService.refundPayment;

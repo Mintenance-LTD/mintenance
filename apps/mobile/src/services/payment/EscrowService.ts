@@ -36,26 +36,12 @@ export class EscrowService {
     });
   }
 
-  static async releaseEscrowPayment(transactionId: string): Promise<void> {
-    // Get escrow details via API
-    const transaction = await mobileApiClient.get<{
-      id: string;
-      amount: number;
-      payment_intent_id: string;
-      job?: { contractor_id: string };
-    }>(`/api/escrow/${transactionId}/status`);
-
-    const contractorId = transaction.job?.contractor_id;
-
-    await apiRequest('/api/payments/release-escrow', {
-      method: 'POST',
-      body: {
-        transactionId,
-        contractorId,
-        amount: transaction.amount,
-      },
-    });
-  }
+  // NOTE: `releaseEscrowPayment(transactionId)` was removed (2026-07-06 audit).
+  // It read `contractor_id` from `/api/escrow/[id]/status`, which never returns
+  // a `job` relation, so it always POSTed `contractorId: undefined` to
+  // /api/payments/release-escrow. No screen called it — mobile escrow release
+  // goes through the web redirect (P1-8). Use `releaseEscrow(params)` below,
+  // which passes an explicit, validated contractorId.
 
   static async refundEscrowPayment(transactionId: string): Promise<void> {
     await apiRequest('/api/payments/refund', {
