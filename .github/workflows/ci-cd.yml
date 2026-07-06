@@ -142,8 +142,13 @@ jobs:
           name: codecov-umbrella
         continue-on-error: true
 
-      - name: Security audit
-        run: npm audit --audit-level high
+      # Blocking gate: fails the PR on any NEW high/critical advisory in the
+      # production dependency tree. Pre-existing tooling advisories are pinned
+      # in audit-ci.jsonc's allowlist (2026-07-06 audit #1). Replaces the bare
+      # `npm audit --audit-level high`, which exited non-zero on unfixable
+      # dev-tooling CVEs and made this step permanently red.
+      - name: Security audit (production deps, high+critical)
+        run: npm run audit:security
 
   mobile-pr-smoke:
     name: Mobile E2E Smoke (PR)
