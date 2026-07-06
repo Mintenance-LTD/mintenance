@@ -22,13 +22,13 @@ Standing punch list (refreshed by the 2026-07-02/04 tech-debt sessions):
   (fixing the tier-demotion bug: cancellations never demoted fee tier), and migration
   `20260704090000` drops the table — it applies at deploy time with the new code; do NOT apply it
   live while prod runs pre-merge code.
-- **Client/schema payload mismatches** (found by the `.strict()` sweep; chip task_2391747c):
-  embedded-checkout sends `bidId` (silently dropped), admin generate-1099 sends
-  `{contractorId, year}` vs schema `{taxYear, contractorIds?}` (400s in prod), security-dashboard
-  sends `ip` vs `ipAddress`.
-- **Incremental**: Zod `.strict()` at ~40% (95/236; shared `lib/validation/schemas.ts` is the next
-  blast-radius chunk); hex literals in 187 web files (ride the Mint Editorial redesign); ~650 source
+- **Incremental**: Zod `.strict()` at ~44% (95/214; shared `lib/validation/schemas.ts` is the next
+  blast-radius chunk); hex literals in 187 web files (ride the Mint Editorial redesign); 684 source
   files over the 300-line MDC limit (split only when touching for other reasons).
+- **Perf (live-DB advisor, 2026-07-04)**: RLS `auth_rls_initplan` rewrite never landed — 644 warns
+  across 298 tables (wrap `auth.<fn>()` as `(select auth.<fn>())`); +984 multiple-permissive-policy
+  warns, 139 unindexed FKs (incl. 3 on `escrow_transactions`). Check for an orphaned chip before
+  restarting the initplan rewrite.
 - **P1-8** — mobile escrow funding via Stripe RN SDK (needs native dep + EAS rebuild); homeowner
   currently redirects to web.
 
@@ -39,6 +39,14 @@ old build chain had silently omitted `@mintenance/data-access`), P1-9 closed (Jo
 deleted — was an unreachable stub), 24 request-body schemas `.strict()`ed, disabled-test triage
 complete (the "~316 disabled" figure was a grep artifact matching `process.exit(`; real count was 89
 → 6 re-enabled, 30 dead deleted, 56 tracked — unit-test skips reference issues #1154/#1155).
+
+Closed by the 2026-07-05 session: 3 client/schema payload mismatches fixed (generate-1099 was 400ing
+in prod; embedded-checkout now records `bidId`; security-dashboard payload type), walkthrough
+SEC-002 upload hardening (size cap + magic-byte sniff) + restored a frame-extraction block a merge
+had dropped (route wasn't compiling), mobile Sentry logger→SDK bridge wired (instrumented errors
+never reached Sentry), 5 refund tests fixed (stale `stripe_payment_intent_id` mock col). Both suites
+now fully green: web 2485/2485, mobile 12347/0-fail. `contractor_profiles` drop + skills-sync
+trigger applied live via MCP.
 
 ## SECTION 1: ABSOLUTE VERIFICATION REQUIREMENTS - NO FALSE RESULTS
 
