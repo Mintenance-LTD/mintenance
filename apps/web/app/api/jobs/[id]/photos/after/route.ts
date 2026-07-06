@@ -335,16 +335,23 @@ export const POST = withApiHandler(
           }
 
           if (canAutoComplete) {
-            const { error: completeError } = await serverSupabase
-              .from('jobs')
-              .update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', jobId);
+            const { data: completedRows, error: completeError } =
+              await serverSupabase
+                .from('jobs')
+                .update({
+                  status: 'completed',
+                  completed_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', jobId)
+                // CAS guard: only transition from in_progress. Two concurrent
+                // after-photo uploads would otherwise both flip the job to
+                // completed and double-fire completion notifications. A zero-row
+                // result means another request won the race — skip the fan-out.
+                .eq('status', 'in_progress')
+                .select('id');
 
-            if (!completeError) {
+            if (!completeError && completedRows && completedRows.length > 0) {
               jobCompleted = true;
 
               // 2026-05-24 audit-33 P1: schedule the 7-day auto-release
