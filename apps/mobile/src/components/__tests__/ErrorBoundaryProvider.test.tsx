@@ -1,6 +1,12 @@
 import React from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import {
+  render,
+  fireEvent,
+  waitFor,
+  renderHook,
+  act,
+} from '@testing-library/react-native';
 import {
   AppErrorBoundary,
   withScreenErrorBoundary,
@@ -13,6 +19,11 @@ import {
   AsyncErrorBoundary,
 } from '../ErrorBoundaryProvider';
 import { logger } from '../../utils/logger';
+import { captureException } from '../../config/sentry';
+
+const mockCaptureException = captureException as jest.Mock;
+const mockLoggerError = logger.error as jest.Mock;
+const mockLoggerWarn = logger.warn as jest.Mock;
 
 // Mock dependencies
 jest.mock('../../utils/logger', () => ({
@@ -492,40 +503,99 @@ describe('ErrorBoundaryProvider', () => {
   });
 
   describe('useErrorHandler hook', () => {
-    // Note: Tests involving dynamic import of Sentry are skipped because Jest doesn't support
-    // dynamic imports without --experimental-vm-modules flag. The actual functionality works
-    // in production; these tests verify the core logging behavior.
+    // #1155: handleError now reports to Sentry via a synchronous
+    // require('../config/sentry') (matching AppErrorBoundary), so these
+    // tests run under Jest — the prior import().then() couldn't be
+    // evaluated without --experimental-vm-modules and left them stubbed.
 
-    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
-    it.skip('should provide handleError function (skipped: dynamic import)', async () => {
-      // This test is skipped due to Jest's limitation with dynamic imports
-      // The hook uses import('../config/sentry') which requires --experimental-vm-modules
-      // The core functionality (logging) is tested, Sentry integration works in production
+    it('should provide handleError function that logs the error', () => {
+      const { result } = renderHook(() => useErrorHandler());
+      const error = new Error('boom');
+
+      act(() => {
+        result.current.handleError(error, 'TestContext');
+      });
+
+      expect(typeof result.current.handleError).toBe('function');
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'Error in TestContext',
+        error
+      );
     });
 
-    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
-    it.skip('should use default context when not provided (skipped: dynamic import)', async () => {
-      // Skipped for same reason as above
+    it('should use default context when not provided', () => {
+      const { result } = renderHook(() => useErrorHandler());
+
+      act(() => {
+        result.current.handleError(new Error('boom'));
+      });
+
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'Error in component',
+        expect.any(Error)
+      );
+      // Sentry tag falls back to 'manual' when no context is supplied
+      expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
+        tags: { context: 'manual' },
+      });
     });
 
-    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
-    it.skip('should provide handleAsyncError function (skipped: dynamic import)', async () => {
-      // Skipped for same reason as above
+    it('should provide handleAsyncError that returns the operation result', async () => {
+      const { result } = renderHook(() => useErrorHandler());
+      const op = jest.fn().mockResolvedValue('ok');
+
+      let value: unknown;
+      await act(async () => {
+        value = await result.current.handleAsyncError(op, 'asyncCtx');
+      });
+
+      expect(value).toBe('ok');
+      expect(op).toHaveBeenCalledTimes(1);
+      expect(mockLoggerError).not.toHaveBeenCalled();
     });
 
-    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
-    it.skip('should re-throw error in handleAsyncError (skipped: dynamic import)', async () => {
-      // Skipped for same reason as above
+    it('should re-throw error in handleAsyncError and log it', async () => {
+      const { result } = renderHook(() => useErrorHandler());
+      const error = new Error('async fail');
+      const op = jest.fn().mockRejectedValue(error);
+
+      await act(async () => {
+        await expect(
+          result.current.handleAsyncError(op, 'asyncCtx')
+        ).rejects.toThrow('async fail');
+      });
+
+      expect(mockLoggerError).toHaveBeenCalledWith('Error in asyncCtx', error);
     });
 
-    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
-    it.skip('should report to Sentry in handleError (skipped: dynamic import)', async () => {
-      // Skipped for same reason as above
+    it('should report to Sentry in handleError with the context tag', () => {
+      const { result } = renderHook(() => useErrorHandler());
+      const error = new Error('boom');
+
+      act(() => {
+        result.current.handleError(error, 'sentryCtx');
+      });
+
+      expect(mockCaptureException).toHaveBeenCalledWith(error, {
+        tags: { context: 'sentryCtx' },
+      });
     });
 
-    // SKIP: Tracked in #1155 — Jest cannot evaluate dynamic import() of the Sentry config without --experimental-vm-modules
-    it.skip('should handle Sentry import failure gracefully (skipped: dynamic import)', async () => {
-      // Skipped for same reason as above
+    it('should handle a throwing Sentry call gracefully', () => {
+      mockCaptureException.mockImplementationOnce(() => {
+        throw new Error('sentry down');
+      });
+      const { result } = renderHook(() => useErrorHandler());
+
+      expect(() => {
+        act(() => {
+          result.current.handleError(new Error('boom'), 'ctx');
+        });
+      }).not.toThrow();
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        'Failed to report error',
+        expect.any(Error)
+      );
     });
 
     it('should be memoized to prevent unnecessary re-renders', () => {
