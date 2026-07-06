@@ -22,10 +22,16 @@ export const GET = withApiHandler(
     const value = url.searchParams.get('value');
     const redirectTarget = url.searchParams.get('redirect') || '/dashboard';
 
-    // Only allow relative redirects to prevent open-redirect.
-    const safeRedirect = redirectTarget.startsWith('/')
-      ? redirectTarget
-      : '/dashboard';
+    // Only allow clean, leading-slash INTERNAL redirects. A bare
+    // `startsWith('/')` also accepts protocol-relative `//evil.com` and the
+    // backslash variant `/\evil.com`, which browsers resolve to an external
+    // origin — an open redirect (CWE-601). Mirror the guard in
+    // lib/notifications/safe-action-url.ts.
+    const isSafeInternalRedirect =
+      redirectTarget.startsWith('/') &&
+      !redirectTarget.startsWith('//') &&
+      !redirectTarget.startsWith('/\\');
+    const safeRedirect = isSafeInternalRedirect ? redirectTarget : '/dashboard';
 
     const cookieStore = await cookies();
     cookieStore.set(

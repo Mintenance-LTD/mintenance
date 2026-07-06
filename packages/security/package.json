@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@mintenance/shared": "file:../shared",
-    "dompurify": "^3.1.2",
+    "dompurify": "^3.3.1",
     "jsdom": "^24.0.0"
   },
   "devDependencies": {
