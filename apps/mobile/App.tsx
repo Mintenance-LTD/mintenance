@@ -7,7 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
 import * as Sentry from '@sentry/react-native';
 import { StripeProvider } from '@stripe/stripe-react-native';
-import { logger } from './src/utils/logger';
+import { logger, setSentryFunctions } from './src/utils/logger';
 import { config } from './src/config/environment';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -150,6 +150,22 @@ Sentry.init({
   },
   enableAutoSessionTracking: true,
   sessionTrackingIntervalMillis: 30000,
+});
+
+// Bridge the shared `logger` abstraction to the live Sentry client. Without
+// this, logger.ts keeps its no-op Sentry stubs, so every logger.error /
+// logger.warn (including the fatal global handler in index.ts) silently
+// dropped its captureException/captureMessage/breadcrumb — only raw SDK-level
+// crashes reached Sentry. config/sentry.ts::initSentry() used to own this
+// wiring but is never called (and calling it would re-init Sentry with a
+// config lacking the redaction beforeSend above), so we wire the bridge here,
+// against the client just initialised.
+setSentryFunctions({
+  captureMessage: (message, level) =>
+    Sentry.captureMessage(message, level as Sentry.SeverityLevel),
+  captureException: (error, context) =>
+    Sentry.captureException(error, context ? { extra: context } : undefined),
+  addBreadcrumb: (breadcrumb) => Sentry.addBreadcrumb(breadcrumb),
 });
 
 // ============================================================================
