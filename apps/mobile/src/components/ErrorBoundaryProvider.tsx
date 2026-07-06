@@ -40,12 +40,17 @@ export const withScreenErrorBoundary = <P extends object>(
   } = {}
 ) => {
   const ComponentWithErrorBoundary = (props: P) =>
-    React.createElement(ScreenErrorBoundary as unknown as React.ComponentType<Record<string, unknown>>, {
-      screenName,
-      fallbackRoute: options.fallbackRoute,
-      showHomeButton: options.showHomeButton,
-      children: React.createElement(WrappedComponent, props as P),
-    });
+    React.createElement(
+      ScreenErrorBoundary as unknown as React.ComponentType<
+        Record<string, unknown>
+      >,
+      {
+        screenName,
+        fallbackRoute: options.fallbackRoute,
+        showHomeButton: options.showHomeButton,
+        children: React.createElement(WrappedComponent, props as P),
+      }
+    );
 
   ComponentWithErrorBoundary.displayName = `withScreenErrorBoundary(${screenName})`;
   return ComponentWithErrorBoundary;
@@ -103,14 +108,19 @@ export const useErrorHandler = () => {
   const handleError = React.useCallback((error: Error, context?: string) => {
     logger.error(`Error in ${context || 'component'}`, error);
 
-    // Report to error tracking service
+    // Report to error tracking service. Synchronous require, matching
+    // AppErrorBoundary above — config/sentry is loaded at app startup so
+    // there's no lazy-load benefit, and require keeps this fire-and-forget
+    // path testable (Jest can't evaluate dynamic import() without
+    // --experimental-vm-modules, issue #1155). require also lets the
+    // try/catch actually catch a throwing Sentry call — a throw inside the
+    // old import().then() escaped as an unhandled rejection.
     try {
-      import('../config/sentry').then(({ captureException }) => {
-        captureException(error, {
-          tags: {
-            context: context || 'manual',
-          },
-        });
+      const { captureException } = require('../config/sentry');
+      captureException(error, {
+        tags: {
+          context: context || 'manual',
+        },
       });
     } catch (sentryError) {
       logger.warn('Failed to report error', sentryError);
@@ -118,7 +128,10 @@ export const useErrorHandler = () => {
   }, []);
 
   const handleAsyncError = React.useCallback(
-    async (asyncOperation: () => Promise<unknown>, context?: string): Promise<unknown> => {
+    async (
+      asyncOperation: () => Promise<unknown>,
+      context?: string
+    ): Promise<unknown> => {
       try {
         return await asyncOperation();
       } catch (error) {
