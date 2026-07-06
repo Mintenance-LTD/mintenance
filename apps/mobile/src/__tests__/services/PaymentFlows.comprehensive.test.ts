@@ -204,28 +204,26 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
   });
 
   describe('Escrow Management Workflows', () => {
-    it('should release escrow via the status lookup + release endpoint', async () => {
-      const transactionId = 'escrow-123';
+    it('should release escrow via the release endpoint with explicit params', async () => {
+      const paymentIntentId = 'pi_test_123';
+      const jobId = 'job-789';
       const contractorId = 'contractor-456';
       const amount = 300;
 
-      mockApi.get.mockResolvedValueOnce({
-        id: transactionId,
-        amount,
-        payment_intent_id: 'pi_test_123',
-        job: { contractor_id: contractorId },
-      });
       mockApi.post.mockResolvedValueOnce({ success: true });
 
-      await PaymentService.releaseEscrowPayment(transactionId);
+      await PaymentService.releaseEscrow({
+        paymentIntentId,
+        jobId,
+        contractorId,
+        amount,
+      });
 
-      expect(mockApi.get).toHaveBeenCalledWith(
-        `/api/escrow/${transactionId}/status`
-      );
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/payments/release-escrow',
         {
-          transactionId,
+          paymentIntentId,
+          jobId,
           contractorId,
           amount,
         }
