@@ -1,0 +1,28 @@
+{
+  // Production-dependency vulnerability gate (2026-07-06 audit #1).
+  // Blocks a PR when a NEW high or critical advisory appears in the
+  // production dependency tree. `skip-dev` excludes build/test tooling
+  // (vitest, vite, metro, detox, remotion studio) whose advisories never
+  // reach the deployed runtime.
+  //
+  // The allowlist below pins the high+critical advisories that already
+  // existed on 2026-07-06 — all transitive via tooling with no clean
+  // upstream fix yet (grpc-js, minimatch, form-data, undici, ws,
+  // shell-quote). A follow-up `npm audit fix` pass should shrink this list;
+  // do NOT add to it without recording why the advisory is accepted.
+  "high": true,
+  "critical": true,
+  "skip-dev": true,
+  "report-type": "important",
+  "allowlist": [
+    "GHSA-5375-pq7m-f5r2",
+    "GHSA-99f4-grh7-6pcq",
+    "GHSA-hmw2-7cc7-3qxx",
+    "GHSA-3ppc-4f35-3m26",
+    "GHSA-7r86-cg39-jmmj",
+    "GHSA-23c5-xmqv-rm74",
+    "GHSA-w7jw-789q-3m8p",
+    "GHSA-vxpw-j846-p89q",
+    "GHSA-96hv-2xvq-fx4p"
+  ]
+}
