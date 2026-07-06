@@ -73,24 +73,24 @@ npm run build 2>&1
 
 ### HARD LIMITS (NO EXCEPTIONS):
 
-| Metric                    | Maximum     | Current State (2026-04-23)                                      | Priority |
-| ------------------------- | ----------- | --------------------------------------------------------------- | -------- |
-| File size                 | 300 lines   | 914 lines max (0 files >1K; 617 source files >300)              | MEDIUM   |
-| Function size             | 50 lines    | 200-400+ line route handlers remain                             | MEDIUM   |
-| Class methods             | 7           | Still large in some services                                    | MEDIUM   |
-| `any` types (web source)  | 0           | ~0 in pages (excl. test mocks)                                  | OK       |
-| `any` types (mobile)      | 0           | 14 production files, 0 actionable after categorise (2026-05-23) | OK       |
-| console.\* (web app code) | 0           | 9 (incl. logger module + admin error boundary)                  | LOW      |
-| console.\* (mobile)       | 0           | 82 raw / 0 actionable after categorise (2026-05-23)             | OK       |
-| Hex literals (web)        | 0           | 625+ across 117 files (design-tokens adoption partial)          | MEDIUM   |
-| Web tests                 | 80% pass    | TODO — refresh via P2.15 (CLAUDE.md staleness flag)             | TBD      |
-| Mobile tests              | 80% pass    | TODO — refresh via P2.15                                        | TBD      |
-| withApiHandler            | 100% routes | 100% effective (412/418 — 6 routes are aliases/410s)            | OK       |
-| Supabase canonical import | 100% files  | 100% (0 direct createClient in source)                          | OK       |
-| Zod `.strict()` schemas   | 100%        | 44 / 239 (~18%)                                                 | MEDIUM   |
-| Admin MFA on mutations    | 100%        | 100% (32/32 mutating routes; +6 sensitive GETs)                 | OK       |
-| Admin activity logging    | 100%        | ~31% (10/32 inline; logActivity wrapper-option ready)           | MEDIUM   |
-| RLS coverage              | 100%        | 99.7% (330/331; `spatial_ref_sys` ecosystem-blocked)            | OK       |
+| Metric                    | Maximum     | Current State (2026-07-05, measured)                             | Priority |
+| ------------------------- | ----------- | ---------------------------------------------------------------- | -------- |
+| File size                 | 300 lines   | 1036 max; 684 source files >300 (157 >500, 23 >700)              | MEDIUM   |
+| Function size             | 50 lines    | 200-400+ line route handlers remain (top: accept/ai-search 770+) | MEDIUM   |
+| Class methods             | 7           | Still large in some services                                     | MEDIUM   |
+| `any` types (web source)  | 0           | ~172 total, ~0 in production pages (rest = test mocks/scripts)   | OK       |
+| `any` types (mobile)      | 0           | ~0 actionable in production (bulk is **tests** fixtures)         | OK       |
+| console.\* (web app code) | 0           | 0 in app code (7 infra: instrumentation/next.config/SW)          | OK       |
+| console.\* (mobile)       | 0           | 97 raw / 0 actionable (error handlers + test utils)              | OK       |
+| Hex literals (web)        | 0           | 187 files (count rose vs 117 via better detection; tokens WIP)   | MEDIUM   |
+| Web tests                 | 80% pass    | 100% — 2485/2485 pass, 0 fail (2026-07-05)                       | OK       |
+| Mobile tests              | 80% pass    | ~100% — 12347 pass, 0 fail, 11 tracked skips (#1154/#1155)       | OK       |
+| withApiHandler            | 100% routes | ~404/440 effective (remainder aliases/410s/non-handlers)         | OK       |
+| Supabase canonical import | 100% files  | 100% (0 direct createClient in source)                           | OK       |
+| Zod `.strict()` schemas   | 100%        | 95 / 214 z.object (~44%)                                         | MEDIUM   |
+| Admin MFA on mutations    | 100%        | 100% (33/33 mutating routes; +6 sensitive GETs)                  | OK       |
+| Admin activity logging    | 100%        | 100% (33/33 mutating routes)                                     | OK       |
+| RLS coverage              | 100%        | 99.7% (`spatial_ref_sys` ecosystem-blocked; advisor 0 errors)    | OK       |
 
 ## SECTION 3: MANDATORY SUB-AGENT USAGE RULES
 
