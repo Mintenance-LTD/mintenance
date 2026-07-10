@@ -20,9 +20,14 @@ module.exports = {
     'prettier --write',
   ],
 
-  // Test files - run related tests in the correct workspace
+  // Test files - run related tests in the correct workspace.
+  // --passWithNoTests (parity with the mobile rule below) is required so that
+  // staging a file the default vitest config excludes — e.g. the real-DB
+  // integration tests in __tests__/integration-real/** (which run via
+  // vitest.integration.config.ts, not this one) — doesn't fail the hook with
+  // "No test files found".
   'apps/web/**/__tests__/**/*.{ts,tsx}': (filenames) =>
-    `npm run test -w @mintenance/web -- --bail 1 ${filenames.join(' ')}`,
+    `npm run test -w @mintenance/web -- --bail 1 --passWithNoTests ${filenames.join(' ')}`,
   'apps/mobile/**/__tests__/**/*.{ts,tsx}': (filenames) =>
     `npm run test -w @mintenance/mobile -- --passWithNoTests ${filenames.join(' ')}`,
 
