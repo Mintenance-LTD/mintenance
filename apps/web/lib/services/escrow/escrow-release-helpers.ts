@@ -23,6 +23,35 @@ interface JobLike {
 }
 
 /**
+ * Pre-fetch Stripe Connect account IDs for a batch of contractor (payee) ids,
+ * avoiding N+1 queries during auto-release. Returns payee_id ->
+ * stripe_connect_account_id; payees without an account are omitted.
+ *
+ * Callers pass payee_id (locked at escrow creation), NOT the current
+ * job.contractor_id — if the contractor was reassigned mid-job the funds must
+ * still go to the original payee (LFC-P1-1, 2026-04-13 audit).
+ */
+export async function fetchContractorStripeAccounts(
+  payeeIds: string[]
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const ids = [...new Set(payeeIds.filter(Boolean))];
+  if (ids.length === 0) return map;
+
+  const { data: contractors } = await serverSupabase
+    .from('profiles')
+    .select('id, stripe_connect_account_id')
+    .in('id', ids);
+
+  for (const c of contractors ?? []) {
+    if (c.stripe_connect_account_id) {
+      map.set(c.id, c.stripe_connect_account_id);
+    }
+  }
+  return map;
+}
+
+/**
  * Retrieve the charge ID from a payment intent for fee tracking.
  */
 export async function getChargeId(
