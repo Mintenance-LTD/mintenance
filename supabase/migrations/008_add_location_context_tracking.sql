@@ -7,8 +7,33 @@
 -- ENHANCE CONTRACTOR_LOCATIONS TABLE
 -- ============================================================================
 
+-- 2026-07-10: ensure the base table exists before enhancing it. The original
+-- migration that CREATEd contractor_locations is no longer present in the repo,
+-- so on a fresh `supabase db reset` the ALTER TABLE statements below failed with
+-- 42P01 ("relation does not exist") and aborted the reset. This CREATE mirrors
+-- the base columns as they exist in production; the columns added further down
+-- (context, eta_minutes, meeting_id, updated_at, geohash) are intentionally
+-- omitted here and remain as idempotent ADD COLUMN IF NOT EXISTS statements.
+CREATE TABLE IF NOT EXISTS public.contractor_locations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contractor_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  job_id uuid REFERENCES public.jobs(id) ON DELETE SET NULL,
+  latitude numeric NOT NULL,
+  longitude numeric NOT NULL,
+  accuracy numeric,
+  altitude numeric,
+  heading numeric,
+  speed numeric,
+  is_active boolean DEFAULT true,
+  is_sharing_location boolean DEFAULT false,
+  location_timestamp timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now(),
+  device_info jsonb DEFAULT '{}'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb
+);
+
 -- Add context column for tracking state
-ALTER TABLE contractor_locations 
+ALTER TABLE contractor_locations
 ADD COLUMN IF NOT EXISTS context VARCHAR(20) DEFAULT 'available';
 
 -- Add ETA column for arrival time prediction
