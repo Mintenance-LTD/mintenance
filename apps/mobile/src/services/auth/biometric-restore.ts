@@ -51,6 +51,15 @@ export async function restoreSessionFromBiometricTokens({
         throw new Error('Failed to restore session from refresh token.');
       }
 
+      // Persist the rotated refresh token so the NEXT biometric sign-in uses a
+      // fresh token. Supabase rotates refresh tokens on every refresh; without
+      // this write-back the stored token goes stale after one cycle and
+      // biometric sign-in fails with "session expired". (2026-07-10 audit P2-3)
+      const { BiometricService } = await import('../BiometricService');
+      await BiometricService.updateStoredRefreshToken(
+        data.session.refresh_token
+      );
+
       const user = await getCurrentUser();
       return { user, session: data.session };
     }
