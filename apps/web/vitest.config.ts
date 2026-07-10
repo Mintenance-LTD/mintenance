@@ -54,13 +54,22 @@ export default defineConfig({
         'coverage/**',
         'dist/**',
       ],
+      // Coverage thresholds. NOTE: these keys must sit DIRECTLY under
+      // `thresholds` — Vitest does NOT support Jest's `global: { ... }`
+      // nesting. When nested, Vitest treated "global" as a file-glob (which
+      // matched nothing), read all four real thresholds as `undefined`, and
+      // enforced nothing — so `--coverage` could never fail. (2026-07-10 audit)
+      //
+      // The numbers below are a REGRESSION FLOOR set just under the measured
+      // baseline on 2026-07-10 (stmts 45.85 / branch 38.92 / funcs 52.36 /
+      // lines 46.62). They prevent coverage from sliding backwards. The
+      // long-term target remains 70/65/70/70 — ratchet these up as coverage
+      // improves rather than jumping straight to 70 (which would fail today).
       thresholds: {
-        global: {
-          statements: 70,
-          branches: 65,
-          functions: 70,
-          lines: 70,
-        },
+        statements: 45,
+        branches: 38,
+        functions: 52,
+        lines: 46,
       },
     },
 
