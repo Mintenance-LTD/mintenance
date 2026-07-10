@@ -22,10 +22,17 @@ export const GET = withApiHandler(
     const value = url.searchParams.get('value');
     const redirectTarget = url.searchParams.get('redirect') || '/dashboard';
 
-    // Only allow relative redirects to prevent open-redirect.
-    const safeRedirect = redirectTarget.startsWith('/')
-      ? redirectTarget
-      : '/dashboard';
+    // Only allow same-origin relative redirects to prevent open-redirect.
+    // `startsWith('/')` alone is NOT enough: `//evil.com` and `/\evil.com`
+    // both start with '/' yet `new URL()` resolves them to an EXTERNAL origin
+    // (e.g. new URL('//evil.com', base) -> https://evil.com), giving a
+    // phishing primitive. Require a single leading slash not followed by
+    // another slash or backslash. (2026-07-10 audit)
+    const isSafeRelative =
+      redirectTarget.startsWith('/') &&
+      !redirectTarget.startsWith('//') &&
+      !redirectTarget.startsWith('/\\');
+    const safeRedirect = isSafeRelative ? redirectTarget : '/dashboard';
 
     const cookieStore = await cookies();
     cookieStore.set(

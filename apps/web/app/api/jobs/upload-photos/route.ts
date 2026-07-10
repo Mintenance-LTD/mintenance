@@ -6,7 +6,11 @@ import {
   validateImageUpload,
   MAX_FILE_SIZES,
 } from '@/lib/utils/fileValidation';
-import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // File upload security configuration
@@ -69,6 +73,41 @@ export const POST = withApiHandler(
       throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
     }
 
+    // IDOR fix (2026-07-10 audit): the storage path is prefixed with the
+    // client-supplied `job_id`, and the upload uses the service-role client
+    // (which bypasses RLS), so without this check any authenticated user could
+    // write files into any job's storage prefix. When a job_id is supplied,
+    // require that the caller is that job's homeowner or assigned contractor
+    // (admins exempt). job_id is normally absent here — photos are uploaded
+    // pre-creation and attached when the job is POSTed.
+    const jobId = (formData.get('job_id') as string | null) || null;
+    if (jobId) {
+      const { data: jobRow, error: jobLookupError } = await serverSupabase
+        .from('jobs')
+        .select('id, homeowner_id, contractor_id')
+        .eq('id', jobId)
+        .maybeSingle();
+
+      if (jobLookupError) {
+        logger.error('Failed to verify job ownership for photo upload', {
+          service: 'jobs',
+          jobId,
+          userId: user.id,
+          error: jobLookupError.message,
+        });
+        throw new InternalServerError('Failed to verify job access');
+      }
+      if (!jobRow) {
+        throw new BadRequestError('Invalid job reference');
+      }
+
+      const isParticipant =
+        jobRow.homeowner_id === user.id || jobRow.contractor_id === user.id;
+      if (!isParticipant && user.role !== 'admin') {
+        throw new ForbiddenError('You do not have access to this job');
+      }
+    }
+
     // Upload each photo to Supabase Storage
     const uploadedUrls: string[] = [];
     const failedFiles: string[] = [];
@@ -113,8 +152,7 @@ export const POST = withApiHandler(
       // Generate safe filename with user ID and timestamp to prevent collisions
       const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // Include job_id in path if provided (matches RLS policy folder check pattern)
-      const jobId = formData.get('job_id') as string | null;
+      // Include job_id in path if provided (ownership verified above).
       const fileName = jobId
         ? `${jobId}/${safeFileName}`
         : `job-photos/${safeFileName}`;
