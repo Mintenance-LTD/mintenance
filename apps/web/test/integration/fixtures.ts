@@ -98,6 +98,7 @@ export async function createTestJob(opts: {
       homeowner_id: opts.homeowner_id,
       title,
       description: 'Integration test job — safe to delete',
+      location: 'Integration test location', // NOT NULL in the production schema
       category: 'plumbing',
       urgency: 'medium',
       status: opts.status ?? 'posted',

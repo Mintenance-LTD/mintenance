@@ -2,6 +2,32 @@
 -- Created: January 2025
 -- Purpose: Support gradual rollout of new API controllers
 
+-- 2026-07-10: compatibility shim so a fresh `supabase db reset` succeeds. The
+-- original migration that created public.users is no longer in the repo (users
+-- was later consolidated into profiles by 20260208002000_eliminate_users_table,
+-- which DROPs this table, and 20260212000000 recreates public.users as a view
+-- over profiles). This migration and other pre-elimination ones still reference
+-- public.users in RLS policies, so on a clean database the CREATE POLICY calls
+-- below failed with 42P01 ("relation does not exist"). This minimal table lets
+-- those policies be created; it is dropped again by the elimination migration.
+-- IF NOT EXISTS makes it a no-op on any DB where a `users` relation already
+-- exists (e.g. production, where it is now a view).
+-- Columns below are the union of every public.users column referenced by any
+-- pre-elimination migration (RLS predicates + performance indexes): id, role,
+-- email, created_at, admin_verified, is_available, contractor_id, status. They
+-- only need to EXIST so those statements are valid on a fresh reset; the table
+-- carries no data and is dropped by the elimination migration.
+CREATE TABLE IF NOT EXISTS public.users (
+  id uuid PRIMARY KEY,
+  role text,
+  email text,
+  created_at timestamptz DEFAULT now(),
+  admin_verified boolean DEFAULT false,
+  is_available boolean DEFAULT true,
+  contractor_id uuid,
+  status text
+);
+
 -- Create feature_flags table
 CREATE TABLE IF NOT EXISTS public.feature_flags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
