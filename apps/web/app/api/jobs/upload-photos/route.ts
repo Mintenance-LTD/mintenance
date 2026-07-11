@@ -73,32 +73,39 @@ export const POST = withApiHandler(
       throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
     }
 
-    // Resolve and AUTHORIZE the optional job_id ONCE, before the upload loop.
-    // This route runs under the service-role client (RLS bypassed), so without
-    // an explicit ownership check any authenticated user could drop photos into
-    // another job's storage folder by supplying its id (IDOR). When job_id is
-    // omitted (photos uploaded during job creation, before the job row exists),
-    // fall back to the shared `job-photos/` prefix.
-    let jobId: string | null = null;
-    const rawJobId = formData.get('job_id');
-    if (typeof rawJobId === 'string' && rawJobId.length > 0) {
-      const UUID_RE =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!UUID_RE.test(rawJobId)) {
-        throw new BadRequestError('Invalid job_id');
-      }
-      const { data: jobRow, error: jobErr } = await serverSupabase
+    // IDOR fix (2026-07-10 audit): the storage path is prefixed with the
+    // client-supplied `job_id`, and the upload uses the service-role client
+    // (which bypasses RLS), so without this check any authenticated user could
+    // write files into any job's storage prefix. When a job_id is supplied,
+    // require that the caller is that job's homeowner or assigned contractor
+    // (admins exempt). job_id is normally absent here — photos are uploaded
+    // pre-creation and attached when the job is POSTed.
+    const jobId = (formData.get('job_id') as string | null) || null;
+    if (jobId) {
+      const { data: jobRow, error: jobLookupError } = await serverSupabase
         .from('jobs')
         .select('id, homeowner_id, contractor_id')
-        .eq('id', rawJobId)
-        .single();
-      if (jobErr || !jobRow) {
-        throw new BadRequestError('Job not found');
+        .eq('id', jobId)
+        .maybeSingle();
+
+      if (jobLookupError) {
+        logger.error('Failed to verify job ownership for photo upload', {
+          service: 'jobs',
+          jobId,
+          userId: user.id,
+          error: jobLookupError.message,
+        });
+        throw new InternalServerError('Failed to verify job access');
       }
-      if (jobRow.homeowner_id !== user.id && jobRow.contractor_id !== user.id) {
+      if (!jobRow) {
+        throw new BadRequestError('Invalid job reference');
+      }
+
+      const isParticipant =
+        jobRow.homeowner_id === user.id || jobRow.contractor_id === user.id;
+      if (!isParticipant && user.role !== 'admin') {
         throw new ForbiddenError('You do not have access to this job');
       }
-      jobId = rawJobId;
     }
 
     // Upload each photo to Supabase Storage
@@ -145,7 +152,7 @@ export const POST = withApiHandler(
       // Generate safe filename with user ID and timestamp to prevent collisions
       const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // job_id was validated + ownership-checked above; safe to use as prefix.
+      // Include job_id in path if provided (ownership verified above).
       const fileName = jobId
         ? `${jobId}/${safeFileName}`
         : `job-photos/${safeFileName}`;

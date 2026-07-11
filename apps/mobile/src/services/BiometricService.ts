@@ -146,6 +146,52 @@ export class BiometricService {
     }
   }
 
+  /**
+   * Persist a rotated refresh token back into the biometric store.
+   *
+   * Supabase rotates the refresh token on every refresh, so the token captured
+   * at enable-time goes stale within one cycle of normal app use. Without
+   * writing the new token back, biometric sign-in works once and then fails
+   * with "session expired" (2026-07-10 audit P2-3). Safe to call after every
+   * successful refresh: it's a no-op when biometric is disabled or no
+   * credentials are stored, and never throws into the auth flow.
+   */
+  static async updateStoredRefreshToken(refreshToken: string): Promise<void> {
+    try {
+      if (!refreshToken) return;
+
+      const enabled = await this.isBiometricEnabled();
+      if (!enabled) return;
+
+      const credentialsStr = await SecureStore.getItemAsync(
+        BIOMETRIC_CREDENTIALS_KEY
+      );
+      if (!credentialsStr) return;
+
+      let credentials: BiometricCredentials;
+      try {
+        credentials = JSON.parse(credentialsStr) as BiometricCredentials;
+      } catch {
+        return;
+      }
+
+      credentials.refreshToken = refreshToken;
+      credentials.storedAt = Date.now();
+
+      await SecureStore.setItemAsync(
+        BIOMETRIC_CREDENTIALS_KEY,
+        JSON.stringify(credentials)
+      );
+      addBreadcrumb('Biometric refresh token rotated', 'biometric');
+    } catch (error) {
+      // Non-fatal: a failed rotation-persist just means the next biometric
+      // attempt may fall back to password. Never block the auth flow.
+      trackUserAction('biometric.token_rotation_persist_failed', {
+        error: (error as Error).message,
+      });
+    }
+  }
+
   // Disable biometric authentication
   static async disableBiometric(): Promise<void> {
     try {

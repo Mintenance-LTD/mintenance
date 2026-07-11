@@ -44,6 +44,15 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
+      # Gate the production migration + deploy on the test suite. Steps in a job
+      # run sequentially and a non-zero exit aborts the job, so placing this
+      # BEFORE the prod-migration/deploy steps guarantees a broken merge cannot
+      # push migrations to the production DB or ship to Vercel. (Previously this
+      # workflow had no test step at all and ran in parallel with ci-cd.yml, so
+      # a semantically-broken merge could migrate prod before tests finished.)
+      - name: Run tests (web)
+        run: npm run test:web -- run
+
       - name: Run Supabase Migrations (Production)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: npx supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"

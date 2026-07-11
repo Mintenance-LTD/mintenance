@@ -14,6 +14,7 @@ import {
   getChargeId,
   notifyMissingStripeAccount,
   blockEscrow,
+  fetchContractorStripeAccounts,
 } from './escrow-release-helpers';
 import {
   FeeCalculationService,
@@ -106,8 +107,10 @@ export class EscrowAutoReleaseService {
     }
 
     // Pre-fetch contractor Stripe accounts to avoid N+1 queries
-    const contractorStripeMap = await this.fetchContractorStripeAccounts(
-      eligibleEscrows as unknown as EligibleEscrow[]
+    const contractorStripeMap = await fetchContractorStripeAccounts(
+      (eligibleEscrows as unknown as EligibleEscrow[])
+        .map((e) => e.payee_id)
+        .filter((id): id is string => Boolean(id))
     );
 
     // Process each escrow
@@ -171,41 +174,6 @@ export class EscrowAutoReleaseService {
   }
 
   /**
-   * Pre-fetch Stripe Connect account IDs for all contractors in the batch.
-   */
-  private static async fetchContractorStripeAccounts(
-    escrows: EligibleEscrow[]
-  ): Promise<Map<string, string>> {
-    // Use payee_id (locked at escrow creation) rather than the current
-    // job.contractor_id — if the contractor was reassigned mid-job, the
-    // funds must still go to the original payee. See LFC-P1-1 in the
-    // 2026-04-13 audit.
-    const contractorIds = [
-      ...new Set(
-        escrows.map((e) => e.payee_id).filter((id): id is string => Boolean(id))
-      ),
-    ];
-
-    const map = new Map<string, string>();
-    if (contractorIds.length === 0) return map;
-
-    const { data: contractors } = await serverSupabase
-      .from('profiles')
-      .select('id, stripe_connect_account_id')
-      .in('id', contractorIds);
-
-    if (contractors) {
-      for (const c of contractors) {
-        if (c.stripe_connect_account_id) {
-          map.set(c.id, c.stripe_connect_account_id);
-        }
-      }
-    }
-
-    return map;
-  }
-
-  /**
    * Execute the Stripe transfer and update escrow records.
    */
   private static async releaseEscrow(
@@ -265,6 +233,43 @@ export class EscrowAutoReleaseService {
     const contractorAmountCents = Math.round(
       feeBreakdown.contractorAmount * 100
     );
+
+    // 2026-07-10 audit P1 — claim the row atomically BEFORE any irreversible
+    // Stripe work. The manual release path (api/payments/release-escrow) has
+    // always done this via a compare-and-swap; the cron path did not. So a
+    // homeowner clicking "Release Payment" while this hourly cron processed the
+    // same escrow — or two overlapping cron invocations — could each pass the
+    // read-time `held` check and issue a SECOND stripe.transfers.create,
+    // double-paying the contractor from the platform balance. Flipping
+    // held -> release_pending here is the CAS: exactly one worker wins the
+    // update; the loser matches 0 rows and bails without transferring.
+    const { data: claimed, error: claimError } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        status: 'release_pending',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', escrow.id)
+      .eq('status', 'held')
+      .select('id');
+
+    if (claimError) {
+      logger.error('Failed to claim escrow for auto-release', {
+        service: 'EscrowAutoReleaseService',
+        escrowId: escrow.id,
+        error: claimError.message,
+      });
+      return false;
+    }
+    if (!claimed || claimed.length === 0) {
+      // Another release path (manual route or a concurrent cron run) already
+      // claimed this escrow. Not an error — just skip it this pass.
+      logger.info('Escrow already claimed by another release path — skipping', {
+        service: 'EscrowAutoReleaseService',
+        escrowId: escrow.id,
+      });
+      return false;
+    }
 
     // Accumulation mode: skip direct transfer, credit the payout balance.
     // The weekly cron (/api/cron/contractor-payouts) will issue the Stripe
@@ -328,7 +333,8 @@ export class EscrowAutoReleaseService {
             payout_mode: 'accumulated',
           },
         })
-        .eq('id', escrow.id);
+        .eq('id', escrow.id)
+        .eq('status', 'release_pending');
 
       if (accUpdateErr) {
         logger.error('Failed to update escrow after accumulated release', {
@@ -357,22 +363,29 @@ export class EscrowAutoReleaseService {
       return true;
     }
 
-    // Direct-transfer mode (default): create Stripe transfer immediately
-    const transfer = await stripe.transfers.create({
-      amount: contractorAmountCents,
-      currency: 'gbp',
-      destination: contractorStripeAccountId,
-      description: `Auto-release: ${job.title}`,
-      metadata: {
-        jobId: job.id,
-        escrowId: escrow.id,
-        homeownerId: job.homeowner_id,
-        contractorId: escrow.payee_id,
-        releaseReason: 'auto_release',
-        platformFee: feeBreakdown.platformFee.toString(),
-        contractorAmount: feeBreakdown.contractorAmount.toString(),
+    // Direct-transfer mode (default): create Stripe transfer immediately.
+    // The escrow id is used as the Stripe idempotency key so that even if this
+    // code path is somehow entered twice for the same escrow, Stripe returns
+    // the original transfer instead of creating a second one (defence in depth
+    // on top of the DB claim above).
+    const transfer = await stripe.transfers.create(
+      {
+        amount: contractorAmountCents,
+        currency: 'gbp',
+        destination: contractorStripeAccountId,
+        description: `Auto-release: ${job.title}`,
+        metadata: {
+          jobId: job.id,
+          escrowId: escrow.id,
+          homeownerId: job.homeowner_id,
+          contractorId: escrow.payee_id,
+          releaseReason: 'auto_release',
+          platformFee: feeBreakdown.platformFee.toString(),
+          contractorAmount: feeBreakdown.contractorAmount.toString(),
+        },
       },
-    });
+      { idempotencyKey: `escrow_auto_release_${escrow.id}` }
+    );
 
     // Track platform fee
     const chargeId = await getChargeId(escrow.payment_intent_id);
@@ -423,7 +436,8 @@ export class EscrowAutoReleaseService {
     const { error: updateError } = await serverSupabase
       .from('escrow_transactions')
       .update(updateData)
-      .eq('id', escrow.id);
+      .eq('id', escrow.id)
+      .eq('status', 'release_pending');
 
     if (updateError) {
       logger.error('Failed to update escrow after auto-release', {
@@ -439,6 +453,21 @@ export class EscrowAutoReleaseService {
           transferId: transfer.id,
         });
       });
+
+      // Release the claim (release_pending -> held) so a later cron run can
+      // retry cleanly instead of the row being stranded in release_pending.
+      const { error: revertError } = await serverSupabase
+        .from('escrow_transactions')
+        .update({ status: 'held', updated_at: new Date().toISOString() })
+        .eq('id', escrow.id)
+        .eq('status', 'release_pending');
+      if (revertError) {
+        logger.error('Failed to revert escrow claim after transfer reversal', {
+          service: 'EscrowAutoReleaseService',
+          escrowId: escrow.id,
+          error: revertError.message,
+        });
+      }
 
       return false;
     }

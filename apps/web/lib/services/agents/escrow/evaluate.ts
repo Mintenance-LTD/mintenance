@@ -276,8 +276,14 @@ export async function evaluateAutoRelease(
               updated_at: new Date().toISOString(),
             })
             .eq('id', escrowId);
+          // Must be success:false so EscrowAutoReleaseService takes its
+          // `delayed` branch (which keys on the word "delayed" in the message)
+          // and continues WITHOUT releasing. Returning success:true here made
+          // the service fall straight through to releaseEscrow, so a
+          // high-dispute-risk escrow was transferred the same run it was
+          // supposedly held — defeating the risk hold entirely.
           return {
-            success: true,
+            success: false,
             message: 'Auto-release delayed due to predicted dispute risk',
             metadata: { extendedDate: extendedDate.toISOString() },
           };
