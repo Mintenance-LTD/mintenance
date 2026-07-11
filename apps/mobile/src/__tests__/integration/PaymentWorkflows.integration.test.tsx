@@ -34,7 +34,7 @@ jest.mock('../../services/PaymentService', () => ({
     confirmPayment: jest.fn(),
     createEscrowTransaction: jest.fn(),
     holdPaymentInEscrow: jest.fn(),
-    releaseEscrowPayment: jest.fn(),
+    releaseEscrow: jest.fn(),
     refundPayment: jest.fn(),
     getPaymentHistory: jest.fn(),
     getPaymentMethods: jest.fn(),

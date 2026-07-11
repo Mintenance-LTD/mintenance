@@ -10,6 +10,10 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import {
+  validateImageUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 
 /**
  * GET /api/users/avatar
@@ -55,15 +59,20 @@ export const POST = withApiHandler(
       throw new BadRequestError('No file uploaded');
     }
 
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
+    // SECURITY (2026-07-06 audit #10): validate by magic number, not the
+    // client-declared `file.type`. The generic /api/upload and
+    // jobs/upload-photos routes already do this; the avatar route used to
+    // trust the MIME string, so arbitrary bytes labelled `image/png` landed
+    // in the `avatars` bucket. Size cap is enforced here too (5 MB).
+    const validation = await validateImageUpload(
+      file,
+      MAX_FILE_SIZES.profileImage
+    );
+    if (!validation.valid) {
       throw new BadRequestError(
-        'Invalid file type. Only JPEG, PNG, and WebP are allowed.'
+        validation.error ||
+          'Invalid file. Only JPEG, PNG, and WebP are allowed.'
       );
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      throw new BadRequestError('File too large. Maximum size is 5MB.');
     }
 
     // Read the existing avatar URL BEFORE we overwrite the row so we
@@ -75,7 +84,8 @@ export const POST = withApiHandler(
       .single();
     const previousAvatarUrl = previousProfile?.profile_image_url ?? null;
 
-    const fileExt = file.name.split('.').pop();
+    // Derive the extension from the DETECTED type, never the client filename.
+    const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await serverSupabase.storage
