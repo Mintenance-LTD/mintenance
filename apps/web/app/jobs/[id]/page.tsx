@@ -11,6 +11,7 @@ import { JobViewTracker } from './components/JobViewTracker';
 import { ContractManagement } from './components/ContractManagement';
 import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
 import { MintEditorialJobDetailView } from './components/mint-editorial/MintEditorialJobDetailView';
+import { formatBidsForClient, type BidWithContractor } from './lib/formatBids';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -128,8 +129,6 @@ export default async function JobDetailPage2025({
         id,
         first_name,
         last_name,
-        email,
-        phone,
         profile_image_url,
         admin_verified,
         company_name,
@@ -292,57 +291,6 @@ export default async function JobDetailPage2025({
     (p) => p.photo_type === 'after'
   );
 
-  interface BidWithContractor {
-    id: string;
-    status: string;
-    amount?: number;
-    description?: string;
-    created_at: string;
-    contractor_id: string;
-    quote_id?: string;
-    // 2026-05-13 BidCard upgrade: comparison axes beyond price.
-    // Homeowners need schedule + warranty visibility to weigh bids
-    // properly; previously these were on the bid but never surfaced.
-    estimated_duration_days?: number | null;
-    proposed_start_date?: string | null;
-    warranty_months?: number | null;
-    materials_included?: boolean | null;
-    lineItems?: Array<{
-      id: string;
-      description: string;
-      type?: 'labor' | 'material' | 'equipment';
-      quantity: number;
-      unitPrice: number;
-      total: number;
-    }>;
-    quote?: {
-      id?: string;
-      subtotal?: number | null;
-      tax_rate?: number | null;
-      tax_amount?: number | null;
-      total_amount?: number | null;
-      terms?: string | null;
-      quote_number?: string | null;
-    } | null;
-    contractor?: {
-      id: string;
-      first_name?: string;
-      last_name?: string;
-      company_name?: string;
-      email?: string;
-      phone?: string;
-      profile_image_url?: string;
-      admin_verified?: boolean;
-      license_number?: string;
-      rating?: number;
-      portfolioImages?: Array<{
-        url: string;
-        title?: string;
-        category?: string;
-      }>;
-    };
-  }
-
   const contractStatus = !contract
     ? 'none'
     : contract.status === 'accepted'
@@ -351,45 +299,10 @@ export default async function JobDetailPage2025({
 
   const escrowStatus = escrowTransaction?.status || 'none';
 
-  // Format bids for Professional component
-  const formattedBids = (bidsWithContractors as BidWithContractor[]).map(
-    (bid: BidWithContractor) => ({
-      id: bid.id,
-      amount: bid.amount || 0,
-      description: bid.description,
-      status: bid.status,
-      created_at: bid.created_at,
-      quote_id: bid.quote_id,
-      estimatedDurationDays: bid.estimated_duration_days ?? null,
-      proposedStartDate: bid.proposed_start_date ?? null,
-      warrantyMonths: bid.warranty_months ?? null,
-      materialsIncluded: bid.materials_included ?? null,
-      lineItems: bid.lineItems?.map((li) => ({
-        ...li,
-        type: li.type || ('labor' as const),
-      })),
-      quote: bid.quote
-        ? {
-            subtotal: bid.quote.subtotal ?? null,
-            taxRate: bid.quote.tax_rate ?? null,
-            taxAmount: bid.quote.tax_amount ?? null,
-            totalAmount: bid.quote.total_amount ?? null,
-            terms: bid.quote.terms ?? null,
-            quoteNumber: bid.quote.quote_number ?? null,
-          }
-        : null,
-      contractor: {
-        id: bid.contractor?.id || '',
-        first_name: bid.contractor?.first_name,
-        last_name: bid.contractor?.last_name,
-        company_name: bid.contractor?.company_name,
-        email: bid.contractor?.email || '',
-        phone: bid.contractor?.phone,
-        profile_image_url: bid.contractor?.profile_image_url,
-        admin_verified: bid.contractor?.admin_verified,
-        license_number: bid.contractor?.license_number,
-      },
-    })
+  // Format bids for the client components (email/phone deliberately omitted —
+  // see the PII note in ./lib/formatBids).
+  const formattedBids = formatBidsForClient(
+    bidsWithContractors as BidWithContractor[]
   );
 
   // Prepare homeowner data
