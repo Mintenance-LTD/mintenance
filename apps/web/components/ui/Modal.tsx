@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Icon } from './Icon';
 import { theme } from '@/lib/theme';
 
@@ -21,23 +21,66 @@ export function Modal({
   maxWidth = 800,
   showCloseButton = true,
 }: ModalProps) {
-  // Handle ESC key to close modal
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // ESC to close, body-scroll lock, and a FOCUS TRAP (audit F8): move focus
+  // into the dialog on open, keep Tab / Shift+Tab cycling within it (WCAG
+  // 2.4.3 — keyboard users must not tab out into the page behind the modal),
+  // and restore focus to the previously-focused element on close.
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleEscape = (e: KeyboardEvent) => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    const focusableSelector =
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const getFocusable = () =>
+      dialog
+        ? Array.from(
+            dialog.querySelectorAll<HTMLElement>(focusableSelector)
+          ).filter((el) => el.offsetParent !== null)
+        : [];
+
+    // Move focus into the dialog so the keyboard journey starts inside it.
+    const initial = getFocusable();
+    (initial[0] ?? dialog)?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      const items = getFocusable();
+      if (items.length === 0) {
+        e.preventDefault();
+        dialog?.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      // Wrap at the edges, and pull focus back in if it ever escaped.
+      if (e.shiftKey && (active === first || !dialog?.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !dialog?.contains(active))) {
+        e.preventDefault();
+        first.focus();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', handleKeyDown);
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
+      // Restore focus to whatever was focused before the modal opened.
+      previouslyFocused?.focus?.();
     };
   }, [isOpen, onClose]);
 
@@ -67,9 +110,11 @@ export function Modal({
       }}
     >
       <div
+        ref={dialogRef}
         role='dialog'
         aria-modal='true'
         aria-labelledby='modal-title'
+        tabIndex={-1}
         style={{
           backgroundColor: theme.colors.surface,
           borderRadius: theme.borderRadius.xl,
