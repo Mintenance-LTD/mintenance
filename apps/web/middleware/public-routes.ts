@@ -33,6 +33,13 @@ const PUBLIC_PAGE_ROUTES = [
   '/how-it-works',
   '/ai-search',
   '/try-mint-ai',
+  // Public contractor profiles + directory — these are SEO landing pages that
+  // sitemap.ts already advertises to search engines (audit F1/F2). Without this
+  // the middleware redirected crawlers (and logged-out users) to /login, so the
+  // per-page metadata was never served. NOTE the trailing-'/'-separated match
+  // means this covers '/contractors' and '/contractors/<id>' but NOT the
+  // private, singular '/contractor/...' contractor dashboard.
+  '/contractors',
 ];
 
 /** Exact-match public API routes. Sub-paths are NOT allowed. */
