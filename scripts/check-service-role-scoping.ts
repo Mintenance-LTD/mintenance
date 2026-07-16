@@ -1,63 +1,90 @@
 /* eslint-disable no-console -- CLI script; console output is the contract. */
 /**
- * Service-role-fallback scoping check.
+ * Service-role scoping check.
  *
- * 2026-04-30 audit P1 (Service Role Fallback Requires Route-Level
- * Discipline): every route that does
- *   const userDb = createRequestScopedClient(request) ?? serverSupabase;
- * MUST follow it with queries that explicitly scope by a user/team
- * column (or perform an ownership check before mutating). This script
- * walks every `route.ts` under `apps/web/app/api`, finds each `userDb` query, and
- * flags any that doesn't appear to be scoped.
+ * Two related risks are covered:
  *
- * Heuristic: a query is considered scoped when the surrounding 30-line
- * window contains at least one of:
+ * 1. (2026-04-30 audit P1) The `createRequestScopedClient(request) ?? serverSupabase`
+ *    fallback: every `userDb` query MUST be scoped by a user/team column or
+ *    guarded by an ownership check.
+ *
+ * 2. (2026-07 audit S1 — NEW) Direct `serverSupabase` usage bypasses RLS
+ *    entirely, so authorization rests ONLY on hand-written app checks. The
+ *    highest-risk shape is a lookup by a resource id that is NOT the caller's
+ *    own id — e.g. `serverSupabase.from('jobs').select().eq('id', params.id)`
+ *    — with no ownership predicate. That is a classic IDOR: any authenticated
+ *    user can read/mutate another user's row. This guard flags such sites.
+ *
+ * Heuristic (both cases): a query is considered safe when the surrounding
+ * ~30-line window contains at least one of:
  *   - `.eq('<user-scoped-column>', user.id)` style calls
  *   - `.or('payer_id.eq.${user.id},payee_id.eq.${user.id}')` patterns
  *   - `PropertyTeamService.authorize(...)` ownership-service calls
  *   - explicit `homeowner_id !== user.id` style checks
  *   - inserts where the payload sets `<user-scoped-column>: user.id`
  *
- * Reports a list of suspicious sites to stdout and writes the full
- * report to `scripts/.service-role-scoping-report.json`. Exits 1 on
- * any unresolved finding so it can run in CI.
+ * Admin / cron / webhook routes are exempt (different auth model — admins see
+ * all by design; cron/webhook are not user-facing).
  *
- * Usage: `npx tsx scripts/check-service-role-scoping.ts`
+ * BASELINE: direct-serverSupabase findings are compared against
+ * `scripts/.service-role-scoping-baseline.json`. The guard fails ONLY on
+ * findings not already in the baseline (a ratchet) — so it blocks NEW
+ * IDOR-prone routes without forcing an annotation of every pre-existing one.
+ * Regenerate the baseline with `--update-baseline` after an intentional,
+ * reviewed change to the known set.
  *
- * NOTE: this is a heuristic. False positives are possible (e.g. a
- * helper function does the scoping). Mark genuine exceptions inline
- * with `// scoping-check: ok — <reason>` and the script will skip
- * the site.
+ * Mark genuine exceptions inline with `// scoping-check: ok — <reason>`.
+ *
+ * Usage:
+ *   npx tsx scripts/check-service-role-scoping.ts
+ *   npx tsx scripts/check-service-role-scoping.ts --update-baseline
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const ROUTES_ROOT = path.join(REPO_ROOT, 'apps/web/app/api');
+const BASELINE_PATH = path.join(
+  REPO_ROOT,
+  'scripts',
+  '.service-role-scoping-baseline.json'
+);
 
 const SCOPING_PATTERNS: RegExp[] = [
-  // .eq('<user-scoped-column>', user.id) and similar
   /\.eq\(\s*['"](?:user_id|owner_id|contractor_id|homeowner_id|payer_id|payee_id|reviewer_id|reviewee_id|sender_id|receiver_id|recipient_id|client_id|created_by|payee_user_id|payer_user_id|user)['"]\s*,\s*user\.id\s*\)/,
-  // .or('foo_id.eq.${user.id},bar_id.eq.${user.id}')
   /\.or\(\s*[`'"][^)]*(?:_id\.eq\.\$\{user\.id\}|_id\.eq\.user\.id)[^)]*[`'"]/,
-  // PropertyTeamService.authorize(user.id, …)
   /PropertyTeamService\.(?:authorize|getRole|canPerform)\(/,
-  // Inline ownership check: `=== user.id` / `!== user.id`
   /[a-zA-Z_]+(?:_id|_owner|_user)\s*(?:===|!==)\s*user\.id/,
-  // Insert payload that sets <col>: user.id
   /(?:user_id|owner_id|contractor_id|homeowner_id|payer_id|payee_id|reviewer_id|sender_id|client_id|created_by)\s*:\s*user\.id/,
-  // .in('<col>', ids) where ids was previously user-scoped (covered by
-  // the earlier query on the same path — heuristic: presence of an
-  // earlier .eq is checked separately at the file level)
 ];
 
+// A lookup by `id` or `<x>_id` whose value is NOT `user.id` — the IDOR shape.
+const RISKY_ID_LOOKUP =
+  /\.eq\(\s*['"](?:id|[a-z_]+_id)['"]\s*,\s*(?!user[.?])/;
+
 const OPT_OUT_MARKER = /scoping-check\s*:\s*ok/i;
+
+// Routes whose auth model makes per-row ownership scoping N/A.
+function isExemptRoute(relFile: string): boolean {
+  return (
+    relFile.includes('/api/admin/') ||
+    relFile.includes('/api/cron/') ||
+    relFile.includes('/api/webhooks/') ||
+    relFile.includes('/webhook/') ||
+    relFile.endsWith('/api/health/route.ts')
+  );
+}
 
 interface Finding {
   file: string;
   line: number;
   snippet: string;
+  kind: 'userDb' | 'serverSupabase';
   reason: string;
+}
+
+function findingKey(f: Finding): string {
+  return `${f.file}::${f.snippet}`;
 }
 
 async function* walk(dir: string): AsyncGenerator<string> {
@@ -79,34 +106,55 @@ function isScopingPresent(window: string): boolean {
 
 async function checkFile(file: string): Promise<Finding[]> {
   const text = await fs.readFile(file, 'utf8');
-  if (!text.includes('createRequestScopedClient')) return [];
+  const relFile = path.relative(REPO_ROOT, file).replace(/\\/g, '/');
+  const usesUserDb = text.includes('createRequestScopedClient');
+  const usesServerSupabase = /\bserverSupabase\b/.test(text);
+  if (!usesUserDb && !usesServerSupabase) return [];
+  if (isExemptRoute(relFile)) return [];
 
   const lines = text.split(/\r?\n/);
   const findings: Finding[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
-    // Find every `userDb.from(...)` mutation/read.
-    // We're looking for queries that follow the userDb pattern and
-    // therefore inherit the service-role-fallback risk.
-    if (
-      !/\b(userDb|userClient|scopedDb)\b/.test(line) ||
-      !/\.from\(/.test(line)
-    ) {
-      continue;
-    }
-    // Build a 30-line window around the query.
+    const isUserDbSite =
+      /\b(userDb|userClient|scopedDb)\b/.test(line) && /\.from\(/.test(line);
+    const isServerSupabaseSite =
+      /\bserverSupabase\b/.test(line) &&
+      /\.from\(/.test(line) &&
+      // Object-storage ops (serverSupabase.storage.from('bucket')) are not
+      // table reads and carry their own path-based auth — not an IDOR shape.
+      !/\.storage\.from\(/.test(line);
+    if (!isUserDbSite && !isServerSupabaseSite) continue;
+
     const start = Math.max(0, i - 5);
     const end = Math.min(lines.length, i + 25);
     const window = lines.slice(start, end).join('\n');
 
-    if (!isScopingPresent(window)) {
+    if (isUserDbSite) {
+      if (!isScopingPresent(window)) {
+        findings.push({
+          file: relFile,
+          line: i + 1,
+          snippet: line.trim(),
+          kind: 'userDb',
+          reason:
+            'userDb query with no user-scope filter / ownership check within 30-line window',
+        });
+      }
+      continue;
+    }
+
+    // serverSupabase site: only flag the IDOR shape (lookup by a non-own id)
+    // that has no scoping in the window.
+    if (RISKY_ID_LOOKUP.test(window) && !isScopingPresent(window)) {
       findings.push({
-        file: path.relative(REPO_ROOT, file).replace(/\\/g, '/'),
+        file: relFile,
         line: i + 1,
         snippet: line.trim(),
+        kind: 'serverSupabase',
         reason:
-          'No user-scope filter / ownership check / PropertyTeamService call detected within 30-line window',
+          'serverSupabase lookup by resource id (not user.id) with no ownership check — RLS is bypassed, so this is IDOR-prone',
       });
     }
   }
@@ -114,29 +162,30 @@ async function checkFile(file: string): Promise<Finding[]> {
   return findings;
 }
 
+async function loadBaseline(): Promise<Set<string>> {
+  try {
+    const raw = await fs.readFile(BASELINE_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as { keys?: string[] };
+    return new Set(parsed.keys ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
 async function main() {
+  const updateBaseline = process.argv.includes('--update-baseline');
   const allFindings: Finding[] = [];
   let filesChecked = 0;
 
   for await (const file of walk(ROUTES_ROOT)) {
     filesChecked++;
-    const findings = await checkFile(file);
-    allFindings.push(...findings);
+    allFindings.push(...(await checkFile(file)));
   }
 
-  const reportPath = path.join(
-    REPO_ROOT,
-    'scripts',
-    '.service-role-scoping-report.json'
-  );
   await fs.writeFile(
-    reportPath,
+    path.join(REPO_ROOT, 'scripts', '.service-role-scoping-report.json'),
     JSON.stringify(
-      {
-        generatedAt: new Date().toISOString(),
-        filesChecked,
-        findings: allFindings,
-      },
+      { generatedAt: new Date().toISOString(), filesChecked, findings: allFindings },
       null,
       2
     ),
@@ -144,27 +193,54 @@ async function main() {
   );
 
   console.log(`Scanned ${filesChecked} route files.`);
-  console.log(`Report written to ${reportPath}`);
 
-  if (allFindings.length === 0) {
-    console.log('All `userDb` queries are scoped or opted out.');
+  if (updateBaseline) {
+    const keys = allFindings.map(findingKey).sort();
+    await fs.writeFile(
+      BASELINE_PATH,
+      JSON.stringify(
+        {
+          note: 'Known service-role scoping findings. The guard fails only on findings NOT listed here. Regenerate with `npx tsx scripts/check-service-role-scoping.ts --update-baseline` after an intentional, reviewed change.',
+          generatedAt: new Date().toISOString(),
+          count: keys.length,
+          keys,
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+    console.log(`Baseline updated: ${keys.length} known finding(s) recorded.`);
     process.exit(0);
   }
 
-  console.log(`\n${allFindings.length} unscoped query site(s) flagged:`);
-  for (const f of allFindings.slice(0, 50)) {
-    console.log(`  ${f.file}:${f.line}`);
+  const baseline = await loadBaseline();
+  const newFindings = allFindings.filter((f) => !baseline.has(findingKey(f)));
+
+  console.log(
+    `${allFindings.length} total finding(s); ${baseline.size} baselined; ${newFindings.length} new.`
+  );
+
+  if (newFindings.length === 0) {
+    console.log('No new unscoped service-role query sites. OK.');
+    process.exit(0);
+  }
+
+  console.log(`\n${newFindings.length} NEW unscoped query site(s):`);
+  for (const f of newFindings.slice(0, 50)) {
+    console.log(`  [${f.kind}] ${f.file}:${f.line}`);
     console.log(`    ${f.snippet}`);
     console.log(`    → ${f.reason}`);
   }
-  if (allFindings.length > 50) {
-    console.log(`  …and ${allFindings.length - 50} more (see report).`);
+  if (newFindings.length > 50) {
+    console.log(`  …and ${newFindings.length - 50} more (see report).`);
   }
   console.log(
-    '\nFix by adding an explicit user-scope filter (e.g. ' +
-      "`.eq('contractor_id', user.id)`), an ownership check, OR an " +
-      'inline `// scoping-check: ok — <reason>` comment when the ' +
-      "scoping happens via a helper this script can't see."
+    '\nFix by adding an explicit ownership filter (e.g. `.eq(\'homeowner_id\', user.id)`)\n' +
+      'or an ownership check before the query, OR an inline `// scoping-check: ok — <reason>`\n' +
+      'comment when the scoping happens via a helper this script cannot see. If this is an\n' +
+      'intentional, reviewed addition to the known set, regenerate the baseline with\n' +
+      '`npx tsx scripts/check-service-role-scoping.ts --update-baseline`.'
   );
   process.exit(1);
 }
