@@ -37,7 +37,7 @@ const bodySchema = z.object({
  * Create an embedded Stripe Checkout Session
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { rateLimit: { maxRequests: 20, criticality: 'payment' } },
   async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, bodySchema);
@@ -67,6 +67,12 @@ export const POST = withApiHandler(
     // If jobId is provided, validate job ownership and set up marketplace payment
     let contractorStripeAccountId: string | null = null;
     let applicationFeeAmount: number | null = null;
+    // Server-authoritative amount for the marketplace path (audit C2). Stays
+    // null for non-marketplace checkout. When set, it — NOT the client priceId
+    // — is what gets charged and recorded in escrow.
+    let authoritativeAmount: number | null = null;
+    let acceptedBidId: string | null = null;
+    let acceptedContractId: string | null = null;
 
     if (jobId) {
       const { data: jobData, error: jobError } = await serverSupabase
@@ -94,6 +100,121 @@ export const POST = withApiHandler(
         return NextResponse.json(
           { error: 'Contractor does not match job assignment' },
           { status: 400 }
+        );
+      }
+
+      if (!jobData.contractor_id) {
+        return NextResponse.json(
+          { error: 'Job has no assigned contractor' },
+          { status: 400 }
+        );
+      }
+
+      // AMOUNT AUTHORITY (audit C2): the marketplace amount must come from the
+      // accepted bid + accepted contract, NOT the client-supplied priceId.
+      // Without these gates a homeowner could fund a £500 job at any Stripe
+      // price they can produce and still march it through to release. Mirrors
+      // the hardening already in /api/payments/create-intent.
+      const { data: contract, error: contractError } = await serverSupabase
+        .from('contracts')
+        .select('id, status')
+        .eq('job_id', jobId)
+        .eq('status', 'accepted')
+        .single();
+
+      if (contractError || !contract) {
+        return NextResponse.json(
+          {
+            error:
+              'Contract must be signed by both parties before payment can be created',
+          },
+          { status: 400 }
+        );
+      }
+
+      const { data: acceptedBid } = await serverSupabase
+        .from('bids')
+        .select('id, amount, status')
+        .eq('job_id', jobId)
+        .eq('contractor_id', jobData.contractor_id)
+        .eq('status', 'accepted')
+        .single();
+
+      if (
+        !acceptedBid ||
+        typeof acceptedBid.amount !== 'number' ||
+        acceptedBid.amount <= 0
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              'Cannot create payment: no valid accepted bid exists for this job and contractor.',
+          },
+          { status: 400 }
+        );
+      }
+
+      const ABSOLUTE_MAX_PAYMENT = 100000; // £100,000 hard cap
+      if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
+        return NextResponse.json(
+          { error: 'Bid amount exceeds platform maximum.' },
+          { status: 400 }
+        );
+      }
+
+      // Block a second funding attempt when a non-terminal escrow already
+      // exists for the job (pending/held/release_pending/completed).
+      const BLOCKING_ESCROW_STATUSES = [
+        'pending',
+        'held',
+        'release_pending',
+        'completed',
+      ];
+      const { data: blockingEscrowRows, error: blockingEscrowErr } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .select('id, status')
+          .eq('job_id', jobId)
+          .in('status', BLOCKING_ESCROW_STATUSES);
+
+      if (blockingEscrowErr) {
+        logger.error(
+          'Failed to check existing escrow before embedded checkout',
+          blockingEscrowErr,
+          { service: 'payments', userId: user.id, jobId }
+        );
+        return NextResponse.json(
+          { error: 'Could not verify escrow state. Please try again.' },
+          { status: 400 }
+        );
+      }
+      if (blockingEscrowRows && blockingEscrowRows.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'A payment is already in progress or received for this job.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // From here the accepted bid amount is THE amount.
+      authoritativeAmount = acceptedBid.amount;
+      acceptedBidId = acceptedBid.id;
+      acceptedContractId = contract.id;
+      if (
+        paymentAmount !== null &&
+        Math.round(paymentAmount * (quantity ?? 1) * 100) !==
+          Math.round(authoritativeAmount * 100)
+      ) {
+        logger.warn(
+          'Client priceId diverged from accepted bid in embedded-checkout; using server amount',
+          {
+            service: 'payments',
+            jobId,
+            userId: user.id,
+            clientAmount: paymentAmount * (quantity ?? 1),
+            bidAmount: authoritativeAmount,
+          }
         );
       }
 
@@ -127,7 +248,7 @@ export const POST = withApiHandler(
           await FeeCalculationService.resolveContractorTier(
             jobData.contractor_id
           );
-        const totalAmount = paymentAmount * (quantity ?? 1);
+        const totalAmount = authoritativeAmount ?? 0;
         const feeBreakdown = FeeCalculationService.calculateFees(totalAmount, {
           paymentType: paymentType as PaymentType,
           contractorTier,
@@ -173,19 +294,41 @@ export const POST = withApiHandler(
         ? (applicationFeeAmount / 100).toString()
         : '0';
 
-      const totalAmount = paymentAmount * (quantity ?? 1);
+      const totalAmount = authoritativeAmount ?? 0;
       metadata.totalAmount = totalAmount.toString();
+      if (acceptedBidId) metadata.bidId = acceptedBidId;
+      if (acceptedContractId) metadata.contractId = acceptedContractId;
     }
+
+    // Line items (audit C2): for a marketplace payment charge the
+    // server-authoritative accepted-bid amount via an inline price_data so the
+    // amount CHARGED cannot diverge from the amount recorded in escrow.
+    // Non-marketplace checkout keeps the client priceId.
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      authoritativeAmount !== null
+        ? [
+            {
+              price_data: {
+                currency: currency.toLowerCase(),
+                unit_amount: Math.round(authoritativeAmount * 100),
+                product_data: {
+                  name: `Escrow payment${jobId ? ` for job ${jobId}` : ''}`,
+                },
+              },
+              quantity: 1,
+            },
+          ]
+        : [
+            {
+              price: priceId,
+              quantity,
+            },
+          ];
 
     // Create Checkout Session with embedded mode
     const session = await stripe.checkout.sessions.create({
       ui_mode: 'embedded',
-      line_items: [
-        {
-          price: priceId,
-          quantity,
-        },
-      ],
+      line_items: lineItems,
       mode: 'payment',
       return_url: returnUrl,
       metadata,
@@ -195,10 +338,10 @@ export const POST = withApiHandler(
       }),
     });
 
-    // If this is a marketplace payment, create escrow transaction record
+    // If this is a marketplace payment, create escrow transaction record.
+    // amount is the server-authoritative accepted-bid amount (audit C2) —
+    // identical to what the Checkout Session charges via price_data above.
     if (jobId && contractorStripeAccountId) {
-      const totalAmount = paymentAmount * (quantity ?? 1);
-
       const { data: job } = await serverSupabase
         .from('jobs')
         .select('homeowner_id, contractor_id')
@@ -210,11 +353,16 @@ export const POST = withApiHandler(
         .insert({
           job_id: jobId,
           payer_id: job?.homeowner_id || user.id,
-          payee_id: job?.contractor_id || contractorStripeAccountId,
-          amount: totalAmount,
+          payee_id: job?.contractor_id,
+          amount: authoritativeAmount ?? 0,
           status: 'pending',
           payment_type: paymentType,
           stripe_checkout_session_id: session.id,
+          metadata: {
+            bid_id: acceptedBidId,
+            contract_id: acceptedContractId,
+            source: 'embedded-checkout',
+          },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });

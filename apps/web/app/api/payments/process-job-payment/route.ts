@@ -42,7 +42,7 @@ type CreateIntentResponse = {
  * with a selected saved payment method.
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { rateLimit: { maxRequests: 20, criticality: 'payment' } },
   async (request, { user }) => {
     const validation = await validateRequest(request, processPaymentSchema);
     if ('headers' in validation) {

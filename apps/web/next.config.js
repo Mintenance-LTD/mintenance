@@ -89,9 +89,24 @@ const nextConfig = {
         hostname: '**.supabase.co',
         pathname: '/storage/v1/object/sign/**',
       },
-      { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
-      { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
-      { protocol: 'https', hostname: 'via.placeholder.com', pathname: '/**' },
+      // Dev-only placeholder image hosts (audit S10): excluded from production
+      // so the image optimizer isn't an abuse vector for arbitrary third-party
+      // hosts in prod. ui-avatars is kept — it's a real avatar fallback.
+      ...(process.env.NODE_ENV !== 'production'
+        ? [
+            { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
+            {
+              protocol: 'https',
+              hostname: 'images.unsplash.com',
+              pathname: '/**',
+            },
+            {
+              protocol: 'https',
+              hostname: 'via.placeholder.com',
+              pathname: '/**',
+            },
+          ]
+        : []),
       { protocol: 'https', hostname: 'ui-avatars.com', pathname: '/api/**' },
     ],
   },
