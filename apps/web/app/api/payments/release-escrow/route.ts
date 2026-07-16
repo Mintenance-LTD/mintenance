@@ -43,7 +43,7 @@ import {
 export const POST = withApiHandler(
   {
     roles: ['homeowner', 'admin'],
-    rateLimit: { maxRequests: 20 },
+    rateLimit: { maxRequests: 20, criticality: 'payment' },
   },
   async (request, { user }) => {
     // Validate and sanitize input using Zod schema

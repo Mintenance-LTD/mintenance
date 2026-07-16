@@ -59,7 +59,11 @@ export function simpleMarkdownToHtml(md: string): string {
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     (_match, label: string, rawUrl: string) => {
-      const safeUrl = sanitizeUrlScheme(rawUrl);
+      // audit S9: escape the URL for the attribute context too. sanitizeUrlScheme
+      // only validates the scheme; without escaping, a URL containing a double
+      // quote (e.g. [x](http://a" onmouseover=...)) breaks out of href="..." and
+      // injects an attribute. escapeHtml turns " into &quot; so it can't.
+      const safeUrl = escapeHtml(sanitizeUrlScheme(rawUrl));
       return `<a href="${safeUrl}" style="color:#0d9488;text-decoration:underline">${label}</a>`;
     }
   );

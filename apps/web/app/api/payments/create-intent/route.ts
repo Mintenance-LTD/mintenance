@@ -16,7 +16,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
 
 export const POST = withApiHandler(
-  { roles: ['homeowner'], rateLimit: { maxRequests: 20 } },
+  { roles: ['homeowner'], rateLimit: { maxRequests: 20, criticality: 'payment' } },
   async (request: NextRequest, { user }) => {
     // Declared outside the try so the catch can release the claim if any
     // post-claim step throws. Stays undefined when the throw happens
