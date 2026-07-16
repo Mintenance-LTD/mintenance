@@ -175,41 +175,79 @@ export async function processEligiblePayouts(): Promise<{
       continue;
     }
 
+    const lifetimeBefore =
+      (balance as { lifetime_paid_out_minor?: number | null })
+        .lifetime_paid_out_minor ?? 0;
+    const claimedAmount = balance.pending_amount_minor || 0;
+
+    // ATOMIC CLAIM (audit C1): zero the pending balance in a single
+    // compare-and-swap guarded on the EXACT amount we intend to pay. Only
+    // one concurrent payout run can win this UPDATE; a second overlapping
+    // run matches 0 rows and skips — so the same accumulated balance can
+    // never be transferred to the contractor twice. This mirrors the CAS
+    // the escrow auto-release cron already uses. 2026-05-25 audit-46 P1:
+    // lifetime_paid_out_minor accumulates (base pulled from the SELECT).
+    const { data: claimedRows, error: claimErr } = await serverSupabase
+      .from('contractor_payout_balances')
+      .update({
+        pending_amount_minor: 0,
+        lifetime_paid_out_minor: claimedAmount + lifetimeBefore,
+        last_payout_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('contractor_id', balance.contractor_id)
+      .eq('currency', balance.currency)
+      .eq('pending_amount_minor', claimedAmount)
+      .select('contractor_id');
+
+    if (claimErr || !claimedRows || claimedRows.length === 0) {
+      logger.warn(
+        'Payout balance already claimed or changed under us — skipping to avoid double transfer',
+        {
+          service: 'payouts',
+          contractorId: balance.contractor_id,
+          error: claimErr?.message,
+        }
+      );
+      skipped++;
+      continue;
+    }
+
     try {
-      const transfer = await stripe.transfers.create({
-        amount: balance.pending_amount_minor,
-        currency: balance.currency.toLowerCase(),
-        destination: profile.stripe_connect_account_id,
-        metadata: {
-          mintenance_contractor_id: balance.contractor_id,
-          payout_type: 'weekly_threshold',
+      // Deterministic per-contractor-per-week idempotency key (audit C1):
+      // a retry of this run returns the same transfer rather than issuing a
+      // second one. The weekly cron pays each contractor at most once per
+      // week (guaranteed by the CAS above), so this key never collides
+      // across two legitimate payouts.
+      const weekBucket = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
+      const transfer = await stripe.transfers.create(
+        {
+          amount: claimedAmount,
+          currency: balance.currency.toLowerCase(),
+          destination: profile.stripe_connect_account_id,
+          metadata: {
+            mintenance_contractor_id: balance.contractor_id,
+            payout_type: 'weekly_threshold',
+          },
         },
-      });
+        {
+          idempotencyKey: `weekly-payout-${balance.contractor_id}-${balance.currency}-${weekBucket}`,
+        }
+      );
 
       // Record the transfer
       await serverSupabase.from('contractor_payout_transfers').insert({
         contractor_id: balance.contractor_id,
         stripe_transfer_id: transfer.id,
         stripe_destination_account: profile.stripe_connect_account_id,
-        amount_minor: balance.pending_amount_minor,
+        amount_minor: claimedAmount,
         currency: balance.currency,
         status: 'pending',
       });
 
-      // Reset balance + bump lifetime. 2026-05-25 audit-46 P1:
-      // lifetime_paid_out_minor now comes from the SELECT above so the
-      // cumulative total actually accumulates instead of being
-      // overwritten with the current payout each week.
-      const lifetimeBefore =
-        (balance as { lifetime_paid_out_minor?: number | null })
-          .lifetime_paid_out_minor ?? 0;
       await serverSupabase
         .from('contractor_payout_balances')
         .update({
-          pending_amount_minor: 0,
-          lifetime_paid_out_minor:
-            (balance.pending_amount_minor || 0) + lifetimeBefore,
-          last_payout_at: new Date().toISOString(),
           last_payout_transfer_id: transfer.id,
           updated_at: new Date().toISOString(),
         })
@@ -218,10 +256,38 @@ export async function processEligiblePayouts(): Promise<{
 
       processed++;
     } catch (err) {
-      logger.error('Stripe transfer failed', err, {
-        service: 'payouts',
-        contractorId: balance.contractor_id,
-      });
+      // Transfer failed AFTER we claimed (zeroed) the balance. Compensate:
+      // add the claimed amount back and revert the lifetime bump so next
+      // week's run retries this payout rather than silently dropping it.
+      logger.error(
+        'Stripe transfer failed — restoring claimed balance for retry',
+        err,
+        {
+          service: 'payouts',
+          contractorId: balance.contractor_id,
+          claimedAmount,
+        }
+      );
+      const { data: current } = await serverSupabase
+        .from('contractor_payout_balances')
+        .select('pending_amount_minor, lifetime_paid_out_minor')
+        .eq('contractor_id', balance.contractor_id)
+        .eq('currency', balance.currency)
+        .maybeSingle();
+      await serverSupabase
+        .from('contractor_payout_balances')
+        .update({
+          pending_amount_minor:
+            (current?.pending_amount_minor || 0) + claimedAmount,
+          lifetime_paid_out_minor: Math.max(
+            0,
+            (current?.lifetime_paid_out_minor ??
+              claimedAmount + lifetimeBefore) - claimedAmount
+          ),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('contractor_id', balance.contractor_id)
+        .eq('currency', balance.currency);
       failed++;
     }
   }
