@@ -37,7 +37,7 @@ const bodySchema = z.object({
  * Create an embedded Stripe Checkout Session
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { rateLimit: { maxRequests: 20, criticality: 'payment' } },
   async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, bodySchema);

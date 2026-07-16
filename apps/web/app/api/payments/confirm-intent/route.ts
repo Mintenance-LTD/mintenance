@@ -32,7 +32,7 @@ const confirmIntentSchema = z
  * Confirm a Stripe payment intent and update escrow status
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { rateLimit: { maxRequests: 20, criticality: 'payment' } },
   async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, confirmIntentSchema);
