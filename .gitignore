@@ -245,6 +245,8 @@ yolo11n.pt
 !tsconfig*.json
 !*.config.json
 !class_mapping*.json
+# Committed CI baseline (not a generated report — the guard reads it in CI)
+!scripts/.service-role-scoping-baseline.json
 # Surveyor taxonomy — canonical source imported by prompt-builder at runtime
 !apps/web/lib/services/building-surveyor/taxonomy/taxonomy_v3.json
 *.html

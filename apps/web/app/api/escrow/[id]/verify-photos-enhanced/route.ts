@@ -6,7 +6,11 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { validateURLs } from '@/lib/security/url-validation';
-import { NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  InternalServerError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 interface PhotoRecord {
@@ -25,14 +29,46 @@ const verifyPhotosEnhancedSchema = z.object({
  * Enhanced photo verification with before/after comparison
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { roles: ['contractor', 'admin'], rateLimit: { maxRequests: 20 } },
   async (request, { user, params }) => {
     const escrowId = params.id as string;
 
     const validation = await validateRequest(request, verifyPhotosEnhancedSchema);
     if ('headers' in validation) return validation;
 
-    const { jobId, afterPhotoUrls } = validation.data;
+    const { jobId: bodyJobId, afterPhotoUrls } = validation.data;
+
+    // AUTHZ (audit S1 — IDOR fix): this route updates escrow_transactions by id
+    // and can flip photo_verification_status to 'verified' + trigger homeowner
+    // approval / release. It previously had NO ownership check, so any
+    // authenticated user could push another party's escrow toward payout.
+    // Verify the caller is the escrow's payee (the contractor doing the work)
+    // or an admin, and derive the job from the escrow itself rather than
+    // trusting the client-supplied jobId (which was never tied to the escrow).
+    const { data: escrow, error: escrowError } = await serverSupabase
+      .from('escrow_transactions')
+      .select('id, job_id, payee_id, status')
+      .eq('id', escrowId)
+      .single();
+    if (escrowError || !escrow) throw new NotFoundError('Escrow not found');
+    if (user.role !== 'admin' && escrow.payee_id !== user.id) {
+      throw new ForbiddenError(
+        'Not authorized to verify photos for this escrow'
+      );
+    }
+    const jobId = escrow.job_id as string;
+    if (bodyJobId && bodyJobId !== jobId) {
+      logger.warn(
+        'verify-photos-enhanced body jobId does not match escrow job; using escrow job',
+        {
+          service: 'escrow-verify-photos-enhanced',
+          userId: user.id,
+          escrowId,
+          bodyJobId,
+          escrowJobId: jobId,
+        }
+      );
+    }
 
     // SECURITY: Validate photo URLs to prevent SSRF attacks
     const urlValidation = await validateURLs(afterPhotoUrls, true);
