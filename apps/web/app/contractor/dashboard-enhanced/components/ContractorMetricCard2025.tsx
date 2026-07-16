@@ -67,18 +67,36 @@ export function ContractorMetricCard2025({
 
   const colors = colorClasses[color];
 
-  // Generate sparkline data
-  const generateSparklineData = () => {
+  // Deterministic illustrative sparkline (audit F3). This previously called
+  // Math.random() during render, which (a) produced a different SVG on the
+  // server vs the client → a React hydration mismatch on every dashboard load,
+  // and (b) put live-looking random noise on a metric/earnings card. This card
+  // has no real time-series prop, so the sparkline is decorative: we render a
+  // stable shape derived deterministically from the trend direction, with a
+  // small seeded wiggle (seeded from the title so different cards differ) that
+  // is identical on server + client and unchanged across re-renders.
+  const sparklineData = React.useMemo(() => {
     const baseValue = 50;
     const trendValue =
       trend?.direction === 'up' ? 1 : trend?.direction === 'down' ? -1 : 0;
 
-    return Array.from({ length: 12 }, (_, i) => ({
-      value: baseValue + trendValue * i * 2 + Math.random() * 10,
-    }));
-  };
+    // mulberry32 PRNG seeded from the title — deterministic, so no hydration
+    // mismatch and no per-render churn.
+    let seed = 0;
+    for (let i = 0; i < title.length; i++) {
+      seed = (seed * 31 + title.charCodeAt(i)) >>> 0;
+    }
+    const rand = () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
 
-  const sparklineData = generateSparklineData();
+    return Array.from({ length: 12 }, (_, i) => ({
+      value: baseValue + trendValue * i * 2 + rand() * 10,
+    }));
+  }, [title, trend?.direction]);
 
   return (
     <MotionDiv
