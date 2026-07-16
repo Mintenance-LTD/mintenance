@@ -54,11 +54,20 @@ vi.mock('../escrow-release-notifications', () => ({
   notifyAutoRelease: mocks.notifyAutoRelease,
 }));
 
-vi.mock('../escrow-release-helpers', () => ({
-  getChargeId: mocks.getChargeId,
-  notifyMissingStripeAccount: mocks.notifyMissingStripeAccount,
-  blockEscrow: mocks.blockEscrow,
-}));
+// Partial mock: keep the REAL fetchContractorStripeAccounts (it queries the
+// mocked `profiles` table via serverSupabase, so the per-test `profiles`
+// fixtures below still drive which contractors have a Stripe account). Only the
+// notification/charge helpers are stubbed.
+vi.mock('../escrow-release-helpers', async (importActual) => {
+  const actual =
+    await importActual<typeof import('../escrow-release-helpers')>();
+  return {
+    ...actual,
+    getChargeId: mocks.getChargeId,
+    notifyMissingStripeAccount: mocks.notifyMissingStripeAccount,
+    blockEscrow: mocks.blockEscrow,
+  };
+});
 
 vi.mock('@/lib/services/payment/FeeCalculationService', () => ({
   FeeCalculationService: {
@@ -108,6 +117,13 @@ interface SupabaseScenario {
   eligibleError?: { message: string } | null;
   profiles?: Array<{ id: string; stripe_connect_account_id: string | null }>;
   updateResult?: { error: { message: string } | null };
+  // Result of the CAS claim (held -> release_pending, chained with .select('id')).
+  // Defaults to a single-row win so the release proceeds; set to [] to simulate
+  // losing the claim to a concurrent release.
+  claimResult?: {
+    data: Array<{ id: string }> | null;
+    error: { message: string } | null;
+  };
 }
 
 function configureSupabase(s: SupabaseScenario) {
@@ -117,12 +133,20 @@ function configureSupabase(s: SupabaseScenario) {
         select: vi.fn(() => chain({ data: s.profiles ?? [], error: null })),
       };
     }
-    // escrow_transactions: select (fetch batch) vs update (finalize)
+    // escrow_transactions: select (fetch batch) vs update (claim / finalize)
     return {
       select: vi.fn(() =>
         chain({ data: s.eligible ?? [], error: s.eligibleError ?? null })
       ),
-      update: vi.fn(() => chain(s.updateResult ?? { error: null })),
+      update: vi.fn(() => {
+        // The CAS claim chains .select('id') and needs rows to proceed; the
+        // finalize + revert updates don't select and only surface `error`.
+        const c = chain(s.updateResult ?? { error: null });
+        c.select = vi.fn(() =>
+          chain(s.claimResult ?? { data: [{ id: 'escrow-1' }], error: null })
+        );
+        return c;
+      }),
     };
   });
 }
@@ -273,12 +297,16 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
 
     expect(res.released).toBe(1);
     expect(res.errors).toBe(0);
-    // contractorAmount 86.5 -> 8650 minor units, to the correct destination.
+    // contractorAmount 86.5 -> 8650 minor units, to the correct destination,
+    // with a per-escrow Stripe idempotency key (defence-in-depth on the CAS).
     expect(mocks.stripeTransfersCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 8650,
         currency: 'gbp',
         destination: 'acct_1',
+      }),
+      expect.objectContaining({
+        idempotencyKey: expect.stringContaining('escrow_auto_release'),
       })
     );
     expect(mocks.notifyAutoRelease).toHaveBeenCalledWith(
