@@ -1,0 +1,18 @@
+{
+  "note": "Known service-role scoping findings. The guard fails only on findings NOT listed here. Regenerate with `npx tsx scripts/check-service-role-scoping.ts --update-baseline` after an intentional, reviewed change.",
+  "generatedAt": "2026-07-16T18:00:22.152Z",
+  "count": 11,
+  "keys": [
+    "apps/web/app/api/building-surveyor/ab-test-dashboard/route.ts::const { data: outcomes } = await serverSupabase.from('ab_outcomes').select('sfn, validated_at').eq('experiment_id', experimentId).gte('validated_at', startDate.toISOString()).order('validated_at', { ascending: true });",
+    "apps/web/app/api/building-surveyor/ab-test-dashboard/route.ts::const { data: outcomes } = await serverSupabase.from('ab_outcomes').select('true_class, cp_prediction_set, validated_at').eq('experiment_id', experimentId).gte('validated_at', startDate.toISOString()).order('validated_at', { ascending: true });",
+    "apps/web/app/api/contractor/training-contribution/route.ts::await serverSupabase.from('contractor_contributions').insert({ contractor_id: contractorId, images_contributed: 1, credits_earned: 5 });",
+    "apps/web/app/api/contractor/training-contribution/route.ts::await serverSupabase.from('contractor_contributions').update({ credits_earned: stats.credits_earned + response.bonus, updated_at: new Date().toISOString() }).eq('contractor_id', contractorId);",
+    "apps/web/app/api/contractor/training-contribution/route.ts::await serverSupabase.from('contractor_contributions').update({ images_contributed: current.images_contributed + 1, credits_earned: current.credits_earned + 5, updated_at: new Date().toISOString() }).eq('contractor_id', contractorId);",
+    "apps/web/app/api/contractor/training-contribution/route.ts::await serverSupabase.from('contractor_contributions').update({ premium_months_earned: months, last_reward_date: new Date().toISOString() }).eq('contractor_id', contractorId);",
+    "apps/web/app/api/contractors/[id]/location/route.ts::: serverSupabase.from('contractor_locations').insert(locationPayload);",
+    "apps/web/app/api/escrow/[id]/verify-photos-enhanced/route.ts::await serverSupabase.from('escrow_transactions').update({",
+    "apps/web/app/api/gdpr/anonymize-data/route.ts::await serverSupabase.from('dsr_requests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', dsrRequest.id);",
+    "apps/web/app/api/jobs/[id]/track-view/route.ts::const { error } = await serverSupabase.from('job_views').insert({",
+    "apps/web/app/api/maintenance/feedback/route.ts::await serverSupabase.from('contractor_contributions').insert({"
+  ]
+}
