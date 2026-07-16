@@ -1589,9 +1589,20 @@ describe('Job Lifecycle - 8. After photos and auto-completion', () => {
           }),
           update: vi.fn((data: unknown) => {
             jobUpdates.push(data);
-            return {
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            };
+            // The auto-complete path CAS-guards the write:
+            //   .update().eq('id').eq('status','in_progress').select('id')
+            // and only sets jobCompleted when a row comes back. Return a
+            // self-chaining builder whose .select() resolves to the updated
+            // row; awaiting the shorter .update().eq() form still yields
+            // { error: null }.
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi
+              .fn()
+              .mockResolvedValue({ data: [{ id: JOB_ID }], error: null });
+            chain.then = (resolve: (v: unknown) => unknown) =>
+              Promise.resolve({ error: null }).then(resolve);
+            return chain;
           }),
         };
       }
