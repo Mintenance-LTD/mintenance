@@ -4,11 +4,16 @@
 import { z } from 'zod';
 import { sanitizeText, sanitizeEmail } from '@/lib/sanitizer';
 
-export const loginSchema = z.object({
-  email: z.string().transform((val) => sanitizeEmail(val)),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
-  rememberMe: z.boolean().optional(),
-});
+export const loginSchema = z
+  .object({
+    email: z.string().transform((val) => sanitizeEmail(val)),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password too long'),
+    rememberMe: z.boolean().optional(),
+  })
+  .strict();
 
 export const registerSchema = z
   .object({
@@ -20,7 +25,10 @@ export const registerSchema = z
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+      .regex(
+        /[^A-Za-z0-9]/,
+        'Password must contain at least one special character'
+      ),
     firstName: z
       .string()
       .min(1, 'First name required')
@@ -34,53 +42,83 @@ export const registerSchema = z
       .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters')
       .transform((val) => sanitizeText(val, 100)),
     role: z.enum(['homeowner', 'contractor']),
-    phone: z.preprocess((val) => {
-      if (!val || typeof val !== 'string' || val.trim() === '') return undefined;
-      const stripped = val.replace(/[\s\-()]/g, '');
-      if (/^0\d{9,10}$/.test(stripped)) return '+44' + stripped.slice(1);
-      return stripped;
-    }, z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number').optional()),
+    phone: z.preprocess(
+      (val) => {
+        if (!val || typeof val !== 'string' || val.trim() === '')
+          return undefined;
+        const stripped = val.replace(/[\s\-()]/g, '');
+        if (/^0\d{9,10}$/.test(stripped)) return '+44' + stripped.slice(1);
+        return stripped;
+      },
+      z
+        .string()
+        .regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number')
+        .optional()
+    ),
   })
+  .strict()
   .refine((data) => !(data.role === 'homeowner' && !data.phone), {
     message: 'Phone number is required for homeowners',
     path: ['phone'],
   });
 
-export const passwordResetSchema = z.object({
-  email: z.string().transform((val) => sanitizeEmail(val)),
-});
+export const passwordResetSchema = z
+  .object({
+    email: z.string().transform((val) => sanitizeEmail(val)),
+  })
+  .strict();
 
-export const passwordUpdateSchema = z.object({
-  token: z.string().min(1, 'Token required'),
-  newPassword: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password too long')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-});
+export const passwordUpdateSchema = z
+  .object({
+    token: z.string().min(1, 'Token required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .max(128, 'Password too long')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number')
+      .regex(
+        /[^A-Za-z0-9]/,
+        'Password must contain at least one special character'
+      ),
+  })
+  .strict();
 
 // GDPR Schemas
-export const gdprRequestSchema = z.object({
-  request_type: z.enum(['access', 'portability', 'rectification', 'erasure', 'restriction', 'objection']),
-  notes: z.string().optional(),
-});
+export const gdprRequestSchema = z
+  .object({
+    request_type: z.enum([
+      'access',
+      'portability',
+      'rectification',
+      'erasure',
+      'restriction',
+      'objection',
+    ]),
+    notes: z.string().optional(),
+  })
+  .strict();
 
-export const gdprEmailSchema = z.object({
-  email: z.string().email('Invalid email format'),
-});
+export const gdprEmailSchema = z
+  .object({
+    email: z.string().email('Invalid email format'),
+  })
+  .strict();
 
-export const gdprAnonymizeSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  confirmation: z.literal('ANONYMIZE MY DATA'),
-});
+export const gdprAnonymizeSchema = z
+  .object({
+    email: z.string().email('Invalid email format'),
+    confirmation: z.literal('ANONYMIZE MY DATA'),
+  })
+  .strict();
 
-export const gdprDeleteSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  confirmation: z.literal('DELETE MY DATA'),
-});
+export const gdprDeleteSchema = z
+  .object({
+    email: z.string().email('Invalid email format'),
+    confirmation: z.literal('DELETE MY DATA'),
+  })
+  .strict();
 
 // Type exports
 export type LoginInput = z.infer<typeof loginSchema>;
