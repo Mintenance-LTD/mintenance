@@ -328,3 +328,21 @@ apps/web/*.png
 
 # Turborepo local cache
 .turbo/
+
+# Confidential business/legal documents — must never be committed (audit P0-1).
+# Keep these in Drive/Notion, not the code repo.
+/*.docx
+/*.pdf
+/*.pptx
+
+# Redundant AI-assistant config trees (canonical assistant config is .claude/)
+/.kiro/
+/.windsurf/
+/.agents/
+/.cursor/
+
+# Emulator / debug dumps
+/ui.xml
+/ui2.xml
+/tabs.xml
+apps/mobile/phase4-after-mocks.txt
