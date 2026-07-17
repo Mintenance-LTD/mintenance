@@ -186,7 +186,7 @@ ImageCarousel.displayName = 'ImageCarousel';
 
 const styles = StyleSheet.create({
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'flex-end',
     padding: 16,
   },

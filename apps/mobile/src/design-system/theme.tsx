@@ -307,8 +307,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  // RN 0.85's ColorSchemeName gained 'unspecified' — narrow to our
+  // two-value ColorScheme, treating unspecified/null as light.
   const [systemColorScheme, setSystemColorScheme] = useState<ColorScheme>(
-    Appearance.getColorScheme() || 'light'
+    Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'
   );
 
   // Calculate actual color scheme based on mode
@@ -338,7 +340,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Listen to system appearance changes
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSystemColorScheme(colorScheme || 'light');
+      setSystemColorScheme(colorScheme === 'dark' ? 'dark' : 'light');
     });
     return () => subscription?.remove();
   }, []);
