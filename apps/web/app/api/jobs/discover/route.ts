@@ -46,7 +46,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
 import { DEFAULT_MATCH_RADIUS_KM } from '@/lib/services/matching/constants';
-import { fetchGeoJobIds, haversineKm, toNum, type JobRow } from './helpers';
+import { fetchGeoJobs, haversineKm, toNum, type JobRow } from './helpers';
 
 // Constrain `category` to the canonical enum so the downstream
 // PostgREST filter is an exact match instead of an `.ilike()` against
@@ -147,13 +147,19 @@ export const GET = withApiHandler(
     const hasGeoFilter =
       typeof latitude === 'number' && typeof longitude === 'number';
 
-    // PostGIS-first: resolve the in-radius id set via the GIST index.
+    // PostGIS-first: resolve the in-radius set via the GIST index.
     // `null` means the RPC isn't deployed yet → JS Haversine fallback.
+    // distanceById carries km-from-search-center into the response.
     let geoJobIds: string[] | null = null;
+    const distanceById = new Map<string, number | null>();
     if (hasGeoFilter) {
-      geoJobIds = await fetchGeoJobIds(latitude, longitude, radiusKm);
-      if (geoJobIds !== null && geoJobIds.length === 0) {
-        return NextResponse.json({ jobs: [] });
+      const geoJobs = await fetchGeoJobs(latitude, longitude, radiusKm);
+      if (geoJobs !== null) {
+        if (geoJobs.length === 0) {
+          return NextResponse.json({ jobs: [] });
+        }
+        geoJobIds = geoJobs.map((g) => g.jobId);
+        for (const g of geoJobs) distanceById.set(g.jobId, g.distanceKm);
       }
     }
     const usePostgis = geoJobIds !== null;
@@ -221,13 +227,19 @@ export const GET = withApiHandler(
     let rows = (data ?? []) as JobRow[];
 
     // JS Haversine radius filter — fallback path only (see helpers.ts).
+    // Stash the computed distance so the response carries it in this
+    // path too.
     if (hasGeoFilter && !usePostgis) {
       rows = rows.filter((row) => {
         const rowLat = toNum(row.latitude);
         const rowLng = toNum(row.longitude);
         if (rowLat === null || rowLng === null) return false;
         const distance = haversineKm(latitude, longitude, rowLat, rowLng);
-        return distance <= radiusKm;
+        if (distance <= radiusKm) {
+          distanceById.set(row.id, distance);
+          return true;
+        }
+        return false;
       });
       // Re-apply the caller's `limit` on the post-filter set.
       rows = rows.slice(0, limit);
@@ -249,6 +261,11 @@ export const GET = withApiHandler(
         longitude: toNum(row.longitude),
         created_at: row.created_at,
         homeowner_first_name: firstName,
+        // 2026-07-17: km from the SEARCH CENTER (map origin), null when
+        // no geo filter was applied. Additive — clients that show
+        // distance-from-me (mobile pans away from the user) should keep
+        // their own reference-point math.
+        distance_km: distanceById.get(row.id) ?? null,
       };
     });
 

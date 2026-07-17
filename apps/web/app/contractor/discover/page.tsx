@@ -4,6 +4,18 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorDiscoverClient } from './components/ContractorDiscoverClient';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
+import { calculateDiscoverMatchScore } from '@/lib/services/matching/discover-match';
+
+// Largest radius chip the client offers (DiscoverFilters: 5/10/20/50).
+// The server resolves the candidate set at this radius; the chips only
+// narrow it down client-side.
+const MAX_DISCOVER_CHIP_RADIUS_KM = 50;
+
+function toNum(v: unknown): number | null {
+  if (v == null) return null;
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 
 interface Job {
   id: string;
@@ -26,6 +38,9 @@ interface Job {
     postcode: string;
   } | null;
   matchScore: number;
+  /** Km from the contractor's stored location (PostGIS, 2026-07-17);
+   * null on the legacy newest-50 fallback path. */
+  serverDistanceKm?: number | null;
 }
 
 export const metadata = {
@@ -33,68 +48,9 @@ export const metadata = {
   description: 'Browse and save available jobs that match your skills',
 };
 
-// Calculate match score based on various factors
-function calculateMatchScore(
-  job: {
-    category?: string | null;
-    property?: { address?: string } | null;
-    budget?: number;
-    priority?: string | null;
-    created_at: string;
-  },
-  contractorSkills: string[],
-  contractorCity: string | null
-): number {
-  let score = 50; // Base score
-
-  // Category/skill match (40 points max)
-  if (job.category && contractorSkills.length > 0) {
-    const categoryLower = job.category.toLowerCase();
-    const hasMatchingSkill = contractorSkills.some(
-      (skill) =>
-        categoryLower.includes(skill.toLowerCase()) ||
-        skill.toLowerCase().includes(categoryLower)
-    );
-    if (hasMatchingSkill) {
-      score += 40;
-    } else {
-      score += 10; // Partial credit for having skills
-    }
-  }
-
-  // Location match (20 points max)
-  if (contractorCity && job.property?.address) {
-    const addressLower = job.property.address.toLowerCase();
-    const cityLower = contractorCity.toLowerCase();
-    if (addressLower.includes(cityLower)) {
-      score += 20;
-    } else {
-      score += 5; // Partial credit
-    }
-  }
-
-  // Budget alignment (15 points max)
-  if (job.budget) {
-    if (job.budget >= 5000)
-      score += 15; // High value jobs
-    else if (job.budget >= 1000)
-      score += 10; // Medium value
-    else score += 5; // Lower value
-  }
-
-  // Priority/urgency (10 points max)
-  if (job.priority === 'high') score += 10;
-  else if (job.priority === 'medium') score += 5;
-
-  // Recent posting bonus (5 points max)
-  const daysSincePosted = Math.floor(
-    (Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24)
-  );
-  if (daysSincePosted <= 1) score += 5;
-  else if (daysSincePosted <= 3) score += 3;
-
-  return Math.min(Math.max(score, 0), 100); // Clamp between 0-100
-}
+// Match badge lives in @/lib/services/matching/discover-match
+// (extracted 2026-07-17 so there is exactly one contractor-side
+// scoring implementation, unit-tested).
 
 export default async function ContractorDiscoverPage2025() {
   const user = await getCurrentUserFromCookies();
@@ -103,27 +59,98 @@ export default async function ContractorDiscoverPage2025() {
     redirect('/login');
   }
 
-  // Fetch contractor's skills and location in parallel
-  const [contractorSkillsResponse, contractorProfileResponse] =
-    await Promise.all([
-      serverSupabase
-        .from('contractor_skills')
-        .select('skill_name')
-        .eq('contractor_id', user.id),
-      serverSupabase
-        .from('profiles')
-        .select('city, address, postcode, latitude, longitude')
-        .eq('id', user.id)
-        .single(),
-    ]);
+  // Fetch contractor's skills, location and active coverage in parallel
+  const [
+    contractorSkillsResponse,
+    contractorProfileResponse,
+    coverageResponse,
+  ] = await Promise.all([
+    serverSupabase
+      .from('contractor_skills')
+      .select('skill_name')
+      .eq('contractor_id', user.id),
+    serverSupabase
+      .from('profiles')
+      .select('city, address, postcode, latitude, longitude')
+      .eq('id', user.id)
+      .single(),
+    serverSupabase
+      .from('service_areas')
+      .select(
+        'id, center_latitude, center_longitude, radius_km, max_distance_km, is_primary_area'
+      )
+      .eq('contractor_id', user.id)
+      .eq('is_active', true),
+  ]);
 
   const contractorSkills =
     contractorSkillsResponse.data?.map((s) => s.skill_name) || [];
   const contractorCity = contractorProfileResponse.data?.city || null;
   const contractorLocation = contractorProfileResponse.data || null;
 
+  // Coverage overlay (2026-07-17): active service areas, primary first,
+  // radius mirroring the notify-audience gating (max_distance_km over
+  // radius_km). Rows without usable center/radius are skipped.
+  const coverageAreas = (coverageResponse.data ?? [])
+    .map((row) => {
+      const lat = toNum(row.center_latitude);
+      const lng = toNum(row.center_longitude);
+      const radiusKm = toNum(row.max_distance_km) ?? toNum(row.radius_km);
+      if (lat === null || lng === null || radiusKm === null || radiusKm <= 0) {
+        return null;
+      }
+      return {
+        id: String(row.id),
+        lat,
+        lng,
+        radiusKm,
+        isPrimary: row.is_primary_area === true,
+      };
+    })
+    .filter((a): a is NonNullable<typeof a> => a !== null)
+    .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+
+  // 2026-07-17 discover geo fix: previously this page fetched the 50
+  // NEWEST posted jobs anywhere in the country and the browser
+  // filtered by radius — so a nearby-but-older job silently fell out
+  // of "within 10km" whenever 50 fresher jobs existed elsewhere.
+  // Resolve the candidate set via the GIST-indexed find_jobs_near_point
+  // RPC at the largest chip radius when the contractor has stored
+  // coordinates; the legacy newest-50 query survives as graceful
+  // degradation (no coords, or RPC not yet deployed).
+  const contractorLat = toNum(contractorLocation?.latitude);
+  const contractorLng = toNum(contractorLocation?.longitude);
+  let geoJobIds: string[] | null = null;
+  const geoDistanceById = new Map<string, number | null>();
+  if (contractorLat !== null && contractorLng !== null) {
+    const { data: geoRows, error: geoError } = await serverSupabase.rpc(
+      'find_jobs_near_point',
+      {
+        p_latitude: contractorLat,
+        p_longitude: contractorLng,
+        p_radius_km: MAX_DISCOVER_CHIP_RADIUS_KM,
+        p_limit: 200,
+      }
+    );
+    if (!geoError && geoRows) {
+      const rows = geoRows as Array<{
+        job_id: string;
+        distance_km: number | string | null;
+      }>;
+      geoJobIds = rows.map((r) => r.job_id);
+      for (const r of rows) {
+        geoDistanceById.set(r.job_id, toNum(r.distance_km));
+      }
+    } else {
+      logger.warn(
+        '[DISCOVER] find_jobs_near_point unavailable — newest-50 fallback',
+        { service: 'app', error: geoError?.message }
+      );
+    }
+  }
+
   // Fetch available jobs that contractor hasn't already bid on, including AI assessments
-  const { data: jobs, error } = await serverSupabase
+  let jobsQuery = serverSupabase
     .from('jobs')
     .select(
       `
@@ -155,9 +182,16 @@ export default async function ContractorDiscoverPage2025() {
     `
     )
     .in('status', ['posted'])
-    .is('contractor_id', null)
-    .order('created_at', { ascending: false })
-    .limit(50);
+    .is('contractor_id', null);
+
+  if (geoJobIds !== null && geoJobIds.length > 0) {
+    jobsQuery = jobsQuery.in('id', geoJobIds);
+  }
+
+  const { data: jobs, error } =
+    geoJobIds !== null && geoJobIds.length === 0
+      ? { data: [], error: null }
+      : await jobsQuery.order('created_at', { ascending: false }).limit(50);
 
   if (error) {
     logger.error('[DISCOVER] Query Error', error, { service: 'app' });
@@ -220,6 +254,7 @@ export default async function ContractorDiscoverPage2025() {
                 )?.[0] || '',
             }
           : null,
+        serverDistanceKm: geoDistanceById.get(job.id) ?? null,
       };
     })
   );
@@ -271,7 +306,12 @@ export default async function ContractorDiscoverPage2025() {
     .filter((job) => !bidJobIds.has(job.id))
     .map((job) => ({
       ...job,
-      matchScore: calculateMatchScore(job, contractorSkills, contractorCity),
+      matchScore: calculateDiscoverMatchScore(
+        job,
+        contractorSkills,
+        contractorCity,
+        now
+      ),
     }))
     .sort((a, b) => b.matchScore - a.matchScore);
 
@@ -280,6 +320,7 @@ export default async function ContractorDiscoverPage2025() {
       jobs={availableJobs}
       contractorId={user.id}
       contractorLocation={contractorLocation}
+      coverageAreas={coverageAreas}
     />
   );
 }

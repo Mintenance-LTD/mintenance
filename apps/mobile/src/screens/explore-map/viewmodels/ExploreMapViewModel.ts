@@ -12,7 +12,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import * as Location from 'expo-location';
-import { DEFAULT_MATCH_RADIUS_KM } from '../constants';
+import { radiusKmForRegion } from '../constants';
 
 export interface JobMapItem {
   id: string;
@@ -227,13 +227,8 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
       // `filteredJobs` selector — too complex to push to a single ILIKE.
       //
       // Audit follow-up (2026-04-29): pass the current map region so
-      // the server can filter by Haversine distance. Previously the
-      // client requested all 50 most-recent posted jobs and only
-      // sorted them locally — the "Search this area" button felt
-      // misleading because the actual filter was just "newest 50
-      // anywhere". The route ignores `latitude`/`longitude`/`radiusKm`
-      // until the matching server-side filter lands; safe to send
-      // ahead of that change.
+      // the server filters by distance (PostGIS-backed since the
+      // 2026-07-17 cutover) instead of "newest 50 anywhere".
       const currentRegion = regionRef.current;
       const params = new URLSearchParams({ limit: '50' });
       if (selectedCategory) params.set('category', selectedCategory);
@@ -244,7 +239,8 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
       ) {
         params.set('latitude', String(currentRegion.latitude));
         params.set('longitude', String(currentRegion.longitude));
-        params.set('radiusKm', String(DEFAULT_MATCH_RADIUS_KM));
+        // Zoom-aware radius — see radiusKmForRegion in ../constants.
+        params.set('radiusKm', String(radiusKmForRegion(currentRegion)));
       }
 
       // Numeric columns may arrive as strings if the server forgets to

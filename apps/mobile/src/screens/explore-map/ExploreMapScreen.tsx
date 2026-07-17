@@ -30,7 +30,11 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import { goToTab } from '../../navigation/hooks';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { useCoverageAreas } from './useCoverageAreas';
+
+// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
+const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import { Ionicons } from '@expo/vector-icons';
 import {
   useExploreMapViewModel,
@@ -394,6 +398,36 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
   // to "Map unavailable").
   const shouldRenderNativeMap = shouldRenderNativeMapUtil();
 
+  // 2026-07-17: draw the contractor's configured coverage on the map
+  // and, when neither saved profile coords nor GPS resolved a
+  // viewport, fall back to their primary service area instead of the
+  // generic London default. Decorative + best-effort.
+  const coverageAreas = useCoverageAreas(shouldRenderNativeMap);
+  const coverageViewportApplied = useRef(false);
+  useEffect(() => {
+    const primary = coverageAreas[0];
+    if (
+      coverageViewportApplied.current ||
+      viewModel.userLocation !== null ||
+      !primary ||
+      !viewModel.regionResolved
+    ) {
+      return;
+    }
+    coverageViewportApplied.current = true;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: primary.centerLatitude,
+        longitude: primary.centerLongitude,
+        // Frame the whole coverage circle: delta ≈ diameter in degrees
+        // with ~30% margin.
+        latitudeDelta: Math.max((primary.radiusKm * 2.6) / 111.32, 0.05),
+        longitudeDelta: Math.max((primary.radiusKm * 2.6) / 111.32, 0.05),
+      },
+      300
+    );
+  }, [coverageAreas, viewModel.userLocation, viewModel.regionResolved]);
+
   // 2026-05-24 audit-38 P2: refetch jobs every time the map regains
   // focus. Previously, after a contractor submitted a bid from
   // BidSubmissionScreen and tapped goBack, the map's local state
@@ -489,6 +523,24 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
             showsUserLocation={viewModel.locationGranted}
             showsMyLocationButton={false}
           >
+            {/* Coverage overlay — the contractor's active service
+                areas (matches the notify-audience gating radius:
+                max_distance_km over radius_km). */}
+            {coverageAreas.map((area) => (
+              <Circle
+                key={area.id}
+                center={{
+                  latitude: area.centerLatitude,
+                  longitude: area.centerLongitude,
+                }}
+                radius={area.radiusKm * 1000}
+                strokeColor={me.brand}
+                strokeWidth={1}
+                fillColor={`${me.brand}14`}
+                zIndex={1}
+              />
+            ))}
+
             {/* Contractor location pin */}
             {viewModel.userLocation && (
               <Marker
