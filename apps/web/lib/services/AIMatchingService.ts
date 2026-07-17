@@ -1,5 +1,6 @@
 import { logger } from '@mintenance/shared';
 import { ContractorDataService } from './matching/ContractorDataService';
+import { EngagementStatsService } from './matching/EngagementStatsService';
 import { ScoringService } from './matching/ScoringService';
 import { MatchAnalysisService } from './matching/MatchAnalysisService';
 import { InsightsService } from './matching/InsightsService';
@@ -46,6 +47,13 @@ export class AIMatchingService {
         )
       );
 
+      // Batch engagement stats (fairness + real responsiveness terms,
+      // Phase 3 2026-07-17). One query for the whole candidate set;
+      // failure degrades to neutral scores inside ScoringService.
+      const statsByContractorId = await EngagementStatsService.fetchStats(
+        contractors.map((c) => c.id)
+      );
+
       // Score each contractor
       const matches: ContractorMatch[] = [];
 
@@ -53,7 +61,8 @@ export class AIMatchingService {
         const matchScore = await ScoringService.calculateMatchScore(
           contractor,
           criteria,
-          tierByContractorId.get(contractor.id)
+          tierByContractorId.get(contractor.id),
+          statsByContractorId.get(contractor.id)
         );
 
         // Apply learning-based adjustments if homeowner ID is available
