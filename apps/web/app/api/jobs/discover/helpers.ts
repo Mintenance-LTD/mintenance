@@ -68,17 +68,23 @@ interface GeoJobIdRow {
   distance_km: number | string | null;
 }
 
+export interface GeoJobMatch {
+  jobId: string;
+  /** Kilometres from the supplied search center (map/search origin). */
+  distanceKm: number | null;
+}
+
 /**
- * Indexed radius filter via PostGIS. Returns the matching open-job ids
- * (newest first, capped at 500 like the legacy 5× candidate pool), or
- * `null` when the RPC isn't available yet so the caller falls back to
- * the JS Haversine path.
+ * Indexed radius filter via PostGIS. Returns the matching open jobs
+ * (newest first, capped at 500 like the legacy 5× candidate pool) with
+ * their distance from the search center, or `null` when the RPC isn't
+ * available yet so the caller falls back to the JS Haversine path.
  */
-export async function fetchGeoJobIds(
+export async function fetchGeoJobs(
   latitude: number,
   longitude: number,
   radiusKm: number
-): Promise<string[] | null> {
+): Promise<GeoJobMatch[] | null> {
   const { data, error } = await serverSupabase.rpc('find_jobs_near_point', {
     p_latitude: latitude,
     p_longitude: longitude,
@@ -94,5 +100,8 @@ export async function fetchGeoJobIds(
     return null;
   }
 
-  return ((data ?? []) as GeoJobIdRow[]).map((row) => row.job_id);
+  return ((data ?? []) as GeoJobIdRow[]).map((row) => ({
+    jobId: row.job_id,
+    distanceKm: toNum(row.distance_km),
+  }));
 }
