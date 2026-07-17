@@ -325,9 +325,13 @@ export const POST = withApiHandler(
             },
           ];
 
-    // Create Checkout Session with embedded mode
+    // Create Checkout Session with embedded mode. 'embedded' is the
+    // correct value for our pinned '2025-01-27.acacia' API version
+    // (lib/stripe.ts); the SDK's bundled dahlia types renamed it to
+    // 'embedded_page', so the cast bridges the type/runtime version
+    // gap. If the pin ever moves past basil, change the value itself.
     const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded',
+      ui_mode: 'embedded' as Stripe.Checkout.SessionCreateParams.UiMode,
       line_items: lineItems,
       mode: 'payment',
       return_url: returnUrl,

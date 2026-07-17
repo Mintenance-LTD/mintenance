@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getInvoiceSubscriptionId } from '@/lib/services/stripe-compat';
 import type { SendNotificationFn } from './webhook-helpers';
 
 /**
@@ -44,10 +45,7 @@ export async function handleInvoicePaymentSucceeded(
       return;
     }
 
-    const subscriptionId =
-      typeof invoice.subscription === 'string'
-        ? invoice.subscription
-        : invoice.subscription?.id;
+    const subscriptionId = getInvoiceSubscriptionId(invoice);
 
     // Record in invoice_payments table
     try {
@@ -145,10 +143,7 @@ export async function handleInvoicePaymentFailed(
       return;
     }
 
-    const subscriptionId =
-      typeof invoice.subscription === 'string'
-        ? invoice.subscription
-        : invoice.subscription?.id;
+    const subscriptionId = getInvoiceSubscriptionId(invoice);
 
     // Record failed payment in invoice_payments
     try {

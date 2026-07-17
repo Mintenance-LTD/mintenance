@@ -66,7 +66,7 @@ export const styles = StyleSheet.create({
   },
 
   videoCallOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1000,
     backgroundColor: me.bg2,
   },

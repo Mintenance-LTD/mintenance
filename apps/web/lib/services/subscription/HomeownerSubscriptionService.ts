@@ -1,6 +1,10 @@
 import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import {
+  getInvoicePaymentClientSecret,
+  getSubscriptionPeriod,
+} from '@/lib/services/stripe-compat';
 // 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
 // Route through the single shared lazy proxy so the API version stays pinned
 // in one place (lib/stripe.ts → '2025-01-27.acacia').
@@ -124,6 +128,10 @@ export class HomeownerSubscriptionService {
       items: [{ price: stripePrice.id }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
+      // Valid for the pinned acacia API version. If the pin in
+      // lib/stripe.ts moves past basil, switch to
+      // 'latest_invoice.confirmation_secret' — the client-secret read
+      // below (getInvoicePaymentClientSecret) already handles both.
       expand: ['latest_invoice.payment_intent'],
       metadata: {
         userRole: 'homeowner',
@@ -135,9 +143,7 @@ export class HomeownerSubscriptionService {
     });
 
     const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = (
-      invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent }
-    ).payment_intent;
+    const period = getSubscriptionPeriod(subscription);
 
     const existing = await this.getCurrentSubscription(homeownerId);
     if (existing) {
@@ -163,11 +169,11 @@ export class HomeownerSubscriptionService {
         status: subscription.status === 'active' ? 'active' : 'incomplete',
         amount: price_gbp,
         currency: 'gbp',
-        current_period_start: subscription.current_period_start
-          ? new Date(subscription.current_period_start * 1000).toISOString()
+        current_period_start: period.start
+          ? new Date(period.start * 1000).toISOString()
           : null,
-        current_period_end: subscription.current_period_end
-          ? new Date(subscription.current_period_end * 1000).toISOString()
+        current_period_end: period.end
+          ? new Date(period.end * 1000).toISOString()
           : null,
         cancel_at_period_end: subscription.cancel_at_period_end || false,
         metadata: subscription.metadata || {},
@@ -189,7 +195,7 @@ export class HomeownerSubscriptionService {
     return {
       dbSubscriptionId: saved.id,
       stripeSubscriptionId: subscription.id,
-      clientSecret: paymentIntent?.client_secret || null,
+      clientSecret: getInvoicePaymentClientSecret(invoice),
     };
   }
 

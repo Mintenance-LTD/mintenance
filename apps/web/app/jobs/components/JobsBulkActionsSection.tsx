@@ -41,7 +41,11 @@ export function JobsBulkActionsSection({
         fetch(`/api/jobs/${jobId}`, {
           method: 'PATCH',
           headers: { ...csrfHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'archived' }),
+          // `archived` maps to jobs.archived_at server-side. Do NOT
+          // send a status here — 'archived' is not a lifecycle status
+          // (the old `{ status: 'archived' }` payload failed schema
+          // validation and this action 400'd for every job).
+          body: JSON.stringify({ archived: true }),
         })
       );
       const results = await Promise.all(archivePromises);

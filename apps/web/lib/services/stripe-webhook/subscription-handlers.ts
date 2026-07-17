@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getSubscriptionPeriod } from '@/lib/services/stripe-compat';
 import type { SendNotificationFn } from './webhook-helpers';
 
 /**
@@ -115,13 +116,14 @@ export async function handleSubscriptionUpdated(
           stripeStatus: subscription.status,
         });
       } else {
+        const period = getSubscriptionPeriod(subscription);
         const contractorUpdate: Record<string, unknown> = {
           status: csStatus,
-          current_period_start: subscription.current_period_start
-            ? new Date(subscription.current_period_start * 1000).toISOString()
+          current_period_start: period.start
+            ? new Date(period.start * 1000).toISOString()
             : null,
-          current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
+          current_period_end: period.end
+            ? new Date(period.end * 1000).toISOString()
             : null,
           cancel_at_period_end: subscription.cancel_at_period_end || false,
           canceled_at: subscription.canceled_at
@@ -156,15 +158,16 @@ export async function handleSubscriptionUpdated(
         }
       }
     } else if (user.role === 'homeowner') {
+      const period = getSubscriptionPeriod(subscription);
       const { error: homeownerSubError } = await serverSupabase
         .from('homeowner_subscriptions')
         .update({
           status: homeownerStatus,
-          current_period_start: subscription.current_period_start
-            ? new Date(subscription.current_period_start * 1000).toISOString()
+          current_period_start: period.start
+            ? new Date(period.start * 1000).toISOString()
             : null,
-          current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
+          current_period_end: period.end
+            ? new Date(period.end * 1000).toISOString()
             : null,
           cancel_at_period_end: subscription.cancel_at_period_end || false,
           canceled_at: subscription.canceled_at
