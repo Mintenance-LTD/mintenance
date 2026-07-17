@@ -1,10 +1,13 @@
-import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 // 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
-// Route through the single shared lazy proxy so the API version stays pinned
-// in one place (lib/stripe.ts → '2025-01-27.acacia').
-import { stripe as sharedStripe } from '@/lib/stripe';
+// Route through the single shared lazy proxy so the API version stays
+// pinned in one place (lib/stripe.ts → the SDK's own pinned version).
+import {
+  stripe as sharedStripe,
+  getInvoiceClientSecret,
+  getSubscriptionPeriodBounds,
+} from '@/lib/stripe';
 
 function getStripe() {
   return sharedStripe;
@@ -124,7 +127,9 @@ export class HomeownerSubscriptionService {
       items: [{ price: stripePrice.id }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
+      // basil+ API versions reject the old `latest_invoice.payment_intent`
+      // expansion; confirmation_secret carries the same client secret.
+      expand: ['latest_invoice.confirmation_secret'],
       metadata: {
         userRole: 'homeowner',
         userId: homeownerId,
@@ -134,10 +139,9 @@ export class HomeownerSubscriptionService {
       },
     });
 
-    const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = (
-      invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent }
-    ).payment_intent;
+    const clientSecret = getInvoiceClientSecret(subscription.latest_invoice);
+    const { currentPeriodStart, currentPeriodEnd } =
+      getSubscriptionPeriodBounds(subscription);
 
     const existing = await this.getCurrentSubscription(homeownerId);
     if (existing) {
@@ -163,12 +167,8 @@ export class HomeownerSubscriptionService {
         status: subscription.status === 'active' ? 'active' : 'incomplete',
         amount: price_gbp,
         currency: 'gbp',
-        current_period_start: subscription.current_period_start
-          ? new Date(subscription.current_period_start * 1000).toISOString()
-          : null,
-        current_period_end: subscription.current_period_end
-          ? new Date(subscription.current_period_end * 1000).toISOString()
-          : null,
+        current_period_start: currentPeriodStart,
+        current_period_end: currentPeriodEnd,
         cancel_at_period_end: subscription.cancel_at_period_end || false,
         metadata: subscription.metadata || {},
       })
@@ -189,7 +189,7 @@ export class HomeownerSubscriptionService {
     return {
       dbSubscriptionId: saved.id,
       stripeSubscriptionId: subscription.id,
-      clientSecret: paymentIntent?.client_secret || null,
+      clientSecret,
     };
   }
 

@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     right: 20,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,1)',
     zIndex: 0,
   },

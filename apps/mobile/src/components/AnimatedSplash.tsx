@@ -107,7 +107,7 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ onFinish }) => {
         <Image
           source={require('../../assets/splash.png')}
           style={styles.logo}
-          resizeMode="contain"
+          resizeMode='contain'
         />
       </Animated.View>
 
@@ -142,7 +142,7 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ onFinish }) => {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',

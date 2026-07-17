@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getSubscriptionPeriodBounds } from '@/lib/stripe';
 import type { SendNotificationFn } from './webhook-helpers';
 
 /**
@@ -62,6 +63,13 @@ export async function handleSubscriptionUpdated(
     const homeownerStatus =
       mappedStatus === 'cancelled' ? 'canceled' : mappedStatus;
 
+    // Version-tolerant: the webhook endpoint's dashboard-pinned api_version
+    // decides whether the payload carries subscription.current_period_*
+    // (pre-basil) or per-item periods (2025-03-31.basil and later). A null
+    // here would wipe the stored renewal dates, so both shapes are handled.
+    const { currentPeriodStart, currentPeriodEnd } =
+      getSubscriptionPeriodBounds(subscription);
+
     // Determine tier from price metadata or product
     const priceId = subscription.items?.data?.[0]?.price?.id;
     const tierFromMetadata =
@@ -117,12 +125,8 @@ export async function handleSubscriptionUpdated(
       } else {
         const contractorUpdate: Record<string, unknown> = {
           status: csStatus,
-          current_period_start: subscription.current_period_start
-            ? new Date(subscription.current_period_start * 1000).toISOString()
-            : null,
-          current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
-            : null,
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
           cancel_at_period_end: subscription.cancel_at_period_end || false,
           canceled_at: subscription.canceled_at
             ? new Date(subscription.canceled_at * 1000).toISOString()
@@ -160,12 +164,8 @@ export async function handleSubscriptionUpdated(
         .from('homeowner_subscriptions')
         .update({
           status: homeownerStatus,
-          current_period_start: subscription.current_period_start
-            ? new Date(subscription.current_period_start * 1000).toISOString()
-            : null,
-          current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
-            : null,
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
           cancel_at_period_end: subscription.cancel_at_period_end || false,
           canceled_at: subscription.canceled_at
             ? new Date(subscription.canceled_at * 1000).toISOString()

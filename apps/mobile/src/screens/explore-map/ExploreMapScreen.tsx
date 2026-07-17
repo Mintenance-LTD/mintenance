@@ -130,7 +130,7 @@ const emptyStateStyles = StyleSheet.create({
 // into the shared explore-map sheet.
 const verificationBlockedStyles = StyleSheet.create({
   wrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -482,7 +482,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           <MapView
             ref={mapRef}
             provider={MAP_PROVIDER}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             region={viewModel.region}
             onRegionChangeComplete={viewModel.handleRegionChange}
             onPress={() => viewModel.handleJobSelect(null)}

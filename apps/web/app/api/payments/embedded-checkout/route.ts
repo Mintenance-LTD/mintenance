@@ -325,9 +325,11 @@ export const POST = withApiHandler(
             },
           ];
 
-    // Create Checkout Session with embedded mode
+    // Create Checkout Session with embedded mode ('embedded' was renamed
+    // to 'embedded_page' in the 2025-09-30.clover API; same behaviour, and
+    // session.client_secret is still returned for Stripe.js initEmbeddedCheckout)
     const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded',
+      ui_mode: 'embedded_page',
       line_items: lineItems,
       mode: 'payment',
       return_url: returnUrl,

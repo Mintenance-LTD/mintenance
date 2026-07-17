@@ -179,6 +179,50 @@ describe('handleInvoicePaymentSucceeded', () => {
       'cus_object_123'
     );
   });
+
+  // The webhook endpoint's dashboard-pinned api_version decides which
+  // shape arrives: top-level invoice.subscription (pre-2025-03-31.basil)
+  // or invoice.parent.subscription_details (basil and later). Both must
+  // resolve, or subscription payments stop being linked to subscriptions.
+  it('records the subscription id from the legacy top-level field (pre-basil payloads)', async () => {
+    const chain = buildChain({
+      singleData: { id: USER_ID, subscription_status: 'active' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleInvoicePaymentSucceeded(makeInvoice(), mockNotify);
+
+    expect(chain.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_id: 'sub_test_123' }),
+      expect.anything()
+    );
+  });
+
+  it('records the subscription id from invoice.parent.subscription_details (basil+ payloads)', async () => {
+    const chain = buildChain({
+      singleData: { id: USER_ID, subscription_status: 'active' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    const invoice = makeInvoice({
+      subscription: undefined,
+      parent: {
+        type: 'subscription_details',
+        quote_details: null,
+        subscription_details: {
+          subscription: 'sub_parent_456',
+          metadata: null,
+        },
+      },
+    } as unknown as Partial<Stripe.Invoice>);
+
+    await handleInvoicePaymentSucceeded(invoice, mockNotify);
+
+    expect(chain.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_id: 'sub_parent_456' }),
+      expect.anything()
+    );
+  });
 });
 
 describe('handleInvoicePaymentFailed', () => {
@@ -250,6 +294,34 @@ describe('handleInvoicePaymentFailed', () => {
       'trial',
       'past_due',
     ]);
+  });
+
+  it('demotes contractor tier from a basil+ payload (subscription id under invoice.parent)', async () => {
+    const chain = buildChain({
+      singleData: { id: USER_ID, email: 'user@test.com', role: 'contractor' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleInvoicePaymentFailed(
+      makeInvoice({
+        subscription: undefined,
+        parent: {
+          type: 'subscription_details',
+          quote_details: null,
+          subscription_details: {
+            subscription: 'sub_parent_456',
+            metadata: null,
+          },
+        },
+      } as unknown as Partial<Stripe.Invoice>),
+      mockNotify
+    );
+
+    expect(mockFrom).toHaveBeenCalledWith('contractor_subscriptions');
+    expect(chain.eq).toHaveBeenCalledWith(
+      'stripe_subscription_id',
+      'sub_parent_456'
+    );
   });
 
   it('sends in-app notification', async () => {

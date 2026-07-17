@@ -451,7 +451,7 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   mapUnavailable: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'flex-start',
