@@ -5,6 +5,7 @@
  * Read operations use direct Supabase queries; writes use mobileApiClient for server-side orchestration.
  */
 
+import { SOCIAL_NOTIFICATION_TYPES } from '@mintenance/types';
 import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
@@ -159,14 +160,10 @@ export async function markAllAsRead(_userId: string): Promise<void> {
 // (apps/web/lib/notifications/feed.ts) already strips them, but
 // mobile's badge count was a raw COUNT(*) on `notifications` so
 // it kept counting unread rows the inbox doesn't render and the
-// router can't deep-link anywhere useful. Keep this list in sync
-// with the web feed's SOCIAL_NOTIFICATION_TYPES set.
-const RETIRED_NOTIFICATION_TYPES = [
-  'post_liked',
-  'comment_added',
-  'comment_replied',
-  'new_follower',
-];
+// router can't deep-link anywhere useful.
+// 2026-07-17: single-sourced from the canonical registry in
+// @mintenance/types — the hand-copied list here is gone.
+const RETIRED_NOTIFICATION_TYPES = SOCIAL_NOTIFICATION_TYPES;
 
 export async function getUnreadCount(userId: string): Promise<number> {
   try {

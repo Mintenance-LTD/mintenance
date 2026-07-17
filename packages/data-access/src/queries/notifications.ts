@@ -10,13 +10,16 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { SOCIAL_NOTIFICATION_TYPES } from '@mintenance/types';
 
-/** Social notification types excluded from the main feed. */
-export const SOCIAL_NOTIFICATION_TYPES = [
-  'post_liked',
-  'comment_added',
-  'new_follower',
-] as const;
+/**
+ * Social notification types excluded from the main feed.
+ * 2026-07-17: re-exported from the canonical registry in
+ * @mintenance/types — this file previously carried its own 3-entry
+ * copy that was missing `comment_replied`, so the mobile inbox showed
+ * rows the web feed hid.
+ */
+export { SOCIAL_NOTIFICATION_TYPES };
 
 // ─── Query functions ─────────────────────────────────────────────
 

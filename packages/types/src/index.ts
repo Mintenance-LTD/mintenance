@@ -20,6 +20,7 @@ export * from './subscriptions';
 export * from './google-places';
 export * from './meetings';
 export * from './notifications';
+export * from './notification-types';
 export * from './property';
 export * from './business';
 export * from './features';

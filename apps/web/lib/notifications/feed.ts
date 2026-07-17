@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
+import { isSocialNotificationType } from '@mintenance/types';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 export interface FeedNotification {
@@ -23,16 +24,10 @@ export interface FeedNotification {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Social-graph notification types that the app no longer surfaces in the
- * notifications feed. Kept in sync with `/api/notifications`.
- */
-const SOCIAL_NOTIFICATION_TYPES = new Set([
-  'post_liked',
-  'comment_added',
-  'comment_replied',
-  'new_follower',
-]);
+// Social-type filtering is single-sourced in @mintenance/shared
+// (notification-types.ts) since 2026-07-17 — this file previously
+// carried its own 4-entry list while packages/data-access carried a
+// diverging 3-entry one.
 
 interface NotificationRow {
   id: string;
@@ -103,7 +98,7 @@ export async function fetchNotificationFeed(
 
     const rows = (data as NotificationRow[] | null) || [];
     return rows
-      .filter((row) => !SOCIAL_NOTIFICATION_TYPES.has(row.type || ''))
+      .filter((row) => !isSocialNotificationType(row.type))
       .map<FeedNotification>(toFeedNotification);
   }
 
@@ -135,7 +130,7 @@ export async function fetchNotificationFeed(
   const rows = (data as NotificationRow[] | null) || [];
   const filtered = rows
     .filter((row) => {
-      if (SOCIAL_NOTIFICATION_TYPES.has(row.type || '')) return false;
+      if (isSocialNotificationType(row.type)) return false;
       const createdAt = new Date(row.created_at || 0).getTime();
       const isRecent = createdAt >= twentyFourHoursAgoMs;
       const isUnread = row.read === false || row.read === 0;
