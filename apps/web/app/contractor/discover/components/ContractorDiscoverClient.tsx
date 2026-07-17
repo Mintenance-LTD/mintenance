@@ -108,24 +108,32 @@ export function ContractorDiscoverClient({
     [jobs, skippedJobIds]
   );
 
-  // Geocode + calculate distances from stored coordinates
+  // Resolve distances: prefer the PostGIS-computed serverDistanceKm
+  // (km from the contractor's stored location, 2026-07-17) and only
+  // fall back to the client-side Haversine for legacy responses.
   useEffect(() => {
     const withCoords = availableJobs.map((job) => {
-      const j = job as DiscoverJob & { latitude?: number; longitude?: number };
+      const j = job as DiscoverJob & {
+        latitude?: number;
+        longitude?: number;
+        serverDistanceKm?: number | null;
+      };
       const lat = j.latitude ?? undefined;
       const lng = j.longitude ?? undefined;
       const distance =
-        contractorLocation?.latitude &&
-        contractorLocation?.longitude &&
-        lat &&
-        lng
-          ? calculateDistance(
-              contractorLocation.latitude,
-              contractorLocation.longitude,
-              lat,
+        typeof j.serverDistanceKm === 'number'
+          ? j.serverDistanceKm
+          : contractorLocation?.latitude &&
+              contractorLocation?.longitude &&
+              lat &&
               lng
-            )
-          : undefined;
+            ? calculateDistance(
+                contractorLocation.latitude,
+                contractorLocation.longitude,
+                lat,
+                lng
+              )
+            : undefined;
       return { ...job, lat, lng, distance } as JobWithCoords & {
         distance?: number;
       };
