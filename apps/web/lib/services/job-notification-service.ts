@@ -5,6 +5,7 @@ import {
   fetchNearbyContractors,
   type AudienceContractor,
 } from '@/lib/services/job-notification-audience';
+import { nextPreferredWindowStart } from '@/lib/services/matching/preferred-hours';
 
 interface NotificationJobContext {
   id: string;
@@ -206,16 +207,31 @@ export class JobNotificationService {
         : '';
 
     const results = await Promise.allSettled(
-      contractors.map((contractor: AudienceContractor) =>
-        NotificationService.createNotification({
+      contractors.map((contractor: AudienceContractor) => {
+        // 2026-07-17 (deferred item 2.2): out-of-hours politeness —
+        // when the contractor's matched service area declares working
+        // hours and we're outside them, deliver at the next window
+        // start (capped in preferred-hours.ts; falls back to
+        // immediate). Soft signal only: never suppresses, and
+        // NotificationService exempts ALWAYS_ON types.
+        const deferUntil =
+          contractor.matchedVia === 'service_area'
+            ? (nextPreferredWindowStart(
+                contractor.preferredDays,
+                contractor.preferredHours
+              ) ?? undefined)
+            : undefined;
+
+        return NotificationService.createNotification({
           userId: contractor.id,
           type: 'job_nearby',
           title: 'New Job Near You',
           message: `New job "${job.title}" posted near you. ${skillsText}Submit your bid to be considered.`,
           actionUrl: `/jobs/${job.id}`,
           metadata: { jobId: job.id },
-        })
-      )
+          deferUntil,
+        });
+      })
     );
 
     const failures = results.filter((r) => r.status === 'rejected').length;

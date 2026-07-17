@@ -28,7 +28,7 @@ import { NotificationAgent } from '../agents/NotificationAgent';
 import {
   loadPreferences,
   isTypeDisabled,
-  isInQuietHours,
+  isAlwaysOnType,
   nextQuietHoursEndUTC,
   type UserNotificationPreferences,
 } from './NotificationPreferenceResolver';
@@ -51,6 +51,16 @@ interface CreateNotificationParams {
    * 2026-04-30 audit P0-10 follow-up.
    */
   inAppOnly?: boolean;
+  /**
+   * Caller-supplied SOFT deferral (2026-07-17): deliver no earlier
+   * than this instant, routed through the existing notification_queue
+   * mechanism (same drain path as quiet-hours/engagement deferrals).
+   * Used by JobNotificationService to respect a contractor's
+   * service-area preferred working hours. Ignored for ALWAYS_ON types,
+   * for past instants, and it never suppresses — only delays. The
+   * recipient's own mute/quiet-hours/channel prefs still apply.
+   */
+  deferUntil?: Date;
 }
 
 async function insertInAppNotification(
@@ -123,6 +133,22 @@ export class NotificationService {
         if (end) {
           immediate = false;
           scheduledFor = end;
+        }
+      }
+
+      // Caller-supplied soft deferral (2026-07-17, contractor
+      // preferred-hours): push the scheduled time out to deferUntil if
+      // that is LATER than whatever the quiet-hours/engagement logic
+      // picked. Never applies to always-on types and never turns a
+      // deferral back into an immediate send.
+      if (
+        params.deferUntil &&
+        params.deferUntil.getTime() > Date.now() &&
+        !isAlwaysOnType(params.type)
+      ) {
+        if (immediate || !scheduledFor || params.deferUntil > scheduledFor) {
+          immediate = false;
+          scheduledFor = params.deferUntil;
         }
       }
 
