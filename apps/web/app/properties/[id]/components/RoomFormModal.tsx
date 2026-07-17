@@ -127,8 +127,7 @@ export function RoomFormModal({
           <h3
             style={{
               margin: 0,
-              fontFamily:
-                'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+              fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
               fontSize: 22,
               color: 'var(--me-ink)',
             }}
@@ -258,7 +257,10 @@ export function RoomFormModal({
                 marginBottom: 4,
               }}
             >
-              Size in m² <span style={{ color: 'var(--me-ink-3)', fontWeight: 400 }}>(optional)</span>
+              Size in m²{' '}
+              <span style={{ color: 'var(--me-ink-3)', fontWeight: 400 }}>
+                (optional)
+              </span>
             </label>
             <input
               id='room-size'
@@ -319,14 +321,15 @@ export function RoomFormModal({
                 marginBottom: 4,
               }}
             >
-              Notes <span style={{ color: 'var(--me-ink-3)', fontWeight: 400 }}>(optional)</span>
+              Notes{' '}
+              <span style={{ color: 'var(--me-ink-3)', fontWeight: 400 }}>
+                (optional)
+              </span>
             </label>
             <textarea
               id='room-notes'
               value={values.notes}
-              onChange={(e) =>
-                setValues({ ...values, notes: e.target.value })
-              }
+              onChange={(e) => setValues({ ...values, notes: e.target.value })}
               placeholder='Quirks worth flagging — e.g. shower over bath, exposed brick wall, no overhead light.'
               rows={3}
               maxLength={500}

@@ -64,30 +64,31 @@
   --me-err-fg: #8a2e1b;
 
   /* ---- type ---- */
-  /* 2026-05-23 — RESTORED to the original Mint Editorial spec from
-     `.design-bundle/redesign-v2/themes.css`. The 2026-05-21 "unify on
-     Inter" change accidentally swapped the editorial serif (Instrument
-     Serif) for Inter-Black sans, which is what made every Mint
-     Editorial v2 surface read as the legacy UI even after the layout
-     redesign — the skeleton was new but every headline rendered in
-     heavy sans-serif.
+  /* 2026-07-17 — Editorial serif retired in favor of Inter across the
+     board (KPI numbers, £ amounts, card titles, headings, sidebar
+     brand). Decision made after reviewing the contractor dashboard:
+     Instrument Serif on dense stat numbers hurt scannability for a
+     trade/property-maintenance audience that's scanning £ figures and
+     job counts, not reading editorial copy. This is a deliberate
+     full cutover, not the 2026-05-21 "unify on Inter" regression that
+     got reverted on 2026-05-23 — that one accidentally used heavy
+     Inter-Black; this uses --me-display-weight: 600 (semibold), not
+     900, so display text still reads distinct from body copy.
 
-     Both `--font-instrument-serif` and `--font-geist` next/font CSS
-     vars are set on <body> via `instrumentSerif.variable` and
-     `geist.variable` in apps/web/app/layout.tsx. The fallback literals
-     ('Instrument Serif', 'Geist') resolve because next/font also
-     registers them globally via @font-face. */
+     `--font-inter` and `--font-geist` next/font CSS vars are set on
+     <body> via `inter.variable` and `geist.variable` in
+     apps/web/app/layout.tsx. */
   --me-font-display:
-    var(--font-instrument-serif, 'Instrument Serif'), 'Iowan Old Style',
-    Georgia, serif;
+    var(--font-inter, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
   --me-font-body:
     var(--font-geist, 'Geist'), -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, sans-serif;
   --me-font-ui:
     var(--font-geist, 'Geist'), -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, sans-serif;
-  --me-display-tracking: -0.012em; /* spec value (was -0.022em for Inter) */
-  --me-display-weight: 400; /* Instrument Serif is single-weight */
+  --me-display-tracking: -0.02em;
+  --me-display-weight: 600;
   --me-body-weight: 400;
 
   /* ---- shape ---- */

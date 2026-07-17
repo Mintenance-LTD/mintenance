@@ -143,9 +143,7 @@ export function PropertyRoomsSection({
 
   const handleDelete = async (room: PropertyRoom) => {
     if (
-      !window.confirm(
-        `Delete the room "${room.name}"? This cannot be undone.`
-      )
+      !window.confirm(`Delete the room "${room.name}"? This cannot be undone.`)
     ) {
       return;
     }
@@ -188,7 +186,7 @@ export function PropertyRoomsSection({
           <h2
             style={{
               margin: 0,
-              fontFamily: 'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+              fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
               fontSize: 24,
               color: 'var(--me-ink)',
               letterSpacing: 'var(--me-display-tracking, -0.012em)',
@@ -204,8 +202,8 @@ export function PropertyRoomsSection({
               maxWidth: 520,
             }}
           >
-            Define each room and its size so jobs can target the right area
-            and contractors can quote accurate per-square-metre prices.
+            Define each room and its size so jobs can target the right area and
+            contractors can quote accurate per-square-metre prices.
           </p>
         </div>
         {editable ? (
