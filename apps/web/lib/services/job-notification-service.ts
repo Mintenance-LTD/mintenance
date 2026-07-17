@@ -1,7 +1,10 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
-import { DEFAULT_MATCH_RADIUS_KM } from '@/lib/services/matching/constants';
+import {
+  fetchNearbyContractors,
+  type AudienceContractor,
+} from '@/lib/services/job-notification-audience';
 
 interface NotificationJobContext {
   id: string;
@@ -9,17 +12,12 @@ interface NotificationJobContext {
   location?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  /** jobs.city — enables area_type='cities' service-area matches. */
+  city?: string | null;
 }
 
 interface NotificationPayload {
   required_skills?: string[] | null;
-}
-
-interface ContractorRecord {
-  id: string;
-  latitude?: number;
-  longitude?: number;
-  [key: string]: unknown;
 }
 
 export class JobNotificationService {
@@ -45,7 +43,10 @@ export class JobNotificationService {
       const coordinates = await this.resolveCoordinates(job);
       if (!coordinates) return;
 
-      const contractors = await this.fetchNearbyContractors(coordinates);
+      // 2026-07-17 Phase 2: audience is service-area-aware (each
+      // contractor's own coverage) with a legacy-scan fallback — see
+      // job-notification-audience.ts.
+      const contractors = await fetchNearbyContractors(coordinates, job.city);
       if (contractors.length === 0) return;
 
       const contractorsToNotify = await this.filterContractorsBySkills(
@@ -147,45 +148,10 @@ export class JobNotificationService {
     }
   }
 
-  private async fetchNearbyContractors(coordinates: {
-    lat: number;
-    lng: number;
-  }): Promise<ContractorRecord[]> {
-    const { data, error } = await serverSupabase
-      .from('profiles')
-      .select('id, first_name, last_name, latitude, longitude, is_available')
-      .eq('role', 'contractor')
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null)
-      .eq('is_available', true);
-
-    if (error || !data) {
-      return [];
-    }
-
-    return data.filter((contractor: ContractorRecord) => {
-      const lat =
-        typeof contractor.latitude === 'number'
-          ? contractor.latitude
-          : undefined;
-      const lng =
-        typeof contractor.longitude === 'number'
-          ? contractor.longitude
-          : undefined;
-      if (lat === undefined || lng === undefined) {
-        return false;
-      }
-      return (
-        this.calculateDistance(coordinates.lat, coordinates.lng, lat, lng) <=
-        DEFAULT_MATCH_RADIUS_KM
-      );
-    });
-  }
-
   private async filterContractorsBySkills(
-    contractors: ContractorRecord[],
+    contractors: AudienceContractor[],
     requiredSkills?: string[] | null
-  ): Promise<ContractorRecord[]> {
+  ): Promise<AudienceContractor[]> {
     if (!requiredSkills || requiredSkills.length === 0) {
       return contractors;
     }
@@ -201,7 +167,7 @@ export class JobNotificationService {
       skill_name: string;
     }
 
-    const matches = contractors.filter((contractor: ContractorRecord) => {
+    const matches = contractors.filter((contractor: AudienceContractor) => {
       const contractorSkillNames = (contractorSkills || [])
         .filter(
           (cs: ContractorSkillRecord) => cs.contractor_id === contractor.id
@@ -219,7 +185,7 @@ export class JobNotificationService {
   private async createNotifications(
     job: NotificationJobContext,
     payload: NotificationPayload,
-    contractors: ContractorRecord[]
+    contractors: AudienceContractor[]
   ): Promise<void> {
     if (contractors.length === 0) return;
 
@@ -240,7 +206,7 @@ export class JobNotificationService {
         : '';
 
     const results = await Promise.allSettled(
-      contractors.map((contractor: ContractorRecord) =>
+      contractors.map((contractor: AudienceContractor) =>
         NotificationService.createNotification({
           userId: contractor.id,
           type: 'job_nearby',
@@ -268,25 +234,6 @@ export class JobNotificationService {
       contractorCount: contractors.length,
       failures,
     });
-  }
-
-  private calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
   }
 
   /**
