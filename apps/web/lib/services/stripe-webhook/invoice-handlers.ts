@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getInvoiceSubscriptionId } from '@/lib/services/stripe-compat';
+import { getInvoiceSubscriptionId } from '@/lib/stripe';
 import type { SendNotificationFn } from './webhook-helpers';
 
 /**
@@ -45,6 +45,9 @@ export async function handleInvoicePaymentSucceeded(
       return;
     }
 
+    // Version-tolerant: the webhook endpoint's dashboard-pinned api_version
+    // decides whether the payload carries invoice.subscription (pre-basil)
+    // or invoice.parent.subscription_details (2025-03-31.basil and later).
     const subscriptionId = getInvoiceSubscriptionId(invoice);
 
     // Record in invoice_payments table
@@ -143,6 +146,9 @@ export async function handleInvoicePaymentFailed(
       return;
     }
 
+    // Version-tolerant reader — see handleInvoicePaymentSucceeded. If this
+    // returns null on a subscription invoice the past_due demotion below is
+    // skipped, so it must handle every payload shape the endpoint can send.
     const subscriptionId = getInvoiceSubscriptionId(invoice);
 
     // Record failed payment in invoice_payments

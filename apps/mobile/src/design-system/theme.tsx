@@ -299,6 +299,12 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const THEME_STORAGE_KEY = '@mintenance_theme_mode';
 
+// RN 0.85 widened ColorSchemeName to include 'unspecified'; the app theme
+// is strictly light/dark, so anything that isn't 'dark' renders light.
+const normalizeColorScheme = (
+  scheme: ColorSchemeName | null | undefined
+): ColorScheme => (scheme === 'dark' ? 'dark' : 'light');
+
 // ============================================================================
 // THEME PROVIDER
 // ============================================================================
@@ -310,7 +316,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   // RN 0.85's ColorSchemeName gained 'unspecified' — narrow to our
   // two-value ColorScheme, treating unspecified/null as light.
   const [systemColorScheme, setSystemColorScheme] = useState<ColorScheme>(
-    Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'
+    normalizeColorScheme(Appearance.getColorScheme())
   );
 
   // Calculate actual color scheme based on mode
@@ -340,7 +346,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Listen to system appearance changes
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSystemColorScheme(colorScheme === 'dark' ? 'dark' : 'light');
+      setSystemColorScheme(normalizeColorScheme(colorScheme));
     });
     return () => subscription?.remove();
   }, []);

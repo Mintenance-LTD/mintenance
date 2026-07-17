@@ -12,15 +12,14 @@
  * file stays comfortable. Reuses getOrCreateStripeCustomer.
  */
 
-import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getInvoicePaymentClientSecret } from '@/lib/services/stripe-compat';
 import { HomeownerSubscriptionService } from './HomeownerSubscriptionService';
 // 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
-// Route through the single shared lazy proxy so the API version stays pinned
-// in one place (lib/stripe.ts → '2025-01-27.acacia').
-import { stripe as sharedStripe } from '@/lib/stripe';
+// Route through the single shared lazy proxy so the API version stays
+// pinned in one place (lib/stripe.ts → the SDK's own pinned version).
+import { stripe as sharedStripe, getInvoiceClientSecret } from '@/lib/stripe';
 
 function getStripe() {
   return sharedStripe;
@@ -139,11 +138,9 @@ export class HomeHealthSubscriptionService {
       items: [{ price: plan.priceId }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
-      // Valid for the pinned acacia API version. If the pin in
-      // lib/stripe.ts moves past basil, switch to
-      // 'latest_invoice.confirmation_secret' — the client-secret read
-      // below (getInvoicePaymentClientSecret) already handles both.
-      expand: ['latest_invoice.payment_intent'],
+      // basil+ API versions reject the old `latest_invoice.payment_intent`
+      // expansion; confirmation_secret carries the same client secret.
+      expand: ['latest_invoice.confirmation_secret'],
       metadata: {
         homeownerId: input.homeownerId,
         propertyId: input.propertyId,
@@ -201,11 +198,9 @@ export class HomeHealthSubscriptionService {
       if (data?.id) recurringScheduleIds.push(data.id as string);
     }
 
-    const latestInvoice = stripeSub.latest_invoice as Stripe.Invoice | null;
-
     return {
       subscriptionId: stripeSub.id,
-      clientSecret: getInvoicePaymentClientSecret(latestInvoice),
+      clientSecret: getInvoiceClientSecret(stripeSub.latest_invoice),
       recurringScheduleIds,
     };
   }
