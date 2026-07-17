@@ -123,7 +123,6 @@ export async function handleSubscriptionUpdated(
           stripeStatus: subscription.status,
         });
       } else {
-        const period = getSubscriptionPeriod(subscription);
         const contractorUpdate: Record<string, unknown> = {
           status: csStatus,
           current_period_start: currentPeriodStart,
@@ -161,7 +160,6 @@ export async function handleSubscriptionUpdated(
         }
       }
     } else if (user.role === 'homeowner') {
-      const period = getSubscriptionPeriod(subscription);
       const { error: homeownerSubError } = await serverSupabase
         .from('homeowner_subscriptions')
         .update({
