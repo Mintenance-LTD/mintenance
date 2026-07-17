@@ -195,34 +195,22 @@ export default function App(): React.JSX.Element {
           );
         });
 
-        // Mint Editorial typography (2026-05-23 restore — the 2026-05-21
-        // "unify on Inter" change accidentally swapped the editorial serif
-        // for Inter-Black, which is what made the APK look like the legacy
-        // UI even after the layout redesign. Restoring the original spec
-        // from .design-bundle/redesign-v2/themes.css:
-        //   --font-display: "Instrument Serif", serif (weight 400)
+        // Mint Editorial typography (2026-07-17 — mirrors the web cutover
+        // in apps/web/app/layout.tsx: editorial serif retired in favor of
+        // Inter. `me.font.display` now resolves to 'Inter-SemiBold' —
+        // every Mint Editorial surface that uses the token transforms
+        // automatically. The @expo-google-fonts/instrument-serif load has
+        // been dropped entirely since nothing references it anymore.
+        //   --font-display: Inter-SemiBold (weight 600)
         //   --font-body:    "Geist", sans-serif (weight 400)
         //   --font-ui:      "Geist", sans-serif
-        // Inter weights stay bundled so any screen that explicitly opts
-        // into Inter-* still renders. `me.font.display` now resolves to
-        // `InstrumentSerif_400Regular` — every Mint Editorial v2 surface
-        // that uses the token transforms automatically.
-        const [
-          { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic },
-          {
-            Geist_400Regular,
-            Geist_500Medium,
-            Geist_600SemiBold,
-            Geist_700Bold,
-          },
-        ] = await Promise.all([
-          import('@expo-google-fonts/instrument-serif'),
-          import('@expo-google-fonts/geist'),
-        ]);
+        const {
+          Geist_400Regular,
+          Geist_500Medium,
+          Geist_600SemiBold,
+          Geist_700Bold,
+        } = await import('@expo-google-fonts/geist');
         await Font.loadAsync({
-          // Editorial serif (display) + italic for pull quotes / accents.
-          InstrumentSerif_400Regular,
-          InstrumentSerif_400Regular_Italic,
           // Geist (body / UI).
           Geist_400Regular,
           Geist_500Medium,
