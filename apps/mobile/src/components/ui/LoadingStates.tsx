@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   fullScreenOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   shimmer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: theme.colors.border,
   },
   skeletonCard: {

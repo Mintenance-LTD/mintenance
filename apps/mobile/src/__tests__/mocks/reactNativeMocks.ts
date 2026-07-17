@@ -319,7 +319,7 @@ export class ReactNativeMockFactory {
       StyleSheet: {
         create: jest.fn((styles) => styles),
         flatten: jest.fn((style) => style),
-        absoluteFillObject: {
+        absoluteFill: {
           position: 'absolute',
           left: 0,
           right: 0,
