@@ -1,6 +1,6 @@
 {
   "buildCommand": "node scripts/vercel-build.js",
-  "installCommand": "npm install",
+  "installCommand": "npm ci",
   "framework": "nextjs",
   "outputDirectory": "apps/web/.next",
   "regions": ["lhr1"],
