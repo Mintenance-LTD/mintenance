@@ -10,17 +10,19 @@
 // Keep the values in this file in lock-step with `mint-editorial.css`. The
 // web file is the source of truth; if a token changes there, mirror it here.
 //
-// FONTS: 2026-05-23 — RESTORED to the original Mint Editorial spec from
-// `.design-bundle/redesign-v2/themes.css`. The 2026-05-21 "unify on Inter"
-// change accidentally swapped the editorial serif (Instrument Serif) for
-// Inter-Black, which is what made the APK read as legacy UI even after
-// the layout redesign — the skeleton was new but every headline rendered
-// in heavy sans-serif. Now:
-//   display: Instrument Serif (regular, weight 400) — editorial serif
+// FONTS: 2026-07-17 — mirrors the web cutover in
+// `apps/web/styles/mint-editorial.css` --me-font-display: the editorial
+// serif is retired in favor of Inter across every screen that reads
+// `me.font.display` (KPI numbers, £ amounts, card titles, headings).
+// Instrument Serif hurt scannability on dense stat numbers for a
+// trade/property-maintenance audience. Uses the already-bundled
+// 'Inter-SemiBold' static font (weight 600, matching web's
+// --me-display-weight: 600) — not the heavy 'Inter-Black' that caused
+// the 2026-05-21 regression this file used to warn about.
+//   display: Inter-SemiBold (weight 600)
 //   body:    Geist (regular, weight 400) — clean modern sans
-// Both families come from `@expo-google-fonts/{instrument-serif,geist}`,
-// registered in App.tsx at boot. Inter weights are still bundled for any
-// screen that opts into Inter-* explicitly (numerics, etc.).
+// Geist comes from `@expo-google-fonts/geist`, registered in App.tsx at
+// boot. Inter statics ship as local assets, also loaded in App.tsx.
 
 // Warm near-black used as the cast colour for the paper shadows below.
 // Held as a module const (not an inline `shadowColor` literal) so the
@@ -68,24 +70,22 @@ export const me = {
   },
 
   // ---- type ----
-  // Display = Instrument Serif Regular (the editorial serif).
+  // Display = Inter SemiBold (weight 600) — mirrors web's
+  // --me-font-display / --me-display-weight: 600.
   // Body    = Geist Regular (modern geometric sans).
-  // Italic-display is available as `InstrumentSerif_400Regular_Italic`
-  // when a screen wants the pull-quote / accent italics shown in the
-  // mockups. Family names follow the @expo-google-fonts naming.
+  // Family names follow the @expo-google-fonts naming for Geist and the
+  // local static-font naming (App.tsx Font.loadAsync) for Inter.
   font: {
-    display: 'InstrumentSerif_400Regular',
-    displayItalic: 'InstrumentSerif_400Regular_Italic',
+    display: 'Inter-SemiBold',
     body: 'Geist_400Regular',
     bodyMedium: 'Geist_500Medium',
     bodySemiBold: 'Geist_600SemiBold',
     bodyBold: 'Geist_700Bold',
   },
-  // Instrument Serif looks best with much lighter tracking than Inter-Black.
-  // Spec value from themes.css `--display-tracking: -0.012em` → at 26-30px
-  // headlines that's roughly -0.3 to -0.36px. Keep the same numeric token
-  // so existing call sites don't need to change.
-  displayTracking: -0.3,
+  // Mirrors web's --me-display-tracking: -0.02em, converted to RN's flat
+  // px letterSpacing at the same ~26-30px headline reference size used
+  // across the 66 screens that read this token (-0.02em * 28px ≈ -0.56px).
+  displayTracking: -0.56,
 
   // ---- shadows (paper) — React Native shape ----
   shadow: {

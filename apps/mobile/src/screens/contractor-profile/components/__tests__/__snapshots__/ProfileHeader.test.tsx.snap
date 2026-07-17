@@ -90,9 +90,9 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with di
       style={
         {
           "color": "#1A2520",
-          "fontFamily": "InstrumentSerif_400Regular",
+          "fontFamily": "Inter-SemiBold",
           "fontSize": 26,
-          "letterSpacing": -0.3,
+          "letterSpacing": -0.56,
           "lineHeight": 30,
           "marginBottom": 4,
           "textAlign": "center",
@@ -307,9 +307,9 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with ed
       style={
         {
           "color": "#1A2520",
-          "fontFamily": "InstrumentSerif_400Regular",
+          "fontFamily": "Inter-SemiBold",
           "fontSize": 26,
-          "letterSpacing": -0.3,
+          "letterSpacing": -0.56,
           "lineHeight": 30,
           "marginBottom": 4,
           "textAlign": "center",
@@ -524,9 +524,9 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently without
       style={
         {
           "color": "#1A2520",
-          "fontFamily": "InstrumentSerif_400Regular",
+          "fontFamily": "Inter-SemiBold",
           "fontSize": 26,
-          "letterSpacing": -0.3,
+          "letterSpacing": -0.56,
           "lineHeight": 30,
           "marginBottom": 4,
           "textAlign": "center",
