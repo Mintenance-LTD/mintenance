@@ -15,6 +15,7 @@
 import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { getInvoicePaymentClientSecret } from '@/lib/services/stripe-compat';
 import { HomeownerSubscriptionService } from './HomeownerSubscriptionService';
 // 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
 // Route through the single shared lazy proxy so the API version stays pinned
@@ -138,6 +139,10 @@ export class HomeHealthSubscriptionService {
       items: [{ price: plan.priceId }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
+      // Valid for the pinned acacia API version. If the pin in
+      // lib/stripe.ts moves past basil, switch to
+      // 'latest_invoice.confirmation_secret' — the client-secret read
+      // below (getInvoicePaymentClientSecret) already handles both.
       expand: ['latest_invoice.payment_intent'],
       metadata: {
         homeownerId: input.homeownerId,
@@ -197,12 +202,10 @@ export class HomeHealthSubscriptionService {
     }
 
     const latestInvoice = stripeSub.latest_invoice as Stripe.Invoice | null;
-    const pi = (latestInvoice?.payment_intent ??
-      null) as Stripe.PaymentIntent | null;
 
     return {
       subscriptionId: stripeSub.id,
-      clientSecret: pi?.client_secret ?? null,
+      clientSecret: getInvoicePaymentClientSecret(latestInvoice),
       recurringScheduleIds,
     };
   }
