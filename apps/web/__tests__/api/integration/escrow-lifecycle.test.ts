@@ -1235,9 +1235,10 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
     // 2026-05-21 idempotency redesign: checkIdempotency returning null now means
     // "claim acquired, proceed" (NOT lock contention). Real in-flight contention
     // throws IdempotencyStoreUnavailableError -> 503. The route's genuine 409
-    // (ConflictError) is the optimistic-concurrency guard on the release_pending
-    // UPDATE: if the row's updated_at changed between read and write, the
-    // .eq('updated_at', originalUpdatedAt) match returns no row and the route
+    // (ConflictError) is the CAS guard on the release_pending UPDATE: since
+    // 2026-07-17 it matches on .eq('status', 'held') (previously updated_at,
+    // which the route's own pre-CAS metadata writes broke), so a row another
+    // request already moved out of 'held' matches no rows and the route
     // throws ConflictError. We drive that path here.
     mocks.checkIdempotency.mockResolvedValue(null); // claim acquired, proceed
     mocks.validateRequest.mockResolvedValue({
@@ -1270,8 +1271,8 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
             }),
           };
         }
-        // Optimistic release_pending UPDATE: no row matched (updated_at changed
-        // under us) -> route throws ConflictError -> 409.
+        // Optimistic release_pending UPDATE: no row matched (status left
+        // 'held' under us) -> route throws ConflictError -> 409.
         return {
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
