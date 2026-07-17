@@ -31,9 +31,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import { goToTab } from '../../navigation/hooks';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-
-// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
-const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import { Ionicons } from '@expo/vector-icons';
 import {
   useExploreMapViewModel,
@@ -42,6 +39,9 @@ import {
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../utils/mapAvailability';
+
+// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
+const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 
 // 2026-05-27 audit-77 P2: empty-state pill that floats above the
 // carousel zone when there are zero discoverable jobs in the
@@ -719,8 +719,8 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
               Finish verification to start bidding
             </Text>
             <Text style={verificationBlockedStyles.body}>
-              We're reviewing your credentials. Once your account is verified,
-              you'll see jobs near you here and can place bids.
+              We&apos;re reviewing your credentials. Once your account is
+              verified, you&apos;ll see jobs near you here and can place bids.
             </Text>
             <TouchableOpacity
               style={verificationBlockedStyles.cta}

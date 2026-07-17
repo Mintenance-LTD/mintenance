@@ -77,7 +77,7 @@ export const POST = withApiHandler(
     // client-supplied `job_id`, and the upload uses the service-role client
     // (which bypasses RLS), so without this check any authenticated user could
     // write files into any job's storage prefix. When a job_id is supplied it
-    // must be a UUID (rejected before it can reach Postgres and error there)
+    // must be a syntactically valid UUID (rejected before it can reach the DB)
     // and the caller must be that job's homeowner or assigned contractor
     // (admins exempt). job_id is normally absent here — photos are uploaded
     // pre-creation and attached when the job is POSTed.

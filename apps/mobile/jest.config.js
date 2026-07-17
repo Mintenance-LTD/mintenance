@@ -1,6 +1,16 @@
 // Set NODE_ENV for tests
 process.env.NODE_ENV = 'test';
 
+// The worktree ignore patterns below exist to stop the MAIN checkout's
+// haste-map from crawling .claude/worktrees/ copies (duplicate manual mocks).
+// When jest itself runs INSIDE a worktree every path matches the pattern and
+// discovery finds zero tests — so only apply them when running from the main
+// checkout.
+const WORKTREE_RE = /\.claude[\\/]worktrees/;
+const WORKTREE_IGNORES = WORKTREE_RE.test(__dirname)
+  ? []
+  : ['\\.claude[\\\\/]worktrees'];
+
 module.exports = {
   displayName: 'mobile',
   testEnvironment: 'node',
@@ -27,12 +37,12 @@ module.exports = {
     '/__tests__/setup/',
     '/__tests__/mocks/',
     '/e2e/',
-    '\\.claude[\\\\/]worktrees',
+    ...WORKTREE_IGNORES,
   ],
   // Prevent jest from walking outside apps/mobile into sibling worktree copies
-  watchPathIgnorePatterns: ['\\.claude[\\\\/]worktrees', '/node_modules/'],
+  watchPathIgnorePatterns: [...WORKTREE_IGNORES, '/node_modules/'],
   // Prevent haste-map from crawling worktree copies for modules / mocks
-  modulePathIgnorePatterns: ['\\.claude[\\\\/]worktrees'],
+  modulePathIgnorePatterns: [...WORKTREE_IGNORES],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@mintenance/types$': '<rootDir>/../../packages/types/src',

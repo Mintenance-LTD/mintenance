@@ -319,16 +319,7 @@ export class ReactNativeMockFactory {
       StyleSheet: {
         create: jest.fn((styles) => styles),
         flatten: jest.fn((style) => style),
-        // RN 0.85 removed absoluteFillObject; absoluteFill is now the plain
-        // spreadable object. Keep both keys so legacy specs still resolve.
         absoluteFill: {
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0,
-        },
-        absoluteFillObject: {
           position: 'absolute',
           left: 0,
           right: 0,
