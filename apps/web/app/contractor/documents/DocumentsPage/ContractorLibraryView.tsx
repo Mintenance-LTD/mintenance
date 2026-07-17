@@ -257,8 +257,7 @@ export function ContractorLibraryView({
         >
           <span
             style={{
-              fontFamily:
-                'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+              fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
               fontSize: 24,
               color: 'var(--me-ink)',
             }}
