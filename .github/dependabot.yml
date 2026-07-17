@@ -1,6 +1,14 @@
 version: 2
 updates:
-  # Root package.json
+  # npm workspaces monorepo.
+  #
+  # This repo has a single lockfile at /package-lock.json; the workspace
+  # package.json files under apps/* and packages/* have none of their own.
+  # Dependabot only regenerates the lockfile that lives in its `directory`, so
+  # per-workspace `directory:` entries bumped a package.json with no lock to
+  # reconcile and drifted the two apart permanently. This single root entry
+  # resolves every workspace manifest against the root lock and updates them
+  # together. Do NOT re-add per-workspace npm entries.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -37,23 +45,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-
-  # Web app
-  - package-ecosystem: "npm"
-    directory: "/apps/web"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 10
-    commit-message:
-      prefix: "📦(web)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "web"
-      - "automated"
-    groups:
       next-ecosystem:
         patterns:
           - "next"
@@ -81,23 +72,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-
-  # Mobile app
-  - package-ecosystem: "npm"
-    directory: "/apps/mobile"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 10
-    commit-message:
-      prefix: "📦(mobile)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "mobile"
-      - "automated"
-    groups:
       react-native:
         patterns:
           - "react-native"
@@ -107,6 +81,8 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # Expo SDK modules are only coherent as a set — group them so a bump to
+      # one expo-* package can never land without its siblings.
       expo:
         patterns:
           - "expo"
@@ -116,71 +92,9 @@ updates:
           - "minor"
           - "patch"
 
-  # Shared package
-  - package-ecosystem: "npm"
-    directory: "/packages/shared"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "📦(shared)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "packages"
-      - "automated"
-
-  # Auth package
-  - package-ecosystem: "npm"
-    directory: "/packages/auth"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "📦(auth)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "packages"
-      - "automated"
-
-  # Types package
-  - package-ecosystem: "npm"
-    directory: "/packages/types"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "📦(types)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "packages"
-      - "automated"
-
-  # Shared UI package
-  - package-ecosystem: "npm"
-    directory: "/packages/shared-ui"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "📦(shared-ui)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "packages"
-      - "automated"
-
-  # GitHub Actions
+  # GitHub Actions. Same `directory: "/"` as the npm entry above, which is
+  # correct and not a duplicate: Dependabot keys entries by
+  # (package-ecosystem, directory), and this one reads .github/workflows/*.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

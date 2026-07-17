@@ -73,31 +73,36 @@ export const POST = withApiHandler(
       throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
     }
 
-    // IDOR fix (2026-07-10 audit): the storage path is prefixed with the
+    // IDOR fix (2026-07-06 audit #4): the storage path is prefixed with the
     // client-supplied `job_id`, and the upload uses the service-role client
     // (which bypasses RLS), so without this check any authenticated user could
-    // write files into any job's storage prefix. When a job_id is supplied,
-    // require that the caller is that job's homeowner or assigned contractor
+    // write files into any job's storage prefix. When a job_id is supplied it
+    // must be a UUID (rejected before it can reach Postgres and error there)
+    // and the caller must be that job's homeowner or assigned contractor
     // (admins exempt). job_id is normally absent here — photos are uploaded
     // pre-creation and attached when the job is POSTed.
-    const jobId = (formData.get('job_id') as string | null) || null;
-    if (jobId) {
+    let jobId: string | null = null;
+    const rawJobId = formData.get('job_id');
+    if (typeof rawJobId === 'string' && rawJobId.length > 0) {
+      const UUID_RE =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(rawJobId)) {
+        throw new BadRequestError('Invalid job_id');
+      }
+
       const { data: jobRow, error: jobLookupError } = await serverSupabase
         .from('jobs')
         .select('id, homeowner_id, contractor_id')
-        .eq('id', jobId)
-        .maybeSingle();
+        .eq('id', rawJobId)
+        .single();
 
-      if (jobLookupError) {
-        logger.error('Failed to verify job ownership for photo upload', {
+      if (jobLookupError || !jobRow) {
+        logger.warn('Job lookup failed for photo upload', {
           service: 'jobs',
-          jobId,
+          jobId: rawJobId,
           userId: user.id,
-          error: jobLookupError.message,
+          error: jobLookupError?.message,
         });
-        throw new InternalServerError('Failed to verify job access');
-      }
-      if (!jobRow) {
         throw new BadRequestError('Invalid job reference');
       }
 
@@ -106,6 +111,7 @@ export const POST = withApiHandler(
       if (!isParticipant && user.role !== 'admin') {
         throw new ForbiddenError('You do not have access to this job');
       }
+      jobId = rawJobId;
     }
 
     // Upload each photo to Supabase Storage

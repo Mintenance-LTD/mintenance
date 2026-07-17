@@ -59,6 +59,7 @@ type JobRow = {
   longitude?: number | string | null;
   created_at: string;
   updated_at: string;
+  archived_at?: string | null;
   homeowner?: UserData;
   contractor?: UserData | null;
   bids?: Array<{ count: number }>;
@@ -90,6 +91,7 @@ const jobSelectFields = `
   longitude,
   created_at,
   updated_at,
+  archived_at,
   homeowner:profiles!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:profiles!contractor_id(id,first_name,last_name,email),
   bids(count)
@@ -113,6 +115,7 @@ const mapRowToJobSummary = (
   budget_max?: number;
   location?: string;
   bidCount?: number;
+  archived_at?: string | null;
 } => ({
   id: row.id,
   title: row.title,
@@ -136,6 +139,7 @@ const mapRowToJobSummary = (
   budget_max: toNum(row.budget_max),
   location: row.location ?? undefined,
   bidCount: row.bids?.[0]?.count ?? 0,
+  archived_at: row.archived_at ?? null,
 });
 
 const mapRowToJobDetail = (row: JobRow): JobDetail => ({
@@ -281,7 +285,14 @@ export class JobQueryService {
     const isContractorViewingAvailableJobs =
       user.role === 'contractor' && status?.includes('posted');
     if (isContractorViewingAvailableJobs) {
-      query = query.eq('status', 'posted').is('contractor_id', null);
+      // Archived jobs are hidden from the contractor marketplace — a
+      // homeowner archiving a still-posted job signals it's no longer
+      // being pursued. Homeowners keep seeing their own archived rows
+      // (the web /jobs page renders them under an "Archived" tab).
+      query = query
+        .eq('status', 'posted')
+        .is('contractor_id', null)
+        .is('archived_at', null);
     } else if (user.role === 'homeowner') {
       query = query.eq('homeowner_id', user.id);
 

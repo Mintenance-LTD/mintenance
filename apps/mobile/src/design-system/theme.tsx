@@ -313,6 +313,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  // RN 0.85's ColorSchemeName gained 'unspecified' — narrow to our
+  // two-value ColorScheme, treating unspecified/null as light.
   const [systemColorScheme, setSystemColorScheme] = useState<ColorScheme>(
     normalizeColorScheme(Appearance.getColorScheme())
   );
