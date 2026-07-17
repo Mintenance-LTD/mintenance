@@ -66,6 +66,11 @@ export interface NotificationData {
     // job posts in their service area. Live DB has 6 unrouted rows;
     // router now sends them to JobDetails where the Bid CTA lives.
     | 'job_nearby'
+    // 2026-07-17 Phase 4: Hire-Again direct invite (web
+    // notifyPreferredContractor). Was untyped + unrouted on mobile,
+    // so the highest-intent notification in the product dumped the
+    // contractor on the inbox. Routes to JobDetails (Bid CTA).
+    | 'job_invitation_from_repeat_client'
     // 2026-05-27 audit-70 P1: assignment lifecycle notifications.
     // job_assigned fires when a homeowner accepts a contractor's
     // bid; job_confirmed mirrors it for the contractor side; both

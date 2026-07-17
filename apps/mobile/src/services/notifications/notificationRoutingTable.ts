@@ -260,6 +260,14 @@ export function routeForNotification(
     //     the JobDetails surface where ContractManagement renders
     //   - job_confirmed → assignment confirmation deep-link
     case 'job_nearby':
+    // 2026-07-17 Phase 4: Hire-Again direct invite ("<homeowner> wants
+    // to hire you again"). Web emits metadata.jobId (canonical key —
+    // see NotificationService docs) + actionUrl /contractor/jobs/:id;
+    // both normalize to jobId above. Deep-link to JobDetails where the
+    // contractor's Bid CTA (BidSubmissionScreen) lives — previously
+    // fell through to the inbox despite being the highest-intent
+    // notification in the product.
+    case 'job_invitation_from_repeat_client':
     case 'job_assigned':
     case 'completion_confirmed':
     case 'contract_pending_signature':

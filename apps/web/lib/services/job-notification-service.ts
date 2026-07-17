@@ -291,9 +291,15 @@ export class JobNotificationService {
       title: `${homeownerName} wants to hire you again`,
       message: `They've posted "${jobTitle}" and chose you specifically. Place your bid before other contractors are notified.`,
       actionUrl: `/contractor/jobs/${jobId}`,
+      // 2026-07-17 Phase 4: `jobId` (camelCase) is the CANONICAL
+      // metadata key for job-scoped notifications — it matches
+      // job_nearby and is what the mobile routingTable normalizer
+      // checks first (it still absorbs legacy `job_id`). This emitter
+      // previously snake_cased, which made the two matching
+      // notifications inconsistent on the wire.
       metadata: {
-        job_id: jobId,
-        homeowner_id: homeownerId,
+        jobId,
+        homeownerId,
         source: 'hire_again',
       },
     });

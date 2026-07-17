@@ -20,6 +20,10 @@ export type NotificationType =
   | 'job_update'
   | 'job_viewed'
   | 'job_nearby'
+  // 2026-07-17 Phase 4: Hire-Again direct invite. The icon mapper
+  // (notification-icons.tsx) already handled it, but the union didn't —
+  // real type drift between the two files.
+  | 'job_invitation_from_repeat_client'
   | 'quote_viewed'
   | 'quote_accepted'
   | 'project_reminder';

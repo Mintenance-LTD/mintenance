@@ -153,7 +153,8 @@ describe('JobNotificationService.notifyPreferredContractor', () => {
         userId: 'c-9',
         type: 'job_invitation_from_repeat_client',
         actionUrl: '/contractor/jobs/job-1',
-        metadata: expect.objectContaining({ job_id: 'job-1' }),
+        // canonical camelCase key — matches job_nearby (Phase 4)
+        metadata: expect.objectContaining({ jobId: 'job-1' }),
       })
     );
   });
