@@ -49,9 +49,16 @@ export class RedisRateLimiter {
     expire: (key: string, seconds: number) => Promise<number>;
   } | null = null;
   private initialized = false;
+  /**
+   * Settles once the constructor's async Redis setup has finished. Awaited by
+   * checkRateLimit so requests that arrive during cold start don't race the
+   * initialization into the degraded in-memory fallback (and so tests can
+   * deterministically inject a mock client after construction).
+   */
+  private readonly initPromise: Promise<void>;
 
   constructor() {
-    this.initializeRedis();
+    this.initPromise = this.initializeRedis();
   }
 
   private async initializeRedis() {
@@ -89,6 +96,7 @@ export class RedisRateLimiter {
   }
 
   async checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
+    await this.initPromise;
     if (!this.initialized) {
       return this.fallbackRateLimit(config);
     }

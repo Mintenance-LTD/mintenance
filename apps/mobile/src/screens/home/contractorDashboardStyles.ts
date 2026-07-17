@@ -221,7 +221,7 @@ export const styles = StyleSheet.create({
   },
   bottomSpacer: { height: 40 },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   dropdownCard: {

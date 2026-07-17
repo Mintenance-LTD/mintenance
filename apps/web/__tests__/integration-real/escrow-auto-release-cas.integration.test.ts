@@ -17,8 +17,10 @@
  *     UPDATE escrow_transactions SET status='release_pending', updated_at=now()
  *     WHERE id = ? AND status = 'held'
  *     RETURNING id
- * and the "manual route" variant mirrors api/payments/release-escrow, which
- * CASes on `updated_at` instead of `status`.
+ * Since 2026-07-17 the manual route (api/payments/release-escrow) uses the
+ * SAME status='held' predicate (it previously CASed on `updated_at`, which
+ * the route's own pre-CAS metadata writes deterministically broke), so cron
+ * and manual claims now compete on one predicate.
  *
  * Prerequisites (same as the other integration-real specs):
  *   - `supabase start` (local stack at http://localhost:54321)
@@ -123,17 +125,10 @@ describe('escrow auto-release CAS (real DB concurrency)', () => {
     expect(claimAgain).toBe(false); // already claimed → loser path is deterministic
   });
 
-  it('cron claim (status CAS) vs manual claim (updated_at CAS) → mutually exclusive', async () => {
-    // Capture the original updated_at the way the manual release route does
-    // before it CASes on it.
-    const { data: before } = await admin
-      .from('escrow_transactions')
-      .select('updated_at')
-      .eq('id', escrow.id)
-      .single();
-    const originalUpdatedAt = before?.updated_at as string;
-
-    // Manual route variant: CAS on updated_at (api/payments/release-escrow).
+  it('cron claim vs manual claim (both status CAS) → mutually exclusive', async () => {
+    // Manual route variant mirrors api/payments/release-escrow, which since
+    // 2026-07-17 claims on the same status='held' predicate as the cron
+    // (it also stamps reconciliation fields, irrelevant to the race).
     const claimAsManual = async (): Promise<boolean> => {
       const { data, error } = await admin
         .from('escrow_transactions')
@@ -142,7 +137,7 @@ describe('escrow auto-release CAS (real DB concurrency)', () => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrow.id)
-        .eq('updated_at', originalUpdatedAt)
+        .eq('status', 'held')
         .select('id');
       if (error) throw error;
       return (data?.length ?? 0) === 1;

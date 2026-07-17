@@ -47,7 +47,7 @@ interface JobAttachment {
 // `{ id, title, description, status, createdAt, updatedAt }`
 // DTO has no callers left.
 export const jobSelectFields =
-  'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at';
+  'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, archived_at, created_at, updated_at';
 
 /**
  * Enhanced schema for job editing with AI features.
@@ -88,6 +88,14 @@ export const updateJobSchema = z
       .optional()
       .transform((val) => (val ? sanitizeJobDescription(val) : val)),
     status: z.enum(JOB_STATUS_TRANSITION_TARGETS).optional(),
+    // Archive/unarchive toggle. Archiving is a homeowner list-view
+    // concern, NOT a lifecycle status — the handler maps this to the
+    // nullable `jobs.archived_at` timestamp (migration 20260717090000)
+    // so the job's real status is preserved. The bulk-actions UI
+    // previously sent `{ status: 'archived' }`, which no layer (this
+    // enum, the state machine, or the DB CHECK) accepts, so the
+    // Archive button 400'd since it shipped.
+    archived: z.boolean().optional(),
     category: z
       .string()
       .max(128)

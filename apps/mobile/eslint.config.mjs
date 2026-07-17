@@ -1,5 +1,10 @@
 import expoConfig from 'eslint-config-expo/flat.js';
-import tseslint from 'typescript-eslint';
+// Import the plugin package directly (NOT via the `typescript-eslint` meta
+// package): expoConfig registers the copy npm hoists to the repo root, and
+// eslint 9 only allows re-registering a plugin name with the IDENTICAL
+// object. The meta package can carry its own nested copy when versions
+// drift, which fails with "Cannot redefine plugin".
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 import prettier from 'eslint-config-prettier';
 
 export default [
@@ -9,7 +14,7 @@ export default [
   // Custom rules (with typescript-eslint plugin for @typescript-eslint/* rules)
   {
     plugins: {
-      '@typescript-eslint': tseslint.plugin,
+      '@typescript-eslint': tsPlugin,
     },
     rules: {
       // Enforce structured logging

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Facebook, Twitter, Instagram, Linkedin, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 
@@ -41,17 +41,73 @@ const navigation = {
   ],
 };
 
+// lucide-react removed its deprecated brand icons (Facebook/Twitter/
+// Instagram/Linkedin) — these are the same Feather-derived paths inlined
+// locally, matching lucide's 24x24 stroke-icon conventions so they render
+// identically to the old imports.
+type BrandIconProps = React.SVGProps<SVGSVGElement>;
+
+function brandIcon(children: React.ReactNode) {
+  return function BrandIcon(props: BrandIconProps) {
+    return (
+      <svg
+        xmlns='http://www.w3.org/2000/svg'
+        viewBox='0 0 24 24'
+        width={24}
+        height={24}
+        fill='none'
+        stroke='currentColor'
+        strokeWidth={2}
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        {...props}
+      >
+        {children}
+      </svg>
+    );
+  };
+}
+
+const FacebookIcon = brandIcon(
+  <path d='M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z' />
+);
+const TwitterIcon = brandIcon(
+  <path d='M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z' />
+);
+const InstagramIcon = brandIcon(
+  <>
+    <rect x='2' y='2' width='20' height='20' rx='5' ry='5' />
+    <path d='M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z' />
+    <line x1='17.5' y1='6.5' x2='17.51' y2='6.5' />
+  </>
+);
+const LinkedinIcon = brandIcon(
+  <>
+    <path d='M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-8h4v1a6 6 0 0 1 2-1z' />
+    <rect x='2' y='9' width='4' height='12' />
+    <circle cx='4' cy='4' r='2' />
+  </>
+);
+
 const socialLinks = [
-  { name: 'Facebook', icon: Facebook, href: 'https://facebook.com/mintenance' },
-  { name: 'Twitter', icon: Twitter, href: 'https://twitter.com/mintenance' },
+  {
+    name: 'Facebook',
+    icon: FacebookIcon,
+    href: 'https://facebook.com/mintenance',
+  },
+  {
+    name: 'Twitter',
+    icon: TwitterIcon,
+    href: 'https://twitter.com/mintenance',
+  },
   {
     name: 'Instagram',
-    icon: Instagram,
+    icon: InstagramIcon,
     href: 'https://www.instagram.com/mintenanceltd/',
   },
   {
     name: 'LinkedIn',
-    icon: Linkedin,
+    icon: LinkedinIcon,
     href: 'https://linkedin.com/company/mintenance',
   },
 ];
