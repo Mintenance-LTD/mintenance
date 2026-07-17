@@ -481,6 +481,8 @@ describe('notificationRoutingTable', () => {
   describe('routeForNotification — newer job-detail types', () => {
     const NEWER_JOB_TYPES = [
       'job_nearby',
+      // 2026-07-17 Phase 4: Hire-Again direct invite — was unrouted.
+      'job_invitation_from_repeat_client',
       'job_assigned',
       'completion_confirmed',
       'contract_pending_signature',
@@ -502,6 +504,28 @@ describe('notificationRoutingTable', () => {
     });
     it.each(NEWER_JOB_TYPES)('%s without jobId → inbox', (t) => {
       expect(routeForNotification(t, {})).toEqual(inbox);
+    });
+
+    // 2026-07-17 Phase 4: the web emitter ships canonical camelCase
+    // `jobId` + actionUrl /contractor/jobs/:id; both the legacy
+    // snake_case metadata and the actionUrl-only shapes must still
+    // deep-link (normalizer contract).
+    it('job_invitation_from_repeat_client routes via legacy job_id too', () => {
+      expect(
+        routeForNotification('job_invitation_from_repeat_client', {
+          job_id: JOB,
+        })
+      ).toEqual(jobDetails(JOB));
+    });
+    it('job_invitation_from_repeat_client routes via actionUrl alone', () => {
+      // The actionUrl parser only accepts UUID-ish segments (guards
+      // against literal route keywords), so use a real-shaped id here.
+      const uuidJob = '1f2e3d4c-5b6a-4789-9abc-def012345678';
+      expect(
+        routeForNotification('job_invitation_from_repeat_client', {
+          actionUrl: `/contractor/jobs/${uuidJob}`,
+        })
+      ).toEqual(jobDetails(uuidJob));
     });
   });
 

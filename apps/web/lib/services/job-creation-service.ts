@@ -57,6 +57,7 @@ type JobRow = {
   location?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  city?: string | null;
 };
 
 const jobSelectFields = `
@@ -71,6 +72,7 @@ const jobSelectFields = `
   location,
   latitude,
   longitude,
+  city,
   created_at,
   updated_at
 `
@@ -143,6 +145,9 @@ export class JobCreationService {
         location: jobRow.location ?? null,
         latitude: jobRow.latitude ?? null,
         longitude: jobRow.longitude ?? null,
+        // jobs.city (synced from the property by trg_sync_job_location)
+        // lets area_type='cities' service-area coverage match.
+        city: jobRow.city ?? null,
       },
       {
         required_skills: insertPayload.required_skills,

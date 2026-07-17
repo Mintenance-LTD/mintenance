@@ -11,6 +11,7 @@ import { JobViewTracker } from './components/JobViewTracker';
 import { ContractManagement } from './components/ContractManagement';
 import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
 import { MintEditorialJobDetailView } from './components/mint-editorial/MintEditorialJobDetailView';
+import { RecommendedContractors } from './components/RecommendedContractors';
 import { formatBidsForClient, type BidWithContractor } from './lib/formatBids';
 
 export const metadata: Metadata = {
@@ -338,50 +339,64 @@ export default async function JobDetailPage2025({
       ? requirements.preferred_start_date
       : null;
 
+  // Recommended contractors (Phase 3, 2026-07-17): additive ranked
+  // surface from /api/jobs/[id]/matched-contractors, shown only while
+  // the job is open for bids. Bid list + homeowner choice unchanged.
+  const showRecommended = job.status === 'posted' && !job.contractor_id;
+
   if (isMintEditorial) {
     return (
-      <MintEditorialJobDetailView
-        job={{
-          id: job.id,
-          title: job.title || 'Untitled Job',
-          description: job.description || '',
-          category: job.category || 'General',
-          status: job.status,
-          priority: job.priority,
-          budget: job.budget || 0,
-          location: job.location || 'Location not specified',
-          created_at: job.created_at,
-          completed_at: job.completed_at,
-          preferred_start_date: preferredStartDate,
-          // audit-76 P1 follow-up: AccessSharedCard derives the
-          // key-safe reveal window from this column via
-          // canRevealKeySafeCode(). Without it the helper sees
-          // `scheduled_start_date === undefined` and always returns
-          // false on `status='assigned'`, so the homeowner card would
-          // under-promise (mask the code) even when the contractor
-          // page actually reveals it.
-          scheduled_start_date: job.scheduled_start_date,
-          contractor_id: job.contractor_id,
-          completion_confirmed_by_homeowner:
-            job.completion_confirmed_by_homeowner,
-        }}
-        property={property}
-        contractor={contractor}
-        bids={formattedBids as unknown as import('./components/BidCard').Bid[]}
-        bidCount={bidsWithContractors.length}
-        pendingBidCount={
-          bidsWithContractors.filter((b) => b.status === 'pending').length
-        }
-        photos={jobPhotoUrls}
-        beforePhotos={beforePhotos}
-        afterPhotos={afterPhotos}
-        contractStatus={contractStatus}
-        contractContractorSignedAt={contract?.contractor_signed_at ?? null}
-        contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
-        escrowStatus={escrowStatus}
-        buildingAssessment={buildingAssessment}
-        userId={user.id}
-      />
+      <>
+        <MintEditorialJobDetailView
+          job={{
+            id: job.id,
+            title: job.title || 'Untitled Job',
+            description: job.description || '',
+            category: job.category || 'General',
+            status: job.status,
+            priority: job.priority,
+            budget: job.budget || 0,
+            location: job.location || 'Location not specified',
+            created_at: job.created_at,
+            completed_at: job.completed_at,
+            preferred_start_date: preferredStartDate,
+            // audit-76 P1 follow-up: AccessSharedCard derives the
+            // key-safe reveal window from this column via
+            // canRevealKeySafeCode(). Without it the helper sees
+            // `scheduled_start_date === undefined` and always returns
+            // false on `status='assigned'`, so the homeowner card would
+            // under-promise (mask the code) even when the contractor
+            // page actually reveals it.
+            scheduled_start_date: job.scheduled_start_date,
+            contractor_id: job.contractor_id,
+            completion_confirmed_by_homeowner:
+              job.completion_confirmed_by_homeowner,
+          }}
+          property={property}
+          contractor={contractor}
+          bids={
+            formattedBids as unknown as import('./components/BidCard').Bid[]
+          }
+          bidCount={bidsWithContractors.length}
+          pendingBidCount={
+            bidsWithContractors.filter((b) => b.status === 'pending').length
+          }
+          photos={jobPhotoUrls}
+          beforePhotos={beforePhotos}
+          afterPhotos={afterPhotos}
+          contractStatus={contractStatus}
+          contractContractorSignedAt={contract?.contractor_signed_at ?? null}
+          contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
+          escrowStatus={escrowStatus}
+          buildingAssessment={buildingAssessment}
+          userId={user.id}
+        />
+        {showRecommended && (
+          <div className='mx-auto max-w-7xl px-6 pb-8'>
+            <RecommendedContractors jobId={job.id} />
+          </div>
+        )}
+      </>
     );
   }
 
@@ -440,6 +455,7 @@ export default async function JobDetailPage2025({
         <div className='max-w-7xl mx-auto px-6'>
           <div className='grid grid-cols-12 gap-8'>
             <div className='col-span-12 lg:col-span-8 space-y-6'>
+              {showRecommended && <RecommendedContractors jobId={job.id} />}
               {job.status === 'completed' && afterPhotos.length > 0 && (
                 <div id='photo-review'>
                   <HomeownerPhotoReview
