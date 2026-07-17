@@ -10,14 +10,19 @@ import { useRouter } from 'next/navigation';
 import { logger } from '@mintenance/shared';
 import { getCsrfToken } from '@/lib/csrf-client';
 
-import { calculateDistance } from './discoverUtils';
+import { resolveJobCoordsAndDistance } from './discoverUtils';
 import { DiscoverQuickStats } from './DiscoverQuickStats';
 import { DiscoverJobCard, type DiscoverJob } from './DiscoverJobCard';
 import { DiscoverFilters } from './DiscoverFilters';
 import { DiscoverSkeletonCard } from './DiscoverSkeletonCard';
 import { DiscoverJobsEmptyState } from './DiscoverJobsEmptyState';
 import { updateMapMarkers } from './DiscoverMapMarkers';
-import type { MapJob, ContractorLocationForMap } from './DiscoverMapMarkers';
+import type {
+  CoverageAreaForMap,
+  MapJob,
+  ContractorLocationForMap,
+} from './DiscoverMapMarkers';
+import { drawCoverageCircles } from './DiscoverMapMarkers';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ContractorLocation {
@@ -32,6 +37,9 @@ interface ContractorDiscoverClientProps {
   jobs: DiscoverJob[];
   contractorId: string;
   contractorLocation?: ContractorLocation | null;
+  /** Active service areas (primary first) — coverage overlay +
+   * viewport fallback when no stored location exists. 2026-07-17. */
+  coverageAreas?: CoverageAreaForMap[];
 }
 
 type JobWithCoords = DiscoverJob & { lat?: number; lng?: number };
@@ -41,6 +49,7 @@ export function ContractorDiscoverClient({
   jobs,
   contractorId,
   contractorLocation: initialLocation,
+  coverageAreas = [],
 }: ContractorDiscoverClientProps) {
   const router = useRouter();
 
@@ -66,6 +75,7 @@ export function ContractorDiscoverClient({
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const coverageCirclesRef = useRef<google.maps.Circle[]>([]);
 
   // Hydration-safe theme detection — same pattern used across the
   // contractor Phase-4 ports. Lives near the other state hooks so
@@ -108,9 +118,8 @@ export function ContractorDiscoverClient({
     [jobs, skippedJobIds]
   );
 
-  // Resolve distances: prefer the PostGIS-computed serverDistanceKm
-  // (km from the contractor's stored location, 2026-07-17) and only
-  // fall back to the client-side Haversine for legacy responses.
+  // Resolve coords + distance (PostGIS serverDistanceKm preferred —
+  // see resolveJobCoordsAndDistance in discoverUtils).
   useEffect(() => {
     const withCoords = availableJobs.map((job) => {
       const j = job as DiscoverJob & {
@@ -118,25 +127,10 @@ export function ContractorDiscoverClient({
         longitude?: number;
         serverDistanceKm?: number | null;
       };
-      const lat = j.latitude ?? undefined;
-      const lng = j.longitude ?? undefined;
-      const distance =
-        typeof j.serverDistanceKm === 'number'
-          ? j.serverDistanceKm
-          : contractorLocation?.latitude &&
-              contractorLocation?.longitude &&
-              lat &&
-              lng
-            ? calculateDistance(
-                contractorLocation.latitude,
-                contractorLocation.longitude,
-                lat,
-                lng
-              )
-            : undefined;
-      return { ...job, lat, lng, distance } as JobWithCoords & {
-        distance?: number;
-      };
+      return {
+        ...job,
+        ...resolveJobCoordsAndDistance(j, contractorLocation),
+      } as JobWithCoords & { distance?: number };
     });
     setJobsWithCoords(withCoords);
     setIsGeocoding(false);
@@ -454,12 +448,24 @@ export function ContractorDiscoverClient({
             >
               <DynamicGoogleMap
                 center={{
-                  lat: contractorLocation?.latitude || 51.5074,
-                  lng: contractorLocation?.longitude || -0.1278,
+                  // Stored location → primary service area → London.
+                  lat:
+                    contractorLocation?.latitude ||
+                    coverageAreas[0]?.lat ||
+                    51.5074,
+                  lng:
+                    contractorLocation?.longitude ||
+                    coverageAreas[0]?.lng ||
+                    -0.1278,
                 }}
                 zoom={12}
                 onMapLoad={(map) => {
                   mapRef.current = map;
+                  coverageCirclesRef.current = drawCoverageCircles(
+                    map,
+                    coverageCirclesRef.current,
+                    coverageAreas
+                  );
                   runUpdateMarkers();
                 }}
                 style={{ width: '100%', height: '100%' }}

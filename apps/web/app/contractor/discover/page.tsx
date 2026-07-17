@@ -59,24 +59,56 @@ export default async function ContractorDiscoverPage2025() {
     redirect('/login');
   }
 
-  // Fetch contractor's skills and location in parallel
-  const [contractorSkillsResponse, contractorProfileResponse] =
-    await Promise.all([
-      serverSupabase
-        .from('contractor_skills')
-        .select('skill_name')
-        .eq('contractor_id', user.id),
-      serverSupabase
-        .from('profiles')
-        .select('city, address, postcode, latitude, longitude')
-        .eq('id', user.id)
-        .single(),
-    ]);
+  // Fetch contractor's skills, location and active coverage in parallel
+  const [
+    contractorSkillsResponse,
+    contractorProfileResponse,
+    coverageResponse,
+  ] = await Promise.all([
+    serverSupabase
+      .from('contractor_skills')
+      .select('skill_name')
+      .eq('contractor_id', user.id),
+    serverSupabase
+      .from('profiles')
+      .select('city, address, postcode, latitude, longitude')
+      .eq('id', user.id)
+      .single(),
+    serverSupabase
+      .from('service_areas')
+      .select(
+        'id, center_latitude, center_longitude, radius_km, max_distance_km, is_primary_area'
+      )
+      .eq('contractor_id', user.id)
+      .eq('is_active', true),
+  ]);
 
   const contractorSkills =
     contractorSkillsResponse.data?.map((s) => s.skill_name) || [];
   const contractorCity = contractorProfileResponse.data?.city || null;
   const contractorLocation = contractorProfileResponse.data || null;
+
+  // Coverage overlay (2026-07-17): active service areas, primary first,
+  // radius mirroring the notify-audience gating (max_distance_km over
+  // radius_km). Rows without usable center/radius are skipped.
+  const coverageAreas = (coverageResponse.data ?? [])
+    .map((row) => {
+      const lat = toNum(row.center_latitude);
+      const lng = toNum(row.center_longitude);
+      const radiusKm = toNum(row.max_distance_km) ?? toNum(row.radius_km);
+      if (lat === null || lng === null || radiusKm === null || radiusKm <= 0) {
+        return null;
+      }
+      return {
+        id: String(row.id),
+        lat,
+        lng,
+        radiusKm,
+        isPrimary: row.is_primary_area === true,
+      };
+    })
+    .filter((a): a is NonNullable<typeof a> => a !== null)
+    .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
 
   // 2026-07-17 discover geo fix: previously this page fetched the 50
   // NEWEST posted jobs anywhere in the country and the browser
@@ -288,6 +320,7 @@ export default async function ContractorDiscoverPage2025() {
       jobs={availableJobs}
       contractorId={user.id}
       contractorLocation={contractorLocation}
+      coverageAreas={coverageAreas}
     />
   );
 }
