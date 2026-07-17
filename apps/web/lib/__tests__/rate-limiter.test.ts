@@ -8,7 +8,7 @@ import { RedisRateLimiter } from '../rate-limiter';
 
 // Mock @upstash/redis to prevent actual connections
 vi.mock('@upstash/redis', () => ({
-  Redis: vi.fn()
+  Redis: vi.fn(),
 }));
 
 describe('RedisRateLimiter', () => {
@@ -19,11 +19,11 @@ describe('RedisRateLimiter', () => {
   };
   const savedNodeEnv = process.env.NODE_ENV;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create fresh mock redis functions
     mockRedis = {
       incr: vi.fn(),
-      expire: vi.fn()
+      expire: vi.fn(),
     };
 
     // Set environment variables
@@ -33,9 +33,13 @@ describe('RedisRateLimiter', () => {
     // Clean global fallback state
     globalThis.rateLimitFallback = undefined;
 
-    // Create rate limiter and directly inject the mock Redis
-    // This bypasses the unreliable async initializeRedis()
+    // Create rate limiter and wait for its async initializeRedis() to settle
+    // BEFORE tests inject the mock Redis — otherwise the constructor's pending
+    // init resolves mid-test and overwrites the injected mock with the dud
+    // instance produced by the mocked @upstash/redis constructor.
     rateLimiter = new RedisRateLimiter();
+    await (rateLimiter as unknown as { initPromise: Promise<void> })
+      .initPromise;
   });
 
   afterEach(() => {
@@ -71,7 +75,7 @@ describe('RedisRateLimiter', () => {
       await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       expect(mockRedis.incr).toHaveBeenCalled();
@@ -84,7 +88,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       // Dev/test fallback: min(HARD_CAP=50, ceil(100 * 0.75)) = 50
@@ -105,7 +109,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       expect(result.allowed).toBe(true);
@@ -120,7 +124,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       expect(result.allowed).toBe(false);
@@ -134,7 +138,7 @@ describe('RedisRateLimiter', () => {
       await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       expect(mockRedis.expire).toHaveBeenCalledWith(
@@ -150,7 +154,7 @@ describe('RedisRateLimiter', () => {
       await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       expect(mockRedis.expire).not.toHaveBeenCalled();
@@ -165,7 +169,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       // Dev/test fallback: min(HARD_CAP=50, ceil(100 * 0.75)) = 50
@@ -180,7 +184,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       // Production fallback: min(HARD_CAP=10, ceil(100 * 0.25)) = 10
@@ -196,7 +200,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       // Falls back to in-memory (NODE_ENV=test is not production, so allowed)
@@ -215,7 +219,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000, // TIME_MS.MINUTE
         maxRequests: 100, // RATE_LIMITS.WEBHOOK_REQUESTS_PER_MINUTE
-        identifier: 'webhook-test'
+        identifier: 'webhook-test',
       });
 
       expect(result.allowed).toBe(true);
@@ -234,7 +238,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000, // TIME_MS.MINUTE
         maxRequests: 1000, // RATE_LIMITS.API_REQUESTS_PER_MINUTE
-        identifier: 'api-test'
+        identifier: 'api-test',
       });
 
       expect(result.allowed).toBe(true);
@@ -257,7 +261,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 0,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       expect(result.allowed).toBe(false);
@@ -271,7 +275,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 24 * 60 * 60 * 1000, // 24 hours
         maxRequests: 100,
-        identifier: 'test-user'
+        identifier: 'test-user',
       });
 
       expect(result.allowed).toBe(true);
@@ -288,7 +292,7 @@ describe('RedisRateLimiter', () => {
       const result = await rateLimiter.checkRateLimit({
         windowMs: 60000,
         maxRequests: 100,
-        identifier: ''
+        identifier: '',
       });
 
       expect(result.allowed).toBe(true);
