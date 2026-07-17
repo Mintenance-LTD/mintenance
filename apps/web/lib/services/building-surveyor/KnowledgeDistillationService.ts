@@ -9,7 +9,6 @@
  */
 
 import { logger } from '@mintenance/shared';
-import { SAM3TrainingDataService } from './SAM3TrainingDataService';
 import type {
   GPT4TrainingLabelInput,
   KnowledgeDistillationJobInput,
@@ -19,7 +18,6 @@ import type {
   DistillationStats,
 } from './training-data-types';
 import type { Phase1BuildingAssessment } from './types';
-import type { DamageTypeSegmentation } from './SAM3Service';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 import { getTrainingStats, getJob } from './KnowledgeDistillationQueryService';
@@ -73,36 +71,6 @@ export class KnowledgeDistillationService {
       return labelId;
     } catch (error) {
       logger.error('Failed to record GPT-4 output', error, {
-        service: 'KnowledgeDistillationService',
-        assessmentId,
-      });
-      throw error;
-    }
-  }
-
-  // ── Record SAM3 outputs ───────────────────────────────────────────────
-
-  static async recordSAM3Output(
-    assessmentId: string,
-    imageUrl: string,
-    sam3Data: DamageTypeSegmentation,
-    imageIndex: number = 0
-  ): Promise<string[]> {
-    try {
-      const maskIds = await SAM3TrainingDataService.captureSAM3Output(
-        assessmentId, imageUrl, sam3Data, imageIndex
-      );
-
-      logger.info('SAM3 outputs recorded for training', {
-        service: 'KnowledgeDistillationService',
-        assessmentId,
-        maskCount: maskIds.length,
-      });
-
-      await checkAndTriggerTraining('segmentation_model');
-      return maskIds;
-    } catch (error) {
-      logger.error('Failed to record SAM3 output', error, {
         service: 'KnowledgeDistillationService',
         assessmentId,
       });
