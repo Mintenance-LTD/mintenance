@@ -17,17 +17,28 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { DEFAULT_MATCH_RADIUS_KM } from '@/lib/services/matching/constants';
+import {
+  parsePreferredHours,
+  type PreferredHoursWindow,
+} from '@/lib/services/matching/preferred-hours';
 
 export interface AudienceContractor {
   id: string;
   distanceKm: number | null;
   matchedVia: 'service_area' | 'profile_radius' | 'legacy_scan';
+  /** Working-hours prefs of the closest matched service area (soft
+   * defer signal — see preferred-hours.ts). Null for non-service-area
+   * matches or when the contractor never configured them. */
+  preferredDays: string[] | null;
+  preferredHours: PreferredHoursWindow | null;
 }
 
 interface RpcAudienceRow {
   contractor_id: string;
   distance_km: number | string | null;
   matched_via: string;
+  preferred_days?: string[] | null;
+  preferred_hours?: unknown;
 }
 
 interface LegacyProfileRow {
@@ -65,6 +76,11 @@ export async function fetchNearbyContractors(
       distanceKm: toNum(row.distance_km),
       matchedVia:
         row.matched_via === 'service_area' ? 'service_area' : 'profile_radius',
+      preferredDays:
+        Array.isArray(row.preferred_days) && row.preferred_days.length > 0
+          ? row.preferred_days.map(String)
+          : null,
+      preferredHours: parsePreferredHours(row.preferred_hours),
     }));
   }
 
@@ -110,6 +126,8 @@ async function legacyHaversineScan(coordinates: {
         id: contractor.id,
         distanceKm,
         matchedVia: 'legacy_scan',
+        preferredDays: null,
+        preferredHours: null,
       });
     }
   }

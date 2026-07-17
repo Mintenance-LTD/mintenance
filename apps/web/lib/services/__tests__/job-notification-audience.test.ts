@@ -40,18 +40,22 @@ import { fetchNearbyContractors } from '../job-notification-audience';
 const CHELTENHAM = { lat: 51.9, lng: -2.07 };
 
 describe('fetchNearbyContractors (service-area-aware audience)', () => {
-  it('maps RPC rows: id, numeric-coerced distance, matched_via', async () => {
+  it('maps RPC rows: id, numeric-coerced distance, matched_via, prefs', async () => {
     mockRpc.mockResolvedValue({
       data: [
         {
           contractor_id: 'c-sa',
           distance_km: '0.186',
           matched_via: 'service_area',
+          preferred_days: ['monday', 'friday'],
+          preferred_hours: { start: '09:00', end: '17:00' },
         },
         {
           contractor_id: 'c-fallback',
           distance_km: 12.5,
           matched_via: 'profile_radius',
+          preferred_days: null,
+          preferred_hours: null,
         },
       ],
       error: null,
@@ -60,10 +64,42 @@ describe('fetchNearbyContractors (service-area-aware audience)', () => {
     const result = await fetchNearbyContractors(CHELTENHAM);
 
     expect(result).toEqual([
-      { id: 'c-sa', distanceKm: 0.186, matchedVia: 'service_area' },
-      { id: 'c-fallback', distanceKm: 12.5, matchedVia: 'profile_radius' },
+      {
+        id: 'c-sa',
+        distanceKm: 0.186,
+        matchedVia: 'service_area',
+        preferredDays: ['monday', 'friday'],
+        preferredHours: { start: '09:00', end: '17:00' },
+      },
+      {
+        id: 'c-fallback',
+        distanceKm: 12.5,
+        matchedVia: 'profile_radius',
+        preferredDays: null,
+        preferredHours: null,
+      },
     ]);
     expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('nulls out malformed preferred_hours payloads', async () => {
+    mockRpc.mockResolvedValue({
+      data: [
+        {
+          contractor_id: 'c-sa',
+          distance_km: 1,
+          matched_via: 'service_area',
+          preferred_days: [],
+          preferred_hours: 'nine to five',
+        },
+      ],
+      error: null,
+    });
+
+    const result = await fetchNearbyContractors(CHELTENHAM);
+
+    expect(result[0].preferredDays).toBeNull();
+    expect(result[0].preferredHours).toBeNull();
   });
 
   it('sends the default radius and the job city to the RPC', async () => {

@@ -134,6 +134,14 @@ export function isTypeDisabled(
 }
 
 /**
+ * 2026-07-17: exported for NotificationService's caller-supplied
+ * `deferUntil` guard — always-on types must never be deferred either.
+ */
+export function isAlwaysOnType(type: string): boolean {
+  return ALWAYS_ON_TYPES.has(type);
+}
+
+/**
  * Convert `HH:MM:SS` or `HH:MM` to minutes-from-midnight.
  */
 function timeStringToMinutes(t: string | null): number | null {

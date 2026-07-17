@@ -133,6 +133,11 @@ CREATE INDEX IF NOT EXISTS idx_service_areas_center
 -- — those contractors fall back to the profile radius rather than being
 -- silently dropped. Marketplace invariant: this selects who gets
 -- NOTIFIED; homeowners still pick the winner from bids.
+--
+-- preferred_days/preferred_hours of the CLOSEST matched area are
+-- returned so the caller can politely defer out-of-hours pushes (soft
+-- signal; never suppresses — see JobNotificationService). NULL for
+-- profile_radius matches.
 CREATE OR REPLACE FUNCTION public.find_contractors_for_job(
   p_latitude NUMERIC,
   p_longitude NUMERIC,
@@ -142,7 +147,9 @@ CREATE OR REPLACE FUNCTION public.find_contractors_for_job(
 RETURNS TABLE (
   contractor_id UUID,
   distance_km NUMERIC,
-  matched_via TEXT
+  matched_via TEXT,
+  preferred_days TEXT[],
+  preferred_hours JSONB
 )
 LANGUAGE sql
 STABLE
@@ -166,12 +173,17 @@ AS $$
         OR (sa.area_type = 'cities' AND p_city IS NOT NULL)
       )
   ),
+  -- One row per contractor: their CLOSEST matching area (radius
+  -- matches sort before distance-less city matches via NULLS LAST) —
+  -- its distance and working-hours preferences travel together.
   sa_matches AS (
-    SELECT
+    SELECT DISTINCT ON (sa.contractor_id)
       sa.contractor_id,
-      MIN(CASE WHEN sa.center IS NOT NULL
-            THEN (ST_Distance(sa.center, t.pt) / 1000.0)::NUMERIC
-          END) AS distance_km
+      CASE WHEN sa.center IS NOT NULL
+        THEN (ST_Distance(sa.center, t.pt) / 1000.0)::NUMERIC
+      END AS distance_km,
+      sa.preferred_days,
+      sa.preferred_hours
     FROM public.service_areas sa, target t
     WHERE sa.is_active = TRUE
       AND (
@@ -192,9 +204,12 @@ AS $$
           )
         )
       )
-    GROUP BY sa.contractor_id
+    ORDER BY sa.contractor_id,
+             (CASE WHEN sa.center IS NOT NULL
+                THEN ST_Distance(sa.center, t.pt) END) ASC NULLS LAST
   )
-  SELECT p.id, sm.distance_km, 'service_area'::TEXT
+  SELECT p.id, sm.distance_km, 'service_area'::TEXT,
+         sm.preferred_days, sm.preferred_hours
   FROM sa_matches sm
   JOIN public.profiles p
     ON p.id = sm.contractor_id
@@ -203,7 +218,9 @@ AS $$
   UNION ALL
   SELECT p.id,
          (ST_Distance(p.location_point, t.pt) / 1000.0)::NUMERIC,
-         'profile_radius'::TEXT
+         'profile_radius'::TEXT,
+         NULL::TEXT[],
+         NULL::JSONB
   FROM public.profiles p, target t
   WHERE p.role = 'contractor'
     AND p.is_available = TRUE

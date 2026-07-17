@@ -1,12 +1,12 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
-const { mockFrom, mockCreateNotification, mockFetchAudience } = vi.hoisted(
-  () => ({
+const { mockFrom, mockCreateNotification, mockFetchAudience, mockNextWindow } =
+  vi.hoisted(() => ({
     mockFrom: vi.fn(),
     mockCreateNotification: vi.fn(),
     mockFetchAudience: vi.fn(),
-  })
-);
+    mockNextWindow: vi.fn(),
+  }));
 
 function buildChain(result?: { data?: unknown; error?: unknown }) {
   const resolved = {
@@ -42,6 +42,10 @@ vi.mock('@/lib/services/job-notification-audience', () => ({
   fetchNearbyContractors: mockFetchAudience,
 }));
 
+vi.mock('@/lib/services/matching/preferred-hours', () => ({
+  nextPreferredWindowStart: mockNextWindow,
+}));
+
 import { JobNotificationService } from '../job-notification-service';
 
 const JOB = {
@@ -58,12 +62,15 @@ function audience(...ids: string[]) {
     id,
     distanceKm: 1,
     matchedVia: 'service_area' as const,
+    preferredDays: null,
+    preferredHours: null,
   }));
 }
 
 describe('JobNotificationService.notifyNearbyContractors', () => {
   beforeEach(() => {
     mockCreateNotification.mockResolvedValue('notif-id');
+    mockNextWindow.mockReturnValue(null); // in-hours by default
   });
 
   it('fans out job_nearby through NotificationService per matched contractor', async () => {
@@ -115,6 +122,32 @@ describe('JobNotificationService.notifyNearbyContractors', () => {
     });
 
     expect(mockCreateNotification).toHaveBeenCalledTimes(2);
+  });
+
+  it('defers out-of-hours pushes for service-area matches only', async () => {
+    const windowStart = new Date('2026-07-17T08:00:00Z');
+    mockNextWindow.mockReturnValue(windowStart);
+    mockFetchAudience.mockResolvedValue([
+      ...audience('c-sa'),
+      {
+        id: 'c-legacy',
+        distanceKm: 2,
+        matchedVia: 'legacy_scan' as const,
+        preferredDays: null,
+        preferredHours: null,
+      },
+    ]);
+
+    await JobNotificationService.getInstance().notifyNearbyContractors(JOB, {
+      required_skills: null,
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'c-sa', deferUntil: windowStart })
+    );
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'c-legacy', deferUntil: undefined })
+    );
   });
 
   it('sends nothing when the audience is empty', async () => {
