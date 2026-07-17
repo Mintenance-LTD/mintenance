@@ -45,16 +45,9 @@ export async function captureTrainingDataAsync(
         : undefined
     );
 
-    if (sam3Result?.success) {
-      for (let i = 0; i < imageUrls.length && i < 4; i++) {
-        await KnowledgeDistillationService.recordSAM3Output(
-          assessmentId,
-          imageUrls[i],
-          sam3Result,
-          i
-        );
-      }
-    }
+    // SAM3 training-data capture removed (audit — SAM3 decommission Strategy B,
+    // safe subset). SAM3 is no longer a live signal, so there are no SAM3
+    // segmentation masks to record for future distillation.
 
     if (process.env.MINT_AI_VLM_ENDPOINT && promptMessages && apiKey) {
       StudentShadowService.runShadowComparison(

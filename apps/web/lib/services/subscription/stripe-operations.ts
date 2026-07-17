@@ -15,6 +15,7 @@
 import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { getInvoiceClientSecret } from '@/lib/stripe';
 import { stripe } from './stripe-client';
 import { PLAN_PRICING } from './plan-pricing';
 import type { SubscriptionPlan } from './types';
@@ -80,7 +81,9 @@ export async function createStripeSubscription(
       items: [{ price: priceId }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
+      // basil+ API versions reject the old `latest_invoice.payment_intent`
+      // expansion; confirmation_secret carries the same client secret.
+      expand: ['latest_invoice.confirmation_secret'],
       metadata: {
         contractorId,
         planType,
@@ -88,14 +91,9 @@ export async function createStripeSubscription(
       },
     });
 
-    const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = (
-      invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent }
-    )?.payment_intent;
-
     return {
       subscriptionId: subscription.id,
-      clientSecret: paymentIntent?.client_secret || null,
+      clientSecret: getInvoiceClientSecret(subscription.latest_invoice),
     };
   } catch (err) {
     logger.error('Error creating Stripe subscription', {
@@ -207,7 +205,7 @@ export async function updateSubscriptionPlan(
             planType: newPlanType,
           },
           proration_behavior: 'always_invoice',
-          expand: ['latest_invoice.payment_intent'],
+          expand: ['latest_invoice.confirmation_secret'],
         }
       );
     } catch (updateError: unknown) {
@@ -225,43 +223,19 @@ export async function updateSubscriptionPlan(
       );
     }
 
-    // Get payment intent if invoice requires payment.
-    // When subscription is updated, Stripe may create a new invoice;
-    // we need to check if payment is required.
+    // When a subscription is updated with `always_invoice` proration,
+    // Stripe may create a new invoice. If Stripe settled it automatically
+    // its status is 'paid'; an 'open'/'draft' invoice still needs the
+    // client to confirm payment with the confirmation_secret's client
+    // secret (the basil+ replacement for the removed
+    // latest_invoice.payment_intent expansion).
     const invoice = updatedSubscription.latest_invoice;
     let clientSecret: string | null = null;
     let requiresPayment = false;
 
     if (invoice && typeof invoice !== 'string') {
-      // Invoice is expanded - access payment_intent through type assertion
-      const expandedInvoice = invoice as Stripe.Invoice & {
-        payment_intent?: Stripe.PaymentIntent | string | null;
-      };
-      const paymentIntentValue = expandedInvoice.payment_intent;
-
-      if (paymentIntentValue) {
-        if (typeof paymentIntentValue === 'string') {
-          // Payment intent is just an ID — for subscription updates with
-          // proration, payment is usually handled automatically. Check
-          // the invoice status to decide whether we need to surface a
-          // payment-required signal to the client.
-          requiresPayment =
-            expandedInvoice.status === 'open' ||
-            expandedInvoice.status === 'draft';
-        } else if (typeof paymentIntentValue === 'object') {
-          // Payment intent is expanded
-          const paymentIntent = paymentIntentValue as Stripe.PaymentIntent;
-          clientSecret = paymentIntent.client_secret || null;
-          requiresPayment =
-            paymentIntent.status !== 'succeeded' &&
-            paymentIntent.status !== 'processing';
-        }
-      } else {
-        // No payment intent — check invoice status
-        requiresPayment =
-          expandedInvoice.status === 'open' ||
-          expandedInvoice.status === 'draft';
-      }
+      clientSecret = getInvoiceClientSecret(invoice);
+      requiresPayment = invoice.status === 'open' || invoice.status === 'draft';
     }
 
     // Update database

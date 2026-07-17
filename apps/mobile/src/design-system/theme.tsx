@@ -291,6 +291,12 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const THEME_STORAGE_KEY = '@mintenance_theme_mode';
 
+// RN 0.85 widened ColorSchemeName to include 'unspecified'; the app theme
+// is strictly light/dark, so anything that isn't 'dark' renders light.
+const normalizeColorScheme = (
+  scheme: ColorSchemeName | null | undefined
+): ColorScheme => (scheme === 'dark' ? 'dark' : 'light');
+
 // ============================================================================
 // THEME PROVIDER
 // ============================================================================

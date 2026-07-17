@@ -63,6 +63,9 @@ export const updateProfileSchema = z
 
 // Common ID Schemas
 export const uuidSchema = z.string().uuid('Invalid ID format');
+// Deliberately NOT `.strict()`: validates query-string params, which
+// legitimately carry extraneous keys (utm_*, fbclid, …) that must be
+// ignored, not 400'd.
 export const paginationSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
@@ -117,92 +120,102 @@ export const adminSettingCreateSchema = z
   .strict();
 
 // Contract Schemas
-export const createContractSchema = z.object({
-  job_id: z.string().uuid('Invalid job ID'),
-  title: z
-    .string()
-    .min(1, 'Title required')
-    .max(255, 'Title too long')
-    .optional(),
-  description: z.string().max(5000, 'Description too long').optional(),
-  amount: z.number().positive('Amount must be positive'),
-  start_date: z.string().datetime('Invalid start date format').optional(),
-  end_date: z.string().datetime('Invalid end date format').optional(),
-  terms: z
-    .record(
-      z.string(),
-      z.union([z.string(), z.number(), z.boolean(), z.null()])
-    )
-    .optional(),
-  contractor_company_name: z
-    .string()
-    .min(1, 'Company name required')
-    .max(255, 'Company name too long'),
-  contractor_license_registration: z
-    .string()
-    .min(1, 'License registration required')
-    .max(100, 'License registration too long'),
-  contractor_license_type: z
-    .string()
-    .max(100, 'License type too long')
-    .optional(),
-  insurance_provider: z
-    .string()
-    .max(255, 'Insurance provider too long')
-    .optional(),
-  insurance_policy_number: z
-    .string()
-    .max(100, 'Insurance policy number too long')
-    .optional(),
-  quote_id: z.string().uuid('Invalid quote ID').optional(),
-});
+export const createContractSchema = z
+  .object({
+    job_id: z.string().uuid('Invalid job ID'),
+    title: z
+      .string()
+      .min(1, 'Title required')
+      .max(255, 'Title too long')
+      .optional(),
+    description: z.string().max(5000, 'Description too long').optional(),
+    amount: z.number().positive('Amount must be positive'),
+    start_date: z.string().datetime('Invalid start date format').optional(),
+    end_date: z.string().datetime('Invalid end date format').optional(),
+    terms: z
+      .record(
+        z.string(),
+        z.union([z.string(), z.number(), z.boolean(), z.null()])
+      )
+      .optional(),
+    contractor_company_name: z
+      .string()
+      .min(1, 'Company name required')
+      .max(255, 'Company name too long'),
+    contractor_license_registration: z
+      .string()
+      .min(1, 'License registration required')
+      .max(100, 'License registration too long'),
+    contractor_license_type: z
+      .string()
+      .max(100, 'License type too long')
+      .optional(),
+    insurance_provider: z
+      .string()
+      .max(255, 'Insurance provider too long')
+      .optional(),
+    insurance_policy_number: z
+      .string()
+      .max(100, 'Insurance policy number too long')
+      .optional(),
+    quote_id: z.string().uuid('Invalid quote ID').optional(),
+  })
+  .strict();
 
-export const updateContractSchema = z.object({
-  title: z
-    .string()
-    .min(1, 'Title required')
-    .max(255, 'Title too long')
-    .optional(),
-  description: z.string().max(5000, 'Description too long').optional(),
-  amount: z.number().positive('Amount must be positive').optional(),
-  start_date: z.string().datetime('Invalid start date format').optional(),
-  end_date: z.string().datetime('Invalid end date format').optional(),
-  terms: z
-    .record(
-      z.string(),
-      z.union([z.string(), z.number(), z.boolean(), z.null()])
-    )
-    .optional(),
-});
+export const updateContractSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1, 'Title required')
+      .max(255, 'Title too long')
+      .optional(),
+    description: z.string().max(5000, 'Description too long').optional(),
+    amount: z.number().positive('Amount must be positive').optional(),
+    start_date: z.string().datetime('Invalid start date format').optional(),
+    end_date: z.string().datetime('Invalid end date format').optional(),
+    terms: z
+      .record(
+        z.string(),
+        z.union([z.string(), z.number(), z.boolean(), z.null()])
+      )
+      .optional(),
+  })
+  .strict();
 
 // Message Schemas
-export const messageReactionSchema = z.object({
-  emoji: z
-    .string()
-    .min(1, 'Emoji is required')
-    .max(10, 'Emoji too long')
-    .regex(/^[\p{Emoji}\u200d]+$/u, 'Invalid emoji format'),
-});
+export const messageReactionSchema = z
+  .object({
+    emoji: z
+      .string()
+      .min(1, 'Emoji is required')
+      .max(10, 'Emoji too long')
+      .regex(/^[\p{Emoji}\u200d]+$/u, 'Invalid emoji format'),
+  })
+  .strict();
 
-export const sendMessageSchema = z.object({
-  jobId: z.string().uuid('Invalid job ID'),
-  receiverId: z.string().uuid('Invalid receiver ID'),
-  content: z
-    .string()
-    .min(1, 'Message content required')
-    .max(2000, 'Message too long')
-    .transform((val) => sanitizeText(val, 2000)),
-  messageType: z.enum(['text', 'image', 'file', 'system']).default('text'),
-});
+export const sendMessageSchema = z
+  .object({
+    jobId: z.string().uuid('Invalid job ID'),
+    receiverId: z.string().uuid('Invalid receiver ID'),
+    content: z
+      .string()
+      .min(1, 'Message content required')
+      .max(2000, 'Message too long')
+      .transform((val) => sanitizeText(val, 2000)),
+    messageType: z.enum(['text', 'image', 'file', 'system']).default('text'),
+  })
+  .strict();
 
 // Notification Schemas
-export const notificationEngagementSchema = z.object({
-  notificationId: z
-    .string()
-    .min(1, 'Notification ID required')
-    .max(255, 'Notification ID too long'),
-  action: z.enum(['opened', 'clicked', 'dismissed']),
-});
+export const notificationEngagementSchema = z
+  .object({
+    notificationId: z
+      .string()
+      .min(1, 'Notification ID required')
+      .max(255, 'Notification ID too long'),
+    action: z.enum(['opened', 'clicked', 'dismissed']),
+  })
+  .strict();
 
 // Property Schemas
 export const createPropertySchema = z
@@ -237,6 +250,7 @@ export const createPropertySchema = z
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
   })
+  .strict()
   .refine((data) => data.address || data.address_line1, {
     message: 'Address is required (provide address or address_line1)',
   });
@@ -254,118 +268,127 @@ export const createPropertySchema = z
  * Both the web edit form (PropertyEditClient) and mobile (EditPropertyScreen)
  * send these client names directly, so do not rename without updating both.
  */
-export const updatePropertySchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Property name is required')
-    .max(255, 'Property name too long')
-    .transform((val) => sanitizeText(val.trim(), 255))
-    .optional(),
-  address: z
-    .string()
-    .max(500, 'Address too long')
-    .transform((val) => sanitizeText(val.trim(), 500))
-    .optional(),
-  city: z
-    .string()
-    .max(100, 'City too long')
-    .transform((val) => sanitizeText(val.trim(), 100))
-    .optional(),
-  postcode: z
-    .string()
-    .max(25, 'Postcode too long')
-    .transform((val) => sanitizeText(val.trim(), 25))
-    .optional(),
-  type: z
-    .enum([
-      'residential',
-      'commercial',
-      'rental',
-      'house',
-      'apartment',
-      'flat',
-      'detached',
-      'semi-detached',
-      'terraced',
-      'bungalow',
-      'cottage',
-      'maisonette',
-      'other',
-    ])
-    .optional(),
-  bedrooms: z
-    .number()
-    .int('Bedrooms must be a whole number')
-    .min(0)
-    .max(50)
-    .optional()
-    .nullable(),
-  bathrooms: z
-    .number()
-    .int('Bathrooms must be a whole number')
-    .min(0)
-    .max(50)
-    .optional()
-    .nullable(),
-  squareFeet: z
-    .number()
-    .min(0, 'Square feet cannot be negative')
-    .max(100000)
-    .optional()
-    .nullable(),
-  yearBuilt: z
-    .number()
-    .int('Year must be a whole number')
-    .min(1600, 'Year built is too old')
-    .max(new Date().getFullYear() + 5, 'Year built is in the future')
-    .optional()
-    .nullable(),
-  photos: z
-    .array(z.string().url('Invalid photo URL'))
-    .max(20, 'Maximum 20 photos allowed')
-    .optional(),
-  // R6 step 13 (2026-04-29): match createPropertySchema so PUT can
-  // persist coords too (e.g. when an edit corrects the address).
-  country: z.string().max(50).optional(),
-  county: z.string().max(100).optional(),
-  latitude: z.number().min(-90).max(90).optional().nullable(),
-  longitude: z.number().min(-180).max(180).optional().nullable(),
-});
+export const updatePropertySchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, 'Property name is required')
+      .max(255, 'Property name too long')
+      .transform((val) => sanitizeText(val.trim(), 255))
+      .optional(),
+    address: z
+      .string()
+      .max(500, 'Address too long')
+      .transform((val) => sanitizeText(val.trim(), 500))
+      .optional(),
+    city: z
+      .string()
+      .max(100, 'City too long')
+      .transform((val) => sanitizeText(val.trim(), 100))
+      .optional(),
+    postcode: z
+      .string()
+      .max(25, 'Postcode too long')
+      .transform((val) => sanitizeText(val.trim(), 25))
+      .optional(),
+    type: z
+      .enum([
+        'residential',
+        'commercial',
+        'rental',
+        'house',
+        'apartment',
+        'flat',
+        'detached',
+        'semi-detached',
+        'terraced',
+        'bungalow',
+        'cottage',
+        'maisonette',
+        'other',
+      ])
+      .optional(),
+    bedrooms: z
+      .number()
+      .int('Bedrooms must be a whole number')
+      .min(0)
+      .max(50)
+      .optional()
+      .nullable(),
+    bathrooms: z
+      .number()
+      .int('Bathrooms must be a whole number')
+      .min(0)
+      .max(50)
+      .optional()
+      .nullable(),
+    squareFeet: z
+      .number()
+      .min(0, 'Square feet cannot be negative')
+      .max(100000)
+      .optional()
+      .nullable(),
+    yearBuilt: z
+      .number()
+      .int('Year must be a whole number')
+      .min(1600, 'Year built is too old')
+      .max(new Date().getFullYear() + 5, 'Year built is in the future')
+      .optional()
+      .nullable(),
+    photos: z
+      .array(z.string().url('Invalid photo URL'))
+      .max(20, 'Maximum 20 photos allowed')
+      .optional(),
+    // R6 step 13 (2026-04-29): match createPropertySchema so PUT can
+    // persist coords too (e.g. when an edit corrects the address).
+    country: z.string().max(50).optional(),
+    county: z.string().max(100).optional(),
+    latitude: z.number().min(-90).max(90).optional().nullable(),
+    longitude: z.number().min(-180).max(180).optional().nullable(),
+  })
+  .strict();
 
-export const propertyFavoriteSchema = z.object({
-  property_id: z.string().uuid('Invalid property ID'),
-});
+export const propertyFavoriteSchema = z
+  .object({
+    property_id: z.string().uuid('Invalid property ID'),
+  })
+  .strict();
 
 // User Settings Schemas
-export const userSettingsUpdateSchema = z.object({
-  notifications: z
-    .object({
-      email_notifications: z.boolean().optional(),
-      push_notifications: z.boolean().optional(),
-      sms_notifications: z.boolean().optional(),
-      new_jobs: z.boolean().optional(),
-      bid_updates: z.boolean().optional(),
-      messages: z.boolean().optional(),
-      marketing: z.boolean().optional(),
-    })
-    .optional(),
-  privacy: z
-    .object({
-      profile_visible: z.boolean().optional(),
-      show_phone: z.boolean().optional(),
-      show_email: z.boolean().optional(),
-      show_location: z.boolean().optional(),
-    })
-    .optional(),
-  display: z
-    .object({
-      theme: z.enum(['light', 'dark', 'system']).optional(),
-      language: z.string().max(10, 'Language code too long').optional(),
-      timezone: z.string().max(50, 'Timezone too long').optional(),
-      date_format: z.string().max(20, 'Date format too long').optional(),
-    })
-    .optional(),
-});
+export const userSettingsUpdateSchema = z
+  .object({
+    notifications: z
+      .object({
+        email_notifications: z.boolean().optional(),
+        push_notifications: z.boolean().optional(),
+        sms_notifications: z.boolean().optional(),
+        new_jobs: z.boolean().optional(),
+        bid_updates: z.boolean().optional(),
+        messages: z.boolean().optional(),
+        marketing: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    privacy: z
+      .object({
+        profile_visible: z.boolean().optional(),
+        show_phone: z.boolean().optional(),
+        show_email: z.boolean().optional(),
+        show_location: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+    display: z
+      .object({
+        theme: z.enum(['light', 'dark', 'system']).optional(),
+        language: z.string().max(10, 'Language code too long').optional(),
+        timezone: z.string().max(50, 'Timezone too long').optional(),
+        date_format: z.string().max(20, 'Date format too long').optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
 // Type exports
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

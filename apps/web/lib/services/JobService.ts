@@ -1,4 +1,7 @@
-import type { JobDetail as Job, JobSummary } from '@mintenance/types/src/contracts';
+import type {
+  JobDetail as Job,
+  JobSummary,
+} from '@mintenance/types/src/contracts';
 import { logger } from '@/lib/logger';
 
 async function api<T>(input: string, init?: RequestInit): Promise<T> {
@@ -17,7 +20,27 @@ async function api<T>(input: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-const mapSummaryToJob = (summary: JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string }): Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string } => ({
+const mapSummaryToJob = (
+  summary: JobSummary & {
+    photos?: string[];
+    location?: string;
+    budget?: number;
+    description?: string;
+    category?: string;
+    homeownerName?: string;
+    contractorName?: string;
+    archived_at?: string | null;
+  }
+): Job & {
+  photos?: string[];
+  location?: string;
+  budget?: number;
+  description?: string;
+  category?: string;
+  homeownerName?: string;
+  contractorName?: string;
+  archived_at?: string | null;
+} => ({
   id: summary.id,
   title: summary.title,
   status: summary.status,
@@ -30,24 +53,83 @@ const mapSummaryToJob = (summary: JobSummary & { photos?: string[]; location?: s
   category: summary.category,
   homeownerName: summary.homeownerName,
   contractorName: summary.contractorName,
+  archived_at: summary.archived_at ?? null,
 });
 
 export class JobService {
-  static async getAvailableJobs(): Promise<(Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[]> {
+  static async getAvailableJobs(): Promise<
+    (Job & {
+      photos?: string[];
+      location?: string;
+      budget?: number;
+      description?: string;
+      category?: string;
+      homeownerName?: string;
+      contractorName?: string;
+    })[]
+  > {
     try {
       const params = new URLSearchParams({ limit: '20', status: 'posted' });
-      const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[] }>(`/api/jobs?${params.toString()}`);
-      return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
+      const { jobs } = await api<{
+        jobs: (JobSummary & {
+          photos?: string[];
+          location?: string;
+          budget?: number;
+          description?: string;
+          category?: string;
+          homeownerName?: string;
+          contractorName?: string;
+        })[];
+      }>(`/api/jobs?${params.toString()}`);
+      return jobs.map(mapSummaryToJob) as (Job & {
+        photos?: string[];
+        location?: string;
+        budget?: number;
+        description?: string;
+        category?: string;
+        homeownerName?: string;
+        contractorName?: string;
+      })[];
     } catch (error) {
       logger.error('Job service error fetching available jobs', error);
       return [];
     }
   }
 
-  static async getJobsByHomeowner(_homeownerId: string): Promise<(Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[]> {
+  static async getJobsByHomeowner(
+    _homeownerId: string
+  ): Promise<
+    (Job & {
+      photos?: string[];
+      location?: string;
+      budget?: number;
+      description?: string;
+      category?: string;
+      homeownerName?: string;
+      contractorName?: string;
+    })[]
+  > {
     try {
-      const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[] }>(`/api/jobs?limit=50`);
-      return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
+      const { jobs } = await api<{
+        jobs: (JobSummary & {
+          photos?: string[];
+          location?: string;
+          budget?: number;
+          description?: string;
+          category?: string;
+          homeownerName?: string;
+          contractorName?: string;
+        })[];
+      }>(`/api/jobs?limit=50`);
+      return jobs.map(mapSummaryToJob) as (Job & {
+        photos?: string[];
+        location?: string;
+        budget?: number;
+        description?: string;
+        category?: string;
+        homeownerName?: string;
+        contractorName?: string;
+      })[];
     } catch (error) {
       logger.error('Job service error fetching homeowner jobs', error);
       return [];
@@ -56,7 +138,9 @@ export class JobService {
 
   static async getJobById(jobId: string): Promise<Job | null> {
     try {
-      const { job } = await api<{ job: Job }>(`/api/jobs/${encodeURIComponent(jobId)}`);
+      const { job } = await api<{ job: Job }>(
+        `/api/jobs/${encodeURIComponent(jobId)}`
+      );
       return job;
     } catch (error) {
       logger.error('Job service error', error);
@@ -79,10 +163,13 @@ export class JobService {
 
   static async updateJob(id: string, input: Partial<Job>): Promise<Job | null> {
     try {
-      const { job } = await api<{ job: Job }>(`/api/jobs/${encodeURIComponent(id)}`, {
-        method: 'PATCH',
-        body: JSON.stringify(input),
-      });
+      const { job } = await api<{ job: Job }>(
+        `/api/jobs/${encodeURIComponent(id)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(input),
+        }
+      );
       return job;
     } catch (error) {
       logger.error('Job service error', error);
@@ -96,7 +183,8 @@ export class JobService {
       {
         id: '1',
         title: 'Kitchen Faucet Repair',
-        description: 'Kitchen faucet is leaking and needs immediate attention. The drip is constant and wasting water.',
+        description:
+          'Kitchen faucet is leaking and needs immediate attention. The drip is constant and wasting water.',
         status: 'posted',
         createdAt: new Date(Date.now() - 86400000).toISOString(),
         updatedAt: new Date().toISOString(),

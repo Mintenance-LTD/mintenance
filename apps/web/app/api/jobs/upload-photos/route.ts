@@ -73,7 +73,7 @@ export const POST = withApiHandler(
       throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
     }
 
-    // IDOR fix (2026-07-10 audit): the storage path is prefixed with the
+    // IDOR fix (2026-07-06 audit #4): the storage path is prefixed with the
     // client-supplied `job_id`, and the upload uses the service-role client
     // (which bypasses RLS), so without this check any authenticated user could
     // write files into any job's storage prefix. When a job_id is supplied it
