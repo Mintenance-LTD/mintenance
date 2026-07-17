@@ -12,6 +12,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import * as Location from 'expo-location';
+import { DEFAULT_MATCH_RADIUS_KM } from '../constants';
 
 export interface JobMapItem {
   id: string;
@@ -243,7 +244,7 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
       ) {
         params.set('latitude', String(currentRegion.latitude));
         params.set('longitude', String(currentRegion.longitude));
-        params.set('radiusKm', '25');
+        params.set('radiusKm', String(DEFAULT_MATCH_RADIUS_KM));
       }
 
       // Numeric columns may arrive as strings if the server forgets to

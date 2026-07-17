@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { DEFAULT_MATCH_RADIUS_KM } from '@/lib/services/matching/constants';
 
 interface NotificationJobContext {
   id: string;
@@ -175,7 +176,8 @@ export class JobNotificationService {
         return false;
       }
       return (
-        this.calculateDistance(coordinates.lat, coordinates.lng, lat, lng) <= 25
+        this.calculateDistance(coordinates.lat, coordinates.lng, lat, lng) <=
+        DEFAULT_MATCH_RADIUS_KM
       );
     });
   }
