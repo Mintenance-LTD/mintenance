@@ -116,6 +116,14 @@ export async function handlePatch(
       throw new BadRequestError((error as Error).message);
     }
   }
+  // Archive/unarchive: orthogonal to the status lifecycle, so it
+  // deliberately bypasses validateStatusTransition — archiving a
+  // completed (or even cancelled) job must always be possible.
+  if (payload.archived !== undefined) {
+    updatePayload.archived_at = payload.archived
+      ? new Date().toISOString()
+      : null;
+  }
   if (payload.category !== undefined) {
     const trimmedCategory = payload.category.trim();
     updatePayload.category =
