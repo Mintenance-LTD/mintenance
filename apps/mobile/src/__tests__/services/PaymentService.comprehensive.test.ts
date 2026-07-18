@@ -112,7 +112,12 @@ describe('PaymentService - Comprehensive', () => {
           amount: 1000,
           paymentMethodId: 'pm_123',
           contractorId: 'contractor-1',
-        }
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
       );
     });
 

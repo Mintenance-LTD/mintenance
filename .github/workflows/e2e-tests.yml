@@ -57,6 +57,12 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # E2E auth fixture: activates the gated /api/test-auth/login endpoint
+          # (see app/api/test-auth/login/route.ts). Both are read at runtime by
+          # the webServer AND by global-setup, which inherits this env. The
+          # E2E_AUTH_SECRET GitHub secret must be created in repo settings.
+          E2E_TESTING: 'true'
+          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
 
       - name: Upload test results
         if: always()

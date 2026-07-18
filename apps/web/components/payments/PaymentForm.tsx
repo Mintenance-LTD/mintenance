@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
 import { Loader2, Lock } from 'lucide-react';
 import { logger } from '@mintenance/shared';
 import { getCsrfToken } from '@/lib/csrf-client';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+);
 
 interface PaymentFormProps {
   jobId: string;
@@ -59,7 +66,10 @@ function StripeCheckoutForm({
     });
 
     if (error) {
-      logger.error('Stripe confirmPayment error', { error: error.message, code: error.code });
+      logger.error('Stripe confirmPayment error', {
+        error: error.message,
+        code: error.code,
+      });
       onError(error.message || 'Payment failed. Please try again.');
       setProcessing(false);
       return;
@@ -78,7 +88,7 @@ function StripeCheckoutForm({
     `£${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className='space-y-5'>
       <PaymentElement
         options={{
           layout: 'tabs',
@@ -86,25 +96,25 @@ function StripeCheckoutForm({
       />
 
       {/* Actions */}
-      <div className="flex items-center gap-3 pt-2">
+      <div className='flex items-center gap-3 pt-2'>
         {onCancel && (
           <button
-            type="button"
+            type='button'
             onClick={onCancel}
             disabled={processing}
-            className="px-5 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className='px-5 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           >
             Cancel
           </button>
         )}
         <button
-          type="submit"
+          type='submit'
           disabled={processing || !stripe || !elements}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+          className='flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none'
         >
           {processing ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={16} className='animate-spin' />
               Processing payment...
             </>
           ) : (
@@ -133,6 +143,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
   const amountInPence = Math.round(defaultAmount * 100);
 
+  // Stable idempotency key for this payment attempt (one per form mount).
+  // The create-intent route reads the `Idempotency-Key` header to dedupe
+  // duplicate payment-intent creation; without a stable client key the server
+  // mints a fresh random key per request, so a StrictMode double-invoke,
+  // effect re-run, or user retry would each start a fresh attempt and could
+  // double-spend referral credit. A ref keeps the key constant across renders
+  // and retries until the component unmounts (attempt resolves).
+  const idempotencyKeyRef = useRef<string>('');
+  if (!idempotencyKeyRef.current) {
+    const uuid =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    idempotencyKeyRef.current = `create_payment_intent:${jobId}:${uuid}`;
+  }
+
   useEffect(() => {
     if (!jobId || defaultAmount <= 0) return;
 
@@ -146,6 +172,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
           headers: {
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken,
+            'Idempotency-Key': idempotencyKeyRef.current,
           },
           body: JSON.stringify({
             amount: defaultAmount,
@@ -163,12 +190,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         return res.json();
       })
       .then((data) => {
-        if (!data.clientSecret) throw new Error('No client secret returned from server');
+        if (!data.clientSecret)
+          throw new Error('No client secret returned from server');
         setClientSecret(data.clientSecret);
       })
       .catch((err) => {
-        logger.error('Failed to create PaymentIntent', { error: err.message, jobId });
-        onError(err.message || 'Failed to initialise payment. Please refresh and try again.');
+        logger.error('Failed to create PaymentIntent', {
+          error: err.message,
+          jobId,
+        });
+        onError(
+          err.message ||
+            'Failed to initialise payment. Please refresh and try again.'
+        );
       })
       .finally(() => setLoadingIntent(false));
   }, [jobId, contractorId, amountInPence]);
@@ -207,11 +241,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
   if (loadingIntent) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
-        <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center">
-          <Loader2 size={20} className="animate-spin text-teal-600" />
+      <div className='flex flex-col items-center justify-center py-12 gap-3'>
+        <div className='w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center'>
+          <Loader2 size={20} className='animate-spin text-teal-600' />
         </div>
-        <p className="text-sm text-gray-500">Preparing secure payment form...</p>
+        <p className='text-sm text-gray-500'>
+          Preparing secure payment form...
+        </p>
       </div>
     );
   }
@@ -219,10 +255,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   if (!clientSecret) return null;
 
   return (
-    <Elements
-      stripe={stripePromise}
-      options={{ clientSecret, appearance }}
-    >
+    <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
       <StripeCheckoutForm
         clientSecret={clientSecret}
         amount={defaultAmount}

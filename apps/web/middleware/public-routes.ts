@@ -77,6 +77,17 @@ const UUID_CONTRACTOR_PROFILE_RE =
 export function isPublicRoute(pathname: string): boolean {
   if (pathname === '/') return true;
 
+  // E2E-only test-auth endpoint. Whitelisted ONLY when E2E_TESTING is on, so
+  // in production the middleware treats it as a normal protected route and
+  // blocks it before the (already 404-gated) handler runs. See
+  // app/api/test-auth/login/route.ts.
+  if (
+    process.env.E2E_TESTING === 'true' &&
+    pathname === '/api/test-auth/login'
+  ) {
+    return true;
+  }
+
   // Well-known association files (Apple Universal Links + Android App Links)
   // MUST be fetchable with no auth — Apple/Google crawlers send no cookies.
   // The middleware matcher runs on these paths, so without this whitelist they
