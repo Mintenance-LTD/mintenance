@@ -44,9 +44,6 @@ import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../utils/mapAvailability';
 
-// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
-const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
-
 // 2026-05-27 audit-77 P2: empty-state pill that floats above the
 // carousel zone when there are zero discoverable jobs in the
 // current radius. Live data shows 4 posted/unassigned jobs total
@@ -134,7 +131,7 @@ const emptyStateStyles = StyleSheet.create({
 // into the shared explore-map sheet.
 const verificationBlockedStyles = StyleSheet.create({
   wrapper: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',

@@ -135,7 +135,7 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ onFinish }) => {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',

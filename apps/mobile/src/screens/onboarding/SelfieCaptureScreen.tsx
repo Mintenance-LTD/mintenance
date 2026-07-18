@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   ovalOverlay: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
