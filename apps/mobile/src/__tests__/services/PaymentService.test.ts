@@ -91,11 +91,20 @@ describe('PaymentService', () => {
       });
 
       // Server takes GBP units — the client does NOT multiply by 100.
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 150,
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
-      });
+      // A stable idempotency key is attached in the request headers.
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          amount: 150,
+          jobId: 'job-1',
+          contractorId: 'contractor-1',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
       expect(result.client_secret).toBe('pi_test_secret');
     });
 
@@ -145,11 +154,19 @@ describe('PaymentService', () => {
       });
 
       expect(result.client_secret).toBe('pi_secret_test');
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 99.99,
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
-      });
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          amount: 99.99,
+          jobId: 'job-1',
+          contractorId: 'contractor-1',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
     });
 
     it('rejects negative amounts', async () => {
@@ -389,12 +406,10 @@ describe('PaymentService', () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        order: jest
-          .fn()
-          .mockResolvedValue({
-            data: null,
-            error: { message: 'Database error' },
-          }),
+        order: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
+        }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);
 

@@ -43,6 +43,26 @@ function isTransientError(error: Error): boolean {
   );
 }
 
+/**
+ * Build a stable idempotency key for a single payment attempt.
+ *
+ * The server's create-intent route reads the `Idempotency-Key` header
+ * (getIdempotencyKeyFromRequest) to dedupe duplicate payment-intent creation
+ * — without it, the server mints a fresh random key per request and the
+ * internal dedup (which guards against double-spending referral credit) never
+ * fires. Generate ONE key per attempt and reuse it across every network retry
+ * so a double-tap / transient-error retry resolves to the same escrow record.
+ *
+ * A cryptographically-strong UUID isn't required here (this only needs to be
+ * unique per attempt and stable across its retries), so we avoid pulling in a
+ * uuid dependency and derive one from the job id + time + entropy. Hermes has
+ * no `crypto.randomUUID`.
+ */
+function makeIdempotencyKey(jobId: string): string {
+  const entropy = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+  return `create_payment_intent:${jobId}:${entropy}`;
+}
+
 export class PaymentIntentService {
   static async initializePayment({
     amount,
@@ -61,10 +81,14 @@ export class PaymentIntentService {
     }
 
     try {
+      // One key for the whole attempt — reused across every withRetry pass so
+      // a retried create-intent dedupes to the same escrow record server-side.
+      const idempotencyKey = makeIdempotencyKey(jobId);
       const data = await withRetry(() =>
         apiRequest<{ clientSecret: string }>('/api/payments/create-intent', {
           method: 'POST',
           body: { amount, jobId, contractorId },
+          headers: { 'Idempotency-Key': idempotencyKey },
         })
       );
       return { client_secret: data.clientSecret };
@@ -121,6 +145,7 @@ export class PaymentIntentService {
       }>('/api/payments/create-intent', {
         method: 'POST',
         body: { jobId, amount, paymentMethodId, contractorId },
+        headers: { 'Idempotency-Key': makeIdempotencyKey(jobId) },
       });
 
       return {

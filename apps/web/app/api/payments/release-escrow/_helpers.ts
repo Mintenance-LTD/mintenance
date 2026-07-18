@@ -215,7 +215,14 @@ export async function createFeeTransferRecord(
 export async function notifyAndEmailContractor(
   job: JobRef,
   escrowTransactionId: string,
-  amount: number
+  // `amount` is escrow_transactions.amount, which is stored in POUNDS (major
+  // units) — see create-intent/embedded-checkout, which insert the
+  // server-authoritative bid amount unscaled while sending Stripe `* 100`.
+  // FeeCalculationService, notifyPaymentEvent, and paymentReleasedTemplate all
+  // format it as pounds directly. It must NOT be divided by 100 here: a prior
+  // `amount / 100 // Convert from cents` mislabelled it as minor units and
+  // rendered a £500 payout as "£5.00" in every release notification + email.
+  amountPounds: number
 ): Promise<void> {
   // In-app notification
   try {
@@ -225,7 +232,7 @@ export async function notifyAndEmailContractor(
       userId: job.contractor_id,
       jobId: job.id,
       jobTitle: job.title,
-      amount: amount / 100, // Convert from cents
+      amount: amountPounds,
       eventType: 'released',
       transactionId: escrowTransactionId,
     });
@@ -253,7 +260,7 @@ export async function notifyAndEmailContractor(
       await EmailService.sendPaymentReleasedEmail(contractorProfile.email, {
         contractorName: contractorProfile.full_name ?? 'Contractor',
         jobTitle: job.title,
-        amount: amount / 100,
+        amount: amountPounds,
         transactionId: escrowTransactionId,
         viewUrl: `${process.env.NEXT_PUBLIC_APP_URL}/contractor/jobs/${job.id}`,
       });

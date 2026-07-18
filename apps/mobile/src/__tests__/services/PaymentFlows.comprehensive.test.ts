@@ -94,11 +94,19 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       });
 
       expect(initResult.client_secret).toBe(clientSecret);
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 250,
-        jobId,
-        contractorId,
-      });
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          amount: 250,
+          jobId,
+          contractorId,
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
 
       // Step 2: Create payment method (Stripe SDK directly).
       (stripeCreatePaymentMethod as jest.Mock).mockResolvedValueOnce({
@@ -428,7 +436,12 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
             amount: input,
             jobId: 'job-1',
             contractorId: 'contractor-1',
-          }
+          },
+          expect.objectContaining({
+            headers: expect.objectContaining({
+              'Idempotency-Key': expect.any(String),
+            }),
+          })
         );
       }
     });

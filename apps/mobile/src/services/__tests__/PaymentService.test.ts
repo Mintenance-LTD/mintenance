@@ -114,12 +114,21 @@ describe('PaymentService', () => {
         contractorId: 'contractor-123',
       });
 
-      // No cents conversion — server takes GBP units.
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 100,
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
-      });
+      // No cents conversion — server takes GBP units. A stable idempotency
+      // key rides along in the headers (see makeIdempotencyKey).
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          amount: 100,
+          jobId: 'job-123',
+          contractorId: 'contractor-123',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
       expect(result).toEqual({ client_secret: 'pi_test_secret' });
     });
 
@@ -181,11 +190,51 @@ describe('PaymentService', () => {
         contractorId: 'contractor-123',
       });
 
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 99.99,
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          amount: 99.99,
+          jobId: 'job-123',
+          contractorId: 'contractor-123',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
+    });
+
+    it('sends an Idempotency-Key that is stable across a retry', async () => {
+      // First attempt fails transiently → withRetry re-invokes; the SAME
+      // idempotency key must ride both requests so the server dedupes them
+      // into one payment intent / escrow record instead of two.
+      mockApi.post
+        .mockRejectedValueOnce(new Error('network timeout'))
+        .mockResolvedValueOnce({ clientSecret: 'pi_test_secret' });
+
+      await PaymentService.initializePayment({
+        amount: 100,
         jobId: 'job-123',
         contractorId: 'contractor-123',
       });
+
+      expect(mockApi.post).toHaveBeenCalledTimes(2);
+
+      const firstKey = (
+        mockApi.post.mock.calls[0][2] as {
+          headers?: Record<string, string>;
+        }
+      )?.headers?.['Idempotency-Key'];
+      const secondKey = (
+        mockApi.post.mock.calls[1][2] as {
+          headers?: Record<string, string>;
+        }
+      )?.headers?.['Idempotency-Key'];
+
+      expect(firstKey).toBeTruthy();
+      expect(firstKey).toContain('job-123');
+      expect(secondKey).toBe(firstKey);
     });
   });
 
@@ -992,11 +1041,19 @@ describe('PaymentService', () => {
         contractorId: 'contractor-123',
       });
 
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 0.01,
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
-      });
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          amount: 0.01,
+          jobId: 'job-123',
+          contractorId: 'contractor-123',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
     });
 
     it('should sanitize error messages before logging', async () => {
