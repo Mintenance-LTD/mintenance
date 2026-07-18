@@ -35,6 +35,7 @@ import { JobPricingCard } from './components/JobPricingCard';
 import { JobTitleSection } from './components/JobTitleSection';
 import { JobDetailsList } from './components/JobDetailsList';
 import { JobBidsList, type BidListItem } from './components/JobBidsList';
+import { RecommendedContractorsSection } from './components/RecommendedContractorsSection';
 import { JobQuickActions } from './components/JobQuickActions';
 import { LogExpenseRow } from './components/LogExpenseRow';
 import { WithdrawBidButton } from './components/WithdrawBidButton';
@@ -439,6 +440,17 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <>
             <View style={styles.divider} />
             <JobBidsList bids={bidsArray} />
+          </>
+        )}
+
+        {/* Recommended contractors (Phase 3, 2026-07-17): additive,
+            homeowner-only ranked surface while the job is open for
+            bids. The API is homeowner-gated; bid list + homeowner
+            choice unchanged. */}
+        {isOwner && job.status === 'posted' && !job.contractor_id && job.id && (
+          <>
+            <View style={styles.divider} />
+            <RecommendedContractorsSection jobId={job.id} />
           </>
         )}
 

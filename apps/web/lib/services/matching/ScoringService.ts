@@ -1,6 +1,54 @@
 import type { ContractorProfile } from '@mintenance/types';
 import type { ContractorSubscriptionTier } from '@/lib/feature-access-types';
-import type { MatchingCriteria, MatchingScore } from './types';
+import type {
+  ContractorEngagementStats,
+  MatchingCriteria,
+  MatchingScore,
+} from './types';
+
+/**
+ * Weight table (must sum to 1.00 before the flat tier boosts):
+ *
+ *   skillMatch           0.30
+ *   locationScore        0.20
+ *   ratingScore          0.15
+ *   budgetAlignment      0.10  (was 0.15 — homeowner budgets stopped
+ *                               being collected 2026-05-22, so the
+ *                               signal is mostly neutral; freed weight
+ *                               funds the fairness term)
+ *   availabilityMatch    0.10
+ *   experienceScore      0.05
+ *   fairness             0.05  (FAIRNESS_WEIGHT — see below)
+ *   responsiveness       0.03
+ *   priceCompetitiveness 0.02
+ *   ------------------------- = 1.00
+ *   + homeownerTierBoost   (+5 flat, landlord/agency)
+ *   + contractorTierBoost  (+5 Pro / +10 Business — featured placement)
+ */
+const SKILL_WEIGHT = 0.3;
+const LOCATION_WEIGHT = 0.2;
+const RATING_WEIGHT = 0.15;
+const BUDGET_WEIGHT = 0.1;
+const AVAILABILITY_WEIGHT = 0.1;
+const EXPERIENCE_WEIGHT = 0.05;
+/**
+ * Uber-style work-distribution term (2026-07-17 Phase 3): boost
+ * contractors with fewer recent wins and longer idle time so new/quiet
+ * contractors surface instead of the same winners compounding. Derived
+ * from `bids` history via EngagementStatsService.
+ */
+const FAIRNESS_WEIGHT = 0.05;
+const RESPONSIVENESS_WEIGHT = 0.03;
+const PRICE_WEIGHT = 0.02;
+
+/** Each recent win costs this much of the 0-100 wins component. */
+const FAIRNESS_WIN_PENALTY = 25;
+/** Idle days to reach the full 0-100 idle component. */
+const FAIRNESS_FULL_IDLE_DAYS = 30;
+/** Fairness when no engagement stats are available — strictly neutral. */
+const FAIRNESS_NEUTRAL = 50;
+/** Responsiveness when the contractor has no bid history yet. */
+const RESPONSIVENESS_NEUTRAL = 65;
 
 /**
  * Featured-listing weights by contractor tier (Sprint 3, 2026-05-22).
@@ -31,7 +79,8 @@ export class ScoringService {
   static async calculateMatchScore(
     contractor: ContractorProfile,
     criteria: MatchingCriteria,
-    contractorTier?: ContractorSubscriptionTier
+    contractorTier?: ContractorSubscriptionTier,
+    stats?: ContractorEngagementStats
   ): Promise<MatchingScore> {
     // Skill matching (30% weight)
     const contractorSkills = contractor.skills.map((s) =>
@@ -48,7 +97,7 @@ export class ScoringService {
       ? Math.max(0, 100 - (contractor.distance || 0) * 2)
       : 50;
 
-    // Budget alignment (15% weight)
+    // Budget alignment (10% weight — see weight table)
     const contractorRate = contractor.hourlyRate || 75;
     const budgetMidpoint = (criteria.budget.min + criteria.budget.max) / 2;
     const budgetAlignment = Math.max(
@@ -76,8 +125,16 @@ export class ScoringService {
       (contractor.yearsExperience || 1) * 10
     );
 
-    // Responsiveness (3% weight) - Mock score based on reviews
-    const responsiveness = contractor.reviews.length > 5 ? 85 : 70;
+    // Responsiveness — real bid-response metric (Phase 3, 2026-07-17):
+    // mean hours between a job posting and this contractor's bid,
+    // banded to 0-100. Replaces the old review-count mock. Contractors
+    // with no bid history score neutral.
+    const responsiveness = this.scoreResponsiveness(
+      stats?.avgBidResponseHours ?? null
+    );
+
+    // Fairness — see FAIRNESS_WEIGHT docblock.
+    const fairness = this.scoreFairness(stats);
 
     // Price competitiveness (2% weight)
     const marketRate = 75; // Mock market average
@@ -100,17 +157,18 @@ export class ScoringService {
       ? (CONTRACTOR_TIER_FEATURED_BOOST[contractorTier] ?? 0)
       : 0;
 
-    // Calculate weighted overall score
+    // Calculate weighted overall score (weights documented above)
     const overallScore = Math.min(
       100,
-      skillMatch * 0.3 +
-        locationScore * 0.2 +
-        budgetAlignment * 0.15 +
-        ratingScore * 0.15 +
-        availabilityScore * 0.1 +
-        experienceScore * 0.05 +
-        responsiveness * 0.03 +
-        priceCompetitiveness * 0.02 +
+      skillMatch * SKILL_WEIGHT +
+        locationScore * LOCATION_WEIGHT +
+        budgetAlignment * BUDGET_WEIGHT +
+        ratingScore * RATING_WEIGHT +
+        availabilityScore * AVAILABILITY_WEIGHT +
+        experienceScore * EXPERIENCE_WEIGHT +
+        responsiveness * RESPONSIVENESS_WEIGHT +
+        priceCompetitiveness * PRICE_WEIGHT +
+        fairness * FAIRNESS_WEIGHT +
         homeownerTierBoost +
         contractorTierBoost
     );
@@ -124,8 +182,47 @@ export class ScoringService {
       experienceScore: Math.round(experienceScore),
       responsiveness: Math.round(responsiveness),
       priceCompetitiveness: Math.round(priceCompetitiveness),
+      fairness: Math.round(fairness),
       overallScore: Math.round(overallScore),
     };
+  }
+
+  /**
+   * Band mean bid-response hours to 0-100. Null (no bid history) is
+   * neutral so new contractors are neither boosted nor buried.
+   */
+  private static scoreResponsiveness(avgHours: number | null): number {
+    if (avgHours === null) return RESPONSIVENESS_NEUTRAL;
+    if (avgHours <= 1) return 100;
+    if (avgHours <= 4) return 90;
+    if (avgHours <= 12) return 80;
+    if (avgHours <= 24) return 65;
+    if (avgHours <= 48) return 45;
+    return 30;
+  }
+
+  /**
+   * Fairness (work distribution): mean of
+   *  - wins component: 100 minus FAIRNESS_WIN_PENALTY per accepted bid
+   *    in the recency window (floor 0), and
+   *  - idle component: linear 0→100 over FAIRNESS_FULL_IDLE_DAYS since
+   *    the last accepted bid (never-won = 100).
+   * No stats at all → FAIRNESS_NEUTRAL.
+   */
+  private static scoreFairness(stats?: ContractorEngagementStats): number {
+    if (!stats) return FAIRNESS_NEUTRAL;
+    const winsComponent = Math.max(
+      0,
+      100 - stats.recentWins * FAIRNESS_WIN_PENALTY
+    );
+    const idleComponent =
+      stats.daysSinceLastWin === null
+        ? 100
+        : Math.min(
+            100,
+            (stats.daysSinceLastWin * 100) / FAIRNESS_FULL_IDLE_DAYS
+          );
+    return (winsComponent + idleComponent) / 2;
   }
 
   /**

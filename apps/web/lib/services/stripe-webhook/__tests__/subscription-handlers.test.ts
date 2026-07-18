@@ -145,6 +145,115 @@ describe('handleSubscriptionUpdated', () => {
     );
   });
 
+  // The webhook endpoint's dashboard-pinned api_version decides which
+  // shape arrives: subscription.current_period_* at the top level
+  // (pre-2025-03-31.basil) or per-item periods on subscription.items
+  // (basil and later). Both must produce renewal dates — a null here
+  // wipes the stored billing period.
+  const PERIOD_START = 1750000000;
+  const PERIOD_END = 1752592000;
+
+  it('writes period dates from legacy top-level current_period_* (pre-basil payloads)', async () => {
+    const chain = buildChain({
+      singleData: { id: USER_ID, role: 'contractor' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleSubscriptionUpdated(
+      makeSub({
+        current_period_start: PERIOD_START,
+        current_period_end: PERIOD_END,
+      } as unknown as Partial<Stripe.Subscription>),
+      mockNotify
+    );
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current_period_start: new Date(PERIOD_START * 1000).toISOString(),
+        current_period_end: new Date(PERIOD_END * 1000).toISOString(),
+      })
+    );
+  });
+
+  it('derives period dates from subscription items (basil+ payloads)', async () => {
+    const chain = buildChain({
+      singleData: { id: USER_ID, role: 'contractor' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleSubscriptionUpdated(
+      makeSub({
+        items: {
+          data: [
+            {
+              price: { id: 'price_test', metadata: {} },
+              current_period_start: PERIOD_START,
+              current_period_end: PERIOD_END,
+            },
+          ],
+        },
+      } as unknown as Partial<Stripe.Subscription>),
+      mockNotify
+    );
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current_period_start: new Date(PERIOD_START * 1000).toISOString(),
+        current_period_end: new Date(PERIOD_END * 1000).toISOString(),
+      })
+    );
+  });
+
+  it('spans the widest period across multiple subscription items (basil+ payloads)', async () => {
+    const chain = buildChain({
+      singleData: { id: USER_ID, role: 'homeowner' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleSubscriptionUpdated(
+      makeSub({
+        items: {
+          data: [
+            {
+              price: { id: 'price_a', metadata: {} },
+              current_period_start: PERIOD_START + 1000,
+              current_period_end: PERIOD_END - 1000,
+            },
+            {
+              price: { id: 'price_b', metadata: {} },
+              current_period_start: PERIOD_START,
+              current_period_end: PERIOD_END,
+            },
+          ],
+        },
+      } as unknown as Partial<Stripe.Subscription>),
+      mockNotify
+    );
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current_period_start: new Date(PERIOD_START * 1000).toISOString(),
+        current_period_end: new Date(PERIOD_END * 1000).toISOString(),
+      })
+    );
+  });
+
+  it('writes null period dates when neither payload shape carries them', async () => {
+    const chain = buildChain({
+      singleData: { id: USER_ID, role: 'contractor' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleSubscriptionUpdated(makeSub(), mockNotify);
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current_period_start: null,
+        current_period_end: null,
+      })
+    );
+  });
+
   it('maps trialing to trial and does not write an unknown plan_type from metadata', async () => {
     const chain = buildChain({
       singleData: { id: USER_ID, role: 'contractor' },

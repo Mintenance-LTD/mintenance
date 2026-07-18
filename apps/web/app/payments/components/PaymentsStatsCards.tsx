@@ -15,7 +15,7 @@ interface PaymentsStatsCardsProps {
 /**
  * Payments KPI tiles. Under Mint Editorial we render the canonical
  * `.kpi` pattern from the design system (small sans label + big
- * Instrument Serif number + ghost subline, no colored accent bars).
+ * Inter number + ghost subline, no colored accent bars).
  * Legacy theme keeps the colored left-border + gradient-icon design.
  *
  * Reference: redesign-v2/components.css `.kpi` and the dashboard

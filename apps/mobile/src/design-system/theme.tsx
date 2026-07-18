@@ -4,17 +4,9 @@
 // ============================================================================
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Appearance, ColorSchemeName, ViewStyle } from 'react-native';
+import { Appearance, ViewStyle } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  colors,
-  typography,
-  spacing,
-  borderRadius,
-  shadows,
-  semanticColors,
-  componentSizes,
-} from './tokens';
+import { colors } from './tokens';
 import { logger } from '../utils/logger';
 import { setDarkModeEnabled } from '../theme/darkModeState';
 
@@ -299,6 +291,12 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const THEME_STORAGE_KEY = '@mintenance_theme_mode';
 
+// RN 0.85 widened ColorSchemeName to include 'unspecified'; the app theme
+// is strictly light/dark, so anything that isn't 'dark' renders light.
+const normalizeColorScheme = (
+  scheme: ColorSchemeName | null | undefined
+): ColorScheme => (scheme === 'dark' ? 'dark' : 'light');
+
 // ============================================================================
 // THEME PROVIDER
 // ============================================================================
@@ -307,8 +305,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  // ColorSchemeName also admits 'unspecified' (and null) — anything that
+  // isn't explicitly dark renders the light theme.
   const [systemColorScheme, setSystemColorScheme] = useState<ColorScheme>(
-    Appearance.getColorScheme() || 'light'
+    Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'
   );
 
   // Calculate actual color scheme based on mode
@@ -338,7 +338,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Listen to system appearance changes
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSystemColorScheme(colorScheme || 'light');
+      setSystemColorScheme(colorScheme === 'dark' ? 'dark' : 'light');
     });
     return () => subscription?.remove();
   }, []);
@@ -405,12 +405,6 @@ export const getThemeColor = (theme: Theme, colorPath: string): string => {
   }
 
   return current as string;
-};
-
-const createThemedStyles = <T extends Record<string, unknown>>(
-  styleCreator: (theme: Theme) => T
-) => {
-  return (theme: Theme) => styleCreator(theme);
 };
 
 // Export themes for direct access if needed

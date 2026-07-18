@@ -20,7 +20,7 @@ export const GET = withApiHandler(
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
       .select(
-        'id, title, description, category, location, budget, homeowner_id, status, priority'
+        'id, title, description, category, location, latitude, longitude, budget, homeowner_id, status, priority'
       )
       .eq('id', jobId)
       .single();
@@ -34,9 +34,22 @@ export const GET = withApiHandler(
       throw new ForbiddenError('Not authorized to view matches for this job');
     }
 
-    // Geocode job location to get coordinates
+    // 2026-07-17 Phase 3: jobs carry authoritative latitude/longitude
+    // (resolved at creation, synced to the PostGIS location_point) —
+    // use them directly and only geocode the free-text location when
+    // coords are missing (legacy rows).
     let jobCoords = { latitude: 0, longitude: 0 };
-    if (job.location) {
+    const storedLat =
+      typeof job.latitude === 'number' ? job.latitude : Number(job.latitude);
+    const storedLng =
+      typeof job.longitude === 'number' ? job.longitude : Number(job.longitude);
+    if (
+      Number.isFinite(storedLat) &&
+      Number.isFinite(storedLng) &&
+      (storedLat !== 0 || storedLng !== 0)
+    ) {
+      jobCoords = { latitude: storedLat, longitude: storedLng };
+    } else if (job.location) {
       try {
         const geocodeResponse = await fetch(
           `${request.nextUrl.origin}/api/geocode?address=${encodeURIComponent(job.location)}`

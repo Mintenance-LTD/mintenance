@@ -18,11 +18,16 @@
  *   latitude   — optional, current map center lat (-90..90)
  *   longitude  — optional, current map center lng (-180..180)
  *   radiusKm   — optional, max distance from (lat, lng) in km. Default
- *                25. Only applied when both lat AND lng are present.
- *                Audit follow-up (2026-04-29): added so the mobile
- *                explore-map's "Search this area" button actually
- *                filters by the visible map area instead of returning
- *                the newest 50 jobs anywhere.
+ *                DEFAULT_MATCH_RADIUS_KM (25). Only applied when both
+ *                lat AND lng are present. Audit follow-up (2026-04-29):
+ *                added so the mobile explore-map's "Search this area"
+ *                button actually filters by the visible map area
+ *                instead of returning the newest 50 jobs anywhere.
+ *
+ * 2026-07-17 PostGIS cutover: the radius filter now runs in SQL via the
+ * GIST-indexed `find_jobs_near_point` RPC; the JS Haversine path in
+ * helpers.ts remains only as graceful degradation until the migration
+ * applies at deploy time.
  *
  * Auth: contractors + admin only. 2026-05-26 audit-58 P1: previously
  * any authenticated user could call this — homeowners and tenants
@@ -40,6 +45,8 @@ import { JOB_CATEGORIES } from '@mintenance/api-contracts';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
+import { DEFAULT_MATCH_RADIUS_KM } from '@/lib/services/matching/constants';
+import { fetchGeoJobs, haversineKm, toNum, type JobRow } from './helpers';
 
 // Constrain `category` to the canonical enum so the downstream
 // PostgREST filter is an exact match instead of an `.ilike()` against
@@ -50,51 +57,13 @@ const queryParamsSchema = z
     limit: z.coerce.number().int().min(1).max(100).default(50),
     latitude: z.coerce.number().min(-90).max(90).optional(),
     longitude: z.coerce.number().min(-180).max(180).optional(),
-    radiusKm: z.coerce.number().positive().max(500).default(25),
+    radiusKm: z.coerce
+      .number()
+      .positive()
+      .max(500)
+      .default(DEFAULT_MATCH_RADIUS_KM),
   })
   .strict();
-
-/**
- * Haversine distance between two (lat, lng) points in kilometres.
- * Same formula the mobile `explore-map` viewmodel uses client-side,
- * promoted here so the route can pre-filter the result set instead
- * of shipping all-jobs-anywhere down the wire.
- */
-function haversineKm(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
-  const R = 6371; // Earth radius in km
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-interface JobRow {
-  id: string;
-  title: string | null;
-  category: string | null;
-  urgency: string | null;
-  budget: number | string | null;
-  budget_min: number | null;
-  budget_max: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  created_at: string | null;
-  // Supabase types FK joins as an array even on many-to-one
-  // relationships, so accept both shapes and normalise below.
-  homeowner:
-    | { first_name: string | null }
-    | Array<{ first_name: string | null }>
-    | null;
-}
 
 export const GET = withApiHandler(
   {
@@ -175,6 +144,26 @@ export const GET = withApiHandler(
       }
     }
 
+    const hasGeoFilter =
+      typeof latitude === 'number' && typeof longitude === 'number';
+
+    // PostGIS-first: resolve the in-radius set via the GIST index.
+    // `null` means the RPC isn't deployed yet → JS Haversine fallback.
+    // distanceById carries km-from-search-center into the response.
+    let geoJobIds: string[] | null = null;
+    const distanceById = new Map<string, number | null>();
+    if (hasGeoFilter) {
+      const geoJobs = await fetchGeoJobs(latitude, longitude, radiusKm);
+      if (geoJobs !== null) {
+        if (geoJobs.length === 0) {
+          return NextResponse.json({ jobs: [] });
+        }
+        geoJobIds = geoJobs.map((g) => g.jobId);
+        for (const g of geoJobs) distanceById.set(g.jobId, g.distanceKm);
+      }
+    }
+    const usePostgis = geoJobIds !== null;
+
     let query = serverSupabase
       .from('jobs')
       .select(
@@ -199,15 +188,15 @@ export const GET = withApiHandler(
         `(${excludedJobIds.map((id) => `"${id}"`).join(',')})`
       );
     }
+    if (usePostgis && geoJobIds) {
+      query = query.in('id', geoJobIds);
+    }
 
-    // When the caller passes a map center, fetch a wider candidate
-    // pool than `limit` so we have rows left after the radius filter
-    // trims out the ones outside the visible area. A 5x multiplier
-    // keeps the SQL roundtrip bounded while giving the post-filter
-    // enough headroom for sparse-job regions.
-    const hasGeoFilter =
-      typeof latitude === 'number' && typeof longitude === 'number';
-    const fetchLimit = hasGeoFilter ? Math.min(limit * 5, 500) : limit;
+    // Fallback path only: fetch a wider candidate pool than `limit` so
+    // rows remain after the JS radius filter trims the ones outside the
+    // visible area. With PostGIS the id set is already radius-exact.
+    const fetchLimit =
+      hasGeoFilter && !usePostgis ? Math.min(limit * 5, 500) : limit;
     query = query.order('created_at', { ascending: false }).limit(fetchLimit);
 
     const { data, error } = await query;
@@ -237,41 +226,20 @@ export const GET = withApiHandler(
 
     let rows = (data ?? []) as JobRow[];
 
-    // Postgres NUMERIC columns are serialised by supabase-js as strings
-    // to preserve arbitrary precision. The mobile map and the haversine
-    // filter below both need real JS numbers, so coerce here. Returning
-    // `null` for anything that doesn't parse keeps downstream
-    // `typeof === 'number'` checks honest.
-    //
-    // 2026-05-22 Find-Jobs-crash audit: before this coercion, the route
-    // returned lat/lng as strings, which made the haversine filter
-    // below reject every row (`typeof "51.9" !== 'number'`) so the
-    // contractor map showed zero pins; and any pin that did render
-    // passed strings to native `react-native-maps` Markers, which
-    // crashed the Find Jobs tab on Android.
-    const toNum = (v: unknown): number | null => {
-      if (v == null) return null;
-      const n = typeof v === 'number' ? v : Number(v);
-      return Number.isFinite(n) ? n : null;
-    };
-
-    // Apply Haversine radius filter when both coords are supplied.
-    // Done in JS because the live DB doesn't have PostGIS in
-    // public schema yet (the `extension_in_public` advisor blocked
-    // moving postgis there). For the typical 50-row candidate pool
-    // this is sub-millisecond — switch to a PostGIS `<-> ` operator
-    // once the schema move lands.
-    if (
-      hasGeoFilter &&
-      typeof latitude === 'number' &&
-      typeof longitude === 'number'
-    ) {
+    // JS Haversine radius filter — fallback path only (see helpers.ts).
+    // Stash the computed distance so the response carries it in this
+    // path too.
+    if (hasGeoFilter && !usePostgis) {
       rows = rows.filter((row) => {
         const rowLat = toNum(row.latitude);
         const rowLng = toNum(row.longitude);
         if (rowLat === null || rowLng === null) return false;
         const distance = haversineKm(latitude, longitude, rowLat, rowLng);
-        return distance <= radiusKm;
+        if (distance <= radiusKm) {
+          distanceById.set(row.id, distance);
+          return true;
+        }
+        return false;
       });
       // Re-apply the caller's `limit` on the post-filter set.
       rows = rows.slice(0, limit);
@@ -293,6 +261,11 @@ export const GET = withApiHandler(
         longitude: toNum(row.longitude),
         created_at: row.created_at,
         homeowner_first_name: firstName,
+        // 2026-07-17: km from the SEARCH CENTER (map origin), null when
+        // no geo filter was applied. Additive — clients that show
+        // distance-from-me (mobile pans away from the user) should keep
+        // their own reference-point math.
+        distance_km: distanceById.get(row.id) ?? null,
       };
     });
 

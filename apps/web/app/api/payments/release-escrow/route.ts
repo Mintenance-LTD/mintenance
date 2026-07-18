@@ -231,23 +231,6 @@ export const POST = withApiHandler(
         }
       }
 
-      // Calculate auto-release date if not set (best-effort, non-blocking)
-      if (
-        releaseReason === 'job_completed' &&
-        job.status === JOB_STATUS.COMPLETED
-      ) {
-        await EscrowReleaseAgent.calculateAutoReleaseDate(
-          escrowTransactionId,
-          job.id,
-          job.contractor_id
-        ).catch((error) => {
-          logger.error('Failed to calculate auto-release date', error, {
-            service: 'payments',
-            escrowTransactionId,
-          });
-        });
-      }
-
       // Get contractor's Stripe Connect account.
       //
       // 2026-05-25 audit-46 P0: previously selected only
@@ -325,10 +308,17 @@ export const POST = withApiHandler(
       );
 
       // FIX CRIT-3: DB update FIRST (mark as release_pending), THEN Stripe transfer.
-      const originalUpdatedAt = escrowTransaction.updated_at;
       const reconciliationId = crypto.randomUUID();
 
-      // Step 1: Mark escrow as release_pending
+      // Step 1: Mark escrow as release_pending.
+      // 2026-07-17: CAS on status='held', not updated_at. The route's own
+      // pre-CAS helpers (evaluateAutoRelease auto-approval path, and
+      // previously calculateAutoReleaseDate) write metadata to this row and
+      // bump updated_at, so an updated_at guard deterministically 409'd its
+      // own request. status='held' is the actual invariant release requires,
+      // matches the cron's claim predicate (EscrowAutoReleaseService), and
+      // still guarantees exactly one claimant wins against any concurrent
+      // release/refund/dispute/hold, all of which change status.
       const { data: pendingEscrow, error: pendingError } = await serverSupabase
         .from('escrow_transactions')
         .update({
@@ -339,7 +329,7 @@ export const POST = withApiHandler(
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrowTransactionId)
-        .eq('updated_at', originalUpdatedAt)
+        .eq('status', ESCROW_STATUS.HELD)
         .select()
         .single();
 

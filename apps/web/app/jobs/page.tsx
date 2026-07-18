@@ -24,7 +24,8 @@ type FilterStatus =
   | 'in_progress'
   | 'completed'
   | 'draft'
-  | 'awaiting_action';
+  | 'awaiting_action'
+  | 'archived';
 
 interface RawJobData {
   id: string;
@@ -45,6 +46,7 @@ interface RawJobData {
   priority?: string;
   photos?: string[];
   view_count?: number;
+  archived_at?: string | null;
 }
 
 interface NextAction {
@@ -67,6 +69,7 @@ interface ProcessedJob {
   priority?: string;
   photos: string[];
   view_count?: number;
+  archived_at: string | null;
   nextAction?: NextAction;
 }
 
@@ -154,6 +157,7 @@ function JobsPageContent() {
           priority: j.priority ?? undefined,
           photos: j.photos ?? [],
           view_count: j.view_count,
+          archived_at: j.archived_at ?? null,
           nextAction: getNextAction(j.status ?? 'posted'),
         })
       );
@@ -162,9 +166,21 @@ function JobsPageContent() {
     staleTime: 60 * 1000,
   });
 
+  // Archived jobs (jobs.archived_at set) only appear under the
+  // dedicated Archived tab; every other view, count, and filter
+  // operates on the non-archived set.
+  const visibleJobs = useMemo(
+    () => allJobs.filter((j) => !j.archived_at),
+    [allJobs]
+  );
+  const archivedJobs = useMemo(
+    () => allJobs.filter((j) => j.archived_at),
+    [allJobs]
+  );
+
   const filteredJobs = useMemo(() => {
-    let data = allJobs;
-    if (activeTab !== 'all') {
+    let data = activeTab === 'archived' ? archivedJobs : visibleJobs;
+    if (activeTab !== 'all' && activeTab !== 'archived') {
       if (activeTab === 'awaiting_action') {
         // Show jobs that need homeowner action: completed (needs review) or assigned (contract/payment)
         data = data.filter(
@@ -237,7 +253,7 @@ function JobsPageContent() {
           return 0;
       }
     });
-  }, [allJobs, filters, activeTab, sortBy, searchQuery]);
+  }, [visibleJobs, archivedJobs, filters, activeTab, sortBy, searchQuery]);
 
   useEffect(() => {
     if (user && user.role === 'contractor') {
@@ -292,7 +308,7 @@ function JobsPageContent() {
   if (isMintEditorial) {
     return (
       <HomeownerPageWrapper>
-        <MintEditorialJobsList jobs={allJobs} />
+        <MintEditorialJobsList jobs={visibleJobs} />
       </HomeownerPageWrapper>
     );
   }
@@ -300,15 +316,17 @@ function JobsPageContent() {
   return (
     <HomeownerPageWrapper>
       <JobsHeroHeader
-        allJobsCount={allJobs.length}
+        allJobsCount={visibleJobs.length}
         activeJobsCount={
-          allJobs.filter(
+          visibleJobs.filter(
             (j) => j.status === 'in_progress' || j.status === 'assigned'
           ).length
         }
-        postedJobsCount={allJobs.filter((j) => j.status === 'posted').length}
+        postedJobsCount={
+          visibleJobs.filter((j) => j.status === 'posted').length
+        }
         completedJobsCount={
-          allJobs.filter((j) => j.status === 'completed').length
+          visibleJobs.filter((j) => j.status === 'completed').length
         }
         prefersReducedMotion={prefersReducedMotion}
       />
@@ -316,7 +334,7 @@ function JobsPageContent() {
       <div className='w-full space-y-4'>
         {/* Toolbar + Search */}
         <JobsToolbar
-          totalCount={allJobs.length}
+          totalCount={visibleJobs.length}
           activeCount={filteredJobs.length}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -336,19 +354,21 @@ function JobsPageContent() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           jobCounts={{
-            all: allJobs.length,
-            posted: allJobs.filter((j) => j.status === 'posted').length,
-            active: allJobs.filter(
+            all: visibleJobs.length,
+            posted: visibleJobs.filter((j) => j.status === 'posted').length,
+            active: visibleJobs.filter(
               (j) => j.status === 'in_progress' || j.status === 'assigned'
             ).length,
-            completed: allJobs.filter((j) => j.status === 'completed').length,
-            draft: allJobs.filter((j) => j.status === 'draft').length,
-            awaitingAction: allJobs.filter(
+            completed: visibleJobs.filter((j) => j.status === 'completed')
+              .length,
+            draft: visibleJobs.filter((j) => j.status === 'draft').length,
+            awaitingAction: visibleJobs.filter(
               (j) =>
                 j.nextAction &&
                 (j.nextAction.urgency === 'high' ||
                   j.nextAction.urgency === 'medium')
             ).length,
+            archived: archivedJobs.length,
           }}
           prefersReducedMotion={prefersReducedMotion}
         />
@@ -356,7 +376,7 @@ function JobsPageContent() {
         {/* Jobs Grid */}
         <JobsGrid
           jobs={filteredJobs}
-          allJobsCount={allJobs.length}
+          allJobsCount={visibleJobs.length}
           loading={loading}
           viewMode={viewMode}
           prefersReducedMotion={prefersReducedMotion}

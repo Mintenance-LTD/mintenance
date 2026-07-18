@@ -199,6 +199,14 @@ export default function PaymentsPage2025() {
       toast.error('Please provide a refund reason');
       return;
     }
+    // refundRequestSchema requires both jobId and escrowTransactionId —
+    // the transaction rows come from /api/payments/history (escrow rows),
+    // so `id` IS the escrow transaction id and `job_id` its parent job.
+    // Omitting `amount` requests a full refund, matching this modal.
+    if (!selectedTransaction.job_id) {
+      toast.error('This transaction has no linked job and cannot be refunded');
+      return;
+    }
     try {
       const response = await fetch('/api/payments/refund', {
         method: 'POST',
@@ -207,7 +215,8 @@ export default function PaymentsPage2025() {
           'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
-          transactionId: selectedTransaction.id,
+          jobId: selectedTransaction.job_id,
+          escrowTransactionId: selectedTransaction.id,
           reason: refundReason,
         }),
       });

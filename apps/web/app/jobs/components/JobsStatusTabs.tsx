@@ -2,7 +2,15 @@
 
 import React from 'react';
 
-type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft' | 'awaiting_action';
+type FilterStatus =
+  | 'all'
+  | 'posted'
+  | 'assigned'
+  | 'in_progress'
+  | 'completed'
+  | 'draft'
+  | 'awaiting_action'
+  | 'archived';
 
 interface JobsStatusTabsProps {
   activeTab: FilterStatus;
@@ -14,6 +22,7 @@ interface JobsStatusTabsProps {
     completed: number;
     draft: number;
     awaitingAction: number;
+    archived: number;
   };
   prefersReducedMotion?: boolean;
 }
@@ -24,16 +33,52 @@ export function JobsStatusTabs({
   jobCounts,
 }: JobsStatusTabsProps) {
   const tabs = [
-    { value: 'all' as FilterStatus, label: 'All Jobs', count: jobCounts.all, highlight: false },
-    { value: 'awaiting_action' as FilterStatus, label: 'Needs Attention', count: jobCounts.awaitingAction, highlight: true },
-    { value: 'posted' as FilterStatus, label: 'Posted', count: jobCounts.posted, highlight: false },
-    { value: 'in_progress' as FilterStatus, label: 'Active', count: jobCounts.active, highlight: false },
-    { value: 'completed' as FilterStatus, label: 'Completed', count: jobCounts.completed, highlight: false },
-    { value: 'draft' as FilterStatus, label: 'Drafts', count: jobCounts.draft, highlight: false },
+    {
+      value: 'all' as FilterStatus,
+      label: 'All Jobs',
+      count: jobCounts.all,
+      highlight: false,
+    },
+    {
+      value: 'awaiting_action' as FilterStatus,
+      label: 'Needs Attention',
+      count: jobCounts.awaitingAction,
+      highlight: true,
+    },
+    {
+      value: 'posted' as FilterStatus,
+      label: 'Posted',
+      count: jobCounts.posted,
+      highlight: false,
+    },
+    {
+      value: 'in_progress' as FilterStatus,
+      label: 'Active',
+      count: jobCounts.active,
+      highlight: false,
+    },
+    {
+      value: 'completed' as FilterStatus,
+      label: 'Completed',
+      count: jobCounts.completed,
+      highlight: false,
+    },
+    {
+      value: 'draft' as FilterStatus,
+      label: 'Drafts',
+      count: jobCounts.draft,
+      highlight: false,
+    },
+    {
+      value: 'archived' as FilterStatus,
+      label: 'Archived',
+      count: jobCounts.archived,
+      highlight: false,
+    },
   ];
 
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+    <div className='flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide'>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.value;
         return (
@@ -54,13 +99,15 @@ export function JobsStatusTabs({
           >
             {tab.label}
             {tab.count > 0 && (
-              <span className={`ml-1.5 text-xs font-semibold ${
-                isActive
-                  ? 'text-white/70'
-                  : tab.highlight
-                    ? 'text-amber-500'
-                    : 'text-gray-400'
-              }`}>
+              <span
+                className={`ml-1.5 text-xs font-semibold ${
+                  isActive
+                    ? 'text-white/70'
+                    : tab.highlight
+                      ? 'text-amber-500'
+                      : 'text-gray-400'
+                }`}
+              >
                 {tab.count}
               </span>
             )}

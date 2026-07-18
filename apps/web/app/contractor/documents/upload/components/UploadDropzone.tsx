@@ -91,8 +91,7 @@ export function UploadDropzone({
       </div>
       <div
         style={{
-          fontFamily:
-            'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+          fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
           fontSize: 24,
           letterSpacing: '-0.012em',
           marginBottom: 4,

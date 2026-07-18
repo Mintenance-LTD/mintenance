@@ -55,6 +55,58 @@ export interface ContractorLocationForMap {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
+export interface CoverageAreaForMap {
+  id: string;
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  isPrimary: boolean;
+}
+
+// Mint brand — resolved from the design-system CSS variable so the
+// overlay tracks the token (mirrors mobile `me.brand`). google.maps
+// needs a concrete color string, so read the var at draw time; the
+// named-color fallback only covers a missing stylesheet.
+function coverageColor(): string {
+  if (typeof document !== 'undefined') {
+    const token = getComputedStyle(document.documentElement)
+      .getPropertyValue('--me-brand')
+      .trim();
+    if (token) return token;
+  }
+  return 'seagreen';
+}
+
+/**
+ * Draw the contractor's active service-area coverage circles
+ * (2026-07-17). Clears any previously drawn set first; returns the new
+ * circles so the caller can store them for cleanup. Radius mirrors the
+ * notify-audience gating (max_distance_km over radius_km — resolved by
+ * the caller).
+ */
+export function drawCoverageCircles(
+  map: google.maps.Map,
+  existing: google.maps.Circle[],
+  areas: CoverageAreaForMap[]
+): google.maps.Circle[] {
+  existing.forEach((circle) => circle.setMap(null));
+  const color = coverageColor();
+  return areas.map(
+    (area) =>
+      new google.maps.Circle({
+        map,
+        center: { lat: area.lat, lng: area.lng },
+        radius: area.radiusKm * 1000,
+        strokeColor: color,
+        strokeOpacity: 0.8,
+        strokeWeight: 1,
+        fillColor: color,
+        fillOpacity: 0.08,
+        clickable: false,
+      })
+  );
+}
+
 /**
  * Return a Google Maps Symbol object whose colour is derived from the job
  * category and whose size scales with priority.

@@ -12,7 +12,7 @@ interface PaymentsHeaderProps {
 /**
  * Payments page hero. Renders the legacy gradient-tile design under
  * the default theme and switches to the canonical Mint Editorial
- * header treatment (Instrument Serif h1 + ghost descriptor) when
+ * header treatment (Inter h1 + ghost descriptor) when
  * `data-theme="mint-editorial"` is set on <html>.
  *
  * Reference: redesign-v2/components.css `.t-h1` and the homeowner

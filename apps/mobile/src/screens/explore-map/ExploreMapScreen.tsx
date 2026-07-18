@@ -30,7 +30,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import { goToTab } from '../../navigation/hooks';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { useCoverageAreas } from './useCoverageAreas';
 
 // Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
 const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
@@ -42,6 +43,9 @@ import {
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../utils/mapAvailability';
+
+// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
+const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 
 // 2026-05-27 audit-77 P2: empty-state pill that floats above the
 // carousel zone when there are zero discoverable jobs in the
@@ -130,7 +134,7 @@ const emptyStateStyles = StyleSheet.create({
 // into the shared explore-map sheet.
 const verificationBlockedStyles = StyleSheet.create({
   wrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -394,6 +398,36 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
   // to "Map unavailable").
   const shouldRenderNativeMap = shouldRenderNativeMapUtil();
 
+  // 2026-07-17: draw the contractor's configured coverage on the map
+  // and, when neither saved profile coords nor GPS resolved a
+  // viewport, fall back to their primary service area instead of the
+  // generic London default. Decorative + best-effort.
+  const coverageAreas = useCoverageAreas(shouldRenderNativeMap);
+  const coverageViewportApplied = useRef(false);
+  useEffect(() => {
+    const primary = coverageAreas[0];
+    if (
+      coverageViewportApplied.current ||
+      viewModel.userLocation !== null ||
+      !primary ||
+      !viewModel.regionResolved
+    ) {
+      return;
+    }
+    coverageViewportApplied.current = true;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: primary.centerLatitude,
+        longitude: primary.centerLongitude,
+        // Frame the whole coverage circle: delta ≈ diameter in degrees
+        // with ~30% margin.
+        latitudeDelta: Math.max((primary.radiusKm * 2.6) / 111.32, 0.05),
+        longitudeDelta: Math.max((primary.radiusKm * 2.6) / 111.32, 0.05),
+      },
+      300
+    );
+  }, [coverageAreas, viewModel.userLocation, viewModel.regionResolved]);
+
   // 2026-05-24 audit-38 P2: refetch jobs every time the map regains
   // focus. Previously, after a contractor submitted a bid from
   // BidSubmissionScreen and tapped goBack, the map's local state
@@ -482,13 +516,31 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           <MapView
             ref={mapRef}
             provider={MAP_PROVIDER}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             region={viewModel.region}
             onRegionChangeComplete={viewModel.handleRegionChange}
             onPress={() => viewModel.handleJobSelect(null)}
             showsUserLocation={viewModel.locationGranted}
             showsMyLocationButton={false}
           >
+            {/* Coverage overlay — the contractor's active service
+                areas (matches the notify-audience gating radius:
+                max_distance_km over radius_km). */}
+            {coverageAreas.map((area) => (
+              <Circle
+                key={area.id}
+                center={{
+                  latitude: area.centerLatitude,
+                  longitude: area.centerLongitude,
+                }}
+                radius={area.radiusKm * 1000}
+                strokeColor={me.brand}
+                strokeWidth={1}
+                fillColor={`${me.brand}14`}
+                zIndex={1}
+              />
+            ))}
+
             {/* Contractor location pin */}
             {viewModel.userLocation && (
               <Marker
@@ -610,7 +662,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           </View>
         )
       ) : (
-        // pointerEvents='none' load-bearing: this absoluteFillObject
+        // pointerEvents='none' load-bearing: this absoluteFill
         // view absorbs taps meant for the job carousel below.
         <View style={styles.mapUnavailable} pointerEvents='none'>
           <Ionicons name='map-outline' size={34} color={me.brand} />
@@ -719,8 +771,8 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
               Finish verification to start bidding
             </Text>
             <Text style={verificationBlockedStyles.body}>
-              We're reviewing your credentials. Once your account is verified,
-              you'll see jobs near you here and can place bids.
+              We&apos;re reviewing your credentials. Once your account is
+              verified, you&apos;ll see jobs near you here and can place bids.
             </Text>
             <TouchableOpacity
               style={verificationBlockedStyles.cta}

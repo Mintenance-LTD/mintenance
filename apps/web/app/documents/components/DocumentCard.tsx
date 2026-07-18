@@ -305,8 +305,7 @@ export function DocumentCard({ doc }: DocumentCardProps) {
         >
           <span
             style={{
-              fontFamily:
-                'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+              fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
               fontSize: 22,
               color: 'var(--me-ink)',
               lineHeight: 1,

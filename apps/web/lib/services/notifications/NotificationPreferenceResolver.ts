@@ -13,6 +13,7 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { ALWAYS_ON_NOTIFICATION_TYPES } from '@mintenance/types';
 
 export interface UserNotificationPreferences {
   user_id: string;
@@ -116,11 +117,10 @@ export async function loadPreferences(
  * them (legacy data, third-party API caller). Add new types here when
  * the always-on banner copy expands.
  */
-const ALWAYS_ON_TYPES = new Set<string>([
-  'payment', // payment confirmations / escrow funding
-  'payment_received', // legacy alias of payment
-  'contractor_en_route', // "I'm on the way" homeowner notification
-]);
+// 2026-07-17: single-sourced from the canonical registry in
+// @mintenance/types (notification-types.ts) — this file previously
+// carried its own copy of the list.
+const ALWAYS_ON_TYPES = new Set<string>(ALWAYS_ON_NOTIFICATION_TYPES);
 
 export function isTypeDisabled(
   prefs: UserNotificationPreferences,
@@ -131,6 +131,14 @@ export function isTypeDisabled(
   // delivers it anyway — UI copy + this filter guarantee parity.
   if (ALWAYS_ON_TYPES.has(type)) return false;
   return prefs.disabled_types.includes(type);
+}
+
+/**
+ * 2026-07-17: exported for NotificationService's caller-supplied
+ * `deferUntil` guard — always-on types must never be deferred either.
+ */
+export function isAlwaysOnType(type: string): boolean {
+  return ALWAYS_ON_TYPES.has(type);
 }
 
 /**

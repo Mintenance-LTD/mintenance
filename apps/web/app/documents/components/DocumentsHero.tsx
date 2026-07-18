@@ -160,8 +160,7 @@ function FrostedTile({
     >
       <div
         style={{
-          fontFamily:
-            'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+          fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
           fontWeight: 400,
           fontSize: 28,
           lineHeight: 1,

@@ -38,7 +38,22 @@ export interface MatchingScore {
   experienceScore: number; // 0-100
   responsiveness: number; // 0-100
   priceCompetitiveness: number; // 0-100
+  fairness: number; // 0-100 — Uber-style work-distribution term
   overallScore: number; // 0-100
+}
+
+/**
+ * Per-contractor engagement stats derived from `bids` (+ joined job
+ * created_at). Feed the fairness + responsiveness terms in
+ * ScoringService — see EngagementStatsService.
+ */
+export interface ContractorEngagementStats {
+  /** Accepted bids in the recency window (default 30 days). */
+  recentWins: number;
+  /** Days since the most recent accepted bid; null = never won. */
+  daysSinceLastWin: number | null;
+  /** Mean hours between job posting and this contractor's bid; null = no bids. */
+  avgBidResponseHours: number | null;
 }
 
 export interface MatchingPreferences {

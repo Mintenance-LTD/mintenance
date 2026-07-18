@@ -6,6 +6,43 @@
  */
 
 export { calculateDistance } from '@/lib/utils/location';
+import { calculateDistance as haversineDistance } from '@/lib/utils/location';
+
+/**
+ * Resolve a job's map coordinates + distance (2026-07-17): prefer the
+ * PostGIS-computed serverDistanceKm (km from the contractor's stored
+ * location) and only fall back to the client-side Haversine for legacy
+ * responses without it.
+ */
+export function resolveJobCoordsAndDistance(
+  job: {
+    latitude?: number;
+    longitude?: number;
+    serverDistanceKm?: number | null;
+  },
+  contractorLocation?: {
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null
+): { lat?: number; lng?: number; distance?: number } {
+  const lat = job.latitude ?? undefined;
+  const lng = job.longitude ?? undefined;
+  const distance =
+    typeof job.serverDistanceKm === 'number'
+      ? job.serverDistanceKm
+      : contractorLocation?.latitude &&
+          contractorLocation?.longitude &&
+          lat &&
+          lng
+        ? haversineDistance(
+            contractorLocation.latitude,
+            contractorLocation.longitude,
+            lat,
+            lng
+          )
+        : undefined;
+  return { lat, lng, distance };
+}
 
 /**
  * Map a job priority string to Mint Editorial token CSS values.
