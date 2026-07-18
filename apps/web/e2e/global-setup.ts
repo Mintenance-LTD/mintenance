@@ -11,19 +11,80 @@
  * regenerating them, significantly speeding up test runs.
  */
 
-import { chromium, FullConfig } from '@playwright/test';
+import { chromium, Browser, FullConfig } from '@playwright/test';
 import { TEST_USERS } from './helpers/auth';
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
 
+/**
+ * Authenticate a test user via the E2E-only server endpoint and persist the
+ * resulting session as Playwright storage state.
+ *
+ * WHY AN ENDPOINT: the previous approach copied the login page's localStorage
+ * token into a single cookie by hand, which `@supabase/ssr` (used by the
+ * middleware) could not decode — so protected routes redirected to /login and
+ * the authenticated e2e tests all skipped. `POST /api/test-auth/login` signs in
+ * through `createServerClient`, so the auth cookies are written in exactly the
+ * base64/chunked format the middleware reads back. Driving it through the
+ * browser context's request API applies the Set-Cookie headers to that
+ * context's cookie jar, which `storageState` then captures verbatim.
+ *
+ * Requires E2E_TESTING=true and a matching E2E_AUTH_SECRET on BOTH the running
+ * web server and this process (see docs/CI_QUALITY_GATES.md and e2e-tests.yml).
+ */
+async function authenticateViaEndpoint(
+  browser: Browser,
+  baseURL: string,
+  user: { email: string; password: string },
+  outPath: string
+): Promise<void> {
+  const secret = process.env.E2E_AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      'E2E_AUTH_SECRET is not set — the /api/test-auth/login endpoint will 404. ' +
+        'Set E2E_TESTING=true and E2E_AUTH_SECRET on both the web server and the ' +
+        'test runner (see docs/CI_QUALITY_GATES.md).'
+    );
+  }
+
+  const context = await browser.newContext();
+  try {
+    const response = await context.request.post(
+      `${baseURL}/api/test-auth/login`,
+      {
+        headers: { 'x-e2e-auth-secret': secret },
+        data: { email: user.email, password: user.password },
+      }
+    );
+
+    if (!response.ok()) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(
+        `test-auth login failed (${response.status()}): ${detail.slice(0, 300)}`
+      );
+    }
+
+    // The Set-Cookie headers from the response are now in the context's cookie
+    // jar; persist them for the test projects to load via storageState.
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    await context.storageState({ path: outPath });
+  } finally {
+    await context.close();
+  }
+}
+
 // Initialize Supabase client for test data seeding
 const getSupabaseClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('⚠️  Supabase credentials not found - test data seeding will be skipped');
+    console.warn(
+      '⚠️  Supabase credentials not found - test data seeding will be skipped'
+    );
     return null;
   }
 
@@ -34,7 +95,10 @@ const getSupabaseClient = () => {
  * Check if stored auth token is still valid
  * Returns true if token exists and hasn't expired
  */
-function isAuthTokenValid(authFilePath: string, minValidityMinutes: number = 30): boolean {
+function isAuthTokenValid(
+  authFilePath: string,
+  minValidityMinutes: number = 30
+): boolean {
   try {
     if (!fs.existsSync(authFilePath)) {
       return false;
@@ -48,8 +112,9 @@ function isAuthTokenValid(authFilePath: string, minValidityMinutes: number = 30)
     }
 
     // Find the Supabase auth token cookie
-    const authCookie = authData.cookies.find((c: any) =>
-      c.name && c.name.includes('sb-') && c.name.includes('-auth-token')
+    const authCookie = authData.cookies.find(
+      (c: any) =>
+        c.name && c.name.includes('sb-') && c.name.includes('-auth-token')
     );
 
     if (!authCookie || !authCookie.expires) {
@@ -59,11 +124,13 @@ function isAuthTokenValid(authFilePath: string, minValidityMinutes: number = 30)
     // Check if token expires in more than minValidityMinutes
     const expiresAt = authCookie.expires * 1000; // Convert to milliseconds
     const now = Date.now();
-    const minValidUntil = now + (minValidityMinutes * 60 * 1000);
+    const minValidUntil = now + minValidityMinutes * 60 * 1000;
 
     return expiresAt > minValidUntil;
   } catch (error) {
-    console.warn(`  ⚠️  Failed to check auth token validity: ${(error as Error).message}`);
+    console.warn(
+      `  ⚠️  Failed to check auth token validity: ${(error as Error).message}`
+    );
     return false;
   }
 }
@@ -81,7 +148,9 @@ async function globalSetup(config: FullConfig) {
   const contractorTokenValid = isAuthTokenValid(contractorAuthPath);
 
   if (homeownerTokenValid && contractorTokenValid) {
-    console.log('  ✅ Existing auth tokens are still valid - skipping authentication');
+    console.log(
+      '  ✅ Existing auth tokens are still valid - skipping authentication'
+    );
     console.log('  ℹ️  To force re-authentication, delete files in e2e/.auth/');
 
     // Still seed test data
@@ -98,155 +167,40 @@ async function globalSetup(config: FullConfig) {
   if (!homeownerTokenValid) {
     try {
       console.log('  → Authenticating homeowner...');
-    const homeownerContext = await browser.newContext();
-    const homeownerPage = await homeownerContext.newPage();
-
-    // Navigate to login
-    await homeownerPage.goto(`${baseURL}/auth/login`);
-    await homeownerPage.waitForLoadState('networkidle');
-
-    // Dismiss modals
-    const laterButton = homeownerPage.getByRole('button', { name: /later/i });
-    if (await laterButton.isVisible().catch(() => false)) {
-      await laterButton.click();
-      await homeownerPage.waitForTimeout(500);
+      await authenticateViaEndpoint(
+        browser,
+        baseURL,
+        TEST_USERS.homeowner,
+        homeownerAuthPath
+      );
+      console.log('  ✅ Homeowner session saved');
+    } catch (error) {
+      console.error('  ❌ Failed to setup homeowner session:', error);
+      await browser.close();
+      throw error;
     }
-
-    const acceptCookies = homeownerPage.getByRole('button', { name: /accept all|essential only/i }).first();
-    if (await acceptCookies.isVisible().catch(() => false)) {
-      await acceptCookies.click();
-      await homeownerPage.waitForTimeout(500);
-    }
-
-    // Login
-    await homeownerPage.getByLabel(/email/i).fill(TEST_USERS.homeowner.email);
-    await homeownerPage.getByLabel(/password/i).fill(TEST_USERS.homeowner.password);
-    await Promise.all([
-      homeownerPage.waitForURL(url => !url.pathname.includes('/auth/login'), { timeout: 30000 }),
-      homeownerPage.getByRole('button', { name: /log in|sign in/i }).click(),
-    ]);
-
-    // Wait for session to establish
-    await homeownerPage.waitForTimeout(2000);
-
-    // Get Supabase session from localStorage
-    const sessionData = await homeownerPage.evaluate(() => {
-      const keys = Object.keys(localStorage);
-      const authKey = keys.find(key => key.includes('sb-') && key.includes('-auth-token'));
-
-      if (!authKey) {
-        return null;
-      }
-
-      const tokenData = localStorage.getItem(authKey);
-      return tokenData ? { key: authKey, value: tokenData } : null;
-    });
-
-    if (!sessionData) {
-      throw new Error('Homeowner session not established');
-    }
-
-    // Add Supabase auth cookie using Playwright API (not document.cookie)
-    // This ensures cookies are properly sent in HTTP requests
-    await homeownerContext.addCookies([{
-      name: sessionData.key,
-      value: sessionData.value,
-      domain: 'localhost',
-      path: '/',
-      expires: Math.floor(Date.now() / 1000) + 7200, // 2 hours from now
-      httpOnly: false, // Must be false for Supabase client to read it
-      secure: false, // HTTP (not HTTPS) for localhost
-      sameSite: 'Lax',
-    }]);
-
-    // Save authenticated state
-    await homeownerContext.storageState({ path: 'e2e/.auth/homeowner.json' });
-    console.log('  ✅ Homeowner session saved');
-
-    await homeownerContext.close();
-  } catch (error) {
-    console.error('  ❌ Failed to setup homeowner session:', error);
-    await browser.close();
-    throw error;
-  }
   } else {
     console.log('  ✅ Homeowner token still valid - skipping authentication');
   }
 
   // Setup contractor session (optional - skip if fails)
   if (!contractorTokenValid) {
-  try {
-    console.log('  → Authenticating contractor...');
-    const contractorContext = await browser.newContext();
-    const contractorPage = await contractorContext.newPage();
-
-    // Navigate to login
-    await contractorPage.goto(`${baseURL}/auth/login`);
-    await contractorPage.waitForLoadState('networkidle');
-
-    // Dismiss modals
-    const laterButton = contractorPage.getByRole('button', { name: /later/i });
-    if (await laterButton.isVisible().catch(() => false)) {
-      await laterButton.click();
-      await contractorPage.waitForTimeout(500);
+    try {
+      console.log('  → Authenticating contractor...');
+      await authenticateViaEndpoint(
+        browser,
+        baseURL,
+        TEST_USERS.contractor,
+        contractorAuthPath
+      );
+      console.log('  ✅ Contractor session saved');
+    } catch (error) {
+      console.error(
+        '  ⚠️  Failed to setup contractor session (skipping):',
+        (error as Error).message
+      );
+      // Don't throw - contractor tests will be skipped if no session file exists
     }
-
-    const acceptCookies = contractorPage.getByRole('button', { name: /accept all|essential only/i }).first();
-    if (await acceptCookies.isVisible().catch(() => false)) {
-      await acceptCookies.click();
-      await contractorPage.waitForTimeout(500);
-    }
-
-    // Login
-    await contractorPage.getByLabel(/email/i).fill(TEST_USERS.contractor.email);
-    await contractorPage.getByLabel(/password/i).fill(TEST_USERS.contractor.password);
-    await Promise.all([
-      contractorPage.waitForURL(url => !url.pathname.includes('/auth/login'), { timeout: 30000 }),
-      contractorPage.getByRole('button', { name: /log in|sign in/i }).click(),
-    ]);
-
-    // Wait for session to establish
-    await contractorPage.waitForTimeout(2000);
-
-    // Get Supabase session from localStorage
-    const sessionData = await contractorPage.evaluate(() => {
-      const keys = Object.keys(localStorage);
-      const authKey = keys.find(key => key.includes('sb-') && key.includes('-auth-token'));
-
-      if (!authKey) {
-        return null;
-      }
-
-      const tokenData = localStorage.getItem(authKey);
-      return tokenData ? { key: authKey, value: tokenData } : null;
-    });
-
-    if (!sessionData) {
-      throw new Error('Contractor session not established');
-    }
-
-    // Add Supabase auth cookie using Playwright API (not document.cookie)
-    // This ensures cookies are properly sent in HTTP requests
-    await contractorContext.addCookies([{
-      name: sessionData.key,
-      value: sessionData.value,
-      domain: 'localhost',
-      path: '/',
-      expires: Math.floor(Date.now() / 1000) + 7200, // 2 hours from now
-      httpOnly: false, // Must be false for Supabase client to read it
-      secure: false, // HTTP (not HTTPS) for localhost
-      sameSite: 'Lax',
-    }]);
-
-    // Save authenticated state
-    await contractorContext.storageState({ path: 'e2e/.auth/contractor.json' });
-    console.log('  ✅ Contractor session saved');
-
-    await contractorContext.close();
-  } catch (error) {
-    console.error('  ⚠️  Failed to setup contractor session (skipping):', (error as Error).message);
-    // Don't throw - contractor tests will be skipped if no session file exists
-  }
   } else {
     console.log('  ✅ Contractor token still valid - skipping authentication');
   }
@@ -294,7 +248,9 @@ async function seedTestData() {
       .eq('owner_id', homeownerId);
 
     if (existingProperties && existingProperties.length > 0) {
-      console.log(`  ✅ Test properties already exist (${existingProperties.length} properties)`);
+      console.log(
+        `  ✅ Test properties already exist (${existingProperties.length} properties)`
+      );
       return;
     }
 
@@ -328,7 +284,9 @@ async function seedTestData() {
       return;
     }
 
-    console.log(`  ✅ Created ${createdProperties?.length || 0} test properties`);
+    console.log(
+      `  ✅ Created ${createdProperties?.length || 0} test properties`
+    );
   } catch (error) {
     console.error('  ❌ Error seeding test data:', (error as Error).message);
   }
