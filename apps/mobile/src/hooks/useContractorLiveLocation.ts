@@ -65,29 +65,68 @@ const EMPTY: ContractorLiveState = {
   position: null,
 };
 
+/**
+ * How recent a "traveling" GPS fix must be to count as live. Contractors
+ * write positions every few seconds while driving, so a fix older than this
+ * means the trip ended uncleanly (app killed, crash, sustained signal loss)
+ * and the row is stale. Without this gate a one-off trip that never reached
+ * a clean stop rendered "on the way ~N min" + a "LIVE" map pin forever — a
+ * June-18 test row was still showing 30 days later (2026-07-18 audit).
+ *
+ * ARRIVED rows are deliberately exempt: on arrival the GPS watcher is
+ * stopped and the row is kept alive so the homeowner keeps seeing "Arrived"
+ * (JobContextLocationService audit-67), so its timestamp legitimately stops
+ * advancing while the contractor works on site.
+ */
+export const TRAVELING_FRESH_MS = 10 * 60 * 1000; // 10 minutes
+
 // Postgres NUMERIC columns are serialised by supabase-js as strings; coerce
 // before handing coordinates to react-native-maps (which crashes on NaN).
+// Guard null/undefined explicitly: Number(null) === 0, which would otherwise
+// turn a null latitude into a valid-looking (0, lng) pin in the Atlantic.
 function toFinite(value: unknown): number | null {
+  if (value == null) return null;
   const n = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
-function derive(row: ContractorLiveRow | null): ContractorLiveState {
+// `now` is injectable for deterministic tests.
+export function derive(
+  row: ContractorLiveRow | null,
+  now: number = Date.now()
+): ContractorLiveState {
   if (!row) return EMPTY;
-  const isLive = !!row.is_sharing_location && !!row.is_active;
   const hasArrived = row.context != null && ARRIVED_CONTEXTS.has(row.context);
+  const lastFix = row.location_timestamp ?? row.updated_at ?? null;
+
+  // Freshness gates the en-route surfaces only (see docblock). An arrived
+  // contractor is trusted regardless of fix age; a traveling one must have a
+  // recent fix.
+  const fixMs = lastFix ? Date.parse(lastFix) : NaN;
+  const isFresh = Number.isFinite(fixMs) && now - fixMs <= TRAVELING_FRESH_MS;
+  const trustable = hasArrived || isFresh;
+
+  // Raw sharing flags, then downgraded by freshness so every consumer that
+  // reads `isLive` (e.g. HomeownerLocationRequest's "Sharing live location"
+  // card) drops a stale session automatically.
+  const isLive = !!row.is_sharing_location && !!row.is_active && trustable;
+
   const lat = toFinite(row.latitude);
   const lng = toFinite(row.longitude);
+  // Drop a stale en-route position so the map never renders a frozen "LIVE"
+  // pin + dashed line; keep an arrived contractor's marker on the site.
   const position =
-    lat != null && lng != null
+    lat != null && lng != null && trustable
       ? { latitude: lat, longitude: lng, heading: toFinite(row.heading) }
       : null;
+
   return {
     isLive,
     hasArrived,
     isTraveling: isLive && !hasArrived,
-    eta: row.eta_minutes ?? null,
-    lastFix: row.location_timestamp ?? row.updated_at ?? null,
+    // A stale ETA is meaningless — only surface it while trustable.
+    eta: trustable ? (row.eta_minutes ?? null) : null,
+    lastFix,
     position,
   };
 }
