@@ -144,18 +144,28 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
-  // The contractor only travels to the property once the contract is signed
-  // by both parties (`accepted`) — or once work is already under way
-  // (`in_progress`). Before the contract is accepted the job sits at the
-  // "Contract" lifecycle step with no scheduled visit, so the "on the way"
-  // banner, ETA card, live map and location section must stay hidden even if a
-  // stale `contractor_locations` row exists. (Reported 2026-06-18: banner was
-  // showing during the unsigned Contract phase because the gate keyed only off
-  // `assigned`/`in_progress` and ignored contract acceptance.)
+  // The contractor only travels to the property once the job is under way
+  // (`in_progress`) or the homeowner has secured payment — contract accepted
+  // AND escrow funded. Before that the job sits at the Contract/pre-payment
+  // step, so the "on the way" banner, ETA card, live map and location section
+  // must stay hidden even if a `contractor_locations` row exists.
+  //   - 2026-06-18: gate ignored contract acceptance → banner showed during
+  //     the unsigned Contract phase.
+  //   - 2026-07-18: gate ignored escrow → contractor appeared "on the way" to
+  //     a job the homeowner hadn't paid into escrow ("Pay Now" still visible).
+  //     `in_progress` already implies escrow was funded (a job can't start
+  //     without it), so the escrow check only constrains the `assigned` branch.
+  //     Freshness of the fix itself is handled in useContractorLiveLocation.
   const contractAccepted = viewModel.contractStatus === 'accepted';
+  const escrowFunded = [
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ].includes(viewModel.escrowStatus ?? '');
   const canShowContractorTravel =
     job?.status === 'in_progress' ||
-    (job?.status === 'assigned' && contractAccepted);
+    (job?.status === 'assigned' && contractAccepted && escrowFunded);
 
   // Live contractor position for the homeowner's "on the way" banner + map.
   // One subscription, fed to the banner, the ETA card and JobLocationMap.

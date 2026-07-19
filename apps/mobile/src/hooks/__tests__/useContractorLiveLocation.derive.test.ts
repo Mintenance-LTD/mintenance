@@ -1,0 +1,104 @@
+import {
+  derive,
+  TRAVELING_FRESH_MS,
+  type ContractorLiveRow,
+} from '../useContractorLiveLocation';
+
+const NOW = Date.parse('2026-07-18T12:00:00Z');
+const iso = (msAgo: number) => new Date(NOW - msAgo).toISOString();
+
+function row(overrides: Partial<ContractorLiveRow> = {}): ContractorLiveRow {
+  return {
+    latitude: '51.90112160',
+    longitude: '-2.06821370',
+    heading: null,
+    eta_minutes: 12,
+    is_sharing_location: true,
+    is_active: true,
+    location_timestamp: iso(60_000), // 1 min ago
+    updated_at: iso(60_000),
+    context: 'traveling',
+    ...overrides,
+  };
+}
+
+describe('useContractorLiveLocation derive() — freshness gate', () => {
+  it('returns the empty state for a null row', () => {
+    expect(derive(null, NOW).isTraveling).toBe(false);
+    expect(derive(null, NOW).position).toBeNull();
+  });
+
+  it('a fresh traveling fix is live: banner + map + eta', () => {
+    const s = derive(row(), NOW);
+    expect(s.isLive).toBe(true);
+    expect(s.isTraveling).toBe(true);
+    expect(s.eta).toBe(12);
+    expect(s.position).toEqual({
+      latitude: 51.9011216,
+      longitude: -2.0682137,
+      heading: null,
+    });
+  });
+
+  it('a stale traveling fix is fully suppressed (the 30-day-old-row bug)', () => {
+    // Mirrors the live row: sharing+active+traveling but the fix is ancient.
+    const s = derive(
+      row({
+        eta_minutes: 120,
+        location_timestamp: iso(30 * 24 * 60 * 60 * 1000),
+        updated_at: iso(30 * 24 * 60 * 60 * 1000),
+      }),
+      NOW
+    );
+    expect(s.isLive).toBe(false);
+    expect(s.isTraveling).toBe(false); // no "on the way" banner
+    expect(s.position).toBeNull(); // no LIVE map pin / dashed line
+    expect(s.eta).toBeNull(); // no frozen "~120 min"
+    expect(s.lastFix).not.toBeNull(); // still exposed for "last seen" copy
+  });
+
+  it('is exactly bounded by TRAVELING_FRESH_MS', () => {
+    const justFresh = derive(
+      row({ location_timestamp: iso(TRAVELING_FRESH_MS) }),
+      NOW
+    );
+    expect(justFresh.isTraveling).toBe(true);
+    const justStale = derive(
+      row({ location_timestamp: iso(TRAVELING_FRESH_MS + 1) }),
+      NOW
+    );
+    expect(justStale.isTraveling).toBe(false);
+  });
+
+  it('an ARRIVED contractor stays visible regardless of fix age (audit-67)', () => {
+    // On arrival the GPS watcher stops, so the timestamp legitimately freezes.
+    const s = derive(
+      row({
+        context: 'on_job',
+        location_timestamp: iso(6 * 60 * 60 * 1000), // 6h since arrival
+        updated_at: iso(6 * 60 * 60 * 1000),
+      }),
+      NOW
+    );
+    expect(s.hasArrived).toBe(true);
+    expect(s.isLive).toBe(true); // "Contractor arrived" card still renders
+    expect(s.isTraveling).toBe(false); // but not "on the way"
+    expect(s.position).not.toBeNull(); // marker stays on the site
+  });
+
+  it('treats all arrival aliases as arrived', () => {
+    for (const context of ['on_job', 'arrived', 'on_site']) {
+      expect(derive(row({ context }), NOW).hasArrived).toBe(true);
+    }
+  });
+
+  it('sharing flags off means not live even when fresh', () => {
+    expect(derive(row({ is_sharing_location: false }), NOW).isLive).toBe(false);
+    expect(derive(row({ is_active: false }), NOW).isLive).toBe(false);
+  });
+
+  it('null coordinates yield no position', () => {
+    expect(derive(row({ latitude: null }), NOW).position).toBeNull();
+    expect(derive(row({ longitude: 'nan' }), NOW).position).toBeNull();
+  });
+});
