@@ -43,6 +43,36 @@ export interface ContractorPosition {
   heading: number | null;
 }
 
+/**
+ * Travel journey stage, derived from the arrival flag + ETA. Drives the
+ * "on the way" homeowner surfaces (banner copy/colour, map live badge) so a
+ * single enum decides how far along the trip is instead of every consumer
+ * re-deriving thresholds from the raw ETA.
+ *
+ *   idle       — not sharing / not en route (nothing to show)
+ *   on_the_way — en route, ETA above the "nearby" threshold
+ *   nearby     — ETA <= NEARBY_ETA_MINUTES ("almost there, open up")
+ *   arriving   — ETA <= ARRIVING_ETA_MINUTES ("pulling up outside")
+ *   arrived    — context is an arrival alias (on site)
+ *   late       — en route but overdue vs the agreed appointment time
+ *
+ * `derive()` produces every stage EXCEPT 'late', because 'late' needs the
+ * job's scheduled start time, which is not on the live GPS row. The screen
+ * that has the job applies `withLateStage()` (below) as a final override.
+ */
+export type TravelStage =
+  | 'idle'
+  | 'on_the_way'
+  | 'nearby'
+  | 'arriving'
+  | 'arrived'
+  | 'late';
+
+/** ETA (minutes) at/under which the trip reads as "almost there". */
+export const NEARBY_ETA_MINUTES = 5;
+/** ETA (minutes) at/under which the trip reads as "arriving now". */
+export const ARRIVING_ETA_MINUTES = 1;
+
 export interface ContractorLiveState {
   /** sharing && active — the contractor is broadcasting for this job. */
   isLive: boolean;
@@ -50,6 +80,8 @@ export interface ContractorLiveState {
   hasArrived: boolean;
   /** isLive && !hasArrived — en route. */
   isTraveling: boolean;
+  /** Journey stage for the homeowner surfaces (see TravelStage). */
+  stage: TravelStage;
   eta: number | null;
   lastFix: string | null;
   /** Coerced, finite coordinates for the map (null until a valid fix). */
@@ -60,10 +92,133 @@ const EMPTY: ContractorLiveState = {
   isLive: false,
   hasArrived: false,
   isTraveling: false,
+  stage: 'idle',
   eta: null,
   lastFix: null,
   position: null,
 };
+
+/**
+ * Map the trip's arrival flag + trustable ETA onto a TravelStage. Pure so the
+ * derive() test can assert every threshold. `eta` is already freshness-gated
+ * by the caller (a stale ETA arrives here as null → stays 'on_the_way').
+ */
+export function deriveStage(
+  hasArrived: boolean,
+  isTraveling: boolean,
+  eta: number | null
+): TravelStage {
+  if (hasArrived) return 'arrived';
+  if (!isTraveling) return 'idle';
+  if (eta != null && eta <= ARRIVING_ETA_MINUTES) return 'arriving';
+  if (eta != null && eta <= NEARBY_ETA_MINUTES) return 'nearby';
+  return 'on_the_way';
+}
+
+/**
+ * Minutes past the agreed appointment start before a still-en-route trip
+ * reads as "late" — a small grace so a contractor a minute or two behind
+ * isn't flagged.
+ */
+export const LATE_GRACE_MINUTES = 5;
+
+/**
+ * Overlay a 'late' stage onto the GPS-derived stage using the job's promised
+ * start time (which `derive()` can't see). Pure so JobDetailsScreen can apply
+ * it and the threshold stays testable.
+ *
+ * Only an en-route trip that hasn't reached "arriving" can be late: once the
+ * contractor is pulling up ('arriving') or on site ('arrived'), or was never
+ * moving ('idle'), the promised time is moot. `now` is injectable for tests.
+ */
+export function withLateStage(
+  stage: TravelStage,
+  opts: {
+    scheduledStartMs: number | null;
+    now?: number;
+    graceMinutes?: number;
+  }
+): TravelStage {
+  if (stage !== 'on_the_way' && stage !== 'nearby') return stage;
+  const {
+    scheduledStartMs,
+    now = Date.now(),
+    graceMinutes = LATE_GRACE_MINUTES,
+  } = opts;
+  if (scheduledStartMs == null || !Number.isFinite(scheduledStartMs)) {
+    return stage;
+  }
+  const overdue = now > scheduledStartMs + graceMinutes * 60_000;
+  return overdue ? 'late' : stage;
+}
+
+export interface TravelPresentation {
+  /** Headline, e.g. "Your contractor is on the way". */
+  title: string;
+  /** Supporting line folding in the live ETA + distance. */
+  subtitle: string;
+  /** Colour family the surface should adopt (accent, not the app accent). */
+  tone: 'brand' | 'ok' | 'warn';
+}
+
+function formatEta(eta: number | null): string {
+  if (eta == null) return 'Tracking…';
+  if (eta <= 0) return 'Arriving now';
+  return `~${eta} min`;
+}
+
+function formatDistance(distanceMiles?: number | null): string {
+  if (distanceMiles == null || !Number.isFinite(distanceMiles)) return '';
+  // Under a tenth of a mile "0.0 mi" reads as broken — say "moments away".
+  if (distanceMiles < 0.1) return ' · moments away';
+  return ` · ${distanceMiles.toFixed(1)} mi`;
+}
+
+/**
+ * Copy + tone for the fused live-tracking hero, keyed off the journey stage.
+ * Single source of truth so the map header (and any future surface) render
+ * identical wording/colour for a given stage.
+ */
+export function travelPresentation(
+  stage: TravelStage,
+  opts: { eta: number | null; distanceMiles?: number | null }
+): TravelPresentation {
+  const { eta, distanceMiles } = opts;
+  switch (stage) {
+    case 'arriving':
+      return {
+        title: 'Your contractor is arriving',
+        subtitle: 'Pulling up outside now',
+        tone: 'ok',
+      };
+    case 'arrived':
+      return {
+        title: 'Your contractor has arrived',
+        subtitle: 'On site now',
+        tone: 'ok',
+      };
+    case 'nearby':
+      return {
+        title: 'Your contractor is almost here',
+        subtitle: `${formatEta(eta)} away · a good time to open up`,
+        tone: 'brand',
+      };
+    case 'late':
+      return {
+        title: 'Running a little late',
+        subtitle: `New ETA ${formatEta(eta)} · thanks for your patience`,
+        tone: 'warn',
+      };
+    case 'on_the_way':
+    case 'idle':
+    default:
+      return {
+        title: 'Your contractor is on the way',
+        subtitle: `${formatEta(eta)} away${formatDistance(distanceMiles)}`,
+        tone: 'brand',
+      };
+  }
+}
 
 /**
  * How recent a "traveling" GPS fix must be to count as live. Contractors
@@ -120,12 +275,16 @@ export function derive(
       ? { latitude: lat, longitude: lng, heading: toFinite(row.heading) }
       : null;
 
+  const isTraveling = isLive && !hasArrived;
+  // A stale ETA is meaningless — only surface it while trustable.
+  const eta = trustable ? (row.eta_minutes ?? null) : null;
+
   return {
     isLive,
     hasArrived,
-    isTraveling: isLive && !hasArrived,
-    // A stale ETA is meaningless — only surface it while trustable.
-    eta: trustable ? (row.eta_minutes ?? null) : null,
+    isTraveling,
+    stage: deriveStage(hasArrived, isTraveling, eta),
+    eta,
     lastFix,
     position,
   };

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,8 +24,11 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
-import { ContractorOnTheWayBanner } from './components/ContractorOnTheWayBanner';
-import { useContractorLiveLocation } from '../../hooks/useContractorLiveLocation';
+import {
+  useContractorLiveLocation,
+  withLateStage,
+} from '../../hooks/useContractorLiveLocation';
+import { haversineDistance } from '../../services/ServiceAreasGeo';
 import {
   JobAccessCard,
   type PropertyAccess,
@@ -175,6 +178,38 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     enabled: isOwner && !!job?.contractor_id && canShowContractorTravel,
   });
 
+  // Straight-line distance (miles) from the live contractor position to the
+  // job, folded into the "on the way" banner subtitle. Null until both the
+  // contractor's fix and the job coordinates are known. Miles, not km — the
+  // homeowner audience is UK.
+  const distanceMiles = useMemo(() => {
+    const pos = contractorLive.position;
+    if (!pos) return null;
+    const jLat = Number(job?.latitude);
+    const jLng = Number(job?.longitude);
+    if (!Number.isFinite(jLat) || !Number.isFinite(jLng)) return null;
+    const km = haversineDistance(pos.latitude, pos.longitude, jLat, jLng);
+    return km * 0.621371; // km → miles
+  }, [contractorLive.position, job?.latitude, job?.longitude]);
+
+  // Agreed appointment start, if the job has been scheduled. Rides on the job
+  // object as a runtime extra (`scheduledStartDate`, camelCase) that the web
+  // GET /api/jobs/[id] returns and formatJob whitelists — the canonical Job
+  // type doesn't declare it, hence the cast.
+  const scheduledStartMs = useMemo(() => {
+    const raw = (job as { scheduledStartDate?: string | null } | null)
+      ?.scheduledStartDate;
+    if (!raw) return null;
+    const ms = Date.parse(raw);
+    return Number.isFinite(ms) ? ms : null;
+  }, [job]);
+
+  // Effective stage for the homeowner surfaces: the GPS-derived stage, with a
+  // 'late' overlay when the contractor is en route past the agreed start.
+  // Computed each render (not memoised) so the flip happens as soon as the
+  // deadline passes on the next realtime location tick — cheap enough.
+  const travelStage = withLateStage(contractorLive.stage, { scheduledStartMs });
+
   // Homeowners get the full list from useJobBids; contractors get
   // their own single bid (zero or one row) from useMyBidForJob. The
   // arrays never overlap because the two queries are mutually
@@ -272,6 +307,14 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasPhotos = photos.length > 0;
   const locationStr =
     typeof job.location === 'string' ? job.location : job.city || '';
+  const jobLat = typeof job.latitude === 'number' ? job.latitude : null;
+  const jobLng = typeof job.longitude === 'number' ? job.longitude : null;
+  const hasJobCoords = jobLat != null && jobLng != null && !!locationStr;
+  // While the contractor is en route, the location map is promoted to a live
+  // hero near the top of the screen (the fused "on the way" banner + map);
+  // otherwise it stays in its normal lower section. Rendering it in exactly
+  // one place keeps a single MapView mounted.
+  const showLiveHero = isOwner && contractorLive.isTraveling && hasJobCoords;
   const budget = job.budget || job.budget_min || 0;
   const urgency = job.urgency || job.priority || 'medium';
   const categoryIcon =
@@ -348,8 +391,18 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           daysAgo={daysAgo}
         />
 
-        {isOwner && contractorLive.isTraveling && (
-          <ContractorOnTheWayBanner eta={contractorLive.eta} />
+        {showLiveHero && jobLat != null && jobLng != null && (
+          <View style={styles.sectionPadded}>
+            <JobLocationMap
+              address={locationStr}
+              latitude={jobLat}
+              longitude={jobLng}
+              contractorLocation={contractorLive.position}
+              stage={travelStage}
+              eta={contractorLive.eta}
+              distanceMiles={distanceMiles}
+            />
+          </View>
         )}
 
         <View style={styles.divider} />
@@ -400,15 +453,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.description}>{job.description}</Text>
         </View>
 
-        {job.latitude != null && job.longitude != null && locationStr ? (
+        {!showLiveHero && jobLat != null && jobLng != null ? (
           <>
             <View style={styles.divider} />
             <View style={styles.sectionPadded}>
               <JobLocationMap
                 address={locationStr}
-                latitude={job.latitude}
-                longitude={job.longitude}
+                latitude={jobLat}
+                longitude={jobLng}
                 contractorLocation={contractorLive.position}
+                stage={travelStage}
               />
             </View>
           </>

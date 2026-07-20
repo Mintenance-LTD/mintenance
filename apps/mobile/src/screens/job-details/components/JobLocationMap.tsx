@@ -10,6 +10,10 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
+import {
+  travelPresentation,
+  type TravelStage,
+} from '../../../hooks/useContractorLiveLocation';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../../utils/mapAvailability';
 
 interface ContractorLocation {
@@ -27,15 +31,58 @@ interface Props {
    * assigned job whose contractor is sharing), the map adds a heading-
    * rotated contractor marker, a dashed line to the job, and auto-fits the
    * view to both points so the homeowner can watch them approach.
+   *
+   * When present this card also becomes the fused "on the way" hero: the
+   * plain "Job Location" header is replaced by a live status strip (stage
+   * headline + ETA/distance), so the tracking banner and the map are one card.
    */
   contractorLocation?: ContractorLocation | null;
+  /**
+   * Journey stage — drives both the live status strip copy and the badge
+   * tint (Live → Nearby → Arriving → On site → Delayed). Defaults to
+   * on_the_way.
+   */
+  stage?: TravelStage;
+  /** Live ETA (minutes) for the hero subtitle. Only used when live. */
+  eta?: number | null;
+  /** Straight-line distance to the job in miles, for the hero subtitle. */
+  distanceMiles?: number | null;
 }
+
+// Badge label + colours per stage. Kept in lock-step with the live hero
+// header's tone so the homeowner sees one consistent signal.
+function liveBadgeFor(stage: TravelStage): {
+  label: string;
+  fg: string;
+  bg: string;
+} {
+  switch (stage) {
+    case 'nearby':
+      return { label: 'Nearby', fg: me.brand, bg: me.brandSoft };
+    case 'arriving':
+      return { label: 'Arriving', fg: me.okFg, bg: me.okBg };
+    case 'arrived':
+      return { label: 'On site', fg: me.okFg, bg: me.okBg };
+    case 'late':
+      return { label: 'Delayed', fg: me.warnFg, bg: me.warnBg };
+    case 'on_the_way':
+    case 'idle':
+    default:
+      return { label: 'Live', fg: me.brand, bg: me.brandSoft };
+  }
+}
+
+const toneColor = (tone: 'brand' | 'ok' | 'warn'): string =>
+  tone === 'ok' ? me.okFg : tone === 'warn' ? me.warnFg : me.brand;
 
 export const JobLocationMap: React.FC<Props> = ({
   address,
   latitude,
   longitude,
   contractorLocation,
+  stage = 'on_the_way',
+  eta = null,
+  distanceMiles = null,
 }) => {
   // Defensive numeric guard: Postgres NUMERIC columns are serialised
   // by supabase-js as strings, and prior versions of this file passed
@@ -108,18 +155,51 @@ export const JobLocationMap: React.FC<Props> = ({
     if (url) Linking.openURL(url);
   };
 
-  const renderHeader = () => (
+  const badge = liveBadgeFor(stage);
+
+  // Plain header for the static (no live contractor) case.
+  const renderStaticHeader = () => (
     <View style={styles.header}>
       <Ionicons name='location' size={18} color={me.brand} />
       <Text style={styles.title}>Job Location</Text>
-      {contractor && (
-        <View style={styles.liveBadge}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveBadgeText}>Live</Text>
-        </View>
-      )}
     </View>
   );
+
+  // Fused hero header: an avatar + stage headline/subtitle + stage-tinted
+  // badge, replacing the plain "Job Location" row while the contractor is en
+  // route. This is what makes the tracking banner and the map one card.
+  const renderLiveHeader = () => {
+    const p = travelPresentation(stage, { eta, distanceMiles });
+    const accent = toneColor(p.tone);
+    return (
+      <View
+        style={styles.liveHeader}
+        accessibilityRole='header'
+        accessibilityLabel={`${p.title}, ${p.subtitle}`}
+      >
+        <View style={[styles.avatar, { backgroundColor: accent }]}>
+          <Ionicons name='navigate' size={18} color={me.onBrand} />
+        </View>
+        <View style={styles.liveHeaderText}>
+          <Text style={styles.liveTitle} numberOfLines={1}>
+            {p.title}
+          </Text>
+          <Text style={styles.liveSubtitle} numberOfLines={1}>
+            {p.subtitle}
+          </Text>
+        </View>
+        <View style={[styles.liveBadge, { backgroundColor: badge.bg }]}>
+          <View style={[styles.liveDot, { backgroundColor: badge.fg }]} />
+          <Text style={[styles.liveBadgeText, { color: badge.fg }]}>
+            {badge.label}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderHeader = () =>
+    contractor ? renderLiveHeader() : renderStaticHeader();
 
   // Address-only fallback: no coords OR Android-without-key.
   if (!hasValidCoords || !shouldRenderNativeMap) {
@@ -221,6 +301,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: me.ink,
+  },
+  liveHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  liveHeaderText: {
+    flex: 1,
+  },
+  liveTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: me.ink,
+  },
+  liveSubtitle: {
+    fontSize: 12,
+    color: me.ink3,
+    marginTop: 1,
   },
   liveBadge: {
     flexDirection: 'row',

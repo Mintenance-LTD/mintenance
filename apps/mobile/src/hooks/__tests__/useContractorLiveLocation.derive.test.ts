@@ -1,6 +1,12 @@
 import {
   derive,
+  deriveStage,
+  withLateStage,
+  travelPresentation,
   TRAVELING_FRESH_MS,
+  NEARBY_ETA_MINUTES,
+  ARRIVING_ETA_MINUTES,
+  LATE_GRACE_MINUTES,
   type ContractorLiveRow,
 } from '../useContractorLiveLocation';
 
@@ -100,5 +106,168 @@ describe('useContractorLiveLocation derive() — freshness gate', () => {
   it('null coordinates yield no position', () => {
     expect(derive(row({ latitude: null }), NOW).position).toBeNull();
     expect(derive(row({ longitude: 'nan' }), NOW).position).toBeNull();
+  });
+});
+
+describe('deriveStage() — journey thresholds', () => {
+  it('an arrived contractor is always "arrived" regardless of ETA', () => {
+    expect(deriveStage(true, false, null)).toBe('arrived');
+    expect(deriveStage(true, false, 0)).toBe('arrived');
+  });
+
+  it('not traveling and not arrived is "idle"', () => {
+    expect(deriveStage(false, false, null)).toBe('idle');
+    expect(deriveStage(false, false, 12)).toBe('idle');
+  });
+
+  it('a far ETA (or unknown ETA) reads as "on_the_way"', () => {
+    expect(deriveStage(false, true, 12)).toBe('on_the_way');
+    expect(deriveStage(false, true, NEARBY_ETA_MINUTES + 1)).toBe('on_the_way');
+    expect(deriveStage(false, true, null)).toBe('on_the_way'); // "Tracking…"
+  });
+
+  it('is "nearby" at/under the nearby threshold', () => {
+    expect(deriveStage(false, true, NEARBY_ETA_MINUTES)).toBe('nearby');
+    expect(deriveStage(false, true, ARRIVING_ETA_MINUTES + 1)).toBe('nearby');
+  });
+
+  it('is "arriving" at/under the arriving threshold', () => {
+    expect(deriveStage(false, true, ARRIVING_ETA_MINUTES)).toBe('arriving');
+    expect(deriveStage(false, true, 0)).toBe('arriving');
+  });
+});
+
+describe('derive() — stage integration', () => {
+  it('surfaces the journey stage from a fresh traveling fix', () => {
+    expect(derive(row({ eta_minutes: 12 }), NOW).stage).toBe('on_the_way');
+    expect(derive(row({ eta_minutes: 4 }), NOW).stage).toBe('nearby');
+    expect(derive(row({ eta_minutes: 1 }), NOW).stage).toBe('arriving');
+  });
+
+  it('a stale fix collapses the stage back to idle', () => {
+    const s = derive(
+      row({
+        eta_minutes: 2,
+        location_timestamp: iso(TRAVELING_FRESH_MS + 1),
+        updated_at: iso(TRAVELING_FRESH_MS + 1),
+      }),
+      NOW
+    );
+    expect(s.stage).toBe('idle'); // no banner, not "arriving"
+  });
+
+  it('an arrived contractor reports the arrived stage', () => {
+    expect(derive(row({ context: 'on_job' }), NOW).stage).toBe('arrived');
+  });
+
+  it('the empty state is idle', () => {
+    expect(derive(null, NOW).stage).toBe('idle');
+  });
+});
+
+describe('withLateStage() — overdue overlay', () => {
+  const graceMs = LATE_GRACE_MINUTES * 60 * 1000;
+
+  it('flags an en-route trip overdue past the grace as late', () => {
+    const scheduledStartMs = NOW - graceMs - 60_000; // 1 min past grace
+    expect(withLateStage('on_the_way', { scheduledStartMs, now: NOW })).toBe(
+      'late'
+    );
+    expect(withLateStage('nearby', { scheduledStartMs, now: NOW })).toBe(
+      'late'
+    );
+  });
+
+  it('stays en route while still within the grace window', () => {
+    const scheduledStartMs = NOW - graceMs + 60_000; // 1 min before grace end
+    expect(withLateStage('on_the_way', { scheduledStartMs, now: NOW })).toBe(
+      'on_the_way'
+    );
+  });
+
+  it('is bounded exactly by the grace (strictly greater than)', () => {
+    const atBoundary = NOW - graceMs; // now === scheduled + grace, not yet late
+    expect(
+      withLateStage('nearby', { scheduledStartMs: atBoundary, now: NOW })
+    ).toBe('nearby');
+    const justPast = NOW - graceMs - 1;
+    expect(
+      withLateStage('nearby', { scheduledStartMs: justPast, now: NOW })
+    ).toBe('late');
+  });
+
+  it('never overrides arriving / arrived / idle', () => {
+    const scheduledStartMs = NOW - graceMs - 10 * 60_000; // very overdue
+    for (const stage of ['arriving', 'arrived', 'idle'] as const) {
+      expect(withLateStage(stage, { scheduledStartMs, now: NOW })).toBe(stage);
+    }
+  });
+
+  it('is a no-op when the job has no scheduled start', () => {
+    expect(
+      withLateStage('on_the_way', { scheduledStartMs: null, now: NOW })
+    ).toBe('on_the_way');
+    expect(withLateStage('nearby', { scheduledStartMs: NaN, now: NOW })).toBe(
+      'nearby'
+    );
+  });
+
+  it('is not late before the appointment time', () => {
+    const scheduledStartMs = NOW + 30 * 60_000; // 30 min in the future
+    expect(withLateStage('on_the_way', { scheduledStartMs, now: NOW })).toBe(
+      'on_the_way'
+    );
+  });
+});
+
+describe('travelPresentation() — hero copy + tone', () => {
+  it('on_the_way folds ETA and distance into the subtitle', () => {
+    const p = travelPresentation('on_the_way', { eta: 12, distanceMiles: 3.2 });
+    expect(p.title).toBe('Your contractor is on the way');
+    expect(p.subtitle).toBe('~12 min away · 3.2 mi');
+    expect(p.tone).toBe('brand');
+  });
+
+  it('omits distance cleanly when unknown', () => {
+    expect(
+      travelPresentation('on_the_way', { eta: 8, distanceMiles: null }).subtitle
+    ).toBe('~8 min away');
+  });
+
+  it('renders sub-tenth-mile as "moments away", not "0.0 mi"', () => {
+    expect(
+      travelPresentation('on_the_way', { eta: 1, distanceMiles: 0.04 }).subtitle
+    ).toBe('~1 min away · moments away');
+  });
+
+  it('shows "Tracking…" when ETA is unknown', () => {
+    expect(
+      travelPresentation('on_the_way', { eta: null, distanceMiles: null })
+        .subtitle
+    ).toBe('Tracking… away');
+  });
+
+  it('nearby nudges the homeowner to open up', () => {
+    const p = travelPresentation('nearby', { eta: 3 });
+    expect(p.title).toBe('Your contractor is almost here');
+    expect(p.subtitle).toContain('a good time to open up');
+    expect(p.tone).toBe('brand');
+  });
+
+  it('arriving is a green, terse "pulling up"', () => {
+    const p = travelPresentation('arriving', { eta: 0 });
+    expect(p.subtitle).toBe('Pulling up outside now');
+    expect(p.tone).toBe('ok');
+  });
+
+  it('arrived is on-site and green', () => {
+    expect(travelPresentation('arrived', { eta: null }).tone).toBe('ok');
+  });
+
+  it('late is amber with the updated ETA', () => {
+    const p = travelPresentation('late', { eta: 15 });
+    expect(p.title).toBe('Running a little late');
+    expect(p.subtitle).toBe('New ETA ~15 min · thanks for your patience');
+    expect(p.tone).toBe('warn');
   });
 });
