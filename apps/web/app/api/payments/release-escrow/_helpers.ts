@@ -2,13 +2,9 @@
  * Helper functions for the release-escrow route.
  * Extracted to keep route.ts focused on orchestration logic.
  */
-import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { stripe } from '@/lib/stripe';
 import { logger, ESCROW_STATUS } from '@mintenance/shared';
-import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
-import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
-import { ForbiddenError } from '@/lib/errors/api-error';
 import {
   FeeTransferService,
   type FeeTransferOptions,
@@ -275,171 +271,9 @@ export async function notifyAndEmailContractor(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Pre-release safety checks (non-admin path)
-// ---------------------------------------------------------------------------
-
-/**
- * Runs all release-condition checks for the non-admin path.
- *
- * Returns:
- * - `{ blocked: NextResponse }` if a condition prevents release
- * - `{ blocked: null, updatedFields }` when all checks pass; `updatedFields`
- *   carries any fields mutated during auto-approval so the caller can update
- *   its local escrow object before proceeding.
- */
-export async function checkReleaseConditions(
-  escrowTransactionId: string,
-  escrowTransaction: {
-    admin_hold_status: string | null;
-    homeowner_approval: boolean | null;
-    photo_verification_status: string | null;
-    photo_quality_passed: boolean | null;
-    geolocation_verified: boolean | null;
-    timestamp_verified: boolean | null;
-    cooling_off_ends_at: string | null;
-  },
-  jobId: string
-): Promise<
-  | { blocked: NextResponse; updatedFields?: never }
-  | {
-      blocked: null;
-      updatedFields: {
-        homeowner_approval?: boolean;
-        cooling_off_ends_at?: string | null;
-      };
-    }
-> {
-  // 1. Admin hold
-  if (
-    escrowTransaction.admin_hold_status === 'admin_hold' ||
-    escrowTransaction.admin_hold_status === 'pending_review'
-  ) {
-    await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-    throw new ForbiddenError('Escrow is on admin hold');
-  }
-
-  // 2. Homeowner approval or auto-approval.
-  // Capture whether approval is an explicit human action BEFORE the
-  // auto-approval branch can flip the flag (see evaluate.ts gate 2/3 for
-  // the rationale). Explicit homeowner approval supersedes the automated
-  // photo gate below.
-  const explicitHomeownerApproval = !!escrowTransaction.homeowner_approval;
-  const updatedFields: {
-    homeowner_approval?: boolean;
-    cooling_off_ends_at?: string | null;
-  } = {};
-  if (!escrowTransaction.homeowner_approval) {
-    const autoApprovalEligible =
-      await HomeownerApprovalService.checkAutoApprovalEligibility(
-        escrowTransactionId
-      );
-    if (!autoApprovalEligible) {
-      const blockingReasons =
-        await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-      return {
-        blocked: NextResponse.json(
-          { error: 'Waiting for homeowner approval', blockingReasons },
-          { status: 403 }
-        ),
-      };
-    }
-    await HomeownerApprovalService.processAutoApproval(escrowTransactionId);
-    const { data: freshEscrow } = await serverSupabase
-      .from('escrow_transactions')
-      .select('homeowner_approval, cooling_off_ends_at')
-      .eq('id', escrowTransactionId)
-      .single();
-    if (!freshEscrow?.homeowner_approval) {
-      return {
-        blocked: NextResponse.json(
-          { error: 'Auto-approval failed' },
-          { status: 403 }
-        ),
-      };
-    }
-    updatedFields.homeowner_approval = freshEscrow.homeowner_approval;
-    updatedFields.cooling_off_ends_at = freshEscrow.cooling_off_ends_at;
-  }
-
-  // 3. Photo verification — only enforced on the auto-approval (7-day) path.
-  // These columns are populated by the automated verification pipeline, not
-  // by the homeowner approval flow. When a homeowner has explicitly approved
-  // the work, their human review supersedes the automated photo checks;
-  // enforcing the gate here would deadlock the release (the columns stay null
-  // on the approval path). See evaluate.ts gate 3 for the matching rationale.
-  if (!explicitHomeownerApproval) {
-    if (escrowTransaction.photo_verification_status !== 'verified') {
-      const blockingReasons =
-        await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-      return {
-        blocked: NextResponse.json(
-          { error: 'Photo verification not completed', blockingReasons },
-          { status: 403 }
-        ),
-      };
-    }
-    if (!escrowTransaction.photo_quality_passed) {
-      return {
-        blocked: NextResponse.json(
-          { error: 'Photo quality check failed' },
-          { status: 403 }
-        ),
-      };
-    }
-    if (!escrowTransaction.geolocation_verified) {
-      return {
-        blocked: NextResponse.json(
-          { error: 'Geolocation verification pending' },
-          { status: 403 }
-        ),
-      };
-    }
-    if (!escrowTransaction.timestamp_verified) {
-      return {
-        blocked: NextResponse.json(
-          { error: 'Timestamp verification pending' },
-          { status: 403 }
-        ),
-      };
-    }
-  }
-
-  // 4. Cooling-off period
-  const coolingOffAt =
-    updatedFields.cooling_off_ends_at ?? escrowTransaction.cooling_off_ends_at;
-  if (coolingOffAt) {
-    const coolingOffEnds = new Date(coolingOffAt);
-    if (coolingOffEnds > new Date()) {
-      return {
-        blocked: NextResponse.json(
-          {
-            error: `Cooling-off period active until ${coolingOffEnds.toISOString()}`,
-            coolingOffEndsAt: coolingOffEnds.toISOString(),
-          },
-          { status: 403 }
-        ),
-      };
-    }
-  }
-
-  // 5. Active disputes
-  const { count: disputeCount } = await serverSupabase
-    .from('disputes')
-    .select('id', { count: 'exact', head: true })
-    .eq('job_id', jobId)
-    .in('status', ['open', 'pending']);
-  if ((disputeCount || 0) > 0) {
-    return {
-      blocked: NextResponse.json(
-        { error: 'Active dispute exists - cannot release escrow' },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return { blocked: null, updatedFields };
-}
+// Pre-release safety checks (non-admin path) live in ./_release-conditions
+// (checkReleaseConditions) — split out 2026-07-20 to keep this file under the
+// 500-line limit. route.ts imports it directly from that module.
 
 // ---------------------------------------------------------------------------
 // Persistent audit trail after release

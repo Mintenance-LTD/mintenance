@@ -27,6 +27,8 @@ const selectFields = `
   stripe_processing_fee,
   released_at,
   refunded_at,
+  homeowner_approval,
+  cooling_off_ends_at,
   created_at,
   updated_at,
   job:jobs!escrow_transactions_job_id_fkey(id, title, description),
@@ -46,6 +48,8 @@ type EscrowRow = {
   stripe_processing_fee?: number | string | null;
   released_at?: string | null;
   refunded_at?: string | null;
+  homeowner_approval?: boolean | null;
+  cooling_off_ends_at?: string | null;
   created_at: string;
   updated_at: string;
   job?: {
@@ -84,6 +88,11 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
   updatedAt: row.updated_at,
   releasedAt: row.released_at ?? undefined,
   refundedAt: row.refunded_at ?? undefined,
+  // Surfaced so the payments UI can distinguish "needs approval" from
+  // "approved, cooling off" instead of rendering one Release button that
+  // 403s for reasons the user cannot see.
+  homeownerApproval: row.homeowner_approval ?? false,
+  coolingOffEndsAt: row.cooling_off_ends_at ?? undefined,
   platformFee: row.platform_fee != null ? Number(row.platform_fee) : undefined,
   contractorPayout:
     row.contractor_payout != null ? Number(row.contractor_payout) : undefined,

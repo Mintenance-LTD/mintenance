@@ -35,6 +35,14 @@ export interface EscrowTransaction {
   paymentIntentId?: string;
   releasedAt?: string;
   refundedAt?: string;
+  /** True once the homeowner has approved the work for this escrow. */
+  homeownerApproval?: boolean;
+  /**
+   * End of the 48-hour cooling-off window opened by homeowner approval.
+   * Undefined when no window applies — either not yet approved, or the
+   * homeowner explicitly waived it via approve-and-release.
+   */
+  coolingOffEndsAt?: string;
   // Real fee breakdown, populated at release (see escrow release flow).
   // camelCase view fields:
   platformFee?: number;

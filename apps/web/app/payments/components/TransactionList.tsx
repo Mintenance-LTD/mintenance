@@ -39,6 +39,8 @@ interface Transaction {
   platformFee?: number;
   processingFee?: number;
   subtotal?: number;
+  homeowner_approval?: boolean;
+  cooling_off_ends_at?: string;
 }
 
 interface TransactionListProps {
@@ -261,9 +263,16 @@ export function TransactionList({
                             e.stopPropagation();
                             onReleasePayment(transaction.id);
                           }}
+                          title={
+                            transaction.homeowner_approval
+                              ? undefined
+                              : 'Approves the work and releases payment now, waiving the 48-hour cooling-off period'
+                          }
                           className='px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors'
                         >
-                          Release
+                          {transaction.homeowner_approval
+                            ? 'Release'
+                            : 'Approve & Release'}
                         </button>
                         <button
                           onClick={(e) => {
