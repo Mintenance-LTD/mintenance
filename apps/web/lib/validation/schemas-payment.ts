@@ -61,6 +61,18 @@ export const releaseEscrowSchema = z
     escrowTransactionId: z.string().uuid('Invalid escrow transaction ID'),
     releaseReason: z.enum(['job_completed', 'dispute_resolved', 'timeout']),
     adminJustification: z.string().max(500).optional(),
+    /**
+     * Homeowner opt-in to approve-and-release in a single action, waiving the
+     * 48-hour cooling-off window that HomeownerApprovalService normally stamps.
+     *
+     * Only honoured for the homeowner who owns the job (the release route
+     * verifies ownership before this is read) and only when the escrow is not
+     * already approved. The cron and admin paths never send it, so the default
+     * 48-hour window remains in force everywhere else. The UI must obtain
+     * explicit informed consent before setting this — see the confirm copy in
+     * app/payments/page.tsx.
+     */
+    approveAndWaiveCoolingOff: z.boolean().optional(),
   })
   .strict();
 

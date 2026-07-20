@@ -31,7 +31,6 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateEscrowMFA } from './_validation';
 import {
   writeAdminBypassAuditLog,
-  checkReleaseConditions,
   performStripeTransfer,
   getChargeId,
   createFeeTransferRecord,
@@ -39,6 +38,7 @@ import {
   writeEscrowAuditLog,
   calculateReleaseFeeBreakdown,
 } from './_helpers';
+import { checkReleaseConditions } from './_release-conditions';
 
 export const POST = withApiHandler(
   {
@@ -52,8 +52,12 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { escrowTransactionId, releaseReason, adminJustification } =
-      validation.data;
+    const {
+      escrowTransactionId,
+      releaseReason,
+      adminJustification,
+      approveAndWaiveCoolingOff,
+    } = validation.data;
 
     // Get MFA token from header if present
     const mfaToken = request.headers.get('x-mfa-token');
@@ -192,10 +196,23 @@ export const POST = withApiHandler(
 
       // Check release conditions (skipped for admin — they bypass all checks)
       if (user.role !== 'admin') {
+        // Approve-and-release: only the homeowner who owns this job may waive
+        // their own 48-hour cooling-off window, and only by asking for it
+        // explicitly. `canRelease` above already proved the ownership link;
+        // re-assert both conditions here so the waiver can never be inherited
+        // from a role check that loosens later.
+        const approvalWaiver =
+          approveAndWaiveCoolingOff === true &&
+          user.role === 'homeowner' &&
+          job.homeowner_id === user.id
+            ? { actorId: user.id }
+            : null;
+
         const conditionResult = await checkReleaseConditions(
           escrowTransactionId,
           escrowTransaction,
-          job.id
+          job.id,
+          approvalWaiver
         );
         if (conditionResult.blocked) {
           return conditionResult.blocked;

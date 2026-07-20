@@ -37,6 +37,15 @@ interface Transaction {
   platformFee?: number;
   processingFee?: number;
   subtotal?: number;
+  /**
+   * Whether the homeowner has already approved the work. Drives whether the
+   * action reads "Release" or "Approve & Release" — releasing an unapproved
+   * escrow requires the homeowner to also waive the 48-hour cooling-off
+   * window, which needs its own confirmation copy.
+   */
+  homeowner_approval?: boolean;
+  /** End of an active 48-hour cooling-off window, if one is running. */
+  cooling_off_ends_at?: string;
 }
 
 interface PaymentData {
@@ -68,6 +77,8 @@ interface PaymentData {
   transaction_type?: string;
   release_reason?: string;
   refund_reason?: string;
+  homeownerApproval?: boolean;
+  coolingOffEndsAt?: string;
 }
 
 export default function PaymentsPage2025() {
@@ -143,6 +154,8 @@ export default function PaymentsPage2025() {
               refund_reason: t.refund_reason,
               platformFee,
               processingFee,
+              homeowner_approval: t.homeownerApproval ?? false,
+              cooling_off_ends_at: t.coolingOffEndsAt,
             };
           }
         );
@@ -162,13 +175,27 @@ export default function PaymentsPage2025() {
       toast.error('Security token not loaded. Please refresh.');
       return;
     }
-    if (
-      !confirm(
-        'Are you sure you want to release this payment? This action cannot be undone.'
-      )
-    ) {
+
+    // An escrow the homeowner has not yet approved cannot be released without
+    // also waiving the 48-hour cooling-off window that approval would
+    // normally open. That waiver has to be informed, so the confirm copy
+    // spells out both halves of what the single click does — approving the
+    // work AND giving up the window. Only send the waiver flag when the user
+    // agreed to that specific wording.
+    const transaction = transactions.find((t) => t.id === transactionId);
+    const needsApproval = transaction ? !transaction.homeowner_approval : false;
+
+    const confirmed = confirm(
+      needsApproval
+        ? 'This will approve the work as satisfactorily completed and immediately release the payment to the contractor.\n\n' +
+            'You will be waiving the 48-hour cooling-off period you would normally get after approving, during which a payment can still be held back.\n\n' +
+            'This cannot be undone. Continue?'
+        : 'Are you sure you want to release this payment? This action cannot be undone.'
+    );
+    if (!confirmed) {
       return;
     }
+
     try {
       const response = await fetch('/api/payments/release-escrow', {
         method: 'POST',
@@ -179,6 +206,7 @@ export default function PaymentsPage2025() {
         body: JSON.stringify({
           escrowTransactionId: transactionId,
           releaseReason: 'job_completed',
+          ...(needsApproval ? { approveAndWaiveCoolingOff: true } : {}),
         }),
       });
       if (!response.ok) {

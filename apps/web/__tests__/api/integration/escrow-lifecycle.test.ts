@@ -1116,6 +1116,19 @@ describe('Escrow Lifecycle - 4. Seven-day auto-release', () => {
           }),
         };
       }
+      // The dispute gate now runs before the approval gate (hoisted so an
+      // approve-and-release waiver can never approve a disputed escrow). No
+      // dispute here, so it must pass through to the "waiting for approval"
+      // 403 below.
+      if (table === 'disputes') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({ count: 0 }),
+            }),
+          }),
+        };
+      }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
