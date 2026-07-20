@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,7 @@ import { HomeownerLocationRequest } from './components/HomeownerLocationRequest'
 import { JobLocationMap } from './components/JobLocationMap';
 import { ContractorOnTheWayBanner } from './components/ContractorOnTheWayBanner';
 import { useContractorLiveLocation } from '../../hooks/useContractorLiveLocation';
+import { haversineDistance } from '../../services/ServiceAreasGeo';
 import {
   JobAccessCard,
   type PropertyAccess,
@@ -174,6 +175,20 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const contractorLive = useContractorLiveLocation(job?.id, {
     enabled: isOwner && !!job?.contractor_id && canShowContractorTravel,
   });
+
+  // Straight-line distance (miles) from the live contractor position to the
+  // job, folded into the "on the way" banner subtitle. Null until both the
+  // contractor's fix and the job coordinates are known. Miles, not km — the
+  // homeowner audience is UK.
+  const distanceMiles = useMemo(() => {
+    const pos = contractorLive.position;
+    if (!pos) return null;
+    const jLat = Number(job?.latitude);
+    const jLng = Number(job?.longitude);
+    if (!Number.isFinite(jLat) || !Number.isFinite(jLng)) return null;
+    const km = haversineDistance(pos.latitude, pos.longitude, jLat, jLng);
+    return km * 0.621371; // km → miles
+  }, [contractorLive.position, job?.latitude, job?.longitude]);
 
   // Homeowners get the full list from useJobBids; contractors get
   // their own single bid (zero or one row) from useMyBidForJob. The
@@ -349,7 +364,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         />
 
         {isOwner && contractorLive.isTraveling && (
-          <ContractorOnTheWayBanner eta={contractorLive.eta} />
+          <ContractorOnTheWayBanner
+            stage={contractorLive.stage}
+            eta={contractorLive.eta}
+            distanceMiles={distanceMiles}
+          />
         )}
 
         <View style={styles.divider} />
@@ -409,6 +428,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 latitude={job.latitude}
                 longitude={job.longitude}
                 contractorLocation={contractorLive.position}
+                stage={contractorLive.stage}
               />
             </View>
           </>

@@ -10,6 +10,7 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
+import type { TravelStage } from '../../../hooks/useContractorLiveLocation';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../../utils/mapAvailability';
 
 interface ContractorLocation {
@@ -29,6 +30,34 @@ interface Props {
    * view to both points so the homeowner can watch them approach.
    */
   contractorLocation?: ContractorLocation | null;
+  /**
+   * Journey stage, used only to label/tint the "Live" badge in sync with the
+   * banner above (Live → Nearby → Arriving → On site). Defaults to on_the_way.
+   */
+  stage?: TravelStage;
+}
+
+// Badge label + colours per stage. Keeps the map's badge in lock-step with the
+// ContractorOnTheWayBanner so the homeowner sees one consistent signal.
+function liveBadgeFor(stage: TravelStage): {
+  label: string;
+  fg: string;
+  bg: string;
+} {
+  switch (stage) {
+    case 'nearby':
+      return { label: 'Nearby', fg: me.brand, bg: me.brandSoft };
+    case 'arriving':
+      return { label: 'Arriving', fg: me.okFg, bg: me.okBg };
+    case 'arrived':
+      return { label: 'On site', fg: me.okFg, bg: me.okBg };
+    case 'late':
+      return { label: 'Delayed', fg: me.warnFg, bg: me.warnBg };
+    case 'on_the_way':
+    case 'idle':
+    default:
+      return { label: 'Live', fg: me.brand, bg: me.brandSoft };
+  }
 }
 
 export const JobLocationMap: React.FC<Props> = ({
@@ -36,6 +65,7 @@ export const JobLocationMap: React.FC<Props> = ({
   latitude,
   longitude,
   contractorLocation,
+  stage = 'on_the_way',
 }) => {
   // Defensive numeric guard: Postgres NUMERIC columns are serialised
   // by supabase-js as strings, and prior versions of this file passed
@@ -108,14 +138,18 @@ export const JobLocationMap: React.FC<Props> = ({
     if (url) Linking.openURL(url);
   };
 
+  const badge = liveBadgeFor(stage);
+
   const renderHeader = () => (
     <View style={styles.header}>
       <Ionicons name='location' size={18} color={me.brand} />
       <Text style={styles.title}>Job Location</Text>
       {contractor && (
-        <View style={styles.liveBadge}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveBadgeText}>Live</Text>
+        <View style={[styles.liveBadge, { backgroundColor: badge.bg }]}>
+          <View style={[styles.liveDot, { backgroundColor: badge.fg }]} />
+          <Text style={[styles.liveBadgeText, { color: badge.fg }]}>
+            {badge.label}
+          </Text>
         </View>
       )}
     </View>

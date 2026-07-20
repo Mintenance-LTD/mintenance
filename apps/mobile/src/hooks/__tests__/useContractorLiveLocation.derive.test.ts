@@ -1,6 +1,9 @@
 import {
   derive,
+  deriveStage,
   TRAVELING_FRESH_MS,
+  NEARBY_ETA_MINUTES,
+  ARRIVING_ETA_MINUTES,
   type ContractorLiveRow,
 } from '../useContractorLiveLocation';
 
@@ -100,5 +103,61 @@ describe('useContractorLiveLocation derive() — freshness gate', () => {
   it('null coordinates yield no position', () => {
     expect(derive(row({ latitude: null }), NOW).position).toBeNull();
     expect(derive(row({ longitude: 'nan' }), NOW).position).toBeNull();
+  });
+});
+
+describe('deriveStage() — journey thresholds', () => {
+  it('an arrived contractor is always "arrived" regardless of ETA', () => {
+    expect(deriveStage(true, false, null)).toBe('arrived');
+    expect(deriveStage(true, false, 0)).toBe('arrived');
+  });
+
+  it('not traveling and not arrived is "idle"', () => {
+    expect(deriveStage(false, false, null)).toBe('idle');
+    expect(deriveStage(false, false, 12)).toBe('idle');
+  });
+
+  it('a far ETA (or unknown ETA) reads as "on_the_way"', () => {
+    expect(deriveStage(false, true, 12)).toBe('on_the_way');
+    expect(deriveStage(false, true, NEARBY_ETA_MINUTES + 1)).toBe('on_the_way');
+    expect(deriveStage(false, true, null)).toBe('on_the_way'); // "Tracking…"
+  });
+
+  it('is "nearby" at/under the nearby threshold', () => {
+    expect(deriveStage(false, true, NEARBY_ETA_MINUTES)).toBe('nearby');
+    expect(deriveStage(false, true, ARRIVING_ETA_MINUTES + 1)).toBe('nearby');
+  });
+
+  it('is "arriving" at/under the arriving threshold', () => {
+    expect(deriveStage(false, true, ARRIVING_ETA_MINUTES)).toBe('arriving');
+    expect(deriveStage(false, true, 0)).toBe('arriving');
+  });
+});
+
+describe('derive() — stage integration', () => {
+  it('surfaces the journey stage from a fresh traveling fix', () => {
+    expect(derive(row({ eta_minutes: 12 }), NOW).stage).toBe('on_the_way');
+    expect(derive(row({ eta_minutes: 4 }), NOW).stage).toBe('nearby');
+    expect(derive(row({ eta_minutes: 1 }), NOW).stage).toBe('arriving');
+  });
+
+  it('a stale fix collapses the stage back to idle', () => {
+    const s = derive(
+      row({
+        eta_minutes: 2,
+        location_timestamp: iso(TRAVELING_FRESH_MS + 1),
+        updated_at: iso(TRAVELING_FRESH_MS + 1),
+      }),
+      NOW
+    );
+    expect(s.stage).toBe('idle'); // no banner, not "arriving"
+  });
+
+  it('an arrived contractor reports the arrived stage', () => {
+    expect(derive(row({ context: 'on_job' }), NOW).stage).toBe('arrived');
+  });
+
+  it('the empty state is idle', () => {
+    expect(derive(null, NOW).stage).toBe('idle');
   });
 });
