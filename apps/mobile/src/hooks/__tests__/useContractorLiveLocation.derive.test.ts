@@ -1,9 +1,11 @@
 import {
   derive,
   deriveStage,
+  withLateStage,
   TRAVELING_FRESH_MS,
   NEARBY_ETA_MINUTES,
   ARRIVING_ETA_MINUTES,
+  LATE_GRACE_MINUTES,
   type ContractorLiveRow,
 } from '../useContractorLiveLocation';
 
@@ -159,5 +161,60 @@ describe('derive() — stage integration', () => {
 
   it('the empty state is idle', () => {
     expect(derive(null, NOW).stage).toBe('idle');
+  });
+});
+
+describe('withLateStage() — overdue overlay', () => {
+  const graceMs = LATE_GRACE_MINUTES * 60 * 1000;
+
+  it('flags an en-route trip overdue past the grace as late', () => {
+    const scheduledStartMs = NOW - graceMs - 60_000; // 1 min past grace
+    expect(withLateStage('on_the_way', { scheduledStartMs, now: NOW })).toBe(
+      'late'
+    );
+    expect(withLateStage('nearby', { scheduledStartMs, now: NOW })).toBe(
+      'late'
+    );
+  });
+
+  it('stays en route while still within the grace window', () => {
+    const scheduledStartMs = NOW - graceMs + 60_000; // 1 min before grace end
+    expect(withLateStage('on_the_way', { scheduledStartMs, now: NOW })).toBe(
+      'on_the_way'
+    );
+  });
+
+  it('is bounded exactly by the grace (strictly greater than)', () => {
+    const atBoundary = NOW - graceMs; // now === scheduled + grace, not yet late
+    expect(
+      withLateStage('nearby', { scheduledStartMs: atBoundary, now: NOW })
+    ).toBe('nearby');
+    const justPast = NOW - graceMs - 1;
+    expect(
+      withLateStage('nearby', { scheduledStartMs: justPast, now: NOW })
+    ).toBe('late');
+  });
+
+  it('never overrides arriving / arrived / idle', () => {
+    const scheduledStartMs = NOW - graceMs - 10 * 60_000; // very overdue
+    for (const stage of ['arriving', 'arrived', 'idle'] as const) {
+      expect(withLateStage(stage, { scheduledStartMs, now: NOW })).toBe(stage);
+    }
+  });
+
+  it('is a no-op when the job has no scheduled start', () => {
+    expect(
+      withLateStage('on_the_way', { scheduledStartMs: null, now: NOW })
+    ).toBe('on_the_way');
+    expect(withLateStage('nearby', { scheduledStartMs: NaN, now: NOW })).toBe(
+      'nearby'
+    );
+  });
+
+  it('is not late before the appointment time', () => {
+    const scheduledStartMs = NOW + 30 * 60_000; // 30 min in the future
+    expect(withLateStage('on_the_way', { scheduledStartMs, now: NOW })).toBe(
+      'on_the_way'
+    );
   });
 });

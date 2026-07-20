@@ -25,7 +25,10 @@ import { ContractorLocationSection } from './components/ContractorLocationSectio
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
 import { ContractorOnTheWayBanner } from './components/ContractorOnTheWayBanner';
-import { useContractorLiveLocation } from '../../hooks/useContractorLiveLocation';
+import {
+  useContractorLiveLocation,
+  withLateStage,
+} from '../../hooks/useContractorLiveLocation';
 import { haversineDistance } from '../../services/ServiceAreasGeo';
 import {
   JobAccessCard,
@@ -189,6 +192,24 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     const km = haversineDistance(pos.latitude, pos.longitude, jLat, jLng);
     return km * 0.621371; // km → miles
   }, [contractorLive.position, job?.latitude, job?.longitude]);
+
+  // Agreed appointment start, if the job has been scheduled. Rides on the job
+  // object as a runtime extra (`scheduledStartDate`, camelCase) that the web
+  // GET /api/jobs/[id] returns and formatJob whitelists — the canonical Job
+  // type doesn't declare it, hence the cast.
+  const scheduledStartMs = useMemo(() => {
+    const raw = (job as { scheduledStartDate?: string | null } | null)
+      ?.scheduledStartDate;
+    if (!raw) return null;
+    const ms = Date.parse(raw);
+    return Number.isFinite(ms) ? ms : null;
+  }, [job]);
+
+  // Effective stage for the homeowner surfaces: the GPS-derived stage, with a
+  // 'late' overlay when the contractor is en route past the agreed start.
+  // Computed each render (not memoised) so the flip happens as soon as the
+  // deadline passes on the next realtime location tick — cheap enough.
+  const travelStage = withLateStage(contractorLive.stage, { scheduledStartMs });
 
   // Homeowners get the full list from useJobBids; contractors get
   // their own single bid (zero or one row) from useMyBidForJob. The
@@ -365,7 +386,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {isOwner && contractorLive.isTraveling && (
           <ContractorOnTheWayBanner
-            stage={contractorLive.stage}
+            stage={travelStage}
             eta={contractorLive.eta}
             distanceMiles={distanceMiles}
           />
@@ -428,7 +449,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 latitude={job.latitude}
                 longitude={job.longitude}
                 contractorLocation={contractorLive.position}
-                stage={contractorLive.stage}
+                stage={travelStage}
               />
             </View>
           </>

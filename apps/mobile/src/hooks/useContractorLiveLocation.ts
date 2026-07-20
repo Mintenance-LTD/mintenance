@@ -54,12 +54,11 @@ export interface ContractorPosition {
  *   nearby     — ETA <= NEARBY_ETA_MINUTES ("almost there, open up")
  *   arriving   — ETA <= ARRIVING_ETA_MINUTES ("pulling up outside")
  *   arrived    — context is an arrival alias (on site)
+ *   late       — en route but overdue vs the agreed appointment time
  *
- * NOTE: a 'late' stage (ETA slipped past the agreed appointment time) is a
- * planned addition but is intentionally NOT derived here yet — `derive()`
- * only sees the live GPS row, not the job's scheduled start. Wiring 'late'
- * needs the promised time threaded in from JobDetailsScreen; until then the
- * banner still renders it if a caller ever passes it.
+ * `derive()` produces every stage EXCEPT 'late', because 'late' needs the
+ * job's scheduled start time, which is not on the live GPS row. The screen
+ * that has the job applies `withLateStage()` (below) as a final override.
  */
 export type TravelStage =
   | 'idle'
@@ -114,6 +113,43 @@ export function deriveStage(
   if (eta != null && eta <= ARRIVING_ETA_MINUTES) return 'arriving';
   if (eta != null && eta <= NEARBY_ETA_MINUTES) return 'nearby';
   return 'on_the_way';
+}
+
+/**
+ * Minutes past the agreed appointment start before a still-en-route trip
+ * reads as "late" — a small grace so a contractor a minute or two behind
+ * isn't flagged.
+ */
+export const LATE_GRACE_MINUTES = 5;
+
+/**
+ * Overlay a 'late' stage onto the GPS-derived stage using the job's promised
+ * start time (which `derive()` can't see). Pure so JobDetailsScreen can apply
+ * it and the threshold stays testable.
+ *
+ * Only an en-route trip that hasn't reached "arriving" can be late: once the
+ * contractor is pulling up ('arriving') or on site ('arrived'), or was never
+ * moving ('idle'), the promised time is moot. `now` is injectable for tests.
+ */
+export function withLateStage(
+  stage: TravelStage,
+  opts: {
+    scheduledStartMs: number | null;
+    now?: number;
+    graceMinutes?: number;
+  }
+): TravelStage {
+  if (stage !== 'on_the_way' && stage !== 'nearby') return stage;
+  const {
+    scheduledStartMs,
+    now = Date.now(),
+    graceMinutes = LATE_GRACE_MINUTES,
+  } = opts;
+  if (scheduledStartMs == null || !Number.isFinite(scheduledStartMs)) {
+    return stage;
+  }
+  const overdue = now > scheduledStartMs + graceMinutes * 60_000;
+  return overdue ? 'late' : stage;
 }
 
 /**
