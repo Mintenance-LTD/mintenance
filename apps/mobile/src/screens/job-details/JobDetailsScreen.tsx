@@ -24,7 +24,6 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
-import { ContractorOnTheWayBanner } from './components/ContractorOnTheWayBanner';
 import {
   useContractorLiveLocation,
   withLateStage,
@@ -308,6 +307,14 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasPhotos = photos.length > 0;
   const locationStr =
     typeof job.location === 'string' ? job.location : job.city || '';
+  const jobLat = typeof job.latitude === 'number' ? job.latitude : null;
+  const jobLng = typeof job.longitude === 'number' ? job.longitude : null;
+  const hasJobCoords = jobLat != null && jobLng != null && !!locationStr;
+  // While the contractor is en route, the location map is promoted to a live
+  // hero near the top of the screen (the fused "on the way" banner + map);
+  // otherwise it stays in its normal lower section. Rendering it in exactly
+  // one place keeps a single MapView mounted.
+  const showLiveHero = isOwner && contractorLive.isTraveling && hasJobCoords;
   const budget = job.budget || job.budget_min || 0;
   const urgency = job.urgency || job.priority || 'medium';
   const categoryIcon =
@@ -384,12 +391,18 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           daysAgo={daysAgo}
         />
 
-        {isOwner && contractorLive.isTraveling && (
-          <ContractorOnTheWayBanner
-            stage={travelStage}
-            eta={contractorLive.eta}
-            distanceMiles={distanceMiles}
-          />
+        {showLiveHero && jobLat != null && jobLng != null && (
+          <View style={styles.sectionPadded}>
+            <JobLocationMap
+              address={locationStr}
+              latitude={jobLat}
+              longitude={jobLng}
+              contractorLocation={contractorLive.position}
+              stage={travelStage}
+              eta={contractorLive.eta}
+              distanceMiles={distanceMiles}
+            />
+          </View>
         )}
 
         <View style={styles.divider} />
@@ -440,14 +453,14 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.description}>{job.description}</Text>
         </View>
 
-        {job.latitude != null && job.longitude != null && locationStr ? (
+        {!showLiveHero && jobLat != null && jobLng != null ? (
           <>
             <View style={styles.divider} />
             <View style={styles.sectionPadded}>
               <JobLocationMap
                 address={locationStr}
-                latitude={job.latitude}
-                longitude={job.longitude}
+                latitude={jobLat}
+                longitude={jobLng}
                 contractorLocation={contractorLive.position}
                 stage={travelStage}
               />

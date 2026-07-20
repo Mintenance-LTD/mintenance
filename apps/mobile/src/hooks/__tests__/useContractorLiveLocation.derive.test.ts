@@ -2,6 +2,7 @@ import {
   derive,
   deriveStage,
   withLateStage,
+  travelPresentation,
   TRAVELING_FRESH_MS,
   NEARBY_ETA_MINUTES,
   ARRIVING_ETA_MINUTES,
@@ -216,5 +217,57 @@ describe('withLateStage() — overdue overlay', () => {
     expect(withLateStage('on_the_way', { scheduledStartMs, now: NOW })).toBe(
       'on_the_way'
     );
+  });
+});
+
+describe('travelPresentation() — hero copy + tone', () => {
+  it('on_the_way folds ETA and distance into the subtitle', () => {
+    const p = travelPresentation('on_the_way', { eta: 12, distanceMiles: 3.2 });
+    expect(p.title).toBe('Your contractor is on the way');
+    expect(p.subtitle).toBe('~12 min away · 3.2 mi');
+    expect(p.tone).toBe('brand');
+  });
+
+  it('omits distance cleanly when unknown', () => {
+    expect(
+      travelPresentation('on_the_way', { eta: 8, distanceMiles: null }).subtitle
+    ).toBe('~8 min away');
+  });
+
+  it('renders sub-tenth-mile as "moments away", not "0.0 mi"', () => {
+    expect(
+      travelPresentation('on_the_way', { eta: 1, distanceMiles: 0.04 }).subtitle
+    ).toBe('~1 min away · moments away');
+  });
+
+  it('shows "Tracking…" when ETA is unknown', () => {
+    expect(
+      travelPresentation('on_the_way', { eta: null, distanceMiles: null })
+        .subtitle
+    ).toBe('Tracking… away');
+  });
+
+  it('nearby nudges the homeowner to open up', () => {
+    const p = travelPresentation('nearby', { eta: 3 });
+    expect(p.title).toBe('Your contractor is almost here');
+    expect(p.subtitle).toContain('a good time to open up');
+    expect(p.tone).toBe('brand');
+  });
+
+  it('arriving is a green, terse "pulling up"', () => {
+    const p = travelPresentation('arriving', { eta: 0 });
+    expect(p.subtitle).toBe('Pulling up outside now');
+    expect(p.tone).toBe('ok');
+  });
+
+  it('arrived is on-site and green', () => {
+    expect(travelPresentation('arrived', { eta: null }).tone).toBe('ok');
+  });
+
+  it('late is amber with the updated ETA', () => {
+    const p = travelPresentation('late', { eta: 15 });
+    expect(p.title).toBe('Running a little late');
+    expect(p.subtitle).toBe('New ETA ~15 min · thanks for your patience');
+    expect(p.tone).toBe('warn');
   });
 });

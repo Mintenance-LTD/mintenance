@@ -152,6 +152,74 @@ export function withLateStage(
   return overdue ? 'late' : stage;
 }
 
+export interface TravelPresentation {
+  /** Headline, e.g. "Your contractor is on the way". */
+  title: string;
+  /** Supporting line folding in the live ETA + distance. */
+  subtitle: string;
+  /** Colour family the surface should adopt (accent, not the app accent). */
+  tone: 'brand' | 'ok' | 'warn';
+}
+
+function formatEta(eta: number | null): string {
+  if (eta == null) return 'Tracking…';
+  if (eta <= 0) return 'Arriving now';
+  return `~${eta} min`;
+}
+
+function formatDistance(distanceMiles?: number | null): string {
+  if (distanceMiles == null || !Number.isFinite(distanceMiles)) return '';
+  // Under a tenth of a mile "0.0 mi" reads as broken — say "moments away".
+  if (distanceMiles < 0.1) return ' · moments away';
+  return ` · ${distanceMiles.toFixed(1)} mi`;
+}
+
+/**
+ * Copy + tone for the fused live-tracking hero, keyed off the journey stage.
+ * Single source of truth so the map header (and any future surface) render
+ * identical wording/colour for a given stage.
+ */
+export function travelPresentation(
+  stage: TravelStage,
+  opts: { eta: number | null; distanceMiles?: number | null }
+): TravelPresentation {
+  const { eta, distanceMiles } = opts;
+  switch (stage) {
+    case 'arriving':
+      return {
+        title: 'Your contractor is arriving',
+        subtitle: 'Pulling up outside now',
+        tone: 'ok',
+      };
+    case 'arrived':
+      return {
+        title: 'Your contractor has arrived',
+        subtitle: 'On site now',
+        tone: 'ok',
+      };
+    case 'nearby':
+      return {
+        title: 'Your contractor is almost here',
+        subtitle: `${formatEta(eta)} away · a good time to open up`,
+        tone: 'brand',
+      };
+    case 'late':
+      return {
+        title: 'Running a little late',
+        subtitle: `New ETA ${formatEta(eta)} · thanks for your patience`,
+        tone: 'warn',
+      };
+    case 'on_the_way':
+    case 'idle':
+    default:
+      return {
+        title: 'Your contractor is on the way',
+        subtitle: `${formatEta(eta)} away${formatDistance(distanceMiles)}`,
+        tone: 'brand',
+      };
+  }
+}
+
 /**
  * How recent a "traveling" GPS fix must be to count as live. Contractors
  * write positions every few seconds while driving, so a fix older than this
