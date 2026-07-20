@@ -17,6 +17,7 @@ import { BarChart, DonutChart } from '@tremor/react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { logger } from '@mintenance/shared';
 import { useChartPalette } from '@/lib/charts/editorial-palette';
 
@@ -50,6 +51,7 @@ interface TimeEntry {
 }
 
 export default function TimeTrackingPage() {
+  const confirm = useConfirm();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -187,7 +189,12 @@ export default function TimeTrackingPage() {
   };
 
   const handleDeleteEntry = async (id: string) => {
-    if (!confirm('Delete this time entry?')) return;
+    const ok = await confirm({
+      title: 'Delete this time entry?',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     const prev = entries;
     setEntries(entries.filter((e) => e.id !== id));
     try {

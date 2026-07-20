@@ -2,13 +2,17 @@
 
 /**
  * YOLO Correction Panel
- * 
+ *
  * Wrapper component that manages correction state and API calls
  */
 
 import React, { useState } from 'react';
 import { logger } from '@mintenance/shared';
-import { YOLOCorrectionEditor, type CorrectedDetection } from './YOLOCorrectionEditor';
+import toast from 'react-hot-toast';
+import {
+  YOLOCorrectionEditor,
+  type CorrectedDetection,
+} from './YOLOCorrectionEditor';
 import type { RoboflowDetection } from '@/lib/services/building-surveyor/types';
 
 interface YOLOCorrectionPanelProps {
@@ -28,13 +32,15 @@ export function YOLOCorrectionPanel({
   onComplete,
 }: YOLOCorrectionPanelProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [corrections, setCorrections] = useState<Map<number, CorrectedDetection[]>>(new Map());
+  const [corrections, setCorrections] = useState<
+    Map<number, CorrectedDetection[]>
+  >(new Map());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedCount, setSubmittedCount] = useState(0);
 
   const currentImageUrl = imageUrls[currentImageIndex];
   const currentImageDetections = originalDetections.filter(
-    det => det.imageUrl === currentImageUrl
+    (det) => det.imageUrl === currentImageUrl
   );
   const currentCorrections = corrections.get(currentImageIndex) || [];
 
@@ -47,14 +53,14 @@ export function YOLOCorrectionPanel({
 
       // Calculate corrections made
       const correctionsMade = {
-        added: detections.filter(d => d.id.startsWith('new-')),
+        added: detections.filter((d) => d.id.startsWith('new-')),
         removed: currentImageDetections.filter(
-          orig => !detections.find(d => d.id === orig.id)
+          (orig) => !detections.find((d) => d.id === orig.id)
         ),
         adjusted: detections
-          .filter(d => !d.id.startsWith('new-'))
-          .filter(d => {
-            const orig = currentImageDetections.find(o => o.id === d.id);
+          .filter((d) => !d.id.startsWith('new-'))
+          .filter((d) => {
+            const orig = currentImageDetections.find((o) => o.id === d.id);
             if (!orig) return false;
             return (
               orig.className !== d.class ||
@@ -67,7 +73,7 @@ export function YOLOCorrectionPanel({
       };
 
       // Convert to RoboflowDetection format for API
-      const correctedDetections = detections.map(det => ({
+      const correctedDetections = detections.map((det) => ({
         id: det.id,
         className: det.class,
         confidence: (det.confidence || 0.5) * 100,
@@ -112,7 +118,9 @@ export function YOLOCorrectionPanel({
       }
     } catch (error) {
       logger.error('Failed to submit correction:', error);
-      alert(error instanceof Error ? error.message : 'Failed to submit correction');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to submit correction'
+      );
       throw error;
     } finally {
       setIsSubmitting(false);
@@ -120,21 +128,24 @@ export function YOLOCorrectionPanel({
   };
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       {/* Progress */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-blue-900">
+      <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+        <div className='flex items-center justify-between mb-2'>
+          <span className='text-sm font-medium text-blue-900'>
             Image {currentImageIndex + 1} of {imageUrls.length}
           </span>
-          <span className="text-sm text-blue-700">
-            {submittedCount} correction{submittedCount !== 1 ? 's' : ''} submitted
+          <span className='text-sm text-blue-700'>
+            {submittedCount} correction{submittedCount !== 1 ? 's' : ''}{' '}
+            submitted
           </span>
         </div>
-        <div className="w-full bg-blue-200 rounded-full h-2">
+        <div className='w-full bg-blue-200 rounded-full h-2'>
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all"
-            style={{ width: `${((currentImageIndex + 1) / imageUrls.length) * 100}%` }}
+            className='bg-blue-600 h-2 rounded-full transition-all'
+            style={{
+              width: `${((currentImageIndex + 1) / imageUrls.length) * 100}%`,
+            }}
           />
         </div>
       </div>
@@ -154,16 +165,18 @@ export function YOLOCorrectionPanel({
       />
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
+      <div className='flex items-center justify-between'>
         <button
-          onClick={() => setCurrentImageIndex(Math.max(0, currentImageIndex - 1))}
+          onClick={() =>
+            setCurrentImageIndex(Math.max(0, currentImageIndex - 1))
+          }
           disabled={currentImageIndex === 0}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
         >
           Previous Image
         </button>
 
-        <div className="flex gap-2">
+        <div className='flex gap-2'>
           {imageUrls.map((_, index) => (
             <button
               key={index}
@@ -172,8 +185,8 @@ export function YOLOCorrectionPanel({
                 index === currentImageIndex
                   ? 'bg-blue-600'
                   : corrections.has(index)
-                  ? 'bg-green-500'
-                  : 'bg-gray-300'
+                    ? 'bg-green-500'
+                    : 'bg-gray-300'
               }`}
               title={`Image ${index + 1}`}
             />
@@ -181,9 +194,13 @@ export function YOLOCorrectionPanel({
         </div>
 
         <button
-          onClick={() => setCurrentImageIndex(Math.min(imageUrls.length - 1, currentImageIndex + 1))}
+          onClick={() =>
+            setCurrentImageIndex(
+              Math.min(imageUrls.length - 1, currentImageIndex + 1)
+            )
+          }
           disabled={currentImageIndex === imageUrls.length - 1}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
         >
           Next Image
         </button>
@@ -191,4 +208,3 @@ export function YOLOCorrectionPanel({
     </div>
   );
 }
-

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Check, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface Quote {
   id: string;
@@ -45,6 +46,7 @@ function toDateInput(value?: string | null): string {
 
 export function EditQuoteClient({ quote }: EditQuoteClientProps) {
   const router = useRouter();
+  const confirm = useConfirm();
 
   // Hydration-safe theme detection — match the rest of the contractor
   // surfaces (legacy vs. Mint Editorial). The form is light enough that
@@ -126,11 +128,13 @@ export function EditQuoteClient({ quote }: EditQuoteClientProps) {
 
   const handleDelete = async () => {
     if (deleting) return;
-    if (
-      !confirm(
-        `Delete quote ${quote.quote_number || quote.id}? This cannot be undone.`
-      )
-    ) {
+    const ok = await confirm({
+      title: 'Delete quote?',
+      description: `Delete quote ${quote.quote_number || quote.id}? This cannot be undone.`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) {
       return;
     }
     setDeleting(true);

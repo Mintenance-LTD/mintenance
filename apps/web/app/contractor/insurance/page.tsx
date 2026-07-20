@@ -17,6 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { logger } from '@mintenance/shared';
 
 const fadeIn = {
@@ -62,6 +63,7 @@ interface License {
 }
 
 export default function InsuranceLicensingPage() {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'insurance' | 'licenses'>(
     'insurance'
   );
@@ -226,7 +228,12 @@ export default function InsuranceLicensingPage() {
     type: 'insurance' | 'license',
     label: string
   ) => {
-    if (!confirm(`Delete "${label}"?`)) return;
+    const ok = await confirm({
+      title: `Delete "${label}"?`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     if (type === 'insurance') {
       const prev = insurances;
       setInsurances(insurances.filter((i) => i.id !== id));

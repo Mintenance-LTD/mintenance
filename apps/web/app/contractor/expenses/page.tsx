@@ -37,6 +37,7 @@ import toast from 'react-hot-toast';
 import { useChartPalette } from '@/lib/charts/editorial-palette';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { logger } from '@mintenance/shared';
 import { ExpenseFormModal } from './ExpenseFormModal';
 import { ExpenseStatsCards } from './ExpenseStatsCards';
@@ -89,6 +90,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function ExpenseTrackingPage() {
+  const confirm = useConfirm();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
@@ -227,7 +229,12 @@ export default function ExpenseTrackingPage() {
   };
 
   const handleDeleteExpense = async (id: string, description: string) => {
-    if (!confirm(`Delete expense "${description}"?`)) return;
+    const ok = await confirm({
+      title: `Delete expense "${description}"?`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     const previous = [...expenses];
     setExpenses(expenses.filter((e) => e.id !== id));

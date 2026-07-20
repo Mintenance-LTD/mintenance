@@ -15,6 +15,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Ruler, Home as HomeIcon } from 'lucide-react';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { logger } from '@mintenance/shared';
 import { RoomFormModal, type RoomFormValues } from './RoomFormModal';
 
@@ -70,6 +71,7 @@ export function PropertyRoomsSection({
   editable = false,
 }: PropertyRoomsSectionProps) {
   const { getCsrfHeaders } = useCSRF();
+  const confirm = useConfirm();
   const [rooms, setRooms] = useState<PropertyRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,9 +144,13 @@ export function PropertyRoomsSection({
   };
 
   const handleDelete = async (room: PropertyRoom) => {
-    if (
-      !window.confirm(`Delete the room "${room.name}"? This cannot be undone.`)
-    ) {
+    const ok = await confirm({
+      title: `Delete the room "${room.name}"?`,
+      description: 'This cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) {
       return;
     }
     try {

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { AdvancedSearchService } from '@/lib/services/AdvancedSearchService';
 import { logger } from '@/lib/logger';
+import toast from 'react-hot-toast';
 import type {
   User,
   Job,
@@ -152,19 +153,19 @@ function SearchContent() {
         (saved) => saved.name.trim().toLowerCase() === name.toLowerCase()
       )
     ) {
-      alert('You already have a saved search with this name.');
+      toast.error('You already have a saved search with this name.');
       return;
     }
 
     try {
       await AdvancedSearchService.saveSearch(user.id, name, filters, false);
-      alert('Search saved successfully!');
+      toast.success('Search saved successfully!');
 
       const saved = await AdvancedSearchService.getSavedSearches(user.id);
       setSavedSearches(saved);
     } catch (error) {
       logger.error('Error saving search', error);
-      alert('Failed to save search');
+      toast.error('Failed to save search');
     }
   };
 

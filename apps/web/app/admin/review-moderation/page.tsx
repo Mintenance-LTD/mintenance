@@ -28,6 +28,7 @@ import {
   MessageSquareReply,
   Shield,
 } from 'lucide-react';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface PendingReply {
   id: string;
@@ -222,6 +223,7 @@ export default function AdminReviewModerationPage() {
   const [stepUpRequest, setStepUpRequest] = useState<StepUpRequest | null>(
     null
   );
+  const confirm = useConfirm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -250,10 +252,20 @@ export default function AdminReviewModerationPage() {
   ): Promise<void> {
     const verb = action === 'approve' ? 'approve' : 'block';
     if (!options.confirmed) {
-      const ok = window.confirm(
+      const ok = await confirm(
         action === 'approve'
-          ? 'Publish this reply now (skipping the remaining moderation window)?'
-          : 'Block this reply from ever being published? This is visible to the contractor in their review list.'
+          ? {
+              title: 'Publish this reply now?',
+              description: 'This skips the remaining moderation window.',
+              confirmText: 'Publish',
+            }
+          : {
+              title: 'Block this reply?',
+              description:
+                'This reply will never be published. This is visible to the contractor in their review list.',
+              confirmText: 'Block',
+              destructive: true,
+            }
       );
       if (!ok) return;
     }

@@ -18,6 +18,7 @@ import { DonutChart, BarChart } from '@tremor/react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { logger } from '@mintenance/shared';
 import { useChartPalette } from '@/lib/charts/editorial-palette';
 
@@ -76,6 +77,7 @@ const STATUSES = [
 ];
 
 export default function ToolsEquipmentPage() {
+  const confirm = useConfirm();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -184,7 +186,12 @@ export default function ToolsEquipmentPage() {
   };
 
   const handleDeleteTool = async (id: string, name: string) => {
-    if (!confirm(`Delete "${name}" from inventory?`)) return;
+    const ok = await confirm({
+      title: `Delete "${name}" from inventory?`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     const prev = tools;
     setTools(tools.filter((t) => t.id !== id));
     try {
