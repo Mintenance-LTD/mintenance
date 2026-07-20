@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@mintenance/shared';
+import toast from 'react-hot-toast';
 
 interface EscrowStatus {
   status: string;
@@ -111,10 +112,10 @@ export function EscrowStatusDashboardClient() {
         throw new Error('Failed to request admin review');
       }
       await fetchEscrowStatus(escrowId);
-      alert('Admin review requested successfully');
+      toast.success('Admin review requested successfully');
     } catch (error) {
       logger.error('Error requesting admin review:', error);
-      alert('Failed to request admin review');
+      toast.error('Failed to request admin review');
     }
   };
 

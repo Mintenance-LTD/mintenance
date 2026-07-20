@@ -6,6 +6,7 @@ import { fetchCurrentUser } from '@/lib/auth-client';
 import { MessagingService } from '@/lib/services/MessagingService';
 import { useRealTimeMessages } from '@/hooks/useRealTimeMessages';
 import { logger } from '@/lib/logger';
+import toast from 'react-hot-toast';
 import type { Message, User } from '@mintenance/types';
 
 export interface HomeownerProfile {
@@ -164,7 +165,7 @@ export function useChatData(jobId: string) {
   const handleSendMessage = async (messageText: string) => {
     if (!user || !jobId || !otherUserId || sending) {
       if (!otherUserId)
-        alert('Unable to determine recipient. Please refresh the page.');
+        toast.error('Unable to determine recipient. Please refresh the page.');
       return;
     }
     try {
@@ -179,7 +180,7 @@ export function useChatData(jobId: string) {
       scrollToBottom();
     } catch (err) {
       logger.error('Error sending message', err);
-      alert(
+      toast.error(
         err instanceof Error
           ? err.message
           : 'Failed to send message. Please try again.'

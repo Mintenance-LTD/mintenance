@@ -17,10 +17,12 @@ import { UploadModal } from './DocumentsPage/UploadModal';
 import { ContractorLibraryHero } from './DocumentsPage/ContractorLibraryHero';
 import { ContractorLibraryView } from './DocumentsPage/ContractorLibraryView';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 export default function DocumentManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const confirm = useConfirm();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -229,7 +231,12 @@ export default function DocumentManagementPage() {
 
   // Delete document or contract
   const handleDelete = async (doc: Document) => {
-    if (!confirm(`Delete "${doc.name}"?`)) return;
+    const ok = await confirm({
+      title: `Delete "${doc.name}"?`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     // Optimistic remove
     setDocuments((prev) => prev.filter((d) => d.id !== doc.id));

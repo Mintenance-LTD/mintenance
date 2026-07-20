@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import toast from 'react-hot-toast';
 import {
   Plus,
@@ -60,6 +61,7 @@ export function InvoiceManagementClient({
   stats,
 }: InvoiceManagementClientProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [selectedFilter, setSelectedFilter] =
     useState<(typeof FILTERS)[number]['id']>('all');
@@ -146,7 +148,12 @@ export function InvoiceManagementClient({
 
   const handleDelete = useCallback(
     async (invoiceId: string) => {
-      if (!confirm('Are you sure you want to delete this invoice?')) return;
+      const ok = await confirm({
+        title: 'Delete this invoice?',
+        confirmText: 'Delete',
+        destructive: true,
+      });
+      if (!ok) return;
       const previous = [...invoices];
       setInvoices((prev) => prev.filter((inv) => inv.id !== invoiceId));
       try {
@@ -168,7 +175,7 @@ export function InvoiceManagementClient({
         );
       }
     },
-    [invoices]
+    [invoices, confirm]
   );
 
   const handleDownloadPDF = useCallback((invoiceId: string) => {

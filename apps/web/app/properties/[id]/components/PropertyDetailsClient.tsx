@@ -25,6 +25,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders, getCsrfToken } from '@/lib/csrf-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import {
   SpendingChart,
   aggregateSpendingByMonth,
@@ -103,6 +104,7 @@ export default function PropertyDetailsClient({
   stats,
 }: PropertyDetailsClientProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<
     'overview' | 'jobs' | 'assessments' | 'manage'
   >('overview');
@@ -413,7 +415,13 @@ export default function PropertyDetailsClient({
       return;
     }
 
-    if (confirm(confirmMessage)) {
+    const ok = await confirm({
+      title: 'Delete this property?',
+      description: confirmMessage,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (ok) {
       try {
         const response = await fetch(`/api/properties/${property.id}`, {
           method: 'DELETE',

@@ -19,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { AddPaymentMethodForm } from './components/AddPaymentMethodForm';
 
 interface PaymentMethod {
@@ -40,6 +41,7 @@ interface PaymentMethod {
 
 export default function PaymentMethodsPage() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { user, loading: loadingUser } = useCurrentUser();
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>(
     []
@@ -80,7 +82,12 @@ export default function PaymentMethodsPage() {
   };
 
   const handleRemoveMethod = async (methodId: string) => {
-    if (!confirm('Are you sure you want to remove this payment method?')) {
+    const ok = await confirm({
+      title: 'Remove this payment method?',
+      confirmText: 'Remove',
+      destructive: true,
+    });
+    if (!ok) {
       return;
     }
 

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import type { Quote } from './useQuotesData';
 
 const fadeInUp = {
@@ -80,6 +81,7 @@ export function QuoteCard({
   onToggleMenu,
 }: QuoteCardProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const config = STATUS_CONFIGS[quote.status];
   const [isSending, setIsSending] = useState(false);
 
@@ -128,8 +130,13 @@ export function QuoteCard({
     toast.success('Downloading PDF...');
     onToggleMenu(null);
   };
-  const handleDelete = () => {
-    if (confirm(`Delete quote "${quote.jobTitle}"?`)) {
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete quote "${quote.jobTitle}"?`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (ok) {
       toast.success('Quote deleted');
       onToggleMenu(null);
     }

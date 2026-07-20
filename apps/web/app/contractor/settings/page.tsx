@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import toast from 'react-hot-toast';
 import {
   User,
@@ -39,6 +40,7 @@ type UserWithLocation = { address?: string; city?: string; postcode?: string };
 
 export default function ContractorSettingsPage() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { user, loading: loadingUser, refresh } = useCurrentUser();
   const [activeSection, setActiveSection] = useState<SectionKey>('profile');
 
@@ -178,8 +180,12 @@ export default function ContractorSettingsPage() {
   };
 
   const handleRemoveMethod = async (methodId: string) => {
-    if (!confirm('Are you sure you want to remove this payment method?'))
-      return;
+    const ok = await confirm({
+      title: 'Remove this payment method?',
+      confirmText: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       setRemovingId(methodId);
       // Fetch fresh CSRF token before mutation

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { Toaster } from 'react-hot-toast';
 import { queryClient } from '@/lib/react-query-client';
 import { ToastProvider } from '@/components/ui/Toast';
+import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog';
 import { useEffect, useState } from 'react';
 import { SentryInit } from './sentry-init';
 
@@ -29,9 +30,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <SentryInit />
-        {children}
-        {/*
+        <ConfirmDialogProvider>
+          <SentryInit />
+          {children}
+          {/*
           react-hot-toast portal. Mounted globally because 107+ files
           across the web app `import toast from 'react-hot-toast'` and
           call `toast.success()` / `toast.error()` without ever mounting
@@ -45,42 +47,43 @@ export function Providers({ children }: { children: React.ReactNode }) {
           APIs are independent, so call-sites can migrate
           incrementally without breaking either system.
         */}
-        <Toaster
-          position='top-center'
-          toastOptions={{
-            duration: 5000,
-            style: {
-              fontFamily: 'var(--font-inter)',
-              borderRadius: '0.75rem',
-              padding: '0.75rem 1rem',
-              fontSize: '0.875rem',
-            },
-            success: {
-              // Uses the design-system success palette
-              // (--success-light / --success-dark) defined in
-              // apps/web/styles/professional-design-system.css so the
-              // Toaster matches `.badge-success` and respects future
-              // theme changes.
+          <Toaster
+            position='top-center'
+            toastOptions={{
+              duration: 5000,
               style: {
-                background: 'var(--success-light)',
-                color: 'var(--success-dark)',
-                border: '1px solid var(--success)',
+                fontFamily: 'var(--font-inter)',
+                borderRadius: '0.75rem',
+                padding: '0.75rem 1rem',
+                fontSize: '0.875rem',
               },
-            },
-            error: {
-              // Mirror of `.badge-error` — see comment on success
-              // above.
-              style: {
-                background: 'var(--error-light)',
-                color: 'var(--error-dark)',
-                border: '1px solid var(--error)',
+              success: {
+                // Uses the design-system success palette
+                // (--success-light / --success-dark) defined in
+                // apps/web/styles/professional-design-system.css so the
+                // Toaster matches `.badge-success` and respects future
+                // theme changes.
+                style: {
+                  background: 'var(--success-light)',
+                  color: 'var(--success-dark)',
+                  border: '1px solid var(--success)',
+                },
               },
-            },
-          }}
-        />
-        {mounted && process.env.NODE_ENV === 'development' && (
-          <ReactQueryDevtools />
-        )}
+              error: {
+                // Mirror of `.badge-error` — see comment on success
+                // above.
+                style: {
+                  background: 'var(--error-light)',
+                  color: 'var(--error-dark)',
+                  border: '1px solid var(--error)',
+                },
+              },
+            }}
+          />
+          {mounted && process.env.NODE_ENV === 'development' && (
+            <ReactQueryDevtools />
+          )}
+        </ConfirmDialogProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

@@ -13,6 +13,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Users, Plus, Trash2, Mail, ShieldCheck } from 'lucide-react';
 import { InviteMemberDialog, type OrgRole } from './InviteMemberDialog';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface Org {
   id: string;
@@ -62,6 +63,7 @@ function roleBadgeClass(role: OrgRole): string {
 }
 
 export default function ContractorTeamPage() {
+  const confirm = useConfirm();
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [activeOrg, setActiveOrg] = useState<Org | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -126,11 +128,13 @@ export default function ContractorTeamPage() {
 
   async function remove(member: Member) {
     if (!activeOrg) return;
-    if (
-      !window.confirm(
-        `Remove ${member.profile?.email ?? member.user_id} from ${activeOrg.name}?`
-      )
-    ) {
+    const ok = await confirm({
+      title: 'Remove team member?',
+      description: `Remove ${member.profile?.email ?? member.user_id} from ${activeOrg.name}?`,
+      confirmText: 'Remove',
+      destructive: true,
+    });
+    if (!ok) {
       return;
     }
     const res = await fetch(

@@ -7,6 +7,7 @@ import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWr
 import { LoadingSpinner } from '@/components/ui';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ChevronLeft } from 'lucide-react';
 import { PaymentsHeader } from './components/PaymentsHeader';
 import { PaymentsStatsCards } from './components/PaymentsStatsCards';
@@ -98,6 +99,7 @@ export default function PaymentsPage2025() {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [refundReason, setRefundReason] = useState('');
+  const confirm = useConfirm();
 
   // Hide the inline "Back to Dashboard" link when the Mint Editorial
   // shell is active — the persistent sidebar already provides nav, so
@@ -185,12 +187,24 @@ export default function PaymentsPage2025() {
     const transaction = transactions.find((t) => t.id === transactionId);
     const needsApproval = transaction ? !transaction.homeowner_approval : false;
 
-    const confirmed = confirm(
+    const confirmed = await confirm(
       needsApproval
-        ? 'This will approve the work as satisfactorily completed and immediately release the payment to the contractor.\n\n' +
-            'You will be waiving the 48-hour cooling-off period you would normally get after approving, during which a payment can still be held back.\n\n' +
-            'This cannot be undone. Continue?'
-        : 'Are you sure you want to release this payment? This action cannot be undone.'
+        ? {
+            title: 'Approve work and release payment?',
+            description:
+              'This will approve the work as satisfactorily completed and immediately release the payment to the contractor.\n\n' +
+              'You will be waiving the 48-hour cooling-off period you would normally get after approving, during which a payment can still be held back.\n\n' +
+              'This cannot be undone.',
+            confirmText: 'Approve & release',
+            destructive: true,
+          }
+        : {
+            title: 'Release this payment?',
+            description:
+              'Are you sure you want to release this payment? This action cannot be undone.',
+            confirmText: 'Release payment',
+            destructive: true,
+          }
     );
     if (!confirmed) {
       return;

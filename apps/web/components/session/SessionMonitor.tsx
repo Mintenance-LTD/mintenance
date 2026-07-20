@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 /**
  * Session Monitor Component
@@ -39,6 +41,7 @@ export function SessionMonitor() {
     markWarningShown,
   } = useSessionMonitor({ enabled: !isPublicPage });
 
+  const confirm = useConfirm();
   const [showCriticalModal, setShowCriticalModal] = useState(false);
   const [ratelimitToastShown, setRatelimitToastShown] = useState(false);
 
@@ -52,17 +55,11 @@ export function SessionMonitor() {
   useEffect(() => {
     const paused = !!error && /paused/i.test(error);
     if (paused && !ratelimitToastShown) {
-      // Using native alert here to match the existing warning-toast style
-      // in this component. When the shared ToastProvider is wired up we
-      // can swap to that — low priority.
-      if (typeof window !== 'undefined') {
-        // Fire-and-forget notification so polling does not stall.
-        window.setTimeout(() => {
-          window.alert(
-            'Session check paused for 2 minutes (rate-limited). We will retry automatically. If you are about to be signed out, click "Extend Session" when the warning appears.'
-          );
-        }, 0);
-      }
+      // Non-blocking, branded notification so polling does not stall.
+      toast(
+        'Session check paused for 2 minutes (rate-limited). We will retry automatically. If you are about to be signed out, click "Extend Session" when the warning appears.',
+        { duration: 8000, icon: '⏳' }
+      );
       setRatelimitToastShown(true);
     } else if (!paused && ratelimitToastShown) {
       setRatelimitToastShown(false);
@@ -76,21 +73,22 @@ export function SessionMonitor() {
     if (!status || !status.authenticated) return;
 
     if (status.warnings.shouldWarnSoon && !hasShownWarning) {
-      // Show toast notification using native browser notification
-      // (In production, you'd use your existing Toast system here)
       const minutes = status.timeRemainingMinutes || 0;
 
-      if (
-        window.confirm(
-          `Your session will expire in ${minutes} minutes due to inactivity.\n\nClick OK to extend your session, or Cancel to logout.`
-        )
-      ) {
-        extendSession();
-      }
-
+      // Mark the warning shown up front so this effect can't re-fire and
+      // stack a second dialog while the async confirm is still open.
       markWarningShown('warning');
+
+      void confirm({
+        title: 'Session expiring soon',
+        description: `Your session will expire in ${minutes} minutes due to inactivity.\n\nExtend your session to keep working, or dismiss to let it expire.`,
+        confirmText: 'Extend session',
+        cancelText: 'Dismiss',
+      }).then((extend) => {
+        if (extend) extendSession();
+      });
     }
-  }, [status, hasShownWarning, extendSession, markWarningShown]);
+  }, [status, hasShownWarning, extendSession, markWarningShown, confirm]);
 
   /**
    * Handle critical modal (1 minute remaining)

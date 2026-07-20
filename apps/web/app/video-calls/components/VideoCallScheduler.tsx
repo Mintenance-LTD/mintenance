@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
+import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -125,7 +126,7 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
       }
     } catch (error) {
       logger.error('Error scheduling call:', error);
-      alert('Failed to schedule call');
+      toast.error('Failed to schedule call');
     } finally {
       setLoading(false);
     }

@@ -25,6 +25,7 @@ import {
 import { Loader2, Lock } from 'lucide-react';
 import { logger } from '@mintenance/shared';
 import { getStripeClient } from '@/lib/stripe/elements/client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 const HOME_HEALTH_MONTHLY = 9.99;
 
@@ -170,6 +171,7 @@ function HomeHealthConfirmForm({
 }
 
 export function HomeHealthEnrollCard() {
+  const confirm = useConfirm();
   const [sub, setSub] = useState<Subscription | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string>('');
@@ -241,11 +243,13 @@ export function HomeHealthEnrollCard() {
   };
 
   const cancel = async () => {
-    if (
-      !window.confirm(
-        'Cancel Home Health at the end of your current billing period?'
-      )
-    ) {
+    const ok = await confirm({
+      title: 'Cancel Home Health?',
+      description:
+        'Cancel Home Health at the end of your current billing period?',
+      confirmText: 'Cancel subscription',
+    });
+    if (!ok) {
       return;
     }
     setSubmitting(true);

@@ -10,6 +10,7 @@ import { FeaturesGrid } from './FeaturesGrid';
 import { CTASection } from './CTASection';
 import { logger } from '@mintenance/shared';
 import { normalizeSeverity } from '@mintenance/ai-core/types';
+import toast from 'react-hot-toast';
 
 // WFE-P0-2: enforce client-side validation before base64 encoding.
 // The demo API route has its own validation, but rejecting early prevents
@@ -251,7 +252,7 @@ export function TryMintAIClient() {
       logger.warn('No assessment ID available for feedback', {
         service: 'mint-ai-demo',
       });
-      alert('Unable to submit feedback at this time');
+      toast.error('Unable to submit feedback at this time');
       return;
     }
 
@@ -285,13 +286,15 @@ export function TryMintAIClient() {
           assessmentId: assessmentResult.assessmentId,
         });
 
-        alert(result.message || 'Thank you for confirming the accuracy!');
+        toast.success(
+          result.message || 'Thank you for confirming the accuracy!'
+        );
       } catch (error) {
         logger.error('Failed to submit positive feedback', {
           error,
           service: 'mint-ai-demo',
         });
-        alert('Failed to submit feedback. Please try again.');
+        toast.error('Failed to submit feedback. Please try again.');
       }
     }
   };
@@ -303,7 +306,7 @@ export function TryMintAIClient() {
       logger.warn('No assessment ID available for corrections', {
         service: 'mint-ai-demo',
       });
-      alert('Unable to submit corrections at this time');
+      toast.error('Unable to submit corrections at this time');
       return;
     }
 
@@ -344,7 +347,7 @@ export function TryMintAIClient() {
       });
 
       // Show thank you message
-      alert(result.message || 'Thank you for helping improve Mint AI!');
+      toast.success(result.message || 'Thank you for helping improve Mint AI!');
 
       logger.info('User submitted corrections', {
         service: 'mint-ai-demo',
@@ -355,7 +358,7 @@ export function TryMintAIClient() {
         error,
         service: 'mint-ai-demo',
       });
-      alert('Failed to submit corrections. Please try again.');
+      toast.error('Failed to submit corrections. Please try again.');
     }
   };
 
