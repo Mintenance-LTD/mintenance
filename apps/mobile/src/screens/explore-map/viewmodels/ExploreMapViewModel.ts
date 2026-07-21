@@ -13,21 +13,17 @@ import { logger } from '../../../utils/logger';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import * as Location from 'expo-location';
 import { radiusKmForRegion } from '../constants';
+import {
+  mapDiscoverRows,
+  type DiscoverRow,
+  type JobMapItem,
+} from './discoverRowMapper';
 
-export interface JobMapItem {
-  id: string;
-  title: string;
-  category: string;
-  urgency: string;
-  budget: number | null;
-  budget_min: number | null;
-  budget_max: number | null;
-  latitude: number;
-  longitude: number;
-  distance: number;
-  homeowner_name: string;
-  created_at: string;
-}
+// Row coercion/mapping + JobMapItem live in ./discoverRowMapper (split
+// 2026-07-20 to stay under the 500-line gate). Re-exported so the screen's
+// existing `import type { JobMapItem } from './viewmodels/ExploreMapViewModel'`
+// keeps working.
+export type { JobMapItem, DiscoverRow } from './discoverRowMapper';
 
 interface MapRegion {
   latitude: number;
@@ -68,25 +64,6 @@ interface JobsMapViewModel {
   centerOnUser: () => void;
   refreshJobs: () => void;
   searchInRegion: () => void;
-}
-
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
 }
 
 const useJobsMapViewModel = (): JobsMapViewModel => {
@@ -213,6 +190,12 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     return () => {
       isMounted.current = false;
     };
+    // Mount-once location initialiser: it resolves the starting region from
+    // profile coords/GPS and latches `regionResolved`. Adding `user?.id`
+    // (which the lint rule wants) would re-run the whole GPS acquisition
+    // whenever the auth object identity changes and re-latch the region,
+    // yanking the map back from wherever the contractor had panned.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch jobs — uses regionRef so we don't re-create on every pan
@@ -241,23 +224,6 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         params.set('longitude', String(currentRegion.longitude));
         // Zoom-aware radius — see radiusKmForRegion in ../constants.
         params.set('radiusKm', String(radiusKmForRegion(currentRegion)));
-      }
-
-      // Numeric columns may arrive as strings if the server forgets to
-      // coerce — accept both so a server regression can't crash the
-      // native Marker render.
-      interface DiscoverRow {
-        id: string;
-        title: string;
-        category: string;
-        urgency: string;
-        budget: number | string | null;
-        budget_min: number | string | null;
-        budget_max: number | string | null;
-        latitude: number | string | null;
-        longitude: number | string | null;
-        created_at: string | null;
-        homeowner_first_name: string | null;
       }
 
       let response: { jobs: DiscoverRow[]; code?: string };
@@ -314,40 +280,7 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
       const refLat = userLocation?.latitude ?? regionRef.current.latitude;
       const refLng = userLocation?.longitude ?? regionRef.current.longitude;
 
-      // Server already excludes jobs the contractor bid on, dropped
-      // missing-coords rows, and applied the category filter — but
-      // we still coerce-and-validate every numeric field client-side
-      // because Postgres NUMERIC columns are JSON-serialised as strings
-      // by supabase-js, and passing a string to `react-native-maps`
-      // <Marker coordinate={{...}}> crashes the native module on Android.
-      const toNum = (v: unknown): number | null => {
-        if (v == null) return null;
-        const n = typeof v === 'number' ? v : Number(v);
-        return Number.isFinite(n) ? n : null;
-      };
-      const mapped: JobMapItem[] = data
-        .map((row) => {
-          const lat = toNum(row.latitude);
-          const lng = toNum(row.longitude);
-          if (lat === null || lng === null) return null;
-          return {
-            id: row.id,
-            title: row.title,
-            category: row.category || 'general',
-            urgency: row.urgency || 'medium',
-            budget: toNum(row.budget),
-            budget_min: toNum(row.budget_min),
-            budget_max: toNum(row.budget_max),
-            latitude: lat,
-            longitude: lng,
-            distance: calculateDistance(refLat, refLng, lat, lng),
-            homeowner_name: row.homeowner_first_name || 'Homeowner',
-            created_at: row.created_at ?? '',
-          };
-        })
-        .filter((j): j is JobMapItem => j !== null);
-
-      mapped.sort((a, b) => a.distance - b.distance);
+      const mapped = mapDiscoverRows(data, refLat, refLng);
 
       // Jitter overlapping pins at the same coordinates
       const seen = new Map<string, number>();
@@ -380,7 +313,13 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [userLocation, user?.id, selectedCategory]); // Depends on userLocation + user + category
+    // `user?.id` is deliberate even though the body reads it only via the
+    // API client's auth headers: a change of signed-in user must re-run the
+    // fetch, because the server excludes the CALLER's bid jobs and now scores
+    // matches against the CALLER's skills/city. Dropping it (as the lint rule
+    // suggests) would leave one contractor looking at another's feed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, user?.id, selectedCategory]);
 
   useEffect(() => {
     // Wait for the real region so the first query uses the user's area.
