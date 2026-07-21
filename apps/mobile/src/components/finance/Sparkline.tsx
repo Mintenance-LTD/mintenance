@@ -13,14 +13,17 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { me } from '../../design-system/mint-editorial';
 
 interface Props {
   data: readonly number[];
   width?: number;
   height?: number;
   stroke?: string;
-  fillFrom?: string;
-  fillTo?: string;
+  /** Gradient colour; opacity is passed separately (see below). */
+  fill?: string;
+  /** Top-of-gradient opacity. */
+  fillOpacity?: number;
   strokeWidth?: number;
 }
 
@@ -31,8 +34,8 @@ export const Sparkline: React.FC<Props> = ({
   width = 220,
   height = 56,
   stroke = 'rgba(255,255,255,0.85)',
-  fillFrom = 'rgba(255,255,255,0.18)',
-  fillTo = 'rgba(255,255,255,0)',
+  fill = me.onBrand,
+  fillOpacity = 0.18,
   strokeWidth = 2,
 }) => {
   if (!data || data.length === 0) {
@@ -62,9 +65,13 @@ export const Sparkline: React.FC<Props> = ({
   return (
     <Svg width={width} height={height}>
       <Defs>
+        {/* 2026-07-20 fix: these Stops used rgba() in `stopColor`.
+            react-native-svg drops the alpha channel there, so the "washed
+            graph" fill rendered as a SOLID white block over the dark hero.
+            Colour and opacity must be separate props. */}
         <LinearGradient id={SAMPLE_GRADIENT_ID} x1='0' y1='0' x2='0' y2='1'>
-          <Stop offset='0' stopColor={fillFrom} />
-          <Stop offset='1' stopColor={fillTo} />
+          <Stop offset='0' stopColor={fill} stopOpacity={fillOpacity} />
+          <Stop offset='1' stopColor={fill} stopOpacity={0} />
         </LinearGradient>
       </Defs>
       <Path d={areaPath} fill={`url(#${SAMPLE_GRADIENT_ID})`} />
