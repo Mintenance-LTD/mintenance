@@ -94,6 +94,7 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
     serviceAreas.find((a) => a.is_active) ??
     serviceAreas[0];
 
+  const boroughs = collectBoroughs(serviceAreas);
   const primaryCity = primary?.cities?.[0] ?? user?.city ?? 'your area';
   const primaryRadiusMiles = kmToMiles(primary?.radius_km);
   const extendedRadiusMiles = primary
@@ -161,13 +162,22 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
                     formatCurrency={fmtGBP}
                   />
                 ) : null}
-                <Text style={s.sectionEyebrow}>
-                  Boroughs you serve · {serviceAreas.length}
-                </Text>
-                <BoroughChipRow
-                  areas={serviceAreas}
-                  onAdd={() => setCreateModalVisible(true)}
-                />
+                {/* Only render when there are boroughs to show, and count
+                    exactly those (see collectBoroughs). Radius areas carry no
+                    `cities`, so this section stays hidden for them rather
+                    than claiming a count above an empty row — adding a zone
+                    is still available from the header's + button. */}
+                {boroughs.length > 0 ? (
+                  <>
+                    <Text style={s.sectionEyebrow}>
+                      Boroughs you serve · {boroughs.length}
+                    </Text>
+                    <BoroughChipRow
+                      areas={serviceAreas}
+                      onAdd={() => setCreateModalVisible(true)}
+                    />
+                  </>
+                ) : null}
                 <Text style={s.sectionEyebrow}>Coverage zones</Text>
               </View>
             ) : null}
@@ -213,14 +223,23 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const BoroughChipRow: React.FC<{
-  areas: ServiceArea[];
-  onAdd: () => void;
-}> = ({ areas, onAdd }) => {
-  // Surface up to 8 cities across all active areas. The "+ £X"
-  // surcharge tag appears when the area has any per_km surcharge —
-  // an honest signal that this borough costs more.
-  const items: { name: string; surcharge: number; key: string }[] = [];
+export interface BoroughChip {
+  name: string;
+  surcharge: number;
+  key: string;
+}
+
+/**
+ * De-duplicated boroughs across all ACTIVE areas.
+ *
+ * 2026-07-20: exported so the section header counts exactly what the row
+ * renders. The header previously read `serviceAreas.length` — the number of
+ * *areas* — while the chips come from each area's `cities[]`, which is only
+ * populated for `area_type: 'cities'`. A radius area (the default) never
+ * fills it, so the screen showed "Boroughs you serve · 1" above an empty row.
+ */
+export function collectBoroughs(areas: ServiceArea[]): BoroughChip[] {
+  const items: BoroughChip[] = [];
   areas.forEach((a) => {
     if (!a.is_active) return;
     const cities = a.cities || [];
@@ -228,11 +247,22 @@ const BoroughChipRow: React.FC<{
       if (items.find((x) => x.name === c)) return;
       items.push({
         name: c,
+        // The "+ £X" surcharge tag is an honest signal that this borough
+        // costs more to reach.
         surcharge: a.base_travel_charge ?? 0,
         key: `${a.id}-${c}`,
       });
     });
   });
+  return items;
+}
+
+const BoroughChipRow: React.FC<{
+  areas: ServiceArea[];
+  onAdd: () => void;
+}> = ({ areas, onAdd }) => {
+  // Surface up to 8 boroughs across all active areas.
+  const items = collectBoroughs(areas);
   return (
     <ScrollView
       horizontal
@@ -323,7 +353,7 @@ const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
     </View>
     <Text style={s.emptyTitle}>Set your service area</Text>
     <Text style={s.emptyDesc}>
-      Tell us how far you'll travel. Mint only matches you with jobs inside your
+      Tell us how far you’ll travel. Mint only matches you with jobs inside your
       radius (with optional surcharge beyond).
     </Text>
     <TouchableOpacity style={s.emptyBtn} onPress={onAdd}>

@@ -290,8 +290,11 @@ export const ReportingScreen: React.FC = () => {
                 </Text>
               </View>
               <View style={styles.kpiCard}>
+                {/* winRate is a FRACTION (acceptedBids / totalBids), not a
+                    percentage — rendering it raw shows "1%" for a 0.62 win
+                    rate. */}
                 <Text style={styles.kpiValue}>
-                  {Math.round(stats.winRate)}%
+                  {Math.round(stats.winRate * 100)}%
                 </Text>
                 <Text style={styles.kpiLabel}>Win rate</Text>
               </View>

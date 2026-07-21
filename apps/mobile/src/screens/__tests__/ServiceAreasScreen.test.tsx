@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports, import/first --
+ * jest.mock factories are hoisted above imports, so they can only reach
+ * modules via require() — and the mocked bindings must be imported after
+ * those factories. Both rules are unavoidable in this file's pattern.
+ */
 /**
  * ServiceAreasScreen — branch-coverage suite.
  *
@@ -369,6 +374,31 @@ describe('ServiceAreasScreen — populated with primary', () => {
     expect(getByText('Central Leeds')).toBeTruthy();
   });
 
+  it('hides the borough section for a radius area with no cities', () => {
+    // Regression: the header counted `serviceAreas.length` while the chips
+    // came from each area's `cities[]`. A radius area — the default — never
+    // populates cities, so the screen rendered "Boroughs you serve · 1"
+    // above an empty row. The section now counts what it renders, and hides
+    // when there is nothing to show (adding is still in the header).
+    setHook({ serviceAreas: [baseArea({ cities: [] })] });
+    const { queryByText } = renderScreen();
+    expect(queryByText(/Boroughs you serve/)).toBeNull();
+    // The zones list itself must still render.
+    expect(queryByText('Coverage zones')).toBeTruthy();
+  });
+
+  it('counts boroughs, not areas', () => {
+    // Two areas carrying three distinct cities between them => "· 3".
+    setHook({
+      serviceAreas: [
+        baseArea({ id: 'a1', cities: ['Leeds', 'Bradford'] }),
+        baseArea({ id: 'a2', cities: ['York'] }),
+      ],
+    });
+    const { getByText } = renderScreen();
+    expect(getByText('Boroughs you serve · 3')).toBeTruthy();
+  });
+
   it('shows the surcharge card only when per_km_rate > 0', () => {
     setHook({ serviceAreas: [baseArea({ per_km_rate: 2 })] });
     const { getByTestId } = renderScreen();
@@ -533,11 +563,18 @@ describe('ServiceAreasScreen — borough chips', () => {
   });
 
   it('handles an active area with missing cities array', () => {
+    // 2026-07-20: this used to assert the borough "Add" chip still rendered,
+    // which pinned the bug — the section showed (with a count) even when it
+    // had nothing to list. With no cities the section is now hidden; adding
+    // remains available from the header button, asserted below.
     const a = baseArea({ cities: undefined, is_active: true });
     setHook({ serviceAreas: [a] });
-    const { getByText } = renderScreen();
-    // Still renders the Add chip / borough header.
-    expect(getByText('Add')).toBeTruthy();
+    const { queryByText, getByLabelText } = renderScreen();
+    expect(queryByText(/Boroughs you serve/)).toBeNull();
+    expect(queryByText('Add')).toBeNull();
+
+    fireEvent.press(getByLabelText('Add service area'));
+    expect(setCreateModalVisible).toHaveBeenCalledWith(true);
   });
 
   it('opens create modal from the borough Add chip', () => {
