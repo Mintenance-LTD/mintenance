@@ -12,7 +12,15 @@ export {
 
 // Shared utilities and helpers
 export { logger } from './logger';
-export { formatDate, formatCurrency, formatPhone } from './formatters';
+export {
+  formatDate,
+  formatCurrency,
+  formatPhone,
+  kmToMiles,
+  milesToKm,
+  formatMilesFromKm,
+  KM_PER_MILE,
+} from './formatters';
 export { debounce, throttle, hashString } from './utils';
 export { generateId, sanitizeString } from './helpers';
 

@@ -4,7 +4,10 @@
 /**
  * Format date to user-friendly string
  */
-export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions): string {
+export function formatDate(
+  date: string | Date,
+  options?: Intl.DateTimeFormatOptions
+): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
@@ -18,7 +21,10 @@ export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOpt
 /**
  * Format currency amount
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
+export function formatCurrency(
+  amount: number,
+  currency: string = 'USD'
+): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
@@ -41,4 +47,43 @@ export function formatPhone(phone: string): string {
   }
   // Return original if not a recognized format
   return phone;
+}
+
+// ---------------------------------------------------------------------------
+// Distance
+// ---------------------------------------------------------------------------
+//
+// The platform stores and queries distance in KILOMETRES (PostGIS,
+// `radius_km`, `max_distance_km`, the discover API's `radiusKm` param) but
+// presents it in MILES, because the audience is UK trades.
+//
+// Added 2026-07-20 to end a three-way inconsistency: Service Areas showed
+// miles, contractor Discover showed km, and live travel tracking showed
+// miles — the same radius wearing two units depending on the screen. Convert
+// at the UI edge only; never persist or query in miles.
+
+/** Exact conversion factor. */
+export const KM_PER_MILE = 1.609344;
+
+export function kmToMiles(km: number): number {
+  return km / KM_PER_MILE;
+}
+
+export function milesToKm(miles: number): number {
+  return miles * KM_PER_MILE;
+}
+
+/**
+ * Format a KILOMETRE value as miles for display.
+ *
+ * Under a tenth of a mile "0.0 mi" reads as broken, so anything closer is
+ * reported as "<0.1 mi". Values of 10 miles or more drop the decimal — a
+ * contractor scanning a list does not need "12.4 mi" precision.
+ */
+export function formatMilesFromKm(km: number | null | undefined): string {
+  if (km == null || !Number.isFinite(km)) return '';
+  const miles = kmToMiles(km);
+  if (miles < 0.1) return '<0.1 mi';
+  if (miles >= 10) return `${Math.round(miles)} mi`;
+  return `${miles.toFixed(1)} mi`;
 }

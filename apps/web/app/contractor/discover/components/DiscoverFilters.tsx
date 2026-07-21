@@ -7,6 +7,7 @@ interface DiscoverFiltersProps {
   categories: string[];
   selectedCategory: string | null;
   onCategoryChange: (c: string | null) => void;
+  /** Selected radius in MILES (the platform queries in km — see RADII_MILES). */
   selectedRadius: number;
   onRadiusChange: (r: number) => void;
   minBudget: number;
@@ -16,7 +17,17 @@ interface DiscoverFiltersProps {
   hasLocation: boolean;
 }
 
-const RADII = [5, 10, 20, 50];
+/**
+ * Radius chips in MILES (2026-07-20). These were 5/10/20/50 *km* while
+ * Service Areas and live travel tracking both spoke miles — the same distance
+ * wearing two units depending on the screen. Storage and the API stay in km;
+ * only the display and these chip values are miles.
+ *
+ * Capped at 30 mi (~48 km) deliberately: the page resolves its candidate set
+ * server-side at MAX_DISCOVER_CHIP_RADIUS_KM = 50, so a wider chip would
+ * silently return nothing beyond that horizon.
+ */
+const RADII_MILES = [3, 5, 10, 20, 30];
 const BUDGETS = [
   { value: 0, label: 'Any budget' },
   { value: 500, label: '£500+' },
@@ -99,13 +110,13 @@ export function DiscoverFilters({
 
       {/* Radius chips */}
       {hasLocation &&
-        RADII.map((r) => (
+        RADII_MILES.map((r) => (
           <Chip
             key={r}
             active={selectedRadius === r}
             onClick={() => onRadiusChange(r)}
           >
-            {r}km
+            {r} mi
           </Chip>
         ))}
 

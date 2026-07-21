@@ -18,6 +18,7 @@ import {
   Bot,
   MapPin,
 } from 'lucide-react';
+import { formatMilesFromKm } from '@mintenance/shared';
 import { DiscoverPhotoCarousel } from './DiscoverPhotoCarousel';
 
 // ── Match score SVG ring ──────────────────────────────────────────────────────
@@ -218,8 +219,9 @@ export function DiscoverJobCard({
     () => (nowMs == null ? false : isRecentJob(job.created_at, nowMs)),
     [job.created_at, nowMs]
   );
+  // `job.distance` is km (as stored/queried); the UI speaks miles.
   const distBadge =
-    job.distance != null ? `${job.distance.toFixed(1)} km` : undefined;
+    job.distance != null ? formatMilesFromKm(job.distance) : undefined;
   const budgetStr = getBudgetDisplay(job);
   const hasBids = (job.bidCount ?? 0) > 0;
   const hasAI = (job.building_assessments?.length ?? 0) > 0;
