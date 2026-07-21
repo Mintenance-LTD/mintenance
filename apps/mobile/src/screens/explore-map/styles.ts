@@ -1,9 +1,12 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { me } from '../../design-system/mint-editorial';
 import type { Ionicons } from '@expo/vector-icons';
+import { carouselStyles, CARD_WIDTH } from './carouselStyles';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-export const CARD_WIDTH = SCREEN_WIDTH * 0.78;
+// Carousel card styles live in ./carouselStyles (split 2026-07-20 to stay
+// under the 500-line gate); re-exported here so existing call sites keep
+// importing CARD_WIDTH from './styles'.
+export { CARD_WIDTH };
 
 // Category marker config — icon + color per trade.
 // 2026-05-27 audit-72 P2: extended to cover every entry in
@@ -345,91 +348,7 @@ export const styles = StyleSheet.create({
     zIndex: 5,
     ...me.shadow.pop,
   },
-  carouselContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  carouselContent: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  carouselCard: {
-    width: CARD_WIDTH,
-    backgroundColor: me.surface,
-    borderRadius: 16,
-    padding: 14,
-    ...me.shadow.pop,
-  },
-  carouselCardSelected: {
-    borderWidth: 2,
-    borderColor: me.brand,
-  },
-  carouselCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  carouselBudget: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: me.ink,
-    letterSpacing: -0.5,
-  },
-  carouselCatPill: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  carouselTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: me.ink,
-    marginBottom: 2,
-  },
-  carouselMeta: {
-    fontSize: 12,
-    color: me.ink2,
-    marginBottom: 10,
-  },
-  carouselActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  carouselBidBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: me.brand,
-    borderRadius: 12,
-    paddingVertical: 8,
-  },
-  carouselBidText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: me.onBrand,
-  },
-  carouselDetailsBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    backgroundColor: me.bg2,
-    borderRadius: 12,
-    paddingVertical: 8,
-  },
-  carouselDetailsText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: me.ink,
-  },
+  ...carouselStyles,
   userMarker: {
     alignItems: 'center',
   },

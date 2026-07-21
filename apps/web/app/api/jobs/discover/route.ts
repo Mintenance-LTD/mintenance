@@ -46,6 +46,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
 import { DEFAULT_MATCH_RADIUS_KM } from '@/lib/services/matching/constants';
+import { calculateDiscoverMatchScore } from '@/lib/services/matching/discover-match';
 import { fetchGeoJobs, haversineKm, toNum, type JobRow } from './helpers';
 
 // Constrain `category` to the canonical enum so the downstream
@@ -97,12 +98,25 @@ export const GET = withApiHandler(
     // boolean used by some admin tools alongside the modern
     // verification_status='verified' enum). For admin (platform-
     // support) callers the check is skipped entirely.
+    // 2026-07-20: `city` rides along on the verification read (no extra
+    // round trip) and skills are fetched in parallel — both feed
+    // calculateDiscoverMatchScore below so the mobile map card can show the
+    // same match badge the web discover feed already shows. Admin callers
+    // have neither, which simply yields the scorer's base score.
+    let contractorSkills: string[] = [];
+    let contractorCity: string | null = null;
     if (user.role === 'contractor') {
-      const { data: vRow } = await serverSupabase
-        .from('profiles')
-        .select('verification_status, admin_verified')
-        .eq('id', user.id)
-        .single();
+      const [{ data: vRow }, { data: skillRows }] = await Promise.all([
+        serverSupabase
+          .from('profiles')
+          .select('verification_status, admin_verified, city')
+          .eq('id', user.id)
+          .single(),
+        serverSupabase
+          .from('contractor_skills')
+          .select('skill_name')
+          .eq('contractor_id', user.id),
+      ]);
       const verified =
         vRow?.verification_status === 'verified' ||
         vRow?.admin_verified === true;
@@ -112,6 +126,8 @@ export const GET = withApiHandler(
           code: 'CONTRACTOR_NOT_VERIFIED',
         });
       }
+      contractorCity = vRow?.city ?? null;
+      contractorSkills = (skillRows ?? []).map((s) => s.skill_name);
     }
 
     // 2026-05-27 audit-79 P1: exclude pending/accepted/rejected bids
@@ -169,8 +185,9 @@ export const GET = withApiHandler(
       .select(
         `
         id, title, category, urgency, budget, budget_min, budget_max,
-        latitude, longitude, created_at,
-        homeowner:homeowner_id ( first_name )
+        latitude, longitude, created_at, location,
+        homeowner:homeowner_id ( first_name ),
+        building_assessments!building_assessments_job_id_fkey ( id )
       `
       )
       .eq('status', 'posted')
@@ -245,6 +262,10 @@ export const GET = withApiHandler(
       rows = rows.slice(0, limit);
     }
 
+    // Server request scope, not a render commit — a single `now` keeps the
+    // recency component of every job's score consistent within the response.
+    const now = Date.now();
+
     const jobs = rows.map((row) => {
       const firstName = Array.isArray(row.homeowner)
         ? (row.homeowner[0]?.first_name ?? null)
@@ -266,6 +287,23 @@ export const GET = withApiHandler(
         // distance-from-me (mobile pans away from the user) should keep
         // their own reference-point math.
         distance_km: distanceById.get(row.id) ?? null,
+        // 2026-07-20: same badge the web discover feed shows, computed with
+        // the one shared scorer so mobile and web can never drift. Uses
+        // `urgency` as the scorer's `priority` — the two name the same
+        // concept across the API/DB boundary.
+        match_score: calculateDiscoverMatchScore(
+          {
+            category: row.category,
+            property: row.location ? { address: row.location } : null,
+            budget: toNum(row.budget) ?? undefined,
+            priority: row.urgency,
+            created_at: row.created_at ?? '',
+          },
+          contractorSkills,
+          contractorCity,
+          now
+        ),
+        has_ai_assessment: (row.building_assessments?.length ?? 0) > 0,
       };
     });
 

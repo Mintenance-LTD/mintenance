@@ -33,6 +33,9 @@ import { goToTab } from '../../navigation/hooks';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useCoverageAreas } from './useCoverageAreas';
 import { Ionicons } from '@expo/vector-icons';
+// `Circle` is already taken by react-native-maps' map overlay — alias the SVG
+// one so the match ring and the coverage circles can coexist.
+import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import {
   useExploreMapViewModel,
   type JobMapItem,
@@ -321,6 +324,48 @@ const URGENCY_STRIPE: Record<string, string> = {
   low: me.okFg,
 };
 
+/**
+ * Compact match ring — the mobile counterpart of the web DiscoverJobCard's
+ * MatchRing, using the same ≥80 / ≥60 colour thresholds so a given score
+ * reads identically on both platforms.
+ */
+const MatchRing: React.FC<{ score: number }> = ({ score }) => {
+  const size = 34;
+  const r = 13;
+  const circ = 2 * Math.PI * r;
+  const fill = (Math.min(Math.max(score, 0), 100) / 100) * circ;
+  const color = score >= 80 ? me.okFg : score >= 60 ? me.warnFg : me.ink4;
+  return (
+    <View
+      style={styles.matchRing}
+      accessibilityLabel={`${score} percent match`}
+    >
+      <Svg width={size} height={size}>
+        <SvgCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={me.line2}
+          strokeWidth={3}
+          fill='none'
+        />
+        <SvgCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={3}
+          fill='none'
+          strokeDasharray={`${fill} ${circ - fill}`}
+          strokeLinecap='round'
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <Text style={[styles.matchRingText, { color }]}>{score}</Text>
+    </View>
+  );
+};
+
 // ── Carousel Card ────────────────────────────────────────────────────────────
 const CarouselCard: React.FC<{
   job: JobMapItem;
@@ -358,21 +403,32 @@ const CarouselCard: React.FC<{
     >
       <View style={styles.carouselCardHeader}>
         <Text style={styles.carouselBudget}>{budgetText}</Text>
-        <View
-          style={[
-            styles.carouselCatPill,
-            { backgroundColor: catMarker.bg + '20' },
-          ]}
-        >
-          <Ionicons name={catMarker.icon} size={12} color={catMarker.bg} />
+        <View style={styles.carouselHeaderRight}>
+          {job.matchScore != null && <MatchRing score={job.matchScore} />}
+          <View
+            style={[
+              styles.carouselCatPill,
+              { backgroundColor: catMarker.bg + '20' },
+            ]}
+          >
+            <Ionicons name={catMarker.icon} size={12} color={catMarker.bg} />
+          </View>
         </View>
       </View>
       <Text style={styles.carouselTitle} numberOfLines={1}>
         {job.title}
       </Text>
-      <Text style={styles.carouselMeta}>
-        {job.distance} km · {timeAgo(job.created_at)}
-      </Text>
+      <View style={styles.carouselMetaRow}>
+        <Text style={styles.carouselMeta}>
+          {job.distance} km · {timeAgo(job.created_at)}
+        </Text>
+        {job.hasAiAssessment && (
+          <View style={styles.carouselAiPill}>
+            <Ionicons name='sparkles' size={10} color={me.infoFg} />
+            <Text style={styles.carouselAiText}>AI</Text>
+          </View>
+        )}
+      </View>
       <View style={styles.carouselActions}>
         <TouchableOpacity
           style={styles.carouselBidBtn}

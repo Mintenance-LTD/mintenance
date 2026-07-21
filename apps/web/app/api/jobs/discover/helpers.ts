@@ -22,12 +22,16 @@ export interface JobRow {
   latitude: number | null;
   longitude: number | null;
   created_at: string | null;
+  /** Free-text address; feeds the discover match score's city check. */
+  location: string | null;
   // Supabase types FK joins as an array even on many-to-one
   // relationships, so accept both shapes and normalise in the route.
   homeowner:
     | { first_name: string | null }
     | Array<{ first_name: string | null }>
     | null;
+  /** Existence only — drives the "AI Assessed" badge on the client. */
+  building_assessments: { id: string }[] | null;
 }
 
 /**
