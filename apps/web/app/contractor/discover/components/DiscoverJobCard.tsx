@@ -155,7 +155,16 @@ function CategoryIcon({
   return <Icon className={className} />;
 }
 
-function getBudgetDisplay(job: DiscoverJob): string {
+/**
+ * 2026-07-20 redesign: returns an eyebrow label + a value rather than one
+ * flat string, so the money can be set as the card's visual anchor (a
+ * contractor scanning a list decides on price first) with the qualifier
+ * demoted to a small label above it.
+ */
+function getBudgetDisplay(job: DiscoverJob): {
+  label: string | null;
+  value: string;
+} {
   // 2026-05-22: the homeowner-set "Up to £X" line was removed because it
   // anchored bids to the ceiling. The AI cost estimate (when present) is
   // still shown as a market reference, but no homeowner budget falls
@@ -164,9 +173,12 @@ function getBudgetDisplay(job: DiscoverJob): string {
     job.building_assessments?.[0]?.assessment_data?.contractorAdvice
       ?.estimatedCost;
   if (est?.min != null && est?.max != null) {
-    return `AI estimate £${est.min.toLocaleString()} – £${est.max.toLocaleString()}`;
+    return {
+      label: 'AI estimate',
+      value: `£${est.min.toLocaleString()} – £${est.max.toLocaleString()}`,
+    };
   }
-  return 'Open — quote your own price';
+  return { label: null, value: 'Open — quote your own price' };
 }
 
 /**
@@ -319,14 +331,24 @@ export function DiscoverJobCard({
           {job.description}
         </p>
 
-        {/* Budget + bid count */}
-        <div className='flex items-center justify-between mb-3'>
-          <span
-            className='text-sm font-bold'
-            style={{ color: 'var(--me-brand-2)' }}
-          >
-            {budgetStr}
-          </span>
+        {/* Budget (the card's anchor) + bid count */}
+        <div className='flex items-end justify-between gap-2 mb-3'>
+          <div className='min-w-0'>
+            {budgetStr.label && (
+              <div
+                className='text-[10px] font-semibold uppercase tracking-wider'
+                style={{ color: 'var(--me-ink-3)' }}
+              >
+                {budgetStr.label}
+              </div>
+            )}
+            <div
+              className='text-base font-bold tabular-nums truncate'
+              style={{ color: 'var(--me-brand-2)' }}
+            >
+              {budgetStr.value}
+            </div>
+          </div>
           {hasBids && (
             <span
               className='flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border'

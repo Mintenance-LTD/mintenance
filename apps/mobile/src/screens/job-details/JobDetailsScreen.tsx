@@ -78,7 +78,7 @@ interface Props {
  * (AUDIT_PUNCH_LIST P2 #44c) into typed sub-components under
  * `job-details/components/` (`JobTitleSection`, `JobDetailsList`,
  * `JobBidsList`, `JobQuickActions`, `LogExpenseRow`,
- * `WithdrawBidButton`, `DetailRow`) and a shared bid-status-colour
+ * `WithdrawBidButton`) and a shared bid-status-colour
  * helper at `job-details/bidStatusColors.ts`. Public behaviour
  * preserved; only the orchestration + state remain here.
  */
