@@ -32,9 +32,6 @@ import type { JobsStackParamList } from '../../navigation/types';
 import { goToTab } from '../../navigation/hooks';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useCoverageAreas } from './useCoverageAreas';
-
-// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
-const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import { Ionicons } from '@expo/vector-icons';
 import {
   useExploreMapViewModel,
@@ -43,6 +40,9 @@ import {
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../utils/mapAvailability';
+
+// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
+const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 
 // 2026-05-27 audit-77 P2: empty-state pill that floats above the
 // carousel zone when there are zero discoverable jobs in the
@@ -298,8 +298,28 @@ function timeAgo(dateStr: string | null | undefined): string {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
+  // 2026-07-20 redesign: a raw "123d ago" read as "dead job" and actively
+  // discouraged bids on listings that are still open. Past STALE_AFTER_DAYS
+  // we state the thing that actually matters to a contractor — it's still
+  // open — instead of an alarming day count. Recent jobs keep the precise
+  // age, which is genuinely useful.
+  if (days > STALE_AFTER_DAYS) return 'Still open';
   return `${days}d ago`;
 }
+
+/** Beyond this age the exact day count stops being useful and starts hurting. */
+const STALE_AFTER_DAYS = 30;
+
+// Urgency → left stripe colour, mirroring the web DiscoverJobCard so both
+// platforms encode severity in form, not just words. Unknown/absent urgency
+// gets no stripe rather than a misleading one.
+const URGENCY_STRIPE: Record<string, string> = {
+  emergency: me.errFg,
+  urgent: me.errFg,
+  high: me.errFg,
+  medium: me.warnFg,
+  low: me.okFg,
+};
 
 // ── Carousel Card ────────────────────────────────────────────────────────────
 const CarouselCard: React.FC<{
@@ -323,10 +343,17 @@ const CarouselCard: React.FC<{
   const catKey = (job.category ?? 'general').toLowerCase();
   const catMarker = CATEGORY_MARKERS[catKey] ??
     CATEGORY_MARKERS.general ?? { icon: 'construct' as const, bg: '#6B7280' };
+  // Stripe last in the style array so it survives the selected state's
+  // all-sides borderColor.
+  const stripe = URGENCY_STRIPE[(job.urgency ?? '').toLowerCase()];
 
   return (
     <Pressable
-      style={[styles.carouselCard, isSelected && styles.carouselCardSelected]}
+      style={[
+        styles.carouselCard,
+        isSelected && styles.carouselCardSelected,
+        stripe ? { borderLeftWidth: 4, borderLeftColor: stripe } : null,
+      ]}
       onPress={onPress}
     >
       <View style={styles.carouselCardHeader}>
