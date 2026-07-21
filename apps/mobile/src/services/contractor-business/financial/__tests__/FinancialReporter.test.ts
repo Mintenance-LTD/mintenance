@@ -384,6 +384,39 @@ describe('getFinancialSummary', () => {
     expect(pctSum).toBeCloseTo(100);
   });
 
+  it('scopes the trend series to the requested window', async () => {
+    // Regression guard: the dashboard's 3/6/12-month selector used to write
+    // to state that no query read, so switching it refetched identical data.
+    // The window must reach getMonthlyRevenue / getProfitTrends.
+    configureTables({
+      invoices: { result: { data: [], error: null } },
+      contractor_expenses: { result: { data: [], error: null } },
+      escrow_transactions: { result: { data: [], error: null } },
+    });
+
+    const threeMonths = await getFinancialSummary('contractor-1', 3);
+    expect(threeMonths.monthly_revenue).toHaveLength(3);
+
+    const twelveMonths = await getFinancialSummary('contractor-1', 12);
+    expect(twelveMonths.monthly_revenue).toHaveLength(12);
+
+    // profit_trends stays at a fixed 6 regardless of the selection — it costs
+    // two queries per month and the finance dashboard doesn't render it.
+    expect(threeMonths.profit_trends).toHaveLength(6);
+    expect(twelveMonths.profit_trends).toHaveLength(6);
+  });
+
+  it('defaults to a 12-month window when no period is given', async () => {
+    configureTables({
+      invoices: { result: { data: [], error: null } },
+      contractor_expenses: { result: { data: [], error: null } },
+      escrow_transactions: { result: { data: [], error: null } },
+    });
+
+    const summary = await getFinancialSummary('contractor-1');
+    expect(summary.monthly_revenue).toHaveLength(12);
+  });
+
   it('reports zero expenses without dividing by zero', async () => {
     configureTables({
       invoices: { result: { data: [], error: null } },
