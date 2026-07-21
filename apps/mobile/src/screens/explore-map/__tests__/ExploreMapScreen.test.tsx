@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports, import/first --
+ * jest.mock factories are hoisted above imports, so they can only reach
+ * modules via require(), and the mocked bindings must be imported after
+ * those factories. Both rules are unavoidable in this file's pattern.
+ */
 /**
  * ExploreMapScreen — branch-coverage suite.
  *
@@ -96,7 +101,6 @@ jest.mock('@react-navigation/native', () => ({
     ReactLocal.useEffect(() => {
       const cleanup = cb();
       return typeof cleanup === 'function' ? cleanup : undefined;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
   },
 }));
@@ -113,6 +117,17 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // ── icons ──
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
+
+// 2026-07-20: this was the one hook the suite left unmocked. It fires a real
+// `mobileApiClient.get('/api/contractor/service-areas')` on mount, which
+// resolves (and logs through ErrorHandler) AFTER the test environment is torn
+// down — so jest reported "import after the Jest environment has been torn
+// down" and exited non-zero even with all 50 tests green. The coverage
+// overlay is not what any test here asserts; stub it so the suite is
+// hermetic.
+jest.mock('../useCoverageAreas', () => ({
+  useCoverageAreas: () => [],
+}));
 
 // ── map availability (toggle per-test) ──
 let mockShouldRenderNativeMap = true;
@@ -356,7 +371,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
     const { getByText } = render(<ExploreMapScreen />);
     // budget_min 150 vs budget_max 250 → range formatting.
     expect(getByText('Fix leaking tap')).toBeTruthy();
-    expect(getByText('2.3 km · 30m ago')).toBeTruthy();
+    expect(getByText('1.4 mi · 30m ago')).toBeTruthy();
   });
 
   it('renders single-budget when min === max via formatCurrency', () => {
@@ -383,7 +398,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
       jobCount: 1,
     });
     const { getByText } = render(<ExploreMapScreen />);
-    expect(getByText('5 km · Recently posted')).toBeTruthy();
+    expect(getByText('3.1 mi · Recently posted')).toBeTruthy();
   });
 
   it('renders hours-ago label for a few-hours-old job', () => {
@@ -397,7 +412,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
       jobCount: 1,
     });
     const { getByText } = render(<ExploreMapScreen />);
-    expect(getByText('1 km · 3h ago')).toBeTruthy();
+    expect(getByText('0.6 mi · 3h ago')).toBeTruthy();
   });
 
   it('renders days-ago label for an old job', () => {
@@ -411,7 +426,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
       jobCount: 1,
     });
     const { getByText } = render(<ExploreMapScreen />);
-    expect(getByText('1 km · 2d ago')).toBeTruthy();
+    expect(getByText('0.6 mi · 2d ago')).toBeTruthy();
   });
 
   it('handles a null category job (falls back to general marker)', () => {

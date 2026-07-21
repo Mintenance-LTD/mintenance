@@ -40,6 +40,7 @@ import {
   useExploreMapViewModel,
   type JobMapItem,
 } from './viewmodels/ExploreMapViewModel';
+import { formatMilesFromKm } from '@mintenance/shared';
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../utils/mapAvailability';
@@ -420,7 +421,8 @@ const CarouselCard: React.FC<{
       </Text>
       <View style={styles.carouselMetaRow}>
         <Text style={styles.carouselMeta}>
-          {job.distance} km · {timeAgo(job.created_at)}
+          {/* job.distance is km (as stored/queried); the UI speaks miles. */}
+          {formatMilesFromKm(job.distance)} · {timeAgo(job.created_at)}
         </Text>
         {job.hasAiAssessment && (
           <View style={styles.carouselAiPill}>

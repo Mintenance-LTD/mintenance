@@ -7,10 +7,10 @@ import { LocationPromptModal } from './LocationPromptModal';
 import toast from 'react-hot-toast';
 import { MapPin, LayoutGrid, Map } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { logger } from '@mintenance/shared';
-import { getCsrfToken } from '@/lib/csrf-client';
+import { milesToKm } from '@mintenance/shared';
 
 import { resolveJobCoordsAndDistance } from './discoverUtils';
+import { useDiscoverJobActions } from './useDiscoverJobActions';
 import { DiscoverQuickStats } from './DiscoverQuickStats';
 import { DiscoverJobCard, type DiscoverJob } from './DiscoverJobCard';
 import { DiscoverFilters } from './DiscoverFilters';
@@ -54,16 +54,24 @@ export function ContractorDiscoverClient({
   const router = useRouter();
 
   // Core state
-  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
-  const [skippedJobIds, setSkippedJobIds] = useState<Set<string>>(new Set());
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const {
+    savedJobIds,
+    skippedJobIds,
+    actionLoadingId,
+    loadingSavedJobs,
+    handleSaveToggle,
+    handleSkip,
+    resetReviewed,
+  } = useDiscoverJobActions();
   const [jobsWithCoords, setJobsWithCoords] = useState<JobWithCoords[]>([]);
   const [isGeocoding, setIsGeocoding] = useState(true);
-  const [loadingSavedJobs, setLoadingSavedJobs] = useState(true);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [contractorLocation, setContractorLocation] = useState(initialLocation);
 
   // Filter state
+  // Default radius in MILES. Was 10km (~6mi); 10 mi aligns Discover with the
+  // vocabulary Service Areas already uses (Standard 6 mi / Extended 10 mi) and
+  // widens the default net slightly, which is contractor-friendly.
   const [selectedRadius, setSelectedRadius] = useState(10);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [minBudget, setMinBudget] = useState(0);
@@ -86,17 +94,6 @@ export function ContractorDiscoverClient({
     setIsMintEditorial(
       document.documentElement.dataset.theme === 'mint-editorial'
     );
-  }, []);
-
-  // Load saved jobs on mount
-  useEffect(() => {
-    fetch('/api/contractor/saved-jobs')
-      .then((r) => r.json())
-      .then((d) => setSavedJobIds(new Set<string>(d.jobIds || [])))
-      .catch((err) =>
-        logger.error('Error loading saved jobs', err, { service: 'ui' })
-      )
-      .finally(() => setLoadingSavedJobs(false));
   }, []);
 
   // Location prompt
@@ -145,12 +142,15 @@ export function ContractorDiscoverClient({
       jobsWithCoords
         // Include jobs without coordinates (they just won't appear on map)
         // Only apply distance filter to jobs that have coordinates
+        // `selectedRadius` is in MILES (the chips are authored in miles);
+        // `j.distance` is in km, as stored and queried. Convert at the
+        // comparison rather than converting every job's distance.
         .filter(
           (j) =>
             !hasLoc ||
             !(j.lat && j.lng) ||
             !j.distance ||
-            j.distance <= selectedRadius
+            j.distance <= milesToKm(selectedRadius)
         )
         .filter((j) => !selectedCategory || j.category === selectedCategory)
         .filter((j) => j.budget >= minBudget)
@@ -214,42 +214,6 @@ export function ContractorDiscoverClient({
   }, [filteredJobs, isGeocoding]);
 
   // Save/skip handlers
-  const handleSaveToggle = async (jobId: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setActionLoadingId(jobId);
-    const wasSaved = savedJobIds.has(jobId);
-    try {
-      const res = await fetch(
-        wasSaved
-          ? `/api/contractor/saved-jobs?jobId=${jobId}`
-          : '/api/contractor/saved-jobs',
-        {
-          method: wasSaved ? 'DELETE' : 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': await getCsrfToken(),
-          },
-          body: wasSaved ? undefined : JSON.stringify({ jobId }),
-        }
-      );
-      if (!res.ok && res.status !== 409) throw new Error('Request failed');
-      setSavedJobIds((prev) => {
-        const next = new Set(prev);
-        wasSaved ? next.delete(jobId) : next.add(jobId);
-        return next;
-      });
-      toast.success(wasSaved ? 'Job removed from saved' : 'Job saved!');
-    } catch {
-      toast.error(wasSaved ? 'Failed to unsave job' : 'Failed to save job');
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleSkip = (jobId: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setSkippedJobIds((prev) => new Set(prev).add(jobId));
-  };
 
   // Derived values
   const hasLocation = !!(
@@ -289,10 +253,7 @@ export function ContractorDiscoverClient({
         selectedRadius={selectedRadius}
         hasContractorLocation={hasLocation}
         totalJobCount={jobs.length}
-        onReviewAgain={() => {
-          setSavedJobIds(new Set());
-          setSkippedJobIds(new Set());
-        }}
+        onReviewAgain={resetReviewed}
       />
 
       {/* Header: count + view toggle + filter chips */}
@@ -312,7 +273,7 @@ export function ContractorDiscoverClient({
                     isMintEditorial ? undefined : { color: 'var(--me-ink-3)' }
                   }
                 >
-                  within {selectedRadius}km
+                  within {selectedRadius} mi
                 </span>
               </>
             )}
@@ -427,7 +388,7 @@ export function ContractorDiscoverClient({
                 {hasLocation && (
                   <span style={{ color: 'var(--me-ink-3)' }}>
                     {' '}
-                    · within {selectedRadius}km
+                    · within {selectedRadius} mi
                   </span>
                 )}
               </span>

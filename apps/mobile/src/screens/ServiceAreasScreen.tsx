@@ -38,14 +38,17 @@ import { TravelSurchargeCard } from '../components/service-areas/TravelSurcharge
 import { useServiceAreas } from '../hooks/useServiceAreas';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { kmToMiles, KM_PER_MILE } from '@mintenance/shared';
 import { me } from '../design-system/mint-editorial';
 import { styles as s } from './service-areas/styles';
 
 const HIT = { top: 8, bottom: 8, left: 8, right: 8 };
-const KM_PER_MILE = 1.609;
 
-const kmToMiles = (km: number | undefined): number =>
-  !km ? 0 : Math.round(km / KM_PER_MILE);
+// 2026-07-20: conversion moved to @mintenance/shared so Service Areas,
+// contractor Discover and live travel tracking all convert identically.
+// This file previously used its own 1.609 constant.
+const kmToWholeMiles = (km: number | undefined): number =>
+  !km ? 0 : Math.round(kmToMiles(km));
 
 const fmtGBP = (n: number): string =>
   `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -96,11 +99,13 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
 
   const boroughs = collectBoroughs(serviceAreas);
   const primaryCity = primary?.cities?.[0] ?? user?.city ?? 'your area';
-  const primaryRadiusMiles = kmToMiles(primary?.radius_km);
+  const primaryRadiusMiles = kmToWholeMiles(primary?.radius_km);
   const extendedRadiusMiles = primary
     ? Math.max(
         primaryRadiusMiles + 4,
-        kmToMiles(primary.max_distance_km ?? (primary.radius_km ?? 0) * 1.6)
+        kmToWholeMiles(
+          primary.max_distance_km ?? (primary.radius_km ?? 0) * 1.6
+        )
       )
     : 0;
   const surchargeRate = primary?.per_km_rate
@@ -322,7 +327,7 @@ const AreaCard: React.FC<{
           {area.area_name}
         </Text>
         <Text style={s.areaMeta}>
-          {kmToMiles(area.radius_km)} mi radius
+          {kmToWholeMiles(area.radius_km)} mi radius
           {area.cities?.length ? ` · ${area.cities[0]}` : ''}
         </Text>
       </View>
