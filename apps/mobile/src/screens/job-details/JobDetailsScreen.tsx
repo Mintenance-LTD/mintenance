@@ -24,6 +24,7 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
+import { ContractorArrivedCard } from './components/ContractorArrivedCard';
 import {
   useContractorLiveLocation,
   withLateStage,
@@ -403,6 +404,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               distanceMiles={distanceMiles}
             />
           </View>
+        )}
+
+        {/* On arrival the live hero collapses (showLiveHero goes false, so the
+            map drops back to its normal section) and this compact card hands
+            the homeowner off to the work phase. */}
+        {isOwner && contractorLive.hasArrived && (
+          <ContractorArrivedCard
+            arrivedAtIso={contractorLive.lastFix}
+            jobStatus={job.status}
+          />
         )}
 
         <View style={styles.divider} />
