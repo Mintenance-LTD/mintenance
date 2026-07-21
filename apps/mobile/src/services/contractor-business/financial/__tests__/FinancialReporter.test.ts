@@ -26,6 +26,8 @@ import {
 } from '../FinancialReporter';
 import { supabase } from '../../../../config/supabase';
 
+import { logger } from '../../../../utils/logger';
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -61,8 +63,6 @@ jest.mock('../../../../utils/serviceErrorHandler', () => ({
     },
   },
 }));
-
-import { logger } from '../../../../utils/logger';
 
 const mockedSupabaseFrom = supabase.from as jest.Mock;
 const mockedLoggerError = logger.error as jest.Mock;
@@ -339,6 +339,63 @@ describe('getFinancialSummary', () => {
     );
   });
 
+  it('surfaces expense totals and a by-category breakdown', async () => {
+    // Regression guard: `total_expenses` and `expense_breakdown` are declared
+    // optional on FinancialSummary and were never produced by ANY code path,
+    // so the dashboard's Expenses tile was pinned at £0 and ByCategoryBars
+    // never rendered. Being optional, tsc could not catch it — only a test can.
+    configureTables({
+      invoices: { result: { data: [], error: null } },
+      escrow_transactions: { result: { data: [], error: null } },
+      contractor_expenses: {
+        result: {
+          data: [
+            { amount: 100, category: 'Materials' },
+            { amount: '50.5', category: 'Materials' }, // string coercion
+            { amount: 49.5, category: 'Fuel' },
+            { amount: null, category: 'Fuel' }, // null -> skipped
+            { amount: 't', category: 'Fuel' }, // NaN -> skipped
+            { amount: 50, category: null }, // -> 'Uncategorised'
+          ],
+          error: null,
+        },
+      },
+    });
+
+    const summary = await getFinancialSummary('contractor-1');
+
+    // 100 + 50.5 + 49.5 + 50 = 250
+    expect(summary.total_expenses).toBe(250);
+
+    const byCategory = Object.fromEntries(
+      (summary.expense_breakdown ?? []).map((r) => [r.category, r.amount])
+    );
+    expect(byCategory).toEqual({
+      Materials: 150.5,
+      Fuel: 49.5,
+      Uncategorised: 50,
+    });
+
+    // Percentages are of the total, so they sum to 100.
+    const pctSum = (summary.expense_breakdown ?? []).reduce(
+      (s, r) => s + r.percentage,
+      0
+    );
+    expect(pctSum).toBeCloseTo(100);
+  });
+
+  it('reports zero expenses without dividing by zero', async () => {
+    configureTables({
+      invoices: { result: { data: [], error: null } },
+      escrow_transactions: { result: { data: [], error: null } },
+      contractor_expenses: { result: { data: [], error: null } },
+    });
+
+    const summary = await getFinancialSummary('contractor-1');
+    expect(summary.total_expenses).toBe(0);
+    expect(summary.expense_breakdown).toEqual([]);
+  });
+
   it('returns an all-zero summary when every dataset is empty', async () => {
     configureTables({
       invoices: { result: { data: [], error: null } },
@@ -417,8 +474,14 @@ describe('getFinancialSummary', () => {
     expect(summary.escrow_in_flight).toBe(1750.5);
     // earned = 2000 + 3000 + 0 = 5000
     expect(summary.escrow_revenue).toBe(5000);
-    // outstanding invoices = 200 + 100 = 300; + escrow in-flight 1750.5
-    expect(summary.outstanding_invoices).toBe(300 + 1750.5);
+    // 2026-07-20: `outstanding_invoices` used to roll escrow in-flight into
+    // itself, but `escrow_in_flight` is ALSO returned and the dashboard
+    // renders both — so the same money showed up in two tiles. The field now
+    // means invoices only; the combined figure moved to `total_owed`.
+    // outstanding invoices = 200 + 100 = 300
+    expect(summary.outstanding_invoices).toBe(300);
+    // combined "owed to me" still available, and still equals the old total
+    expect(summary.total_owed).toBe(300 + 1750.5);
     // overdue: only the past-due overdue row (200), and status !== 'paid'
     expect(summary.overdue_amount).toBe(200);
   });

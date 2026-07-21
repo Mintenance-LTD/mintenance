@@ -26,7 +26,14 @@ export interface FinancialSummary {
   monthly_revenue: number[];
   quarterly_growth: number;
   yearly_projection: number;
+  /** Unpaid invoices only. See `total_owed` for invoices + escrow. */
   outstanding_invoices: number;
+  /**
+   * Invoices + escrow still in flight — the true "owed to me" figure.
+   * Added 2026-07-20 when `outstanding_invoices` stopped silently including
+   * escrow (which made the dashboard show the same money in two tiles).
+   */
+  total_owed?: number;
   overdue_amount: number;
   // 2026-05-21 audit: contractors were seeing £0 across the Finance
   // Dashboard despite signed contracts because the platform's escrow
@@ -170,7 +177,7 @@ export interface PaymentRecord {
 // SCHEDULE & RESOURCE MANAGEMENT TYPES
 // =====================================================
 
-interface ContractorSchedule {
+export interface ContractorSchedule {
   id: string;
   contractor_id: string;
   job_id?: string;
@@ -186,7 +193,7 @@ interface ContractorSchedule {
   updated_at: string;
 }
 
-interface ResourceInventory {
+export interface ResourceInventory {
   id: string;
   contractor_id: string;
   item_name: string;
@@ -201,7 +208,7 @@ interface ResourceInventory {
   updated_at: string;
 }
 
-interface EquipmentManagement {
+export interface EquipmentManagement {
   id: string;
   contractor_id: string;
   equipment_name: string;
@@ -225,7 +232,7 @@ interface EquipmentManagement {
 // MARKETING & GROWTH TYPES
 // =====================================================
 
-interface MarketingCampaign {
+export interface MarketingCampaign {
   id: string;
   contractor_id: string;
   campaign_name: string;
@@ -248,7 +255,7 @@ interface MarketingCampaign {
   updated_at: string;
 }
 
-interface LeadTracking {
+export interface LeadTracking {
   id: string;
   contractor_id: string;
   lead_source: string;
@@ -265,7 +272,7 @@ interface LeadTracking {
   updated_at: string;
 }
 
-interface ReviewManagement {
+export interface ReviewManagement {
   id: string;
   contractor_id: string;
   job_id?: string;

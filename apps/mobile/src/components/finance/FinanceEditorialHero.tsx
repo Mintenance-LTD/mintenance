@@ -9,8 +9,8 @@
  * than 2 datapoints we omit the delta line entirely rather than show
  * a misleading "+0%" or a NaN.
  */
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../design-system/mint-editorial';
 import { Sparkline } from './Sparkline';
@@ -39,6 +39,12 @@ export const FinanceEditorialHero: React.FC<Props> = ({
   monthlyRevenue,
   formatCurrency,
 }) => {
+  const [sparkWidth, setSparkWidth] = useState(0);
+  const handleSparkLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    setSparkWidth((prev) => (Math.abs(prev - w) > 1 ? w : prev));
+  };
+
   const monthLabel = MONTH_LABELS[new Date().getMonth()] ?? '';
   const series =
     monthlyRevenue && monthlyRevenue.length > 0 ? monthlyRevenue : [0];
@@ -70,8 +76,14 @@ export const FinanceEditorialHero: React.FC<Props> = ({
           </Text>
         </View>
       )}
-      <View style={styles.sparkWrap}>
-        <Sparkline data={series} height={64} />
+      {/* 2026-07-20 fix: the Sparkline was rendered without a width, so it
+          fell back to its 220px default inside this full-bleed card and
+          painted a graph that stopped ~60% across — the stray block on the
+          hero. Measure the real width and pass it. */}
+      <View style={styles.sparkWrap} onLayout={handleSparkLayout}>
+        {sparkWidth > 0 && (
+          <Sparkline data={series} width={sparkWidth} height={64} />
+        )}
       </View>
     </View>
   );

@@ -21,8 +21,16 @@
 import { supabase } from '../../../config/supabase';
 import { ServiceErrorHandler } from '../../../utils/serviceErrorHandler';
 import { logger } from '../../../utils/logger';
-import type { DatabaseInvoiceRow, DatabaseExpenseRow } from './types';
+import type { DatabaseInvoiceRow } from './types';
 import type { FinancialSummary } from '../types';
+import {
+  fetchPaidInvoices,
+  fetchExpenses,
+  fetchExpenseCategories,
+  fetchOutstandingInvoices,
+  fetchContractorEscrow,
+  type EscrowAmountRow,
+} from './financialFetchers';
 
 export function calculateDueDate(paymentTerms: string): string {
   const daysMap: Record<string, number> = {
@@ -36,100 +44,6 @@ export function calculateDueDate(paymentTerms: string): string {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + (daysMap[paymentTerms] ?? 30));
   return dueDate.toISOString();
-}
-
-/** Fetch paid invoices for a contractor in a date range via direct Supabase query. */
-async function fetchPaidInvoices(
-  contractorId: string,
-  periodStart?: string,
-  periodEnd?: string
-): Promise<Pick<DatabaseInvoiceRow, 'total_amount'>[]> {
-  let query = supabase
-    .from('invoices')
-    .select('total_amount')
-    .eq('contractor_id', contractorId)
-    .eq('status', 'paid');
-  if (periodStart) query = query.gte('created_at', periodStart);
-  if (periodEnd) query = query.lte('created_at', periodEnd);
-  const { data, error } = await query;
-  if (error) {
-    logger.error('Error fetching paid invoices', error.message);
-    return [];
-  }
-  return (data ?? []) as Pick<DatabaseInvoiceRow, 'total_amount'>[];
-}
-
-/** Fetch expenses for a contractor in a date range via direct Supabase query. */
-async function fetchExpenses(
-  contractorId: string,
-  periodStart?: string,
-  periodEnd?: string
-): Promise<Pick<DatabaseExpenseRow, 'amount'>[]> {
-  let query = supabase
-    .from('contractor_expenses')
-    .select('amount')
-    .eq('contractor_id', contractorId);
-  if (periodStart) query = query.gte('created_at', periodStart);
-  if (periodEnd) query = query.lte('created_at', periodEnd);
-  const { data, error } = await query;
-  if (error) {
-    logger.error('Error fetching expenses', error.message);
-    return [];
-  }
-  return (data ?? []) as Pick<DatabaseExpenseRow, 'amount'>[];
-}
-
-/** Fetch outstanding (sent/overdue) invoices via direct Supabase query. */
-async function fetchOutstandingInvoices(
-  contractorId: string
-): Promise<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>[]> {
-  const { data, error } = await supabase
-    .from('invoices')
-    .select('total_amount, due_date, status')
-    .eq('contractor_id', contractorId)
-    .in('status', ['sent', 'overdue']);
-  if (error) {
-    logger.error('Error fetching outstanding invoices', error.message);
-    return [];
-  }
-  return (data ?? []) as Pick<
-    DatabaseInvoiceRow,
-    'total_amount' | 'due_date' | 'status'
-  >[];
-}
-
-// 2026-05-21 audit: escrow release doesn't insert into `invoices`, so
-// the dashboard read £0 across every KPI. Read escrow_transactions
-// scoped by payee_id; split into in-flight and earned.
-type EscrowAmountRow = {
-  amount: number | string | null;
-  status: string | null;
-};
-async function fetchContractorEscrow(
-  contractorId: string
-): Promise<{ inFlight: number; earned: number }> {
-  const { data, error } = await supabase
-    .from('escrow_transactions')
-    .select('amount, status')
-    .eq('payee_id', contractorId);
-  if (error) {
-    logger.error('Error fetching contractor escrow', error.message);
-    return { inFlight: 0, earned: 0 };
-  }
-  const rows = (data ?? []) as EscrowAmountRow[];
-  const toNumber = (raw: EscrowAmountRow['amount']): number => {
-    if (raw === null || raw === undefined) return 0;
-    const n = typeof raw === 'number' ? raw : Number(raw);
-    return Number.isFinite(n) ? n : 0;
-  };
-  const sumByStatus = (statuses: readonly string[]) =>
-    rows
-      .filter((r) => r.status !== null && statuses.includes(r.status))
-      .reduce((sum, r) => sum + toNumber(r.amount), 0);
-  return {
-    inFlight: sumByStatus(['pending', 'held', 'release_pending']),
-    earned: sumByStatus(['released', 'completed']),
-  };
 }
 
 export async function calculateFinancialTotals(
@@ -445,6 +359,7 @@ export async function getFinancialSummary(
       taxObligations,
       cashFlowForecast,
       escrowTotals,
+      expenseCategories,
     ] = await Promise.all([
       getMonthlyRevenue(contractorId, 12),
       getInvoicesSummary(contractorId),
@@ -452,22 +367,43 @@ export async function getFinancialSummary(
       calculateTaxObligations(contractorId),
       generateCashFlowForecast(contractorId, 8),
       fetchContractorEscrow(contractorId),
+      // 2026-07-20 fix: `total_expenses` / `expense_breakdown` were declared
+      // on FinancialSummary but never produced by any code path, so the
+      // dashboard's Expenses tile was pinned at £0 and ByCategoryBars never
+      // rendered — regardless of how many expenses the contractor had logged.
+      // Both fields are optional, so TypeScript never caught it.
+      fetchExpenseCategories(contractorId),
     ]);
 
     const quarterlyGrowth = calculateQuarterlyGrowth(monthlyRevenue);
     const yearlyProjection = projectYearlyRevenue(monthlyRevenue);
     const { outstandingInvoices, overdueAmount } = invoicesSummary;
 
+    const totalExpenses = expenseCategories.reduce(
+      (sum, c) => sum + c.amount,
+      0
+    );
+    const expenseBreakdown = expenseCategories.map((c) => ({
+      category: c.category,
+      amount: c.amount,
+      percentage: totalExpenses > 0 ? (c.amount / totalExpenses) * 100 : 0,
+    }));
+
     return {
       monthly_revenue: monthlyRevenue,
       quarterly_growth: quarterlyGrowth,
       yearly_projection: yearlyProjection,
-      // Roll escrow in-flight into the contractor's outstanding bucket
-      // so the dashboard's headline total reflects real money owed.
-      // Invoices may be £0 entirely (escrow flow doesn't create them)
-      // — escrow_in_flight is the actual source of truth for contractors
-      // working through the platform.
-      outstanding_invoices: outstandingInvoices + escrowTotals.inFlight,
+      // 2026-07-20 fix: this previously returned `outstandingInvoices +
+      // escrowTotals.inFlight` so the headline total reflected real money
+      // owed (invoices are often £0 because the escrow flow doesn't create
+      // them). But `escrow_in_flight` is ALSO returned, and the dashboard
+      // renders both as sibling tiles — so the same money appeared twice
+      // ("In escrow £3.98" + "Outstanding £3.98" reading as £7.96).
+      // The field now means what its name says: invoices only. Callers that
+      // want the combined figure use `total_owed` below.
+      outstanding_invoices: outstandingInvoices,
+      /** Invoices + escrow still in flight — the true "owed to me" total. */
+      total_owed: outstandingInvoices + escrowTotals.inFlight,
       overdue_amount: overdueAmount,
       profit_trends: profitTrends,
       tax_obligations: taxObligations,
@@ -479,6 +415,8 @@ export async function getFinancialSummary(
       })),
       escrow_in_flight: escrowTotals.inFlight,
       escrow_revenue: escrowTotals.earned,
+      total_expenses: totalExpenses,
+      expense_breakdown: expenseBreakdown,
     };
   }, context);
 
