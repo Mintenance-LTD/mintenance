@@ -5,6 +5,8 @@
  * the contractor's location and nearby job positions.
  */
 
+import { formatMilesFromKm } from '@mintenance/shared';
+import { colors } from '@mintenance/design-tokens';
 import { formatMoney } from '@/lib/utils/currency';
 
 interface ContractorLocationForMap {
@@ -114,7 +116,8 @@ function createJobMarkers(refs: MapRefs, jobs: JobForMap[]): void {
     });
 
     const homeownerName = job.homeowner
-      ? `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || job.homeowner.email
+      ? `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() ||
+        job.homeowner.email
       : 'Unknown';
 
     const jobInfoWindow = new google.maps.InfoWindow({
@@ -124,7 +127,7 @@ function createJobMarkers(refs: MapRefs, jobs: JobForMap[]): void {
           <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 12px;">${job.location || 'Location not specified'}</p>
           ${
             job.distance !== undefined
-              ? `<p style="margin: 4px 0 0 0; color: #3B82F6; font-size: 12px; font-weight: 600;">${job.distance.toFixed(1)} km away</p>`
+              ? `<p style="margin: 4px 0 0 0; color: ${colors.info}; font-size: 12px; font-weight: 600;">${formatMilesFromKm(job.distance)} away</p>`
               : ''
           }
           ${

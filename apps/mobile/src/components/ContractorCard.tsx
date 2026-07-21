@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { formatMilesFromKm } from '@mintenance/shared';
 import { styles } from './contractorCardStyles';
 import SwipeableCardWrapper from './SwipeableCardWrapper';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +14,12 @@ interface Props {
   onPass: () => void;
 }
 
-const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, onPass }) => {
+const ContractorCard: React.FC<Props> = ({
+  contractor,
+  currentUserId,
+  onLike,
+  onPass,
+}) => {
   const [showDetails, setShowDetails] = useState(false);
 
   const renderStars = (rating: number) => {
@@ -29,12 +29,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <Ionicons
-          key={i}
-          name='star'
-          size={16}
-          color={theme.colors.accent}
-        />
+        <Ionicons key={i} name='star' size={16} color={theme.colors.accent} />
       );
     }
 
@@ -101,7 +96,8 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
             <View style={styles.profileInfo}>
               {/* Company Name or Personal Name */}
               <Text style={styles.contractorName}>
-                {contractor.companyName || `${contractor.firstName} ${contractor.lastName}`}
+                {contractor.companyName ||
+                  `${contractor.firstName} ${contractor.lastName}`}
               </Text>
 
               {/* Personal name if company name is shown */}
@@ -115,7 +111,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
                 <View
                   style={styles.starsContainer}
                   accessibilityLabel={`Rated ${(contractor.rating || 0).toFixed(1)} out of 5 stars`}
-                  accessibilityRole="text"
+                  accessibilityRole='text'
                 >
                   {renderStars(contractor.rating || 0)}
                 </View>
@@ -127,7 +123,8 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
               {contractor.distance && (
                 <Text style={styles.distanceText}>
-                  📍 {contractor.distance.toFixed(1)} km away
+                  {/* distance is km (as stored/queried); UI speaks miles. */}
+                  📍 {formatMilesFromKm(contractor.distance)} away
                 </Text>
               )}
             </View>
@@ -143,30 +140,52 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           <View style={styles.detailsGrid}>
             {contractor.hourlyRate && (
               <View style={styles.detailItem}>
-                <Ionicons name="cash-outline" size={16} color={theme.colors.textSecondary} />
-                <Text style={styles.detailText}>${contractor.hourlyRate}/hr</Text>
+                <Ionicons
+                  name='cash-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.detailText}>
+                  ${contractor.hourlyRate}/hr
+                </Text>
               </View>
             )}
 
             {contractor.yearsExperience && (
               <View style={styles.detailItem}>
-                <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
-                <Text style={styles.detailText}>{contractor.yearsExperience} years exp</Text>
+                <Ionicons
+                  name='time-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={styles.detailText}>
+                  {contractor.yearsExperience} years exp
+                </Text>
               </View>
             )}
 
             {contractor.availability && (
               <View style={styles.detailItem}>
-                <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='calendar-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
                 <Text style={styles.detailText}>
-                  {contractor.availability.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  {contractor.availability
+                    .replace('_', ' ')
+                    .replace(/\b\w/g, (l) => l.toUpperCase())}
                 </Text>
               </View>
             )}
 
             {contractor.businessAddress && (
               <View style={styles.detailItem}>
-                <Ionicons name="location-outline" size={16} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name='location-outline'
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
                 <Text style={styles.detailText} numberOfLines={1}>
                   {contractor.businessAddress}
                 </Text>
@@ -196,7 +215,11 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
           {contractor.address && (
             <View style={styles.locationSection}>
-              <Ionicons name='location-outline' size={16} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='location-outline'
+                size={16}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.locationText}>{contractor.address}</Text>
             </View>
           )}
@@ -204,8 +227,10 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           <TouchableOpacity
             style={styles.detailsButton}
             onPress={() => setShowDetails(!showDetails)}
-            accessibilityRole="button"
-            accessibilityLabel={showDetails ? 'Show less details' : 'View reviews'}
+            accessibilityRole='button'
+            accessibilityLabel={
+              showDetails ? 'Show less details' : 'View reviews'
+            }
           >
             <Text style={styles.detailsButtonText}>
               {showDetails ? 'Show Less' : 'View Reviews'}
@@ -248,47 +273,58 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
     },
 
     // Portfolio card (if portfolio images exist)
-    ...(contractor.portfolioImages && contractor.portfolioImages.length > 0 ? [{
-      type: 'portfolio',
-      content: (
-        <View style={styles.cardContent}>
-          <View style={styles.portfolioHeader}>
-            <Text style={styles.portfolioTitle}>Previous Work</Text>
-            <Text style={styles.portfolioSubtitle}>Swipe through project photos</Text>
-          </View>
+    ...(contractor.portfolioImages && contractor.portfolioImages.length > 0
+      ? [
+          {
+            type: 'portfolio',
+            content: (
+              <View style={styles.cardContent}>
+                <View style={styles.portfolioHeader}>
+                  <Text style={styles.portfolioTitle}>Previous Work</Text>
+                  <Text style={styles.portfolioSubtitle}>
+                    Swipe through project photos
+                  </Text>
+                </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.portfolioScroll}
-            pagingEnabled
-          >
-            {contractor.portfolioImages.map((imageUri, index) => (
-              <View key={index} style={styles.portfolioImageContainer}>
-                <Image
-                  source={{ uri: imageUri }}
-                  style={styles.portfolioImage}
-                  resizeMode="cover"
-                />
-              </View>
-            ))}
-          </ScrollView>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.portfolioScroll}
+                  pagingEnabled
+                >
+                  {contractor.portfolioImages.map((imageUri, index) => (
+                    <View key={index} style={styles.portfolioImageContainer}>
+                      <Image
+                        source={{ uri: imageUri }}
+                        style={styles.portfolioImage}
+                        resizeMode='cover'
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
 
-          {contractor.specialties && contractor.specialties.length > 0 && (
-            <View style={styles.portfolioSpecialties}>
-              <Text style={styles.specialtiesTitle}>Specialties</Text>
-              <View style={styles.specialtiesContainer}>
-                {contractor.specialties.slice(0, 6).map((specialty, index) => (
-                  <View key={index} style={styles.specialtyTag}>
-                    <Text style={styles.specialtyText}>{specialty}</Text>
-                  </View>
-                ))}
+                {contractor.specialties &&
+                  contractor.specialties.length > 0 && (
+                    <View style={styles.portfolioSpecialties}>
+                      <Text style={styles.specialtiesTitle}>Specialties</Text>
+                      <View style={styles.specialtiesContainer}>
+                        {contractor.specialties
+                          .slice(0, 6)
+                          .map((specialty, index) => (
+                            <View key={index} style={styles.specialtyTag}>
+                              <Text style={styles.specialtyText}>
+                                {specialty}
+                              </Text>
+                            </View>
+                          ))}
+                      </View>
+                    </View>
+                  )}
               </View>
-            </View>
-          )}
-        </View>
-      ),
-    }] : []),
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -303,28 +339,82 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
         overlayLabels={{
           left: {
             element: (
-              <View style={{ flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-start', marginTop: 30, marginLeft: -30 }}>
-                <Text style={{ backgroundColor: theme.colors.error, color: 'white', fontSize: 24, fontWeight: '700', borderRadius: 8, padding: 10, overflow: 'hidden' }}>PASS</Text>
+              <View
+                style={{
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  justifyContent: 'flex-start',
+                  marginTop: 30,
+                  marginLeft: -30,
+                }}
+              >
+                <Text
+                  style={{
+                    backgroundColor: theme.colors.error,
+                    color: 'white',
+                    fontSize: 24,
+                    fontWeight: '700',
+                    borderRadius: 8,
+                    padding: 10,
+                    overflow: 'hidden',
+                  }}
+                >
+                  PASS
+                </Text>
               </View>
             ),
           },
           right: {
             element: (
-              <View style={{ flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', marginTop: 30, marginLeft: 30 }}>
-                <Text style={{ backgroundColor: theme.colors.primary, color: 'white', fontSize: 24, fontWeight: '700', borderRadius: 8, padding: 10, overflow: 'hidden' }}>LIKE</Text>
+              <View
+                style={{
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  justifyContent: 'flex-start',
+                  marginTop: 30,
+                  marginLeft: 30,
+                }}
+              >
+                <Text
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    color: 'white',
+                    fontSize: 24,
+                    fontWeight: '700',
+                    borderRadius: 8,
+                    padding: 10,
+                    overflow: 'hidden',
+                  }}
+                >
+                  LIKE
+                </Text>
               </View>
             ),
           },
         }}
-        renderCard={(card) => <View style={styles.card}>{(card as { type: string; content: React.ReactNode })?.content}</View>}
+        renderCard={(card) => (
+          <View style={styles.card}>
+            {(card as { type: string; content: React.ReactNode })?.content}
+          </View>
+        )}
       />
 
       <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.passButton} onPress={onPass} accessibilityRole="button" accessibilityLabel="Pass on this contractor">
+        <TouchableOpacity
+          style={styles.passButton}
+          onPress={onPass}
+          accessibilityRole='button'
+          accessibilityLabel='Pass on this contractor'
+        >
           <Ionicons name='close' size={30} color={theme.colors.error} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.likeButton} onPress={onLike} accessibilityRole="button" accessibilityLabel="Like this contractor">
+        <TouchableOpacity
+          style={styles.likeButton}
+          onPress={onLike}
+          accessibilityRole='button'
+          accessibilityLabel='Like this contractor'
+        >
           <Ionicons name='leaf' size={30} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>

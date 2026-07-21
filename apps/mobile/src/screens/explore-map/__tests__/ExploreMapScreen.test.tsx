@@ -160,6 +160,8 @@ jest.mock('../viewmodels/ExploreMapViewModel', () => ({
   useExploreMapViewModel: () => mockVmState,
 }));
 
+import { formatMilesFromKm } from '@mintenance/shared';
+import { DEFAULT_MATCH_RADIUS_KM } from '../constants';
 import { ExploreMapScreen } from '../ExploreMapScreen';
 
 const baseRegion = {
@@ -313,7 +315,10 @@ describe('ExploreMapScreen — empty-state guidance card', () => {
     const { getByLabelText, getByText } = render(<ExploreMapScreen />);
     expect(
       getByText(
-        'Mintenance searches within ~25km of where the map is centred. Try removing the category filter or panning the map to a different area.'
+        // 2026-07-20: the radius is stated in miles and derived from
+        // DEFAULT_MATCH_RADIUS_KM, so this asserts the same derivation rather
+        // than a hardcoded number that could drift from the query.
+        `Mintenance searches within ~${formatMilesFromKm(DEFAULT_MATCH_RADIUS_KM)} of where the map is centred. Try removing the category filter or panning the map to a different area.`
       )
     ).toBeTruthy();
     fireEvent.press(getByLabelText('Clear category filter'));

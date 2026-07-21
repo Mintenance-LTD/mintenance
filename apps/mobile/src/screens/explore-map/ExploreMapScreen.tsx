@@ -43,10 +43,15 @@ import {
 import { formatMilesFromKm } from '@mintenance/shared';
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
+import { DEFAULT_MATCH_RADIUS_KM } from './constants';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../utils/mapAvailability';
 
 // Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
 const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
+
+// The search radius stated in the empty state, in the UI's unit (miles),
+// derived from the km constant the query actually uses.
+const DEFAULT_SEARCH_RADIUS_LABEL = formatMilesFromKm(DEFAULT_MATCH_RADIUS_KM);
 
 // 2026-05-27 audit-77 P2: empty-state pill that floats above the
 // carousel zone when there are zero discoverable jobs in the
@@ -989,15 +994,18 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                 <Ionicons name='search-outline' size={18} color={me.brand} />
               </View>
               <Text style={emptyStateStyles.title}>No jobs in this area</Text>
-              {/* 2026-05-27 audit-88 P2: be honest about the 25km
-                  search radius. Without this, a contractor outside
-                  the visible radius reads "No jobs in this area" as
-                  "the app is broken" — when really we just stopped
-                  looking 25km out. Pan the map to widen the search. */}
+              {/* 2026-05-27 audit-88 P2: be honest about the search
+                  radius. Without this, a contractor outside the visible
+                  radius reads "No jobs in this area" as "the app is
+                  broken" — when really we just stopped looking. Pan the
+                  map to widen the search.
+                  2026-07-20: the radius is stated in miles (the UI unit)
+                  and derived from DEFAULT_MATCH_RADIUS_KM rather than
+                  hardcoded, so the copy can't drift from the query. */}
               <Text style={emptyStateStyles.body}>
                 {viewModel.selectedCategory
-                  ? 'Mintenance searches within ~25km of where the map is centred. Try removing the category filter or panning the map to a different area.'
-                  : 'Mintenance searches within ~25km of where the map is centred. Try panning the map to a different location, then tap “Search again”.'}
+                  ? `Mintenance searches within ~${DEFAULT_SEARCH_RADIUS_LABEL} of where the map is centred. Try removing the category filter or panning the map to a different area.`
+                  : `Mintenance searches within ~${DEFAULT_SEARCH_RADIUS_LABEL} of where the map is centred. Try panning the map to a different location, then tap “Search again”.`}
               </Text>
               <View style={emptyStateStyles.ctaRow}>
                 {viewModel.selectedCategory ? (

@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
+import { formatMilesFromKm, KM_PER_MILE } from '@mintenance/shared';
 import { Ionicons } from '@expo/vector-icons';
 import { ServiceArea } from '../services/ServiceAreasService';
 import { theme } from '../theme';
@@ -49,9 +56,10 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
     }
   };
 
+  // Stored in km; displayed in miles like every other distance in the app.
   const formatDistance = (km?: number) => {
     if (!km) return 'N/A';
-    return km < 1 ? `${Math.round(km * 1000)}m` : `${km}km`;
+    return formatMilesFromKm(km);
   };
 
   const formatCurrency = (amount: number) => {
@@ -104,7 +112,11 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
       <View style={styles.detailsRow}>
         <View style={styles.areaType}>
           <Ionicons
-            name={getAreaTypeIcon(serviceArea.area_type) as keyof typeof Ionicons.glyphMap}
+            name={
+              getAreaTypeIcon(
+                serviceArea.area_type
+              ) as keyof typeof Ionicons.glyphMap
+            }
             size={16}
             color={theme.colors.textSecondary}
           />
@@ -151,9 +163,11 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
         </View>
 
         <View style={styles.pricingItem}>
-          <Text style={styles.pricingLabel}>Per KM</Text>
+          <Text style={styles.pricingLabel}>Per mile</Text>
           <Text style={styles.pricingValue}>
-            {formatCurrency(serviceArea.per_km_rate)}
+            {/* Stored per km; ServiceAreasScreen's surcharge card already
+                shows this as a per-mile rate — match it. */}
+            {formatCurrency(serviceArea.per_km_rate * KM_PER_MILE)}
           </Text>
         </View>
 
@@ -202,7 +216,11 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-          <Ionicons name='pencil' size={16} color={theme.colors.textSecondary} />
+          <Ionicons
+            name='pencil'
+            size={16}
+            color={theme.colors.textSecondary}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={onToggleActive}>
@@ -210,9 +228,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
             name={serviceArea.is_active ? 'pause' : 'play'}
             size={16}
             color={
-              serviceArea.is_active
-                ? theme.colors.accent
-                : theme.colors.primary
+              serviceArea.is_active ? theme.colors.accent : theme.colors.primary
             }
           />
         </TouchableOpacity>
