@@ -152,6 +152,32 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 20,
   },
+  kpiRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: me.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: me.line2,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  kpiValue: {
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  kpiLabel: {
+    fontSize: 11,
+    color: me.ink3,
+    marginTop: 3,
+  },
   listCard: {
     marginHorizontal: 20,
     backgroundColor: me.surface,

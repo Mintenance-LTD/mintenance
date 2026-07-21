@@ -51,11 +51,13 @@ interface RangeSpec {
   days: number;
 }
 
+// 2026-07-20: ordered by duration. Previously quarter → 30 days → 12 months
+// → 7 days, which reads as random rather than as a scale.
 const RANGES: readonly RangeSpec[] = [
-  { key: 'this-q', label: 'This quarter', days: 90 },
-  { key: '30d', label: 'Last 30 days', days: 30 },
-  { key: '12mo', label: 'Last 12 months', days: 365 },
   { key: '7d', label: '7 days', days: 7 },
+  { key: '30d', label: 'Last 30 days', days: 30 },
+  { key: 'this-q', label: 'This quarter', days: 90 },
+  { key: '12mo', label: 'Last 12 months', days: 365 },
 ];
 
 const fmtGBP = (n: number): string =>
@@ -273,6 +275,38 @@ export const ReportingScreen: React.FC = () => {
                   </Text>
                 </View>
               )}
+            </View>
+
+            {/* 2026-07-20: fetchReportingData already queries bids and
+                reviews and computes winRate / averageRating / completedJobs
+                — the screen rendered none of them, so two of its four
+                queries were pure waste on every load and every range switch.
+                These are the same numbers, now shown. No new queries. */}
+            <View style={styles.kpiRow}>
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiValue}>{stats.completedJobs}</Text>
+                <Text style={styles.kpiLabel}>
+                  {stats.completedJobs === 1 ? 'Job done' : 'Jobs done'}
+                </Text>
+              </View>
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiValue}>
+                  {Math.round(stats.winRate)}%
+                </Text>
+                <Text style={styles.kpiLabel}>Win rate</Text>
+              </View>
+              <View style={styles.kpiCard}>
+                <Text style={styles.kpiValue}>
+                  {stats.totalReviews > 0
+                    ? `${stats.averageRating.toFixed(1)}★`
+                    : '—'}
+                </Text>
+                <Text style={styles.kpiLabel}>
+                  {stats.totalReviews > 0
+                    ? `${stats.totalReviews} review${stats.totalReviews === 1 ? '' : 's'}`
+                    : 'No reviews yet'}
+                </Text>
+              </View>
             </View>
 
             {stats.categoryBreakdown.length > 0 ? (

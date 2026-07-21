@@ -330,14 +330,24 @@ async function generateCashFlowForecast(contractorId: string, weeks: number) {
   });
 }
 
+/**
+ * @param months Trailing window for the trend series (monthly revenue +
+ *   profit trends). Defaults to 12. Balance figures — escrow, invoices,
+ *   tax — are point-in-time and deliberately NOT scoped by it.
+ *
+ *   Added 2026-07-20: the dashboard's 3/6/12-month selector wrote to state
+ *   that nothing read, so changing it refetched byte-identical data and
+ *   redrew the same chart. The window now actually reaches the queries.
+ */
 export async function getFinancialSummary(
-  contractorId: string
+  contractorId: string,
+  months: number = 12
 ): Promise<FinancialSummary> {
   const context = {
     service: 'FinancialManagementService',
     method: 'getFinancialSummary',
     userId: contractorId,
-    params: { contractorId },
+    params: { contractorId, months },
   };
 
   const result = await ServiceErrorHandler.executeOperation(async () => {
@@ -361,8 +371,11 @@ export async function getFinancialSummary(
       escrowTotals,
       expenseCategories,
     ] = await Promise.all([
-      getMonthlyRevenue(contractorId, 12),
+      getMonthlyRevenue(contractorId, months),
       getInvoicesSummary(contractorId),
+      // Deliberately NOT scoped by `months`: getProfitTrends issues two
+      // queries per month, so following a 12-month selection would double
+      // its cost for a series the finance dashboard doesn't even render.
       getProfitTrends(contractorId, 6),
       calculateTaxObligations(contractorId),
       generateCashFlowForecast(contractorId, 8),

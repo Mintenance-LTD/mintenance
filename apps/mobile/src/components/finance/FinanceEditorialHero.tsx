@@ -18,6 +18,8 @@ import { Sparkline } from './Sparkline';
 interface Props {
   monthlyRevenue: readonly number[];
   formatCurrency: (n: number) => string;
+  /** Months the trend covers, from the dashboard's period selector. */
+  periodMonths?: number;
 }
 
 const MONTH_LABELS = [
@@ -38,6 +40,7 @@ const MONTH_LABELS = [
 export const FinanceEditorialHero: React.FC<Props> = ({
   monthlyRevenue,
   formatCurrency,
+  periodMonths,
 }) => {
   const [sparkWidth, setSparkWidth] = useState(0);
   const handleSparkLayout = (e: LayoutChangeEvent) => {
@@ -80,6 +83,11 @@ export const FinanceEditorialHero: React.FC<Props> = ({
           fell back to its 220px default inside this full-bleed card and
           painted a graph that stopped ~60% across — the stray block on the
           hero. Measure the real width and pass it. */}
+      {periodMonths ? (
+        <Text style={styles.trendLabel}>
+          Trend · last {periodMonths} months
+        </Text>
+      ) : null}
       <View style={styles.sparkWrap} onLayout={handleSparkLayout}>
         {sparkWidth > 0 && (
           <Sparkline data={series} width={sparkWidth} height={64} />
@@ -122,8 +130,14 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.85)',
     fontWeight: '600',
   },
+  trendLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 16,
+  },
   sparkWrap: {
-    marginTop: 18,
+    marginTop: 8,
     marginHorizontal: -22,
     marginBottom: -22,
     paddingHorizontal: 0,
