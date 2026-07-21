@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
+import { MAX_RADIUS_MILES } from './DiscoverFilters';
 
 interface DiscoverQuickStatsProps {
   filteredJobCount: number;
   savedJobCount: number;
+  /** Radius in MILES (2026-07-20 — was km; see DiscoverFilters.RADII_MILES). */
   selectedRadius: number;
   hasContractorLocation: boolean;
   totalJobCount: number;
@@ -50,7 +52,7 @@ export function DiscoverQuickStats({
             <div className='text-xs' style={{ color: 'var(--me-ink-2)' }}>
               Available Jobs
               {hasContractorLocation && (
-                <span className='ml-1'>within {selectedRadius}km</span>
+                <span className='ml-1'>within {selectedRadius} mi</span>
               )}
             </div>
           </div>
@@ -109,13 +111,13 @@ export function DiscoverQuickStats({
               fontFamily: 'var(--me-font-display)',
             }}
           >
-            {hasContractorLocation && selectedRadius < 100
+            {hasContractorLocation && selectedRadius < MAX_RADIUS_MILES
               ? 'No Jobs in This Area'
               : "You're All Caught Up!"}
           </h2>
           <p className='text-lg mb-6' style={{ color: 'var(--me-ink-2)' }}>
-            {hasContractorLocation && selectedRadius < 100
-              ? `No jobs found within ${selectedRadius}km. Try increasing the radius.`
+            {hasContractorLocation && selectedRadius < MAX_RADIUS_MILES
+              ? `No jobs found within ${selectedRadius} mi. Try increasing the radius.`
               : totalJobCount === 0
                 ? 'No jobs available right now. Check back soon!'
                 : 'No more jobs to review right now'}

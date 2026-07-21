@@ -27,7 +27,9 @@ interface DiscoverFiltersProps {
  * server-side at MAX_DISCOVER_CHIP_RADIUS_KM = 50, so a wider chip would
  * silently return nothing beyond that horizon.
  */
-const RADII_MILES = [3, 5, 10, 20, 30];
+export const RADII_MILES = [3, 5, 10, 20, 30];
+/** Widest radius offered — past this there is nothing left to widen to. */
+export const MAX_RADIUS_MILES = RADII_MILES[RADII_MILES.length - 1]!;
 const BUDGETS = [
   { value: 0, label: 'Any budget' },
   { value: 500, label: '£500+' },

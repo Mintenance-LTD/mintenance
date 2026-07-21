@@ -1,7 +1,18 @@
+/* eslint-disable @typescript-eslint/no-require-imports, import/first --
+ * jest.mock factories are hoisted above imports, so they can only reach
+ * modules via require(), and mocked bindings must be imported after them.
+ */
 import React from 'react';
 import { Alert } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { CreateServiceAreaModal } from '../CreateServiceAreaModal';
+import { milesToKm } from '@mintenance/shared';
+
+// 2026-07-20: the radius picker now offers MILES (radius_km is still what is
+// stored). Expected km values derive from the shared converter so they cannot
+// drift; the default chip is 5 mi, chosen as the closest option to the old
+// 10 km default.
+const km = (mi: number) => Math.round(milesToKm(mi) * 100) / 100;
 
 // Mock the only true external: the API client used for geocoding.
 jest.mock('../../../utils/mobileApiClient', () => ({
@@ -240,16 +251,16 @@ describe('CreateServiceAreaModal', () => {
         getByPlaceholderText('e.g. GL50 1QN or Cheltenham'),
         'SW1A 1AA'
       );
-      fireEvent.press(getByText('30 km'));
+      fireEvent.press(getByText('30 mi'));
       fireEvent.press(getByText('Save Service Area'));
       await waitFor(() =>
         expect(onCreate).toHaveBeenCalledWith(
-          expect.objectContaining({ radius_km: 30 })
+          expect.objectContaining({ radius_km: km(30) })
         )
       );
     });
 
-    it('defaults radius to 10 km when no chip pressed', async () => {
+    it('defaults radius to 5 mi when no chip pressed', async () => {
       mockPost.mockResolvedValue({
         latitude: 10,
         longitude: 20,
@@ -269,7 +280,7 @@ describe('CreateServiceAreaModal', () => {
       fireEvent.press(getByText('Save Service Area'));
       await waitFor(() =>
         expect(onCreate).toHaveBeenCalledWith(
-          expect.objectContaining({ radius_km: 10 })
+          expect.objectContaining({ radius_km: km(5) })
         )
       );
     });
@@ -357,7 +368,7 @@ describe('CreateServiceAreaModal', () => {
         area_name: 'London', // trimmed
         center_latitude: 51.5,
         center_longitude: -0.12,
-        radius_km: 10,
+        radius_km: km(5),
         is_primary_area: false,
       });
       expect(onCreated).toHaveBeenCalledTimes(1);
