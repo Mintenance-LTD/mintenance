@@ -8,3 +8,4 @@ export * from './payment-state-machine';
 export * from './bid-state-machine';
 export * from './contract-state-machine';
 export * from './escrow-state-machine';
+export * from './travel-state-machine';

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 import {
   travelPresentation,
+  travelBadgeLabel,
   type TravelStage,
 } from '../../../hooks/useContractorLiveLocation';
 import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../../utils/mapAvailability';
@@ -56,19 +57,20 @@ function liveBadgeFor(stage: TravelStage): {
   fg: string;
   bg: string;
 } {
+  // Wording comes from the shared machine (web renders the same words);
+  // only the colour tokens are platform-side.
+  const label = travelBadgeLabel(stage);
   switch (stage) {
-    case 'nearby':
-      return { label: 'Nearby', fg: me.brand, bg: me.brandSoft };
     case 'arriving':
-      return { label: 'Arriving', fg: me.okFg, bg: me.okBg };
     case 'arrived':
-      return { label: 'On site', fg: me.okFg, bg: me.okBg };
+      return { label, fg: me.okFg, bg: me.okBg };
     case 'late':
-      return { label: 'Delayed', fg: me.warnFg, bg: me.warnBg };
+      return { label, fg: me.warnFg, bg: me.warnBg };
+    case 'nearby':
     case 'on_the_way':
     case 'idle':
     default:
-      return { label: 'Live', fg: me.brand, bg: me.brandSoft };
+      return { label, fg: me.brand, bg: me.brandSoft };
   }
 }
 
