@@ -89,6 +89,36 @@ export const useServiceAreas = () => {
     }
   };
 
+  /**
+   * 2026-07-22: the Service Areas screen had no update path at all —
+   * `ServiceAreasService`'s CRUD statics were removed in the 2026-04-30
+   * P0-1 follow-up and nothing replaced the edit half here, so changing
+   * a radius meant deleting the area and recreating it. The PATCH route
+   * already accepted `radius_km`; only the client call was missing.
+   * Returns false on failure so the caller can keep the user's edit on
+   * screen instead of silently reverting it.
+   */
+  const handleUpdateRadii = async (
+    areaId: string,
+    patch: { radius_km: number; max_distance_km: number }
+  ): Promise<boolean> => {
+    try {
+      await mobileApiClient.patch(
+        `/api/contractor/service-areas/${areaId}`,
+        patch
+      );
+      await loadServiceAreas();
+      return true;
+    } catch (error) {
+      logger.error('Error updating service area radii', error);
+      Alert.alert(
+        'Not saved',
+        'Could not update your coverage. Check your connection and try again.'
+      );
+      return false;
+    }
+  };
+
   const handleDeletePress = (area: ServiceArea) => {
     setSelectedArea(area);
     setDeleteModalVisible(true);
@@ -123,6 +153,7 @@ export const useServiceAreas = () => {
     handleRefresh,
     handleCreateServiceArea,
     handleToggleActive,
+    handleUpdateRadii,
     handleDeletePress,
     handleDeleteConfirm,
   };
