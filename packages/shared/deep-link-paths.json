@@ -1,0 +1,40 @@
+{
+  "$comment": [
+    "CANONICAL list of URL paths the mobile app is allowed to capture from",
+    "https://mintenance.co.uk. Added 2026-07-21.",
+    "",
+    "WHY THIS FILE EXISTS: iOS and Android filter deep-link paths on opposite",
+    "sides of the wire. iOS reads a server-hosted apple-app-site-association",
+    "whose `components` array does the filtering; Android's assetlinks.json has",
+    "NO path concept at all, so filtering must be declared in the app's own",
+    "manifest (intentFilters -> pathPrefix) in app.config.js. Because the two",
+    "controls live in different repos, they drifted: the iOS allowlist was",
+    "written carefully while the Android filter was left claiming the WHOLE",
+    "domain — including /auth/callback and the password flows that iOS",
+    "deliberately excludes.",
+    "",
+    "Both platforms now derive their config from this file. Do not hand-edit",
+    "either side; edit here.",
+    "",
+    "NOTE: changing this requires a native EAS rebuild to take effect on",
+    "Android (it writes AndroidManifest.xml). JS-only OTA updates do not",
+    "re-write the manifest.",
+    "",
+    "`exact`    -> the bare path itself is app-handled (/jobs)",
+    "`children` -> paths beneath it are app-handled (/jobs/<id>)"
+  ],
+
+  "appHandled": [
+    { "path": "/jobs", "exact": true, "children": true },
+    { "path": "/payment", "exact": false, "children": true },
+    { "path": "/contracts", "exact": false, "children": true },
+    { "path": "/messages", "exact": true, "children": true },
+    { "path": "/contractors", "exact": false, "children": true },
+    { "path": "/properties", "exact": true, "children": true },
+    { "path": "/bookings", "exact": false, "children": true },
+    { "path": "/notifications", "exact": true, "children": false },
+    { "path": "/profile", "exact": true, "children": true }
+  ],
+
+  "browserOnly": ["/reset-password", "/forgot-password", "/auth/callback", "/login", "/register"]
+}

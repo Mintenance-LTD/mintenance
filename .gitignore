@@ -249,6 +249,9 @@ yolo11n.pt
 !scripts/.service-role-scoping-baseline.json
 # Surveyor taxonomy — canonical source imported by prompt-builder at runtime
 !apps/web/lib/services/building-surveyor/taxonomy/taxonomy_v3.json
+# Deep-link allowlist — the single source the iOS association route and the
+# Android intent filters both derive from (hand-written, not generated)
+!packages/shared/deep-link-paths.json
 *.html
 !index.html
 *.js
@@ -261,6 +264,9 @@ yolo11n.pt
 !mcp-server.ts
 # Expo config plugins (hand-written source, not generated output)
 !apps/mobile/plugins/**/*.js
+# Android intent-filter builder — CommonJS on purpose: app.config.js is
+# evaluated by Expo in plain Node at build time, before any workspace dist/
+!apps/mobile/deepLinkIntentFilters.js
 
 # Test files and debug artifacts in root
 test-*.js

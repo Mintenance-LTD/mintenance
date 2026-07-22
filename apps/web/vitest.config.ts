@@ -97,6 +97,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './'),
       '@mintenance/types': path.resolve(__dirname, '../../packages/types/src'),
       '@mintenance/auth': path.resolve(__dirname, '../../packages/auth/src'),
+      // Must precede the '@mintenance/shared' entry below: that alias points
+      // at the package's src/, but deep-link-paths.json deliberately lives at
+      // the package ROOT so app.config.js (plain Node, build time) can require
+      // it without a compiled dist/. Without this, the subpath resolves to a
+      // non-existent src/deep-link-paths.json under vitest only.
+      '@mintenance/shared/deep-link-paths.json': path.resolve(
+        __dirname,
+        '../../packages/shared/deep-link-paths.json'
+      ),
       '@mintenance/shared': path.resolve(
         __dirname,
         '../../packages/shared/src'
