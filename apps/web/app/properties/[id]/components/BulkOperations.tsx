@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Layers, Plus, Download, Loader2, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -36,19 +36,36 @@ export default function BulkOperations({
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (showBulkForm && properties.length === 0) {
-      fetch('/api/properties')
-        .then((res) => (res.ok ? res.json() : { properties: [] }))
-        .then((data) => {
-          const list: PropertyOption[] = Array.isArray(data?.properties)
-            ? data.properties
-            : [];
-          setProperties(list.filter((p) => p.id !== propertyId));
-        })
-        .catch(() => {});
+  // `null` = not attempted yet, `false` = loaded, `true` = the fetch failed.
+  // Kept separate from `properties.length` because "you have no other
+  // properties" and "we couldn't load your properties" are different facts.
+  // Reading the wrong shape here used to throw into a swallowed .catch(), so
+  // a hard failure rendered as an ordinary empty list and nobody noticed the
+  // feature was dead.
+  const [loadFailed, setLoadFailed] = useState<boolean | null>(null);
+
+  const loadProperties = useCallback(async () => {
+    try {
+      const res = await fetch('/api/properties');
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      if (!Array.isArray(data?.properties)) {
+        throw new Error('Unexpected response shape');
+      }
+      setProperties(
+        (data.properties as PropertyOption[]).filter((p) => p.id !== propertyId)
+      );
+      setLoadFailed(false);
+    } catch {
+      setLoadFailed(true);
     }
-  }, [showBulkForm, propertyId, properties.length]);
+  }, [propertyId]);
+
+  useEffect(() => {
+    if (showBulkForm && loadFailed === null) {
+      void loadProperties();
+    }
+  }, [showBulkForm, loadFailed, loadProperties]);
 
   const handleExportCompliance = async () => {
     setExporting(true);
@@ -203,7 +220,23 @@ export default function BulkOperations({
                     {p.property_name}
                   </label>
                 ))}
-                {properties.length === 0 && (
+                {loadFailed === true && (
+                  <div className='flex items-center gap-2'>
+                    <p className='text-xs text-amber-700'>
+                      Couldn&apos;t load your other properties.
+                    </p>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setLoadFailed(null);
+                      }}
+                      className='text-xs font-semibold text-amber-800 underline underline-offset-2'
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+                {loadFailed === false && properties.length === 0 && (
                   <p className='text-xs text-gray-400'>
                     No other properties found
                   </p>
@@ -243,7 +276,9 @@ export default function BulkOperations({
         </button>
         <p className='text-[10px] text-gray-400'>
           {jobs.filter((j) => j.status === 'completed').length} completed job
-          {jobs.filter((j) => j.status === 'completed').length !== 1 ? 's' : ''}{' '}
+          {jobs.filter((j) => j.status === 'completed').length !== 1
+            ? 's'
+            : ''}{' '}
           available for export
         </p>
       </div>

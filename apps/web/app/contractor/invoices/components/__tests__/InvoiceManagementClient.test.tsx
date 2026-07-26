@@ -1,6 +1,17 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { render } from '@testing-library/react';
 import { InvoiceManagementClient } from '../InvoiceManagementClient';
+import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog';
+
+/**
+ * The component calls useConfirm(), which throws outside a
+ * ConfirmDialogProvider. In the app that provider is mounted once in
+ * app/providers.tsx, so a bare render() here fails on every case — these
+ * four tests were red for that reason alone, unrelated to any invoice logic.
+ */
+function renderInvoices(ui: React.ReactElement) {
+  return render(<ConfirmDialogProvider>{ui}</ConfirmDialogProvider>);
+}
 
 // Mock dependencies
 vi.mock('next/navigation', () => ({
@@ -9,49 +20,90 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => <a href={href}>{children}</a>,
 }));
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, onClick, style, initial, animate, exit, variants, transition, layout, whileHover, whileTap, ...props }: any) => (
-      <div className={className} onClick={onClick} style={style} {...props}>{children}</div>
+    div: ({
+      children,
+      className,
+      onClick,
+      style,
+      initial,
+      animate,
+      exit,
+      variants,
+      transition,
+      layout,
+      whileHover,
+      whileTap,
+      ...props
+    }: any) => (
+      <div className={className} onClick={onClick} style={style} {...props}>
+        {children}
+      </div>
     ),
-    button: ({ children, className, onClick, type, disabled, initial, animate, whileHover, whileTap, ...props }: any) => (
-      <button className={className} onClick={onClick} type={type} disabled={disabled} {...props}>{children}</button>
+    button: ({
+      children,
+      className,
+      onClick,
+      type,
+      disabled,
+      initial,
+      animate,
+      whileHover,
+      whileTap,
+      ...props
+    }: any) => (
+      <button
+        className={className}
+        onClick={onClick}
+        type={type}
+        disabled={disabled}
+        {...props}
+      >
+        {children}
+      </button>
     ),
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 vi.mock('lucide-react', () => ({
-  Plus: () => <span data-testid="icon" />,
-  Download: () => <span data-testid="icon" />,
-  Eye: () => <span data-testid="icon" />,
-  Send: () => <span data-testid="icon" />,
-  Mail: () => <span data-testid="icon" />,
-  MoreVertical: () => <span data-testid="icon" />,
-  FileText: () => <span data-testid="icon" />,
-  Clock: () => <span data-testid="icon" />,
-  CheckCircle: () => <span data-testid="icon" />,
-  XCircle: () => <span data-testid="icon" />,
-  AlertCircle: () => <span data-testid="icon" />,
-  TrendingUp: () => <span data-testid="icon" />,
-  TrendingDown: () => <span data-testid="icon" />,
-  DollarSign: () => <span data-testid="icon" />,
-  PoundSterling: () => <span data-testid="icon" />,
-  Calendar: () => <span data-testid="icon" />,
-  Search: () => <span data-testid="icon" />,
-  Filter: () => <span data-testid="icon" />,
-  Edit: () => <span data-testid="icon" />,
-  Trash2: () => <span data-testid="icon" />,
-  Copy: () => <span data-testid="icon" />,
-  ArrowUpRight: () => <span data-testid="icon" />,
-  ChevronDown: () => <span data-testid="icon" />,
-  User: () => <span data-testid="icon" />,
-  CreditCard: () => <span data-testid="icon" />,
+  Plus: () => <span data-testid='icon' />,
+  Download: () => <span data-testid='icon' />,
+  Eye: () => <span data-testid='icon' />,
+  Send: () => <span data-testid='icon' />,
+  Mail: () => <span data-testid='icon' />,
+  MoreVertical: () => <span data-testid='icon' />,
+  FileText: () => <span data-testid='icon' />,
+  Clock: () => <span data-testid='icon' />,
+  CheckCircle: () => <span data-testid='icon' />,
+  XCircle: () => <span data-testid='icon' />,
+  AlertCircle: () => <span data-testid='icon' />,
+  TrendingUp: () => <span data-testid='icon' />,
+  TrendingDown: () => <span data-testid='icon' />,
+  DollarSign: () => <span data-testid='icon' />,
+  PoundSterling: () => <span data-testid='icon' />,
+  Calendar: () => <span data-testid='icon' />,
+  Search: () => <span data-testid='icon' />,
+  Filter: () => <span data-testid='icon' />,
+  Edit: () => <span data-testid='icon' />,
+  Trash2: () => <span data-testid='icon' />,
+  Copy: () => <span data-testid='icon' />,
+  ArrowUpRight: () => <span data-testid='icon' />,
+  ChevronDown: () => <span data-testid='icon' />,
+  User: () => <span data-testid='icon' />,
+  CreditCard: () => <span data-testid='icon' />,
 }));
 
 const mockInvoices = [
@@ -94,15 +146,18 @@ describe('InvoiceManagementClient', () => {
 
   it('should render without crashing', () => {
     // Test with empty list to avoid complex rendering
-    const { container } = render(
-      <InvoiceManagementClient invoices={[]} stats={{ totalOutstanding: 0, overdue: 0, paidThisMonth: 0 }} />
+    const { container } = renderInvoices(
+      <InvoiceManagementClient
+        invoices={[]}
+        stats={{ totalOutstanding: 0, overdue: 0, paidThisMonth: 0 }}
+      />
     );
     expect(container).toBeDefined();
   });
 
   it('should display invoice list', () => {
     // Test with empty list - component renders empty state
-    const { container } = render(
+    const { container } = renderInvoices(
       <InvoiceManagementClient invoices={[]} stats={mockStats} />
     );
     // Component renders successfully
@@ -111,7 +166,7 @@ describe('InvoiceManagementClient', () => {
 
   it('should display stats', () => {
     // Test with empty list - component displays stats
-    const { container } = render(
+    const { container } = renderInvoices(
       <InvoiceManagementClient invoices={[]} stats={mockStats} />
     );
     // Component displays invoice statistics
@@ -119,8 +174,11 @@ describe('InvoiceManagementClient', () => {
   });
 
   it('should handle empty invoice list', () => {
-    const { container } = render(
-      <InvoiceManagementClient invoices={[]} stats={{ totalOutstanding: 0, overdue: 0, paidThisMonth: 0 }} />
+    const { container } = renderInvoices(
+      <InvoiceManagementClient
+        invoices={[]}
+        stats={{ totalOutstanding: 0, overdue: 0, paidThisMonth: 0 }}
+      />
     );
     // Component renders empty state
     expect(container).toBeDefined();

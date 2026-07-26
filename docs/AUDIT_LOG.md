@@ -17,6 +17,57 @@ ran a mobile backend schema-alignment audit (live Postgres error logs + `informa
 cross-check), shipped 5 commits, applied 2 live migrations, and deleted ~45 files of orphaned dead
 code — see "2026-06-06" immediately below.
 
+### 2026-07-26 (later) — assessment-photo security, team invites, green suite
+
+Follow-up session working the recommendations from the audit below.
+
+**1. assessment-photos bucket + mobile upload (had to land together).** The bucket was `public=true`
+and both mobile upload paths were broken; fixing the upload first would have started streaming
+interior photographs of homes into a world-readable bucket. **The upload defect is no longer a
+hypothesis** — the walkthrough route already documents "client-side direct-to-Supabase uploads from
+React Native never landed bytes (0 objects ever in the bucket)", and `storage.objects` confirms 0.
+No device test was needed to establish it was broken. Bucket flipped private (`20260726135946`,
+zero-risk: 0 objects, and the 30 `assessment_images` rows point at Job-storage); new
+`POST /api/assessments/photo-upload` does server-mediated multipart upload with the service role;
+both mobile call sites stream `{uri,name,type}` parts; format derived from magic bytes not the
+client header (HEIC was being stored as undecodable "JPEG"); `lib/api/assessment-storage.ts` mirrors
+job-storage, and GET status re-signs on read. Failures now surface — 502 from the route,
+`uploadPhotosToStorage` throws, and the wizard says "Saved, but the photos did not upload".
+
+**2. Team invites, end to end.** `property_team_members` had a real 4-role permission matrix, an
+email service, and zero rows — because the only RLS policy was owner-scoped, so an invitee could
+never see the row addressed to them. Migration `20260726143340` splits the single `FOR ALL` policy
+into per-command policies so SELECT can widen to the invitee **without** adding a second permissive
+policy (advisor still reports 0 multiple_permissive / 0 initplan). Writes stay owner-only
+deliberately: an invitee who could UPDATE their own row could also rewrite `role`. New
+`/api/properties/invites` (GET list, POST accept/decline) verifies the caller's email against
+`profiles`, and `PendingPropertyInvites` surfaces them on `/properties` — so it is reachable, not
+just built. RLS proven with a seeded + rolled-back transaction: invitee sees their own invite
+case-insensitively, unrelated users do not, owner still does.
+
+**3. Empty vs broken.** `BulkOperations` now distinguishes "no other properties" from "couldn't load
+them" with a retry, instead of swallowing into `.catch(() => {})`. The mobile upload path was fixed
+in (1). `properties/[id]/page.tsx`'s unread `jobsError` was deliberately **left alone** — branch
+`claude/ecstatic-germain-23d9e9` owns that file and editing it here would conflict; the Timeline
+row-dropping is already fixed by their date change.
+
+**4. The 72 red tests were never the pricing refactor.** Diagnosed rather than landed or shelved.
+Four files carried `vi.mock('@mintenance/shared', …)` factories that predate the tiered-pricing work
+and therefore omit its new `PLATFORM_FEE_RATE_BY_TIER` export — a mock factory must return every
+export its consumers import, so `feature-access-config` threw at import time. The fifth,
+`InvoiceManagementClient.test.tsx`, was failing for a completely unrelated pre-existing reason: the
+component calls `useConfirm()` and the test rendered it outside `ConfirmDialogProvider`. Both files
+there are unmodified at HEAD, so that failure predates all the uncommitted work. Production code was
+coherent throughout.
+
+**Web suite: 2683 passed / 0 failed (236 files), exit 0** — green for the first time in this
+session, up from 2485 at the last audit. tsc exit 0 on both apps; eslint 0 errors.
+
+**Still open:** the mobile upload has not been watched on a physical device (evidence it was broken
+is conclusive and the replacement matches a route known to work, but nobody has seen bytes land from
+a phone); raw `req.json()` on team/tenants; the add/edit property form's four discarded fields;
+`units` RLS owner lockout; the two recurring tables' conflicting frequency vocabularies.
+
 ### 2026-07-26 — property-feature audit (4 agents) + compliance/bulk remediation
 
 **Scope:** Full property-feature audit via 4 parallel agents — web API routes (security-expert), web
