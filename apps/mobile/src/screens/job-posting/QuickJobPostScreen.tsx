@@ -36,6 +36,7 @@ import {
 import { submitQuickJob } from './quick-job-post/submitQuickJob';
 import { usePhoneVerificationGate } from '../../hooks/usePhoneVerificationGate';
 import { PhoneVerificationModal } from '../../components/verification/PhoneVerificationModal';
+import { PhoneVerificationBanner } from '../../components/verification/PhoneVerificationBanner';
 import { QuickJobHeader } from './quick-job-post/components/QuickJobHeader';
 import { PropertyBanner } from './quick-job-post/components/PropertyBanner';
 import { RepairTemplateGrid } from './quick-job-post/components/RepairTemplateGrid';
@@ -147,6 +148,8 @@ export const QuickJobPostScreen: React.FC = () => {
         <Text style={styles.subtitle}>
           Get your repair fixed fast - select a template or describe your issue
         </Text>
+
+        <PhoneVerificationBanner />
 
         <PropertyBanner
           propertyName={params?.propertyName}

@@ -12,6 +12,7 @@ import type { Property } from '@mintenance/types';
 import { styles } from './styles';
 import { type ServiceCategory, priorityLevels } from './types';
 import { DatePicker } from '../../components/ui/DatePicker';
+import { PhoneVerificationBanner } from '../../components/verification/PhoneVerificationBanner';
 import { me } from '../../design-system/mint-editorial';
 
 interface ServiceFormProps {
@@ -84,6 +85,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
     </View>
 
     <ScrollView style={styles.content}>
+      <PhoneVerificationBanner
+        style={{ marginHorizontal: 20, marginTop: 16 }}
+      />
       {/* Subcategory */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>

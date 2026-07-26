@@ -81,6 +81,30 @@ export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
   // list and a failed load must not look the same.
   const [loadFailed, setLoadFailed] = useState<boolean | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [surveyCounts, setSurveyCounts] = useState<Record<string, number>>({});
+
+  /**
+   * How many surveys each room already has. Assessments carry a room anchor
+   * (building_assessments.room_id), so a room can show its own history rather
+   * than every survey looking like an anonymous property-level one.
+   * Best-effort: a failure here must not stop someone filming.
+   */
+  const loadSurveyCounts = useCallback(async () => {
+    try {
+      const res = await mobileApiClient.get<{
+        assessments?: { room?: { id?: string } | null }[];
+      }>(`/api/properties/${propertyId}/assessments`);
+
+      const counts: Record<string, number> = {};
+      for (const a of res?.assessments ?? []) {
+        const id = a.room?.id;
+        if (id) counts[id] = (counts[id] ?? 0) + 1;
+      }
+      setSurveyCounts(counts);
+    } catch (error) {
+      logger.warn('Could not load room survey counts', { error });
+    }
+  }, [propertyId]);
 
   const load = useCallback(async () => {
     try {
@@ -89,11 +113,12 @@ export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
       );
       setRooms(Array.isArray(res?.rooms) ? res.rooms : []);
       setLoadFailed(false);
+      void loadSurveyCounts();
     } catch (error) {
       logger.warn('Failed to load rooms for walkthrough', { error });
       setLoadFailed(true);
     }
-  }, [propertyId]);
+  }, [propertyId, loadSurveyCounts]);
 
   useEffect(() => {
     void load();
@@ -218,6 +243,11 @@ export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
               <Text style={styles.roomName}>{room.name}</Text>
               <Text style={styles.roomType}>
                 {room.room_type.replace(/_/g, ' ')}
+                {surveyCounts[room.id]
+                  ? ` · ${surveyCounts[room.id]} survey${
+                      surveyCounts[room.id] === 1 ? '' : 's'
+                    }`
+                  : ''}
               </Text>
             </View>
             <Icon name='chevron-right' size={22} color={me.ink4} />

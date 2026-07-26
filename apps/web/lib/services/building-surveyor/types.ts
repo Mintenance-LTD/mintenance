@@ -308,6 +308,13 @@ export interface AssessmentContext {
   userId?: string;
   /** Before photos fetched from job_photos_metadata for before/after comparison. */
   beforeImageUrls?: string[];
+  /**
+   * Set when the walkthrough covers one room rather than the whole property,
+   * so the surveyor model knows it is looking at (say) a kitchen instead of an
+   * anonymous interior. The id is verified against the anchored property
+   * before it is persisted — never trust it as an anchor on its own.
+   */
+  room?: { id?: string; name?: string; type?: string };
 }
 
 /**

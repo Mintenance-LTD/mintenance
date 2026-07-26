@@ -12,10 +12,14 @@ export class PhoneVerificationService {
   /**
    * Send SMS verification code to phone number using Supabase Auth SMS
    */
-  static async sendVerificationCode(userId: string, phoneNumber: string): Promise<{ success: boolean; error?: string; devCode?: string }> {
+  static async sendVerificationCode(
+    userId: string,
+    phoneNumber: string
+  ): Promise<{ success: boolean; error?: string; devCode?: string }> {
     try {
       // Check if user exists in auth.users first
-      const { data: authUser, error: authUserError } = await serverSupabase.auth.admin.getUserById(userId);
+      const { data: authUser, error: authUserError } =
+        await serverSupabase.auth.admin.getUserById(userId);
 
       // If user exists but doesn't have phone in auth.users, update it first
       if (authUser?.user && !authUser.user.phone) {
@@ -45,23 +49,30 @@ export class PhoneVerificationService {
         });
 
         // Check if it's a configuration error
-        if (error.message?.includes('SMS provider') || 
-            error.message?.includes('not configured') ||
-            error.message?.includes('SMS service is not enabled')) {
-          return { 
-            success: false, 
-            error: 'SMS provider not configured in Supabase. Please configure TextLocal or another provider in supabase/config.toml. See documentation for setup instructions.' 
+        if (
+          error.message?.includes('SMS provider') ||
+          error.message?.includes('not configured') ||
+          error.message?.includes('SMS service is not enabled')
+        ) {
+          // Operator detail (SMS provider not configured in Supabase)
+          // is in the logger.error above; users get a plain message.
+          return {
+            success: false,
+            error:
+              'Text messaging is temporarily unavailable. Please try again later or contact support.',
           };
         }
 
         // Check if signups are disabled, user doesn't exist, timeout, or other errors - use Admin API fallback
-        if (error.message?.includes('Signups not allowed') || 
-            error.message?.includes('User not found') || 
-            error.status === 400 || 
-            error.status === 422 ||
-            error.status === 504 ||
-            !error.message ||
-            error.message === '{}') {
+        if (
+          error.message?.includes('Signups not allowed') ||
+          error.message?.includes('User not found') ||
+          error.status === 400 ||
+          error.status === 422 ||
+          error.status === 504 ||
+          !error.message ||
+          error.message === '{}'
+        ) {
           logger.warn('signInWithOtp failed, using Admin API fallback', {
             service: 'PhoneVerificationService',
             userId,
@@ -73,9 +84,9 @@ export class PhoneVerificationService {
           return await this.sendSMSViaAdminAPI(phoneNumber);
         }
 
-        return { 
-          success: false, 
-          error: `Failed to send verification code: ${error.message}` 
+        return {
+          success: false,
+          error: `Failed to send verification code: ${error.message}`,
         };
       }
 
@@ -95,13 +106,17 @@ export class PhoneVerificationService {
       // In development mode, Supabase might not send actual SMS
       // Check if we're in dev mode and log accordingly
       if (process.env.NODE_ENV === 'development') {
-        logger.info('Development mode: Check Supabase logs or Inbucket for OTP code', {
-          service: 'PhoneVerificationService',
-          phoneNumber: phoneNumber.substring(0, 4) + '****',
-        });
-        return { 
+        logger.info(
+          'Development mode: Check Supabase logs or Inbucket for OTP code',
+          {
+            service: 'PhoneVerificationService',
+            phoneNumber: phoneNumber.substring(0, 4) + '****',
+          }
+        );
+        return {
           success: true,
-          devCode: 'Check Supabase logs or Inbucket email interface for OTP code',
+          devCode:
+            'Check Supabase logs or Inbucket email interface for OTP code',
         };
       }
 
@@ -118,15 +133,17 @@ export class PhoneVerificationService {
   /**
    * Fallback: Send SMS via Supabase Admin API
    */
-  private static async sendSMSViaAdminAPI(phoneNumber: string): Promise<{ success: boolean; error?: string; devCode?: string }> {
+  private static async sendSMSViaAdminAPI(
+    phoneNumber: string
+  ): Promise<{ success: boolean; error?: string; devCode?: string }> {
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
       if (!supabaseUrl || !serviceKey) {
-        return { 
-          success: false, 
-          error: 'Supabase configuration missing' 
+        return {
+          success: false,
+          error: 'Supabase configuration missing',
         };
       }
 
@@ -135,8 +152,8 @@ export class PhoneVerificationService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
         },
         body: JSON.stringify({
           phone: phoneNumber,
@@ -145,20 +162,23 @@ export class PhoneVerificationService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
+
         logger.error('Supabase Admin OTP API failed', {
           service: 'PhoneVerificationService',
           status: response.status,
           error: errorData,
         });
-        
+
         // Supabase Admin API failed - always try Twilio Verify as final fallback
-        logger.warn('Supabase Admin API failed, trying Twilio Verify as final fallback', {
-          service: 'PhoneVerificationService',
-          phoneNumber: phoneNumber.substring(0, 4) + '****',
-          status: response.status,
-          error: errorData,
-        });
+        logger.warn(
+          'Supabase Admin API failed, trying Twilio Verify as final fallback',
+          {
+            service: 'PhoneVerificationService',
+            phoneNumber: phoneNumber.substring(0, 4) + '****',
+            status: response.status,
+            error: errorData,
+          }
+        );
 
         return await this.sendSMSViaTwilioVerify(phoneNumber);
       }
@@ -171,7 +191,7 @@ export class PhoneVerificationService {
       });
 
       if (process.env.NODE_ENV === 'development') {
-        return { 
+        return {
           success: true,
           devCode: 'Check Supabase logs or Inbucket for OTP code',
         };
@@ -182,9 +202,9 @@ export class PhoneVerificationService {
       logger.error('Error sending SMS via Admin API', error, {
         service: 'PhoneVerificationService',
       });
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to send SMS' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to send SMS',
       };
     }
   }
@@ -192,7 +212,9 @@ export class PhoneVerificationService {
   /**
    * Fallback: Send SMS via Twilio Verify API directly
    */
-  private static async sendSMSViaTwilioVerify(phoneNumber: string): Promise<{ success: boolean; error?: string; devCode?: string }> {
+  private static async sendSMSViaTwilioVerify(
+    phoneNumber: string
+  ): Promise<{ success: boolean; error?: string; devCode?: string }> {
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -205,23 +227,31 @@ export class PhoneVerificationService {
           hasAuthToken: !!authToken,
           hasVerifyServiceSid: !!verifyServiceSid,
         });
-        return { 
-          success: false, 
-          error: 'SMS service timed out. Twilio Verify fallback not configured. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID environment variables.' 
+        // Missing Twilio env vars are logged above for the operator.
+        return {
+          success: false,
+          error:
+            'Text messaging is temporarily unavailable. Please try again later or contact support.',
         };
       }
 
       // Sanitize token: remove ALL whitespace including newlines, carriage returns, tabs, etc.
-      const sanitizedToken = authToken?.replace(/\s+/g, '').replace(/[\r\n\t]/g, '');
+      const sanitizedToken = authToken
+        ?.replace(/\s+/g, '')
+        .replace(/[\r\n\t]/g, '');
       const originalLength = authToken?.length;
       const sanitizedLength = sanitizedToken?.length;
       const hasWhitespace = authToken && authToken !== sanitizedToken;
-      const hasNewlines = authToken && (authToken.includes('\n') || authToken.includes('\r'));
-      const tokenFormatValid = sanitizedToken && sanitizedToken.length === 32 && /^[a-zA-Z0-9]{32}$/.test(sanitizedToken);
+      const hasNewlines =
+        authToken && (authToken.includes('\n') || authToken.includes('\r'));
+      const tokenFormatValid =
+        sanitizedToken &&
+        sanitizedToken.length === 32 &&
+        /^[a-zA-Z0-9]{32}$/.test(sanitizedToken);
 
       // Use sanitized token (removes all whitespace, newlines, etc.)
       const cleanAuthToken = sanitizedToken || authToken;
-      
+
       if (!tokenFormatValid) {
         logger.error('Twilio Auth Token format is invalid', {
           service: 'PhoneVerificationService',
@@ -231,16 +261,18 @@ export class PhoneVerificationService {
           hasNewlines,
           expectedLength: 32,
         });
-        return { 
-          success: false, 
-          error: `Twilio Auth Token format is invalid. Expected exactly 32 alphanumeric characters, but got ${sanitizedLength} after sanitization. Please check your TWILIO_AUTH_TOKEN in .env.local and ensure there are no extra spaces, newlines, or special characters.` 
+        // Malformed TWILIO_AUTH_TOKEN details are logged above.
+        return {
+          success: false,
+          error:
+            'Text messaging is temporarily unavailable. Please try again later or contact support.',
         };
       }
       const client = twilio(accountSid, cleanAuthToken);
 
-      const verification = await client.verify.v2.services(verifyServiceSid)
-        .verifications
-        .create({ to: phoneNumber, channel: 'sms' });
+      const verification = await client.verify.v2
+        .services(verifyServiceSid)
+        .verifications.create({ to: phoneNumber, channel: 'sms' });
 
       logger.info('SMS OTP sent via Twilio Verify', {
         service: 'PhoneVerificationService',
@@ -258,19 +290,24 @@ export class PhoneVerificationService {
         errorMessage: err?.message,
       });
 
-      // Provide user-friendly error messages
-      let errorMessage = 'Failed to send SMS via Twilio';
+      // 2026-07-26: these messages reach end users (the mobile
+      // verification modal renders them verbatim), so keep them
+      // user-facing — the operator detail (invalid TWILIO_AUTH_TOKEN,
+      // account status, raw Twilio error) is already in logger.error
+      // above for Sentry/ops.
+      let errorMessage =
+        'We could not send the text message right now. Please try again later.';
       if (err?.message === 'Authenticate' || err?.code === 20003) {
-        errorMessage = 'Twilio authentication failed. Please check your TWILIO_AUTH_TOKEN in .env.local. The token may need to be regenerated in Twilio Console.';
+        errorMessage =
+          'Text messaging is temporarily unavailable. Please try again later or contact support.';
       } else if (err?.code === 20429 || err?.code === 20001) {
-        errorMessage = `Twilio API error: ${err.message}. Please check your Twilio account status.`;
-      } else if (err?.message) {
-        errorMessage = `Failed to send SMS via Twilio: ${err.message}`;
+        errorMessage =
+          'Too many attempts right now. Please wait a minute and try again.';
       }
-      
-      return { 
-        success: false, 
-        error: errorMessage
+
+      return {
+        success: false,
+        error: errorMessage,
       };
     }
   }
@@ -278,7 +315,10 @@ export class PhoneVerificationService {
   /**
    * Verify phone number with code using Supabase Auth
    */
-  static async verifyCode(userId: string, code: string): Promise<{ success: boolean; error?: string }> {
+  static async verifyCode(
+    userId: string,
+    code: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Get user's phone number
       const { data: user, error: fetchError } = await serverSupabase
@@ -302,36 +342,59 @@ export class PhoneVerificationService {
       }
 
       if (!user.phone) {
-        return { success: false, error: 'Phone number not found. Please request a new code.' };
+        return {
+          success: false,
+          error: 'Phone number not found. Please request a new code.',
+        };
       }
 
       // Try verifying OTP via Supabase Auth first
-      const { data: verifyData, error: verifyError } = await serverSupabase.auth.verifyOtp({
-        phone: user.phone,
-        token: code,
-        type: 'sms',
-      });
+      const { data: verifyData, error: verifyError } =
+        await serverSupabase.auth.verifyOtp({
+          phone: user.phone,
+          token: code,
+          type: 'sms',
+        });
 
       // If Supabase verification fails, try Twilio Verify API as fallback
       // (in case code was sent via Twilio Verify directly)
       if (verifyError) {
-        logger.warn('Supabase OTP verification failed, trying Twilio Verify API', {
-          service: 'PhoneVerificationService',
-          userId,
-          error: verifyError.message,
-        });
+        logger.warn(
+          'Supabase OTP verification failed, trying Twilio Verify API',
+          {
+            service: 'PhoneVerificationService',
+            userId,
+            error: verifyError.message,
+          }
+        );
 
         // Try Twilio Verify API
-        const twilioVerifyResult = await this.verifyCodeViaTwilioVerify(user.phone, code);
-        
+        const twilioVerifyResult = await this.verifyCodeViaTwilioVerify(
+          user.phone,
+          code
+        );
+
         if (!twilioVerifyResult.success) {
           // Both methods failed - return user-friendly error
-          if (verifyError.message?.includes('expired') || twilioVerifyResult.error?.includes('expired')) {
-            return { success: false, error: 'Invalid or expired verification code. Please request a new code.' };
+          if (
+            verifyError.message?.includes('expired') ||
+            twilioVerifyResult.error?.includes('expired')
+          ) {
+            return {
+              success: false,
+              error:
+                'Invalid or expired verification code. Please request a new code.',
+            };
           }
-          return { success: false, error: twilioVerifyResult.error || verifyError.message || 'Invalid verification code' };
+          return {
+            success: false,
+            error:
+              twilioVerifyResult.error ||
+              verifyError.message ||
+              'Invalid verification code',
+          };
         }
-        
+
         // Twilio Verify succeeded - continue with marking phone as verified
       }
 
@@ -380,7 +443,6 @@ export class PhoneVerificationService {
     }
   }
 
-
   /**
    * Check if user's phone is verified
    */
@@ -409,10 +471,16 @@ export class PhoneVerificationService {
   /**
    * Verify code using Twilio Verify API
    */
-  private static async verifyCodeViaTwilioVerify(phoneNumber: string, code: string): Promise<{ success: boolean; error?: string }> {
+  private static async verifyCodeViaTwilioVerify(
+    phoneNumber: string,
+    code: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
-      const authToken = process.env.TWILIO_AUTH_TOKEN?.replace(/\s+/g, '').replace(/[\r\n\t]/g, '');
+      const authToken = process.env.TWILIO_AUTH_TOKEN?.replace(
+        /\s+/g,
+        ''
+      ).replace(/[\r\n\t]/g, '');
       const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
       if (!accountSid || !authToken || !verifyServiceSid) {
@@ -421,9 +489,9 @@ export class PhoneVerificationService {
 
       const client = twilio(accountSid, authToken);
 
-      const verificationCheck = await client.verify.v2.services(verifyServiceSid)
-        .verificationChecks
-        .create({ to: phoneNumber, code });
+      const verificationCheck = await client.verify.v2
+        .services(verifyServiceSid)
+        .verificationChecks.create({ to: phoneNumber, code });
 
       if (verificationCheck.status === 'approved') {
         logger.info('Phone verification code verified via Twilio Verify', {
@@ -438,7 +506,10 @@ export class PhoneVerificationService {
           phoneNumber: phoneNumber.substring(0, 4) + '****',
           status: verificationCheck.status,
         });
-        return { success: false, error: 'Invalid or expired verification code' };
+        return {
+          success: false,
+          error: 'Invalid or expired verification code',
+        };
       }
     } catch (error: unknown) {
       logger.error('Error verifying code via Twilio Verify', error, {
@@ -447,17 +518,25 @@ export class PhoneVerificationService {
 
       const err = error as Record<string, unknown>;
       if (err?.code === 20404) {
-        return { success: false, error: 'Verification code not found. Please request a new code.' };
+        return {
+          success: false,
+          error: 'Verification code not found. Please request a new code.',
+        };
       }
 
-      return { success: false, error: (err?.message as string) || 'Failed to verify code' };
+      return {
+        success: false,
+        error: (err?.message as string) || 'Failed to verify code',
+      };
     }
   }
 
   /**
    * Resend verification code
    */
-  static async resendCode(userId: string): Promise<{ success: boolean; error?: string }> {
+  static async resendCode(
+    userId: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: user, error } = await serverSupabase
         .from('profiles')
@@ -479,4 +558,3 @@ export class PhoneVerificationService {
     }
   }
 }
-

@@ -44,6 +44,7 @@ import { LocationService } from '../../services/LocationService';
 import { me } from '../../design-system/mint-editorial';
 import { usePhoneVerificationGate } from '../../hooks/usePhoneVerificationGate';
 import { PhoneVerificationModal } from '../../components/verification/PhoneVerificationModal';
+import { PhoneVerificationBanner } from '../../components/verification/PhoneVerificationBanner';
 import { logger } from '../../utils/logger';
 import type { Property } from '@mintenance/types';
 import { styles } from './styles';
@@ -297,6 +298,8 @@ export const EmergencyJobScreen: React.FC<Props> = ({ navigation, route }) => {
           A leak, a power cut, a no-heat morning. Mint will text verified
           emergency tradespeople near you now.
         </Text>
+
+        <PhoneVerificationBanner />
 
         <View style={styles.honestNote}>
           <Ionicons

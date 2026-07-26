@@ -119,6 +119,33 @@ export const POST = withApiHandler(
       service: 'assessment-walkthrough',
     });
 
+    // The room arrives in client-supplied context, so it is a claim, not an
+    // anchor. Persisting it unchecked would let anyone file a survey against
+    // another property's room. Only a room that genuinely belongs to the
+    // property we just authorised is kept; anything else is dropped and the
+    // assessment stays property-scoped.
+    let roomId: string | undefined;
+    const claimedRoomId = context?.room?.id;
+    if (claimedRoomId && propertyId) {
+      const { data: room } = await serverSupabase
+        .from('property_rooms')
+        .select('id')
+        .eq('id', claimedRoomId)
+        .eq('property_id', propertyId)
+        .maybeSingle();
+
+      if (room?.id) {
+        roomId = room.id;
+      } else {
+        logger.warn('Walkthrough room ignored — not part of this property', {
+          service: SERVICE,
+          propertyId,
+          claimedRoomId,
+          userId: user.id,
+        });
+      }
+    }
+
     // Upload the frames server-side (service role → no client storage RLS).
     const folderId = `${propertyId ?? jobId}-${Date.now()}`;
     const frameUrls = await uploadFramesToStorage(files, folderId);
@@ -165,6 +192,7 @@ export const POST = withApiHandler(
       userId: user.id,
       jobId,
       propertyId,
+      roomId,
       domain,
       cacheKey,
       assessment,

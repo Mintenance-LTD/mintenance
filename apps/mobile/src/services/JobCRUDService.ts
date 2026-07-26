@@ -98,66 +98,76 @@ export class JobCRUDService {
       },
     };
 
-    const result = await ServiceErrorHandler.executeOperation(async () => {
-      // Client-side validation for quick UX feedback
-      const safeTitle = sanitizeText(jobData.title).trim();
-      const safeDescription = sanitizeText(jobData.description).trim();
-      const safeLocation = sanitizeText(jobData.location).trim();
+    const result = await ServiceErrorHandler.executeOperation(
+      async () => {
+        // Client-side validation for quick UX feedback
+        const safeTitle = sanitizeText(jobData.title).trim();
+        const safeDescription = sanitizeText(jobData.description).trim();
+        const safeLocation = sanitizeText(jobData.location).trim();
 
-      ServiceErrorHandler.validateRequired(safeTitle, 'Title', context);
-      ServiceErrorHandler.validateRequired(
-        safeDescription,
-        'Description',
-        context
-      );
-      ServiceErrorHandler.validateRequired(safeLocation, 'Location', context);
+        ServiceErrorHandler.validateRequired(safeTitle, 'Title', context);
+        ServiceErrorHandler.validateRequired(
+          safeDescription,
+          'Description',
+          context
+        );
+        ServiceErrorHandler.validateRequired(safeLocation, 'Location', context);
 
-      const homeowner_id = jobData.homeowner_id ?? jobData.homeownerId;
-      ServiceErrorHandler.validateRequired(
-        homeowner_id,
-        'Homeowner ID',
-        context
-      );
+        const homeowner_id = jobData.homeowner_id ?? jobData.homeownerId;
+        ServiceErrorHandler.validateRequired(
+          homeowner_id,
+          'Homeowner ID',
+          context
+        );
 
-      // Route through web API for server-side validation, notifications, and rate limiting
-      const response = await mobileApiClient.post<{ job: DatabaseJobRow }>(
-        '/api/jobs',
-        {
-          title: safeTitle,
-          description: safeDescription,
-          location: safeLocation,
-          ...(jobData.budget !== undefined ? { budget: jobData.budget } : {}),
-          category: jobData.category,
-          urgency: jobData.urgency,
-          photoUrls: jobData.photos,
-          property_id: jobData.property_id,
-          latitude: jobData.latitude,
-          longitude: jobData.longitude,
-          // R6 #19 landlord / tenancy — only forward when set
-          ...(jobData.is_rental_property ? { is_rental_property: true } : {}),
-          ...(jobData.tenancy_metadata
-            ? { tenancy_metadata: jobData.tenancy_metadata }
-            : {}),
-          // Property Rooms Slice 1 — forward only when at least one
-          // room is picked; the server validates each id is a UUID
-          // and silently drops any that don't belong to the property.
-          ...(jobData.room_ids && jobData.room_ids.length > 0
-            ? { room_ids: jobData.room_ids }
-            : {}),
-          // 2026-05-22: per-job requirements jsonb (e.g.
-          // contractor_before_photos for no-upload flows).
-          ...(jobData.requirements
-            ? { requirements: jobData.requirements }
-            : {}),
+        // Route through web API for server-side validation, notifications, and rate limiting
+        const response = await mobileApiClient.post<{ job: DatabaseJobRow }>(
+          '/api/jobs',
+          {
+            title: safeTitle,
+            description: safeDescription,
+            location: safeLocation,
+            ...(jobData.budget !== undefined ? { budget: jobData.budget } : {}),
+            category: jobData.category,
+            urgency: jobData.urgency,
+            photoUrls: jobData.photos,
+            property_id: jobData.property_id,
+            latitude: jobData.latitude,
+            longitude: jobData.longitude,
+            // R6 #19 landlord / tenancy — only forward when set
+            ...(jobData.is_rental_property ? { is_rental_property: true } : {}),
+            ...(jobData.tenancy_metadata
+              ? { tenancy_metadata: jobData.tenancy_metadata }
+              : {}),
+            // Property Rooms Slice 1 — forward only when at least one
+            // room is picked; the server validates each id is a UUID
+            // and silently drops any that don't belong to the property.
+            ...(jobData.room_ids && jobData.room_ids.length > 0
+              ? { room_ids: jobData.room_ids }
+              : {}),
+            // 2026-05-22: per-job requirements jsonb (e.g.
+            // contractor_before_photos for no-upload flows).
+            ...(jobData.requirements
+              ? { requirements: jobData.requirements }
+              : {}),
+          }
+        );
+
+        if (!response.job) {
+          throw new Error('No job returned from API');
         }
-      );
 
-      if (!response.job) {
-        throw new Error('No job returned from API');
-      }
-
-      return this.formatJob(response.job);
-    }, context);
+        return this.formatJob(response.job);
+        // showUserAlert=false: every posting surface presents createJob
+        // failures itself (screen Alert / inline error / the
+        // phone-verification modal), so the generic ErrorHandlingService
+        // alert here was always a duplicate — and it misclassified the
+        // phone-verification 403 as "Input Error" (the message contains
+        // "required"), popping a stray alert behind the verify sheet.
+      },
+      context,
+      false
+    );
 
     if (!result.success || !result.data) {
       throw new Error(
