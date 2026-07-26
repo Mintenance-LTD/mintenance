@@ -184,6 +184,8 @@ const makeJob = (overrides: any = {}) => ({
   distance: 2.3,
   homeowner_name: 'Alice',
   created_at: new Date(Date.now() - 30 * 60000).toISOString(),
+  photoUrl: null,
+  photoCount: 0,
   ...overrides,
 });
 
@@ -476,12 +478,19 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
 });
 
 describe('ExploreMapScreen — carousel card interactions', () => {
-  it('selects job + animates on card press (native map)', () => {
+  // 2026-07-20 redesign: the whole card body opens the job detail (it
+  // previously only re-selected the job — the marker tap already had).
+  it('card press opens job details', () => {
     const job = makeJob();
     mockVmState = makeVm({ jobs: [job], jobCount: 1 });
     const { getByText } = render(<ExploreMapScreen />);
     fireEvent.press(getByText('Fix leaking tap'));
-    expect(mockHandleJobSelect).toHaveBeenCalledWith(job);
+    expect(mockGoToTab).toHaveBeenCalledWith(expect.anything(), 'JobsTab', {
+      screen: 'JobDetails',
+      params: { jobId: 'job-1' },
+    });
+    // handleViewDetails clears the selection on the way out.
+    expect(mockHandleJobSelect).toHaveBeenCalledWith(null);
   });
 
   it('Quick Bid navigates via goToTab → BidSubmission', () => {
@@ -509,12 +518,15 @@ describe('ExploreMapScreen — carousel card interactions', () => {
     });
   });
 
-  it('card press with non-finite coords does not animate but still selects', () => {
+  it('card press opens details even for non-finite coords', () => {
     const job = makeJob({ latitude: NaN, longitude: NaN });
     mockVmState = makeVm({ jobs: [job], jobCount: 1 });
     const { getByText } = render(<ExploreMapScreen />);
     fireEvent.press(getByText('Fix leaking tap'));
-    expect(mockHandleJobSelect).toHaveBeenCalledWith(job);
+    expect(mockGoToTab).toHaveBeenCalledWith(expect.anything(), 'JobsTab', {
+      screen: 'JobDetails',
+      params: { jobId: 'job-1' },
+    });
   });
 
   it('fires carousel momentum scroll → selects job + animates', () => {
@@ -523,9 +535,9 @@ describe('ExploreMapScreen — carousel card interactions', () => {
     mockVmState = makeVm({ jobs: [job, job2], jobCount: 2, selectedJob: job });
     const { getByTestId } = render(<ExploreMapScreen />);
     const flatlist = getByTestId('carousel-flatlist');
-    // CARD_WIDTH (375*0.78=292.5) + 12 = 304.5 → offset ~305 rounds to index 1.
+    // CARD_WIDTH (375-32=343) + 12 = 355 → offset 355 rounds to index 1.
     fireEvent(flatlist, 'momentumScrollEnd', {
-      nativeEvent: { contentOffset: { x: 305 } },
+      nativeEvent: { contentOffset: { x: 355 } },
     });
     // index 1 → job2 (different id than the selected job1).
     expect(mockHandleJobSelect).toHaveBeenCalledWith(job2);
@@ -581,6 +593,63 @@ describe('ExploreMapScreen — carousel card interactions', () => {
     // The retry's scrollToIndex throws and is caught inside the setTimeout.
     expect(() => jest.runAllTimers()).not.toThrow();
     jest.useRealTimers();
+  });
+});
+
+describe('ExploreMapScreen — photo header + page indicator (2026-07-20 redesign)', () => {
+  it('renders the "1/N" photo chip when the job has multiple photos', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ photoUrl: 'https://cdn.test/p.jpg', photoCount: 4 })],
+      jobCount: 1,
+    });
+    const { getByText } = render(<ExploreMapScreen />);
+    expect(getByText('1/4')).toBeTruthy();
+  });
+
+  it('hides the photo chip for single-photo and photo-less jobs', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ photoUrl: 'https://cdn.test/p.jpg', photoCount: 1 })],
+      jobCount: 1,
+    });
+    const { queryByText } = render(<ExploreMapScreen />);
+    expect(queryByText('1/1')).toBeNull();
+  });
+
+  it('shows the Urgent badge on the photo scrim for emergency jobs', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ urgency: 'emergency' })],
+      jobCount: 1,
+    });
+    const { getByText } = render(<ExploreMapScreen />);
+    expect(getByText('Urgent')).toBeTruthy();
+  });
+
+  it('does not show the Urgent badge for medium urgency', () => {
+    mockVmState = makeVm({ jobs: [makeJob()], jobCount: 1 });
+    const { queryByText } = render(<ExploreMapScreen />);
+    expect(queryByText('Urgent')).toBeNull();
+  });
+
+  it('renders page dots for 2+ jobs, none for a single job', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ id: 'a' }), makeJob({ id: 'b', title: 'Second' })],
+      jobCount: 2,
+    });
+    const { getByTestId, rerender } = render(<ExploreMapScreen />);
+    expect(getByTestId('carousel-dots')).toBeTruthy();
+
+    mockVmState = makeVm({ jobs: [makeJob()], jobCount: 1 });
+    rerender(<ExploreMapScreen key='single' />);
+    expect(() => getByTestId('carousel-dots')).toThrow();
+  });
+
+  it('degrades to a "N of M" counter past the dot limit and tracks selection', () => {
+    const jobs = Array.from({ length: 12 }, (_, i) =>
+      makeJob({ id: `job-${i}`, title: `Job ${i}` })
+    );
+    mockVmState = makeVm({ jobs, jobCount: 12, selectedJob: jobs[4] });
+    const { getByText } = render(<ExploreMapScreen />);
+    expect(getByText('5 of 12')).toBeTruthy();
   });
 });
 

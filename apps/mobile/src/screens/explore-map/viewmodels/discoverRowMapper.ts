@@ -30,6 +30,14 @@ export interface JobMapItem {
   matchScore: number | null;
   /** True when the job has at least one building_assessment (AI Assessed). */
   hasAiAssessment: boolean;
+  /**
+   * Signed URL for the job's first posting photo (2026-07-26), or null when
+   * the job has no photos OR the deployed API predates the field — either
+   * way the card falls back to its category-icon placeholder.
+   */
+  photoUrl: string | null;
+  /** Total posting photos; drives the "1/4" chip. 0 when unknown. */
+  photoCount: number;
 }
 
 /**
@@ -51,6 +59,9 @@ export interface DiscoverRow {
   // Optional: added 2026-07-20. Absent on an older deployed API.
   match_score?: number | string | null;
   has_ai_assessment?: boolean | null;
+  // Optional: added 2026-07-26. Absent on an older deployed API.
+  photo_url?: string | null;
+  photo_count?: number | string | null;
 }
 
 export function toNum(v: unknown): number | null {
@@ -114,6 +125,10 @@ export function mapDiscoverRows(
         created_at: row.created_at ?? '',
         matchScore: toNum(row.match_score),
         hasAiAssessment: row.has_ai_assessment === true,
+        // Guard against a non-string sneaking in (bad seed data) — an
+        // object/number as an <Image source uri> warns or crashes RN.
+        photoUrl: typeof row.photo_url === 'string' ? row.photo_url : null,
+        photoCount: toNum(row.photo_count) ?? 0,
       };
     })
     .filter((j): j is JobMapItem => j !== null);

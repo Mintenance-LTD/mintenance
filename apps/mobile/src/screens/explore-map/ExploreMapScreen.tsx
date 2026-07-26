@@ -20,6 +20,7 @@ import {
   Pressable,
   Animated,
   Easing,
+  Image,
   StatusBar,
   FlatList,
   Platform,
@@ -319,6 +320,9 @@ function timeAgo(dateStr: string | null | undefined): string {
 /** Beyond this age the exact day count stops being useful and starts hurting. */
 const STALE_AFTER_DAYS = 30;
 
+/** Max jobs before the page-dot row degrades to a "N of M" counter. */
+const DOT_LIMIT = 10;
+
 // Urgency → left stripe colour, mirroring the web DiscoverJobCard so both
 // platforms encode severity in form, not just words. Unknown/absent urgency
 // gets no stripe rather than a misleading one.
@@ -373,6 +377,12 @@ const MatchRing: React.FC<{ score: number }> = ({ score }) => {
 };
 
 // ── Carousel Card ────────────────────────────────────────────────────────────
+// 2026-07-20 redesign (user-approved mockup): photo-first card — posting
+// photo on top with the budget on a dark scrim, urgency badge, "1/N"
+// photo chip — and the WHOLE card body opens the job detail (previously
+// only the small Details button did; tapping the body just re-selected
+// the already-selected job, a near no-op that read as broken). Quick
+// Bid / Details remain as inner buttons that stop propagation.
 const CarouselCard: React.FC<{
   job: JobMapItem;
   isSelected: boolean;
@@ -397,6 +407,7 @@ const CarouselCard: React.FC<{
   // Stripe last in the style array so it survives the selected state's
   // all-sides borderColor.
   const stripe = URGENCY_STRIPE[(job.urgency ?? '').toLowerCase()];
+  const isUrgent = job.urgency === 'emergency' || job.urgency === 'urgent';
 
   return (
     <Pressable
@@ -406,59 +417,94 @@ const CarouselCard: React.FC<{
         stripe ? { borderLeftWidth: 4, borderLeftColor: stripe } : null,
       ]}
       onPress={onPress}
+      accessibilityRole='button'
+      accessibilityLabel={`Open details for ${job.title}`}
     >
-      <View style={styles.carouselCardHeader}>
-        <Text style={styles.carouselBudget}>{budgetText}</Text>
-        <View style={styles.carouselHeaderRight}>
-          {job.matchScore != null && <MatchRing score={job.matchScore} />}
+      <View>
+        {job.photoUrl ? (
+          <Image
+            source={{ uri: job.photoUrl }}
+            style={styles.carouselPhoto}
+            resizeMode='cover'
+          />
+        ) : (
+          // Photo-less jobs keep the same header height with the
+          // category icon on its tinted colour, so cards don't jump
+          // between two layouts as the contractor swipes.
           <View
             style={[
-              styles.carouselCatPill,
-              { backgroundColor: catMarker.bg + '20' },
+              styles.carouselPhotoPlaceholder,
+              { backgroundColor: catMarker.bg + '26' },
             ]}
           >
-            <Ionicons name={catMarker.icon} size={12} color={catMarker.bg} />
-          </View>
-        </View>
-      </View>
-      <Text style={styles.carouselTitle} numberOfLines={1}>
-        {job.title}
-      </Text>
-      <View style={styles.carouselMetaRow}>
-        <Text style={styles.carouselMeta}>
-          {/* job.distance is km (as stored/queried); the UI speaks miles. */}
-          {formatMilesFromKm(job.distance)} · {timeAgo(job.created_at)}
-        </Text>
-        {job.hasAiAssessment && (
-          <View style={styles.carouselAiPill}>
-            <Ionicons name='sparkles' size={10} color={me.infoFg} />
-            <Text style={styles.carouselAiText}>AI</Text>
+            <Ionicons name={catMarker.icon} size={30} color={catMarker.bg} />
           </View>
         )}
+        {job.photoCount > 1 && (
+          <View style={styles.carouselPhotoCountChip}>
+            <Ionicons name='images' size={10} color={me.ink} />
+            <Text style={styles.carouselPhotoCountText}>
+              1/{job.photoCount}
+            </Text>
+          </View>
+        )}
+        <View style={styles.carouselPhotoScrim}>
+          <Text style={styles.carouselScrimBudget}>{budgetText}</Text>
+          {isUrgent && (
+            <View
+              style={[
+                styles.carouselUrgencyBadge,
+                { backgroundColor: me.errFg },
+              ]}
+            >
+              <Text style={styles.carouselUrgencyBadgeText}>Urgent</Text>
+            </View>
+          )}
+        </View>
       </View>
-      <View style={styles.carouselActions}>
-        <TouchableOpacity
-          style={styles.carouselBidBtn}
-          onPress={(e) => {
-            e.stopPropagation();
-            onBid();
-          }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name='flash' size={13} color='#FFF' />
-          <Text style={styles.carouselBidText}>Quick Bid</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.carouselDetailsBtn}
-          onPress={(e) => {
-            e.stopPropagation();
-            onDetails();
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.carouselDetailsText}>Details</Text>
-          <Ionicons name='arrow-forward' size={12} color={me.ink} />
-        </TouchableOpacity>
+      <View style={styles.carouselBody}>
+        <View style={styles.carouselCardHeader}>
+          <Text style={styles.carouselTitle} numberOfLines={1}>
+            {job.title}
+          </Text>
+          {job.matchScore != null && <MatchRing score={job.matchScore} />}
+        </View>
+        <View style={styles.carouselMetaRow}>
+          <Text style={styles.carouselMeta}>
+            {/* job.distance is km (as stored/queried); the UI speaks miles. */}
+            {formatMilesFromKm(job.distance)} · {timeAgo(job.created_at)}
+          </Text>
+          {job.hasAiAssessment && (
+            <View style={styles.carouselAiPill}>
+              <Ionicons name='sparkles' size={10} color={me.infoFg} />
+              <Text style={styles.carouselAiText}>AI</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.carouselActions}>
+          <TouchableOpacity
+            style={styles.carouselBidBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              onBid();
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name='flash' size={13} color={me.onBrand} />
+            <Text style={styles.carouselBidText}>Quick Bid</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.carouselDetailsBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              onDetails();
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.carouselDetailsText}>Details</Text>
+            <Ionicons name='arrow-forward' size={12} color={me.ink} />
+          </TouchableOpacity>
+        </View>
       </View>
     </Pressable>
   );
@@ -592,6 +638,17 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
     ? viewModel.selectedCategory.charAt(0).toUpperCase() +
       viewModel.selectedCategory.slice(1)
     : 'All trades';
+
+  // Index the page indicator highlights. No selection yet = first card
+  // (the carousel rests at offset 0). findIndex can return -1 briefly
+  // after a refetch replaces the array — clamp so the indicator never
+  // vanishes mid-swap.
+  const activeJobIndex = Math.max(
+    0,
+    viewModel.selectedJob
+      ? viewModel.jobs.findIndex((j) => j.id === viewModel.selectedJob?.id)
+      : 0
+  );
 
   return (
     <View style={styles.container}>
@@ -917,9 +974,11 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           style={[
             searchAreaStyles.wrapper,
             {
+              // 260 (pills) + pill height + gap — the photo header made
+              // the card ~50px taller than the old text-only layout.
               bottom:
                 viewModel.jobs.length > 0
-                  ? insets.bottom + 224
+                  ? insets.bottom + 312
                   : insets.bottom + 68,
             },
           ]}
@@ -945,7 +1004,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           {
             bottom:
               viewModel.jobs.length > 0
-                ? insets.bottom + 172
+                ? insets.bottom + 260
                 : insets.bottom + 16,
           },
         ]}
@@ -962,7 +1021,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           {
             bottom:
               viewModel.jobs.length > 0
-                ? insets.bottom + 172
+                ? insets.bottom + 260
                 : insets.bottom + 16,
           },
         ]}
@@ -1090,32 +1149,39 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
               <CarouselCard
                 job={item}
                 isSelected={viewModel.selectedJob?.id === item.id}
-                onPress={() => {
-                  if (!shouldRenderNativeMap) {
-                    handleViewDetails(item.id);
-                    return;
-                  }
-                  viewModel.handleJobSelect(item);
-                  if (
-                    Number.isFinite(item.latitude) &&
-                    Number.isFinite(item.longitude)
-                  ) {
-                    mapRef.current?.animateToRegion(
-                      {
-                        latitude: item.latitude,
-                        longitude: item.longitude,
-                        latitudeDelta: 0.02,
-                        longitudeDelta: 0.02,
-                      },
-                      300
-                    );
-                  }
-                }}
+                // 2026-07-20 redesign: the whole card is the doorway to the
+                // job detail (previously card-body tap only re-selected the
+                // job — a no-op after the marker tap already had). This also
+                // unifies the native-map and map-unavailable code paths,
+                // which used to diverge here.
+                onPress={() => handleViewDetails(item.id)}
                 onBid={() => handleBidNow(item.id)}
                 onDetails={() => handleViewDetails(item.id)}
               />
             )}
           />
+          {/* Swipe-for-more indicator: dots while they're readable, a
+              compact "N of M" counter beyond that. Driven by the same
+              selected-job state the marker/carousel sync maintains. */}
+          {viewModel.jobs.length > 1 && (
+            <View style={styles.carouselDots} testID='carousel-dots'>
+              {viewModel.jobs.length <= DOT_LIMIT ? (
+                viewModel.jobs.map((j, i) => (
+                  <View
+                    key={j.id}
+                    style={[
+                      styles.carouselDot,
+                      i === activeJobIndex && styles.carouselDotActive,
+                    ]}
+                  />
+                ))
+              ) : (
+                <Text style={styles.carouselDotsLabel}>
+                  {activeJobIndex + 1} of {viewModel.jobs.length}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
       )}
     </View>
