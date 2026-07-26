@@ -885,7 +885,9 @@ export default function PropertyDetailsClient({
                         </div>
                         <div className='flex items-center gap-4 text-sm text-gray-500'>
                           <span>{job.category}</span>
-                          <span>{job.date}</span>
+                          <span>
+                            {new Date(job.date).toLocaleDateString('en-GB')}
+                          </span>
                           {job.contractor && (
                             <span>Contractor: {job.contractor}</span>
                           )}

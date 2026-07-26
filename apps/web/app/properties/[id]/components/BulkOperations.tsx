@@ -56,7 +56,9 @@ export default function BulkOperations({ propertyId, jobs }: { propertyId: strin
         `"${j.title.replace(/"/g, '""')}"`,
         j.category,
         j.amount.toFixed(2),
-        j.date,
+        // `date` is now a raw ISO timestamp — format for the CSV Date
+        // column (previously it arrived pre-formatted as dd/mm/yyyy).
+        new Date(j.date).toLocaleDateString('en-GB'),
         j.status,
       ]);
 
