@@ -31,11 +31,32 @@ import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { me } from '../../design-system/mint-editorial';
 
+/**
+ * Shape returned by GET /api/properties/:id/survey-summary — the room list
+ * already carries each room's survey history, so this screen needs one request
+ * rather than a room fetch plus an assessments fetch.
+ */
 interface Room {
-  id: string;
+  roomId: string;
   name: string;
-  room_type: string;
+  type: string;
+  surveyCount: number;
+  latest: {
+    severity: string | null;
+    createdAt: string | null;
+  } | null;
 }
+
+interface SurveySummary {
+  roomsTotal: number;
+  roomsSurveyed: number;
+  worstSeverity: string | null;
+  roomsNeedingAttention: number;
+  rooms: Room[];
+}
+
+/** Severities that mean "look at this", matching the roll-up's own threshold. */
+const NEEDS_ATTENTION = new Set(['significant', 'dangerous']);
 
 interface Props {
   navigation: {
@@ -76,49 +97,32 @@ const ROOM_ICON: Record<string, string> = {
 export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
   const { propertyId, propertyName, onComplete } = route.params;
 
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [summary, setSummary] = useState<SurveySummary | null>(null);
   // null = not loaded yet, false = loaded, true = the fetch failed. An empty
   // list and a failed load must not look the same.
   const [loadFailed, setLoadFailed] = useState<boolean | null>(null);
   const [seeding, setSeeding] = useState(false);
-  const [surveyCounts, setSurveyCounts] = useState<Record<string, number>>({});
 
-  /**
-   * How many surveys each room already has. Assessments carry a room anchor
-   * (building_assessments.room_id), so a room can show its own history rather
-   * than every survey looking like an anonymous property-level one.
-   * Best-effort: a failure here must not stop someone filming.
-   */
-  const loadSurveyCounts = useCallback(async () => {
-    try {
-      const res = await mobileApiClient.get<{
-        assessments?: { room?: { id?: string } | null }[];
-      }>(`/api/properties/${propertyId}/assessments`);
-
-      const counts: Record<string, number> = {};
-      for (const a of res?.assessments ?? []) {
-        const id = a.room?.id;
-        if (id) counts[id] = (counts[id] ?? 0) + 1;
-      }
-      setSurveyCounts(counts);
-    } catch (error) {
-      logger.warn('Could not load room survey counts', { error });
-    }
-  }, [propertyId]);
+  const rooms = summary?.rooms ?? [];
 
   const load = useCallback(async () => {
     try {
-      const res = await mobileApiClient.get<{ rooms?: Room[] }>(
-        `/api/properties/${propertyId}/rooms`
+      const res = await mobileApiClient.get<SurveySummary>(
+        `/api/properties/${propertyId}/survey-summary`
       );
-      setRooms(Array.isArray(res?.rooms) ? res.rooms : []);
+      setSummary({
+        roomsTotal: res?.roomsTotal ?? 0,
+        roomsSurveyed: res?.roomsSurveyed ?? 0,
+        worstSeverity: res?.worstSeverity ?? null,
+        roomsNeedingAttention: res?.roomsNeedingAttention ?? 0,
+        rooms: Array.isArray(res?.rooms) ? res.rooms : [],
+      });
       setLoadFailed(false);
-      void loadSurveyCounts();
     } catch (error) {
       logger.warn('Failed to load rooms for walkthrough', { error });
       setLoadFailed(true);
     }
-  }, [propertyId, loadSurveyCounts]);
+  }, [propertyId]);
 
   useEffect(() => {
     void load();
@@ -127,12 +131,13 @@ export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
   const seedRooms = async () => {
     setSeeding(true);
     try {
-      const res = await mobileApiClient.post<{ rooms?: Room[] }>(
+      await mobileApiClient.post(
         `/api/properties/${propertyId}/rooms/seed`,
         {}
       );
-      setRooms(Array.isArray(res?.rooms) ? res.rooms : []);
-      setLoadFailed(false);
+      // Re-read the summary rather than trusting the seed response, so the
+      // room shape and survey history come from one place.
+      await load();
     } catch (error) {
       logger.error('Failed to seed rooms', { error });
       setLoadFailed(true);
@@ -145,9 +150,9 @@ export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
     navigation.navigate('VideoCapture', {
       propertyId,
       walkthrough: true,
-      roomId: room.id,
+      roomId: room.roomId,
       roomName: room.name,
-      roomType: room.room_type,
+      roomType: room.type,
       onComplete,
     });
   };
@@ -224,35 +229,52 @@ export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
 
-        {rooms.map((room) => (
-          <TouchableOpacity
-            key={room.id}
-            style={styles.roomRow}
-            onPress={() => pickRoom(room)}
-            accessibilityRole='button'
-            accessibilityLabel={`Film ${room.name}`}
-          >
-            <View style={styles.roomIcon}>
-              <Icon
-                name={ROOM_ICON[room.room_type] ?? 'meeting-room'}
-                size={20}
-                color={me.brand2}
-              />
-            </View>
-            <View style={styles.roomMain}>
-              <Text style={styles.roomName}>{room.name}</Text>
-              <Text style={styles.roomType}>
-                {room.room_type.replace(/_/g, ' ')}
-                {surveyCounts[room.id]
-                  ? ` · ${surveyCounts[room.id]} survey${
-                      surveyCounts[room.id] === 1 ? '' : 's'
-                    }`
-                  : ''}
+        {summary && summary.roomsTotal > 0 && (
+          <View style={styles.progress}>
+            <Text style={styles.progressText}>
+              {summary.roomsSurveyed} of {summary.roomsTotal} rooms surveyed
+            </Text>
+            {summary.roomsNeedingAttention > 0 && (
+              <Text style={styles.progressWarn}>
+                {summary.roomsNeedingAttention} need
+                {summary.roomsNeedingAttention === 1 ? 's' : ''} attention
               </Text>
-            </View>
-            <Icon name='chevron-right' size={22} color={me.ink4} />
-          </TouchableOpacity>
-        ))}
+            )}
+          </View>
+        )}
+
+        {rooms.map((room) => {
+          const severity = room.latest?.severity ?? null;
+          const flagged = severity ? NEEDS_ATTENTION.has(severity) : false;
+          return (
+            <TouchableOpacity
+              key={room.roomId}
+              style={styles.roomRow}
+              onPress={() => pickRoom(room)}
+              accessibilityRole='button'
+              accessibilityLabel={`Film ${room.name}`}
+            >
+              <View style={[styles.roomIcon, flagged && styles.roomIconFlag]}>
+                <Icon
+                  name={ROOM_ICON[room.type] ?? 'meeting-room'}
+                  size={20}
+                  color={flagged ? me.errFg : me.brand2}
+                />
+              </View>
+              <View style={styles.roomMain}>
+                <Text style={styles.roomName}>{room.name}</Text>
+                <Text style={[styles.roomType, flagged && styles.roomTypeFlag]}>
+                  {room.latest
+                    ? `${severity ?? 'surveyed'} · ${room.surveyCount} survey${
+                        room.surveyCount === 1 ? '' : 's'
+                      }`
+                    : `${room.type.replace(/_/g, ' ')} · not surveyed`}
+                </Text>
+              </View>
+              <Icon name='chevron-right' size={22} color={me.ink4} />
+            </TouchableOpacity>
+          );
+        })}
 
         {loadFailed === false && (
           <TouchableOpacity
@@ -337,9 +359,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
+  roomIconFlag: { backgroundColor: me.errBg },
   roomMain: { flex: 1 },
   roomName: { fontSize: 15, fontWeight: '600', color: me.ink },
   roomType: { fontSize: 12, color: me.ink3, textTransform: 'capitalize' },
+  roomTypeFlag: { color: me.errFg, fontWeight: '600' },
+  progress: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  progressText: { fontSize: 12, color: me.ink3, fontWeight: '600' },
+  progressWarn: { fontSize: 12, color: me.errFg, fontWeight: '700' },
   wholeProperty: { marginTop: 16, alignItems: 'center', paddingVertical: 10 },
   wholePropertyText: { fontSize: 14, fontWeight: '600', color: me.brand2 },
   wholePropertyHint: { fontSize: 12, color: me.ink3, marginTop: 2 },
