@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
 import { validateJobDraft } from '@mintenance/api-contracts';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
+import { usePhoneVerificationGate } from '../../hooks/usePhoneVerificationGate';
 import { LocationService } from '../../services/LocationService';
 import type { Property } from '@mintenance/types';
 import type { ModalStackParamList } from '../../navigation/types';
@@ -34,6 +35,7 @@ export function useServiceRequestForm(onSuccess: () => void) {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
     null
   );
+  const phoneVerification = usePhoneVerificationGate();
 
   const { data: properties } = useQuery({
     queryKey: ['properties', user?.id],
@@ -248,6 +250,11 @@ export function useServiceRequestForm(onSuccess: () => void) {
         [{ text: 'OK', onPress: onSuccess }]
       );
     } catch (error) {
+      // Homeowner phone-verification 403 → open the verify modal and
+      // retry this submission once verified (draft state is intact).
+      if (phoneVerification.intercept(error, () => handleSubmit())) {
+        return;
+      }
       const message =
         error instanceof Error
           ? error.message
@@ -279,5 +286,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
     showImagePickerOptions,
     removePhoto,
     handleSubmit,
+    phoneVerification,
   };
 }
