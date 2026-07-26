@@ -81,10 +81,33 @@ Hermes (needs an on-device test); raw `req.json()` on team/tenants and the non-g
 recurring-maintenance/report-token; `units` RLS locks out non-org owners (latent, 0 rows); the two
 recurring tables still disagree on their frequency CHECK vocabularies.
 
-**Test-coverage gap (declared, not fixed):** the tier-gate changes are verified by code inspection +
-`tsc`/`eslint` only. No test in the repo mocks `getEffectiveHomeownerTier`/`hasFeatureAccess` and
-none imports a properties route handler directly, so there is no harness to extend; building one was
-out of scope. The schema work _is_ covered (pure-function Zod tests, 14/14).
+**Tier-gate coverage — CLOSED (follow-up commit).** The earlier note here claimed no harness existed
+to extend. That was wrong, and based on too narrow a grep (tier-helper mocks, and imports of a
+_properties_ route specifically). `__tests__/api/routes/` in fact holds a well-established
+route-handler pattern (`bid-accept`, `bid-reject`, `confirm-completion`, `contractor-invoice-pay`…):
+`vi.hoisted()` mocks for `@/lib/auth`, `@/lib/csrf`, `@/lib/rate-limiter` and `serverSupabase`, with
+`withApiHandler` left to run for real and params passed as `{ params: Promise.resolve({...}) }`.
+
+New `__tests__/api/routes/property-tier-gates.test.ts` (9 tests) builds on it and pins both halves
+of the contract on each route: Free tier + `is_active: true` → 402 with the right `feature` key;
+Free tier + `is_active: false` → 200 **and the gate never consulted**; Landlord → 200 with
+`hasFeatureAccess` called as `(feature, 'homeowner', tier)`; admin → 200 with the tier lookup never
+performed; `DELETE` → 200, ungated.
+
+`hasFeatureAccess` is mocked rather than run for real, deliberately: the tier→feature matrix is a
+separate concern and `lib/feature-access-config.ts` is mid-rework by the tiered-pricing change, so
+binding these tests to it would make them fail on someone else's WIP. What is asserted is that the
+_route_ consults the gate on re-activation and skips it otherwise.
+
+**Mutation-checked:** restoring the pre-fix handlers from `HEAD~1` makes exactly 4 of the 9 fail
+(both "blocks" cases and both "gate consulted" cases); restoring the fix makes them pass again — so
+the tests detect the regression rather than passing vacuously. A first draft of the DELETE case
+_did_ pass vacuously: it sent `scheduleId` in the body, but that handler reads it from the query
+string, so the route 400'd and `not.toBe(402)` was trivially true. It now sends the query param and
+asserts an exact 200; every other `not.toBe(402)` was likewise tightened to an exact status.
+
+Suite after: **2593 passed / 72 failed** — +9 tests, the same 5 unrelated escrow/payment files
+failing as before.
 
 ### 2026-06-06 — mobile backend schema-alignment audit + dead-code removal
 
