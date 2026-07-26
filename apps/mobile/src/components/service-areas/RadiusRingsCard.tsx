@@ -14,25 +14,30 @@
  * The card is purposely small (~200pt high). A full-bleed Mapbox view
  * would be nice but adds a dependency we don't have, and the deck's
  * value here is the spatial mental model, not interactivity.
+ *
+ * 2026-07-22: the ring radii used to be hardcoded pixel constants, so
+ * the drawing was identical whether the contractor covered 2 miles or
+ * 40 — and the pills were decorative. Radii now come from
+ * `ringRadiiPx`, and selecting a pill picks which threshold the stepper
+ * edits. See radiusModel.ts for why the scale is ratio-based.
  */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../design-system/mint-editorial';
+import { ringRadiiPx, type RadiusMode } from './radiusModel';
 
 interface Props {
   standardMiles: number;
   extendedMiles: number;
-  selectedMode: 'standard' | 'extended';
-  onSelectMode: (mode: 'standard' | 'extended') => void;
+  selectedMode: RadiusMode;
+  onSelectMode: (mode: RadiusMode) => void;
 }
 
 const CARD_HEIGHT = 200;
 const CENTER_X = 160;
 const CENTER_Y = 100;
-const STANDARD_RADIUS_PX = 38;
-const EXTENDED_RADIUS_PX = 70;
 
 export const RadiusRingsCard: React.FC<Props> = ({
   standardMiles,
@@ -40,6 +45,8 @@ export const RadiusRingsCard: React.FC<Props> = ({
   selectedMode,
   onSelectMode,
 }) => {
+  const { standardPx, extendedPx } = ringRadiiPx(standardMiles, extendedMiles);
+
   return (
     <View style={styles.card}>
       <View style={styles.chipRow}>
@@ -69,7 +76,7 @@ export const RadiusRingsCard: React.FC<Props> = ({
           <Circle
             cx={CENTER_X}
             cy={CENTER_Y}
-            r={EXTENDED_RADIUS_PX}
+            r={extendedPx}
             stroke={me.brand}
             strokeWidth={1.2}
             strokeDasharray='4 4'
@@ -80,7 +87,7 @@ export const RadiusRingsCard: React.FC<Props> = ({
           <Circle
             cx={CENTER_X}
             cy={CENTER_Y}
-            r={STANDARD_RADIUS_PX}
+            r={standardPx}
             stroke={me.brand}
             strokeWidth={2}
             fill={selectedMode === 'standard' ? me.brandSoft : 'none'}

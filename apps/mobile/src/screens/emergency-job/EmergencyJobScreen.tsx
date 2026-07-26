@@ -42,6 +42,8 @@ import { queryKeys } from '../../lib/queryClient';
 import { JobService } from '../../services/JobService';
 import { LocationService } from '../../services/LocationService';
 import { me } from '../../design-system/mint-editorial';
+import { usePhoneVerificationGate } from '../../hooks/usePhoneVerificationGate';
+import { PhoneVerificationModal } from '../../components/verification/PhoneVerificationModal';
 import { logger } from '../../utils/logger';
 import type { Property } from '@mintenance/types';
 import { styles } from './styles';
@@ -150,6 +152,7 @@ export const EmergencyJobScreen: React.FC<Props> = ({ navigation, route }) => {
   const [selectedKey, setSelectedKey] = useState<string>('leak');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const phoneVerification = usePhoneVerificationGate();
 
   const { data: properties = [] } = useQuery({
     queryKey: ['properties', user?.id],
@@ -251,6 +254,11 @@ export const EmergencyJobScreen: React.FC<Props> = ({ navigation, route }) => {
       );
     },
     onError: (err) => {
+      // Homeowner phone-verification 403 → open the verify modal and
+      // retry the post once verified (selection state is intact).
+      if (phoneVerification.intercept(err, () => postMutation.mutate())) {
+        return;
+      }
       Alert.alert(
         'Couldn’t post',
         err instanceof Error
@@ -413,6 +421,11 @@ export const EmergencyJobScreen: React.FC<Props> = ({ navigation, route }) => {
           If this is a life-safety emergency, dial 999 first.
         </Text>
       </View>
+      <PhoneVerificationModal
+        visible={phoneVerification.visible}
+        onClose={phoneVerification.close}
+        onVerified={phoneVerification.handleVerified}
+      />
     </View>
   );
 };

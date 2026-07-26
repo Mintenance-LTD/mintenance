@@ -167,6 +167,40 @@ describe('AuthService', () => {
       expect(result).toEqual(mockAuthResponse.data);
     });
 
+    it('forwards a provided phone (trimmed) in the signup metadata for handle_new_user', async () => {
+      // 2026-07-26 audit: this chain (wizard -> signUp options.data.phone
+      // -> handle_new_user trigger -> profiles.phone) had no test, and a
+      // stale comment claimed it didn't exist. Pin it.
+      // Distinct email: the real checkRateLimit('auth_register') allows
+      // only 3 attempts/min per email and the other signUp tests use
+      // signUpData.email.
+      const phoneEmail = 'phone-forwarding@example.com';
+      (supabase.auth.signUp as jest.Mock).mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+
+      await AuthService.signUp({
+        ...signUpData,
+        email: phoneEmail,
+        phone: ' 07984 596545 ',
+      });
+
+      expect(supabase.auth.signUp).toHaveBeenCalledWith({
+        email: phoneEmail,
+        password: signUpData.password,
+        options: {
+          data: {
+            first_name: signUpData.firstName,
+            last_name: signUpData.lastName,
+            role: signUpData.role,
+            full_name: 'Jane Smith',
+            phone: '07984 596545',
+          },
+        },
+      });
+    });
+
     it('should throw error when sign up fails', async () => {
       const error = new Error('Email already registered');
       (supabase.auth.signUp as jest.Mock).mockResolvedValue({

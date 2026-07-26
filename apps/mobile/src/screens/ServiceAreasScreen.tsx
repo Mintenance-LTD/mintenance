@@ -15,7 +15,7 @@
  * existing handlers (toggle active, delete, create modal) are
  * unchanged — only the visual layer is redrawn.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -34,11 +34,14 @@ import type { ServiceArea } from '../services/ServiceAreasService';
 import { DeleteConfirmationModal } from '../components/service-areas/DeleteConfirmationModal';
 import { CreateServiceAreaModal } from '../components/service-areas/CreateServiceAreaModal';
 import { RadiusRingsCard } from '../components/service-areas/RadiusRingsCard';
+import { RadiusStepper } from '../components/service-areas/RadiusStepper';
 import { TravelSurchargeCard } from '../components/service-areas/TravelSurchargeCard';
 import { useServiceAreas } from '../hooks/useServiceAreas';
+import { useRadiusDraft } from '../hooks/useRadiusDraft';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { kmToMiles, KM_PER_MILE } from '@mintenance/shared';
+import { KM_PER_MILE } from '@mintenance/shared';
+import { kmToWholeMiles } from '../components/service-areas/radiusModel';
 import { me } from '../design-system/mint-editorial';
 import { styles as s } from './service-areas/styles';
 
@@ -46,9 +49,8 @@ const HIT = { top: 8, bottom: 8, left: 8, right: 8 };
 
 // 2026-07-20: conversion moved to @mintenance/shared so Service Areas,
 // contractor Discover and live travel tracking all convert identically.
-// This file previously used its own 1.609 constant.
-const kmToWholeMiles = (km: number | undefined): number =>
-  !km ? 0 : Math.round(kmToMiles(km));
+// 2026-07-22: the whole-mile wrapper now lives in radiusModel alongside
+// the editor's clamping, so the display and the editor round alike.
 
 const fmtGBP = (n: number): string =>
   `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -71,13 +73,20 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
     handleRefresh,
     handleCreateServiceArea,
     handleToggleActive,
+    handleUpdateRadii,
     handleDeletePress,
     handleDeleteConfirm,
   } = useServiceAreas();
 
-  const [radiusMode, setRadiusMode] = useState<'standard' | 'extended'>(
-    'standard'
-  );
+  // Derive headline numbers from the first active area (or first area).
+  // Computed before the loading return so the draft hook's order is
+  // stable across renders.
+  const primary =
+    serviceAreas.find((a) => a.is_active && a.is_primary_area) ??
+    serviceAreas.find((a) => a.is_active) ??
+    serviceAreas[0];
+
+  const radius = useRadiusDraft({ primary, onSave: handleUpdateRadii });
 
   const profileAddress = user
     ? {
@@ -91,23 +100,12 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
 
   if (loading) return <LoadingSpinner message='Loading service areas…' />;
 
-  // Derive headline numbers from the first active area (or first area).
-  const primary =
-    serviceAreas.find((a) => a.is_active && a.is_primary_area) ??
-    serviceAreas.find((a) => a.is_active) ??
-    serviceAreas[0];
-
   const boroughs = collectBoroughs(serviceAreas);
   const primaryCity = primary?.cities?.[0] ?? user?.city ?? 'your area';
-  const primaryRadiusMiles = kmToWholeMiles(primary?.radius_km);
-  const extendedRadiusMiles = primary
-    ? Math.max(
-        primaryRadiusMiles + 4,
-        kmToWholeMiles(
-          primary.max_distance_km ?? (primary.radius_km ?? 0) * 1.6
-        )
-      )
-    : 0;
+  // Read the live draft, not the saved row, so the headline and the
+  // rings track the stepper before Save is pressed.
+  const primaryRadiusMiles = radius.standardMiles;
+  const extendedRadiusMiles = primary ? radius.extendedMiles : 0;
   const surchargeRate = primary?.per_km_rate
     ? primary.per_km_rate * KM_PER_MILE
     : 0;
@@ -157,8 +155,16 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
                 <RadiusRingsCard
                   standardMiles={primaryRadiusMiles}
                   extendedMiles={extendedRadiusMiles}
-                  selectedMode={radiusMode}
-                  onSelectMode={setRadiusMode}
+                  selectedMode={radius.mode}
+                  onSelectMode={radius.setMode}
+                />
+                <RadiusStepper
+                  mode={radius.mode}
+                  miles={radius.editingMiles}
+                  dirty={radius.dirty}
+                  saving={radius.saving}
+                  onStep={radius.step}
+                  onSave={radius.save}
                 />
                 {surchargeRate > 0 ? (
                   <TravelSurchargeCard

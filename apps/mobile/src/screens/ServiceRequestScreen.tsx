@@ -6,6 +6,7 @@ import type { ModalStackParamList } from '../navigation/types';
 import { useServiceRequestForm } from './service-request/useServiceRequestForm';
 import { CategoryPicker } from './service-request/CategoryPicker';
 import { ServiceForm } from './service-request/ServiceForm';
+import { PhoneVerificationModal } from '../components/verification/PhoneVerificationModal';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
 interface Props {
@@ -58,30 +59,37 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <ServiceForm
-      category={form.selectedCategory}
-      selectedSubcategory={form.selectedSubcategory}
-      title={form.title}
-      description={form.description}
-      location={form.location}
-      priority={form.priority}
-      photos={form.photos}
-      loading={form.loading}
-      selectedProperty={form.selectedProperty}
-      properties={form.properties}
-      headerPaddingTop={insets.top}
-      onBack={() => form.handleCategorySelect(form.selectedCategory!)}
-      onSubcategorySelect={form.handleSubcategorySelect}
-      onPropertySelect={form.setSelectedProperty}
-      onAddProperty={handleAddProperty}
-      onTitleChange={form.setTitle}
-      onDescriptionChange={form.setDescription}
-      onLocationChange={form.setLocation}
-      onPriorityChange={form.setPriority}
-      onAddPhoto={form.showImagePickerOptions}
-      onRemovePhoto={form.removePhoto}
-      onSubmit={form.handleSubmit}
-    />
+    <>
+      <ServiceForm
+        category={form.selectedCategory}
+        selectedSubcategory={form.selectedSubcategory}
+        title={form.title}
+        description={form.description}
+        location={form.location}
+        priority={form.priority}
+        photos={form.photos}
+        loading={form.loading}
+        selectedProperty={form.selectedProperty}
+        properties={form.properties}
+        headerPaddingTop={insets.top}
+        onBack={() => form.handleCategorySelect(form.selectedCategory!)}
+        onSubcategorySelect={form.handleSubcategorySelect}
+        onPropertySelect={form.setSelectedProperty}
+        onAddProperty={handleAddProperty}
+        onTitleChange={form.setTitle}
+        onDescriptionChange={form.setDescription}
+        onLocationChange={form.setLocation}
+        onPriorityChange={form.setPriority}
+        onAddPhoto={form.showImagePickerOptions}
+        onRemovePhoto={form.removePhoto}
+        onSubmit={form.handleSubmit}
+      />
+      <PhoneVerificationModal
+        visible={form.phoneVerification.visible}
+        onClose={form.phoneVerification.close}
+        onVerified={form.phoneVerification.handleVerified}
+      />
+    </>
   );
 };
 

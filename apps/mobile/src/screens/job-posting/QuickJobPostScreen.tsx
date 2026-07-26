@@ -34,6 +34,8 @@ import {
   type QuickJobRouteParams,
 } from './quick-job-post/theme/templates';
 import { submitQuickJob } from './quick-job-post/submitQuickJob';
+import { usePhoneVerificationGate } from '../../hooks/usePhoneVerificationGate';
+import { PhoneVerificationModal } from '../../components/verification/PhoneVerificationModal';
 import { QuickJobHeader } from './quick-job-post/components/QuickJobHeader';
 import { PropertyBanner } from './quick-job-post/components/PropertyBanner';
 import { RepairTemplateGrid } from './quick-job-post/components/RepairTemplateGrid';
@@ -71,6 +73,7 @@ export const QuickJobPostScreen: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   // Property Rooms Slice 1 — optional room scope.
   const [roomIds, setRoomIds] = useState<string[]>([]);
+  const phoneVerification = usePhoneVerificationGate();
 
   const allowExit = useUnsavedChanges(!!(title || description));
 
@@ -100,6 +103,11 @@ export const QuickJobPostScreen: React.FC = () => {
     setSubmitting(false);
 
     if (!result.ok) {
+      // Homeowner phone-verification 403 → open the verify modal and
+      // retry this submission once verified (draft state is intact).
+      if (phoneVerification.intercept(result.message, () => handleSubmit())) {
+        return;
+      }
       Alert.alert(
         result.code === 'VALIDATION' ? 'Cannot post yet' : 'Error',
         result.message
@@ -188,6 +196,11 @@ export const QuickJobPostScreen: React.FC = () => {
         bottomInset={insets.bottom}
         submitting={submitting}
         onSubmit={handleSubmit}
+      />
+      <PhoneVerificationModal
+        visible={phoneVerification.visible}
+        onClose={phoneVerification.close}
+        onVerified={phoneVerification.handleVerified}
       />
     </View>
   );

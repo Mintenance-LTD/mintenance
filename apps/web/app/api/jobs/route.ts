@@ -129,8 +129,22 @@ export const POST = withApiHandler(
         await HomeownerVerificationService.isFullyVerified(user.id);
 
       if (!verificationStatus.canPostJobs) {
+        // 2026-07-26 audit: this used to always blame the phone even
+        // when only the email was unverified — with the (now-fixed)
+        // profiles.verified sync gap that mislabelled every blocked
+        // homeowner. Name the actual missing requirement(s). Keep the
+        // exact "Phone verification required" / "verify your phone
+        // number" phrasing whenever the phone is missing: the mobile
+        // app's isPhoneVerificationError matches on it to open its
+        // in-flow verification modal.
+        const needsPhone = !verificationStatus.phoneVerified;
+        const needsEmail = !verificationStatus.emailVerified;
         throw new ForbiddenError(
-          'Phone verification required. Please verify your phone number before posting jobs'
+          needsPhone && needsEmail
+            ? 'Phone verification required. Please verify your phone number and confirm your email address before posting jobs'
+            : needsPhone
+              ? 'Phone verification required. Please verify your phone number before posting jobs'
+              : 'Email verification required. Please confirm your email address before posting jobs'
         );
       }
     }
