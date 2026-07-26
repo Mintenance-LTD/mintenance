@@ -3,18 +3,18 @@
  *
  * Per PDF §5.1: "Phone number (optional for homeowner, required for
  * contractor — SMS OTP after)". This implementation captures the
- * phone number + enforces it as required for contractors. The SMS-
- * OTP verification step is explicitly Phase 3 of the audit — the
- * hook validator returns "Phone required for contractors" but does
- * not (yet) kick off an OTP challenge. That's tracked as a follow-
- * up once we pick a provider (Supabase Auth phone OTP vs. a direct
- * Twilio wiring).
+ * phone number + enforces it as required for contractors.
  *
- * Phone number is not yet persisted to the profile by signUp (the
- * Supabase auth payload today only carries first_name / last_name /
- * role / full_name in user_metadata). The wire-up to profiles.phone
- * is the companion follow-up; capturing it in the UI now unblocks
- * the UX change.
+ * Persistence (wired 2026-05-23, previously noted here as pending):
+ * handleRegister forwards the number through performSignUp ->
+ * AuthService.signUp -> signUp options.data.phone, and the
+ * handle_new_user trigger copies it to profiles.phone. Pinned by
+ * tests in useRegistrationForm.test.ts / AuthService.test.ts
+ * (2026-07-26 — until then no test covered the chain and this
+ * header still claimed it didn't exist).
+ *
+ * SMS OTP at signup remains future work; verification now happens
+ * in-flow at first job post via PhoneVerificationModal (2026-07-26).
  */
 
 import React from 'react';
