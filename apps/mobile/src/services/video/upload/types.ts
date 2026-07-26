@@ -44,7 +44,9 @@ export interface VideoQueueItem {
 }
 
 export interface VideoGuidancePhase {
-  phase: 'exterior' | 'interior' | 'damage_detail' | 'overview';
+  // 'room' is the single-phase form used when the walkthrough is scoped to one
+  // room rather than the whole property.
+  phase: 'exterior' | 'interior' | 'damage_detail' | 'overview' | 'room';
   title: string;
   duration: number;
   instructions: string[];

@@ -172,9 +172,12 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       );
       return;
     }
-    navigation.navigate('VideoCapture', {
+    // Choose a room first. The recorder's whole-property script is a fixed
+    // exterior→interior→damage→recap sequence on a timer, so reaching it
+    // directly meant someone filming a kitchen was told to "pan across the
+    // front facade". RoomPicker still offers the whole-property pass.
+    navigation.navigate('RoomPicker', {
       propertyId,
-      walkthrough: true,
       onComplete: (assessmentId: string) => {
         setVideoUri(assessmentId);
         updateStepStatus('video_walkthrough', 'completed');

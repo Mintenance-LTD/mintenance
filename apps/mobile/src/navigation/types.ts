@@ -201,8 +201,18 @@ export type ProfileStackParamList = {
     | { propertyId?: string; propertyAddress?: string }
     | undefined;
   AddProperty: undefined;
+  /** Choose which room to film before the recorder opens. */
+  RoomPicker: { propertyId: string; propertyName?: string };
   VideoCapture:
-    | { assessmentId?: string; propertyId?: string; walkthrough?: boolean }
+    | {
+        assessmentId?: string;
+        propertyId?: string;
+        walkthrough?: boolean;
+        /** Set by RoomPicker — scopes the guidance and the assessment. */
+        roomId?: string;
+        roomName?: string;
+        roomType?: string;
+      }
     | undefined;
   WalkthroughResult: {
     assessment: Record<string, unknown>;

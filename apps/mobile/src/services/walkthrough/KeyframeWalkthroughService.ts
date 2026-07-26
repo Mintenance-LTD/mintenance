@@ -25,6 +25,12 @@ export interface WalkthroughContext {
   propertyType?: string;
   location?: string;
   ageOfProperty?: number;
+  /**
+   * Set when the walkthrough covers a single room rather than the whole
+   * property, so the surveyor model knows it is looking at (say) a kitchen
+   * instead of an anonymous interior.
+   */
+  room?: { id: string; name?: string; type?: string };
 }
 
 /**

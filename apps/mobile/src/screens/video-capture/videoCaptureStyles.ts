@@ -120,6 +120,10 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
+  // Nudges the small bullet down onto the first line of text.
+  instructionBullet: {
+    marginTop: 5,
+  },
   instructionText: {
     marginLeft: 8,
     fontSize: 13,

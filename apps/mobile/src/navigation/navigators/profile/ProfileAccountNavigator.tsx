@@ -14,6 +14,7 @@ import { EditPropertyScreen } from '../../../screens/properties/EditPropertyScre
 import { PropertyAssessmentScreen } from '../../../screens/assessment/PropertyAssessmentScreen';
 import { AddPropertyScreen } from '../../../screens/properties/AddPropertyScreen';
 import { VideoCaptureScreen } from '../../../screens/video-capture/VideoCaptureScreen';
+import { RoomPickerScreen } from '../../../screens/video-capture/RoomPickerScreen';
 import { WalkthroughResultScreen } from '../../../screens/video-capture/WalkthroughResultScreen';
 import { JobPhotoUploadScreen } from '../../../screens/job-details/JobPhotoUploadScreen';
 import { PaymentHistoryScreen } from '../../../screens/payment/PaymentHistoryScreen';
@@ -99,6 +100,11 @@ export const SafePropertyAssessmentScreen = withScreenErrorBoundary(
     Record<string, unknown>
   >,
   'Property Assessment',
+  { fallbackRoute: 'PropertyDetail' }
+);
+export const SafeRoomPickerScreen = withScreenErrorBoundary(
+  RoomPickerScreen as unknown as React.ComponentType<Record<string, unknown>>,
+  'Choose a room',
   { fallbackRoute: 'PropertyDetail' }
 );
 export const SafeVideoCaptureScreen = withScreenErrorBoundary(
