@@ -47,7 +47,13 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
 import { DEFAULT_MATCH_RADIUS_KM } from '@/lib/services/matching/constants';
 import { calculateDiscoverMatchScore } from '@/lib/services/matching/discover-match';
-import { fetchGeoJobs, haversineKm, toNum, type JobRow } from './helpers';
+import {
+  fetchGeoJobs,
+  haversineKm,
+  resolveJobThumbnails,
+  toNum,
+  type JobRow,
+} from './helpers';
 
 // Constrain `category` to the canonical enum so the downstream
 // PostgREST filter is an exact match instead of an `.ilike()` against
@@ -185,9 +191,10 @@ export const GET = withApiHandler(
       .select(
         `
         id, title, category, urgency, budget, budget_min, budget_max,
-        latitude, longitude, created_at, location,
+        latitude, longitude, created_at, location, photos,
         homeowner:homeowner_id ( first_name ),
-        building_assessments!building_assessments_job_id_fkey ( id )
+        building_assessments!building_assessments_job_id_fkey ( id ),
+        job_attachments ( file_url, file_type )
       `
       )
       .eq('status', 'posted')
@@ -266,6 +273,11 @@ export const GET = withApiHandler(
     // recency component of every job's score consistent within the response.
     const now = Date.now();
 
+    // 2026-07-26: one signed thumbnail + photo count per job for the
+    // mobile map card. Runs on the post-filter row set only, so at most
+    // `limit` signing round-trips per request.
+    const thumbnails = await resolveJobThumbnails(rows);
+
     const jobs = rows.map((row) => {
       const firstName = Array.isArray(row.homeowner)
         ? (row.homeowner[0]?.first_name ?? null)
@@ -304,6 +316,10 @@ export const GET = withApiHandler(
           now
         ),
         has_ai_assessment: (row.building_assessments?.length ?? 0) > 0,
+        // 2026-07-26: photo-first map card. Null/0 when the job has no
+        // posting photos so the client renders its placeholder.
+        photo_url: thumbnails.get(row.id)?.photoUrl ?? null,
+        photo_count: thumbnails.get(row.id)?.photoCount ?? 0,
       };
     });
 

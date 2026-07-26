@@ -125,6 +125,16 @@ export const PATCH = withApiHandler(
       );
     }
 
+    // 2026-07-26: only POST carried the tier gate, so a landlord who
+    // downgraded to Free could re-activate an old tenant link here and keep
+    // the feature forever. Gate re-activation only — deactivating a link
+    // must stay available to every tier so a downgraded user can always
+    // take a live tenant link offline.
+    if (is_active) {
+      const tierBlock = await requireLandlordTier(user.id, user.role);
+      if (tierBlock) return tierBlock;
+    }
+
     // Verify ownership
     const { data: property } = await serverSupabase
       .from('properties')

@@ -266,13 +266,17 @@ export const DELETE = withApiHandler(
 
     // 2026-05-26 audit-65 P1: also check for cross-flow blockers
     // that the deletion would silently break / orphan:
-    //   - anonymous_reports.property_id is SET NULL, BUT
-    //     anonymous_report_tokens.property_id is CASCADE — so
-    //     deleting the property keeps the report row in the DB but
-    //     wipes the token, and the landlord reports list/detail
-    //     both require `anonymous_report_tokens!inner`, leaving
-    //     reports orphaned-but-unreachable. Block deletion until
-    //     the reports are resolved or detached.
+    //   - anonymous_reports survive a property delete and stay
+    //     READABLE as of 2026-07-26 (migration 20260726115252 made
+    //     anonymous_report_tokens.property_id ON DELETE SET NULL, so
+    //     the token row — which is what the owner-scoped RLS and the
+    //     `anonymous_report_tokens!inner` joins resolve through —
+    //     outlives the property instead of cascading). Retention no
+    //     longer depends on this blocker. It is kept because the
+    //     report's property linkage still nulls out, so a landlord
+    //     with several properties could no longer tell which one a
+    //     retained report referred to. Blocking prompts them to
+    //     resolve first, preserving that context.
     //   - maintenance_tickets.property_id is CASCADE — portfolio
     //     users would silently lose ticket history. Block on
     //     non-terminal tickets (anything not closed/resolved).
@@ -311,7 +315,7 @@ export const DELETE = withApiHandler(
       blockers.push({
         code: 'ANONYMOUS_REPORTS_ON_PROPERTY',
         count: anonReportsRes.count ?? 0,
-        message: `${anonReportsRes.count} anonymous report(s) reference this property. Deleting the property would orphan them (the report rows survive but the token link cascades). Archive or resolve the reports first, or contact support to migrate them.`,
+        message: `${anonReportsRes.count} anonymous report(s) reference this property. The reports themselves are retained if you delete it, but they would lose their link to this property. Resolve or archive them first so the history stays attributable.`,
       });
     }
     if (

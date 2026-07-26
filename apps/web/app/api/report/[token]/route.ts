@@ -51,6 +51,18 @@ export const POST = withApiHandler(
       );
     }
 
+    // 2026-07-26: anonymous_report_tokens.property_id is now ON DELETE SET
+    // NULL (migration 20260726115252) so that deleting a property no longer
+    // cascade-wipes the tenant reports attached to its token. The token row
+    // outliving the property is deliberate, but it must stop accepting new
+    // submissions — there is no property left to raise a report against.
+    if (!tokenRecord.property_id) {
+      return NextResponse.json(
+        { error: 'This reporting link has been deactivated' },
+        { status: 410 }
+      );
+    }
+
     const body = await req.json();
     const {
       reporter_name,
@@ -235,9 +247,25 @@ export const GET = withApiHandler(
       );
     }
 
+    // 2026-07-26: a token can now outlive its property (property_id is
+    // ON DELETE SET NULL — migration 20260726115252, which stops a property
+    // delete cascade-wiping the tenant reports hanging off the token). With
+    // no property there is nothing to report against, so the public form
+    // must not render.
+    const linkedProperty = Array.isArray(tokenRecord.properties)
+      ? tokenRecord.properties[0]
+      : tokenRecord.properties;
+
+    if (!linkedProperty) {
+      return NextResponse.json(
+        { error: 'This reporting link has been deactivated' },
+        { status: 410 }
+      );
+    }
+
     return NextResponse.json({
       valid: true,
-      property: tokenRecord.properties,
+      property: linkedProperty,
       label: tokenRecord.label,
     });
   }

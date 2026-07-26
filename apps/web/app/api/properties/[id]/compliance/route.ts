@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
+import { validateRequest } from '@/lib/validation/validator';
+// CERT_TYPES + the upsert schema live in ./schema (not here) — App Router
+// route files may only export handlers/config, else `next build` fails.
+import { upsertComplianceCertSchema } from './schema';
 
 // GET /api/properties/[id]/compliance - List compliance certs for a property
 export const GET = withApiHandler(
@@ -52,7 +56,6 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
 
     // Verify ownership
     const { data: property } = await serverSupabase
@@ -68,6 +71,11 @@ export const POST = withApiHandler(
       );
     }
 
+    const validation = await validateRequest(req, upsertComplianceCertSchema);
+    if ('headers' in validation) {
+      return validation;
+    }
+
     const {
       cert_type,
       certificate_number,
@@ -80,14 +88,7 @@ export const POST = withApiHandler(
       // Property Rooms Slice 4 — optional link to a property_rooms
       // row. When present, the cert covers just that room.
       property_room_id: rawPropertyRoomId,
-    } = body;
-
-    if (!cert_type) {
-      return NextResponse.json(
-        { error: 'cert_type is required' },
-        { status: 400 }
-      );
-    }
+    } = validation.data;
 
     // Validate property_room_id (when set) belongs to THIS property.
     // We silently drop ids that don't match — the request stays

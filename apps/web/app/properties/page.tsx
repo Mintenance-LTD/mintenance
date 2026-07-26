@@ -7,6 +7,7 @@ import { unstable_cache } from 'next/cache';
 import { getCachedUser } from '@/lib/cache';
 import { PropertiesClient2025 } from './components/PropertiesClient2025';
 import { MintEditorialProperties } from './components/MintEditorialProperties';
+import { PendingPropertyInvites } from './components/PendingPropertyInvites';
 import { getFeatureLimit } from '@/lib/feature-access-config';
 import {
   getEffectiveHomeownerTier,
@@ -182,28 +183,34 @@ export default async function PropertiesPage2025() {
 
   if (isMintEditorial) {
     return (
-      <MintEditorialProperties
-        properties={propertiesWithStats}
-        propertyLimit={propertyLimit}
-      />
+      <>
+        <PendingPropertyInvites />
+        <MintEditorialProperties
+          properties={propertiesWithStats}
+          propertyLimit={propertyLimit}
+        />
+      </>
     );
   }
 
   return (
-    <PropertiesClient2025
-      properties={propertiesWithStats}
-      propertyLimit={propertyLimit}
-      tier={tier}
-      isEarlyAccess={isEarlyAccess}
-      userInfo={{
-        name: userDisplayName,
-        email: userProfile?.email || user.email,
-        avatar:
-          (userProfile as typeof userProfile & { profile_image_url?: string })
-            ?.profile_image_url ??
-          (userProfile as typeof userProfile & { avatar_url?: string })
-            ?.avatar_url,
-      }}
-    />
+    <>
+      <PendingPropertyInvites />
+      <PropertiesClient2025
+        properties={propertiesWithStats}
+        propertyLimit={propertyLimit}
+        tier={tier}
+        isEarlyAccess={isEarlyAccess}
+        userInfo={{
+          name: userDisplayName,
+          email: userProfile?.email || user.email,
+          avatar:
+            (userProfile as typeof userProfile & { profile_image_url?: string })
+              ?.profile_image_url ??
+            (userProfile as typeof userProfile & { avatar_url?: string })
+              ?.avatar_url,
+        }}
+      />
+    </>
   );
 }

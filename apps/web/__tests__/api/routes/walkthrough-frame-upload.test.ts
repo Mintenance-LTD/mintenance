@@ -9,7 +9,7 @@
  *   - parses the multipart body (400 if it isn't multipart),
  *   - requires an anchor (propertyId | jobId) and 2..20 frames,
  *   - authorizes the anchor via authorizeAssessmentAnchors (throws Forbidden),
- *   - uploads each frame to the `assessment-photos` bucket with the service
+ *   - uploads each frame to the private `assessment-photos` bucket with the service
  *     role, SKIPPING oversize (>8MB) or non-image (magic-byte) frames
  *     (SEC-002 hardening) — surviving < MIN_FRAMES -> 502,
  *   - fans the surviving frame URLs through the VLM (assessWalkthrough),
@@ -34,7 +34,7 @@ const mocks = vi.hoisted(() => ({
   rateLimiterCheckRateLimit: vi.fn(),
   supabaseFrom: vi.fn(),
   storageUpload: vi.fn(),
-  storageGetPublicUrl: vi.fn(),
+  storageCreateSignedUrl: vi.fn(),
   authorizeAssessmentAnchors: vi.fn(),
   checkAICostBudget: vi.fn(),
   assessWalkthrough: vi.fn(),
@@ -57,8 +57,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     storage: {
       from: () => ({
         upload: (...args: unknown[]) => mocks.storageUpload(...args),
-        getPublicUrl: (...args: unknown[]) =>
-          mocks.storageGetPublicUrl(...args),
+        // The bucket went private in 20260726135946, so the route signs each
+        // stored frame instead of reading back a public URL.
+        createSignedUrl: (...args: unknown[]) =>
+          mocks.storageCreateSignedUrl(...args),
       }),
     },
   },
@@ -190,7 +192,8 @@ const HOMEOWNER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const JOB_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const PROPERTY_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
-const PUBLIC_URL = 'https://storage.example/test/frame.jpg';
+const SIGNED_URL =
+  'https://storage.example/storage/v1/object/sign/assessment-photos/quick-ai/x/0.jpg?token=t';
 
 const fakeAssessment = {
   damageAssessment: {
@@ -278,8 +281,8 @@ function setupDefaultMocks() {
   mocks.checkAICostBudget.mockResolvedValue({ allowed: true });
   mocks.authorizeAssessmentAnchors.mockResolvedValue(undefined);
   mocks.storageUpload.mockResolvedValue({ error: null });
-  mocks.storageGetPublicUrl.mockReturnValue({
-    data: { publicUrl: PUBLIC_URL },
+  mocks.storageCreateSignedUrl.mockResolvedValue({
+    data: { signedUrl: SIGNED_URL },
   });
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'assessment_images') {
@@ -290,8 +293,8 @@ function setupDefaultMocks() {
   mocks.assessWalkthrough.mockResolvedValue({
     assessment: fakeAssessment,
     perFrameAssessments: [
-      { url: PUBLIC_URL, assessment: fakeAssessment },
-      { url: PUBLIC_URL, assessment: fakeAssessment },
+      { url: SIGNED_URL, assessment: fakeAssessment },
+      { url: SIGNED_URL, assessment: fakeAssessment },
     ],
     frameCount: 2,
     framesAssessed: 2,

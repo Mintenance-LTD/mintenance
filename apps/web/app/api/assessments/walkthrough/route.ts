@@ -5,6 +5,8 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { checkAICostBudget } from '@/lib/ai/cost-budget';
+import { isSupportedImage } from '@/lib/api/image-signature';
+import { signAssessmentPath } from '@/lib/api/assessment-storage';
 import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurveyorConfig';
 import { authorizeAssessmentAnchors } from '@/app/api/building-surveyor/assess/_anchor-authorization';
 import { assessWalkthrough } from '@/lib/services/building-surveyor/video/walkthrough-assessment';
@@ -25,33 +27,8 @@ const MAX_FRAMES = 20; // cost ceiling: 20 GPT-4o vision calls per walkthrough
 const MAX_FRAME_BYTES = 8 * 1024 * 1024; // 8MB/frame — a keyframe is well under this
 const FRAME_BUCKET = 'assessment-photos';
 
-// Leading-byte signatures for the image formats a phone keyframe can be.
-// Frames are stored under image/jpeg, but iOS may hand us HEIC and some
-// pipelines PNG/WebP — accept real images, reject anything else so the
-// public bucket can't be stuffed with junk under a forced content-type.
-function isSupportedImage(buf: Buffer): boolean {
-  if (buf.length < 12) return false;
-  // JPEG  FF D8 FF
-  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true;
-  // PNG   89 50 4E 47
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47)
-    return true;
-  // WebP  "RIFF"…"WEBP"
-  if (
-    buf.toString('ascii', 0, 4) === 'RIFF' &&
-    buf.toString('ascii', 8, 12) === 'WEBP'
-  )
-    return true;
-  // HEIC/HEIF  …."ftyp"<brand>
-  if (
-    buf.toString('ascii', 4, 8) === 'ftyp' &&
-    ['heic', 'heix', 'hevc', 'heif', 'mif1', 'msf1'].includes(
-      buf.toString('ascii', 8, 12)
-    )
-  )
-    return true;
-  return false;
-}
+// isSupportedImage now lives in @/lib/api/image-signature so the assessment
+// photo-upload route enforces exactly the same signature check.
 
 const SERVICE = 'assessment-walkthrough';
 
@@ -241,10 +218,15 @@ export const POST = withApiHandler(
 );
 
 /**
- * Upload keyframe files to the public assessment-photos bucket under quick-ai/.
+ * Upload keyframe files to the assessment-photos bucket under quick-ai/.
  * Runs with the service role, so client-side storage RLS is not involved. A
  * frame that fails to store is logged and skipped (a bad frame must not sink
- * the walk); the surviving public URLs are returned in order.
+ * the walk); the surviving URLs are returned in order.
+ *
+ * The bucket went private in migration 20260726135946, so these are signed
+ * URLs. They are persisted into assessment_images as well as consumed by the
+ * vision call, so they take the long default TTL; read paths re-sign via
+ * resignAssessmentUrls rather than trusting a stored URL forever.
  */
 async function uploadFramesToStorage(
   files: File[],
@@ -289,10 +271,15 @@ async function uploadFramesToStorage(
         });
         continue;
       }
-      const { data } = serverSupabase.storage
-        .from(FRAME_BUCKET)
-        .getPublicUrl(path);
-      urls.push(data.publicUrl);
+      const signed = await signAssessmentPath(path);
+      if (!signed) {
+        logger.warn('Walkthrough frame could not be signed', {
+          service: SERVICE,
+          index: i,
+        });
+        continue;
+      }
+      urls.push(signed);
     } catch (err) {
       logger.warn('Walkthrough frame store error', {
         service: SERVICE,

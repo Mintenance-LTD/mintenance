@@ -233,6 +233,16 @@ export const PATCH = withApiHandler(
       );
     }
 
+    // 2026-07-26: only POST carried the tier gate, so a landlord who
+    // downgraded to Free could keep re-arming existing auto-create
+    // schedules here indefinitely. Gate the re-activation direction only —
+    // switching a schedule OFF must stay available to every tier, or a
+    // downgraded user is stuck with jobs they can no longer stop.
+    if (is_active) {
+      const tierBlock = await requireLandlordTier(user.id, user.role);
+      if (tierBlock) return tierBlock;
+    }
+
     const { data: property } = await serverSupabase
       .from('properties')
       .select('id, owner_id')

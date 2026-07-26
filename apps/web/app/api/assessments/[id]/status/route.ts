@@ -8,6 +8,7 @@ import {
   NotFoundError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { resignAssessmentUrls } from '@/lib/api/assessment-storage';
 
 /**
  * GET /api/assessments/:id/status
@@ -51,6 +52,19 @@ export const GET = withApiHandler(
       .eq('assessment_id', assessmentId)
       .order('image_index', { ascending: true });
 
+    // The assessment-photos bucket is private (migration 20260726135946), so a
+    // persisted URL is a signed one that eventually expires. Re-sign on read
+    // rather than handing the client a dead link — historical rows pointing at
+    // other buckets pass through untouched.
+    const imageRows = images || [];
+    const freshUrls = await resignAssessmentUrls(
+      imageRows.map((img) => img.image_url as string | null)
+    );
+    const signedImages = imageRows.map((img, idx) => ({
+      ...img,
+      image_url: freshUrls[idx] ?? img.image_url,
+    }));
+
     const status = assessment.validation_status as string;
     const isComplete = status === 'completed' || status === 'validated';
     const isFailed = status === 'failed';
@@ -74,7 +88,7 @@ export const GET = withApiHandler(
           }
         : null,
       videoUrl: assessment.video_url,
-      images: images || [],
+      images: signedImages,
       createdAt: assessment.created_at,
       updatedAt: assessment.updated_at,
     });
