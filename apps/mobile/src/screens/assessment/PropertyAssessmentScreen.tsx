@@ -341,29 +341,39 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       }
 
       // Upload photos and save references via the dedicated images endpoint.
+      //
+      // 2026-07-26: this whole block used to fail silently — the upload
+      // swallowed errors into a warn and the attach was explicitly "non-fatal"
+      // — so a photo-less assessment reported success. That is what let a
+      // completely broken upload path survive unnoticed. The submit still does
+      // not throw (the assessment row exists; throwing would invite a
+      // duplicate on retry) but the outcome is now reported honestly.
       let uploadedUrls: string[] = [];
+      let photoFailed = false;
       if (photos.length > 0 && assessment?.id) {
-        uploadedUrls = await uploadPhotosToStorage(photos, assessment.id);
-        if (uploadedUrls.length > 0) {
-          try {
-            await mobileApiClient.post(
-              `/api/assessments/${assessment.id}/images`,
-              { urls: uploadedUrls }
-            );
-          } catch (err) {
-            // Non-fatal: assessment row exists, AI pipeline can re-attach.
-            logger.warn('Assessment image attach failed', {
-              assessmentId: assessment.id,
-              error: err,
-            });
-          }
+        try {
+          uploadedUrls = await uploadPhotosToStorage(photos, assessment.id);
+          await mobileApiClient.post(
+            `/api/assessments/${assessment.id}/images`,
+            { urls: uploadedUrls }
+          );
+        } catch (err) {
+          photoFailed = true;
+          uploadedUrls = [];
+          logger.error('Assessment photo upload failed', {
+            assessmentId: assessment.id,
+            photoCount: photos.length,
+            error: err,
+          });
         }
       }
 
-      logger.info('Assessment submitted successfully', {
+      logger.info('Assessment submitted', {
         assessmentId: assessment?.id,
         propertyId,
         userId: user.id,
+        photosAttached: uploadedUrls.length,
+        photoFailed,
       });
 
       // Kick off Mint AI analysis in the background. Fire-and-forget — the
@@ -381,13 +391,21 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
         });
       }
 
-      Alert.alert(
-        'Assessment Submitted',
-        uploadedUrls.length > 0
-          ? 'Your assessment is saved. AI analysis runs in the background — results will appear on this assessment shortly.'
-          : 'Your property assessment has been saved and will be reviewed.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      if (photoFailed) {
+        Alert.alert(
+          'Saved, but the photos did not upload',
+          'Your assessment was saved without its photos, so AI analysis has not run. Check your connection and add the photos again from the assessment.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert(
+          'Assessment Submitted',
+          uploadedUrls.length > 0
+            ? 'Your assessment is saved. AI analysis runs in the background — results will appear on this assessment shortly.'
+            : 'Your property assessment has been saved and will be reviewed.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
     } catch (error) {
       logger.error('Assessment submission failed', { error });
       Alert.alert('Error', 'Something went wrong. Please try again.');

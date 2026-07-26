@@ -11,7 +11,6 @@
  */
 
 import { logger } from '@mintenance/shared';
-import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 /** UI-facing shape preserved from the original screen — keeps the render layer unchanged. */
@@ -117,41 +116,55 @@ function toAnalysisResult(
   };
 }
 
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+const EXT_CONTENT_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
+};
+
 /**
- * Upload a single image to the `assessment-photos` bucket and return the
- * public URL. Same pattern used by PropertyAssessmentScreen's uploadPhotos.
- * NOTE: bucket is currently public — see security follow-up in
- * docs/MINT_AI_VLM_v2.md §9.
+ * Upload a single image through the server and return a signed URL.
+ *
+ * Was a client-side direct-to-storage upload, which never landed bytes on
+ * Hermes (the bucket held zero objects for its entire life) and returned a
+ * public URL from a world-readable bucket. Both problems are gone: the server
+ * owns the upload, and `assessment-photos` is private as of migration
+ * 20260726135946.
+ *
+ * The old version also labelled every non-PNG file `image/jpeg`, so a HEIC
+ * photo was stored as JPEG and the vision call received undecodable bytes.
+ * The server now derives the real format from the leading bytes; the type sent
+ * here is only a hint on the multipart part.
  */
 async function uploadImage(uri: string): Promise<string> {
   // content:// URIs often carry no extension — naive split('.').pop()
-  // returns the whole URI. Clamp to a known image extension so the
-  // storage path stays sane and the bucket mime allowlist accepts it.
+  // returns the whole URI. Clamp to a known image extension.
   const rawExt = uri.split('.').pop()?.toLowerCase() ?? '';
-  const ext = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'].includes(rawExt)
-    ? rawExt
-    : 'jpg';
-  const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
-  const filePath = `quick-ai/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const ext = EXT_CONTENT_TYPES[rawExt] ? rawExt : 'jpg';
 
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  const arrayBuffer = await new Response(blob).arrayBuffer();
+  const form = new FormData();
+  form.append('photos', {
+    uri,
+    name: `quick-ai.${ext}`,
+    type: EXT_CONTENT_TYPES[ext]!,
+  } as unknown as Blob);
 
-  const { error } = await supabase.storage
-    .from('assessment-photos')
-    .upload(filePath, arrayBuffer, {
-      contentType,
-      upsert: false,
-    });
-  if (error) {
-    throw new Error(`Upload failed: ${error.message}`);
+  const result = await mobileApiClient.postFormData<{ urls: string[] }>(
+    '/api/assessments/photo-upload',
+    form,
+    UPLOAD_TIMEOUT_MS
+  );
+
+  const url = result?.urls?.[0];
+  if (!url) {
+    throw new Error('Upload failed: the photo could not be stored');
   }
-
-  const { data } = supabase.storage
-    .from('assessment-photos')
-    .getPublicUrl(filePath);
-  return data.publicUrl;
+  return url;
 }
 
 /**
