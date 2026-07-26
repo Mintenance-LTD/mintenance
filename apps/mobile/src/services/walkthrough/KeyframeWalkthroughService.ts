@@ -27,11 +27,24 @@ export interface WalkthroughContext {
   ageOfProperty?: number;
 }
 
+/**
+ * The walkthrough route responds with `{ ...assessment, assessmentId,
+ * frameCount, framesAssessed }` — the merged survey is spread at the TOP
+ * LEVEL, alongside the three meta fields. There is no nested `assessment`
+ * key.
+ *
+ * This interface previously declared one, and because `postFormData<T>` is a
+ * generic cast rather than a validated parse, TypeScript could not catch the
+ * lie: `result.assessment` was silently `undefined`, so the result screen fell
+ * through to its legacy card and showed "0% confidence" with no findings.
+ * Callers should destructure the meta fields off and treat the rest as the
+ * survey.
+ */
 export interface WalkthroughRunResult {
   assessmentId: string;
   frameCount: number;
   framesAssessed: number;
-  assessment: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 /**

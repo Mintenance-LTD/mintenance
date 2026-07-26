@@ -245,15 +245,21 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
         durationMs: recordingDuration * 1000,
         propertyId,
       });
-      onComplete?.(result.assessmentId);
+      // The route spreads the merged survey at the top level next to the meta
+      // fields — there is no `result.assessment`. Reading one gave the result
+      // screen `undefined`, which is why it rendered 0% confidence and no
+      // findings. Split the meta off and pass the rest as the survey.
+      const { assessmentId, frameCount, framesAssessed, ...assessment } =
+        result;
+      onComplete?.(assessmentId);
       (
         navigation as {
           navigate: (screen: string, params?: Record<string, unknown>) => void;
         }
       ).navigate('WalkthroughResult', {
-        assessment: result.assessment,
-        frameCount: result.frameCount,
-        framesAssessed: result.framesAssessed,
+        assessment,
+        frameCount,
+        framesAssessed,
       });
     } catch (error) {
       logger.error('Walkthrough processing failed', { error });
