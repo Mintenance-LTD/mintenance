@@ -7,7 +7,12 @@ name: Mintenance CI/CD Pipeline
 #        ├─ TypeScript must compile
 #        ├─ ESLint must pass
 #        ├─ Web + Mobile tests must pass
-#        └─ Coverage thresholds (70/65/70/70) auto-enforced by vitest/jest
+#        └─ Coverage thresholds auto-enforced by vitest (apps/web/vitest.config.ts):
+#             global REGRESSION FLOOR 45/38/52/46 (stmts/branch/funcs/lines —
+#             set just under the measured baseline; ratchet up as coverage
+#             improves; long-term target 70/65/70/70) plus STRICTER per-glob
+#             floors on money-critical payment/escrow paths — see the
+#             `thresholds` block in vitest.config.ts for current values.
 #
 # Branch protection MUST require these status checks:
 #   - "Code Quality & Testing"
