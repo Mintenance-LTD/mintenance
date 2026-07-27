@@ -17,6 +17,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Repo default GITHUB_TOKEN is read-only; the quality-gate job posts a PR
+# comment via github-script (would 403 with "Resource not accessible by
+# integration" — same failure seen in lighthouse.yml 2026-07-27).
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   unit-tests:
     name: Mobile Unit Tests
@@ -227,7 +234,7 @@ jobs:
           cache: 'npm'
       - run: npm ci --ignore-scripts=false
       - run: npm run build:packages
-      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f3f2d4b9464 # v3
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2 (2026-07-27: old pin no longer resolves upstream)
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | \
@@ -241,7 +248,7 @@ jobs:
           key: avd-pixel-8-api-34-${{ runner.os }}
       - name: Create AVD
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f0bc8937c1596d5b2203 # v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 (2026-07-27: old pin no longer resolves upstream)
         with:
           api-level: 34
           target: google_apis
@@ -256,7 +263,7 @@ jobs:
           EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
         run: npm run e2e:build:android
       - name: Run E2E tests
-        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f0bc8937c1596d5b2203 # v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 (2026-07-27: old pin no longer resolves upstream)
         with:
           api-level: 34
           target: google_apis

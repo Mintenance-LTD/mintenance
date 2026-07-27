@@ -35,6 +35,10 @@ function notFound(): NextResponse {
   return new NextResponse('Not Found', { status: 404 });
 }
 
+// auth-check: ok — E2E-only fixture, deliberately outside withApiHandler:
+// it must mint the session cookie itself. Double-gated below (E2E_TESTING
+// flag AND shared E2E_AUTH_SECRET); returns 404 in every other environment,
+// and middleware blocks it in production before this handler runs.
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Gate 1: only ever active in an explicit E2E environment.
   if (process.env.E2E_TESTING !== 'true') {

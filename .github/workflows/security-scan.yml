@@ -14,6 +14,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# Repo default GITHUB_TOKEN is read-only. CodeQL analyze needs
+# security-events: write to upload SARIF, and the PR-comment step needs
+# pull-requests: write — both sit after the npm-audit step, so they'll
+# start running (and would 403) once the dependency remediation lands.
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  actions: read
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest

@@ -205,7 +205,7 @@ jobs:
 
       - name: Run Detox smoke tests (auth + navigation only)
         if: steps.filter.outputs.mobile == 'true'
-        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f0bc8937c1596d5b2203 # v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 (2026-07-27: old pin no longer resolves upstream)
         with:
           api-level: 34
           arch: x86_64
@@ -246,7 +246,7 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f3f2d4b9464 # v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2 (2026-07-27: old pin no longer resolves upstream)
         with:
           api-level: 34
           build-tools: 34.0.0
@@ -287,7 +287,7 @@ jobs:
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -331,7 +331,7 @@ jobs:
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
