@@ -94,7 +94,7 @@ function ReturnContent() {
           </h1>
           <p className='text-sm text-gray-600'>{message.body}</p>
           <Button
-            onClick={() => router.push('/payment-methods')}
+            onClick={() => router.push('/settings/payment-methods')}
             className='mt-2'
           >
             Back to payment methods

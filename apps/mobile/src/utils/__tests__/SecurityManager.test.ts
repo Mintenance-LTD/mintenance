@@ -14,17 +14,16 @@ import * as SecureStore from 'expo-secure-store';
 import { SecurityManager, SecurityManagerService } from '../SecurityManager';
 import { logger } from '../logger';
 
-// expo-file-system is not installed in this workspace; the source has a
-// try/catch require() fallback. We register a mock so the require() succeeds
-// and getInfoAsync becomes overridable per-test (covers not-exists /
-// oversize / throw branches that the static fallback cannot reach).
-jest.mock(
-  'expo-file-system',
-  () => ({
-    getInfoAsync: jest.fn(),
-  }),
-  { virtual: true }
-);
+// expo-file-system IS a real dependency now (~19.x, added with the SDK-54
+// work), so this must be a normal factory mock. It was previously registered
+// with `{ virtual: true }`, and once the real package existed in CI's fresh
+// node_modules the virtual mock stopped intercepting the source's require()
+// — the real module's native import threw, the try/catch fallback (size
+// 1024) kicked in, and 4 validateFileUpload tests failed CI-only. The
+// sibling suite in src/__tests__/utils mocks it non-virtually and passed.
+jest.mock('expo-file-system', () => ({
+  getInfoAsync: jest.fn(),
+}));
 
 jest.mock('../logger', () => ({
   logger: {

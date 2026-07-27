@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { radiusPairError } from '../[id]/route';
+import { radiusPairError } from '../[id]/radius-pair';
 
 /**
  * `max_distance_km` became writable on 2026-07-22 so the mobile Service

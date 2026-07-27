@@ -4,6 +4,7 @@ import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, NotFoundError } from '@/lib/errors/api-error';
 import { z } from 'zod';
+import { radiusPairError } from './radius-pair';
 
 const updateServiceAreaSchema = z.object({
   area_name: z.string().min(1).max(255).optional(),
@@ -20,37 +21,6 @@ const updateServiceAreaSchema = z.object({
   postal_codes: z.array(z.string()).optional(),
   cities: z.array(z.string()).optional(),
 });
-
-/**
- * The two coverage thresholds must stay ordered: `max_distance_km` (the
- * furthest a contractor will travel, billed at `per_km_rate`) cannot be
- * smaller than `radius_km` (the reach included in the price).
- *
- * Validated against the MERGED row rather than the request body, because
- * a PATCH may legitimately send either field on its own — checking the
- * body alone would wave through a request that lowers max_distance_km
- * below an unchanged radius_km.
- *
- * Exported for direct testing; the handler is the only caller.
- */
-export function radiusPairError(
-  patch: { radius_km?: number; max_distance_km?: number },
-  existing: { radius_km?: number | null; max_distance_km?: number | null }
-): string | null {
-  // Only judge a patch that actually moves one of the thresholds. A row
-  // that is already inconsistent must not become uneditable — blocking
-  // an unrelated rename because of stored data the caller isn't touching
-  // would strand the area with no way to fix it from the app.
-  if (patch.radius_km == null && patch.max_distance_km == null) return null;
-
-  const nextRadius = patch.radius_km ?? existing.radius_km;
-  const nextMax = patch.max_distance_km ?? existing.max_distance_km;
-  if (nextRadius == null || nextMax == null) return null;
-  if (nextMax < nextRadius) {
-    return 'max_distance_km must be greater than or equal to radius_km — the extended reach cannot be smaller than the standard radius';
-  }
-  return null;
-}
 
 /**
  * PATCH /api/contractor/service-areas/[id]
