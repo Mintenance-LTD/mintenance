@@ -8,6 +8,19 @@ import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
+import type { EscrowTransactionRow } from '@mintenance/types';
+
+/**
+ * Typed-row boundary (audit 2026-07-27): rows from direct Supabase reads are
+ * cast ONCE to the generated live-schema row type instead of
+ * Record<string, unknown> + per-field casts. Reading a column that does not
+ * exist in the live schema is now a COMPILE-TIME error — this class had two
+ * silent-drift bugs before (blocking_reasons vs release_blocked_reason,
+ * and a phantom job_completed_at read).
+ */
+type EscrowRowWithJob = EscrowTransactionRow & {
+  job: { id: string; title: string; status: string } | null;
+};
 
 export interface EscrowStatus {
   id: string;
@@ -40,6 +53,38 @@ export interface EscrowTimeline {
 
 export class EscrowService {
   /**
+   * Map a live escrow row to the mobile view model. All column reads are
+   * compile-checked against the generated EscrowTransactionRow.
+   *
+   * 2026-05-23 audit-19 P2 (now enforced by the type): the live table has
+   * neither `blocking_reasons` (plural) nor `estimated_release_date` — the
+   * real columns are `release_blocked_reason` (singular text, wrapped into
+   * an array for shape compatibility) and `auto_release_date`.
+   */
+  private static toEscrowStatus(row: EscrowTransactionRow): EscrowStatus {
+    // `?? null` on nullable columns: the boundary cast cannot make a partial
+    // object whole (PostgREST always returns every selected column, but the
+    // contract here is string|null, never undefined).
+    return {
+      id: row.id,
+      status: row.status,
+      amount: row.amount,
+      jobId: row.job_id ?? '',
+      blockingReasons: row.release_blocked_reason
+        ? [row.release_blocked_reason]
+        : [],
+      estimatedReleaseDate: row.auto_release_date ?? null,
+      homeownerApproval: row.homeowner_approval ?? false,
+      homeownerApprovalAt: row.homeowner_approval_at ?? null,
+      autoApprovalDate: row.auto_approval_date ?? null,
+      adminHoldStatus: row.admin_hold_status ?? null,
+      photoVerificationStatus: row.photo_verification_status ?? 'pending',
+      coolingOffEndsAt: row.cooling_off_ends_at ?? null,
+      trustScore: row.trust_score ?? null,
+    };
+  }
+
+  /**
    * Get escrow status for a specific escrow transaction via direct Supabase query
    */
   static async getEscrowStatus(escrowId: string): Promise<EscrowStatus> {
@@ -58,32 +103,10 @@ export class EscrowService {
         throw new Error(error.message);
       }
 
-      const row = data as Record<string, unknown>;
-      return {
-        id: row.id as string,
-        status: row.status as string,
-        amount: row.amount as number,
-        jobId: row.job_id as string,
-        // 2026-05-23 audit-19 P2: live escrow_transactions has neither
-        // `blocking_reasons` (plural) nor `estimated_release_date`. The real
-        // columns are `release_blocked_reason` (singular text) and
-        // `auto_release_date`. Reading the wrong names silently returned
-        // undefined → empty array / null, so the UI hid real blockers and
-        // never showed the release timeline even when the server had it.
-        // Wrap the singular string into an array for shape compatibility.
-        blockingReasons: row.release_blocked_reason
-          ? [row.release_blocked_reason as string]
-          : [],
-        estimatedReleaseDate: (row.auto_release_date as string) ?? null,
-        homeownerApproval: (row.homeowner_approval as boolean) ?? false,
-        homeownerApprovalAt: (row.homeowner_approval_at as string) ?? null,
-        autoApprovalDate: (row.auto_approval_date as string) ?? null,
-        adminHoldStatus: (row.admin_hold_status as string) ?? null,
-        photoVerificationStatus:
-          (row.photo_verification_status as string) ?? 'pending',
-        coolingOffEndsAt: (row.cooling_off_ends_at as string) ?? null,
-        trustScore: (row.trust_score as number) ?? null,
-      };
+      // Single boundary cast to the generated live-schema row type; every
+      // column access below is compile-checked against it.
+      const row = data as EscrowTransactionRow;
+      return EscrowService.toEscrowStatus(row);
     } catch (error) {
       const apiError = parseError(error);
       logger.error('Error fetching escrow status', {
@@ -99,9 +122,14 @@ export class EscrowService {
    */
   static async getEscrowTimeline(escrowId: string): Promise<EscrowTimeline> {
     try {
+      // Audit 2026-07-27 (typed-row migration): the previous code read
+      // `row.job_completed_at`, a column that does NOT exist on
+      // escrow_transactions — it was always undefined, so the
+      // "job completed" timeline step never showed as completed. The real
+      // signal is jobs.completed_at; pull it through the FK join.
       const { data, error } = await supabase
         .from('escrow_transactions')
-        .select('*')
+        .select('*, job:jobs!escrow_transactions_job_id_fkey(completed_at)')
         .eq('id', escrowId)
         .single();
 
@@ -113,31 +141,29 @@ export class EscrowService {
         throw new Error(error.message);
       }
 
-      const row = data as Record<string, unknown>;
-      const status = row.status as string;
-      // 2026-05-23 audit-19 P2: same blocker-column drift as in
-      // getEscrowStatus above. The real column is the singular
-      // `release_blocked_reason` text field.
+      const row = data as EscrowTransactionRow & {
+        job: { completed_at: string | null } | null;
+      };
+      const status = row.status;
+      // 2026-05-23 audit-19 P2 (now compile-enforced): the real blocker
+      // column is the singular `release_blocked_reason` text field.
       const blockingReasons = row.release_blocked_reason
-        ? [row.release_blocked_reason as string]
+        ? [row.release_blocked_reason]
         : [];
+      const jobCompletedAt = row.job?.completed_at ?? null;
 
       // Build timeline steps from escrow state
       const steps: EscrowTimeline['steps'] = [
         {
           step: 'payment_received',
           status: status !== 'pending' ? 'completed' : 'pending',
-          completedAt: (row.created_at as string) ?? null,
+          completedAt: row.created_at ?? null,
           blockedReason: null,
         },
         {
           step: 'job_completed',
-          status: row.job_completed_at
-            ? 'completed'
-            : status === 'held'
-              ? 'pending'
-              : 'pending',
-          completedAt: (row.job_completed_at as string) ?? null,
+          status: jobCompletedAt ? 'completed' : 'pending',
+          completedAt: jobCompletedAt,
           blockedReason: null,
         },
         {
@@ -147,7 +173,7 @@ export class EscrowService {
             : blockingReasons.length > 0
               ? 'blocked'
               : 'pending',
-          completedAt: (row.homeowner_approval_at as string) ?? null,
+          completedAt: row.homeowner_approval_at ?? null,
           blockedReason: blockingReasons[0] ?? null,
         },
         {
@@ -155,7 +181,7 @@ export class EscrowService {
           // DB uses 'completed' as the terminal escrow status, not 'released'.
           // See CLAUDE.md → Key Status Transitions → Escrow.
           status: status === 'completed' ? 'completed' : 'pending',
-          completedAt: (row.released_at as string) ?? null,
+          completedAt: row.released_at ?? null,
           blockedReason: null,
         },
       ];
@@ -164,8 +190,8 @@ export class EscrowService {
         escrowId,
         currentStatus: status,
         blockingReasons,
-        // Same audit-19 P2 fix — real column is auto_release_date.
-        estimatedReleaseDate: (row.auto_release_date as string) ?? null,
+        // Audit-19 P2 fix, now compile-enforced — real column is auto_release_date.
+        estimatedReleaseDate: row.auto_release_date ?? null,
         steps,
       };
     } catch (error) {
@@ -224,31 +250,9 @@ export class EscrowService {
         throw new Error(error.message);
       }
 
-      return (data ?? []).map((row: Record<string, unknown>) => ({
-        id: row.id as string,
-        status: row.status as string,
-        amount: row.amount as number,
-        jobId: row.job_id as string,
-        // 2026-05-23 audit-19 P2: live escrow_transactions has neither
-        // `blocking_reasons` (plural) nor `estimated_release_date`. The real
-        // columns are `release_blocked_reason` (singular text) and
-        // `auto_release_date`. Reading the wrong names silently returned
-        // undefined → empty array / null, so the UI hid real blockers and
-        // never showed the release timeline even when the server had it.
-        // Wrap the singular string into an array for shape compatibility.
-        blockingReasons: row.release_blocked_reason
-          ? [row.release_blocked_reason as string]
-          : [],
-        estimatedReleaseDate: (row.auto_release_date as string) ?? null,
-        homeownerApproval: (row.homeowner_approval as boolean) ?? false,
-        homeownerApprovalAt: (row.homeowner_approval_at as string) ?? null,
-        autoApprovalDate: (row.auto_approval_date as string) ?? null,
-        adminHoldStatus: (row.admin_hold_status as string) ?? null,
-        photoVerificationStatus:
-          (row.photo_verification_status as string) ?? 'pending',
-        coolingOffEndsAt: (row.cooling_off_ends_at as string) ?? null,
-        trustScore: (row.trust_score as number) ?? null,
-      }));
+      return ((data ?? []) as EscrowRowWithJob[]).map((row) =>
+        EscrowService.toEscrowStatus(row)
+      );
     } catch (error) {
       const apiError = parseError(error);
       logger.error('Error fetching contractor escrows', { error: apiError });
