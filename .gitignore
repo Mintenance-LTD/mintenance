@@ -262,6 +262,11 @@ yolo11n.pt
 !lighthouserc.js
 !mcp-server.js
 !mcp-server.ts
+# Jest/Metro manual mocks are hand-written source. The global *.js ignore
+# above silently swallowed apps/mobile/__mocks__/jsdom.js (referenced by
+# metro.config.js but never committed — broke every CI expo export, found
+# 2026-07-27). Un-ignore the whole mocks tree so it cannot happen again.
+!apps/mobile/__mocks__/**/*.js
 # Expo config plugins (hand-written source, not generated output)
 !apps/mobile/plugins/**/*.js
 # Android intent-filter builder — CommonJS on purpose: app.config.js is
