@@ -24,53 +24,54 @@ export default function BidDetailsError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
-            <AlertTriangle className="h-8 w-8 text-red-600" />
+    <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8'>
+      <div className='max-w-md w-full space-y-8'>
+        <div className='text-center'>
+          <div className='mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100'>
+            <AlertTriangle className='h-8 w-8 text-red-600' />
           </div>
 
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+          <h2 className='mt-6 text-3xl font-bold text-gray-900'>
             Bid not found
           </h2>
 
-          <p className="mt-2 text-sm text-gray-600">
-            We couldn't load this bid. It may have been withdrawn or you don't have permission to view it.
+          <p className='mt-2 text-sm text-gray-600'>
+            We couldn't load this bid. It may have been withdrawn or you don't
+            have permission to view it.
           </p>
 
           {error.digest && (
-            <p className="mt-2 text-xs text-gray-500">
+            <p className='mt-2 text-xs text-gray-500'>
               Error ID: {error.digest}
             </p>
           )}
         </div>
 
-        <div className="mt-8 space-y-3">
+        <div className='mt-8 space-y-3'>
           <Button
             onClick={reset}
-            variant="primary"
-            className="w-full flex items-center justify-center"
+            variant='primary'
+            className='w-full flex items-center justify-center'
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <RefreshCw className='mr-2 h-4 w-4' />
             Try again
           </Button>
 
           <Button
             onClick={() => router.push('/contractor/jobs-near-you')}
-            variant="secondary"
-            className="w-full flex items-center justify-center"
+            variant='secondary'
+            className='w-full flex items-center justify-center'
           >
-            <Briefcase className="mr-2 h-4 w-4" />
+            <Briefcase className='mr-2 h-4 w-4' />
             Browse available jobs
           </Button>
 
           <Button
-            onClick={() => router.push('/contractor')}
-            variant="ghost"
-            className="w-full flex items-center justify-center"
+            onClick={() => router.push('/contractor/bid')}
+            variant='ghost'
+            className='w-full flex items-center justify-center'
           >
-            <Home className="mr-2 h-4 w-4" />
+            <Home className='mr-2 h-4 w-4' />
             Go to dashboard
           </Button>
         </div>

@@ -38,9 +38,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci-build
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: dummy
+          # Fail-closed config (packages/auth) throws at build-time page-data
+          # collection when JWT_SECRET is absent; audit build never signs
+          # real tokens, so a dummy is fine here.
+          JWT_SECRET: dummy-jwt-secret-for-lighthouse-ci-build-only
 
       - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@2f8dda6cf4de56e82bd3b9a3cded48ef24558e31 # v12
+        # 2026-07-27: previous pin 2f8dda6c... no longer resolves upstream —
+        # every run died at "Set up job". 3e7e23fb is the real v12 tag SHA.
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         id: lighthouse
         with:
           configPath: apps/web/lighthouserc.js

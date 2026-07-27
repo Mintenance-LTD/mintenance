@@ -20,7 +20,6 @@ on:
           - types
           - shared
           - auth
-          - ui
 
 jobs:
   publish:
@@ -46,12 +45,20 @@ jobs:
       - name: Build packages
         run: npm run build:packages
 
+      # NOTE (2026-07-27): the root .npmrc pins @mintenance:registry to
+      # registry.npmjs.org as a dependency-confusion guard, and that project
+      # config was winning over publishConfig — every publish hit npmjs
+      # unauthenticated (ENEEDAUTH, silently swallowed by `|| echo`). The
+      # explicit --registry flag outranks .npmrc. The old "@mintenance/ui"
+      # step was also removed: packages/ui was renamed to shared-ui (which is
+      # private) long ago, and the dangling `cd packages/ui` failed every run.
+
       # Publish types package (no dependencies, publish first)
       - name: Publish @mintenance/types
         if: github.event.inputs.package == 'types' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
         run: |
           cd packages/types
-          npm publish || echo "Package already published or failed"
+          npm publish --registry=https://npm.pkg.github.com || echo "Package already published or failed"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -60,7 +67,7 @@ jobs:
         if: github.event.inputs.package == 'shared' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
         run: |
           cd packages/shared
-          npm publish || echo "Package already published or failed"
+          npm publish --registry=https://npm.pkg.github.com || echo "Package already published or failed"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -69,16 +76,7 @@ jobs:
         if: github.event.inputs.package == 'auth' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
         run: |
           cd packages/auth
-          npm publish || echo "Package already published or failed"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Publish ui package (no internal dependencies)
-      - name: Publish @mintenance/ui
-        if: github.event.inputs.package == 'ui' || github.event.inputs.package == 'all' || github.event.inputs.package == ''
-        run: |
-          cd packages/ui
-          npm publish || echo "Package already published or failed"
+          npm publish --registry=https://npm.pkg.github.com || echo "Package already published or failed"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -90,6 +88,5 @@ jobs:
           echo "- @mintenance/types" >> $GITHUB_STEP_SUMMARY
           echo "- @mintenance/shared" >> $GITHUB_STEP_SUMMARY
           echo "- @mintenance/auth" >> $GITHUB_STEP_SUMMARY
-          echo "- @mintenance/ui" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "View packages at: https://github.com/orgs/Mintenance-LTD/packages" >> $GITHUB_STEP_SUMMARY

@@ -174,7 +174,12 @@ jobs:
 
       - name: Run service tests
         working-directory: apps/mobile
-        run: npm test -- --testPathPattern=services --coverage --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit
+        # --coverageThreshold={} neutralizes the GLOBAL threshold from
+        # jest.config.js: this job only runs the services subset, so global
+        # coverage reads ~14% and the config threshold failed the job even
+        # with all 1900+ tests passing. The dedicated service-coverage gate
+        # is the next step below.
+        run: npm test -- --testPathPattern=services --coverage --coverageThreshold={} --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit
         env:
           CI: true
 
