@@ -225,6 +225,9 @@ vi.mock('@/lib/payment-state-machine', () => ({
 
 vi.mock('@/lib/idempotency', () => ({
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
+  // Deterministic variant (audit 2026-07-27) — same mock so existing
+  // mockReturnValue setups drive both entry points.
+  getDeterministicIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
 }));

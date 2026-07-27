@@ -4,7 +4,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { paymentIntentSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import {
-  getIdempotencyKeyFromRequest,
+  getDeterministicIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
   releaseIdempotencyClaim,
@@ -16,7 +16,10 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
 
 export const POST = withApiHandler(
-  { roles: ['homeowner'], rateLimit: { maxRequests: 20, criticality: 'payment' } },
+  {
+    roles: ['homeowner'],
+    rateLimit: { maxRequests: 20, criticality: 'payment' },
+  },
   async (request: NextRequest, { user }) => {
     // Declared outside the try so the catch can release the claim if any
     // post-claim step throws. Stays undefined when the throw happens
@@ -316,12 +319,19 @@ export const POST = withApiHandler(
       // The new order is: idempotency claim FIRST, credit spend INSIDE
       // the "not a duplicate" branch.
 
-      // Idempotency check - prevent duplicate payment intent creation
-      const idempotencyKey = getIdempotencyKeyFromRequest(
+      // Idempotency check - prevent duplicate payment intent creation.
+      //
+      // Audit 2026-07-27: header-less fallback is now DETERMINISTIC
+      // (operation + payer + job + bid — no timestamp/random), so two rapid
+      // double-taps from a client that doesn't send Idempotency-Key collapse
+      // onto the same key and the second is deduped instead of both passing.
+      // The bid id is included so a re-accepted new bid within the 24h TTL
+      // can never dedupe onto the previous bid's cached intent.
+      const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
         request,
         'create_payment_intent',
         user.id,
-        jobId
+        `${jobId}:${acceptedBid.id}`
       );
 
       // Sprint 5.1: checkIdempotency now throws IdempotencyStoreUnavailableError

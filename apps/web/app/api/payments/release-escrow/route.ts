@@ -10,7 +10,7 @@ import {
 } from '@/lib/payment-state-machine';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
 import {
-  getIdempotencyKeyFromRequest,
+  getDeterministicIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
   releaseIdempotencyClaim,
@@ -62,8 +62,11 @@ export const POST = withApiHandler(
     // Get MFA token from header if present
     const mfaToken = request.headers.get('x-mfa-token');
 
-    // Idempotency check - prevent duplicate escrow releases (with distributed locking)
-    const idempotencyKey = getIdempotencyKeyFromRequest(
+    // Idempotency check - prevent duplicate escrow releases (with distributed
+    // locking). Audit 2026-07-27: deterministic header-less fallback — an
+    // escrow releases exactly once, so (operation, user, escrowId) is the
+    // complete request identity and double-taps dedupe without client help.
+    const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
       request,
       'release_escrow',
       user.id,

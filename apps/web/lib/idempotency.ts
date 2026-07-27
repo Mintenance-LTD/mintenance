@@ -352,6 +352,13 @@ function generateIdempotencyKey(
 
 /**
  * Extract idempotency key from request headers or generate new one.
+ *
+ * WARNING (audit 2026-07-27): the generated fallback contains a timestamp +
+ * UUID, so two rapid header-less duplicates get DIFFERENT keys and BOTH pass
+ * checkIdempotency — the dedup only works when the client cooperates by
+ * sending an Idempotency-Key header. Acceptable for routes with their own
+ * state guards; money-mutating routes must use
+ * getDeterministicIdempotencyKeyFromRequest instead.
  */
 export function getIdempotencyKeyFromRequest(
   request: Request,
@@ -364,4 +371,38 @@ export function getIdempotencyKeyFromRequest(
     return headerKey;
   }
   return generateIdempotencyKey(operation, userId, resourceId);
+}
+
+/**
+ * Header-or-DETERMINISTIC idempotency key for money-mutating routes.
+ *
+ * Audit 2026-07-27: unlike getIdempotencyKeyFromRequest, the fallback here
+ * contains NO timestamp and NO randomness — it is derived purely from stable
+ * request identity (operation + userId + resource identity). Two rapid
+ * header-less double-taps therefore collapse onto the SAME key: the first
+ * claims it, the second either gets the cached result or a 503
+ * pending-claim conflict. Duplicate protection no longer depends on client
+ * cooperation.
+ *
+ * A client-supplied Idempotency-Key header still wins, so cooperating
+ * clients (web PaymentForm, mobile PaymentIntentService) keep per-attempt
+ * retry semantics.
+ *
+ * Choose resourceIdentity so that two requests which are legitimately
+ * DISTINCT operations can never collide within the 24h idempotency TTL —
+ * e.g. include the bid id for payment-intent creation (a re-accepted new
+ * bid must not dedupe onto the old intent) or the amount for partial
+ * refunds.
+ */
+export function getDeterministicIdempotencyKeyFromRequest(
+  request: Request,
+  operation: string,
+  userId: string,
+  resourceIdentity: string
+): string {
+  const headerKey = request.headers.get('idempotency-key');
+  if (headerKey && headerKey.length > 0 && headerKey.length <= 255) {
+    return headerKey;
+  }
+  return `${operation}:${userId}:${resourceIdentity}`.substring(0, 255);
 }

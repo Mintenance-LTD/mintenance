@@ -187,10 +187,28 @@ describe('RedisRateLimiter', () => {
         identifier: 'test-user',
       });
 
-      // Production fallback: min(HARD_CAP=10, ceil(100 * 0.25)) = 10
+      // Audit 2026-07-27: production fallback for UNTAGGED configs is a
+      // conservative shared-budget approximation:
+      // max(1, min(HARD_CAP=5, floor(100 / 8 assumed instances))) = 5
       // First request still allowed but with heavily reduced limits
       expect(result.allowed).toBe(true);
-      expect(result.remaining).toBe(9); // effectiveMax=10, count=1, remaining=10-1=9
+      expect(result.remaining).toBe(4); // effectiveMax=5, count=1, remaining=5-1=4
+    });
+
+    it('should fail closed in production for criticality-tagged configs', async () => {
+      process.env.NODE_ENV = 'production';
+      clearRedis(rateLimiter);
+
+      const result = await rateLimiter.checkRateLimit({
+        windowMs: 60000,
+        maxRequests: 100,
+        identifier: 'test-user-critical',
+        criticality: 'auth',
+      });
+
+      // Rejected outright — no in-memory allowance for auth/payment/admin
+      expect(result.allowed).toBe(false);
+      expect(result.remaining).toBe(0);
     });
 
     it('should handle Redis errors gracefully', async () => {

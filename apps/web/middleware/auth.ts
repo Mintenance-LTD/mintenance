@@ -149,16 +149,33 @@ export async function enforceSessionTimeouts(
   request: NextRequest,
   pathname: string
 ): Promise<NextResponse | null> {
-  if (!jwtPayload.sessionStart || !jwtPayload.lastActivity) {
-    return null;
-  }
-
+  // SECURITY (2026-07-27): no early return for claim-less tokens — the
+  // validator owns that decision. Pre-cutover it fails open (legacyToken=true,
+  // logged below as a warning metric); post-cutover it fails CLOSED with the
+  // 'missing_session_claims' violation and flows into enforcement like any
+  // other timeout.
   const sessionValidation = SessionValidator.validateSession({
     sessionStart: jwtPayload.sessionStart,
     lastActivity: jwtPayload.lastActivity,
   });
 
   if (sessionValidation.isValid) {
+    if (sessionValidation.legacyToken) {
+      // Warning metric: count claim-less tokens so we can confirm they have
+      // aged out before LEGACY_CLAIMS_CUTOVER_MS flips them to invalid.
+      logger.warn(
+        'Legacy token without session-timeout claims (fail-open until cutover)',
+        {
+          service: 'middleware',
+          pathname,
+          userId: jwtPayload.sub,
+          legacyTokenCount: SessionValidator.getLegacyTokenCount(),
+          cutoverAt: new Date(
+            SessionValidator.LEGACY_CLAIMS_CUTOVER_MS
+          ).toISOString(),
+        }
+      );
+    }
     return null;
   }
 

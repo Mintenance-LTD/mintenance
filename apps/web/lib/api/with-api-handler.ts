@@ -53,8 +53,12 @@ interface RateLimitConfig {
    *                 requires MFA + DB role check; the rate limit is the
    *                 outermost layer).
    *
-   * Untagged routes keep the historical degraded-in-memory behaviour so
-   * this is non-breaking. See lib/rate-limiter.ts:fallbackRateLimit.
+   * Audit 2026-07-27: untagged routes NO LONGER keep the old generous
+   * per-instance fallback. Mutating requests under /api/auth/*,
+   * /api/payments/*, /api/webhooks/* and admin-only routes are auto-tagged
+   * (see resolveRateLimitCriticality below); everything else degrades to a
+   * conservative shared-budget limit in lib/rate-limiter.ts:fallbackRateLimit.
+   * Set this field only to override the derived default.
    */
   criticality?: 'auth' | 'payment' | 'admin';
 }
@@ -148,6 +152,43 @@ interface HandlerConfig {
   logActivity?: LogActivityConfig;
 }
 
+// ── Rate-limit criticality defaults ─────────────────────────────────
+
+/**
+ * Audit 2026-07-27: derive a fail-closed criticality class for routes that
+ * did not set one explicitly. Previously the default config carried no
+ * criticality at all, so on a Redis outage every unclassified route fell
+ * back to a per-instance in-memory map — fail open across a multi-region
+ * fleet.
+ *
+ * Rules (explicit config always wins; only MUTATING requests are escalated
+ * so read-only status/polling endpoints degrade to the limiter's
+ * conservative shared-budget fallback instead of hard 429s):
+ *   /api/auth/*                       → 'auth'
+ *   /api/payments/* | /api/webhooks/* → 'payment'
+ *   admin-only routes                 → 'admin'
+ *
+ * Exported for unit tests.
+ */
+export function resolveRateLimitCriticality(
+  explicit: 'auth' | 'payment' | 'admin' | undefined,
+  pathname: string,
+  method: string,
+  roles?: Array<'homeowner' | 'contractor' | 'admin'>
+): 'auth' | 'payment' | 'admin' | undefined {
+  if (explicit) return explicit;
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return undefined;
+  if (pathname.startsWith('/api/auth/')) return 'auth';
+  if (
+    pathname.startsWith('/api/payments/') ||
+    pathname.startsWith('/api/webhooks/')
+  ) {
+    return 'payment';
+  }
+  if (roles?.length === 1 && roles[0] === 'admin') return 'admin';
+  return undefined;
+}
+
 // ── Handler types ───────────────────────────────────────────────────
 
 type AuthUser = Pick<
@@ -228,14 +269,26 @@ export function withApiHandler(
         // per-IP limits by sending their own X-Forwarded-For header.
         const ip = getClientIp(request);
 
+        let requestPathname = '';
+        try {
+          requestPathname = new URL(request.url).pathname;
+        } catch {
+          // Malformed URL — leave empty; only path-based defaults are lost.
+        }
+
         const result = await rateLimiter.checkRateLimit({
           identifier: `${ip}:${request.url}`,
           windowMs,
           maxRequests,
-          // Propagate the criticality class so the limiter can fail-closed
-          // in production when Redis is degraded. See RateLimitConfig
-          // comment above for which routes should set this.
-          criticality: rateLimitCfg?.criticality,
+          // Fail-closed class for degraded (Redis-down) production. Explicit
+          // route config wins; otherwise derived from the path/roles so
+          // auth/payment/admin mutations are never silently per-instance.
+          criticality: resolveRateLimitCriticality(
+            rateLimitCfg?.criticality,
+            requestPathname,
+            request.method,
+            roles
+          ),
         });
 
         if (!result.allowed) {

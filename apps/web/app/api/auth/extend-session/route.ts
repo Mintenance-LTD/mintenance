@@ -62,23 +62,27 @@ export const POST = withApiHandler(
     const lastActivity = (user as unknown as { lastActivity?: number })
       .lastActivity;
 
-    if (sessionStart && lastActivity) {
-      const sessionValidation = SessionValidator.validateSession({
-        sessionStart,
-        lastActivity,
-      });
-      if (!sessionValidation.isValid) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Session expired',
-            message: `Your session has expired: ${SessionValidator.getTimeoutMessage(sessionValidation)}`,
-            violations: sessionValidation.violations,
-          },
-          { status: 401 }
-        );
-      }
+    // SECURITY (2026-07-27): validate unconditionally — the validator decides
+    // what happens to claim-less legacy tokens (fail open pre-cutover, fail
+    // closed after). Gating on the claims here would let a post-cutover legacy
+    // token rotate itself into a fresh valid one instead of re-authenticating.
+    const sessionValidation = SessionValidator.validateSession({
+      sessionStart,
+      lastActivity,
+    });
+    if (!sessionValidation.isValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Session expired',
+          message: `Your session has expired: ${SessionValidator.getTimeoutMessage(sessionValidation)}`,
+          violations: sessionValidation.violations,
+        },
+        { status: 401 }
+      );
+    }
 
+    if (sessionStart && lastActivity) {
       const { absoluteMs } = SessionValidator.getTimeUntilExpiry({
         sessionStart,
         lastActivity,
