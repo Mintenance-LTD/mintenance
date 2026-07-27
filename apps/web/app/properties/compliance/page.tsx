@@ -84,7 +84,7 @@ export default async function ComplianceDashboardPage() {
                 Available on Landlord and Agency plans.
               </p>
               <Link
-                href='/subscription-plans'
+                href='/pricing'
                 className='inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors'
               >
                 Upgrade to Landlord

@@ -221,7 +221,7 @@ export const POST = withApiHandler(
               error: `Property limit reached. Your ${tier === 'free' ? 'Free' : tier} plan allows ${limit} ${limit === 1 ? 'property' : 'properties'}.`,
               limit,
               current: currentCount,
-              upgradeUrl: '/subscription-plans',
+              upgradeUrl: '/pricing',
             },
             { status: 403 }
           );
