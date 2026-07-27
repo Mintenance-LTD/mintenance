@@ -16,6 +16,10 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 //   value: 'mint-editorial' or 'default' (anything else => 'default')
 //   redirect: where to bounce back to after setting the cookie
 export const GET = withApiHandler(
+  // auth-check: ok — public by design: sets a cosmetic theme cookie for
+  // logged-out visitors too (marketing pages). No user data is read or
+  // written; the only side effect is the same-origin redirect below, which
+  // is open-redirect-hardened.
   { auth: false, csrf: false },
   async (request: NextRequest) => {
     const url = new URL(request.url);

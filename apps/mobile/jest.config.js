@@ -98,7 +98,10 @@ module.exports = {
     '!src/navigation/**/*', // Navigation is hard to unit test
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  // json-summary emits coverage/coverage-summary.json — the CI
+  // "Check coverage thresholds" / "Validate service test coverage" steps
+  // require() it and hard-failed without this reporter (2026-07-27).
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
   // Coverage thresholds — ratchet FLOOR, not target. The 80/75 aspiration
   // never matched reality (full-suite CI measures ~63 stmts / ~53 branches /
   // ~64 lines / ~59 funcs, 2026-07-27) and made every CI run red regardless
