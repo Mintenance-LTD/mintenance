@@ -9,7 +9,7 @@
 jest.mock('expo-video-thumbnails', () => ({ getThumbnailAsync: jest.fn() }));
 jest.mock('../../../config/supabase', () => ({ supabase: { storage: {} } }));
 jest.mock('../../../utils/mobileApiClient', () => ({
-  mobileApiClient: { post: jest.fn() },
+  mobileApiClient: { post: jest.fn(), postFormData: jest.fn() },
 }));
 jest.mock('@mintenance/shared', () => ({
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -20,7 +20,59 @@ import {
   frameCountForDuration,
   MIN_WALKTHROUGH_FRAMES,
   MAX_WALKTHROUGH_FRAMES,
+  type WalkthroughRunResult,
 } from '../KeyframeWalkthroughService';
+
+/**
+ * Regression: the walkthrough route responds with the merged survey spread at
+ * the TOP LEVEL — `{ ...assessment, assessmentId, frameCount, framesAssessed }`
+ * — but WalkthroughRunResult declared a nested `assessment` key and
+ * VideoCaptureScreen read `result.assessment`. Because postFormData<T> is a
+ * generic cast and not a validated parse, TypeScript could not see the
+ * mismatch: the result screen received `undefined`, fell through to its legacy
+ * card, and reported "0% confidence" with no findings on a walkthrough that had
+ * actually analysed 9 of 11 frames.
+ *
+ * These pin the wire contract so the nested shape cannot creep back in.
+ */
+describe('WalkthroughRunResult wire contract', () => {
+  /** A response shaped exactly like the route's NextResponse.json(...). */
+  const routeResponse = {
+    damageAssessment: {
+      damageType: 'damp',
+      severity: 'developing',
+      confidence: 0.81,
+    },
+    urgency: { urgency: 'soon', recommendedActionTimeline: 'Within 2 weeks' },
+    findings: [{ id: 'f1' }],
+    assessmentId: 'assessment-1',
+    frameCount: 11,
+    framesAssessed: 9,
+  } as unknown as WalkthroughRunResult;
+
+  it('carries the survey at the top level, not under `assessment`', () => {
+    expect(routeResponse.damageAssessment).toBeDefined();
+    expect(
+      (routeResponse as Record<string, unknown>).assessment
+    ).toBeUndefined();
+  });
+
+  it('separates cleanly into meta + survey the result screen can render', () => {
+    const { assessmentId, frameCount, framesAssessed, ...assessment } =
+      routeResponse;
+
+    expect(assessmentId).toBe('assessment-1');
+    expect(frameCount).toBe(11);
+    expect(framesAssessed).toBe(9);
+
+    // AIAnalysisCard picks its rich layout on exactly this key; when it is
+    // missing the card silently degrades to the legacy "estimated complexity"
+    // panel, which is the failure this guards.
+    expect(assessment.damageAssessment).toBeDefined();
+    expect(assessment.findings).toHaveLength(1);
+    expect(assessment).not.toHaveProperty('assessmentId');
+  });
+});
 
 describe('frameTimestampsMs', () => {
   it('returns `count` timestamps, evenly spaced and within the clip', () => {

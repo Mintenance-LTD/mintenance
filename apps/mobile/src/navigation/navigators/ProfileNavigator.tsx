@@ -22,6 +22,7 @@ import {
   SafePropertyDetailScreen,
   SafeEditPropertyScreen,
   SafePropertyAssessmentScreen,
+  SafeRoomPickerScreen,
   SafeVideoCaptureScreen,
   SafeWalkthroughResultScreen,
   SafeJobPhotoUploadScreen,
@@ -240,6 +241,11 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='PropertyAssessment'
         component={SafePropertyAssessmentScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='RoomPicker'
+        component={SafeRoomPickerScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen

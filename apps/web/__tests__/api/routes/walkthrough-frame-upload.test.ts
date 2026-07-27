@@ -192,6 +192,11 @@ const HOMEOWNER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const JOB_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const PROPERTY_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
+const ROOM_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+
+/** What the property-scoped room lookup returns; null = not this property's. */
+let roomLookupResult: { id: string } | null = null;
+
 const SIGNED_URL =
   'https://storage.example/storage/v1/object/sign/assessment-photos/quick-ai/x/0.jpg?token=t';
 
@@ -285,6 +290,22 @@ function setupDefaultMocks() {
     data: { signedUrl: SIGNED_URL },
   });
   mocks.supabaseFrom.mockImplementation((table: string) => {
+    if (table === 'property_rooms') {
+      // The route looks the claimed room up scoped to the anchored property;
+      // `roomLookupResult` stands in for whether that row exists.
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: roomLookupResult,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      };
+    }
     if (table === 'assessment_images') {
       return { insert: vi.fn().mockResolvedValue({ error: null }) };
     }
@@ -310,6 +331,7 @@ describe('POST /api/assessments/walkthrough (multipart)', () => {
   let POST: typeof import('@/app/api/assessments/walkthrough/route').POST;
 
   beforeEach(async () => {
+    roomLookupResult = null;
     setupDefaultMocks();
     const mod = await import('@/app/api/assessments/walkthrough/route');
     POST = mod.POST;
@@ -495,5 +517,58 @@ describe('POST /api/assessments/walkthrough (multipart)', () => {
     );
     expect(res.status).toBe(500);
     expect(mocks.scheduleWalkthroughTraining).not.toHaveBeenCalled();
+  });
+
+  // ---- Room anchor ----
+  //
+  // The room arrives inside client-supplied `context`, so it is a claim rather
+  // than an anchor: the route must confirm it belongs to the property it just
+  // authorised before persisting it. Otherwise anyone could file a survey
+  // against a room of someone else's property.
+  describe('room anchor', () => {
+    const withRoom = (roomId: string) =>
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+        propertyId: PROPERTY_ID,
+        context: JSON.stringify({ room: { id: roomId, name: 'Kitchen' } }),
+      });
+
+    it('persists a room that belongs to the anchored property', async () => {
+      roomLookupResult = { id: ROOM_ID };
+
+      const res = await POST(withRoom(ROOM_ID));
+
+      expect(res.status).toBe(200);
+      expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
+        expect.objectContaining({ propertyId: PROPERTY_ID, roomId: ROOM_ID })
+      );
+    });
+
+    it('drops a room that belongs to a different property', async () => {
+      // The scoped lookup finds nothing — the claimed room is not this
+      // property's.
+      roomLookupResult = null;
+
+      const res = await POST(withRoom(ROOM_ID));
+
+      // The survey still succeeds, just property-scoped rather than rejected.
+      expect(res.status).toBe(200);
+      expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
+        expect.objectContaining({ roomId: undefined })
+      );
+      expect(mocks.logger.warn).toHaveBeenCalled();
+    });
+
+    it('stays property-scoped when no room is claimed', async () => {
+      const res = await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(res.status).toBe(200);
+      expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
+        expect.objectContaining({ roomId: undefined })
+      );
+    });
   });
 });

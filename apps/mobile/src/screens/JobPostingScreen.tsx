@@ -36,6 +36,7 @@ import { useSilverMode } from '../hooks/useSilverMode';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import { usePhoneVerificationGate } from '../hooks/usePhoneVerificationGate';
 import { PhoneVerificationModal } from '../components/verification/PhoneVerificationModal';
+import { PhoneVerificationBanner } from '../components/verification/PhoneVerificationBanner';
 
 interface Props {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'JobPosting'>;
@@ -340,6 +341,9 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <PhoneVerificationBanner
+          style={{ marginHorizontal: 20, marginTop: 4 }}
+        />
         <JobPostingFormFields
           title={title}
           description={description}

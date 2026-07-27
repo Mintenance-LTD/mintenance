@@ -4,7 +4,13 @@
  * Uses expo-camera for cross-platform camera access
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
@@ -29,6 +35,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useTranslation } from 'react-i18next';
 import VideoService, { VideoGuidancePhase } from '../../services/VideoService';
+import { roomGuidancePhase } from '../../services/video/upload/roomGuidance';
 import { runWalkthrough } from '../../services/walkthrough/KeyframeWalkthroughService';
 import { logger } from '@mintenance/shared';
 import Reanimated, {
@@ -59,12 +66,21 @@ interface Props {
        * via /api/assessments/walkthrough, and show the survey immediately.
        */
       walkthrough?: boolean;
+      /**
+       * Room-scoped walkthrough. When present the recorder runs a single
+       * room-specific phase instead of the fixed whole-property script, and
+       * the room travels with the assessment as context.
+       */
+      roomId?: string;
+      roomName?: string;
+      roomType?: string;
     };
   };
 }
 
 export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { assessmentId, propertyId, onComplete } = route.params || {};
+  const { assessmentId, propertyId, onComplete, roomId, roomName, roomType } =
+    route.params || {};
   const { t } = useTranslation();
 
   // Camera setup
@@ -97,10 +113,20 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const timerRef = useRef<NodeJS.Timeout>(undefined);
   const phaseTimerRef = useRef<NodeJS.Timeout>(undefined);
 
+  // A room-scoped walkthrough is one short, specific phase. The whole-property
+  // script is a fixed 60s sequence that assumes you start outside and walk a
+  // set route, so filming a kitchen with it told you to "pan across the front
+  // facade" — it has no way to know where you are standing.
+  const phases = useMemo(
+    () =>
+      roomId
+        ? [roomGuidancePhase(roomType, roomName)]
+        : VideoService.guidancePhases,
+    [roomId, roomType, roomName]
+  );
+
   // Get current guidance phase
-  const currentPhase =
-    VideoService.guidancePhases[currentPhaseIndex] ??
-    VideoService.guidancePhases[0];
+  const currentPhase = phases[currentPhaseIndex] ?? phases[0];
 
   const hasPermission = cameraPermission?.granted && micPermission?.granted;
 
@@ -202,12 +228,11 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     phaseTimerRef.current = setInterval(() => {
       setPhaseProgress((prev) => {
         const newProgress = prev + 1;
-        const phaseDuration =
-          VideoService.guidancePhases[currentPhaseIndex]?.duration ?? 10;
+        const phaseDuration = phases[currentPhaseIndex]?.duration ?? 10;
 
         if (newProgress >= phaseDuration) {
           const nextIndex = currentPhaseIndex + 1;
-          if (nextIndex < VideoService.guidancePhases.length) {
+          if (nextIndex < phases.length) {
             setCurrentPhaseIndex(nextIndex);
             guidanceOpacity.value = withSequence(
               withTiming(0, { duration: 200 }),
@@ -244,16 +269,29 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
         videoUri: capturedVideo.uri,
         durationMs: recordingDuration * 1000,
         propertyId,
+        // Tell the surveyor model what it is looking at. Without this a
+        // kitchen clip is assessed as an anonymous interior.
+        ...(roomId
+          ? {
+              context: { room: { id: roomId, name: roomName, type: roomType } },
+            }
+          : {}),
       });
-      onComplete?.(result.assessmentId);
+      // The route spreads the merged survey at the top level next to the meta
+      // fields — there is no `result.assessment`. Reading one gave the result
+      // screen `undefined`, which is why it rendered 0% confidence and no
+      // findings. Split the meta off and pass the rest as the survey.
+      const { assessmentId, frameCount, framesAssessed, ...assessment } =
+        result;
+      onComplete?.(assessmentId);
       (
         navigation as {
           navigate: (screen: string, params?: Record<string, unknown>) => void;
         }
       ).navigate('WalkthroughResult', {
-        assessment: result.assessment,
-        frameCount: result.frameCount,
-        framesAssessed: result.framesAssessed,
+        assessment,
+        frameCount,
+        framesAssessed,
       });
     } catch (error) {
       logger.error('Walkthrough processing failed', { error });
@@ -385,7 +423,15 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.instructionsList}>
               {currentPhase.instructions.map((instruction, index) => (
                 <View key={index} style={styles.instructionItem}>
-                  <Icon name='check-circle' size={16} color={me.brand} />
+                  {/* A neutral bullet, not a tick: these are things to do, and
+                      a green check-circle on every line read as four already-
+                      completed steps the moment recording started. */}
+                  <Icon
+                    name='fiber-manual-record'
+                    size={8}
+                    color={me.ink3}
+                    style={styles.instructionBullet}
+                  />
                   <Text style={styles.instructionText}>{instruction}</Text>
                 </View>
               ))}
@@ -401,7 +447,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {/* Phase indicators */}
           <View style={styles.phaseIndicators}>
-            {VideoService.guidancePhases.map((_, index) => (
+            {phases.map((_, index) => (
               <View
                 key={index}
                 style={[
