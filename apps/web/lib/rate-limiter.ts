@@ -36,9 +36,11 @@ interface RateLimitConfig {
    * is much lower than the cost of allowing a credential-stuffing /
    * payment-replay / admin-spray attack through.
    *
-   * Routes that don't set this field keep the historical behaviour
-   * (degraded in-memory limit) so this change is non-breaking. Flip it
-   * on for auth/payment/admin routes as they migrate.
+   * Audit 2026-07-27: routes WITHOUT this field no longer keep the old
+   * generous per-instance fallback. In production a degraded limiter now
+   * applies a conservative shared-budget limit (global limit ÷ assumed
+   * instance count, hard-capped) to unclassified routes — see
+   * fallbackRateLimit. Tagged routes still fail fully closed.
    */
   criticality?: 'auth' | 'payment' | 'admin';
 }
@@ -184,27 +186,43 @@ export class RedisRateLimiter {
       };
     }
 
+    // Audit 2026-07-27 HIGH: DEFAULT is no longer "silently per-instance".
+    // Unclassified routes in production now get a CONSERVATIVE SHARED-BUDGET
+    // approximation: the configured global limit is divided across an assumed
+    // instance fleet, so N instances × per-instance-limit ≈ the intended
+    // global limit instead of N × the full limit. This closes the multi-region
+    // amplification hole for every route while keeping legitimate traffic
+    // (a real user hits one instance) flowing during a Redis outage.
+    // Routes tagged 'auth' | 'payment' | 'admin' fail closed above — that
+    // path is unchanged.
+    const DEGRADED_ASSUMED_INSTANCES = 8;
+    const DEGRADED_UNTAGGED_HARD_CAP = 5;
+
+    let effectiveMaxRequests: number;
     if (isProduction) {
-      logger.warn(
-        '[rate-limiter] Redis unavailable in production — applying strict per-instance limits',
+      effectiveMaxRequests = Math.max(
+        1,
+        Math.min(
+          DEGRADED_UNTAGGED_HARD_CAP,
+          Math.floor(config.maxRequests / DEGRADED_ASSUMED_INSTANCES)
+        )
+      );
+      logger.error(
+        '[rate-limiter] DEGRADED — Redis unavailable in production; applying conservative shared-budget per-instance limit for unclassified route',
+        undefined,
         {
           service: 'rate_limiter',
           identifier: config.identifier,
           environment: 'production',
           normalLimit: config.maxRequests,
+          degradedLimit: effectiveMaxRequests,
+          assumedInstances: DEGRADED_ASSUMED_INSTANCES,
         }
       );
+    } else {
+      // Dev/test: 75% of normal limit (historical behaviour, unchanged)
+      effectiveMaxRequests = Math.min(50, Math.ceil(config.maxRequests * 0.75));
     }
-
-    // Use in-memory fallback with significantly reduced limits
-    // Production: 25% of normal limit (stricter to compensate for per-instance-only enforcement)
-    // Dev/test: 75% of normal limit
-    const FALLBACK_PERCENTAGE = isProduction ? 0.25 : 0.75;
-    const FALLBACK_HARD_CAP = isProduction ? 10 : 50;
-    const effectiveMaxRequests = Math.min(
-      FALLBACK_HARD_CAP,
-      Math.ceil(config.maxRequests * FALLBACK_PERCENTAGE)
-    );
 
     const now = Date.now();
     const windowStart = Math.floor(now / config.windowMs) * config.windowMs;
@@ -276,6 +294,10 @@ export async function checkWebhookRateLimit(
     windowMs: TIME_MS.MINUTE,
     maxRequests: RATE_LIMITS.WEBHOOK_REQUESTS_PER_MINUTE,
     identifier,
+    // Fail closed on Redis outage: Stripe retries 429s with backoff for days,
+    // so rejecting during a Redis blip is safe; accepting unmetered payment
+    // webhook replays is not.
+    criticality: 'payment',
   });
 }
 
@@ -312,6 +334,9 @@ export async function checkLoginRateLimit(
     windowMs: BUSINESS_RULES.LOGIN_LOCKOUT_DURATION_MINUTES * TIME_MS.MINUTE,
     maxRequests: BUSINESS_RULES.MAX_LOGIN_ATTEMPTS,
     identifier,
+    // Credential primitive — fail closed when the limiter is degraded rather
+    // than let credential stuffing spray across per-instance fallback maps.
+    criticality: 'auth',
   });
 }
 
@@ -326,6 +351,8 @@ export async function checkPasswordResetRateLimit(
     windowMs: TIME_MS.HOUR,
     maxRequests: BUSINESS_RULES.MAX_PASSWORD_RESETS_PER_HOUR,
     identifier: id,
+    // Credential primitive — same fail-closed posture as login.
+    criticality: 'auth',
   });
 }
 

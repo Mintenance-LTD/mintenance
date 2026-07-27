@@ -31,6 +31,12 @@ import type { JWTPayload } from '@mintenance/types';
  *
  * VULN-009: Added session timestamp tracking for absolute/idle timeout enforcement
  *
+ * SECURITY (2026-07-27): sessionStart/lastActivity are ALWAYS stamped. When the
+ * caller doesn't supply them (fresh login through a path that never wired them
+ * up), both default to "now" — correct for a new session. Tokens missing these
+ * claims are rejected by SessionValidator after the legacy cutover, so every
+ * issuance path must produce them.
+ *
  * @param sessionStart - Unix timestamp (ms) of original login (preserved across refreshes)
  * @param lastActivity - Unix timestamp (ms) of last user activity (updated on refreshes)
  */
@@ -46,14 +52,14 @@ export async function generateJWT(
   lastActivity?: number
 ): Promise<string> {
   const secretKey = new TextEncoder().encode(secret);
+  const now = Date.now();
   const token = await new SignJWT({
     sub: payload.id,
     email: payload.email,
     role: payload.role,
     type: 'access',
-    // VULN-009: Add session tracking fields
-    ...(sessionStart && { sessionStart }),
-    ...(lastActivity && { lastActivity }),
+    sessionStart: sessionStart ?? now,
+    lastActivity: lastActivity ?? now,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
