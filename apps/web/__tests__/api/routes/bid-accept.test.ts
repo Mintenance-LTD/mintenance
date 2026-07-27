@@ -67,6 +67,18 @@ vi.mock('@mintenance/shared', () => ({
   logger: mocks.logger,
   validateStatusTransition: mocks.validateStatusTransition,
   validateBidTransition: mocks.validateBidTransition,
+  // Needed by lib/feature-access-config.ts: vitest's dynamic-import
+  // interception races under concurrent requests, so the REAL
+  // FeeCalculationService (whose import chain reads these) can load in
+  // place of the mock — the factory must satisfy it. See the concurrent
+  // double-accept test.
+  PLATFORM_FEE_RATE_BY_TIER: {
+    free: 0.12,
+    basic: 0.12,
+    professional: 0.08,
+    enterprise: 0.05,
+  },
+  DEFAULT_PLATFORM_FEE_RATE: 0.12,
   JOB_STATUS: {
     POSTED: 'posted',
     ASSIGNED: 'assigned',
@@ -186,6 +198,11 @@ vi.mock('@/lib/errors/api-error', async () => {
       super('INTERNAL_SERVER_ERROR', m, 500);
     }
   }
+  class ServiceUnavailableError extends APIError {
+    constructor(service = 'Service') {
+      super('SERVICE_UNAVAILABLE', `${service} is unavailable`, 503);
+    }
+  }
   return {
     APIError,
     UnauthorizedError,
@@ -194,6 +211,7 @@ vi.mock('@/lib/errors/api-error', async () => {
     BadRequestError,
     ConflictError,
     InternalServerError,
+    ServiceUnavailableError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
@@ -355,6 +373,10 @@ function setupAcceptMocks(
     bidError?: unknown;
     existingAccepted?: unknown[];
     acceptError?: unknown;
+    /** Active-jobs count for the Free/Basic concurrent-work cap check. */
+    activeJobsCount?: number | null;
+    /** Contractor profile override (e.g. payouts not ready). */
+    contractorProfile?: Record<string, unknown>;
   } = {}
 ) {
   const jobResult = {
@@ -384,11 +406,16 @@ function setupAcceptMocks(
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'jobs') {
-      // Jobs table: select->eq->single (verify ownership), update->eq (assign)
-      // also select->eq->single (fetch title)
+      // Jobs table: select->eq->single (verify ownership), update->eq (assign),
+      // select->eq->single (fetch title), and the Free/Basic active-jobs cap
+      // count query (select with head:true → chain awaited → { count }).
       return createChainMock({
         single: jobResult,
-        resolve: { data: jobResult.data, error: jobResult.error },
+        resolve: {
+          data: jobResult.data,
+          error: jobResult.error,
+          count: overrides.activeJobsCount ?? null,
+        },
       });
     }
     if (table === 'bids') {
@@ -421,7 +448,7 @@ function setupAcceptMocks(
       // a bid can be accepted. The contractor lookup also feeds the email
       // (email/first_name/last_name/company_name) and the draft-contract
       // identity (company_name/license_number/license_type) selects.
-      const profileData = {
+      const profileData = overrides.contractorProfile ?? {
         email: 'contractor@test.com',
         first_name: 'Bob',
         last_name: 'Builder',
@@ -659,5 +686,226 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
     );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(409);
+  });
+
+  // =========================================================================
+  // Depth: accept_bid_atomic RPC race + idempotency (audit 2026-07-27)
+  //
+  // The atomicity contract lives in the DB function (row lock + single
+  // transaction); these tests pin the ROUTE's half of the contract — every
+  // RPC verdict must map to the right HTTP semantics, and exactly one of two
+  // concurrent accepts may win.
+  // =========================================================================
+  describe('atomic RPC race + idempotency depth', () => {
+    it('maps a concurrent-acceptance RPC verdict ("already accepted") to 409', async () => {
+      setupAcceptMocks();
+      mocks.supabaseRpc.mockResolvedValue({
+        data: [
+          {
+            success: false,
+            error_message: 'Bid has already been accepted for this job',
+            accepted_bid_id: null,
+            job_status: null,
+          },
+        ],
+        error: null,
+      });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(409);
+      const body = await res.json();
+      expect(body.error.message).toContain('already');
+    });
+
+    it('maps RPC "not authorized" to 403 and "not found" to 404', async () => {
+      setupAcceptMocks();
+      mocks.supabaseRpc.mockResolvedValueOnce({
+        data: [
+          {
+            success: false,
+            error_message: 'Not authorized to accept this bid',
+            accepted_bid_id: null,
+            job_status: null,
+          },
+        ],
+        error: null,
+      });
+      const forbidden = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(forbidden.status).toBe(403);
+
+      mocks.supabaseRpc.mockResolvedValueOnce({
+        data: [
+          {
+            success: false,
+            error_message: 'Bid not found or no longer pending',
+            accepted_bid_id: null,
+            job_status: null,
+          },
+        ],
+        error: null,
+      });
+      const notFound = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(notFound.status).toBe(404);
+    });
+
+    it('returns 500 when the RPC returns no rows (defensive branch)', async () => {
+      setupAcceptMocks();
+      mocks.supabaseRpc.mockResolvedValue({ data: [], error: null });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(500);
+    });
+
+    it('two CONCURRENT accepts: exactly one 200, the loser gets the RPC-conflict 409', async () => {
+      setupAcceptMocks();
+      // The DB function serialises via FOR UPDATE — model that: first caller
+      // wins, second sees the already-accepted verdict.
+      mocks.supabaseRpc
+        .mockResolvedValueOnce({
+          data: [
+            {
+              success: true,
+              error_message: null,
+              accepted_bid_id: 'bid-1',
+              job_status: 'assigned',
+            },
+          ],
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: [
+            {
+              success: false,
+              error_message: 'Bid has already been accepted for this job',
+              accepted_bid_id: null,
+              job_status: null,
+            },
+          ],
+          error: null,
+        });
+
+      const [a, b] = await Promise.all([
+        POST(
+          createPostRequest(
+            'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+          ),
+          segmentData('job-1', 'bid-1')
+        ),
+        POST(
+          createPostRequest(
+            'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+          ),
+          segmentData('job-1', 'bid-1')
+        ),
+      ]);
+
+      const statuses = [a.status, b.status].sort((x, y) => x - y);
+      expect(statuses).toEqual([200, 409]);
+      // The winning acceptance is the ONLY one whose result was cached.
+      expect(mocks.storeIdempotencyResult).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails closed (503) when the idempotency store is unavailable', async () => {
+      setupAcceptMocks();
+      const { ServiceUnavailableError } =
+        await import('@/lib/errors/api-error');
+      mocks.checkIdempotency.mockRejectedValue(
+        new ServiceUnavailableError('Idempotency store')
+      );
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(503);
+      // The protected work must never have run.
+      expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+    });
+
+    it('releases the idempotency claim (via releaseOnError) when the RPC hard-fails', async () => {
+      setupAcceptMocks({
+        acceptError: { message: 'connection reset', code: '08006' },
+      });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(500);
+
+      const { releaseOnError } = await import('@/lib/idempotency');
+      expect(releaseOnError).toHaveBeenCalledWith(
+        'idem-key-123',
+        'accept_bid',
+        expect.any(Function)
+      );
+      // Failure ⇒ nothing cached for replay.
+      expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+    });
+
+    it('blocks acceptance at the Free/Basic active-jobs cap with 409', async () => {
+      mocks.resolveContractorTier.mockResolvedValue('free');
+      setupAcceptMocks({ activeJobsCount: 3 });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(409);
+      const body = await res.json();
+      expect(body.error.message).toContain('limit');
+      // Cap rejection happens BEFORE the atomic accept — no state change.
+      expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+    });
+
+    it('blocks acceptance with 403 when contractor Stripe payouts are not ready', async () => {
+      setupAcceptMocks({
+        contractorProfile: {
+          stripe_connect_account_id: 'acct_123',
+          stripe_payouts_enabled: false, // onboarding abandoned mid-way
+          stripe_transfers_active: false,
+          first_name: 'Bob',
+          last_name: 'Builder',
+        },
+      });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      // BidCard's client-side recovery prompt keys on this exact phrasing.
+      expect(body.error.message).toContain('payment account setup');
+      expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+    });
   });
 });

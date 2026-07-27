@@ -230,6 +230,7 @@ vi.mock('@/lib/idempotency', () => ({
   getDeterministicIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
+  releaseIdempotencyClaim: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/lib/admin-verification', () => ({
@@ -1360,6 +1361,259 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
 
     // No Stripe transfer should have happened — we bailed before the transfer.
     expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================================
+// 5b. CAS ORDERING + TRANSFER-SUCCEEDED-DB-FAILED RECONCILIATION
+//     (depth audit 2026-07-27)
+// ============================================================================
+describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
+  let releaseEscrowPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    setupInfrastructureMocks(homeownerUser);
+    const mod = await import('@/app/api/payments/release-escrow/route');
+    releaseEscrowPOST = mod.POST;
+  });
+
+  /**
+   * Full-flow supabase mock instrumented with an ordering log.
+   * finalUpdateResult lets the reconciliation test fail the LAST update.
+   */
+  function setupFullReleaseMocks(opts: {
+    orderLog: string[];
+    casEqArgs: unknown[][];
+    auditInserts: Array<Record<string, unknown>>;
+    finalUpdateResult?: { data: unknown; error: unknown };
+  }) {
+    mocks.checkIdempotency.mockResolvedValue(null); // claim acquired
+    mocks.validateRequest.mockResolvedValue({
+      data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
+    });
+    mocks.validateTransition.mockReturnValue({ valid: true });
+    mocks.stripeTransfersCreate.mockImplementation(async () => {
+      opts.orderLog.push('stripe-transfer');
+      return { id: TRANSFER_ID };
+    });
+    mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
+      id: PAYMENT_INTENT_ID,
+      latest_charge: 'ch_depth123',
+    });
+    mocks.transferPlatformFee.mockResolvedValue({
+      status: 'completed',
+      feeTransferId: 'fee-depth-1',
+    });
+
+    // Homeowner already approved; job 'assigned' keeps the auto-release
+    // agent out of the way so the CAS/transfer/final sequence is isolated.
+    const escrow = {
+      ...baseEscrowRow('held'),
+      homeowner_approval: true,
+      cooling_off_ends_at: null,
+      jobs: { ...baseJobRow, status: 'assigned' },
+    };
+
+    let escrowCallCount = 0;
+    mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'escrow_transactions') {
+        escrowCallCount++;
+        if (escrowCallCount === 1) {
+          // Main read with jobs join
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: escrow, error: null }),
+              }),
+            }),
+          };
+        }
+        if (escrowCallCount === 2) {
+          // CAS: update(...).eq('id', X).eq('status', 'held').select().single()
+          const eq2 = vi.fn().mockImplementation((...args: unknown[]) => {
+            opts.casEqArgs.push(args);
+            return {
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockImplementation(async () => {
+                  opts.orderLog.push('cas-update');
+                  return {
+                    data: { ...escrow, status: 'release_pending' },
+                    error: null,
+                  };
+                }),
+              }),
+            };
+          });
+          return {
+            update: vi.fn().mockReturnValue({
+              eq: vi.fn().mockImplementation((...args: unknown[]) => {
+                opts.casEqArgs.push(args);
+                return { eq: eq2 };
+              }),
+            }),
+          };
+        }
+        // Final update: update(...).eq(id).eq(status release_pending).select()
+        // — awaited WITHOUT .single(), resolves { data: [...], error }
+        const finalResult = opts.finalUpdateResult ?? {
+          data: [{ ...escrow, status: 'completed' }],
+          error: null,
+        };
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockImplementation(() => {
+                  opts.orderLog.push('final-update');
+                  return Promise.resolve(finalResult);
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'profiles') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  stripe_connect_account_id: 'acct_contractor1',
+                  stripe_payouts_enabled: true,
+                  stripe_transfers_active: true,
+                  email: 'contractor@test.com',
+                  first_name: 'Bob',
+                  last_name: 'Builder',
+                },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'disputes') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({ count: 0 }),
+            }),
+          }),
+        };
+      }
+      if (table === 'jobs') {
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        };
+      }
+      if (table === 'escrow_audit_log') {
+        return {
+          insert: vi.fn().mockImplementation(async (row) => {
+            opts.auditInserts.push(row as Record<string, unknown>);
+            return { error: null };
+          }),
+        };
+      }
+      if (table === 'notifications') {
+        return { insert: vi.fn().mockResolvedValue({ error: null }) };
+      }
+      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
+    });
+  }
+
+  it('enforces strict ordering: CAS claim → Stripe transfer → final DB update', async () => {
+    const orderLog: string[] = [];
+    const casEqArgs: unknown[][] = [];
+    const auditInserts: Array<Record<string, unknown>> = [];
+    setupFullReleaseMocks({ orderLog, casEqArgs, auditInserts });
+
+    const res = await releaseEscrowPOST(
+      createPostRequest('http://localhost:3000/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.transferId).toBe(TRANSFER_ID);
+
+    // THE ordering invariant: the row is claimed (held → release_pending)
+    // BEFORE any money moves, and finalised only after the transfer.
+    expect(orderLog).toEqual(['cas-update', 'stripe-transfer', 'final-update']);
+
+    // The CAS predicate must be the status invariant, not updated_at
+    // (2026-07-17 fix — an updated_at guard deterministically 409'd itself).
+    expect(casEqArgs).toEqual(
+      expect.arrayContaining([
+        ['id', ESCROW_ID],
+        ['status', 'held'],
+      ])
+    );
+
+    // Exactly one transfer.
+    expect(mocks.stripeTransfersCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('transfer succeeded but final DB update failed → reconciliation audit row + 500, money NOT re-sent', async () => {
+    const orderLog: string[] = [];
+    const casEqArgs: unknown[][] = [];
+    const auditInserts: Array<Record<string, unknown>> = [];
+    setupFullReleaseMocks({
+      orderLog,
+      casEqArgs,
+      auditInserts,
+      finalUpdateResult: {
+        data: null,
+        error: { message: 'connection terminated unexpectedly' },
+      },
+    });
+
+    const res = await releaseEscrowPOST(
+      createPostRequest('http://localhost:3000/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+
+    // The transfer DID happen — the route must surface a 500 (not a retryable
+    // 4xx) and leave a reconciliation trail rather than pretend nothing moved.
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error.message).toContain('team has been notified');
+
+    expect(mocks.stripeTransfersCreate).toHaveBeenCalledTimes(1);
+    expect(orderLog).toEqual(['cas-update', 'stripe-transfer', 'final-update']);
+
+    // Recovery trail: escrow_audit_log row with action='reconciliation_needed'
+    // carrying the transfer + reconciliation ids an operator needs.
+    const recon = auditInserts.find(
+      (r) => r.action === 'reconciliation_needed'
+    );
+    expect(recon).toBeDefined();
+    expect(recon!.transfer_id).toBe(TRANSFER_ID);
+    expect(recon!.release_reason).toBe(
+      'transfer_succeeded_final_update_failed'
+    );
+    expect(
+      (recon!.metadata as Record<string, unknown>).reconciliation_id
+    ).toBeTruthy();
+    expect((recon!.metadata as Record<string, unknown>).issue_type).toBe(
+      'transfer_succeeded_final_update_failed'
+    );
+
+    // A failed finalisation must NOT cache a success result for replays.
+    expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
   });
 });
 

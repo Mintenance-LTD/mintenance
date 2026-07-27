@@ -70,6 +70,52 @@ export default defineConfig({
         branches: 38,
         functions: 52,
         lines: 46,
+        // ── Money-critical per-directory ratchets (audit 2026-07-27) ──
+        // Set just under the baseline measured after the payment/escrow
+        // depth-test push (bid-accept RPC race, escrow CAS ordering +
+        // reconciliation, confirm-completion→cron handoff, webhook
+        // out-of-order guards). These floors exist so coverage on the
+        // paths that move money can only ratchet UP — raise them when you
+        // add tests here; never lower them to make a build pass.
+        // NOTE: vitest removes glob-matched files from the global
+        // calculation above. Bracketed route segments ([id]) are matched
+        // with `*` because [] is a glob character class.
+        'app/api/payments/release-escrow/**': {
+          statements: 76,
+          branches: 73,
+          functions: 90,
+          lines: 76,
+        },
+        'app/api/jobs/*/bids/*/accept/**': {
+          statements: 68,
+          branches: 62,
+          functions: 44,
+          lines: 68,
+        },
+        'app/api/jobs/*/confirm-completion/**': {
+          statements: 84,
+          branches: 72,
+          functions: 95,
+          lines: 84,
+        },
+        'lib/services/escrow/EscrowAutoReleaseService.ts': {
+          statements: 88,
+          branches: 78,
+          functions: 80,
+          lines: 88,
+        },
+        'lib/services/stripe-webhook/**': {
+          statements: 65,
+          branches: 56,
+          functions: 68,
+          lines: 65,
+        },
+        'app/api/webhooks/stripe/**': {
+          statements: 93,
+          branches: 76,
+          functions: 95,
+          lines: 93,
+        },
       },
     },
 

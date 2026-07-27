@@ -366,4 +366,158 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
       expect.objectContaining({ mode: 'accumulated' })
     );
   });
+
+  // ==========================================================================
+  // Depth: confirm-completion → cron handoff + CAS claim (audit 2026-07-27)
+  // ==========================================================================
+  describe('confirm-completion handoff + CAS claim depth', () => {
+    /**
+     * An escrow row shaped EXACTLY as POST /api/jobs/[id]/confirm-completion
+     * leaves it: status stays 'held' (the route deliberately does NOT flip
+     * it), homeowner-approval fields stamped, auto_release_enabled=true and
+     * auto_release_date=now so THIS cron picks it up on the next pass. If
+     * the cron's predicate ever drifts from that stamp, funds park forever
+     * (the 2026-05-13 "funds stuck in limbo" incident).
+     */
+    function confirmCompletionStampedEscrow() {
+      return makeEscrow({
+        status: 'held',
+        homeowner_approval: true,
+        auto_release_enabled: true,
+        auto_release_date: new Date(Date.now() - 1000).toISOString(),
+        cooling_off_ends_at: null,
+        admin_hold_status: 'none',
+      });
+    }
+
+    it('releases an escrow shaped exactly as confirm-completion hands it off', async () => {
+      configureSupabase({
+        eligible: [confirmCompletionStampedEscrow()],
+        profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+      });
+
+      const res = await EscrowAutoReleaseService.processAutoReleases();
+
+      expect(res.released).toBe(1);
+      expect(res.errors).toBe(0);
+      expect(mocks.stripeTransfersCreate).toHaveBeenCalledTimes(1);
+    });
+
+    it('claims the row (CAS held→release_pending) BEFORE creating the Stripe transfer', async () => {
+      const orderLog: string[] = [];
+      // Instrumented scenario: record claim vs transfer ordering.
+      mocks.supabaseFrom.mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn(() =>
+              chain({
+                data: [
+                  { id: 'contractor-1', stripe_connect_account_id: 'acct_1' },
+                ],
+                error: null,
+              })
+            ),
+          };
+        }
+        return {
+          select: vi.fn(() =>
+            chain({ data: [confirmCompletionStampedEscrow()], error: null })
+          ),
+          update: vi.fn(() => {
+            const c = chain({ error: null });
+            c.select = vi.fn(() => {
+              orderLog.push('cas-claim');
+              return chain({ data: [{ id: 'escrow-1' }], error: null });
+            });
+            return c;
+          }),
+        };
+      });
+      mocks.stripeTransfersCreate.mockImplementation(async () => {
+        orderLog.push('stripe-transfer');
+        return { id: 'tr_1' };
+      });
+
+      await EscrowAutoReleaseService.processAutoReleases();
+
+      expect(orderLog[0]).toBe('cas-claim');
+      expect(orderLog).toContain('stripe-transfer');
+      expect(orderLog.indexOf('cas-claim')).toBeLessThan(
+        orderLog.indexOf('stripe-transfer')
+      );
+    });
+
+    it('loses the CAS claim to a concurrent release path → NO transfer is created', async () => {
+      configureSupabase({
+        eligible: [confirmCompletionStampedEscrow()],
+        profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+        // Zero rows matched: the manual release route (or an overlapping cron
+        // run) already moved the row out of 'held'.
+        claimResult: { data: [], error: null },
+      });
+
+      const res = await EscrowAutoReleaseService.processAutoReleases();
+
+      expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+      expect(mocks.accumulateEarnings).not.toHaveBeenCalled();
+      expect(res.released).toBe(0);
+    });
+
+    it('claim UPDATE error → fail safe, no transfer', async () => {
+      configureSupabase({
+        eligible: [confirmCompletionStampedEscrow()],
+        profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+        claimResult: { data: null, error: { message: 'connection reset' } },
+      });
+
+      const res = await EscrowAutoReleaseService.processAutoReleases();
+
+      expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+      expect(res.released).toBe(0);
+    });
+
+    it('finalize-failure compensation: reversal AND claim revert both target the claimed row', async () => {
+      const updates: Array<Record<string, unknown>> = [];
+      mocks.supabaseFrom.mockImplementation((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: vi.fn(() =>
+              chain({
+                data: [
+                  { id: 'contractor-1', stripe_connect_account_id: 'acct_1' },
+                ],
+                error: null,
+              })
+            ),
+          };
+        }
+        return {
+          select: vi.fn(() =>
+            chain({ data: [confirmCompletionStampedEscrow()], error: null })
+          ),
+          update: vi.fn((payload: Record<string, unknown>) => {
+            updates.push(payload);
+            // Claim (has .select) wins; finalize + revert awaits resolve error
+            // for finalize, success for revert (distinguished by payload).
+            const isFinalize = payload.status === 'completed';
+            const c = chain({
+              error: isFinalize ? { message: 'db write failed' } : null,
+            });
+            c.select = vi.fn(() =>
+              chain({ data: [{ id: 'escrow-1' }], error: null })
+            );
+            return c;
+          }),
+        };
+      });
+
+      const res = await EscrowAutoReleaseService.processAutoReleases();
+
+      expect(res.released).toBe(0);
+      expect(mocks.stripeTransfersCreateReversal).toHaveBeenCalledWith('tr_1');
+      // Update sequence: claim → finalize(completed) → revert(held).
+      const statuses = updates.map((u) => u.status);
+      expect(statuses).toEqual(['release_pending', 'completed', 'held']);
+    });
+  });
 });

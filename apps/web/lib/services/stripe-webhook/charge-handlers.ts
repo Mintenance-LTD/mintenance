@@ -18,6 +18,10 @@ import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import type { SendNotificationFn } from './webhook-helpers';
+import {
+  lookupEscrowForTerminalEvent,
+  PRE_MONEY_STATUSES,
+} from './payment-intent-handlers';
 
 /**
  * Charge refunded — mark escrow as refunded, update job, record refund, notify users.
@@ -163,16 +167,28 @@ export async function handleChargeFailed(
     const paymentIntentId = charge.payment_intent as string;
     if (!paymentIntentId) return;
 
-    // Update escrow to failed
-    const { data: escrowTransaction } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        status: 'failed',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('payment_intent_id', paymentIntentId)
-      .select()
-      .single();
+    // Out-of-order guard (audit 2026-07-27): a late/replayed charge.failed
+    // must not rewrite an escrow that already progressed past pending.
+    const existing = await lookupEscrowForTerminalEvent(
+      paymentIntentId,
+      'charge.failed'
+    );
+    if (existing === 'blocked') return;
+
+    let escrowTransaction: { payer_id: string | null } | null = null;
+    if (existing) {
+      const { data: updated } = await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          status: 'failed',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .in('status', PRE_MONEY_STATUSES)
+        .select()
+        .single();
+      escrowTransaction = updated ?? existing;
+    }
 
     const homeownerId =
       escrowTransaction?.payer_id || charge.metadata?.homeownerId;
