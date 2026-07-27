@@ -14,6 +14,7 @@ import { updatePropertySchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
+import { normalisePropertyType } from '@/lib/properties/property-type';
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
@@ -146,7 +147,20 @@ export const PUT = withApiHandler(
     if (city !== undefined) updateData.city = city;
     if (postcode !== undefined) updateData.postcode = postcode;
     if (country !== undefined) updateData.country = country;
-    if (type !== undefined) updateData.property_type = type;
+    // 2026-07-27 bug fix: same failure mode as the square_footage note below.
+    // updatePropertySchema accepts house / flat / apartment / … because that is
+    // what the forms offer, but properties_property_type_check permits only
+    // residential | commercial | rental. This wrote the client's word straight
+    // through, so saving an edit from mobile — which posts the literal 'house'
+    // — hit 23514 and surfaced as "Database operation failed" with nothing
+    // saved. POST has always normalised; PUT never did.
+    if (type !== undefined) {
+      const canonicalType = normalisePropertyType(type);
+      if (!canonicalType) {
+        throw new BadRequestError(`Unsupported property type: ${type}`);
+      }
+      updateData.property_type = canonicalType;
+    }
     if (bedrooms !== undefined) updateData.bedrooms = bedrooms ?? null;
     if (bathrooms !== undefined) updateData.bathrooms = bathrooms ?? null;
     // 2026-05-21 bug fix: the DB CHECK constraint
