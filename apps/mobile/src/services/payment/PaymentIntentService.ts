@@ -1,3 +1,8 @@
+import type { z } from 'zod';
+import {
+  paymentIntentRequestSchema,
+  type PaymentIntentRequest,
+} from '@mintenance/api-contracts';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { apiRequest } from './apiHelper';
@@ -5,6 +10,52 @@ import type {
   CreatePaymentIntentResponse,
   CreateSetupIntentResponse,
 } from './types';
+
+/**
+ * Build + validate the create-intent request body against the SHARED
+ * api-contract (audit 2026-07-27). Two protections in one place:
+ *
+ *  - COMPILE TIME: the literal below carries `satisfies z.input<…>`, so if
+ *    the shared contract gains a required field (the 2026-05-23 audit-19 P1
+ *    was exactly this — contractorId became required and mobile silently
+ *    400'd at the boundary), mobile stops COMPILING instead of failing in
+ *    production.
+ *  - RUNTIME: safeParse rejects invalid values (bad UUIDs, amount over the
+ *    server's £10,000 validator cap) with a readable message BEFORE the
+ *    network call, mirroring the server's validator exactly.
+ *
+ * `.passthrough()` keeps `paymentMethodId` — a compat key shipped mobile
+ * builds send and the server's schema tolerates (B2 strict rollout note in
+ * apps/web/lib/validation/schemas-payment.ts).
+ *
+ * Exported for the schema-drift contract test.
+ */
+export function buildCreateIntentBody(input: {
+  jobId: string;
+  amount: number;
+  contractorId: string;
+  paymentMethodId?: string;
+}): PaymentIntentRequest & { paymentMethodId?: string } {
+  const candidate = {
+    jobId: input.jobId,
+    amount: input.amount,
+    contractorId: input.contractorId,
+    ...(input.paymentMethodId
+      ? { paymentMethodId: input.paymentMethodId }
+      : {}),
+  } satisfies z.input<typeof paymentIntentRequestSchema> & {
+    paymentMethodId?: string;
+  };
+
+  const result = paymentIntentRequestSchema.passthrough().safeParse(candidate);
+  if (!result.success) {
+    const first = result.error.issues[0];
+    throw new Error(
+      `Invalid payment request${first ? `: ${first.path.join('.')} ${first.message}` : ''}`
+    );
+  }
+  return result.data as PaymentIntentRequest & { paymentMethodId?: string };
+}
 
 /** Retry API calls on transient network/server errors with exponential backoff. */
 async function withRetry<T>(
@@ -76,18 +127,21 @@ export class PaymentIntentService {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error('Amount must be greater than 0');
     }
-    if (amount > 100000) {
-      throw new Error('Amount cannot exceed £100,000');
-    }
 
     try {
+      // Audit 2026-07-27: body validated against the shared api-contract.
+      // (This also replaces the previous £100,000 local cap, which
+      // contradicted the server validator's £10,000 limit — anything over
+      // £10k was already 400ing server-side; now it fails fast with the
+      // same message the server would give.)
+      const body = buildCreateIntentBody({ amount, jobId, contractorId });
       // One key for the whole attempt — reused across every withRetry pass so
       // a retried create-intent dedupes to the same escrow record server-side.
       const idempotencyKey = makeIdempotencyKey(jobId);
       const data = await withRetry(() =>
         apiRequest<{ clientSecret: string }>('/api/payments/create-intent', {
           method: 'POST',
-          body: { amount, jobId, contractorId },
+          body,
           headers: { 'Idempotency-Key': idempotencyKey },
         })
       );
@@ -130,6 +184,17 @@ export class PaymentIntentService {
         throw new Error('Contractor ID is required to fund this job');
       }
 
+      // Audit 2026-07-27: body validated against the shared api-contract —
+      // a renamed/missing required field now fails typecheck (satisfies
+      // z.input) and invalid values fail here with a readable message
+      // instead of a silent 400 at the API boundary.
+      const body = buildCreateIntentBody({
+        jobId,
+        amount,
+        contractorId,
+        paymentMethodId,
+      });
+
       // 2026-05-26 audit-53 P1: the server response includes
       // paymentIntentId + escrowTransactionId in addition to
       // clientSecret. usePayment.handlePayment needs paymentIntentId
@@ -144,7 +209,7 @@ export class PaymentIntentService {
         escrowTransactionId?: string;
       }>('/api/payments/create-intent', {
         method: 'POST',
-        body: { jobId, amount, paymentMethodId, contractorId },
+        body,
         headers: { 'Idempotency-Key': makeIdempotencyKey(jobId) },
       });
 
