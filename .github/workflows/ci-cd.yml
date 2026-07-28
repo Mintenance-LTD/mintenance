@@ -26,6 +26,14 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+# Repo default GITHUB_TOKEN is read-only; pr-quality-gate and quality-gate
+# post PR comments via github-script (403 "Resource not accessible by
+# integration" on the gate's first-ever run, 2026-07-28), and
+# dorny/paths-filter reads the PR file list.
+permissions:
+  contents: read
+  pull-requests: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
