@@ -262,6 +262,10 @@ export const POST = withApiHandler(
       assessmentId,
       frameCount,
       framesAssessed,
+      // The stored frames, in index order. Findings carry a sourceFrameIndex
+      // into this array, which is how the result screen can show the picture a
+      // claim was made from without a second round trip.
+      frameUrls,
     });
   }
 );

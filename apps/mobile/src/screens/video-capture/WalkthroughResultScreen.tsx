@@ -29,6 +29,8 @@ interface Props {
       assessment: Record<string, unknown>;
       frameCount?: number;
       framesAssessed?: number;
+      /** Stored keyframes in index order; findings hold a sourceFrameIndex. */
+      frameUrls?: string[];
     };
   };
 }
@@ -37,7 +39,7 @@ export const WalkthroughResultScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {
-  const { assessment, frameCount, framesAssessed } = route.params;
+  const { assessment, frameCount, framesAssessed, frameUrls } = route.params;
 
   const damage = assessment?.damageAssessment as
     | { confidence?: number; severity?: string }
@@ -96,7 +98,11 @@ export const WalkthroughResultScreen: React.FC<Props> = ({
           </Text>
         )}
 
-        <AIAnalysisCard aiAnalysis={aiAnalysis} aiLoading={false} />
+        <AIAnalysisCard
+          aiAnalysis={aiAnalysis}
+          aiLoading={false}
+          frameUrls={frameUrls}
+        />
 
         <TouchableOpacity
           style={styles.doneBtn}

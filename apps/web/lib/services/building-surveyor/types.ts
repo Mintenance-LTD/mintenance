@@ -190,6 +190,27 @@ export interface AssessmentFinding {
   confidence: number;
   /** True for the single most serious finding (the one mirrored into the top-level fields). */
   isPrimary?: boolean;
+  /**
+   * Walkthrough provenance — which keyframe this finding came from.
+   *
+   * A survey merges findings from up to 20 frames, so a claim like "mould above
+   * the cabinets" arrives with no way to check it against what the camera
+   * actually saw. These carry the frame identity through the merge so the UI
+   * can show the picture the claim was made from.
+   *
+   * Frame INDEX, not URL: frame URLs are signed and expire, whereas the index
+   * maps stably onto assessment_images.image_index for the life of the row.
+   *
+   * Undefined for single-photo assessments, which have only one image anyway.
+   */
+  /** The frame whose sighting supplied this finding's description. */
+  sourceFrameIndex?: number;
+  /**
+   * Every frame the defect was seen in, ascending. Length is a credibility
+   * signal in its own right — something spotted in one frame of twelve is
+   * weaker evidence than something seen in five.
+   */
+  sourceFrameIndexes?: number[];
 }
 
 export interface SpecialistReferral {

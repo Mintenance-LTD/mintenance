@@ -281,8 +281,13 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
       // fields — there is no `result.assessment`. Reading one gave the result
       // screen `undefined`, which is why it rendered 0% confidence and no
       // findings. Split the meta off and pass the rest as the survey.
-      const { assessmentId, frameCount, framesAssessed, ...assessment } =
-        result;
+      const {
+        assessmentId,
+        frameCount,
+        framesAssessed,
+        frameUrls,
+        ...assessment
+      } = result;
       onComplete?.(assessmentId);
       (
         navigation as {
@@ -292,6 +297,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
         assessment,
         frameCount,
         framesAssessed,
+        // Findings index into this, so a claim can be shown next to the frame
+        // it was made from.
+        frameUrls,
       });
     } catch (error) {
       logger.error('Walkthrough processing failed', { error });
