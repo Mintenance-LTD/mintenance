@@ -237,53 +237,13 @@ jobs:
         if: steps.filter.outputs.mobile != 'true'
         run: echo "No mobile code changed — skipping Detox smoke tests."
 
-  mobile-testing:
-    name: Mobile E2E Testing
-    runs-on: macos-latest
-    needs: quality-checks
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
-        with:
-          node-version: '20.19.4'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts=false
-
-      - name: Setup Java for Android
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2 (2026-07-27: old pin no longer resolves upstream)
-        with:
-          api-level: 34
-          build-tools: 34.0.0
-
-      - name: Create Android Emulator
-        run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-34;google_apis;x86_64"
-          echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n test -k "system-images;android-34;google_apis;x86_64"
-
-      - name: Start Android Emulator
-        run: |
-          $ANDROID_HOME/emulator/emulator -avd test -no-snapshot -no-window -camera-back none -camera-front none -selinux permissive -qemu -m 2048 &
-          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed | tr -d "\r") ]]; do sleep 1; done; input keyevent 82'
-
-      - name: Run Detox E2E tests
-        run: |
-          npm run e2e:build:android
-          npm run e2e:test:android
-        env:
-          DETOX_CONFIGURATION: android.emu.debug
+  # NOTE (2026-07-28): the old `mobile-testing` ("Mobile E2E Testing") job
+  # was deleted here. It could never pass as written: it hand-rolled an
+  # x86_64 Android emulator on macos-latest (hangs forever on ARM runners —
+  # every main push burned ~6h before the workflow-level cancel) and ran the
+  # e2e npm scripts from the repo root (missing script). Detox Android E2E
+  # is properly implemented in mobile-tests.yml's `e2e-android` job
+  # (ubuntu + KVM, gated on the *_STAGING secrets).
 
   build-staging:
     name: Build Staging Apps
