@@ -120,7 +120,9 @@ export async function login(page: Page, user: TestUser): Promise<void> {
 
   // Fill in credentials
   await page.getByLabel(/email/i).fill(user.email);
-  await page.getByLabel(/password/i).fill(user.password);
+  // Role-scoped: the "Show password" toggle's aria-label also matches
+  // getByLabel(/password/i) (strict-mode violation); textbox excludes it.
+  await page.getByRole('textbox', { name: /password/i }).fill(user.password);
 
   // Submit form and wait for navigation
   await Promise.all([
