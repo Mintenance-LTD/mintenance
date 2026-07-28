@@ -50,6 +50,12 @@ export interface WalkthroughRunResult {
   assessmentId: string;
   frameCount: number;
   framesAssessed: number;
+  /**
+   * The stored keyframes in index order. Findings carry a `sourceFrameIndex`
+   * into this array, so the result screen can show the picture a finding was
+   * made from.
+   */
+  frameUrls?: string[];
   [key: string]: unknown;
 }
 

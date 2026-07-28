@@ -78,14 +78,18 @@ function worstRating(
 export function mergeFrameFindings(
   frames: FrameAssessmentInput[]
 ): MergedWalkthrough {
-  // Collect every finding across all frames.
+  // Collect every finding across all frames, stamping each with the frame it
+  // came from. The array position IS the frame index — it matches the order
+  // frames were uploaded, and therefore assessment_images.image_index.
   const all: AssessmentFinding[] = [];
   let framesWithFindings = 0;
-  for (const frame of frames) {
+  frames.forEach((frame, frameIndex) => {
     const f = frame.findings ?? [];
     if (f.length > 0) framesWithFindings++;
-    all.push(...f);
-  }
+    for (const finding of f) {
+      all.push({ ...finding, sourceFrameIndex: frameIndex });
+    }
+  });
 
   // Cluster by defect identity.
   const clusters = new Map<string, AssessmentFinding[]>();
@@ -104,12 +108,28 @@ export function mergeFrameFindings(
       const s = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
       return s !== 0 ? s : (b.confidence ?? 0) - (a.confidence ?? 0);
     })[0];
+    // Provenance for the merged defect. `base` is the sighting whose wording
+    // is kept, so its frame is the one to show beside the description; the
+    // full list says how many frames saw the same thing, which is the
+    // difference between a one-frame guess and a repeated observation.
+    const sightingFrames = Array.from(
+      new Set(
+        group
+          .map((g) => g.sourceFrameIndex)
+          .filter((i): i is number => typeof i === 'number')
+      )
+    ).sort((a, b) => a - b);
+
     reps.push({
       ...base,
       severity: worstSeverity(group),
       conditionRating: worstRating(group) ?? base.conditionRating,
       confidence: Math.max(...group.map((g) => g.confidence ?? 0)),
       isPrimary: false,
+      sourceFrameIndex: base.sourceFrameIndex,
+      ...(sightingFrames.length > 0
+        ? { sourceFrameIndexes: sightingFrames }
+        : {}),
     });
   }
 

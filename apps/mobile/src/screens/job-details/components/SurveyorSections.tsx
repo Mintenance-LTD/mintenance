@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 
@@ -130,10 +130,26 @@ interface FindingItem {
   description?: string;
   probableCause?: string;
   isPrimary?: boolean;
+  /** Walkthrough provenance — see AssessmentFinding on the server. */
+  sourceFrameIndex?: number;
+  sourceFrameIndexes?: number[];
 }
 
-/** Element-by-element list of every distinct defect (2+ findings only). */
-export function FindingsList({ findings }: { findings?: FindingItem[] }) {
+/**
+ * Element-by-element list of every distinct defect (2+ findings only).
+ *
+ * `frameUrls` are the walkthrough's keyframes in index order. When present,
+ * each finding shows the frame it was read from, because a survey asserting
+ * "mould above the cabinets" in a new-build kitchen is not something anyone
+ * should have to take on trust — you can look at the picture and judge.
+ */
+export function FindingsList({
+  findings,
+  frameUrls,
+}: {
+  findings?: FindingItem[];
+  frameUrls?: string[];
+}) {
   if (!findings || findings.length < 2) return null;
   return (
     <View style={s.section}>
@@ -172,6 +188,31 @@ export function FindingsList({ findings }: { findings?: FindingItem[] }) {
                 {f.probableCause}
               </Text>
             ) : null}
+            {(() => {
+              const idx = f.sourceFrameIndex;
+              const url =
+                typeof idx === 'number' ? frameUrls?.[idx] : undefined;
+              if (!url) return null;
+              // How many frames saw the same defect. One sighting out of a
+              // dozen frames deserves more scepticism than five, so say which
+              // it was rather than leaving every finding looking equally sure.
+              const seen = f.sourceFrameIndexes?.length ?? 1;
+              return (
+                <View style={s.evidence}>
+                  <Image
+                    source={{ uri: url }}
+                    style={s.evidenceImage}
+                    resizeMode='cover'
+                    accessibilityLabel={`Frame the ${f.element.replace(/_/g, ' ')} finding was read from`}
+                  />
+                  <Text style={s.evidenceCaption}>
+                    {seen > 1
+                      ? `Seen in ${seen} frames · showing frame ${idx! + 1}`
+                      : `Seen in 1 frame (frame ${idx! + 1})`}
+                  </Text>
+                </View>
+              );
+            })()}
           </View>
         );
       })}
@@ -188,6 +229,14 @@ const s = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
   },
+  evidence: { marginTop: 10 },
+  evidenceImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    backgroundColor: me.line2,
+  },
+  evidenceCaption: { fontSize: 11, color: me.ink3, marginTop: 4 },
   findingHeader: {
     flexDirection: 'row',
     flexWrap: 'wrap',
