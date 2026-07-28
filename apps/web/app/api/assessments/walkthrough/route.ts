@@ -201,21 +201,42 @@ export const POST = withApiHandler(
       throw new Error('Failed to persist walkthrough assessment');
     }
 
-    // Save the frame images against the row (best-effort).
-    try {
-      await serverSupabase.from('assessment_images').insert(
+    // Link the frames to the row. Still non-fatal — the survey itself is worth
+    // keeping — but no longer silent.
+    //
+    // 2026-07-28: this failed on EVERY walkthrough and nobody could tell.
+    // assessment_images_image_index_check capped image_index at < 4 (inherited
+    // from the 4-photo assessment flow) while a walkthrough inserts up to 20
+    // frames in ONE statement, so the whole batch failed atomically. Worse, the
+    // try/catch below could never have reported it: supabase-js returns
+    // `{ error }` rather than throwing, and the return value was discarded, so
+    // the catch never fired and not even a warning was written. Production
+    // ended up with 53 frames in the bucket and zero rows here — which is why
+    // a finding could not show the image it came from. The constraint is fixed
+    // in migration 20260728…; this makes the next failure visible.
+    const { error: imgErr } = await serverSupabase
+      .from('assessment_images')
+      .insert(
         frameUrls.map((url, index) => ({
           assessment_id: assessmentId,
           image_url: url,
           image_index: index,
         }))
       );
-    } catch (imgErr) {
-      logger.warn('Failed to save walkthrough frame images', {
-        service: SERVICE,
-        assessmentId,
-        error: imgErr instanceof Error ? imgErr.message : String(imgErr),
-      });
+
+    if (imgErr) {
+      logger.error(
+        'Failed to link walkthrough frames to the assessment',
+        new Error(imgErr.message),
+        {
+          service: SERVICE,
+          assessmentId,
+          frameCount: frameUrls.length,
+          code: imgErr.code,
+          // Without these rows the survey renders with no source images.
+          impact: 'assessment saved without its frames',
+        }
+      );
     }
 
     // Training corpus (per-frame) + ONE lead-frame student shadow, after().
