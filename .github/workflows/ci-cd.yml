@@ -430,9 +430,16 @@ jobs:
       - name: License compliance check
         run: |
           npm install -g license-checker
+          # Full inventory first (never fails) so a gate failure below always
+          # has the complete license list in the same log.
+          license-checker --excludePrivatePackages --summary || true
           # --excludePrivatePackages: the workspace's own @mintenance/*
           # packages declare "UNLICENSED" (private) and must not trip the gate.
-          license-checker --excludePrivatePackages --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;BlueOak-1.0.0;Python-2.0;CC-BY-3.0;CC-BY-4.0;CC0-1.0;Unlicense;WTFPL;MPL-2.0' --summary
+          # LGPL-3.0-or-later: @img/sharp-libvips-linux-* — sharp's prebuilt,
+          # dynamically-linked libvips binary (Linux-only install, so local
+          # Windows runs of this gate never see it); standard for every
+          # sharp/Next.js deployment.
+          license-checker --excludePrivatePackages --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;BlueOak-1.0.0;Python-2.0;CC-BY-3.0;CC-BY-4.0;CC0-1.0;Unlicense;WTFPL;MPL-2.0;LGPL-3.0-or-later' --summary
 
   pr-quality-gate:
     name: PR Quality Gate
