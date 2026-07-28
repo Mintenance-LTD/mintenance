@@ -19,7 +19,11 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 2026-07-28: 30 was too tight — build + browser install take ~10min and
+    # the full Playwright suite was killed mid-run at exactly 30:00 on every
+    # main push (timeouts render as "cancelled" in the UI, which disguised
+    # this as concurrency cancellation for weeks).
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
