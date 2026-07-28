@@ -95,10 +95,10 @@ describe('PaymentService - Comprehensive', () => {
       });
 
       const result = await PaymentService.createPaymentIntent(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         1000,
         'pm_123',
-        'contractor-1'
+        '22222222-2222-4222-8222-222222222201'
       );
 
       expect(result.clientSecret).toBe('pi_123_secret');
@@ -108,10 +108,11 @@ describe('PaymentService - Comprehensive', () => {
       expect(mobileApiClient.post).toHaveBeenCalledWith(
         '/api/payments/create-intent',
         {
-          jobId: 'job-123',
+          currency: 'gbp',
+          jobId: '11111111-1111-4111-8111-111111111123',
           amount: 1000,
           paymentMethodId: 'pm_123',
-          contractorId: 'contractor-1',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         },
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -128,10 +129,10 @@ describe('PaymentService - Comprehensive', () => {
       });
 
       const result = await PaymentService.createPaymentIntent(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         1000,
         'pm_123',
-        'contractor-1'
+        '22222222-2222-4222-8222-222222222201'
       );
 
       expect(result.clientSecret).toBeUndefined();
@@ -145,7 +146,7 @@ describe('PaymentService - Comprehensive', () => {
       setAcceptedContract();
 
       const result = await PaymentService.createPaymentIntent(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         1000,
         'pm_123'
       );
@@ -162,10 +163,10 @@ describe('PaymentService - Comprehensive', () => {
       );
 
       const result = await PaymentService.createPaymentIntent(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         1000,
         'pm_123',
-        'contractor-1'
+        '22222222-2222-4222-8222-222222222201'
       );
 
       expect(result.clientSecret).toBeUndefined();

@@ -110,8 +110,8 @@ describe('PaymentService', () => {
 
       const result = await PaymentService.initializePayment({
         amount: 100,
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
+        jobId: '11111111-1111-4111-8111-111111111123',
+        contractorId: '22222222-2222-4222-8222-222222222123',
       });
 
       // No cents conversion — server takes GBP units. A stable idempotency
@@ -119,9 +119,10 @@ describe('PaymentService', () => {
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/payments/create-intent',
         {
+          currency: 'gbp',
           amount: 100,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         },
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -136,8 +137,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: 0,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         })
       ).rejects.toThrow('Amount must be greater than 0');
     });
@@ -146,8 +147,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: -50,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         })
       ).rejects.toThrow('Amount must be greater than 0');
     });
@@ -156,10 +157,10 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: 100001,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         })
-      ).rejects.toThrow('Amount cannot exceed £100,000');
+      ).rejects.toThrow('Amount exceeds maximum (£10,000)');
     });
 
     it('should handle API error', async () => {
@@ -170,8 +171,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: 100,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         })
       ).rejects.toThrow('Payment initialization failed');
 
@@ -186,16 +187,17 @@ describe('PaymentService', () => {
 
       await PaymentService.initializePayment({
         amount: 99.99,
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
+        jobId: '11111111-1111-4111-8111-111111111123',
+        contractorId: '22222222-2222-4222-8222-222222222123',
       });
 
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/payments/create-intent',
         {
+          currency: 'gbp',
           amount: 99.99,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         },
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -215,8 +217,8 @@ describe('PaymentService', () => {
 
       await PaymentService.initializePayment({
         amount: 100,
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
+        jobId: '11111111-1111-4111-8111-111111111123',
+        contractorId: '22222222-2222-4222-8222-222222222123',
       });
 
       expect(mockApi.post).toHaveBeenCalledTimes(2);
@@ -233,7 +235,7 @@ describe('PaymentService', () => {
       )?.headers?.['Idempotency-Key'];
 
       expect(firstKey).toBeTruthy();
-      expect(firstKey).toContain('job-123');
+      expect(firstKey).toContain('11111111-1111-4111-8111-111111111123');
       expect(secondKey).toBe(firstKey);
     });
   });
@@ -365,16 +367,16 @@ describe('PaymentService', () => {
       });
 
       const result = await PaymentService.createEscrowTransaction(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         'user-123',
-        'contractor-123',
+        '22222222-2222-4222-8222-222222222123',
         100
       );
 
       expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        jobId: 'job-123',
+        jobId: '11111111-1111-4111-8111-111111111123',
         payerId: 'user-123',
-        payeeId: 'contractor-123',
+        payeeId: '22222222-2222-4222-8222-222222222123',
         amount: 100,
       });
       expect(result).toEqual({
@@ -389,9 +391,9 @@ describe('PaymentService', () => {
 
       await expect(
         PaymentService.createEscrowTransaction(
-          'job-123',
+          '11111111-1111-4111-8111-111111111123',
           'user-123',
-          'contractor-123',
+          '22222222-2222-4222-8222-222222222123',
           100
         )
       ).rejects.toThrow('Database error');
@@ -402,13 +404,16 @@ describe('PaymentService', () => {
     it('should hold payment in escrow successfully', async () => {
       mockApi.post.mockResolvedValue({});
 
-      await PaymentService.holdPaymentInEscrow('job-123', 'pi_test_123');
+      await PaymentService.holdPaymentInEscrow(
+        '11111111-1111-4111-8111-111111111123',
+        'pi_test_123'
+      );
 
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/payments/confirm-intent',
         {
           paymentIntentId: 'pi_test_123',
-          jobId: 'job-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
         }
       );
     });
@@ -417,7 +422,10 @@ describe('PaymentService', () => {
       mockApi.post.mockRejectedValue(new Error('Update failed'));
 
       await expect(
-        PaymentService.holdPaymentInEscrow('job-123', 'pi_test_123')
+        PaymentService.holdPaymentInEscrow(
+          '11111111-1111-4111-8111-111111111123',
+          'pi_test_123'
+        )
       ).rejects.toThrow('Update failed');
     });
   });
@@ -683,7 +691,7 @@ describe('PaymentService', () => {
       mockApi.post.mockResolvedValue({ paymentIntentId: 'pi_test_123' });
 
       const result = await PaymentService.processJobPayment(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         100,
         'pm_test_123',
         true
@@ -692,7 +700,7 @@ describe('PaymentService', () => {
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/payments/process-job-payment',
         {
-          jobId: 'job-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
           amount: 100,
           paymentMethodId: 'pm_test_123',
           saveForFuture: true,
@@ -705,7 +713,7 @@ describe('PaymentService', () => {
       expect(logger.info).toHaveBeenCalledWith(
         'Payment processed successfully',
         {
-          jobId: 'job-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
           amount: 100,
         }
       );
@@ -719,7 +727,7 @@ describe('PaymentService', () => {
       });
 
       const result = await PaymentService.processJobPayment(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         100,
         'pm_test_123'
       );
@@ -733,7 +741,7 @@ describe('PaymentService', () => {
       expect(logger.info).toHaveBeenCalledWith(
         'Payment requires 3D Secure authentication',
         {
-          jobId: 'job-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
         }
       );
     });
@@ -742,7 +750,7 @@ describe('PaymentService', () => {
       mockApi.post.mockRejectedValue(new Error('Insufficient funds'));
 
       const result = await PaymentService.processJobPayment(
-        'job-123',
+        '11111111-1111-4111-8111-111111111123',
         100,
         'pm_test_123'
       );
@@ -901,8 +909,9 @@ describe('PaymentService', () => {
         },
       });
 
-      const result =
-        await PaymentService.getContractorPayoutStatus('contractor-123');
+      const result = await PaymentService.getContractorPayoutStatus(
+        '22222222-2222-4222-8222-222222222123'
+      );
 
       expect(mockApi.get).toHaveBeenCalledWith(
         '/api/payments/stripe-connect/status'
@@ -925,8 +934,9 @@ describe('PaymentService', () => {
         },
       });
 
-      const result =
-        await PaymentService.getContractorPayoutStatus('contractor-123');
+      const result = await PaymentService.getContractorPayoutStatus(
+        '22222222-2222-4222-8222-222222222123'
+      );
 
       expect(result).toEqual({
         hasAccount: true,
@@ -938,8 +948,9 @@ describe('PaymentService', () => {
     it('should return no account status when no Connect account exists', async () => {
       mockApi.get.mockResolvedValue({ success: true, status: null });
 
-      const result =
-        await PaymentService.getContractorPayoutStatus('contractor-123');
+      const result = await PaymentService.getContractorPayoutStatus(
+        '22222222-2222-4222-8222-222222222123'
+      );
 
       expect(result).toEqual({
         hasAccount: false,
@@ -951,7 +962,9 @@ describe('PaymentService', () => {
       mockApi.get.mockRejectedValue(new Error('Database connection failed'));
 
       await expect(
-        PaymentService.getContractorPayoutStatus('contractor-123')
+        PaymentService.getContractorPayoutStatus(
+          '22222222-2222-4222-8222-222222222123'
+        )
       ).rejects.toThrow('Database connection failed');
     });
   });
@@ -959,7 +972,9 @@ describe('PaymentService', () => {
   describe('requestRefund', () => {
     it('should request refund successfully', async () => {
       mockApi.get.mockResolvedValue({
-        payments: [{ id: 'payment-123', jobId: 'job-123' }],
+        payments: [
+          { id: 'payment-123', jobId: '11111111-1111-4111-8111-111111111123' },
+        ],
       });
       mockApi.post.mockResolvedValue({ refundId: 'refund-123' });
 
@@ -972,7 +987,7 @@ describe('PaymentService', () => {
         '/api/payments/history?limit=50&offset=0'
       );
       expect(mockApi.post).toHaveBeenCalledWith('/api/payments/refund', {
-        jobId: 'job-123',
+        jobId: '11111111-1111-4111-8111-111111111123',
         escrowTransactionId: 'payment-123',
         reason: 'Service not delivered',
       });
@@ -991,7 +1006,9 @@ describe('PaymentService', () => {
 
     it('should handle refund request error', async () => {
       mockApi.get.mockResolvedValue({
-        payments: [{ id: 'payment-123', jobId: 'job-123' }],
+        payments: [
+          { id: 'payment-123', jobId: '11111111-1111-4111-8111-111111111123' },
+        ],
       });
       mockApi.post.mockRejectedValue(new Error('Refund period expired'));
 
@@ -1016,8 +1033,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: NaN,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         })
       ).rejects.toThrow('Amount must be greater than 0');
     });
@@ -1026,8 +1043,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: Infinity,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         })
       ).rejects.toThrow('Amount must be greater than 0');
     });
@@ -1037,16 +1054,17 @@ describe('PaymentService', () => {
 
       await PaymentService.initializePayment({
         amount: 0.01,
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
+        jobId: '11111111-1111-4111-8111-111111111123',
+        contractorId: '22222222-2222-4222-8222-222222222123',
       });
 
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/payments/create-intent',
         {
+          currency: 'gbp',
           amount: 0.01,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         },
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -1062,8 +1080,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: 100,
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
+          jobId: '11111111-1111-4111-8111-111111111123',
+          contractorId: '22222222-2222-4222-8222-222222222123',
         })
       ).rejects.toThrow();
 

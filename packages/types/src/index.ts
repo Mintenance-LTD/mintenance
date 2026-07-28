@@ -40,3 +40,7 @@ export type {
   ThreadSummary,
   Paginated,
 } from './contracts';
+
+// Generated DB row types (live-schema source of truth for direct Supabase
+// reads — see db-rows.generated.ts header for regeneration instructions)
+export type { EscrowTransactionRow, ContractRow } from './db-rows.generated';
