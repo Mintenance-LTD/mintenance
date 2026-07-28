@@ -220,11 +220,33 @@ jobs:
             }
           "
 
+  # Detox needs the STAGING Supabase/Stripe secrets, which don't exist in
+  # repo settings yet — and job-level `if:` cannot read the secrets context,
+  # so this tiny job exposes their presence as an output. Add
+  # EXPO_PUBLIC_SUPABASE_URL_STAGING / _ANON_KEY_STAGING /
+  # EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST and both e2e jobs re-activate.
+  e2e-secrets-gate:
+    name: E2E secrets gate
+    runs-on: ubuntu-latest
+    outputs:
+      has-staging: ${{ steps.chk.outputs.has }}
+    steps:
+      - id: chk
+        env:
+          STAGING_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING }}
+        run: |
+          if [ -n "$STAGING_URL" ]; then
+            echo "has=true" >> $GITHUB_OUTPUT
+          else
+            echo "has=false" >> $GITHUB_OUTPUT
+            echo "STAGING secrets absent — Detox e2e jobs will skip."
+          fi
+
   e2e-android:
     name: E2E Tests (Android)
     runs-on: ubuntu-latest
-    needs: unit-tests
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: [unit-tests, e2e-secrets-gate]
+    if: needs.e2e-secrets-gate.outputs.has-staging == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -245,7 +267,7 @@ jobs:
         id: avd-cache
         with:
           path: ~/.android/avd/*
-          key: avd-pixel-8-api-34-${{ runner.os }}
+          key: avd-pixel-7-api-34-${{ runner.os }}
       - name: Create AVD
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 (2026-07-27: old pin no longer resolves upstream)
@@ -253,7 +275,7 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          profile: pixel_8
+          profile: pixel_7 # was pixel_8 — id no longer in the runner SDK device list (2026-07-27)
           script: echo "AVD ready"
       - name: Build debug APK
         working-directory: apps/mobile
@@ -268,7 +290,7 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          profile: pixel_8
+          profile: pixel_7 # was pixel_8 — id no longer in the runner SDK device list (2026-07-27)
           disable-animations: true
           script: cd apps/mobile && npm run e2e:test:android
       - name: Upload artifacts
@@ -282,8 +304,8 @@ jobs:
   e2e-ios:
     name: E2E Tests (iOS)
     runs-on: macos-latest
-    needs: unit-tests
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: [unit-tests, e2e-secrets-gate]
+    if: needs.e2e-secrets-gate.outputs.has-staging == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5

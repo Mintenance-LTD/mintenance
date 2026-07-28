@@ -47,13 +47,15 @@ jobs:
       timeout-minutes: 10
 
     - name: Run security audit
-      # 2026-05-30: aligned to `high` (matches ci-cd.yml). The 25 remaining
-      # moderate advisories are all transitive build/dev tooling (expo
-      # toolchain, @remotion/*, @google-cloud/storage→gaxios, next→postcss)
-      # with no non-breaking fix; `npm audit fix --force` would force expo/next
-      # major bumps. Block on high/critical (currently clean); triage moderates
-      # via the uploaded security-reports artifact + scheduled Snyk run.
-      run: npm audit --audit-level high
+      # 2026-07-28: switched from bare `npm audit --audit-level high` to the
+      # same audit-ci gate ci-cd.yml uses (audit-ci.jsonc: prod deps only,
+      # annotated allowlist). After the 2026-07-27/28 dependency remediation
+      # the remaining highs are all expo-57-blocked or dev-toolchain — the
+      # bare audit could never go green on them and had made this workflow
+      # permanently red, while audit-ci still blocks any NEW high/critical
+      # advisory. Allowlisted items are tracked in audit-ci.jsonc with their
+      # fix paths.
+      run: npm run audit:security
 
     - name: Run Snyk security scan
       if: ${{ env.HAS_SNYK == 'true' }}
