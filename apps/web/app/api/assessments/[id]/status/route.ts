@@ -69,12 +69,25 @@ export const GET = withApiHandler(
     const isComplete = status === 'completed' || status === 'validated';
     const isFailed = status === 'failed';
 
+    // 2026-07-28: the payload used to be gated on `isComplete`, which conflated
+    // two different things. `validation_status` tracks HUMAN validation —
+    // 'pending' means nobody has signed the survey off yet, not that the AI is
+    // still working. Every walkthrough persists as 'pending', so this returned
+    // `assessment: null` for all of them: assessment history had nothing to
+    // show, and the correction page (which reads `data.assessment?.data`)
+    // silently rendered an empty record.
+    //
+    // The row is returned whenever it holds a result. `isComplete` / `isFailed`
+    // remain for callers polling on processing state.
+    const hasResult =
+      status !== 'processing' && Boolean(assessment.damage_type);
+
     return NextResponse.json({
       id: assessment.id,
       status,
       isComplete,
       isFailed,
-      assessment: isComplete
+      assessment: hasResult
         ? {
             domain: assessment.domain,
             damageType: assessment.damage_type,

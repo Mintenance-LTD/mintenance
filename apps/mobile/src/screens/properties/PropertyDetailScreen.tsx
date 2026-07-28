@@ -733,6 +733,20 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               <Ionicons name='chevron-forward' size={18} color={me.ink3} />
             </TouchableOpacity>
           )}
+          {caps.canRunAssessment && (
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={() =>
+                navigation.navigate('AssessmentHistory', { propertyId })
+              }
+            >
+              <View style={[styles.actionIcon, { backgroundColor: me.infoBg }]}>
+                <Ionicons name='time-outline' size={18} color={me.infoFg} />
+              </View>
+              <Text style={styles.actionText}>Past Surveys</Text>
+              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+            </TouchableOpacity>
+          )}
           {caps.canDelete && (
             <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
               <View style={[styles.actionIcon, { backgroundColor: me.errBg }]}>

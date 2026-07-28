@@ -271,6 +271,26 @@ export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
                     : `${room.type.replace(/_/g, ' ')} · not surveyed`}
                 </Text>
               </View>
+              {room.surveyCount > 0 && (
+                // The row's own tap films the room again; this opens what was
+                // already filmed. Without it the count above is a fact the user
+                // can read but not act on.
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('AssessmentHistory', {
+                      propertyId,
+                      roomId: room.roomId,
+                      roomName: room.name,
+                    })
+                  }
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole='button'
+                  accessibilityLabel={`View past surveys for ${room.name}`}
+                  style={styles.roomHistoryBtn}
+                >
+                  <Icon name='history' size={20} color={me.ink3} />
+                </TouchableOpacity>
+              )}
               <Icon name='chevron-right' size={22} color={me.ink4} />
             </TouchableOpacity>
           );
@@ -360,6 +380,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   roomIconFlag: { backgroundColor: me.errBg },
+  roomHistoryBtn: { paddingHorizontal: 6, paddingVertical: 4 },
   roomMain: { flex: 1 },
   roomName: { fontSize: 15, fontWeight: '600', color: me.ink },
   roomType: { fontSize: 12, color: me.ink3, textTransform: 'capitalize' },
