@@ -141,17 +141,19 @@ export async function login(page: Page, user: TestUser): Promise<void> {
   // This ensures localStorage/cookies are properly set before proceeding
   await page.waitForTimeout(2000);
 
-  // Verify authentication persisted by checking if user data exists in localStorage
-  const hasSession = await page.evaluate(() => {
-    const keys = Object.keys(localStorage);
-    return keys.some(
-      (key) => key.includes('supabase.auth.token') || key.includes('sb-')
-    );
-  });
+  // Verify authentication persisted. The app's login is COOKIE-based
+  // (/api/auth/login mints the [__Host-]mintenance-auth JWT via
+  // authManager; nothing is written to localStorage), so check the
+  // context's cookie jar — the old localStorage probe was a relic of
+  // client-side Supabase auth and failed every UI login in CI.
+  const cookies = await page.context().cookies();
+  const hasSession = cookies.some(
+    (c) => c.name.includes('mintenance-auth') || c.name.startsWith('sb-')
+  );
 
   if (!hasSession) {
     throw new Error(
-      'Authentication session not established - localStorage empty'
+      'Authentication session not established - no auth cookie in context'
     );
   }
 }
