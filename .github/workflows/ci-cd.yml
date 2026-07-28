@@ -423,10 +423,16 @@ jobs:
           npm audit --json > audit-results.json || true
           cat audit-results.json
 
+      # 0BSD/BlueOak/Python-2.0/CC-BY/Unlicense/WTFPL are permissive licenses
+      # scattered through the transitive tree; MPL-2.0 (file-level copyleft,
+      # fine for unmodified npm deps — currently only @axe-core/playwright,
+      # an a11y test tool) failed the gate on its first-ever run 2026-07-28.
       - name: License compliance check
         run: |
           npm install -g license-checker
-          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC' --summary
+          # --excludePrivatePackages: the workspace's own @mintenance/*
+          # packages declare "UNLICENSED" (private) and must not trip the gate.
+          license-checker --excludePrivatePackages --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;BlueOak-1.0.0;Python-2.0;CC-BY-3.0;CC-BY-4.0;CC0-1.0;Unlicense;WTFPL;MPL-2.0' --summary
 
   pr-quality-gate:
     name: PR Quality Gate

@@ -327,8 +327,10 @@ describe('ApiMiddleware', () => {
       await middleware.requestMiddleware(mockRequestFn, context);
       const duration = Date.now() - startTime;
 
-      // Expect at least 10ms + 20ms = 30ms for two retries with exponential backoff
-      expect(duration).toBeGreaterThanOrEqual(30);
+      // Two retries with exponential backoff nominally wait 10ms + 20ms =
+      // 30ms, but setTimeout can wake with the measured clock a couple of
+      // ms early (CI 2026-07-28: measured 29ms) — assert with tolerance.
+      expect(duration).toBeGreaterThanOrEqual(25);
       expect(mockRequestFn).toHaveBeenCalledTimes(3);
     });
 
