@@ -11,7 +11,7 @@
  * - Homeowner user will have 2 test properties available
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Job Posting Flow', () => {
   test.describe('Job Creation Page Access', () => {

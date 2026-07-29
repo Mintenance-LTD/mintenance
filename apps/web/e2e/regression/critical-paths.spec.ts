@@ -18,7 +18,8 @@
  *   - Test properties seeded (global-setup.ts handles this)
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
 import {
   loginAsHomeowner,
   loginAsContractor,
@@ -332,10 +333,12 @@ test.describe('Regression: Payment & Escrow Flow', () => {
     await navigateAuthenticated(page, '/jobs');
     await page.waitForTimeout(2000);
 
-    // Find a job that might have bids
-    const jobLink = page
-      .locator('a[href*="/jobs/"]')
-      .or(page.getByRole('link', { name: /view|details/i }))
+    // Find a job that might have bids. Scoped to #main-content and excluding
+    // /jobs/create — unscoped, this matched the "Post a job" top-nav tab.
+    const content = page.locator('#main-content');
+    const jobLink = content
+      .locator('a[href*="/jobs/"]:not([href$="/jobs/create"])')
+      .or(content.getByRole('link', { name: /view|details/i }))
       .first();
 
     if (await jobLink.isVisible().catch(() => false)) {

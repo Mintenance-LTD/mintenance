@@ -5,7 +5,7 @@
  * Uses axe-core for comprehensive accessibility checks.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 
 // ============================================
@@ -31,7 +31,9 @@ const pages = [
 test.describe('Accessibility Tests', () => {
   // Test each page for accessibility violations
   pages.forEach(({ name, path }) => {
-    test(`${name} page should have no accessibility violations`, async ({ page }) => {
+    test(`${name} page should have no accessibility violations`, async ({
+      page,
+    }) => {
       await page.goto(path);
 
       // Wait for content to load
@@ -53,7 +55,9 @@ test.describe('Accessibility Tests', () => {
 
     // Tab through interactive elements
     await page.keyboard.press('Tab');
-    const firstFocused = await page.evaluate(() => document.activeElement?.tagName);
+    const firstFocused = await page.evaluate(
+      () => document.activeElement?.tagName
+    );
     expect(firstFocused).toBeTruthy();
 
     // Continue tabbing and ensure focus is visible
@@ -66,7 +70,8 @@ test.describe('Accessibility Tests', () => {
         const styles = window.getComputedStyle(element);
         return {
           tagName: element.tagName,
-          hasOutline: styles.outline !== 'none' || styles.boxShadow.includes('ring'),
+          hasOutline:
+            styles.outline !== 'none' || styles.boxShadow.includes('ring'),
         };
       });
 
@@ -78,20 +83,33 @@ test.describe('Accessibility Tests', () => {
   });
 
   // Test form accessibility
-  test('forms should have proper labels and error messages', async ({ page }) => {
+  test('forms should have proper labels and error messages', async ({
+    page,
+  }) => {
     await page.goto('/jobs/create');
 
     // Check that all inputs have labels
-    const inputs = await page.$$('input:not([type="hidden"]), textarea, select');
+    const inputs = await page.$$(
+      'input:not([type="hidden"]), textarea, select'
+    );
 
     for (const input of inputs) {
       const hasLabel = await input.evaluate((el) => {
         const id = el.getAttribute('id');
         const hasAriaLabel = el.hasAttribute('aria-label');
         const hasAriaLabelledBy = el.hasAttribute('aria-labelledby');
-        const hasLabelElement = id ? document.querySelector(`label[for="${id}"]`) !== null : false;
+        const hasLabelElement = id
+          ? document.querySelector(`label[for="${id}"]`) !== null
+          : false;
+        // An input wrapped directly in its own <label> is labelled too.
+        const hasWrappingLabel = el.closest('label') !== null;
 
-        return hasLabel || hasAriaLabel || hasAriaLabelledBy || hasLabelElement;
+        return (
+          hasAriaLabel ||
+          hasAriaLabelledBy ||
+          hasLabelElement ||
+          hasWrappingLabel
+        );
       });
 
       expect(hasLabel).toBeTruthy();
@@ -103,7 +121,9 @@ test.describe('Accessibility Tests', () => {
       await submitButton.click();
 
       // Check for error messages with proper ARIA attributes
-      const errorMessages = await page.$$('[role="alert"], [aria-live="polite"], .error-message');
+      const errorMessages = await page.$$(
+        '[role="alert"], [aria-live="polite"], .error-message'
+      );
       expect(errorMessages.length).toBeGreaterThan(0);
     }
   });
@@ -114,7 +134,9 @@ test.describe('Accessibility Tests', () => {
 
     const contrastIssues = await page.evaluate(() => {
       const issues: any[] = [];
-      const elements = document.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, a, button');
+      const elements = document.querySelectorAll(
+        'p, span, h1, h2, h3, h4, h5, h6, a, button'
+      );
 
       elements.forEach((element) => {
         const styles = window.getComputedStyle(element as HTMLElement);
@@ -141,7 +163,9 @@ test.describe('Accessibility Tests', () => {
   });
 
   // Test ARIA attributes
-  test('interactive elements should have proper ARIA attributes', async ({ page }) => {
+  test('interactive elements should have proper ARIA attributes', async ({
+    page,
+  }) => {
     await page.goto('/dashboard');
 
     // Check buttons
@@ -183,7 +207,9 @@ test.describe('Accessibility Tests', () => {
     await page.goto('/dashboard');
 
     const headingIssues = await page.evaluate(() => {
-      const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+      const headings = Array.from(
+        document.querySelectorAll('h1, h2, h3, h4, h5, h6')
+      );
       const issues: string[] = [];
       let previousLevel = 0;
 
@@ -192,7 +218,9 @@ test.describe('Accessibility Tests', () => {
 
         // Check for skipped levels
         if (previousLevel > 0 && currentLevel > previousLevel + 1) {
-          issues.push(`Heading skipped from h${previousLevel} to h${currentLevel}`);
+          issues.push(
+            `Heading skipped from h${previousLevel} to h${currentLevel}`
+          );
         }
 
         previousLevel = currentLevel;
@@ -215,13 +243,18 @@ test.describe('Accessibility Tests', () => {
     await page.goto('/dashboard');
 
     // Find and click a button that opens a modal
-    const modalTrigger = await page.$('[data-testid="open-modal"], button:has-text("Add"), button:has-text("Create")');
+    const modalTrigger = await page.$(
+      '[data-testid="open-modal"], button:has-text("Add"), button:has-text("Create")'
+    );
 
     if (modalTrigger) {
       await modalTrigger.click();
 
       // Wait for modal to appear
-      await page.waitForSelector('[role="dialog"], .modal, [data-testid="modal"]', { timeout: 5000 });
+      await page.waitForSelector(
+        '[role="dialog"], .modal, [data-testid="modal"]',
+        { timeout: 5000 }
+      );
 
       // Check for focus trap
       const modalHasFocusTrap = await page.evaluate(() => {
@@ -241,7 +274,9 @@ test.describe('Accessibility Tests', () => {
       await page.keyboard.press('Escape');
 
       // Modal should be closed
-      const modalClosed = await page.$('[role="dialog"], .modal').then(el => el === null);
+      const modalClosed = await page
+        .$('[role="dialog"], .modal')
+        .then((el) => el === null);
       expect(modalClosed).toBeTruthy();
     }
   });
@@ -251,18 +286,26 @@ test.describe('Accessibility Tests', () => {
     await page.goto('/dashboard');
 
     // Check for skip link
-    const skipLink = await page.$('a[href="#main"], a[href="#content"], .skip-link');
+    // The layouts render `<a href="#main-content">Skip to content</a>`, which
+    // an exact `a[href="#main"]` match never selects.
+    const skipLink = await page.$(
+      'a[href^="#main"], a[href="#content"], .skip-link'
+    );
     expect(skipLink).toBeTruthy();
 
     if (skipLink) {
       // Check that it's accessible via keyboard
       await page.keyboard.press('Tab');
-      const isSkipLinkFocused = await skipLink.evaluate((el) => el === document.activeElement);
+      const isSkipLinkFocused = await skipLink.evaluate(
+        (el) => el === document.activeElement
+      );
 
       // Skip link should be one of the first focusable elements
       if (!isSkipLinkFocused) {
         await page.keyboard.press('Tab');
-        const isNowFocused = await skipLink.evaluate((el) => el === document.activeElement);
+        const isNowFocused = await skipLink.evaluate(
+          (el) => el === document.activeElement
+        );
         expect(isNowFocused).toBeTruthy();
       }
     }
@@ -283,7 +326,9 @@ test.describe('Accessibility Tests', () => {
 
     // Check touch target sizes
     const touchTargets = await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button, a, input, select, textarea'));
+      const buttons = Array.from(
+        document.querySelectorAll('button, a, input, select, textarea')
+      );
       const smallTargets: string[] = [];
 
       buttons.forEach((element) => {
@@ -314,7 +359,8 @@ test.describe('Component Accessibility', () => {
 
     const buttons = await page.$$('[class*="UnifiedButton"], button');
 
-    for (const button of buttons.slice(0, 5)) { // Test first 5 buttons
+    for (const button of buttons.slice(0, 5)) {
+      // Test first 5 buttons
       const accessibility = await button.evaluate((el) => {
         const hasText = Boolean(el.textContent?.trim());
         const hasAriaLabel = el.hasAttribute('aria-label');
@@ -337,19 +383,24 @@ test.describe('Component Accessibility', () => {
 
     const cards = await page.$$('[class*="UnifiedCard"], [class*="card"]');
 
-    for (const card of cards.slice(0, 5)) { // Test first 5 cards
+    for (const card of cards.slice(0, 5)) {
+      // Test first 5 cards
       const isInteractive = await card.evaluate((el) => {
         return el.getAttribute('role') === 'button' || el.tagName === 'A';
       });
 
       if (isInteractive) {
-        const hasTabIndex = await card.evaluate((el) => el.hasAttribute('tabindex'));
+        const hasTabIndex = await card.evaluate((el) =>
+          el.hasAttribute('tabindex')
+        );
         expect(hasTabIndex).toBeTruthy();
       }
     }
   });
 
-  test('EmptyStateEducational should provide clear guidance', async ({ page }) => {
+  test('EmptyStateEducational should provide clear guidance', async ({
+    page,
+  }) => {
     // Navigate to a page that might have empty states
     await page.goto('/jobs');
 
@@ -393,7 +444,7 @@ test.describe('WCAG Compliance Report', () => {
         violations: results.violations.length,
         passes: results.passes.length,
         incomplete: results.incomplete.length,
-        violationDetails: results.violations.map(v => ({
+        violationDetails: results.violations.map((v) => ({
           id: v.id,
           impact: v.impact,
           description: v.description,
@@ -403,15 +454,17 @@ test.describe('WCAG Compliance Report', () => {
     }
 
     // Log the report
-    console.table(report.map(r => ({
-      Page: r.page,
-      Violations: r.violations,
-      Passes: r.passes,
-      Incomplete: r.incomplete,
-    })));
+    console.table(
+      report.map((r) => ({
+        Page: r.page,
+        Violations: r.violations,
+        Passes: r.passes,
+        Incomplete: r.incomplete,
+      }))
+    );
 
     // Fail if any critical violations
-    const criticalViolations = report.filter(r => r.violations > 0);
+    const criticalViolations = report.filter((r) => r.violations > 0);
     expect(criticalViolations).toHaveLength(0);
   });
 });

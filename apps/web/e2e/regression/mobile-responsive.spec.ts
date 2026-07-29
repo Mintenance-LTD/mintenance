@@ -16,7 +16,8 @@
  *   - Test users exist (for authenticated tests)
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
 import { loginAsHomeowner, clearAuth } from '../helpers/auth';
 import { waitForNetworkIdle } from '../helpers/test-data';
 
@@ -469,9 +470,12 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
       return;
     }
 
-    const open = page
+    // Scoped to #main-content: unscoped this matched the /properties/compliance
+    // nav item, which is off-screen at the 375px mobile viewport.
+    const content = page.locator('#main-content');
+    const open = content
       .getByRole('link', { name: /open|view|manage/i })
-      .or(page.locator('a[href*="/properties/"]'))
+      .or(content.locator('a[href*="/properties/"]'))
       .first();
     if (!(await open.isVisible().catch(() => false))) {
       // skipped: runtime bail — no property link visible (seed data missing) (2026-07-02 triage)
