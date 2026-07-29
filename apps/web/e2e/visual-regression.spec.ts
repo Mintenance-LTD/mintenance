@@ -8,7 +8,7 @@
  * To update baselines: npx playwright test visual-regression --update-snapshots
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 const PUBLIC_PAGES = [
   { name: 'landing', path: '/' },

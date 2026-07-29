@@ -12,7 +12,8 @@
  * - Dev server running on localhost:3000
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 import {
   loginAsHomeowner,
   loginAsContractor,
@@ -20,12 +21,18 @@ import {
   TEST_USERS,
   clearAuth,
 } from './helpers/auth';
-import { createTestJob, createTestBid, waitForNetworkIdle } from './helpers/test-data';
+import {
+  createTestJob,
+  createTestBid,
+  waitForNetworkIdle,
+} from './helpers/test-data';
 
 // ---- Security regression tests (Phase 2 fixes) ----
 
 test.describe('Security: Auth Bypass Regression', () => {
-  test('unauthenticated user cannot access /contractor/dashboard-enhanced', async ({ page }) => {
+  test('unauthenticated user cannot access /contractor/dashboard-enhanced', async ({
+    page,
+  }) => {
     await clearAuth(page);
     await page.goto('/contractor/dashboard-enhanced');
     await page.waitForLoadState('networkidle');
@@ -34,7 +41,9 @@ test.describe('Security: Auth Bypass Regression', () => {
     expect(page.url()).toContain('/login');
   });
 
-  test('unauthenticated user cannot access /contractor/settings', async ({ page }) => {
+  test('unauthenticated user cannot access /contractor/settings', async ({
+    page,
+  }) => {
     await clearAuth(page);
     await page.goto('/contractor/settings');
     await page.waitForLoadState('networkidle');
@@ -42,7 +51,9 @@ test.describe('Security: Auth Bypass Regression', () => {
     expect(page.url()).toContain('/login');
   });
 
-  test('unauthenticated user cannot access /contractors listing', async ({ page }) => {
+  test('unauthenticated user cannot access /contractors listing', async ({
+    page,
+  }) => {
     await clearAuth(page);
     await page.goto('/contractors');
     await page.waitForLoadState('networkidle');
@@ -58,7 +69,9 @@ test.describe('Security: Auth Bypass Regression', () => {
     expect(page.url()).toContain('/login');
   });
 
-  test('public contractor profile (UUID) is still accessible', async ({ page }) => {
+  test('public contractor profile (UUID) is still accessible', async ({
+    page,
+  }) => {
     // A UUID-formatted path should remain public per middleware
     await clearAuth(page);
     await page.goto('/contractor/00000000-0000-0000-0000-000000000000');
@@ -74,25 +87,33 @@ test.describe('Security: Auth Bypass Regression', () => {
     await page.waitForLoadState('networkidle');
 
     // Check "For Homeowners" link
-    const homeownerLink = page.getByRole('link', { name: /For Homeowners/i }).first();
+    const homeownerLink = page
+      .getByRole('link', { name: /For Homeowners/i })
+      .first();
     if (await homeownerLink.isVisible().catch(() => false)) {
       const href = await homeownerLink.getAttribute('href');
       expect(href).toContain('/login');
     }
 
     // Check "For Contractors" link
-    const contractorLink = page.getByRole('link', { name: /For Contractors/i }).first();
+    const contractorLink = page
+      .getByRole('link', { name: /For Contractors/i })
+      .first();
     if (await contractorLink.isVisible().catch(() => false)) {
       const href = await contractorLink.getAttribute('href');
       expect(href).toContain('/login');
     }
   });
 
-  test('landing page does not contain "Browse Contractors" button', async ({ page }) => {
+  test('landing page does not contain "Browse Contractors" button', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const browseButton = page.getByRole('link', { name: /Browse Contractors/i });
+    const browseButton = page.getByRole('link', {
+      name: /Browse Contractors/i,
+    });
     const isVisible = await browseButton.isVisible().catch(() => false);
     expect(isVisible).toBeFalsy();
   });
@@ -146,13 +167,17 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
     // Select category
     const categoryDropdown = page.getByLabel(/category|type|trade/i);
     if (await categoryDropdown.isVisible().catch(() => false)) {
-      await categoryDropdown.selectOption({ label: new RegExp(testJob.category, 'i') }).catch(async () => {
-        // If it's not a <select>, try clicking a button/option
-        const categoryOption = page.getByText(new RegExp(testJob.category, 'i')).first();
-        if (await categoryOption.isVisible().catch(() => false)) {
-          await categoryOption.click();
-        }
-      });
+      await categoryDropdown
+        .selectOption({ label: new RegExp(testJob.category, 'i') })
+        .catch(async () => {
+          // If it's not a <select>, try clicking a button/option
+          const categoryOption = page
+            .getByText(new RegExp(testJob.category, 'i'))
+            .first();
+          if (await categoryOption.isVisible().catch(() => false)) {
+            await categoryOption.click();
+          }
+        });
     }
 
     // Fill in budget
@@ -169,7 +194,9 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
 
     // Submit the job
     const submitButton = page
-      .getByRole('button', { name: /post.*job|create.*job|submit|next|continue/i })
+      .getByRole('button', {
+        name: /post.*job|create.*job|submit|next|continue/i,
+      })
       .first();
     const canSubmit = await submitButton.isVisible().catch(() => false);
 
@@ -179,8 +206,10 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
 
       // Verify submission: success message or redirect
       const hasSuccess =
-        (await page.getByText(/success|created|posted/i).isVisible().catch(() => false)) ||
-        page.url().includes('/jobs/');
+        (await page
+          .getByText(/success|created|posted/i)
+          .isVisible()
+          .catch(() => false)) || page.url().includes('/jobs/');
 
       expect(hasSuccess).toBeTruthy();
     } else {
@@ -195,7 +224,9 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
 
   // -- Step 2: Contractor discovers the job and submits a bid --
 
-  test('Step 2: Contractor logs in, finds job, and submits a bid', async ({ page }) => {
+  test('Step 2: Contractor logs in, finds job, and submits a bid', async ({
+    page,
+  }) => {
     await loginAsContractor(page);
 
     // Navigate to job discovery
@@ -217,9 +248,12 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
     }
 
     // Try to find and click on a job to view details
-    const jobLink = page
+    // Scoped to #main-content: unscoped this matched the sidebar's
+    // /contractor/reviews nav item, which sits under the mobile-nav backdrop.
+    const content = page.locator('#main-content');
+    const jobLink = content
       .getByRole('link', { name: /view|details|bid/i })
-      .or(page.locator('[data-testid="job-card"]'))
+      .or(content.locator('[data-testid="job-card"]'))
       .first();
 
     const hasJobLink = await jobLink.isVisible().catch(() => false);
@@ -229,7 +263,9 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
       await page.waitForLoadState('networkidle');
 
       // Look for bid submission form or button
-      const bidButton = page.getByRole('button', { name: /bid|quote|submit.*bid|place.*bid/i }).first();
+      const bidButton = page
+        .getByRole('button', { name: /bid|quote|submit.*bid|place.*bid/i })
+        .first();
       const hasBidButton = await bidButton.isVisible().catch(() => false);
 
       if (hasBidButton) {
@@ -243,22 +279,28 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
         }
 
         // Fill in bid description/message
-        const messageInput = page.getByLabel(/message|description|details|cover/i);
+        const messageInput = page.getByLabel(
+          /message|description|details|cover/i
+        );
         if (await messageInput.isVisible().catch(() => false)) {
           await messageInput.fill(testBid.description);
         }
 
         // Submit the bid
         const submitBidBtn = page
-          .getByRole('button', { name: /submit.*bid|send.*bid|place.*bid|confirm/i })
+          .getByRole('button', {
+            name: /submit.*bid|send.*bid|place.*bid|confirm/i,
+          })
           .first();
         if (await submitBidBtn.isVisible().catch(() => false)) {
           await submitBidBtn.click();
           await waitForNetworkIdle(page);
 
           const bidSuccess =
-            (await page.getByText(/success|submitted|sent/i).isVisible().catch(() => false)) ||
-            page.url().includes('/bid');
+            (await page
+              .getByText(/success|submitted|sent/i)
+              .isVisible()
+              .catch(() => false)) || page.url().includes('/bid');
 
           expect(bidSuccess).toBeTruthy();
         }
@@ -273,7 +315,9 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
 
   // -- Step 3: Homeowner reviews bids and accepts --
 
-  test('Step 3: Homeowner reviews bids and accepts contractor bid', async ({ page }) => {
+  test('Step 3: Homeowner reviews bids and accepts contractor bid', async ({
+    page,
+  }) => {
     await loginAsHomeowner(page);
 
     // Navigate to jobs list to see bids
@@ -284,9 +328,7 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
     await page.waitForTimeout(3000);
 
     // Look for a job with bids
-    const jobWithBids = page
-      .getByText(/bid|quote|proposal/i)
-      .first();
+    const jobWithBids = page.getByText(/bid|quote|proposal/i).first();
     const hasBids = await jobWithBids.isVisible().catch(() => false);
 
     if (hasBids) {
@@ -321,8 +363,14 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
 
           // Verify acceptance
           const accepted =
-            (await page.getByText(/accepted|hired|approved/i).isVisible().catch(() => false)) ||
-            (await page.getByText(/contract|schedule|escrow/i).isVisible().catch(() => false));
+            (await page
+              .getByText(/accepted|hired|approved/i)
+              .isVisible()
+              .catch(() => false)) ||
+            (await page
+              .getByText(/contract|schedule|escrow/i)
+              .isVisible()
+              .catch(() => false));
 
           expect(accepted).toBeTruthy();
         }
@@ -370,7 +418,8 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
     await clearAuth(page);
     await loginAsContractor(page);
 
-    const contractorNotifResponse = await page.request.get('/api/notifications');
+    const contractorNotifResponse =
+      await page.request.get('/api/notifications');
     expect([200, 401]).toContain(contractorNotifResponse.status());
   });
 });
@@ -393,7 +442,8 @@ test.describe('Profile Image Display', () => {
 
     // Page should have loaded (not stuck on loading)
     const bodyText = await page.textContent('body');
-    const isNotLoading = bodyText && !bodyText.includes('Loading...') && bodyText.length > 100;
+    const isNotLoading =
+      bodyText && !bodyText.includes('Loading...') && bodyText.length > 100;
 
     expect(hasProfile || isNotLoading).toBeTruthy();
   });
@@ -402,7 +452,9 @@ test.describe('Profile Image Display', () => {
 // ---- Early Access / Founding Members ----
 
 test.describe('Subscription Status API', () => {
-  test('subscription status endpoint returns early access info', async ({ page }) => {
+  test('subscription status endpoint returns early access info', async ({
+    page,
+  }) => {
     await loginAsHomeowner(page);
 
     const response = await page.request.get('/api/subscriptions/status');

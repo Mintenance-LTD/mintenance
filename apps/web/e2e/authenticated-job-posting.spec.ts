@@ -11,7 +11,7 @@
  * e2e/.auth/homeowner.json
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import {
   createTestJob,
   fillForm,

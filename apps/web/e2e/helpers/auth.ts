@@ -298,6 +298,17 @@ async function getCurrentUserRole(
  */
 export async function clearAuth(page: Page): Promise<void> {
   await page.context().clearCookies();
+
+  // Storage is per-origin. A freshly created page sits on about:blank, which
+  // is an opaque origin — touching localStorage there throws
+  // "SecurityError: Access is denied for this document" and fails the test
+  // before it has navigated anywhere. There is no storage to clear in that
+  // case, so skip it.
+  const url = page.url();
+  if (!url.startsWith('http')) {
+    return;
+  }
+
   await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();
