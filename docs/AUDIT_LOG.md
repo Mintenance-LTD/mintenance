@@ -17,6 +17,64 @@ ran a mobile backend schema-alignment audit (live Postgres error logs + `informa
 cross-check), shipped 5 commits, applied 2 live migrations, and deleted ~45 files of orphaned dead
 code — see "2026-06-06" immediately below.
 
+### 2026-07-29 — e2e green-up round 3 (PRs #1269, #1270)
+
+Continued the CI e2e green-up. Measured, not estimated: run 30432147313 was 39 failed / 76 passed;
+after the round-1 commit run 30449947284 was **25 failed / 84 passed**.
+
+**The mass click-blocker.** `components/CookieConsent.tsx` renders a full-viewport
+`fixed inset-0 bg-black/20 z-40` backdrop one second after mount when no consent is stored. Its own
+comment calls it "purely visual", but it intercepts pointer events everywhere, so _any_ Playwright
+click issued more than a second after navigation retried until the 60s timeout — roughly 10 failures
+across full-user-journey, critical-paths, contractor-flow and mobile-responsive. Fixed with a shared
+`e2e/fixtures.ts` that pre-seeds the consent key via `addInitScript` (deliberately not
+`storageState` — the init script survives `clearAuth()`'s `localStorage.clear()` by re-seeding on
+the next navigation). Production behaviour untouched; whether that backdrop _should_ swallow clicks
+is a GDPR/product question, not a test one.
+
+**Three genuine app bugs the suite surfaced** (the rest were stale tests):
+
+1. **Job wizard dead end.** `app/jobs/create/page.tsx` gated step 1 on `description.length >= 50`
+   while `details-step.tsx`, `constants.ts` (`MIN_DESCRIPTION_LENGTH`) and the api-contracts schema
+   all used 20. At 20–49 characters the user saw a green "Description is detailed enough" tick next
+   to a permanently disabled Next button with no explanation. Now reads the shared constant.
+2. **Homeowner signup dead end.** The server's `registerSchema` (`lib/validation/schemas-auth.ts`)
+   requires a phone for homeowners; the client schema had it optional and the label rendered "Phone
+   number (optional)". Following the UI exactly produced a bare "Validation failed" naming no field.
+   Client aligned to the server (phone capture backs homeowner phone verification, so the server is
+   the correct side).
+3. **Public contractor profiles are auth-gated — NOT fixed, tracked.** `app/contractor/layout.tsx`
+   redirects all of `/contractor/*` to `/login` unless `role === 'contractor'`, and it wraps the
+   public `[id]` route too. So `middleware/public-routes.ts`'s `UUID_CONTRACTOR_PROFILE_RE`
+   whitelist and every `sitemap.ts` contractor URL are dead — for Googlebot, logged-out users, and
+   logged-in homeowners alike. Needs a route-group restructure (~30 directories). The e2e test is
+   left deliberately failing rather than skipped.
+
+**Accessibility triage from the previous session was wrong.** The `accessibility` project has no
+`storageState`, so 8 of the 9 "page" scans are the same `/login` scan under different names — a
+token fix alone would produce a green that never scanned a dashboard. Two more failures were broken
+_test_ code, not app defects: the form-label `evaluate` callback referenced its own outer `hasLabel`
+const inside page context (ReferenceError on the first input), and the skip-link selector used an
+exact `a[href="#main"]` against the real `href="#main-content"`. Both fixed.
+
+The contrast failure is real and **axe-confirmed, not computed**: `--me-brand` `#3f8c7a` on
+`--me-bg` `#f3f7f4` is **3.7:1** against a 4.5:1 requirement, across 233 nodes. `--me-brand-2`
+`#2f6f5f` already exists in the palette and passes (5.46:1 as text, 5.90:1 with white on it).
+Deliberately **not** changed — that is a visible brand shift across 200+ sites and wants design
+sign-off. Retarget the project first, then decide the token.
+
+**Playwright gotchas worth remembering.** `getByLabel` reads `aria-label` off _any_ element, not
+just form controls — `ProgressBar`'s `aria-label="Step 1: Details"` collided with
+`getByLabel(/description|details/i)`, and the specs' own `.catch(() => false)` swallowed the
+resulting strict-mode violation, silently leaving fields unfilled. `[class*="card"]` matches
+lucide's `lucide-credit-card` icon, which `.me-root .ic` sizes to 16px — exactly the width the
+mobile card assertion was receiving. Unscoped `getByRole('link').first()` resolves to the sr-only
+"Skip to content" link. Scope locators to `#main-content` / `.me-content`.
+
+Also: `apps/web/playwright-report/index.html` is tracked and 530KB, so any local
+`playwright test --list` regenerates it and the pre-commit 488KB file-size gate then blocks the
+commit. Don't `git add -A` in this repo.
+
 ### 2026-07-26 (later) — assessment-photo security, team invites, green suite
 
 Follow-up session working the recommendations from the audit below.
