@@ -316,9 +316,15 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
           const tag = tagName.toLowerCase();
           if (allowedTags.includes(tag)) {
             // Keep allowed tags but remove dangerous attributes (only match space-prefixed attrs)
-            return match
-              .replace(/\s+on\w+=["'][^"']*["']/gi, '')
-              .replace(/\s+on\w+=\S*/gi, '');
+            let safeMatch = match;
+            let previous: string;
+            do {
+              previous = safeMatch;
+              safeMatch = safeMatch
+                .replace(/\s+on\w+=["'][^"']*["']/gi, '')
+                .replace(/\s+on\w+=\S*/gi, '');
+            } while (safeMatch !== previous);
+            return safeMatch;
           }
           return ''; // Remove non-allowed tags
         }
