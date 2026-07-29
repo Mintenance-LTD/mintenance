@@ -300,8 +300,8 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
     result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
     result = result.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
 
-    // Remove javascript: URLs
-    result = result.replace(/javascript:/gi, '');
+    // Remove dangerous executable URL schemes
+    result = result.replace(/(?:javascript|data|vbscript):/gi, '');
 
     // Handle allowed tags if specified
     if (config?.ALLOWED_TAGS && Array.isArray(config.ALLOWED_TAGS)) {
