@@ -221,7 +221,7 @@ module.exports = {
         },
       },
       package: 'com.mintenance.app',
-      versionCode: 17,
+      versionCode: 18,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',

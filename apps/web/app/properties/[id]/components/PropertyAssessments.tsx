@@ -245,11 +245,16 @@ export default function PropertyAssessments({
                   </span>
                 </div>
 
+                {/* Points at the survey, not the annotation tool. This used to
+                    link straight to /correct, which draws bounding boxes over
+                    the frames for model retraining and never renders the
+                    survey -- so opening your own assessment showed you the
+                    photographs and none of the findings. */}
                 <Link
-                  href={`/building-assessments/${a.id}/correct`}
+                  href={`/building-assessments/${a.id}`}
                   className='inline-flex items-center text-xs font-semibold text-teal-700 hover:text-teal-800'
                 >
-                  Review or correct →
+                  View survey →
                 </Link>
               </div>
             </div>
