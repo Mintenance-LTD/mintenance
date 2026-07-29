@@ -32,6 +32,12 @@ export const PHONE_VERIFICATION_STATUS_KEY = 'phone-verification-status';
 
 interface ProfileVerificationResponse {
   profile?: { phone_verified?: boolean | null } | null;
+  /**
+   * Server-side beta switch (BETA_OPEN_ACCESS). Absent on older API
+   * deployments, in which case we fall back to the historic behaviour
+   * of nudging whenever the phone is unverified.
+   */
+  phoneVerificationRequired?: boolean;
 }
 
 interface PhoneVerificationBannerProps {
@@ -61,8 +67,14 @@ export const PhoneVerificationBanner: React.FC<
   });
 
   // Only render on an explicit false — not while loading (undefined)
-  // and not for contractors, whose posting isn't phone-gated.
-  if (!isHomeowner || data?.profile?.phone_verified !== false) {
+  // and not for contractors, whose posting isn't phone-gated. During
+  // the beta the server reports the requirement as waived, so the
+  // nudge goes away without needing an EAS rebuild.
+  if (
+    !isHomeowner ||
+    data?.phoneVerificationRequired === false ||
+    data?.profile?.phone_verified !== false
+  ) {
     return null;
   }
 

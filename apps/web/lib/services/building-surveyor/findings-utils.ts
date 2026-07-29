@@ -37,6 +37,8 @@ interface RawFinding {
   /** Walkthrough frame provenance; absent on single-photo assessments. */
   sourceFrameIndex?: number;
   sourceFrameIndexes?: number[];
+  isClear?: boolean;
+  unconfirmed?: boolean;
 }
 
 interface SingularFallback {
@@ -88,6 +90,8 @@ export function normalizeFindings(
       // Undefined for single-photo assessments.
       sourceFrameIndex: f.sourceFrameIndex,
       sourceFrameIndexes: f.sourceFrameIndexes,
+      isClear: f.isClear,
+      unconfirmed: f.unconfirmed,
     }));
 
   // No findings array — synthesise one from the singular fields.

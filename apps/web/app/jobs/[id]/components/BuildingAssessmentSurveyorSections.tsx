@@ -162,6 +162,19 @@ function reportsACondition(finding: AssessmentFinding): boolean {
 const MAX_FALLBACK_FRAMES = 6;
 
 /**
+ * Whether a finding asserts nothing is wrong.
+ *
+ * Prefers the flag the merge sets, but falls back to deriving it, because
+ * surveys stored before the flag existed still contain clean readings and would
+ * otherwise keep listing "the wall is in good condition" as a finding. RICS
+ * rating 1 means no repair is needed, so early+1 IS the absence of a defect.
+ */
+function isClearReading(f: AssessmentFinding): boolean {
+  if (typeof f.isClear === 'boolean') return f.isClear;
+  return f.severity === 'early' && f.conditionRating === 1;
+}
+
+/**
  * The evidence behind a finding.
  *
  * Preferred: the exact frame the finding was read from, via sourceFrameIndex.
@@ -262,14 +275,24 @@ export function FindingsSection({
   frameUrls?: string[];
 }) {
   if (!findings || findings.length < 2) return null;
+
+  // Clean readings are the absence of a defect, not a defect. Listing them as
+  // peers is what let one survey report the same window as misaligned AND in
+  // good condition, side by side.
+  const defects = findings.filter((f) => !isClearReading(f));
+  const clear = findings.filter((f) => isClearReading(f));
+  const clearElements = Array.from(
+    new Set(clear.map((f) => f.element.replace(/_/g, ' ')))
+  );
+
   return (
     <div className='p-6 border-t border-gray-200'>
       <h4 className='font-medium text-gray-900 mb-3'>
         Findings{' '}
-        <span className='text-gray-400 font-normal'>({findings.length})</span>
+        <span className='text-gray-400 font-normal'>({defects.length})</span>
       </h4>
       <div className='space-y-3'>
-        {findings.map((f, index) => (
+        {defects.map((f, index) => (
           <div
             key={index}
             className='p-3 rounded-lg border border-gray-100 bg-gray-50'
@@ -296,6 +319,14 @@ export function FindingsSection({
                   Condition {f.conditionRating}
                 </span>
               )}
+              {f.unconfirmed && (
+                <span
+                  className='px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700'
+                  title='Only one frame of the walkthrough reported this, so it has not been corroborated by the other frames.'
+                >
+                  Unconfirmed
+                </span>
+              )}
             </div>
             {f.description && (
               <p className='text-sm text-gray-700'>{f.description}</p>
@@ -308,7 +339,20 @@ export function FindingsSection({
             <FindingSourceFrame finding={f} frameUrls={frameUrls} />
           </div>
         ))}
+        {defects.length === 0 && (
+          <p className='text-sm text-gray-600'>
+            No defects were identified in this survey.
+          </p>
+        )}
       </div>
+      {clearElements.length > 0 && (
+        // Kept on the record — "we looked and it was fine" is worth saying —
+        // but not as a peer of an actual defect.
+        <p className='text-xs text-gray-500 mt-3'>
+          <span className='font-medium'>Checked and clear:</span>{' '}
+          <span className='capitalize'>{clearElements.join(', ')}</span>
+        </p>
+      )}
     </div>
   );
 }

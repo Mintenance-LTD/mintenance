@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PhoneVerificationService } from './PhoneVerificationService';
+import { isPhoneVerificationWaivedFor } from './EarlyAccessCohort';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -13,12 +14,18 @@ export class HomeownerVerificationService {
     verified: boolean;
     emailVerified: boolean;
     phoneVerified: boolean;
+    /**
+     * True when the phone requirement was lifted for this user by the
+     * early-access cohort rule rather than satisfied. Callers use it to
+     * avoid asking for a verification that isn't being enforced.
+     */
+    phoneVerificationWaived: boolean;
     canPostJobs: boolean;
   }> {
     try {
       const { data: user, error } = await serverSupabase
         .from('profiles')
-        .select('verified, phone_verified, role')
+        .select('verified, phone_verified, phone, role, created_at')
         .eq('id', userId)
         .single();
 
@@ -27,6 +34,7 @@ export class HomeownerVerificationService {
           verified: false,
           emailVerified: false,
           phoneVerified: false,
+          phoneVerificationWaived: false,
           canPostJobs: false,
         };
       }
@@ -35,12 +43,20 @@ export class HomeownerVerificationService {
       if (user.role === 'homeowner') {
         const emailVerified = user.verified || false;
         const phoneVerified = user.phone_verified || false;
-        const canPostJobs = emailVerified && phoneVerified;
+        // The helper short-circuits before the cohort query whenever
+        // the answer can't change the outcome (already verified, or no
+        // number on file), keeping the extra round-trip off the
+        // common paths.
+        const phoneVerificationWaived =
+          await isPhoneVerificationWaivedFor(user);
+        const canPostJobs =
+          emailVerified && (phoneVerified || phoneVerificationWaived);
 
         return {
           verified: canPostJobs,
           emailVerified,
           phoneVerified,
+          phoneVerificationWaived,
           canPostJobs,
         };
       }
@@ -50,6 +66,7 @@ export class HomeownerVerificationService {
         verified: true,
         emailVerified: user.verified || false,
         phoneVerified: false,
+        phoneVerificationWaived: false,
         canPostJobs: true,
       };
     } catch (error) {
@@ -61,6 +78,7 @@ export class HomeownerVerificationService {
         verified: false,
         emailVerified: false,
         phoneVerified: false,
+        phoneVerificationWaived: false,
         canPostJobs: false,
       };
     }
@@ -79,7 +97,7 @@ export class HomeownerVerificationService {
     try {
       const { data: user, error } = await serverSupabase
         .from('profiles')
-        .select('verified, phone_verified, phone, role')
+        .select('verified, phone_verified, phone, role, created_at')
         .eq('id', userId)
         .single();
 
@@ -95,14 +113,20 @@ export class HomeownerVerificationService {
       const emailVerified = user.verified || false;
       const phoneVerified = user.phone_verified || false;
       const missingRequirements: string[] = [];
+      const isHomeowner = user.role === 'homeowner';
+      // Same helper as isFullyVerified so the two never disagree about
+      // who still owes a phone verification.
+      const phoneWaived = await isPhoneVerificationWaivedFor(user);
 
-      if (user.role === 'homeowner') {
+      if (isHomeowner) {
         if (!emailVerified) {
           missingRequirements.push('Email verification required');
         }
-        if (!phoneVerified) {
+        if (!phoneVerified && !phoneWaived) {
           missingRequirements.push('Phone verification required');
         }
+        // Never waived — a waived homeowner has a number by definition,
+        // so this only ever fires for someone we still need one from.
         if (!user.phone) {
           missingRequirements.push('Phone number required');
         }
@@ -112,7 +136,9 @@ export class HomeownerVerificationService {
         emailVerified,
         phoneVerified,
         phoneNumber: user.phone || undefined,
-        canPostJobs: user.role === 'homeowner' ? (emailVerified && phoneVerified) : true,
+        canPostJobs: isHomeowner
+          ? emailVerified && (phoneVerified || phoneWaived)
+          : true,
         missingRequirements,
       };
     } catch (error) {
@@ -129,4 +155,3 @@ export class HomeownerVerificationService {
     }
   }
 }
-

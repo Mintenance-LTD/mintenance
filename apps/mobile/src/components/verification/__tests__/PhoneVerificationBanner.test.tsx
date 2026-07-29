@@ -80,6 +80,30 @@ describe('PhoneVerificationBanner', () => {
     expect(queryByTestId('phone-verification-banner')).toBeNull();
   });
 
+  // Beta open access: the server waives the phone gate via
+  // BETA_OPEN_ACCESS and reports it on GET /api/users/profile, so
+  // installed builds stop nudging without an EAS rebuild.
+  it('renders nothing when the server reports phone verification is not required', async () => {
+    mockGet.mockResolvedValue({
+      profile: { phone_verified: false },
+      phoneVerificationRequired: false,
+    });
+    const { queryByTestId } = renderBanner();
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+    expect(queryByTestId('phone-verification-banner')).toBeNull();
+  });
+
+  it('still shows when the server reports the requirement is in force', async () => {
+    mockGet.mockResolvedValue({
+      profile: { phone_verified: false },
+      phoneVerificationRequired: true,
+    });
+    const { getByTestId } = renderBanner();
+    await waitFor(() =>
+      expect(getByTestId('phone-verification-banner')).toBeTruthy()
+    );
+  });
+
   it('opens the verification modal on tap', async () => {
     const { getByTestId, getByText } = renderBanner();
     await waitFor(() =>

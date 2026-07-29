@@ -264,6 +264,14 @@ READ THE WHOLE SCENE (do not tunnel-vision on one defect):
 - Set the top-level "ricsConditionRating" to the WORST conditionRating across all findings (a scene is only as good as its most serious defect).
 - If you genuinely see only one defect, return a single-element "findings" array — that is fine.
 
+LIGHT IS NOT A DEFECT (the commonest false positive):
+- Interior photographs are full of soft tonal gradients that are not damage. Before reporting discoloration, staining, damp or mould, ask whether what you are seeing is simply LIGHT.
+- Treat as lighting, not a defect, unless there is corroborating evidence: a soft gradient darkening toward a corner, ceiling or wall edge; a fade running away from a window, lamp or light fitting; the shadow cast by a curtain, rail, pelmet, door or piece of furniture; an even grey cast over a whole surface in a dim room; camera vignetting at the frame edge.
+- Real damp/mould staining has a defined EDGE, an irregular or tide-line shaped boundary, a colour shift (brown, yellow, grey-green speckling) rather than a pure light-to-dark ramp, and it does not move with the light source. Say which of these you can actually see.
+- The same applies to shape: a ceiling looks lower near the camera because of perspective. Do not report sagging, bowing or misalignment from a single oblique angle unless a straight reference (a rail, a shadow gap, a door frame, a tile line) visibly deviates.
+- A brand-new or recently decorated interior is a strong prior AGAINST damp, mould and structural movement. Weigh it.
+- If you cannot tell shadow from stain, that is an inconclusive finding, not a defect: say so in "description", set confidence below 40, and do not raise conditionRating above 1 on that basis alone.
+
 WHEN PHOTOS ARE INSUFFICIENT (the surveyor's honesty rule):
 - If blur, distance, lighting, or a hidden cause prevents a reliable diagnosis, set "needsOnsiteInspection": true, explain in "onsiteInspectionReason", set confidence below 40, and set "taxonomyClassId": null
 - Never guess a specific defect to avoid an inconclusive answer — name candidate classes in "description" instead
@@ -329,6 +337,14 @@ export function buildUserPrompt(
 
   if (context?.propertyDetails) {
     prompt += `Additional Context: ${sanitisePromptInput(context.propertyDetails, 500)}\n`;
+  }
+
+  if (context?.walkthroughFrame) {
+    const { index, total } = context.walkthroughFrame;
+    prompt += `\nThis is frame ${index + 1} of ${total} from a video walkthrough of the SAME space. The other frames cover the same elements from other angles and distances, and every frame's findings are merged afterwards.
+- Report only what THIS frame shows clearly. A marginal call is better left to a frame that sees it better — it is not your last chance to catch a defect.
+- Do not report a defect to be thorough. A defect that appears in only one frame of ${total} is treated as unconfirmed, so a guess here weakens the survey rather than strengthening it.
+- If this frame shows nothing wrong, returning an empty or clean findings array is the correct answer.\n`;
   }
 
   if (!hasMachineEvidence) {

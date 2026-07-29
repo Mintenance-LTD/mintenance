@@ -82,9 +82,16 @@ export async function assessWalkthrough(
   const perFrame = await mapWithConcurrency(
     frameUrls,
     concurrency,
-    async (url) => {
+    async (url, index) => {
       try {
-        return await assessFrame([url], context);
+        // Tell the model this is one frame of many. Without it the surveyor
+        // prompt's "report EVERY defect visible" runs once per frame, which on
+        // a 12-frame room walk is a dozen independent invitations to find
+        // something — and the merge keeps the worst answer of the dozen.
+        return await assessFrame([url], {
+          ...context,
+          walkthroughFrame: { index, total: frameUrls.length },
+        });
       } catch (err) {
         logger.warn('Walkthrough frame assessment failed (skipped)', {
           service: 'WalkthroughAssessment',

@@ -84,7 +84,6 @@ vi.mock('next/headers', () => ({
 // Mock next/image to prevent image optimization errors
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: any) => {
-     
     return React.createElement('img', { src, alt, ...props });
   },
 }));
@@ -97,13 +96,27 @@ vi.mock('next/dynamic', () => ({
   },
 }));
 
-// Mock @tanstack/react-query for components using React Query
+// Mock @tanstack/react-query for components using React Query.
+//
+// The hook stubs are written `vi.fn(() => value)` and NOT
+// `vi.fn().mockReturnValue(value)`. This file sets mocks once at module load,
+// but the suite runs with mockReset/clearMocks/restoreMocks AND an explicit
+// `vi.resetAllMocks()` in the beforeEach above — and a reset discards anything
+// configured by mockReturnValue while keeping the implementation passed to
+// vi.fn(). With mockReturnValue these hooks therefore returned `undefined` from
+// the second test in every file onward, so any component doing
+// `const { data } = useQuery(...)` crashed on the destructure. That is what
+// broke the six QuickJobPage tests when PhoneVerificationBanner landed: it was
+// simply the first component in that file to read useQuery's result directly.
+//
+// A fresh object per call, so a component mutating the result cannot leak into
+// the next test.
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
     ...actual,
-    useQuery: vi.fn().mockReturnValue({
-      data: [], // Return empty array instead of undefined to prevent .flatMap/.reduce errors
+    useQuery: vi.fn(() => ({
+      data: [], // Empty array rather than undefined to keep .flatMap/.reduce safe
       isLoading: false,
       isError: false,
       error: null,
@@ -111,10 +124,10 @@ vi.mock('@tanstack/react-query', async () => {
       isSuccess: true,
       isFetching: false,
       status: 'success',
-    }),
-    useMutation: vi.fn().mockReturnValue({
+    })),
+    useMutation: vi.fn(() => ({
       mutate: vi.fn(),
-      mutateAsync: vi.fn().mockResolvedValue({}),
+      mutateAsync: vi.fn(async () => ({})),
       isLoading: false,
       isPending: false,
       isError: false,
@@ -122,8 +135,8 @@ vi.mock('@tanstack/react-query', async () => {
       isSuccess: false,
       status: 'idle',
       reset: vi.fn(),
-    }),
-    useInfiniteQuery: vi.fn().mockReturnValue({
+    })),
+    useInfiniteQuery: vi.fn(() => ({
       data: { pages: [], pageParams: [] },
       isLoading: false,
       isError: false,
@@ -135,19 +148,20 @@ vi.mock('@tanstack/react-query', async () => {
       fetchNextPage: vi.fn(),
       hasNextPage: false,
       isFetchingNextPage: false,
-    }),
-    useQueryClient: vi.fn().mockReturnValue({
+    })),
+    useQueryClient: vi.fn(() => ({
       invalidateQueries: vi.fn(),
       setQueryData: vi.fn(),
-      getQueryData: vi.fn().mockReturnValue([]),
+      getQueryData: vi.fn(() => []),
       prefetchQuery: vi.fn(),
       cancelQueries: vi.fn(),
       clear: vi.fn(),
-    }),
+    })),
     QueryClient: class MockQueryClient {
       defaultOptions: Record<string, unknown>;
       constructor(opts?: Record<string, unknown>) {
-        this.defaultOptions = opts?.defaultOptions as Record<string, unknown> ?? {};
+        this.defaultOptions =
+          (opts?.defaultOptions as Record<string, unknown>) ?? {};
       }
       invalidateQueries = vi.fn();
       setQueryData = vi.fn();
@@ -155,9 +169,12 @@ vi.mock('@tanstack/react-query', async () => {
       prefetchQuery = vi.fn();
       cancelQueries = vi.fn();
       clear = vi.fn();
-      getDefaultOptions() { return this.defaultOptions; }
+      getDefaultOptions() {
+        return this.defaultOptions;
+      }
     },
-    QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+    QueryClientProvider: ({ children }: { children: React.ReactNode }) =>
+      children,
   };
 });
 
@@ -240,13 +257,19 @@ vi.mock('@/lib/react-query-client', () => ({
 
 // Mock environment variables (NODE_ENV is already 'test' in test environment)
 // JWT_SECRET must be at least 64 characters and look random (no weak patterns like 'test-jwt', 'placeholder', etc.)
-process.env.JWT_SECRET = 'aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4yZ5aB6cD7eF8gH9iJ0kL1mN2oP3qR4s';
+process.env.JWT_SECRET =
+  'aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4yZ5aB6cD7eF8gH9iJ0kL1mN2oP3qR4s';
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://abcdefghijklmnop.supabase.co';
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxOTAwMDAwMDAwfQ.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE5MDAwMDAwMDB9.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-process.env.STRIPE_SECRET_KEY = 'sk_test_51Abc123Def456Ghi789Jkl012Mno345Pqr678Stu901Vwx234';
-process.env.STRIPE_WEBHOOK_SECRET = 'whsec_abcdef123456ghijkl789012mnopqr345678stuvwx';
-process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = 'pk_test_51Abc123Def456Ghi789Jkl012Mno345Pqr678Stu901Vwx234';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxOTAwMDAwMDAwfQ.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+process.env.SUPABASE_SERVICE_ROLE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE5MDAwMDAwMDB9.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+process.env.STRIPE_SECRET_KEY =
+  'sk_test_51Abc123Def456Ghi789Jkl012Mno345Pqr678Stu901Vwx234';
+process.env.STRIPE_WEBHOOK_SECRET =
+  'whsec_abcdef123456ghijkl789012mnopqr345678stuvwx';
+process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY =
+  'pk_test_51Abc123Def456Ghi789Jkl012Mno345Pqr678Stu901Vwx234';
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 
 // Mock DOMPurify for sanitizer tests
@@ -261,30 +284,51 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
 
     let result = input;
 
-    // Remove script tags completely
-    result = result.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    result = result.replace(/<script.*?\/>/gi, '');
+    // Remove script tags completely.
+    // Apply repeatedly until stable to avoid incomplete multi-character sanitization.
+    let previous: string;
+    do {
+      previous = result;
+      result = result.replace(
+        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+        ''
+      );
+      result = result.replace(/<script.*?\/>/gi, '');
+    } while (result !== previous);
 
     // Remove event handlers
     result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
     result = result.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
 
-    // Remove javascript: URLs
-    result = result.replace(/javascript:/gi, '');
+    // Remove dangerous executable URL schemes
+    result = result.replace(/(?:javascript|data|vbscript):/gi, '');
 
     // Handle allowed tags if specified
     if (config?.ALLOWED_TAGS && Array.isArray(config.ALLOWED_TAGS)) {
-      const allowedTags = config.ALLOWED_TAGS.map((t: string) => t.toLowerCase());
+      const allowedTags = config.ALLOWED_TAGS.map((t: string) =>
+        t.toLowerCase()
+      );
 
       // Remove tags not in allowed list
-      result = result.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match: string, tagName: string) => {
-        const tag = tagName.toLowerCase();
-        if (allowedTags.includes(tag)) {
-          // Keep allowed tags but remove dangerous attributes (only match space-prefixed attrs)
-          return match.replace(/\s+on\w+=["'][^"']*["']/gi, '').replace(/\s+on\w+=\S*/gi, '');
+      result = result.replace(
+        /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi,
+        (match: string, tagName: string) => {
+          const tag = tagName.toLowerCase();
+          if (allowedTags.includes(tag)) {
+            // Keep allowed tags but remove dangerous attributes (only match space-prefixed attrs)
+            let safeMatch = match;
+            let previous: string;
+            do {
+              previous = safeMatch;
+              safeMatch = safeMatch
+                .replace(/\s+on\w+=["'][^"']*["']/gi, '')
+                .replace(/\s+on\w+=\S*/gi, '');
+            } while (safeMatch !== previous);
+            return safeMatch;
+          }
+          return ''; // Remove non-allowed tags
         }
-        return ''; // Remove non-allowed tags
-      });
+      );
     }
 
     return result.trim();
@@ -319,7 +363,8 @@ vi.mock('dompurify', () => {
 });
 
 // Mock crypto for consistent testing (preserve subtle for node environment)
-const existingCrypto = typeof globalThis.crypto !== 'undefined' ? globalThis.crypto : undefined;
+const existingCrypto =
+  typeof globalThis.crypto !== 'undefined' ? globalThis.crypto : undefined;
 const mockCrypto = {
   randomUUID: () => `test-uuid-${Date.now()}`,
   randomBytes: (size: number) => Buffer.alloc(size, 'test'),
@@ -340,19 +385,20 @@ Object.defineProperty(global, 'crypto', {
 
 // Mock window.matchMedia (direct implementation to survive vi.clearAllMocks())
 // Guard for node environment where window is not defined
-if (typeof window !== 'undefined') Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }),
-});
+if (typeof window !== 'undefined')
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }),
+  });
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
@@ -386,9 +432,15 @@ global.fetch = vi.fn(() =>
 // Mock Stripe.js to prevent script loading errors
 vi.mock('@stripe/stripe-js', () => ({
   loadStripe: vi.fn().mockResolvedValue({
-    confirmCardPayment: vi.fn().mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
-    createPaymentMethod: vi.fn().mockResolvedValue({ paymentMethod: { id: 'pm_test' }, error: null }),
-    confirmPayment: vi.fn().mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
+    confirmCardPayment: vi
+      .fn()
+      .mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
+    createPaymentMethod: vi
+      .fn()
+      .mockResolvedValue({ paymentMethod: { id: 'pm_test' }, error: null }),
+    confirmPayment: vi
+      .fn()
+      .mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
     elements: vi.fn().mockReturnValue({
       create: vi.fn().mockReturnValue({
         mount: vi.fn(),
@@ -405,8 +457,12 @@ vi.mock('@stripe/stripe-js', () => ({
 vi.mock('@stripe/react-stripe-js', () => ({
   Elements: ({ children }: { children: React.ReactNode }) => children,
   useStripe: () => ({
-    confirmCardPayment: vi.fn().mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
-    createPaymentMethod: vi.fn().mockResolvedValue({ paymentMethod: { id: 'pm_test' }, error: null }),
+    confirmCardPayment: vi
+      .fn()
+      .mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
+    createPaymentMethod: vi
+      .fn()
+      .mockResolvedValue({ paymentMethod: { id: 'pm_test' }, error: null }),
   }),
   useElements: () => ({
     getElement: vi.fn().mockReturnValue({}),
@@ -441,11 +497,21 @@ vi.mock('@supabase/supabase-js', () => ({
 
     supabaseClient = {
       auth: {
-        signIn: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        signIn: vi
+          .fn()
+          .mockResolvedValue({ data: { user: null }, error: null }),
         signOut: vi.fn().mockResolvedValue({ error: null }),
-        signUp: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-        getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-        onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+        signUp: vi
+          .fn()
+          .mockResolvedValue({ data: { user: null }, error: null }),
+        getSession: vi
+          .fn()
+          .mockResolvedValue({ data: { session: null }, error: null }),
+        onAuthStateChange: vi
+          .fn()
+          .mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
+          }),
       },
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -472,11 +538,19 @@ vi.mock('@supabase/supabase-js', () => ({
       }),
       storage: {
         from: vi.fn().mockReturnValue({
-          upload: vi.fn().mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
-          download: vi.fn().mockResolvedValue({ data: new Blob(), error: null }),
+          upload: vi
+            .fn()
+            .mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
+          download: vi
+            .fn()
+            .mockResolvedValue({ data: new Blob(), error: null }),
           remove: vi.fn().mockResolvedValue({ data: null, error: null }),
           list: vi.fn().mockResolvedValue({ data: [], error: null }),
-          getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/test.jpg' } }),
+          getPublicUrl: vi
+            .fn()
+            .mockReturnValue({
+              data: { publicUrl: 'https://example.com/test.jpg' },
+            }),
         }),
       },
       functions: {
@@ -491,49 +565,57 @@ vi.mock('@supabase/supabase-js', () => ({
 // Mock @/lib/api/supabaseServer for server-side Supabase usage
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
-        update: vi.fn().mockReturnThis(),
-        delete: vi.fn().mockReturnThis(),
-        upsert: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        neq: vi.fn().mockReturnThis(),
-        gt: vi.fn().mockReturnThis(),
-        lt: vi.fn().mockReturnThis(),
-        gte: vi.fn().mockReturnThis(),
-        lte: vi.fn().mockReturnThis(),
-        like: vi.fn().mockReturnThis(),
-        ilike: vi.fn().mockReturnThis(),
-        is: vi.fn().mockReturnThis(),
-        in: vi.fn().mockReturnThis(),
-        contains: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        range: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: null, error: null }),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-        then: vi.fn().mockResolvedValue({ data: [], error: null }),
-      }),
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-        getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-        signOut: vi.fn().mockResolvedValue({ error: null }),
-      },
-      storage: {
-        from: vi.fn().mockReturnValue({
-          upload: vi.fn().mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
-          download: vi.fn().mockResolvedValue({ data: new Blob(), error: null }),
-          remove: vi.fn().mockResolvedValue({ data: null, error: null }),
-          list: vi.fn().mockResolvedValue({ data: [], error: null }),
-          getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/test.jpg' } }),
-        }),
-      },
-      functions: {
-        invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
-      },
-      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      upsert: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      gt: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      like: vi.fn().mockReturnThis(),
+      ilike: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      contains: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      then: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }),
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      getSession: vi
+        .fn()
+        .mockResolvedValue({ data: { session: null }, error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
     },
+    storage: {
+      from: vi.fn().mockReturnValue({
+        upload: vi
+          .fn()
+          .mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
+        download: vi.fn().mockResolvedValue({ data: new Blob(), error: null }),
+        remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+        list: vi.fn().mockResolvedValue({ data: [], error: null }),
+        getPublicUrl: vi
+          .fn()
+          .mockReturnValue({
+            data: { publicUrl: 'https://example.com/test.jpg' },
+          }),
+      }),
+    },
+    functions: {
+      invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
+    },
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+  },
   createServerSupabaseClient: vi.fn(() => ({
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
@@ -558,65 +640,264 @@ vi.mock('@/hooks/useReducedMotion', () => ({
 // Mock framer-motion to strip animation props and prevent matchMedia errors
 vi.mock('framer-motion', () => ({
   motion: {
-    div: React.forwardRef(({ children, className, style, onClick, onMouseEnter, onMouseLeave, id, ...props }: any, ref: any) =>
-      React.createElement('div', { ref, className, style, onClick, onMouseEnter, onMouseLeave, id, 'data-testid': props['data-testid'] }, children)
+    div: React.forwardRef(
+      (
+        {
+          children,
+          className,
+          style,
+          onClick,
+          onMouseEnter,
+          onMouseLeave,
+          id,
+          ...props
+        }: any,
+        ref: any
+      ) =>
+        React.createElement(
+          'div',
+          {
+            ref,
+            className,
+            style,
+            onClick,
+            onMouseEnter,
+            onMouseLeave,
+            id,
+            'data-testid': props['data-testid'],
+          },
+          children
+        )
     ),
-    button: React.forwardRef(({ children, className, style, onClick, type, disabled, id, ...props }: any, ref: any) =>
-      React.createElement('button', { ref, className, style, onClick, type, disabled, id, 'data-testid': props['data-testid'] }, children)
+    button: React.forwardRef(
+      (
+        {
+          children,
+          className,
+          style,
+          onClick,
+          type,
+          disabled,
+          id,
+          ...props
+        }: any,
+        ref: any
+      ) =>
+        React.createElement(
+          'button',
+          {
+            ref,
+            className,
+            style,
+            onClick,
+            type,
+            disabled,
+            id,
+            'data-testid': props['data-testid'],
+          },
+          children
+        )
     ),
-    span: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('span', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    span: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'span',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    p: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('p', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    p: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'p',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    h1: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('h1', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    h1: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'h1',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    h2: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('h2', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    h2: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'h2',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    h3: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('h3', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    h3: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'h3',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    section: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('section', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    section: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'section',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    article: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('article', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    article: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'article',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    nav: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('nav', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    nav: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'nav',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    ul: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('ul', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ul: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'ul',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    li: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('li', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    li: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'li',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    a: React.forwardRef(({ children, className, style, href, onClick, id, ...props }: any, ref: any) =>
-      React.createElement('a', { ref, className, style, href, onClick, id, 'data-testid': props['data-testid'] }, children)
+    a: React.forwardRef(
+      (
+        { children, className, style, href, onClick, id, ...props }: any,
+        ref: any
+      ) =>
+        React.createElement(
+          'a',
+          {
+            ref,
+            className,
+            style,
+            href,
+            onClick,
+            id,
+            'data-testid': props['data-testid'],
+          },
+          children
+        )
     ),
-    img: React.forwardRef(({ src, alt, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('img', { ref, src, alt, className, style, id, 'data-testid': props['data-testid'] })
+    img: React.forwardRef(
+      ({ src, alt, className, style, id, ...props }: any, ref: any) =>
+        React.createElement('img', {
+          ref,
+          src,
+          alt,
+          className,
+          style,
+          id,
+          'data-testid': props['data-testid'],
+        })
     ),
-    form: React.forwardRef(({ children, className, style, onSubmit, id, ...props }: any, ref: any) =>
-      React.createElement('form', { ref, className, style, onSubmit, id, 'data-testid': props['data-testid'] }, children)
+    form: React.forwardRef(
+      ({ children, className, style, onSubmit, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'form',
+          {
+            ref,
+            className,
+            style,
+            onSubmit,
+            id,
+            'data-testid': props['data-testid'],
+          },
+          children
+        )
     ),
-    input: React.forwardRef(({ className, style, type, value, onChange, placeholder, id, ...props }: any, ref: any) =>
-      React.createElement('input', { ref, className, style, type, value, onChange, placeholder, id, 'data-testid': props['data-testid'] })
+    input: React.forwardRef(
+      (
+        {
+          className,
+          style,
+          type,
+          value,
+          onChange,
+          placeholder,
+          id,
+          ...props
+        }: any,
+        ref: any
+      ) =>
+        React.createElement('input', {
+          ref,
+          className,
+          style,
+          type,
+          value,
+          onChange,
+          placeholder,
+          id,
+          'data-testid': props['data-testid'],
+        })
     ),
-    svg: React.forwardRef(({ children, className, style, viewBox, id, ...props }: any, ref: any) =>
-      React.createElement('svg', { ref, className, style, viewBox, id, 'data-testid': props['data-testid'] }, children)
+    svg: React.forwardRef(
+      ({ children, className, style, viewBox, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'svg',
+          {
+            ref,
+            className,
+            style,
+            viewBox,
+            id,
+            'data-testid': props['data-testid'],
+          },
+          children
+        )
     ),
-    g: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
-      React.createElement('g', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    g: React.forwardRef(
+      ({ children, className, style, id, ...props }: any, ref: any) =>
+        React.createElement(
+          'g',
+          { ref, className, style, id, 'data-testid': props['data-testid'] },
+          children
+        )
     ),
-    circle: React.forwardRef(({ cx, cy, r, fill, stroke, className, id, ...props }: any, ref: any) =>
-      React.createElement('circle', { ref, cx, cy, r, fill, stroke, className, id, 'data-testid': props['data-testid'] })
+    circle: React.forwardRef(
+      ({ cx, cy, r, fill, stroke, className, id, ...props }: any, ref: any) =>
+        React.createElement('circle', {
+          ref,
+          cx,
+          cy,
+          r,
+          fill,
+          stroke,
+          className,
+          id,
+          'data-testid': props['data-testid'],
+        })
     ),
-    path: React.forwardRef(({ d, fill, stroke, className, id, ...props }: any, ref: any) =>
-      React.createElement('path', { ref, d, fill, stroke, className, id, 'data-testid': props['data-testid'] })
+    path: React.forwardRef(
+      ({ d, fill, stroke, className, id, ...props }: any, ref: any) =>
+        React.createElement('path', {
+          ref,
+          d,
+          fill,
+          stroke,
+          className,
+          id,
+          'data-testid': props['data-testid'],
+        })
     ),
   },
   AnimatePresence: ({ children }: any) => children,
@@ -675,8 +956,12 @@ vi.mock('@/lib/services/agents/JobStatusAgent', () => ({
 
 vi.mock('@/lib/services/MeetingService', () => ({
   MeetingService: {
-    createMeeting: vi.fn().mockResolvedValue({ id: 'meeting-1', url: 'https://example.com' }),
-    getMeeting: vi.fn().mockResolvedValue({ id: 'meeting-1', status: 'scheduled' }),
+    createMeeting: vi
+      .fn()
+      .mockResolvedValue({ id: 'meeting-1', url: 'https://example.com' }),
+    getMeeting: vi
+      .fn()
+      .mockResolvedValue({ id: 'meeting-1', status: 'scheduled' }),
     updateMeeting: vi.fn().mockResolvedValue({ success: true }),
     deleteMeeting: vi.fn().mockResolvedValue({ success: true }),
   },

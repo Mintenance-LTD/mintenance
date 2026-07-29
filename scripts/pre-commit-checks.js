@@ -56,6 +56,15 @@ const KNOWN_LARGE_FILES = new Set([
   // 2026-05-22 audit only touched the completion-side-effects block
   // and a wholesale split is out of scope for the audit pass.
   'apps/web/app/api/jobs/[id]/photos/after/route.ts',
+  // 2026-07-29: pre-existing at 701 lines. This is the global Vitest harness —
+  // one vi.mock factory per third-party module, which is inherently long and
+  // has no natural seam that would not just become a barrel file re-exporting
+  // the same factories. Added when fixing the react-query hook mocks (they
+  // used mockReturnValue, which mockReset wipes, so every hook returned
+  // undefined from the second test in a file onward). Splitting a harness that
+  // every one of the 246 suites loads is a far riskier change than the mock
+  // fix it would have blocked.
+  'apps/web/test/setup.ts',
   'apps/web/lib/rate-limiter-enhanced.ts',
   'apps/mobile/src/components/JobStatusTracker.tsx',
   'apps/mobile/src/screens/home/RecentJobs.tsx',
