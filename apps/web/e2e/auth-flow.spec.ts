@@ -288,12 +288,14 @@ test.describe('Authentication Flow', () => {
       // Test that login page has signup link
       await page.goto('/auth/login');
       await page.waitForLoadState('networkidle');
+      // Copy on the login page is "Create an account →" and "Forgot?", not
+      // "Create a new account" / "Forgot password".
       const signupLink = await page
-        .getByText(/create a new account|sign up/i)
+        .getByText(/create an? account|sign up/i)
         .isVisible()
         .catch(() => false);
       const forgotLink = await page
-        .getByText(/forgot password/i)
+        .getByText(/forgot/i)
         .isVisible()
         .catch(() => false);
       expect(signupLink && forgotLink).toBeTruthy();

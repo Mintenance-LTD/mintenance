@@ -158,6 +158,7 @@ export function DetailsStep({
                 <button
                   key={property.id}
                   type='button'
+                  data-testid='property-card'
                   onClick={() => {
                     setFormData((prev) => ({
                       ...prev,
@@ -264,6 +265,7 @@ export function DetailsStep({
               <button
                 key={category.value}
                 type='button'
+                data-testid={`category-${category.value}`}
                 onClick={() =>
                   setFormData((prev) => ({
                     ...prev,
