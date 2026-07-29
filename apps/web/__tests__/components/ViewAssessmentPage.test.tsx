@@ -149,9 +149,11 @@ describe('ViewAssessmentPage', () => {
     });
   });
 
-  it('omits source frames on older surveys that never recorded provenance', async () => {
-    // Historical rows have no sourceFrameIndex. They should look like a survey
-    // without pictures, not one whose pictures failed to load.
+  it('falls back to the walkthrough frames when provenance was never recorded', async () => {
+    // Historical rows have no sourceFrameIndex and it cannot be reconstructed —
+    // their stored evidence is empty. A finding that reports a condition should
+    // still put the frames in front of the user, captioned honestly, rather
+    // than leaving a claim about their property with nothing to check it against.
     const legacy = {
       ...ASSESSMENT,
       findings: ASSESSMENT.findings.map(
@@ -165,7 +167,10 @@ describe('ViewAssessmentPage', () => {
         id: 'assessment-1',
         status: 'pending',
         assessment: { data: legacy },
-        images: [{ image_url: 'https://signed/0.jpg', image_index: 0 }],
+        images: [
+          { image_url: 'https://signed/0.jpg', image_index: 0 },
+          { image_url: 'https://signed/1.jpg', image_index: 1 },
+        ],
         createdAt: '2026-07-28T21:54:12.490Z',
       }),
     }) as never;
@@ -175,7 +180,60 @@ describe('ViewAssessmentPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Exposed light fitting')).toBeInTheDocument();
     });
+    // Never claims a specific frame it does not know.
     expect(screen.queryByAltText(/Frame showing/)).toBeNull();
+    expect(
+      screen.getAllByText(/Exact frame not recorded for this finding/).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('does not attach frames to findings that report no defect', async () => {
+    // "The wall appears to be in good condition" needs no photograph. Only
+    // claims about a defect have to be checkable.
+    const clean = {
+      ...ASSESSMENT,
+      findings: [
+        {
+          element: 'main_walls',
+          damageType: 'none',
+          severity: 'early',
+          conditionRating: 1,
+          description: 'The wall appears to be in good condition.',
+          confidence: 90,
+        },
+        {
+          element: 'ceilings',
+          damageType: 'damp',
+          severity: 'developing',
+          conditionRating: 2,
+          description: 'Visible staining on the ceiling.',
+          confidence: 70,
+        },
+      ],
+    };
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: 'assessment-1',
+        status: 'pending',
+        assessment: { data: clean },
+        images: [{ image_url: 'https://signed/0.jpg', image_index: 0 }],
+        createdAt: '2026-07-28T21:54:12.490Z',
+      }),
+    }) as never;
+
+    render(<ViewAssessmentPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Visible staining on the ceiling.')
+      ).toBeInTheDocument();
+    });
+    // Exactly one finding earns the fallback strip: the condition-2 ceiling.
+    expect(
+      screen.getAllByText(/Exact frame not recorded for this finding/)
+    ).toHaveLength(1);
   });
 
   it('reports a failed load instead of an empty survey', async () => {

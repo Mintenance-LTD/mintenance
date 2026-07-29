@@ -140,11 +140,42 @@ export function SceneSummary({ summary }: { summary?: string }) {
 }
 
 /**
- * The frame a finding was read from, when one is known.
+ * Whether a finding actually reports a defect.
  *
- * Renders nothing rather than a placeholder when provenance is missing: a
- * survey taken before sourceFrameIndex was recorded should look like a survey
- * without pictures, not like one whose picture failed to load.
+ * Half a walkthrough's findings are clean bills of health ("the wall appears to
+ * be in good condition"). Those need no photograph. Anything at condition 2+ or
+ * developing-and-worse is a claim about the property, and a claim about someone's
+ * property should be checkable against what the camera saw.
+ */
+function reportsACondition(finding: AssessmentFinding): boolean {
+  if (typeof finding.conditionRating === 'number') {
+    return finding.conditionRating >= 2;
+  }
+  return (
+    finding.severity === 'developing' ||
+    finding.severity === 'significant' ||
+    finding.severity === 'dangerous'
+  );
+}
+
+/** Cap on the fallback strip — enough to judge by, not a second gallery. */
+const MAX_FALLBACK_FRAMES = 6;
+
+/**
+ * The evidence behind a finding.
+ *
+ * Preferred: the exact frame the finding was read from, via sourceFrameIndex.
+ *
+ * Fallback: surveys recorded before provenance existed have no per-finding
+ * frame, and it cannot be reconstructed -- their stored `evidence` is empty
+ * (visionAnalysis null, roboflowDetections []), confirmed on the live rows. For
+ * those, a finding that reports a condition still shows the walkthrough's
+ * frames, captioned so it is clear the exact frame is unknown. Showing one
+ * arbitrary frame captioned as "the" source would be worse than showing none:
+ * it invents precision, which is the opposite of what looking at the evidence
+ * is for.
+ *
+ * Findings with no defect get nothing either way.
  */
 function FindingSourceFrame({
   finding,
@@ -156,27 +187,57 @@ function FindingSourceFrame({
   if (!frameUrls?.length) return null;
 
   const index = finding.sourceFrameIndex;
-  if (typeof index !== 'number') return null;
+  const exactUrl = typeof index === 'number' ? frameUrls[index] : undefined;
 
-  const url = frameUrls[index];
-  if (!url) return null;
+  if (typeof index === 'number' && exactUrl) {
+    const seenIn = finding.sourceFrameIndexes?.length ?? 1;
+    return (
+      <div className='mt-2'>
+        {/* Signed Supabase URLs are not a configured next/image remote pattern,
+            and they expire — optimisation would cache a dead asset. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={exactUrl}
+          alt={`Frame showing ${finding.element.replace(/_/g, ' ')}`}
+          className='w-full max-w-xs rounded-md border border-gray-200'
+        />
+        <p className='text-[11px] text-gray-500 mt-1'>
+          {seenIn > 1
+            ? `Seen in ${seenIn} frames · showing frame ${index + 1}`
+            : `Frame ${index + 1}`}
+        </p>
+      </div>
+    );
+  }
 
-  const seenIn = finding.sourceFrameIndexes?.length ?? 1;
+  if (!reportsACondition(finding)) return null;
+
+  const available = frameUrls
+    .map((url, i) => ({ url, i }))
+    .filter((f) => Boolean(f.url));
+  if (available.length === 0) return null;
+
+  const shown = available.slice(0, MAX_FALLBACK_FRAMES);
 
   return (
     <div className='mt-2'>
-      {/* Signed Supabase URLs are not a configured next/image remote pattern,
-          and they expire — optimisation would cache a dead asset. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={url}
-        alt={`Frame showing ${finding.element.replace(/_/g, ' ')}`}
-        className='w-full max-w-xs rounded-md border border-gray-200'
-      />
+      <div className='flex flex-wrap gap-1.5'>
+        {shown.map(({ url, i }) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={i}
+            src={url}
+            alt={`Walkthrough frame ${i + 1}`}
+            className='w-20 h-20 object-cover rounded-md border border-gray-200'
+          />
+        ))}
+      </div>
       <p className='text-[11px] text-gray-500 mt-1'>
-        {seenIn > 1
-          ? `Seen in ${seenIn} frames · showing frame ${index + 1}`
-          : `Frame ${index + 1}`}
+        Exact frame not recorded for this finding — showing{' '}
+        {shown.length === available.length
+          ? `all ${available.length} frames`
+          : `${shown.length} of ${available.length} frames`}{' '}
+        from this walkthrough.
       </p>
     </div>
   );

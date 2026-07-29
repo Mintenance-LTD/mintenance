@@ -136,6 +136,28 @@ interface FindingItem {
 }
 
 /**
+ * Whether a finding actually reports a defect.
+ *
+ * Half a walkthrough's findings are clean bills of health ("the wall appears to
+ * be in good condition"). Those need no photograph. Anything at condition 2+ or
+ * developing-and-worse is a claim about the property, and a claim about
+ * someone's property should be checkable against what the camera saw.
+ */
+function reportsACondition(finding: FindingItem): boolean {
+  if (typeof finding.conditionRating === 'number') {
+    return finding.conditionRating >= 2;
+  }
+  return (
+    finding.severity === 'developing' ||
+    finding.severity === 'significant' ||
+    finding.severity === 'dangerous'
+  );
+}
+
+/** Cap on the fallback strip — enough to judge by, not a second gallery. */
+const MAX_FALLBACK_FRAMES = 6;
+
+/**
  * Element-by-element list of every distinct defect (2+ findings only).
  *
  * `frameUrls` are the walkthrough's keyframes in index order. When present,
@@ -192,23 +214,61 @@ export function FindingsList({
               const idx = f.sourceFrameIndex;
               const url =
                 typeof idx === 'number' ? frameUrls?.[idx] : undefined;
-              if (!url) return null;
-              // How many frames saw the same defect. One sighting out of a
-              // dozen frames deserves more scepticism than five, so say which
-              // it was rather than leaving every finding looking equally sure.
-              const seen = f.sourceFrameIndexes?.length ?? 1;
+
+              if (url) {
+                // How many frames saw the same defect. One sighting out of a
+                // dozen frames deserves more scepticism than five, so say which
+                // it was rather than leaving every finding looking equally sure.
+                const seen = f.sourceFrameIndexes?.length ?? 1;
+                return (
+                  <View style={s.evidence}>
+                    <Image
+                      source={{ uri: url }}
+                      style={s.evidenceImage}
+                      resizeMode='cover'
+                      accessibilityLabel={`Frame the ${f.element.replace(/_/g, ' ')} finding was read from`}
+                    />
+                    <Text style={s.evidenceCaption}>
+                      {seen > 1
+                        ? `Seen in ${seen} frames · showing frame ${idx! + 1}`
+                        : `Seen in 1 frame (frame ${idx! + 1})`}
+                    </Text>
+                  </View>
+                );
+              }
+
+              // Surveys recorded before provenance existed have no per-finding
+              // frame, and it cannot be reconstructed — their stored evidence is
+              // empty. A finding that reports a defect still shows the
+              // walkthrough's frames, captioned so the uncertainty is explicit.
+              // Findings that report no defect get nothing: a clean bill of
+              // health needs no photograph.
+              if (!reportsACondition(f)) return null;
+              const available = (frameUrls ?? [])
+                .map((u, i) => ({ u, i }))
+                .filter((x) => Boolean(x.u));
+              if (available.length === 0) return null;
+              const shown = available.slice(0, MAX_FALLBACK_FRAMES);
+
               return (
                 <View style={s.evidence}>
-                  <Image
-                    source={{ uri: url }}
-                    style={s.evidenceImage}
-                    resizeMode='cover'
-                    accessibilityLabel={`Frame the ${f.element.replace(/_/g, ' ')} finding was read from`}
-                  />
+                  <View style={s.evidenceStrip}>
+                    {shown.map(({ u, i }) => (
+                      <Image
+                        key={i}
+                        source={{ uri: u }}
+                        style={s.evidenceThumb}
+                        resizeMode='cover'
+                        accessibilityLabel={`Walkthrough frame ${i + 1}`}
+                      />
+                    ))}
+                  </View>
                   <Text style={s.evidenceCaption}>
-                    {seen > 1
-                      ? `Seen in ${seen} frames · showing frame ${idx! + 1}`
-                      : `Seen in 1 frame (frame ${idx! + 1})`}
+                    Exact frame not recorded ·{' '}
+                    {shown.length === available.length
+                      ? `all ${available.length} frames`
+                      : `${shown.length} of ${available.length} frames`}{' '}
+                    from this walkthrough
                   </Text>
                 </View>
               );
@@ -237,6 +297,14 @@ const s = StyleSheet.create({
     backgroundColor: me.line2,
   },
   evidenceCaption: { fontSize: 11, color: me.ink3, marginTop: 4 },
+  evidenceStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  evidenceThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: me.line,
+  },
   findingHeader: {
     flexDirection: 'row',
     flexWrap: 'wrap',
