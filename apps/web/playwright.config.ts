@@ -122,11 +122,19 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
-    // Critical paths regression suite (handles auth internally per test)
+    // Critical paths regression suite. Most tests call loginAsHomeowner
+    // themselves, but the /checkout specs do not — and /checkout is
+    // middleware-protected, so without a session they only ever saw
+    // /login?redirect=/checkout and asserted against the login page. Loading
+    // the homeowner state is additive: the tests that log in explicitly still
+    // do so.
     {
       name: 'regression-critical',
       testMatch: /regression\/critical-paths\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/homeowner.json',
+      },
     },
 
     // Mobile responsive regression suite (fixed mobile viewport)

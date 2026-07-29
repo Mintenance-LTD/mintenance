@@ -306,10 +306,12 @@ export function RegisterForm() {
           </Field>
 
           {/* Phone */}
+          {/* Only genuinely optional for contractors — the API requires a phone
+              number for homeowners. */}
           <Field
             id='reg-phone'
             label='Phone number'
-            optional
+            optional={selectedRole !== 'homeowner'}
             error={errors.phone?.message}
           >
             <input

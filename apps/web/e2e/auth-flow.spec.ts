@@ -31,6 +31,9 @@ async function fillSignUpForm(
   await page.getByLabel(/first name/i).fill('Test');
   await page.getByLabel(/last name/i).fill('User');
   await page.getByLabel(/email/i).fill(email);
+  // Required for homeowners (the default role) on both the client schema and
+  // the server's registerSchema.
+  await page.getByLabel(/phone/i).fill('+447700900123');
   await page.getByLabel(/^password$/i).fill(password);
   await page.getByLabel(/confirm password/i).fill(confirmPassword);
   await page.getByRole('checkbox').check();
@@ -288,12 +291,14 @@ test.describe('Authentication Flow', () => {
       // Test that login page has signup link
       await page.goto('/auth/login');
       await page.waitForLoadState('networkidle');
+      // Copy on the login page is "Create an account →" and "Forgot?", not
+      // "Create a new account" / "Forgot password".
       const signupLink = await page
-        .getByText(/create a new account|sign up/i)
+        .getByText(/create an? account|sign up/i)
         .isVisible()
         .catch(() => false);
       const forgotLink = await page
-        .getByText(/forgot password/i)
+        .getByText(/forgot/i)
         .isVisible()
         .catch(() => false);
       expect(signupLink && forgotLink).toBeTruthy();

@@ -48,6 +48,15 @@ export const registerFormSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ['confirmPassword'],
+  })
+  // Mirrors the same rule on the server's registerSchema
+  // (lib/validation/schemas-auth.ts). Without it the form happily submitted a
+  // homeowner with no phone — which the field label still called optional —
+  // and the API rejected it with a bare "Validation failed" that named no
+  // field, so homeowner signup dead-ended with nothing to correct.
+  .refine((data) => !(data.role === 'homeowner' && !data.phone), {
+    message: 'Phone number is required for homeowners',
+    path: ['phone'],
   });
 
 export type RegisterFormData = z.infer<typeof registerFormSchema>;

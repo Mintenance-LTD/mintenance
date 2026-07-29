@@ -185,10 +185,13 @@ test.describe('Mobile: Job List', () => {
       return;
     }
 
-    // Cards should be full-width on mobile (no side-by-side layout)
-    const cards = page.locator(
-      '[data-testid="job-card"], [class*="card"], table tbody tr'
-    );
+    // Cards should be full-width on mobile (no side-by-side layout).
+    // Scoped to the content area and without the old `[class*="card"]` clause:
+    // that matched the sidebar's lucide `credit-card` icon, whose `.ic` rule
+    // makes it 16px, so the assertion measured an icon rather than a card.
+    const cards = page
+      .locator('.me-content, #main-content')
+      .locator('[data-testid="job-card"], .job-row, table tbody tr');
     const cardCount = await cards.count();
 
     if (cardCount === 0) {
