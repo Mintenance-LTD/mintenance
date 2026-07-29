@@ -284,12 +284,17 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
 
     let result = input;
 
-    // Remove script tags completely
-    result = result.replace(
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      ''
-    );
-    result = result.replace(/<script.*?\/>/gi, '');
+    // Remove script tags completely.
+    // Apply repeatedly until stable to avoid incomplete multi-character sanitization.
+    let previous: string;
+    do {
+      previous = result;
+      result = result.replace(
+        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+        ''
+      );
+      result = result.replace(/<script.*?\/>/gi, '');
+    } while (result !== previous);
 
     // Remove event handlers
     result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
