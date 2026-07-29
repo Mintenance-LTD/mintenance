@@ -140,13 +140,65 @@ export function SceneSummary({ summary }: { summary?: string }) {
 }
 
 /**
+ * The frame a finding was read from, when one is known.
+ *
+ * Renders nothing rather than a placeholder when provenance is missing: a
+ * survey taken before sourceFrameIndex was recorded should look like a survey
+ * without pictures, not like one whose picture failed to load.
+ */
+function FindingSourceFrame({
+  finding,
+  frameUrls,
+}: {
+  finding: AssessmentFinding;
+  frameUrls?: string[];
+}) {
+  if (!frameUrls?.length) return null;
+
+  const index = finding.sourceFrameIndex;
+  if (typeof index !== 'number') return null;
+
+  const url = frameUrls[index];
+  if (!url) return null;
+
+  const seenIn = finding.sourceFrameIndexes?.length ?? 1;
+
+  return (
+    <div className='mt-2'>
+      {/* Signed Supabase URLs are not a configured next/image remote pattern,
+          and they expire — optimisation would cache a dead asset. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt={`Frame showing ${finding.element.replace(/_/g, ' ')}`}
+        className='w-full max-w-xs rounded-md border border-gray-200'
+      />
+      <p className='text-[11px] text-gray-500 mt-1'>
+        {seenIn > 1
+          ? `Seen in ${seenIn} frames · showing frame ${index + 1}`
+          : `Frame ${index + 1}`}
+      </p>
+    </div>
+  );
+}
+
+/**
  * Element-by-element list of every distinct defect. Only shown when there are
  * 2+ findings — a single finding is already covered by the headline card.
  */
 export function FindingsSection({
   findings,
+  frameUrls,
 }: {
   findings?: AssessmentFinding[];
+  /**
+   * Walkthrough keyframes in index order. A finding's sourceFrameIndex points
+   * into this, so each claim can show the frame it was actually read from --
+   * the difference between "the AI says there is mould" and "here is what it
+   * was looking at". Undefined for single-photo assessments, and absent on
+   * surveys taken before provenance was recorded.
+   */
+  frameUrls?: string[];
 }) {
   if (!findings || findings.length < 2) return null;
   return (
@@ -192,6 +244,7 @@ export function FindingsSection({
                 <span className='font-medium'>Cause:</span> {f.probableCause}
               </p>
             )}
+            <FindingSourceFrame finding={f} frameUrls={frameUrls} />
           </div>
         ))}
       </div>

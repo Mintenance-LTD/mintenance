@@ -47,6 +47,11 @@ interface BuildingAssessmentDisplayProps {
    * wall crack as "wall_crack" even on a job titled "leaking kitchen".
    */
   jobCategory?: string | null;
+  /**
+   * Walkthrough keyframes in index order, so each finding can show the frame
+   * it was read from. Omitted for single-photo assessments.
+   */
+  frameUrls?: string[];
 }
 
 export function BuildingAssessmentDisplay({
@@ -56,6 +61,7 @@ export function BuildingAssessmentDisplay({
   jobId,
   photoUrls,
   jobCategory,
+  frameUrls,
 }: BuildingAssessmentDisplayProps) {
   const [expanded, setExpanded] = useState(true);
   const [_showCorrections, setShowCorrections] = useState(false);
@@ -296,7 +302,10 @@ export function BuildingAssessmentDisplay({
             )}
           </div>
 
-          <FindingsSection findings={assessment.findings} />
+          <FindingsSection
+            findings={assessment.findings}
+            frameUrls={frameUrls}
+          />
 
           {/* Safety Hazards */}
           {assessment.safetyHazards.hasCriticalHazards && (
