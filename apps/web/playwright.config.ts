@@ -29,17 +29,17 @@ export default defineConfig({
   // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,
 
-  // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
+  // Retry on CI only. One retry (not two): with the suite green, a single
+  // retry catches genuine flakes, while a second retry mostly triples the
+  // cost of real failures (2026-07-28 run: every real failure burned 3×
+  // its timeout and pushed the job past its CI budget).
+  retries: process.env.CI ? 1 : 0,
 
   // Global setup - authenticate test users before running tests
   globalSetup: require.resolve('./e2e/global-setup.ts'),
 
   // Reporter
-  reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['list'],
-  ],
+  reporter: [['html', { outputFolder: 'playwright-report' }], ['list']],
 
   // Shared settings for all projects
   use: {
@@ -52,8 +52,10 @@ export default defineConfig({
     // Screenshot on failure
     screenshot: 'only-on-failure',
 
-    // Video on failure
-    video: 'retain-on-failure',
+    // Video only on retry attempts. 'retain-on-failure' still RECORDS every
+    // test and discards on pass — measurable overhead across ~400 CI tests.
+    // 'on-first-retry' skips recording entirely unless a test is retried.
+    video: 'on-first-retry',
   },
 
   // Configure projects with different authentication states
@@ -65,14 +67,18 @@ export default defineConfig({
     // Unauthenticated tests (auth flows, public pages)
     {
       name: 'unauthenticated',
-      testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts/,
+      testMatch: /auth-flow\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
 
-    // Homeowner authenticated tests
+    // Homeowner authenticated tests. payment-flow lives here (not in
+    // 'unauthenticated'): /checkout is middleware-protected by design, so
+    // without a session every checkout spec just sees the /auth/login
+    // redirect (2026-07-28 CI runs).
     {
       name: 'homeowner',
-      testMatch: /authenticated-job-posting\.spec\.ts|job-posting-flow\.spec\.ts/,
+      testMatch:
+        /authenticated-job-posting\.spec\.ts|job-posting-flow\.spec\.ts|payment-flow\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Load pre-authenticated homeowner state from global setup
@@ -133,36 +139,40 @@ export default defineConfig({
       },
     },
 
-    // === Cross-browser projects (CI only) ===
-    // Firefox, WebKit, and mobile viewports run only in CI to keep local dev fast.
+    // === Cross-browser projects (opt-in) ===
+    // Firefox, WebKit, and mobile viewports re-run auth-flow (the only spec
+    // that needs no storageState — these projects have none, so the
+    // auth-gated specs could never pass here). They run only when
+    // E2E_ALL_BROWSERS=true — the CI workflow sets that on pushes to main,
+    // while PR runs stay Chromium-only to fit the CI time budget.
 
-    ...(process.env.CI
+    ...(process.env.E2E_ALL_BROWSERS === 'true'
       ? [
           // Firefox (Desktop)
           {
             name: 'firefox',
-            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['Desktop Firefox'] },
           },
 
           // WebKit / Safari (Desktop)
           {
             name: 'webkit',
-            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['Desktop Safari'] },
           },
 
           // Mobile Chrome (Pixel 5 viewport)
           {
             name: 'mobile-chrome',
-            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['Pixel 5'] },
           },
 
           // Mobile Safari (iPhone 12 viewport)
           {
             name: 'mobile-safari',
-            testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['iPhone 12'] },
           },
         ]

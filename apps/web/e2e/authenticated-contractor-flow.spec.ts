@@ -193,7 +193,9 @@ test.describe('Authenticated Contractor Flow', () => {
       return;
     }
     await expect(
-      page.getByText(/profile|about|skill|experience/i)
+      // .first(): the profile page legitimately matches several elements
+      // (nav link, headings, completion widget) — any one visible is enough.
+      page.getByText(/profile|about|skill|experience/i).first()
     ).toBeVisible();
   });
 

@@ -248,7 +248,7 @@ test.describe('Mobile: Form Submission', () => {
 
     // Email and password fields should be visible and usable
     const emailInput = page.getByLabel(/email/i);
-    const passwordInput = page.getByLabel(/password/i);
+    const passwordInput = page.getByRole('textbox', { name: /password/i });
 
     await expect(emailInput).toBeVisible();
     await expect(passwordInput).toBeVisible();
