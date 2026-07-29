@@ -67,15 +67,18 @@ export default defineConfig({
     // Unauthenticated tests (auth flows, public pages)
     {
       name: 'unauthenticated',
-      testMatch: /auth-flow\.spec\.ts|payment-flow\.spec\.ts/,
+      testMatch: /auth-flow\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
 
-    // Homeowner authenticated tests
+    // Homeowner authenticated tests. payment-flow lives here (not in
+    // 'unauthenticated'): /checkout is middleware-protected by design, so
+    // without a session every checkout spec just sees the /auth/login
+    // redirect (2026-07-28 CI runs).
     {
       name: 'homeowner',
       testMatch:
-        /authenticated-job-posting\.spec\.ts|job-posting-flow\.spec\.ts/,
+        /authenticated-job-posting\.spec\.ts|job-posting-flow\.spec\.ts|payment-flow\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         // Load pre-authenticated homeowner state from global setup
@@ -137,8 +140,9 @@ export default defineConfig({
     },
 
     // === Cross-browser projects (opt-in) ===
-    // Firefox, WebKit, and mobile viewports duplicate the same three specs
-    // already covered by Chromium projects. They run only when
+    // Firefox, WebKit, and mobile viewports re-run auth-flow (the only spec
+    // that needs no storageState — these projects have none, so the
+    // auth-gated specs could never pass here). They run only when
     // E2E_ALL_BROWSERS=true — the CI workflow sets that on pushes to main,
     // while PR runs stay Chromium-only to fit the CI time budget.
 
@@ -147,32 +151,28 @@ export default defineConfig({
           // Firefox (Desktop)
           {
             name: 'firefox',
-            testMatch:
-              /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['Desktop Firefox'] },
           },
 
           // WebKit / Safari (Desktop)
           {
             name: 'webkit',
-            testMatch:
-              /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['Desktop Safari'] },
           },
 
           // Mobile Chrome (Pixel 5 viewport)
           {
             name: 'mobile-chrome',
-            testMatch:
-              /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['Pixel 5'] },
           },
 
           // Mobile Safari (iPhone 12 viewport)
           {
             name: 'mobile-safari',
-            testMatch:
-              /auth-flow\.spec\.ts|payment-flow\.spec\.ts|job-posting-flow\.spec\.ts/,
+            testMatch: /auth-flow\.spec\.ts/,
             use: { ...devices['iPhone 12'] },
           },
         ]
