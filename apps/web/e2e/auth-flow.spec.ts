@@ -31,6 +31,9 @@ async function fillSignUpForm(
   await page.getByLabel(/first name/i).fill('Test');
   await page.getByLabel(/last name/i).fill('User');
   await page.getByLabel(/email/i).fill(email);
+  // Required for homeowners (the default role) on both the client schema and
+  // the server's registerSchema.
+  await page.getByLabel(/phone/i).fill('+447700900123');
   await page.getByLabel(/^password$/i).fill(password);
   await page.getByLabel(/confirm password/i).fill(confirmPassword);
   await page.getByRole('checkbox').check();
