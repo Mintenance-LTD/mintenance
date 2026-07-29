@@ -718,6 +718,43 @@ describe('Job Lifecycle - 1b. Homeowner verification gate', () => {
     );
     expect(body.error.message).not.toMatch(MOBILE_MODAL_TRIGGER);
   });
+
+  // Early-access cohort (2026-07-29): the first 50 homeowners post
+  // without phone verification. The service folds the waiver into
+  // canPostJobs; the route must not re-impose the phone requirement
+  // on top of it, and email verification must survive the waiver.
+  describe('when the early-access waiver applies', () => {
+    it('lets an email-verified homeowner post with an unverified phone', async () => {
+      isFullyVerified.mockResolvedValueOnce({
+        verified: true,
+        emailVerified: true,
+        phoneVerified: false,
+        phoneVerificationWaived: true,
+        canPostJobs: true,
+      });
+
+      const res = await postJob();
+      expect(res.status).not.toBe(403);
+    });
+
+    it('still 403s on an unverified email, and does not blame the phone', async () => {
+      isFullyVerified.mockResolvedValueOnce({
+        verified: false,
+        emailVerified: false,
+        phoneVerified: false,
+        phoneVerificationWaived: true,
+        canPostJobs: false,
+      });
+
+      const res = await postJob();
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.error.message).toBe(
+        'Email verification required. Please confirm your email address before posting jobs'
+      );
+      expect(body.error.message).not.toMatch(MOBILE_MODAL_TRIGGER);
+    });
+  });
 });
 
 // ============================================================================

@@ -203,7 +203,7 @@ export default function QuickJobPage() {
               </p>
             </div>
 
-            <PhoneVerificationBanner phoneVerified={user?.phone_verified} />
+            <PhoneVerificationBanner />
 
             <PropertyInfo
               primaryProperty={primaryProperty}
