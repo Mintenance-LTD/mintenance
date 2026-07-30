@@ -23,6 +23,7 @@ import type {
   SpecialistReferral,
 } from '../types';
 import { mergeFrameFindings } from './merge-frame-findings';
+import { clampAbstainedAssessment } from '../abstention-clamp';
 
 const SEVERITY_RANK: Record<DamageSeverity, number> = {
   early: 0,
@@ -150,7 +151,10 @@ export function buildWalkthroughAssessment(
     frames[0]
   );
 
-  return {
+  // Clamped again after the merge, not just per frame: needsOnsiteInspection is
+  // OR'd across frames, so a walk can become abstaining here even when no single
+  // frame was. The clamp is idempotent, so re-applying costs nothing.
+  return clampAbstainedAssessment({
     // Lead frame scaffolds defect-specific sections (homeownerExplanation,
     // contractorAdvice, evidence). Everything below is an explicit override.
     ...lead,
@@ -206,5 +210,5 @@ export function buildWalkthroughAssessment(
     specialistReferrals: mergeReferrals(
       frames.flatMap((f) => f.specialistReferrals ?? [])
     ),
-  };
+  });
 }
