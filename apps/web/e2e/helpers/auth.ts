@@ -14,6 +14,56 @@ interface TestUser {
 }
 
 /**
+ * Re-mint the session directly into this page's browser context.
+ *
+ * WHY THIS EXISTS (2026-07-30): a session minted live into a context works,
+ * but the same session restored from the storageState file does not — for the
+ * Supabase half of it. Measured in a single CI run, same user, same server:
+ *
+ *   global setup, live context  /api/properties -> 200 properties=[2]
+ *   inside the test, from file  /api/properties -> 200 {"properties":[]}
+ *
+ * and identical both ways in each case (APIRequestContext and a real browser
+ * page), so it is the session that differs, not the fetch mechanism.
+ *
+ * The app JWT survives the round-trip fine — `/api/auth/session` returns the
+ * right user, middleware lets the page through, the account chip renders — so
+ * the page looks authenticated. But `/api/properties` resolves its client as
+ * `createRequestScopedClient(request) ?? serverSupabase`, i.e. RLS-scoped off
+ * the Supabase JWT, and that half comes back unusable. RLS then returns zero
+ * rows with a 200 and no error, so the wizard renders "No properties found"
+ * and the test times out waiting for a property card, blaming the wizard.
+ *
+ * Ruled out, so they are not re-tried: Set-Cookie mangling when test-auth
+ * copies the app cookies (node yields both entries), cookies captured outside
+ * the context jar (context.request shares it), __Host-/Secure cookies dropped
+ * over CI's plain-http production build (the whole round-trip incl. restore
+ * survives in Chromium), refresh-token rotation across workers (traces contain
+ * no Supabase calls), and the service-role fallback firing (it would have
+ * returned the rows, and getSupabaseServiceKey throws when unset).
+ *
+ * POSTing through `page.request` puts the Set-Cookie headers straight into this
+ * context's cookie jar — exactly the configuration proven to work above — so
+ * callers get a session that reaches the data APIs, not just the shell.
+ *
+ * Returns false when the endpoint is unavailable (no E2E_AUTH_SECRET, or a
+ * server without E2E_TESTING) so callers can decide whether to skip.
+ */
+export async function establishSessionInContext(
+  page: Page,
+  user: TestUser
+): Promise<boolean> {
+  const secret = process.env.E2E_AUTH_SECRET;
+  if (!secret) return false;
+
+  const res = await page.request.post('/api/test-auth/login', {
+    headers: { 'x-e2e-auth-secret': secret },
+    data: { email: user.email, password: user.password },
+  });
+  return res.ok();
+}
+
+/**
  * Test user credentials (these should exist in your test database)
  *
  * To set up test users:
