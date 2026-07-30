@@ -103,6 +103,35 @@ export async function completeTimelineStep(
   await next.click();
 }
 
+/**
+ * Submit from the Review step and wait for the outcome.
+ *
+ * `waitForNetworkIdle` is not enough here: the submit button flips to a
+ * disabled "Posting…" while the request is in flight, and the assertion could
+ * run before the redirect landed — the job posted fine but the test read the
+ * page too early.
+ */
+export async function submitJobWizard(page: Page): Promise<void> {
+  await page.locator('[data-testid="submit-button"]').click();
+
+  await Promise.race([
+    page.waitForURL((url) => !url.pathname.includes('/jobs/create'), {
+      timeout: 30000,
+    }),
+    page
+      .getByText(/success|created|posted/i)
+      .first()
+      .waitFor({ state: 'visible', timeout: 30000 }),
+    // Surface a server-side rejection rather than sitting out the timeout.
+    page
+      .getByRole('alert')
+      .first()
+      .waitFor({ state: 'visible', timeout: 30000 }),
+  ]).catch(() => {
+    // Fall through — the caller asserts on the resulting page state.
+  });
+}
+
 /** Drive steps 1-3, leaving the wizard on the Review step. */
 export async function fillJobWizardToReview(
   page: Page,

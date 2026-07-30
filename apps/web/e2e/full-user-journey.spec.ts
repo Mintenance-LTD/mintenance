@@ -26,7 +26,11 @@ import {
   createTestBid,
   waitForNetworkIdle,
 } from './helpers/test-data';
-import { openJobWizard, fillJobWizardToReview } from './helpers/job-wizard';
+import {
+  openJobWizard,
+  fillJobWizardToReview,
+  submitJobWizard,
+} from './helpers/job-wizard';
 
 // ---- Security regression tests (Phase 2 fixes) ----
 
@@ -167,8 +171,7 @@ test.describe('Full User Journey: Job Post → Bid → Accept', () => {
       urgency: 'medium',
     });
 
-    await page.locator('[data-testid="submit-button"]').click();
-    await waitForNetworkIdle(page);
+    await submitJobWizard(page);
 
     const hasSuccess =
       (await page

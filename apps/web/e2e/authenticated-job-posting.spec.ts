@@ -23,6 +23,7 @@ import {
   completePhotosStep,
   completeTimelineStep,
   fillJobWizardToReview,
+  submitJobWizard,
 } from './helpers/job-wizard';
 
 test.describe('Authenticated Job Posting Flow', () => {
@@ -81,8 +82,7 @@ test.describe('Authenticated Job Posting Flow', () => {
       urgency: 'medium',
     });
 
-    await page.locator('[data-testid="submit-button"]').click();
-    await waitForNetworkIdle(page);
+    await submitJobWizard(page);
 
     // Success is either a confirmation message or a redirect off the wizard.
     const hasMessage = await page
@@ -183,8 +183,7 @@ test.describe('Authenticated Job Posting Flow', () => {
     // Step 3 -> 4: Timeline (urgency). Budget collection was removed.
     await completeTimelineStep(page, 'medium');
 
-    await page.locator('[data-testid="submit-button"]').click();
-    await waitForNetworkIdle(page);
+    await submitJobWizard(page);
 
     const hasMessage = await page
       .getByText(/success|created/i)

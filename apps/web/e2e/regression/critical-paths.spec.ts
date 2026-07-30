@@ -31,7 +31,11 @@ import {
   createTestBid,
   waitForNetworkIdle,
 } from '../helpers/test-data';
-import { openJobWizard, fillJobWizardToReview } from '../helpers/job-wizard';
+import {
+  openJobWizard,
+  fillJobWizardToReview,
+  submitJobWizard,
+} from '../helpers/job-wizard';
 
 // ---------------------------------------------------------------------------
 // Shared helpers scoped to this file
@@ -120,8 +124,7 @@ test.describe('Regression: Job Creation Flow', () => {
       urgency: 'medium',
     });
 
-    await page.locator('[data-testid="submit-button"]').click();
-    await waitForNetworkIdle(page);
+    await submitJobWizard(page);
 
     const succeeded =
       (await page
