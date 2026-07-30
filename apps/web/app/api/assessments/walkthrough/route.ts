@@ -18,6 +18,7 @@ import {
   type FrameQualityMetrics,
 } from '@/lib/services/building-surveyor/video/frame-quality';
 import { clampAbstainedAssessment } from '@/lib/services/building-surveyor/abstention-clamp';
+import { verifyWalkthroughFindings } from '@/lib/services/building-surveyor/video/verify-findings';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 import {
   persistWalkthroughRow,
@@ -236,6 +237,16 @@ export const POST = withApiHandler(
       );
     }
 
+    // Optional second look: ask the model whether it can point at the evidence
+    // behind each finding, and drop the ones it cannot. Off unless
+    // WALKTHROUGH_VERIFY_PASS=true. Orchestration lives in verify-findings.ts
+    // beside its own rules — see there for the safety rails.
+    const verified = await verifyWalkthroughFindings({
+      assessment,
+      frameUrls,
+      openaiApiKey: getConfig().openaiApiKey,
+    });
+
     // Too few frames were assessable to be selective, so everything was
     // assessed — including material the model cannot read. Say so on the survey
     // rather than presenting it as if the footage were fine. The abstention
@@ -243,16 +254,16 @@ export const POST = withApiHandler(
     // genuinely dangerous finding alone.
     const surveyed = selection.degraded
       ? clampAbstainedAssessment({
-          ...assessment,
+          ...verified,
           needsOnsiteInspection: true,
           onsiteInspectionReason: [
-            assessment.onsiteInspectionReason,
+            verified.onsiteInspectionReason,
             `Most frames were unusable (${describeExclusions(selection.excluded)}), so this survey rests on poor footage.`,
           ]
             .filter(Boolean)
             .join(' '),
         })
-      : assessment;
+      : verified;
 
     const assessmentId = await persistWalkthroughRow({
       userId: user.id,
