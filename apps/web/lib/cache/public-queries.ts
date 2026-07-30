@@ -62,7 +62,7 @@ export const getCachedContractors = unstable_cache(
         city,
         country,
         created_at,
-        contractor_skills (
+        contractor_skills!contractor_id (
           skill_name
         )
       `
@@ -144,10 +144,10 @@ const getCachedContractorById = unstable_cache(
         city,
         country,
         created_at,
-        contractor_skills (
+        contractor_skills!contractor_id (
           skill_name
         ),
-        reviews (
+        reviews!reviewee_id (
           id,
           rating,
           comment,
