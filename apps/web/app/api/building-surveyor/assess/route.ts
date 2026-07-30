@@ -311,7 +311,16 @@ export const POST = withApiHandler(
             userId: user.id,
             imageUrls,
             propertyType: context?.propertyType || 'residential',
-            propertyAge: context?.ageOfProperty || 50,
+            // Numeric check, not `|| 50`: a property built this year has age 0,
+            // which is falsy, so a new build was being handed to the experiment
+            // as 50 years old. 50 remains the fallback for a genuinely unknown
+            // age — it is only no longer allowed to overwrite a real zero.
+            propertyAge:
+              typeof context?.ageOfProperty === 'number' &&
+              Number.isFinite(context.ageOfProperty) &&
+              context.ageOfProperty >= 0
+                ? context.ageOfProperty
+                : 50,
             region: context?.location || 'unknown',
           });
 

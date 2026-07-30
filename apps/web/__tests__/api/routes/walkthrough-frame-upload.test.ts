@@ -196,6 +196,15 @@ const ROOM_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 
 /** What the property-scoped room lookup returns; null = not this property's. */
 let roomLookupResult: { id: string } | null = null;
+/**
+ * Stands in for the `properties` row the route reads to learn the building's
+ * age. The surveyor was previously told nothing about age, which is how a
+ * kitchen built this year came back with established mould.
+ */
+let propertyLookupResult: {
+  year_built: number | null;
+  property_type: string | null;
+} | null = { year_built: 1990, property_type: 'residential' };
 
 const SIGNED_URL =
   'https://storage.example/storage/v1/object/sign/assessment-photos/quick-ai/x/0.jpg?token=t';
@@ -306,6 +315,18 @@ function setupDefaultMocks() {
         }),
       };
     }
+    if (table === 'properties') {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: propertyLookupResult,
+              error: null,
+            }),
+          }),
+        }),
+      };
+    }
     if (table === 'assessment_images') {
       return { insert: vi.fn().mockResolvedValue({ error: null }) };
     }
@@ -332,6 +353,7 @@ describe('POST /api/assessments/walkthrough (multipart)', () => {
 
   beforeEach(async () => {
     roomLookupResult = null;
+    propertyLookupResult = { year_built: 1990, property_type: 'residential' };
     setupDefaultMocks();
     const mod = await import('@/app/api/assessments/walkthrough/route');
     POST = mod.POST;
@@ -429,6 +451,96 @@ describe('POST /api/assessments/walkthrough (multipart)', () => {
     expect(mocks.authorizeAssessmentAnchors).toHaveBeenCalledWith(
       expect.objectContaining({ userId: HOMEOWNER_ID, propertyId: PROPERTY_ID })
     );
+  });
+
+  // ---- Property age reaches the surveyor ----
+  describe('property age', () => {
+    /** The context handed to assessWalkthrough on the last call. */
+    const contextArg = () =>
+      mocks.assessWalkthrough.mock.calls.at(-1)?.[1] as
+        | Record<string, unknown>
+        | undefined;
+
+    it('tells the surveyor how old the building is', async () => {
+      propertyLookupResult = { year_built: 1990, property_type: 'residential' };
+
+      const res = await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(res.status).toBe(200);
+      expect(contextArg()).toEqual(
+        expect.objectContaining({
+          ageOfProperty: expect.any(Number),
+          propertyType: 'residential',
+        })
+      );
+      expect(contextArg()?.ageOfProperty).toBeGreaterThan(30);
+    });
+
+    it('passes age 0 for a property built this year', async () => {
+      // The case that matters: a new build. 0 is a real age and must survive
+      // every falsy check between here and the prompt.
+      propertyLookupResult = {
+        year_built: new Date().getFullYear(),
+        property_type: 'residential',
+      };
+
+      await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(contextArg()?.ageOfProperty).toBe(0);
+    });
+
+    it('ignores an age the client tries to assert', async () => {
+      // An input that changes the diagnosis must come from the server, the same
+      // rule the room id follows.
+      propertyLookupResult = {
+        year_built: new Date().getFullYear(),
+        property_type: 'residential',
+      };
+
+      await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+          context: JSON.stringify({ ageOfProperty: 120 }),
+        })
+      );
+
+      expect(contextArg()?.ageOfProperty).toBe(0);
+    });
+
+    it('omits the age rather than guessing when year_built is unset', async () => {
+      propertyLookupResult = { year_built: null, property_type: 'residential' };
+
+      await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(contextArg()?.ageOfProperty).toBeUndefined();
+    });
+
+    it('still completes the walk when the property lookup finds nothing', async () => {
+      // Age is an enrichment. Losing a whole walkthrough of someone's filming
+      // because of it would be the wrong trade.
+      propertyLookupResult = null;
+
+      const res = await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(res.status).toBe(200);
+      expect(contextArg()?.ageOfProperty).toBeUndefined();
+    });
   });
 
   // ---- Authorization failure propagates ----
