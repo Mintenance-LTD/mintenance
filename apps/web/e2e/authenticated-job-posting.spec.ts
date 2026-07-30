@@ -69,6 +69,32 @@ test.describe('Authenticated Job Posting Flow', () => {
   test('homeowner can create a basic job', async ({ page }) => {
     const testJob = createTestJob();
 
+    // TEMPORARY (2026-07-30) — narrowing why this wizard sees "No properties
+    // found" while global setup, using this same storageState, gets both
+    // seeded properties from /api/properties via BOTH an API request context
+    // AND a real browser page. Everything else checks out: the session token
+    // is valid and non-anonymous, owner_id matches, and the RLS policy returns
+    // 2 rows for that uid queried directly. So the divergence is something
+    // about this project's context at test time. Log what the same endpoint
+    // says from inside the failing test, and what the page's own fetch gets.
+    // Remove once diagnosed.
+    page.on('response', (res) => {
+      if (res.url().includes('/api/properties')) {
+        res
+          .text()
+          .then((b) =>
+            console.log(
+              `[diag] page fetch /api/properties -> ${res.status()} ${b.slice(0, 140)}`
+            )
+          )
+          .catch(() => undefined);
+      }
+    });
+    const viaCtx = await page.request.get('/api/properties');
+    console.log(
+      `[diag] request-ctx /api/properties -> ${viaCtx.status()} ${(await viaCtx.text().catch(() => '')).slice(0, 140)}`
+    );
+
     if (!(await openJobWizard(page))) {
       // skipped: runtime bail — session not accepted, redirected to login
       test.skip();
