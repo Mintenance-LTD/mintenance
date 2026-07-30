@@ -284,19 +284,24 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
 
     let result = input;
 
-    // Remove script tags completely
-    result = result.replace(
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      ''
-    );
-    result = result.replace(/<script.*?\/>/gi, '');
+    // Remove script tags completely.
+    // Apply repeatedly until stable to avoid incomplete multi-character sanitization.
+    let previous: string;
+    do {
+      previous = result;
+      result = result.replace(
+        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+        ''
+      );
+      result = result.replace(/<script.*?\/>/gi, '');
+    } while (result !== previous);
 
     // Remove event handlers
     result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
     result = result.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
 
-    // Remove javascript: URLs
-    result = result.replace(/javascript:/gi, '');
+    // Remove dangerous executable URL schemes
+    result = result.replace(/(?:javascript|data|vbscript):/gi, '');
 
     // Handle allowed tags if specified
     if (config?.ALLOWED_TAGS && Array.isArray(config.ALLOWED_TAGS)) {
@@ -311,9 +316,15 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
           const tag = tagName.toLowerCase();
           if (allowedTags.includes(tag)) {
             // Keep allowed tags but remove dangerous attributes (only match space-prefixed attrs)
-            return match
-              .replace(/\s+on\w+=["'][^"']*["']/gi, '')
-              .replace(/\s+on\w+=\S*/gi, '');
+            let safeMatch = match;
+            let previous: string;
+            do {
+              previous = safeMatch;
+              safeMatch = safeMatch
+                .replace(/\s+on\w+=["'][^"']*["']/gi, '')
+                .replace(/\s+on\w+=\S*/gi, '');
+            } while (safeMatch !== previous);
+            return safeMatch;
           }
           return ''; // Remove non-allowed tags
         }
