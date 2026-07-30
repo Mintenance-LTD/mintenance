@@ -11,6 +11,7 @@
 import { logger } from '@mintenance/shared';
 import type { AssessmentContext, Phase1BuildingAssessment } from '../types';
 import { buildWalkthroughAssessment } from './build-walkthrough-assessment';
+import { filterImplausibleElements } from './element-plausibility';
 
 export type FrameAssessor = (
   imageUrls: string[],
@@ -65,6 +66,8 @@ export interface WalkthroughResult {
   perFrameAssessments: FrameAssessmentResult[];
   frameCount: number;
   framesAssessed: number;
+  /** Frames deliberately skipped for quality, as opposed to ones that failed. */
+  framesSkippedForQuality: number;
 }
 
 /**
@@ -74,24 +77,66 @@ export interface WalkthroughResult {
 export async function assessWalkthrough(
   frameUrls: string[],
   context?: AssessmentContext,
-  opts?: { concurrency?: number; assessFrame?: FrameAssessor }
+  opts?: {
+    concurrency?: number;
+    assessFrame?: FrameAssessor;
+    /**
+     * Frames to leave unassessed, by index — too blurry or too dark to carry
+     * signal (see frame-quality.ts). They become holes rather than being
+     * removed, so every surviving finding keeps its real frame index, and each
+     * skip saves a vision call.
+     */
+    skipFrames?: ReadonlySet<number>;
+  }
 ): Promise<WalkthroughResult> {
   const assessFrame = opts?.assessFrame ?? defaultAssessFrame;
   const concurrency = Math.max(1, opts?.concurrency ?? 3);
+  const skipFrames = opts?.skipFrames;
 
   const perFrame = await mapWithConcurrency(
     frameUrls,
     concurrency,
     async (url, index) => {
+      if (skipFrames?.has(index)) {
+        logger.info('Walkthrough frame not assessed — unassessable quality', {
+          service: 'WalkthroughAssessment',
+          index,
+        });
+        return null;
+      }
       try {
         // Tell the model this is one frame of many. Without it the surveyor
         // prompt's "report EVERY defect visible" runs once per frame, which on
         // a 12-frame room walk is a dozen independent invitations to find
         // something — and the merge keeps the worst answer of the dozen.
-        return await assessFrame([url], {
+        const assessed = await assessFrame([url], {
           ...context,
           walkthroughFrame: { index, total: frameUrls.length },
         });
+
+        // Drop claims about elements this frame cannot contain — a roof
+        // diagnosed from inside a bedroom. Applied per frame so the dropped
+        // finding never reaches the merge OR the teacher corpus: training the
+        // student on "ceiling patch means roof failure" would bake the mistake
+        // in permanently.
+        const plausible = filterImplausibleElements(
+          assessed?.findings,
+          context
+        );
+        if (plausible.dropped.length > 0) {
+          logger.info('Walkthrough findings dropped — element not in view', {
+            service: 'WalkthroughAssessment',
+            index,
+            roomType: context?.room?.type,
+            dropped: plausible.dropped.map((f) => ({
+              element: f.element,
+              damageType: f.damageType,
+              severity: f.severity,
+            })),
+          });
+          return { ...assessed, findings: plausible.findings };
+        }
+        return assessed;
       } catch (err) {
         logger.warn('Walkthrough frame assessment failed (skipped)', {
           service: 'WalkthroughAssessment',
@@ -109,9 +154,14 @@ export async function assessWalkthrough(
     .filter((p): p is FrameAssessmentResult => p.assessment != null);
 
   return {
-    assessment: buildWalkthroughAssessment(pairs.map((p) => p.assessment)),
+    // POSITIONAL, holes included — not `pairs`. A finding's sourceFrameIndex is
+    // its position here, and that index is used to look the frame up in
+    // assessment_images. Passing the compacted list shifted every index after a
+    // failed frame, pointing findings at the wrong photograph.
+    assessment: buildWalkthroughAssessment(perFrame),
     perFrameAssessments: pairs,
     frameCount: frameUrls.length,
     framesAssessed: pairs.length,
+    framesSkippedForQuality: skipFrames?.size ?? 0,
   };
 }

@@ -128,3 +128,51 @@ describe('the prompt actually receives age 0', () => {
     expect(prompt).not.toContain('ERA-SPECIFIC RISK ASSESSMENT');
   });
 });
+
+describe('the not-a-defect guidance', () => {
+  // These sections exist because the model reported a shadow as mould, a
+  // compliant kitchen socket as a Condition 3 hazard, and a lighting gradient as
+  // ceiling discolouration. Each is unconditional — present on every
+  // assessment, not gated on age or context — so a plain assertion that they
+  // are in the prompt is the whole check.
+  const prompt = buildSystemPrompt();
+
+  it('tells the model light is not a defect', () => {
+    expect(prompt).toContain('LIGHT IS NOT A DEFECT');
+    expect(prompt).toMatch(/shadow cast by a curtain/i);
+    expect(prompt).toMatch(/tide.line/i);
+  });
+
+  it('names the normal building features that read as damage', () => {
+    expect(prompt).toContain('NORMAL BUILDING FEATURES ARE NOT DEFECTS');
+    // The exact false positive from the live survey.
+    expect(prompt).toMatch(/socket near a kitchen counter is normal/i);
+    expect(prompt).toMatch(/300mm/);
+    expect(prompt).toMatch(/shadow gap or expansion joint/i);
+    expect(prompt).toMatch(/trickle vents/i);
+  });
+
+  it('separates finish and contents from the building', () => {
+    expect(prompt).toContain('SURFACES, MATERIALS AND OBJECTS');
+    expect(prompt).toMatch(/Artex are not cracking/i);
+    expect(prompt).toMatch(/grout and mortar joints are not mould/i);
+    expect(prompt).toMatch(/Contents are not the building/i);
+    expect(prompt).toMatch(/reflection in glass/i);
+  });
+
+  it('forbids severity that depends on a measurement it does not have', () => {
+    expect(prompt).toContain('YOU CANNOT MEASURE FROM A PHOTOGRAPH');
+    expect(prompt).toMatch(/hairline/i);
+    expect(prompt).toMatch(/scale reference/i);
+    expect(prompt).toMatch(/measured with a meter/i);
+  });
+
+  it('keeps the honesty rule after the new sections', () => {
+    // Order matters for readability, and the abstention rule is the fallback
+    // all of the above funnel into.
+    expect(prompt).toContain('WHEN PHOTOS ARE INSUFFICIENT');
+    expect(prompt.indexOf('LIGHT IS NOT A DEFECT')).toBeLessThan(
+      prompt.indexOf('WHEN PHOTOS ARE INSUFFICIENT')
+    );
+  });
+});

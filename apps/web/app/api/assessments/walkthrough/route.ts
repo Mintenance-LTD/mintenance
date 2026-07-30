@@ -11,6 +11,13 @@ import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurve
 import { authorizeAssessmentAnchors } from '@/app/api/building-surveyor/assess/_anchor-authorization';
 import { assessWalkthrough } from '@/lib/services/building-surveyor/video/walkthrough-assessment';
 import { withPropertyAge } from './property-age';
+import { ImageQualityService } from '@/lib/services/building-surveyor/ImageQualityService';
+import {
+  selectAssessableFrames,
+  describeExclusions,
+  type FrameQualityMetrics,
+} from '@/lib/services/building-surveyor/video/frame-quality';
+import { clampAbstainedAssessment } from '@/lib/services/building-surveyor/abstention-clamp';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 import {
   persistWalkthroughRow,
@@ -159,7 +166,8 @@ export const POST = withApiHandler(
 
     // Upload the frames server-side (service role → no client storage RLS).
     const folderId = `${propertyId ?? jobId}-${Date.now()}`;
-    const frameUrls = await uploadFramesToStorage(files, folderId);
+    const { urls: frameUrls, quality: frameQuality } =
+      await uploadFramesToStorage(files, folderId);
     if (frameUrls.length < MIN_FRAMES) {
       logger.error('Walkthrough frame upload failed server-side', {
         service: SERVICE,
@@ -178,9 +186,38 @@ export const POST = withApiHandler(
       .update([...frameUrls].sort().join('|'))
       .digest('hex');
 
+    // Leave the unassessable frames out of the fan-out. A motion-blurred smear
+    // or a near-black ceiling is not a neutral vote: asked to report every
+    // defect it can see, the model will find something in the noise. Each skip
+    // also saves a vision call.
+    const selection = selectAssessableFrames(frameQuality, MIN_FRAMES);
+    if (selection.excluded.length > 0) {
+      logger.info('Walkthrough frames excluded on quality', {
+        service: SERVICE,
+        total: frameUrls.length,
+        excluded: selection.excluded,
+        degraded: selection.degraded,
+        // Logged in full so the provisional thresholds in frame-quality.ts can
+        // be tuned against real walkthroughs instead of guessed at again.
+        metrics: frameQuality.map((q, i) => ({
+          index: i,
+          imageClarity: q?.imageClarity ?? null,
+          averageBrightness: q?.averageBrightness ?? null,
+          lightingQuality: q?.lightingQuality ?? null,
+        })),
+      });
+    }
+
     // Fan out across frames and merge into one property survey.
-    const { assessment, perFrameAssessments, frameCount, framesAssessed } =
-      await assessWalkthrough(frameUrls, surveyContext);
+    const {
+      assessment,
+      perFrameAssessments,
+      frameCount,
+      framesAssessed,
+      framesSkippedForQuality,
+    } = await assessWalkthrough(frameUrls, surveyContext, {
+      skipFrames: selection.skip,
+    });
 
     if (!assessment || perFrameAssessments.length === 0) {
       logger.warn('Walkthrough produced no usable frame assessment', {
@@ -199,6 +236,24 @@ export const POST = withApiHandler(
       );
     }
 
+    // Too few frames were assessable to be selective, so everything was
+    // assessed — including material the model cannot read. Say so on the survey
+    // rather than presenting it as if the footage were fine. The abstention
+    // clamp then caps what it may assert off that evidence, and leaves any
+    // genuinely dangerous finding alone.
+    const surveyed = selection.degraded
+      ? clampAbstainedAssessment({
+          ...assessment,
+          needsOnsiteInspection: true,
+          onsiteInspectionReason: [
+            assessment.onsiteInspectionReason,
+            `Most frames were unusable (${describeExclusions(selection.excluded)}), so this survey rests on poor footage.`,
+          ]
+            .filter(Boolean)
+            .join(' '),
+        })
+      : assessment;
+
     const assessmentId = await persistWalkthroughRow({
       userId: user.id,
       jobId,
@@ -206,7 +261,7 @@ export const POST = withApiHandler(
       roomId,
       domain,
       cacheKey,
-      assessment,
+      assessment: surveyed,
     });
     if (!assessmentId) {
       throw new Error('Failed to persist walkthrough assessment');
@@ -264,15 +319,20 @@ export const POST = withApiHandler(
       assessmentId,
       frameCount,
       framesAssessed,
-      findings: assessment.findings?.length ?? 0,
-      primaryDamage: assessment.damageAssessment.damageType,
+      findings: surveyed.findings?.length ?? 0,
+      primaryDamage: surveyed.damageAssessment.damageType,
+      framesSkippedForQuality,
+      degradedFootage: selection.degraded,
     });
 
     return NextResponse.json({
-      ...assessment,
+      // `surveyed`, not `assessment` — the client must see the same survey that
+      // was persisted, including the degraded-footage flag and its clamp.
+      ...surveyed,
       assessmentId,
       frameCount,
       framesAssessed,
+      framesSkippedForQuality,
       // The stored frames, in index order. Findings carry a sourceFrameIndex
       // into this array, which is how the result screen can show the picture a
       // claim was made from without a second round trip.
@@ -292,11 +352,23 @@ export const POST = withApiHandler(
  * vision call, so they take the long default TTL; read paths re-sign via
  * resignAssessmentUrls rather than trusting a stored URL forever.
  */
+interface StoredFrames {
+  urls: string[];
+  /**
+   * Quality metrics per STORED frame, aligned index-for-index with `urls`.
+   * Aligned with urls rather than with `files` because a skipped file never
+   * becomes a frame, and everything downstream — assessment_images.image_index,
+   * sourceFrameIndex — is positional against `urls`.
+   */
+  quality: (FrameQualityMetrics | null)[];
+}
+
 async function uploadFramesToStorage(
   files: File[],
   folderId: string
-): Promise<string[]> {
+): Promise<StoredFrames> {
   const urls: string[] = [];
+  const quality: (FrameQualityMetrics | null)[] = [];
   for (let i = 0; i < files.length; i++) {
     try {
       const file = files[i]!;
@@ -344,6 +416,26 @@ async function uploadFramesToStorage(
         continue;
       }
       urls.push(signed);
+
+      // Measured from the buffer already in hand — no refetch. Failure here is
+      // never fatal: a missing measurement means the frame is assessed as
+      // normal, since an absent metric is not evidence of a bad frame.
+      let metrics: FrameQualityMetrics | null = null;
+      try {
+        const m = await ImageQualityService.computeQualityFromImageData(buffer);
+        metrics = {
+          imageClarity: m.imageClarity,
+          lightingQuality: m.lightingQuality,
+          averageBrightness: m.averageBrightness,
+        };
+      } catch (qErr) {
+        logger.warn('Frame quality measurement failed — frame kept', {
+          service: SERVICE,
+          index: i,
+          error: qErr instanceof Error ? qErr.message : String(qErr),
+        });
+      }
+      quality.push(metrics);
     } catch (err) {
       logger.warn('Walkthrough frame store error', {
         service: SERVICE,
@@ -352,5 +444,5 @@ async function uploadFramesToStorage(
       });
     }
   }
-  return urls;
+  return { urls, quality };
 }

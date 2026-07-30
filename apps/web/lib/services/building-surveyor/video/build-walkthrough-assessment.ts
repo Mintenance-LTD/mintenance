@@ -100,17 +100,36 @@ function mergeReferrals(referrals: SpecialistReferral[]): SpecialistReferral[] {
   return Array.from(byType.values());
 }
 
+/**
+ * Merge per-frame surveys into one.
+ *
+ * `perFrame` is POSITIONAL and may contain holes: index i must be frame i of the
+ * walkthrough, with null where that frame produced nothing (it failed, or was
+ * excluded for being unassessable). This matters because mergeFrameFindings
+ * stamps each finding's sourceFrameIndex from its position, and that index is
+ * what the UI uses to look the frame up in assessment_images.
+ *
+ * It used to be handed a COMPACTED array (`perFrame.filter(Boolean)`), so a
+ * single failed frame shifted every later index down by one and each finding
+ * after it pointed at the wrong photograph — the exact failure the provenance
+ * feature exists to prevent. Aggregation still uses the compacted list; only the
+ * index mapping needs the holes.
+ */
 export function buildWalkthroughAssessment(
-  perFrame: Phase1BuildingAssessment[]
+  perFrame: (Phase1BuildingAssessment | null)[]
 ): Phase1BuildingAssessment | null {
-  const frames = perFrame.filter(Boolean);
+  const frames = perFrame.filter((f): f is Phase1BuildingAssessment =>
+    Boolean(f)
+  );
   if (frames.length === 0) return null;
 
   const merged = mergeFrameFindings(
-    frames.map((a) => ({
-      findings: a.findings,
-      sceneSummary: a.sceneSummary,
-      needsOnsiteInspection: a.needsOnsiteInspection,
+    // Full length, holes included: a frame that produced nothing contributes no
+    // findings but still occupies its own index.
+    perFrame.map((a) => ({
+      findings: a?.findings,
+      sceneSummary: a?.sceneSummary,
+      needsOnsiteInspection: a?.needsOnsiteInspection,
     }))
   );
   const lead = pickLeadFrame(frames);
