@@ -36,7 +36,7 @@ export async function fetchContractorProfileData(
         .select(
           `
           *,
-          contractor_skills(skill_name)
+          contractor_skills!contractor_id(skill_name)
         `
         )
         .eq('id', contractorId)
