@@ -10,6 +10,7 @@ import { signAssessmentPath } from '@/lib/api/assessment-storage';
 import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurveyorConfig';
 import { authorizeAssessmentAnchors } from '@/app/api/building-surveyor/assess/_anchor-authorization';
 import { assessWalkthrough } from '@/lib/services/building-surveyor/video/walkthrough-assessment';
+import { withPropertyAge } from './property-age';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 import {
   persistWalkthroughRow,
@@ -146,6 +147,16 @@ export const POST = withApiHandler(
       }
     }
 
+    // Tell the surveyor how old the building is.
+    //
+    // The phone sends only { room }, so every walkthrough was assessed with no
+    // idea of the property's age — and a kitchen built this year was reported as
+    // having established mould and structural movement. The age is read from
+    // properties.year_built here rather than accepted from the client for the
+    // same reason the room is verified: a claim that changes the diagnosis has
+    // to come from the server. Any client-supplied age/type is discarded.
+    const surveyContext = await withPropertyAge(context, propertyId);
+
     // Upload the frames server-side (service role → no client storage RLS).
     const folderId = `${propertyId ?? jobId}-${Date.now()}`;
     const frameUrls = await uploadFramesToStorage(files, folderId);
@@ -169,7 +180,7 @@ export const POST = withApiHandler(
 
     // Fan out across frames and merge into one property survey.
     const { assessment, perFrameAssessments, frameCount, framesAssessed } =
-      await assessWalkthrough(frameUrls, context);
+      await assessWalkthrough(frameUrls, surveyContext);
 
     if (!assessment || perFrameAssessments.length === 0) {
       logger.warn('Walkthrough produced no usable frame assessment', {

@@ -104,10 +104,45 @@ const ERA_RISK_FLAGS: Array<{
 ];
 
 /**
+ * Age below which a property is treated as a new build.
+ *
+ * Covers the drying-out and snagging period: a new dwelling sheds construction
+ * moisture for roughly its first two heating seasons, so damp readings and
+ * hairline shrinkage cracks are EXPECTED here and mean something quite
+ * different from the same observation on a 60-year-old house.
+ */
+const NEW_BUILD_MAX_AGE_YEARS = 2;
+
+/**
+ * Guidance for a property young enough that most pathology is implausible.
+ *
+ * This exists because a real survey reported mould and structural movement in a
+ * kitchen built the same year — the model had no idea how old the building was
+ * (see the walkthrough route, which now supplies it from properties.year_built).
+ */
+function getNewBuildGuidance(ageOfProperty: number): string {
+  return `\n\nPROPERTY AGE: NEW BUILD (~${ageOfProperty} year${ageOfProperty === 1 ? '' : 's'} old)
+This building is brand new. That is strong evidence about what you are and are not looking at:
+- EXPECTED and NOT defects: hairline shrinkage cracking at plasterboard joints, ceiling/wall junctions and around openings; slightly elevated moisture as construction water dries out; nail pops; minor settlement cracks under 1mm; snagging-level finish blemishes. Report these as early / condition 1 at most, and say they are consistent with a new build drying out.
+- IMPLAUSIBLE without unmistakable evidence: established mould colonies, rising damp, penetrating damp with a tide line, timber decay, structural subsidence, perished masonry, failed DPC. Do NOT report any of these from a tonal difference, a shadow or a soft gradient. If you believe you can see one, name the specific visible evidence (defined edge, colour shift, spore texture, displacement of a straight reference) in "description" — and if you cannot name it, do not raise the finding.
+- Workmanship and compliance defects ARE plausible and worth reporting: missing seals, unfinished trims, misaligned doors or windows that visibly fail against a straight reference, exposed fixings, services left unprotected.
+- A brand-new building with nothing wrong is a normal and correct survey outcome. Do not manufacture a defect to fill the report.`;
+}
+
+/**
  * Get era-specific risk warnings based on approximate property age in years.
  */
 function getEraRiskWarnings(ageOfProperty?: number): string {
-  if (!ageOfProperty || ageOfProperty <= 0) return '';
+  // 0 is a real age, not a missing value — a property built this year. The old
+  // `!ageOfProperty` guard treated it as unknown and returned nothing, which
+  // silently withheld age context for precisely the newest buildings.
+  if (typeof ageOfProperty !== 'number' || !Number.isFinite(ageOfProperty)) {
+    return '';
+  }
+  if (ageOfProperty < 0) return '';
+  if (ageOfProperty <= NEW_BUILD_MAX_AGE_YEARS) {
+    return getNewBuildGuidance(ageOfProperty);
+  }
 
   const matchingEras = ERA_RISK_FLAGS.filter(
     (era) =>
@@ -330,9 +365,18 @@ export function buildUserPrompt(
     prompt += `Property Type: ${sanitisePromptInput(context.propertyType, 100)}\n`;
   }
 
-  if (context?.ageOfProperty) {
+  // Numeric check, not truthiness: age 0 is a property built this year, and the
+  // previous `if (context?.ageOfProperty)` dropped it — so the newest buildings,
+  // where age matters most, were the ones that never had it stated.
+  if (
+    typeof context?.ageOfProperty === 'number' &&
+    Number.isFinite(context.ageOfProperty) &&
+    context.ageOfProperty >= 0
+  ) {
     const age = String(context.ageOfProperty).replace(/[^\d.]/g, '');
-    prompt += `Property Age: ${age} years\n`;
+    prompt += `Property Age: ${age} years${
+      context.ageOfProperty === 0 ? ' (built this year — new build)' : ''
+    }\n`;
   }
 
   if (context?.propertyDetails) {
