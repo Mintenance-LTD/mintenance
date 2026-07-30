@@ -11,7 +11,12 @@
  * regenerating them, significantly speeding up test runs.
  */
 
-import { chromium, Browser, FullConfig } from '@playwright/test';
+import {
+  chromium,
+  Browser,
+  BrowserContext,
+  FullConfig,
+} from '@playwright/test';
 import { TEST_USERS } from './helpers/auth';
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
@@ -69,8 +74,85 @@ async function authenticateViaEndpoint(
     // jar; persist them for the test projects to load via storageState.
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     await context.storageState({ path: outPath });
+
+    await reportFixtureHealth(context, baseURL, outPath);
   } finally {
     await context.close();
+  }
+}
+
+/**
+ * Verify the minted session can actually reach the data APIs, not just the
+ * page shell.
+ *
+ * A session that authenticates the shell but not `/api/*` fails in a way that
+ * is expensive to read: the page renders, the account chip shows the right
+ * user, but `useCurrentUser` gets a 401 from `/api/auth/session`, so `user`
+ * stays null, so the job wizard's properties fetch — which is gated on
+ * `user.role === 'homeowner'` — never fires, and the wizard silently renders
+ * "No properties found". The test then burns its full 60s timeout waiting for a
+ * `property-card` that was never going to appear, pointing the blame at the
+ * wizard rather than at the fixture.
+ *
+ * So probe the two endpoints that gate that chain and print what came back.
+ * This deliberately does not throw: a broken fixture should be loud, but it
+ * should not take the ~90 currently-passing tests down with it.
+ */
+async function reportFixtureHealth(
+  context: BrowserContext,
+  baseURL: string,
+  outPath: string
+): Promise<void> {
+  const label = path.basename(outPath, '.json');
+
+  const state = await context.storageState();
+  const names = state.cookies.map((c) => c.name);
+  const app = names.filter((n) => n.includes('mintenance'));
+  const sb = names.filter((n) => n.startsWith('sb-'));
+  console.log(
+    `  🍪 ${label}: ${state.cookies.length} cookies — app=[${app.join(', ') || 'NONE'}] supabase=[${sb.join(', ') || 'NONE'}]`
+  );
+  // Secure cookies are the classic silent dropper when the server runs a
+  // production build over plain http, as CI does (`npm run start`).
+  const insecureDropped = state.cookies.filter(
+    (c) => c.secure && baseURL.startsWith('http://')
+  );
+  if (insecureDropped.length > 0) {
+    console.log(
+      `  ⚠️  ${label}: ${insecureDropped.length} Secure cookie(s) over http — [${insecureDropped.map((c) => c.name).join(', ')}]`
+    );
+  }
+
+  for (const endpoint of ['/api/auth/session', '/api/properties']) {
+    try {
+      const res = await context.request.get(`${baseURL}${endpoint}`);
+      const body = await res.text().catch(() => '');
+      const ok = res.ok();
+      let summary: string;
+      if (!ok) {
+        summary = body.slice(0, 160);
+      } else {
+        // Report shape, not contents — these responses carry real user data.
+        try {
+          const parsed = JSON.parse(body) as Record<string, unknown>;
+          summary = Object.entries(parsed)
+            .map(
+              ([k, v]) =>
+                `${k}=${Array.isArray(v) ? `[${v.length}]` : typeof v}`
+            )
+            .join(' ');
+        } catch {
+          summary = `${body.length} bytes`;
+        }
+      }
+      console.log(
+        `  ${ok ? '✅' : '❌'} ${label} ${endpoint} -> ${res.status()} ${summary}`
+      );
+    } catch (err) {
+      console.log(
+        `  ❌ ${label} ${endpoint} -> threw ${String(err).slice(0, 160)}`
+      );
+    }
   }
 }
 
