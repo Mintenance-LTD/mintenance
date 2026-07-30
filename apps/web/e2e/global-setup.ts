@@ -154,6 +154,39 @@ async function reportFixtureHealth(
       );
     }
   }
+
+  // The probes above use APIRequestContext. The app fetches from a real page,
+  // and 2026-07-30 CI showed the two disagree: the request context got both
+  // seeded properties while the wizard's own fetch got `{"properties":[]}` —
+  // same user, same cookies, same 200. Everything checks out in isolation
+  // (token valid and non-anonymous, owner_id matches, the RLS SELECT policy
+  // returns 2 rows for that uid), so the divergence is in how the session
+  // reaches the route, not in the data. Probe the page path too, the same way
+  // the wizard does, so the two are directly comparable in one run.
+  try {
+    const page = await context.newPage();
+    await page.goto(baseURL, { waitUntil: 'domcontentloaded' });
+    const viaPage = await page.evaluate(async () => {
+      const r = await fetch('/api/properties', { credentials: 'include' });
+      const t = await r.text();
+      let n = -1;
+      try {
+        const j = JSON.parse(t) as { properties?: unknown[] };
+        n = Array.isArray(j.properties) ? j.properties.length : -1;
+      } catch {
+        /* leave n as -1 */
+      }
+      return { status: r.status, count: n };
+    });
+    console.log(
+      `  🌐 ${label} /api/properties via page -> ${viaPage.status} properties=[${viaPage.count}]`
+    );
+    await page.close();
+  } catch (err) {
+    console.log(
+      `  🌐 ${label} /api/properties via page -> threw ${String(err).slice(0, 160)}`
+    );
+  }
 }
 
 // Initialize Supabase client for test data seeding
