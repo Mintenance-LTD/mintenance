@@ -293,7 +293,13 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
         /<script\b[^<]*(?:(?!<\/script\b[^>]*>)<[^<]*)*<\/script\b[^>]*>/gi,
         ''
       );
-      result = result.replace(/<script.*?\/>/gi, '');
+
+      // Also stabilize self-closing script-like tags to avoid re-formation across replacements.
+      let previousSelfClosing: string;
+      do {
+        previousSelfClosing = result;
+        result = result.replace(/<script.*?\/>/gi, '');
+      } while (result !== previousSelfClosing);
     } while (result !== previous);
 
     // Defensive cleanup for malformed/partial script tag fragments that may remain
