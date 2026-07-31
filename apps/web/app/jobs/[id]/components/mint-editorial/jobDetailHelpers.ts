@@ -111,11 +111,44 @@ export interface NextStepInfo {
 }
 
 /**
+ * Convenience wrapper for the job-detail component: assembles
+ * JobLifecycleInputs from the shapes the page already holds.
+ */
+export function computeNextStepForJob(
+  job: { id: string; status: string; contractor_id?: string | null },
+  lifecycle: {
+    bidCount: number;
+    contractStatus?: string | null;
+    escrowStatus?: string | null;
+    completionConfirmed: boolean;
+  }
+): NextStepInfo {
+  return computeNextStep(
+    {
+      jobStatus: job.status,
+      bidCount: lifecycle.bidCount,
+      contractorAssigned: !!job.contractor_id,
+      contractStatus: lifecycle.contractStatus,
+      escrowStatus: lifecycle.escrowStatus,
+      completionConfirmed: lifecycle.completionConfirmed,
+    },
+    job.id
+  );
+}
+
+/**
  * Maps real lifecycle state to a single concrete next-step instruction.
  * The copy stays calm and operational per the Mint voice guide — no
  * AI hype, just describes what the homeowner needs to do next.
+ *
+ * `jobId` is needed because the escrow-funding CTA must route to the
+ * standalone /jobs/[id]/payment page — there is no payment surface on
+ * the job detail page itself to anchor to.
  */
-export function computeNextStep(inputs: JobLifecycleInputs): NextStepInfo {
+export function computeNextStep(
+  inputs: JobLifecycleInputs,
+  jobId: string
+): NextStepInfo {
   const {
     jobStatus,
     bidCount,
@@ -152,7 +185,7 @@ export function computeNextStep(inputs: JobLifecycleInputs): NextStepInfo {
     return {
       title: 'Pay into escrow',
       body: 'Your payment is held until you approve the finished work. Funds only release on sign-off.',
-      cta: { label: 'Pay now', href: '#payment-section' },
+      cta: { label: 'Pay now', href: `/jobs/${jobId}/payment` },
     };
   }
 

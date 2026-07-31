@@ -52,6 +52,10 @@ import { JobIssueButton } from './JobIssueButton';
 import { JobMapCard } from './JobMapCard';
 import { ContractorTipsReceivedCard } from './ContractorTipsReceivedCard';
 import { PreArrivalPhotoGallery } from './PreArrivalPhotoGallery';
+import {
+  platformFeeBreakdown,
+  formatPlatformFeePercent,
+} from '@mintenance/shared';
 
 interface ProgressStep {
   label: string;
@@ -135,6 +139,14 @@ interface MintEditorialJobDetailViewProps {
   buildingAssessment: unknown;
   userId: string;
   messageHref: string | null;
+  /**
+   * The contractor's effective platform fee rate (decimal, e.g. 0.05),
+   * resolved server-side in page.tsx via
+   * FeeCalculationService.resolveContractorTier — the SAME resolver the
+   * escrow release charges with. Passed in rather than hardcoded so a
+   * founding member sees their real 5%, not a literal. (2026-07-22 fix.)
+   */
+  platformFeeRate: number;
 }
 
 function formatGbp(amount: number) {
@@ -189,6 +201,7 @@ export function MintEditorialJobDetailView({
   buildingAssessment,
   userId,
   messageHref,
+  platformFeeRate,
 }: MintEditorialJobDetailViewProps) {
   // 2026-05-27 audit-81 P1: filter the contact list to entries that
   // are at least nameable. Avoids rendering a "People at this
@@ -201,9 +214,12 @@ export function MintEditorialJobDetailView({
       : job.budget
         ? parseFloat(String(job.budget))
         : 0;
-  const platformFeePct = 0.08;
-  const platformFee = budgetNum * platformFeePct;
-  const netToYou = budgetNum - platformFee;
+  // Tier-aware, resolved server-side and passed in. formatPlatformFeePercent
+  // + platformFeeBreakdown are the shared helpers mobile uses too, so the
+  // label and the maths can never diverge across platforms.
+  const feeBreakdown = platformFeeBreakdown(budgetNum, platformFeeRate);
+  const platformFee = feeBreakdown.platformFee;
+  const netToYou = feeBreakdown.netToContractor;
   const homeownerName = homeowner
     ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
       homeowner.email ||
@@ -969,7 +985,8 @@ export function MintEditorialJobDetailView({
                   </div>
                   <div className='between'>
                     <span className='t-meta'>
-                      Mintenance fee ({Math.round(platformFeePct * 100)}%)
+                      Mintenance fee (
+                      {formatPlatformFeePercent(platformFeeRate)})
                     </span>
                     <span
                       style={{

@@ -32,6 +32,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoadingSpinner, ErrorView } from '../components/shared';
+import { goBackSafe } from '../navigation/hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { PaymentSummaryCard } from './payment/components/PaymentSummaryCard';
 import { EscrowInfoCard } from './payment/components/EscrowInfoCard';
@@ -51,7 +52,13 @@ interface PaymentScreenProps {
       useEscrow?: boolean;
     };
   };
-  navigation: { goBack: () => void };
+  // Structural minimum matching goBackSafe's GoBackSafeNav — the real
+  // prop is the Jobs-stack navigation object, which has all three.
+  navigation: {
+    goBack: () => void;
+    canGoBack: () => boolean;
+    navigate: (screen: string) => void;
+  };
 }
 
 const fmtGBP = (n: number): string =>
@@ -91,7 +98,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     queryClient.invalidateQueries({
       queryKey: queryKeys.jobs.bids(jobId),
     });
-    navigation.goBack();
+    goBackSafe(navigation, 'JobsList');
   }, [queryClient, jobId, navigation]);
 
   const payment = usePayment({
@@ -119,7 +126,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
       <View style={styles.topNav}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

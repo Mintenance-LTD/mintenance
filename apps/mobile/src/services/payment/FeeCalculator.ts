@@ -1,4 +1,5 @@
 import { apiRequest } from './apiHelper';
+import { DEFAULT_PLATFORM_FEE_RATE } from '@mintenance/shared';
 
 export class FeeCalculator {
   /**
@@ -18,7 +19,10 @@ export class FeeCalculator {
     contractorAmount: number;
     totalFees: number;
   } {
-    const platformRate = 0.12; // basic-tier fallback (matches web default)
+    // Basic-tier fallback from the shared table (12%), the same
+    // conservative default the web FeeCalculationService uses when the
+    // tier is unknown. Real rate arrives via GET /api/jobs/[id]/payment-details.
+    const platformRate = DEFAULT_PLATFORM_FEE_RATE;
     const stripeRate = 0.015; // UK Stripe rate
     const stripeFixed = 0.2; // £0.20 UK fixed fee
     const minPlatformFee = 0.5;

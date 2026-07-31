@@ -596,6 +596,60 @@ describe('POST /api/contracts/[id]/accept', () => {
     );
   });
 
+  // ---- Payment prompt fires exactly on acceptance ----
+  // 2026-07-31 audit P0-2: the actionable payment_required event (deep
+  // links to /jobs/[id]/payment) previously had zero production callers
+  // — the homeowner's only cue to fund escrow was contract_signed body
+  // text.
+  it('should send the homeowner a payment_required prompt when the contract becomes accepted', async () => {
+    setupContractMocks({
+      contractData: {
+        ...pendingContract,
+        homeowner_signed_at: '2026-01-01T00:00:00Z',
+      },
+      updateResult: {
+        ...pendingContract,
+        contractor_signed_at: new Date().toISOString(),
+        homeowner_signed_at: '2026-01-01T00:00:00Z',
+        status: 'accepted',
+        amount: 450,
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/contracts/contract-1/accept'
+    );
+    await POST(req, segmentData('contract-1'));
+
+    expect(mocks.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'homeowner-1',
+        type: 'payment_required',
+        actionUrl: '/jobs/job-1/payment',
+        message: expect.stringContaining('£450.00'),
+      })
+    );
+  });
+
+  it('should NOT send payment_required on a first (pending) signature', async () => {
+    setupContractMocks({
+      updateResult: {
+        ...pendingContract,
+        contractor_signed_at: new Date().toISOString(),
+        status: 'pending_homeowner',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/contracts/contract-1/accept'
+    );
+    await POST(req, segmentData('contract-1'));
+
+    expect(mocks.createNotification).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'payment_required' })
+    );
+  });
+
   // ---- DB update error ----
   it('should return 500 when contract update fails', async () => {
     setupContractMocks({ updateError: { message: 'DB error' } });

@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenHeader } from '../../components/shared';
+import { goBackSafe } from '../../navigation/hooks';
 import { me } from '../../design-system/mint-editorial';
 
 import { styles } from './theme/styles';
@@ -72,7 +73,7 @@ export const SubscriptionScreen: React.FC = () => {
       <ScreenHeader
         title='Subscription'
         showBack
-        onBack={() => navigation.goBack()}
+        onBack={() => goBackSafe(navigation, 'ProfileMain')}
       />
 
       <ScrollView

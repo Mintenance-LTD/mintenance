@@ -33,6 +33,13 @@ export interface BidSubmissionClient2025Props {
     estimatedDuration?: number;
     proposedStartDate?: string;
   };
+  /**
+   * This contractor's effective platform fee rate as a DECIMAL (0.05 =
+   * 5%), resolved server-side in page.tsx. Previously hardcoded to 5 (a
+   * percent) inside the component, which showed the wrong rate to anyone
+   * not on the Business/founding tier. (2026-07-22 fee-consistency fix.)
+   */
+  platformFeeRate: number;
 }
 
 export interface LineItem {

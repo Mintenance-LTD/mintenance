@@ -13,7 +13,11 @@ import { getCsrfHeaders } from '@/lib/csrf-client';
 import { PricingSuggestionCard } from './PricingSuggestionCard';
 import { BidJobDetailsPanel } from './BidJobDetailsPanel';
 import { BidFormAdvancedMode } from './BidFormAdvancedMode';
-import { logger } from '@mintenance/shared';
+import {
+  logger,
+  platformFeeBreakdown,
+  formatPlatformFeePercent,
+} from '@mintenance/shared';
 import type {
   BidSubmissionClient2025Props,
   LineItem,
@@ -22,7 +26,7 @@ import type {
 } from './bidSubmissionTypes';
 
 export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
-  const { job, existingBid } = props || {};
+  const { job, existingBid, platformFeeRate } = props || {};
   const router = useRouter();
   const { user } = useCurrentUser();
   const [amount, setAmount] = useState(existingBid?.amount?.toString() || '');
@@ -132,9 +136,21 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   );
   const taxAmount = (subtotal * taxRate) / 100;
   const totalAmount = subtotal + taxAmount;
-  const platformFeeRate = 5;
-  const platformFee = (totalAmount * platformFeeRate) / 100;
-  const youWillReceive = totalAmount - platformFee;
+  // Tier-aware rate (decimal), resolved server-side and passed in.
+  // formatPlatformFeePercent + platformFeeBreakdown are shared with the
+  // job-detail view and mobile so the label and maths never diverge.
+  const platformFeePercentLabel = formatPlatformFeePercent(platformFeeRate);
+  const { platformFee, netToContractor: youWillReceive } = platformFeeBreakdown(
+    totalAmount,
+    platformFeeRate
+  );
+  // Basic-mode path: the "Pricing Breakdown" panel quotes off the raw
+  // entered amount (totalAmount is 0 with no line items).
+  const enteredBid = parseFloat(amount);
+  const enteredBreakdown = platformFeeBreakdown(
+    Number.isFinite(enteredBid) ? enteredBid : 0,
+    platformFeeRate
+  );
 
   useEffect(() => {
     if (lineItems.length > 0 && subtotal > 0) {
@@ -598,14 +614,10 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                           </div>
                           <div className='flex justify-between items-center'>
                             <span className='text-sm text-gray-600'>
-                              Platform fee ({platformFeeRate}%)
+                              Platform fee ({platformFeePercentLabel})
                             </span>
                             <span className='text-sm font-medium text-rose-600'>
-                              -£
-                              {(
-                                (parseFloat(amount) * platformFeeRate) /
-                                100
-                              ).toFixed(2)}
+                              -£{enteredBreakdown.platformFee.toFixed(2)}
                             </span>
                           </div>
                           <div className='pt-3 border-t border-gray-300'>
@@ -614,12 +626,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                                 You&apos;ll receive
                               </span>
                               <span className='text-lg font-bold text-emerald-600'>
-                                £
-                                {(
-                                  (parseFloat(amount) *
-                                    (100 - platformFeeRate)) /
-                                  100
-                                ).toFixed(2)}
+                                £{enteredBreakdown.netToContractor.toFixed(2)}
                               </span>
                             </div>
                           </div>

@@ -18,6 +18,7 @@ import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { Job } from '@mintenance/types';
 import { JobsStackParamList } from '../navigation/types';
+import { goBackSafe } from '../navigation/hooks';
 import { logger } from '../utils/logger';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,13 +33,17 @@ import { JobRoomScope } from './components/JobRoomScope';
 import { supabase } from '../config/supabase';
 import type { JobRoomScopeOption } from './create-quote/components/LineItemScopeToolbar';
 import { featureAccess } from '../utils/featureAccess';
+import { useContractorFeeRate } from '../hooks/useContractorFeeRate';
+import {
+  platformFeeBreakdown,
+  formatPlatformFeePercent,
+} from '@mintenance/shared';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'BidSubmission'>;
   navigation: NativeStackNavigationProp<JobsStackParamList, 'BidSubmission'>;
 };
 
-const PLATFORM_FEE_PERCENT = 5;
 const MIN_DESC = 50;
 const MAX_DESC = 5000;
 const VAT_RATE = 20;
@@ -59,6 +64,10 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const existingBidId = params?.existingBidId;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  // Tier-aware platform fee for THIS contractor (decimal). Falls back to
+  // the Basic default while loading. Replaces the old hardcoded 5%, which
+  // showed every contractor the Business rate regardless of their tier.
+  const { rate: platformFeeRate } = useContractorFeeRate();
   const [job, setJob] = useState<Job | null>(null);
   const [mode, setMode] = useState<'quick' | 'detailed'>('quick');
 
@@ -260,8 +269,11 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const taxRate = includeVAT ? VAT_RATE : 0;
   const taxAmount = subtotal * (taxRate / 100);
   const totalAmount = subtotal + taxAmount;
-  const platformFee = totalAmount * (PLATFORM_FEE_PERCENT / 100);
-  const yourEarnings = totalAmount - platformFee;
+  const feePercentLabel = formatPlatformFeePercent(platformFeeRate);
+  const { platformFee, netToContractor: yourEarnings } = platformFeeBreakdown(
+    totalAmount,
+    platformFeeRate
+  );
   const bidAmount = mode === 'detailed' ? totalAmount : parseFloat(amount) || 0;
   // 2026-05-22: homeowner-set budget no longer anchors contractor bids.
   void bidAmount;
@@ -422,7 +434,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             text: 'OK',
             onPress: () => {
               allowExit();
-              navigation.goBack();
+              goBackSafe(navigation, 'JobsList');
             },
           },
         ]);
@@ -474,7 +486,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           text: 'OK',
           onPress: () => {
             allowExit();
-            navigation.goBack();
+            goBackSafe(navigation, 'JobsList');
           },
         },
       ]);
@@ -507,7 +519,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           the job detail screen.
         </Text>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           style={{
             marginTop: 18,
@@ -538,7 +550,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
@@ -690,7 +702,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                   </View>
                   <View style={styles.earningsRow}>
                     <Text style={styles.earningsLabel}>
-                      Platform fee ({PLATFORM_FEE_PERCENT}%)
+                      Platform fee ({feePercentLabel})
                     </Text>
                     <Text style={[styles.earningsValue, { color: me.errFg }]}>
                       -{'\u00A3'}
@@ -767,7 +779,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                   </View>
                   <View style={styles.earningsRow}>
                     <Text style={styles.earningsLabel}>
-                      Platform fee ({PLATFORM_FEE_PERCENT}%)
+                      Platform fee ({feePercentLabel})
                     </Text>
                     <Text style={[styles.earningsValue, { color: me.errFg }]}>
                       -{'\u00A3'}

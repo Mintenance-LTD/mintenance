@@ -41,6 +41,7 @@ import SwipeableCardWrapper, {
   SwipeableCardRef,
 } from '../components/SwipeableCardWrapper';
 import type { JobsStackParamList } from '../navigation/types';
+import { goBackSafe } from '../navigation/hooks';
 import { me } from '../design-system/mint-editorial';
 import { styles } from './BidReviewStyles';
 import { BidReviewCard } from './BidReviewCard';
@@ -259,7 +260,7 @@ export const BidReviewScreen: React.FC = () => {
               });
             },
           },
-          { text: 'Done', onPress: () => navigation.goBack() },
+          { text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') },
         ]
       );
     } catch (err) {
@@ -369,7 +370,7 @@ export const BidReviewScreen: React.FC = () => {
         <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackSafe(navigation, 'JobsList')}
             accessibilityRole='button'
             accessibilityLabel='Go back'
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -393,7 +394,7 @@ export const BidReviewScreen: React.FC = () => {
           </Text>
           <TouchableOpacity
             style={styles.goBackButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackSafe(navigation, 'JobsList')}
             accessibilityRole='button'
           >
             <Text style={styles.goBackButtonText}>Go Back</Text>
@@ -413,7 +414,7 @@ export const BidReviewScreen: React.FC = () => {
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

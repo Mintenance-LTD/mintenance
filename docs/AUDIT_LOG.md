@@ -17,6 +17,60 @@ ran a mobile backend schema-alignment audit (live Postgres error logs + `informa
 cross-check), shipped 5 commits, applied 2 live migrations, and deleted ~45 files of orphaned dead
 code — see "2026-06-06" immediately below.
 
+### 2026-07-31 — full user-flow audit (6 agents) + same-day fix batch
+
+Six parallel audit agents traced every user flow (job lifecycle web+mobile, mobile back-buttons,
+property features, notification parity, remaining features) with file:line evidence, then the whole
+P0 slate was fixed same-session. 8 commits (`2cdf802a2`…`c66fc7baa`), both suites fully green after
+(web 2938/2938; mobile 12514 pass / 5 tracked skips / 0 fail — one flaky failure did not reproduce
+across two reruns).
+
+**Found → FIXED (same session):**
+
+1. **P0 web: Mint Editorial (default theme) had NO escrow-funding CTA** — `NextStepCard` was
+   imported nowhere and pointed at a nonexistent `#payment-section` anchor; since `/start` requires
+   escrow `held`, every default-theme homeowner stalled after contract signing. Now mounted in the
+   right rail, routing to `/jobs/[id]/payment` (`bde7a566f`, +5 pinning tests).
+2. **P0 notifications: `payment_required` had zero production callers** — homeowner's only cue to
+   fund escrow was `contract_signed` body text. Now fired in `contracts/[id]/accept` inside the
+   accepted-fanout guard (exactly-once); mobile routing table gained `payment_required` /
+   `payment_secured` / `payment_failed` → JobDetails (`bbe1b28c3`).
+3. **P0 mobile: VideoCallInterface BackHandler leak** — subscription `remove()` discarded + listener
+   returns true unconditionally → after any call, hardware back swallowed app-wide until app kill.
+   Extracted `useEndCallBackHandler` with proper cleanup (+3 tests, `84114866a` series).
+4. **P0/P1 mobile: linking config had no `initialRouteName` at any level** — cold-start
+   `bookings/:id` mounted alone on the root stack (iOS fully stuck); 11 detail routes got dead back
+   buttons. `initialRouteName` declared at every level; `goBackSafe` (previously 0 adopters) adopted
+   across 12 screens / 26 call sites; ExploreMap's permanently-dead tab-root back arrow now hidden
+   when it can't act (`4188f060d`).
+5. **P2 mobile: 7 screens had no back affordance** (headerShown:false everywhere). New shared
+   `MintScreenBackBar` on LearningCards/Accessibility/NotificationPrefs/BookingStatus; Properties
+   top bar regained a back button; Notifications modal gained a close (`84114866a`). WelcomeScreen
+   left forward-only intentionally.
+6. **P1 web properties: fixes were stranded on unmerged branch `claude/ecstatic-germain-23d9e9`**
+   (contractor-embed `[0]`-on-object blank names + en-GB date re-parse corrupting ~11 consumers).
+   Cherry-picked as `3482668b6`.
+7. **Fee-tier working set committed atomically** (`2cdf802a2`) — untracked load-bearing
+   `packages/shared/src/pricing` + `useContractorFeeRate` were imported by modified files; a partial
+   commit would have broken the shared build.
+
+**Stale-record corrections established by the audit:** P1-8 is stale (mobile escrow funding is
+native `@stripe/stripe-react-native`, NOT a web redirect); the 2026-07-10 "7-day auto-release DEAD"
+is FIXED (`photos/after/_schedule-auto-release.ts` arms it directly); embedded-checkout amount
+bypass FIXED; PATCH raw-status FIXED (enum + state machine — residual: machine-legal transitions can
+still skip photo/escrow gates, P2 open); invoice 5% fee FIXED (tier-aware); 2026-06-11 mobile
+assessment breaks ALL FIXED.
+
+**Still open (not fixed this session):** web bid-decline UI missing (reject/unreject routes have no
+callers); homeowner travel-tracking view absent on mint-editorial web + trips notification lacks
+actionUrl; job creation accepts client-supplied `status` (P1 — pin to `posted`); homeowner signup
+phone labelled optional but server-required; manual escrow release never notifies the homeowner;
+mobile jobs-archive filter missing; request-changes doesn't reset `auto_approval_date`; add-property
+discards squareFeet, edit fabricates year_built, `parseInt` truncates half-baths; property/room
+photo uploads still trust client MIME; iOS push still blocked on `GOOGLE_SERVICES_PLIST`; ALL
+committed mobile wins unshipped until the EAS build lands. Zero runtime/browser/device verification
+this session — everything above is code-read + unit-tested.
+
 ### 2026-07-29 — e2e green-up round 3 (PRs #1269, #1270)
 
 Continued the CI e2e green-up. Measured, not estimated: run 30432147313 was 39 failed / 76 passed;

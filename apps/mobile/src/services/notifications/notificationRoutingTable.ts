@@ -282,6 +282,17 @@ export function routeForNotification(
     case 'escrow_released':
     case 'escrow_auto_released':
     case 'changes_requested':
+    // 2026-07-31 audit P0-2/P1-3: payment_required is the dedicated
+    // "fund the escrow" prompt fired at contract acceptance
+    // (contracts/[id]/accept via notifyPaymentEvent; actionUrl
+    // /jobs/:id/payment — the UUID parse above extracts jobId).
+    // payment_secured is the webhook stakeholder fanout
+    // (stripe-webhook/payment-intent-handlers) and payment_failed the
+    // failure leg — all three previously fell to the inbox. JobDetails
+    // surfaces the Pay CTA / job status per role.
+    case 'payment_required':
+    case 'payment_failed':
+    case 'payment_secured':
     // 2026-05-24 audit-36 P1: contractor tracking push types from
     // /api/contractor/trips (POST + PATCH). Previously fell through
     // to the default NOTIFICATIONS_FALLBACK, so a homeowner tapping

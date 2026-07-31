@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../design-system/mint-editorial';
+import { MintScreenBackBar } from '../../components/shared';
 
 interface LearningCard {
   id: string;
@@ -52,46 +53,50 @@ export const LearningCardsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
-    >
-      <View style={styles.header}>
-        <Text style={styles.h1}>60-second how-tos</Text>
-        <Text style={styles.subtitle}>
-          Quick, practical videos. Keep your phone in one hand.
-        </Text>
-      </View>
+    <View style={styles.container}>
+      <MintScreenBackBar fallbackScreen='ProfileMain' />
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}>
+        <View style={styles.header}>
+          <Text style={styles.h1}>60-second how-tos</Text>
+          <Text style={styles.subtitle}>
+            Quick, practical videos. Keep your phone in one hand.
+          </Text>
+        </View>
 
-      <View style={styles.grid}>
-        {CARDS.map((c) => (
-          <TouchableOpacity
-            key={c.id}
-            style={styles.card}
-            disabled={!c.videoUrl}
-            onPress={() => {
-              // TODO(R3-polish): open an in-app video player when videoUrl
-              // lands. For now the card is a visual placeholder.
-            }}
-          >
-            <View style={styles.thumb}>
-              <Ionicons name='play-circle-outline' size={56} color={me.brand} />
-            </View>
-            <View style={styles.body}>
-              <Text style={styles.meta}>
-                {c.durationSeconds}s ·{' '}
-                {c.audience === 'all' ? 'everyone' : c.audience + 's'}
-              </Text>
-              <Text style={styles.cardTitle}>{c.title}</Text>
-              <Text style={styles.cardDesc}>{c.description}</Text>
-              {!c.videoUrl && (
-                <Text style={styles.comingSoon}>Coming soon</Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </ScrollView>
+        <View style={styles.grid}>
+          {CARDS.map((c) => (
+            <TouchableOpacity
+              key={c.id}
+              style={styles.card}
+              disabled={!c.videoUrl}
+              onPress={() => {
+                // TODO(R3-polish): open an in-app video player when videoUrl
+                // lands. For now the card is a visual placeholder.
+              }}
+            >
+              <View style={styles.thumb}>
+                <Ionicons
+                  name='play-circle-outline'
+                  size={56}
+                  color={me.brand}
+                />
+              </View>
+              <View style={styles.body}>
+                <Text style={styles.meta}>
+                  {c.durationSeconds}s ·{' '}
+                  {c.audience === 'all' ? 'everyone' : c.audience + 's'}
+                </Text>
+                <Text style={styles.cardTitle}>{c.title}</Text>
+                <Text style={styles.cardDesc}>{c.description}</Text>
+                {!c.videoUrl && (
+                  <Text style={styles.comingSoon}>Coming soon</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 

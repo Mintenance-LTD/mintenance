@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LoadingSpinner, ErrorView } from '../components/shared';
+import { goBackSafe } from '../navigation/hooks';
 import {
   NotificationService,
   NotificationData,
@@ -205,6 +206,7 @@ export const NotificationScreen: React.FC = () => {
         unreadCount={unreadCount}
         paddingTop={insets.top}
         onMarkAllAsRead={handleMarkAllAsRead}
+        onClose={() => goBackSafe(navigation, 'Main')}
       />
       <NotificationTabs
         activeTab={activeTab}

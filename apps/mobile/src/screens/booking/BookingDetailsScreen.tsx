@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { supabase } from '../../config/supabase';
 import type { RootStackParamList } from '../../navigation/types';
+import { goBackSafe } from '../../navigation/hooks';
 import { me } from '../../design-system/mint-editorial';
 
 interface Props {
@@ -77,7 +78,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackSafe(navigation, 'Main')}
           >
             <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
@@ -118,7 +119,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'Main')}
         >
           <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
