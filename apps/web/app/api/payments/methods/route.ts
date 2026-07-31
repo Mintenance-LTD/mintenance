@@ -6,6 +6,10 @@ import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { stripe } from '@/lib/stripe';
+import {
+  isMissingCustomerError,
+  clearStaleStripeCustomerId,
+} from '@/lib/stripe/stale-customer';
 
 /**
  * GET /api/payments/methods
@@ -58,9 +62,9 @@ export const GET = withApiHandler(
         | null
         | undefined) ?? null;
 
-    // No Stripe customer yet → user has no saved methods. Return an
-    // empty list instead of provisioning a customer on a read.
-    if (!stripeCustomerId) {
+    // Build the "no saved methods" response once — used both when the user
+    // has no customer yet AND when the stored id turns out to be stale.
+    const emptyMethodsResponse = () => {
       const emptyResponse = NextResponse.json({
         paymentMethods: [],
         defaultPaymentMethodId: null,
@@ -78,10 +82,34 @@ export const GET = withApiHandler(
         rateLimitResult.resetTime.toString()
       );
       return emptyResponse;
+    };
+
+    // No Stripe customer yet → user has no saved methods. Return an
+    // empty list instead of provisioning a customer on a read.
+    if (!stripeCustomerId) {
+      return emptyMethodsResponse();
     }
 
-    // Get customer default payment method
-    const customer = await stripe.customers.retrieve(stripeCustomerId);
+    // Get customer default payment method.
+    //
+    // A stored id created under a different Stripe mode/account (e.g. a
+    // test-mode customer after a live-key promotion) makes this throw
+    // resource_missing, which used to surface as a bare 500 "An unexpected
+    // error occurred" on the Payment Methods screen. Treat it as "no saved
+    // methods" — same as having no customer at all — and clear the dead id
+    // so the next add-card provisions a fresh one.
+    let customer: Stripe.Customer | Stripe.DeletedCustomer;
+    try {
+      customer = await stripe.customers.retrieve(stripeCustomerId);
+    } catch (error) {
+      if (!isMissingCustomerError(error)) throw error;
+      await clearStaleStripeCustomerId(user.id, stripeCustomerId, {
+        service: 'payments',
+        operation: 'list_payment_methods',
+      });
+      return emptyMethodsResponse();
+    }
+
     if ((customer as Stripe.DeletedCustomer).deleted) {
       throw new BadRequestError('Stripe customer deleted');
     }
