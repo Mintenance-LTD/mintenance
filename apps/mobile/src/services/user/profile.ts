@@ -16,7 +16,7 @@ export async function getUserProfile(
       .select(
         `
           id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at,
-          contractor_skills (
+          contractor_skills!contractor_id (
             skill_name
           )
         `

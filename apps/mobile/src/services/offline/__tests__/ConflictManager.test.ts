@@ -30,25 +30,23 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 const mockGetJobById = jest.fn();
 const mockGetBidById = jest.fn();
 const mockGetUserProfile = jest.fn();
-jest.mock(
-  '../../JobService',
-  () => ({
-    JobService: {
-      getJobById: (...a: unknown[]) => mockGetJobById(...a),
-      getBidById: (...a: unknown[]) => mockGetBidById(...a),
-    },
-  }),
-  { virtual: true }
-);
-jest.mock(
-  '../../UserService',
-  () => ({
-    UserService: {
-      getUserProfile: (...a: unknown[]) => mockGetUserProfile(...a),
-    },
-  }),
-  { virtual: true }
-);
+// NOT `{virtual: true}`: these are REAL modules (src/services/JobService,
+// src/services/UserService). Virtual mocks of existing modules stop
+// intercepting in some CI runs (same failure mode as the SecurityManager
+// expo-file-system mock, fixed 2026-07-27) — the real JobService then made
+// live api-client calls with 3x retries, so detectConflict swallowed the
+// API_ERROR into null and the suite burned 67s before failing 7 tests.
+jest.mock('../../JobService', () => ({
+  JobService: {
+    getJobById: (...a: unknown[]) => mockGetJobById(...a),
+    getBidById: (...a: unknown[]) => mockGetBidById(...a),
+  },
+}));
+jest.mock('../../UserService', () => ({
+  UserService: {
+    getUserProfile: (...a: unknown[]) => mockGetUserProfile(...a),
+  },
+}));
 
 const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 const QUEUE_KEY = 'CONFLICT_QUEUE';

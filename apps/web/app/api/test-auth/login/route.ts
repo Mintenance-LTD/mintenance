@@ -26,6 +26,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { authManager } from '@/lib/auth-manager';
 
 // @supabase/ssr / signInWithPassword need Node APIs, not the edge runtime.
 export const runtime = 'nodejs';
@@ -35,6 +36,10 @@ function notFound(): NextResponse {
   return new NextResponse('Not Found', { status: 404 });
 }
 
+// auth-check: ok — E2E-only fixture, deliberately outside withApiHandler:
+// it must mint the session cookie itself. Double-gated below (E2E_TESTING
+// flag AND shared E2E_AUTH_SECRET); returns 404 in every other environment,
+// and middleware blocks it in production before this handler runs.
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Gate 1: only ever active in an explicit E2E environment.
   if (process.env.E2E_TESTING !== 'true') {
@@ -101,6 +106,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 401 }
     );
   }
+
+  // The sb-* cookies above satisfy the middleware and the browser Supabase
+  // client, but withApiHandler authenticates via the app's OWN JWT cookie
+  // (lib/auth.ts getCurrentUserFromCookies), which only authManager.login
+  // mints. Without it every /api/* call 401s and the client redirects to
+  // /login — the 2026-07-28 CI run failed all storageState projects this way.
+  // Reuse the production login path rather than duplicating token minting.
+  const appLogin = await authManager.login({ email, password }, false);
+  if (!appLogin.success || !appLogin.cookieHeaders) {
+    return NextResponse.json(
+      { error: appLogin.error ?? 'App session mint failed' },
+      { status: 401 }
+    );
+  }
+  appLogin.cookieHeaders.forEach((value: string, key: string) => {
+    response.headers.append(key, value);
+  });
 
   return response;
 }

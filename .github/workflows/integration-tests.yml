@@ -62,7 +62,9 @@ jobs:
         run: npm run build:packages
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@8e24e7f81eb07a23f63a88cf52e0586f3a498945 # v1
+        # 2026-07-27: previous pin 8e24e7f8... no longer resolves upstream
+        # (commit garbage-collected) — every run died at "Set up job".
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
         with:
           version: latest
 

@@ -25,6 +25,7 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Info } from 'lucide-react';
+import { VALIDATION } from './constants';
 import { STEPS } from './_components/types';
 import type { Property } from './_components/types';
 import { ProgressBar } from './_components/progress-bar';
@@ -432,12 +433,17 @@ export default function CreateJobPage2025() {
   const hasImages =
     imageUpload.imagePreviews.length > 0 ||
     imageUpload.uploadedImages.length > 0;
+  // Threshold comes from VALIDATION so it cannot drift from the step's own hint
+  // text again. It was hardcoded to 50 while details-step.tsx, constants.ts and
+  // the server schema all used 20, so a 20-49 character description rendered the
+  // green "Description is detailed enough" tick next to a Next button that
+  // stayed disabled with no explanation of why.
   const canProceedStep1 = !!(
     formData.property_id &&
     formData.category &&
     formData.title &&
     formData.description &&
-    formData.description.length >= 50
+    formData.description.length >= VALIDATION.MIN_DESCRIPTION_LENGTH
   );
   // Photos are required on every job (2026-05-22).
   const canProceedStep2 = hasImages;

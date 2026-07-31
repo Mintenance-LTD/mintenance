@@ -12,7 +12,7 @@
  * e2e/.auth/contractor.json
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { createTestBid, waitForNetworkIdle } from './helpers/test-data';
 
 test.describe('Authenticated Contractor Flow', () => {
@@ -68,9 +68,13 @@ test.describe('Authenticated Contractor Flow', () => {
     await page.goto('/contractor/discover');
     await page.waitForLoadState('networkidle');
 
-    // Click on first available job
-    const firstJob = page.locator('[data-testid="job-card"]').first();
-    const firstJobLink = page.getByRole('link').first();
+    // Click on first available job. Both locators are scoped to the
+    // #main-content landmark: unscoped, `getByRole('link').first()` resolves to
+    // the layout's sr-only "Skip to content" link, which sits outside the
+    // viewport and makes the click retry until the test times out.
+    const content = page.locator('#main-content');
+    const firstJob = content.locator('[data-testid="job-card"]').first();
+    const firstJobLink = content.getByRole('link').first();
 
     if (await firstJob.isVisible().catch(() => false)) {
       await firstJob.click();
@@ -193,7 +197,9 @@ test.describe('Authenticated Contractor Flow', () => {
       return;
     }
     await expect(
-      page.getByText(/profile|about|skill|experience/i)
+      // .first(): the profile page legitimately matches several elements
+      // (nav link, headings, completion widget) — any one visible is enough.
+      page.getByText(/profile|about|skill|experience/i).first()
     ).toBeVisible();
   });
 

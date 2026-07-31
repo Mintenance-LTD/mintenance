@@ -26,6 +26,14 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+# Repo default GITHUB_TOKEN is read-only; pr-quality-gate and quality-gate
+# post PR comments via github-script (403 "Resource not accessible by
+# integration" on the gate's first-ever run, 2026-07-28), and
+# dorny/paths-filter reads the PR file list.
+permissions:
+  contents: read
+  pull-requests: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -161,6 +169,11 @@ jobs:
     needs: quality-checks
     if: github.event_name == 'pull_request'
     timeout-minutes: 30
+    # Detox needs the STAGING app env to build; those secrets don't exist
+    # yet, so the smoke steps self-skip until they're added (same gating as
+    # the Detox jobs in mobile-tests.yml).
+    env:
+      HAS_STAGING: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING != '' }}
 
     steps:
       - name: Checkout code
@@ -204,69 +217,33 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run Detox smoke tests (auth + navigation only)
-        if: steps.filter.outputs.mobile == 'true'
-        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f0bc8937c1596d5b2203 # v2
+        if: steps.filter.outputs.mobile == 'true' && env.HAS_STAGING == 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 (2026-07-27: old pin no longer resolves upstream)
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
         with:
           api-level: 34
           arch: x86_64
           profile: pixel_6
           target: google_apis
-          script: |
-            cd apps/mobile
-            npm run e2e:build:android
-            npx detox test --configuration android.emu.debug --testNamePattern="auth|navigation"
+          # NOTE: the runner executes each script LINE in a separate shell —
+          # a bare `cd` on its own line does not persist (2026-07-28: npm ran
+          # at the repo root and died on "Missing script: e2e:build:android").
+          script: cd apps/mobile && npm run e2e:build:android && npx detox test --configuration android.emu.debug --testNamePattern="auth|navigation"
 
       - name: Skip (no mobile changes)
         if: steps.filter.outputs.mobile != 'true'
         run: echo "No mobile code changed — skipping Detox smoke tests."
 
-  mobile-testing:
-    name: Mobile E2E Testing
-    runs-on: macos-latest
-    needs: quality-checks
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
-        with:
-          node-version: '20.19.4'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts=false
-
-      - name: Setup Java for Android
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f3f2d4b9464 # v3
-        with:
-          api-level: 34
-          build-tools: 34.0.0
-
-      - name: Create Android Emulator
-        run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "system-images;android-34;google_apis;x86_64"
-          echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n test -k "system-images;android-34;google_apis;x86_64"
-
-      - name: Start Android Emulator
-        run: |
-          $ANDROID_HOME/emulator/emulator -avd test -no-snapshot -no-window -camera-back none -camera-front none -selinux permissive -qemu -m 2048 &
-          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed | tr -d "\r") ]]; do sleep 1; done; input keyevent 82'
-
-      - name: Run Detox E2E tests
-        run: |
-          npm run e2e:build:android
-          npm run e2e:test:android
-        env:
-          DETOX_CONFIGURATION: android.emu.debug
+  # NOTE (2026-07-28): the old `mobile-testing` ("Mobile E2E Testing") job
+  # was deleted here. It could never pass as written: it hand-rolled an
+  # x86_64 Android emulator on macos-latest (hangs forever on ARM runners —
+  # every main push burned ~6h before the workflow-level cancel) and ran the
+  # e2e npm scripts from the repo root (missing script). Detox Android E2E
+  # is properly implemented in mobile-tests.yml's `e2e-android` job
+  # (ubuntu + KVM, gated on the *_STAGING secrets).
 
   build-staging:
     name: Build Staging Apps
@@ -287,7 +264,7 @@ jobs:
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -331,7 +308,7 @@ jobs:
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -387,13 +364,25 @@ jobs:
         run: npm ci --ignore-scripts=false
         timeout-minutes: 10
 
+      # 2026-07-28: was `npm run test -- --testPathPattern=performance` at
+      # the repo root — workspace arg-forwarding dropped the pattern and this
+      # job silently re-ran the ENTIRE 12k-test mobile suite a second time.
       - name: Run performance tests
-        run: npm run test -- --testPathPattern=performance
+        working-directory: apps/mobile
+        run: npx jest --testPathPattern=performance --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit
+        env:
+          CI: true
 
+      # 2026-07-28: was a global-CLI `expo export` at the repo root (no app
+      # there, no env) — mirrors perf-budget's working setup instead.
       - name: Bundle size analysis
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
         run: |
-          npm install -g @expo/cli
-          expo export --platform android --output-dir dist
+          npx expo export --platform android --output-dir dist
           du -sh dist/
           echo "Bundle size analysis completed"
 
@@ -402,10 +391,25 @@ jobs:
           npm audit --json > audit-results.json || true
           cat audit-results.json
 
+      # 0BSD/BlueOak/Python-2.0/CC-BY/Unlicense/WTFPL are permissive licenses
+      # scattered through the transitive tree; MPL-2.0 (file-level copyleft,
+      # fine for unmodified npm deps — currently only @axe-core/playwright,
+      # an a11y test tool) failed the gate on its first-ever run 2026-07-28.
       - name: License compliance check
         run: |
           npm install -g license-checker
-          license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC' --summary
+          # Full inventory first (never fails) so a gate failure below always
+          # has the complete license list in the same log.
+          license-checker --excludePrivatePackages --summary || true
+          # 2026-07-28: flipped from --onlyAllow to --failOn. The real tree
+          # contains dozens of permissive-expression variants ((MIT OR
+          # CC0-1.0), FSL-1.1-MIT, MIT AND OFL-1.1, "UNKNOWN", custom URLs…)
+          # that an exact-string allowlist can never enumerate — the step had
+          # never actually run before today and failed on its first contact
+          # with reality. Deny strong copyleft / source-available instead;
+          # dual-licensed "(X OR GPL)" strings deliberately don't match since
+          # the permissive choice applies.
+          license-checker --excludePrivatePackages --failOn 'GPL-2.0;GPL-3.0;GPL-2.0-only;GPL-2.0-or-later;GPL-3.0-only;GPL-3.0-or-later;AGPL-1.0;AGPL-3.0;AGPL-3.0-only;AGPL-3.0-or-later;LGPL-2.0;LGPL-2.1;SSPL-1.0;BUSL-1.1;CC-BY-NC-4.0' --summary
 
   pr-quality-gate:
     name: PR Quality Gate

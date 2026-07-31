@@ -28,12 +28,17 @@ const MockProviders: React.FC<{ children: React.ReactNode }> = ({
 
   // Real screens now reach for react-query (useContractorFeeRate,
   // PhoneVerificationBanner's useQueryClient) — renders without a
-  // QueryClientProvider throw. Fresh per-render client, retries off,
-  // so no state leaks between tests.
+  // QueryClientProvider throw "No QueryClient set". Stable per-render
+  // instance (useState so re-renders don't churn a new client),
+  // retries off on queries + mutations, gcTime 0 so no state leaks
+  // between tests.
   const [queryClient] = React.useState(
     () =>
       new QueryClient({
-        defaultOptions: { queries: { retry: false, gcTime: 0 } },
+        defaultOptions: {
+          queries: { retry: false, gcTime: 0 },
+          mutations: { retry: false },
+        },
       })
   );
 

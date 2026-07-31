@@ -251,6 +251,7 @@ export function LoginForm() {
               </label>
               <Link
                 href='/forgot-password'
+                aria-label='Forgot password?'
                 style={{
                   fontSize: 12,
                   fontWeight: 600,

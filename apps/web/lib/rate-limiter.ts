@@ -98,6 +98,20 @@ export class RedisRateLimiter {
   }
 
   async checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
+    // E2E bypass — same gate as the /api/test-auth/login fixture. Without
+    // this, the production fail-closed posture (criticality-tagged routes
+    // reject outright when Redis is absent; unclassified routes get a
+    // shared-budget cap of ~5/window) blocks a serial Playwright suite that
+    // funnels every request through one IP. E2E_TESTING is never set in
+    // production (enforced by the test-auth route contract).
+    if (process.env.E2E_TESTING === 'true') {
+      return {
+        allowed: true,
+        remaining: config.maxRequests,
+        resetTime: Date.now() + config.windowMs,
+      };
+    }
+
     await this.initPromise;
     if (!this.initialized) {
       return this.fallbackRateLimit(config);

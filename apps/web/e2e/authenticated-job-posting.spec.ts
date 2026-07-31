@@ -11,15 +11,32 @@
  * e2e/.auth/homeowner.json
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import {
   createTestJob,
   fillForm,
   waitForNetworkIdle,
 } from './helpers/test-data';
+import {
+  openJobWizard,
+  completeDetailsStep,
+  completePhotosStep,
+  completeTimelineStep,
+  fillJobWizardToReview,
+  submitJobWizard,
+} from './helpers/job-wizard';
+import { establishSessionInContext, TEST_USERS } from './helpers/auth';
 
 test.describe('Authenticated Job Posting Flow', () => {
-  // No beforeEach needed - session is pre-loaded via storageState
+  // storageState alone is not enough here. It restores the app JWT fine — the
+  // page renders authenticated — but the Supabase half of the session does not
+  // survive the file round-trip, and /api/properties is RLS-scoped off that
+  // half, so it returns 200 with zero rows and the wizard shows "No properties
+  // found". Re-minting into this context reproduces the configuration that is
+  // measured working in global setup. See establishSessionInContext.
+  test.beforeEach(async ({ page }) => {
+    await establishSessionInContext(page, TEST_USERS.homeowner);
+  });
   // Tests start already authenticated as homeowner
 
   test('homeowner can access job creation page', async ({ page }) => {
@@ -61,58 +78,30 @@ test.describe('Authenticated Job Posting Flow', () => {
   test('homeowner can create a basic job', async ({ page }) => {
     const testJob = createTestJob();
 
-    // Navigate to job creation
-    await page.goto('/jobs/create');
-
-    // Wait for form to load
-    await page.waitForLoadState('networkidle');
-
-    // Fill in job title
-    const titleInput = page.getByLabel(/title|job title/i);
-    if (await titleInput.isVisible().catch(() => false)) {
-      await titleInput.fill(testJob.title);
+    if (!(await openJobWizard(page))) {
+      // skipped: runtime bail — session not accepted, redirected to login
+      test.skip();
+      return;
     }
 
-    // Fill in description
-    const descriptionInput = page.getByLabel(/description|describe|details/i);
-    if (await descriptionInput.isVisible().catch(() => false)) {
-      await descriptionInput.fill(testJob.description);
-    }
+    await fillJobWizardToReview(page, {
+      title: testJob.title,
+      description: testJob.description,
+      category: testJob.category,
+      urgency: 'medium',
+    });
 
-    // Select category (if dropdown or buttons exist)
-    const categoryOption = page.getByText(new RegExp(testJob.category, 'i'));
-    if (await categoryOption.isVisible().catch(() => false)) {
-      await categoryOption.click();
-    }
+    await submitJobWizard(page);
 
-    // Fill in budget (if present)
-    const budgetInput = page.getByLabel(/budget|cost|price/i);
-    if (await budgetInput.isVisible().catch(() => false)) {
-      await budgetInput.fill(testJob.budget.toString());
-    }
+    // Success is either a confirmation message or a redirect off the wizard.
+    const hasMessage = await page
+      .getByText(/success|created|posted/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const leftWizard = !page.url().includes('/jobs/create');
 
-    // Submit form (look for submit/next button)
-    const submitButton = page
-      .getByRole('button', { name: /post.*job|create.*job|submit|next/i })
-      .first();
-    await submitButton.click();
-
-    // Wait for submission
-    await waitForNetworkIdle(page);
-
-    // Should see success message or redirect to job list/details
-    const successIndicators = [
-      page.getByText(/success|created|posted/i),
-      page.url().includes('/jobs/'),
-    ];
-
-    // At least one success indicator should be true
-    const hasSuccess = await Promise.any([
-      successIndicators[0].isVisible().catch(() => false),
-      Promise.resolve(successIndicators[1]),
-    ]).catch(() => false);
-
-    expect(hasSuccess).toBeTruthy();
+    expect(hasMessage || leftWizard).toBeTruthy();
   });
 
   test('homeowner can save job as draft', async ({ page }) => {
@@ -178,83 +167,52 @@ test.describe('Authenticated Job Posting Flow', () => {
   });
 
   test('multi-step job creation flow works correctly', async ({ page }) => {
-    // Verify authentication works
-    await page.goto('/jobs/create');
-    await page.waitForLoadState('networkidle');
-    await expect(page).not.toHaveURL(/login/);
-
-    // Wait for page to load
-    await page.waitForTimeout(3000);
-
-    // Check if multi-step form (has step indicators)
-    const hasSteps = await page
-      .getByText(/step|1.*2.*3|details.*photos.*budget/i)
-      .isVisible()
-      .catch(() => false);
-
-    if (!hasSteps) {
-      // skipped: runtime bail — step indicators not detected; single-page path covered by the basic-job test (2026-07-02 triage)
-      console.log(
-        'Multi-step form not found - using single-page form (already tested)'
-      );
+    if (!(await openJobWizard(page))) {
+      // skipped: runtime bail — session not accepted, redirected to login
       test.skip();
       return;
     }
 
     const testJob = createTestJob();
 
-    // Step 1: Job Details
-    const titleInput = page.getByLabel(/title/i);
-    if (await titleInput.isVisible().catch(() => false)) {
-      await titleInput.fill(testJob.title);
-    }
+    // Step 1 -> 2: Details. completeDetailsStep asserts Next becomes enabled,
+    // so a validation regression reports the missing field rather than a 60s
+    // click timeout on a permanently disabled button.
+    await completeDetailsStep(page, {
+      title: testJob.title,
+      description: testJob.description,
+      category: testJob.category,
+    });
+    await expect(page.locator('[data-testid="step-2-photos"]')).toBeVisible();
 
-    const descriptionInput = page.getByLabel(/description/i);
-    if (await descriptionInput.isVisible().catch(() => false)) {
-      await descriptionInput.fill(testJob.description);
-    }
+    // Step 2 -> 3: Photos. At least one photo is mandatory (2026-05-22).
+    await completePhotosStep(page);
+    await expect(page.locator('[data-testid="step-3-timeline"]')).toBeVisible();
 
-    // Click "Next" to go to step 2
-    const nextButton = page.getByRole('button', { name: /next/i });
-    if (await nextButton.isVisible().catch(() => false)) {
-      await nextButton.click();
-      await page.waitForTimeout(500); // Wait for step transition
+    // Step 3 -> 4: Timeline (urgency). Budget collection was removed.
+    await completeTimelineStep(page, 'medium');
 
-      // Step 2: Photos (optional, click next to skip)
-      const nextButton2 = page.getByRole('button', { name: /next|skip/i });
-      if (await nextButton2.isVisible().catch(() => false)) {
-        await nextButton2.click();
-        await page.waitForTimeout(500);
+    await submitJobWizard(page);
 
-        // Step 3: Budget & Timeline
-        const budgetInput = page.getByLabel(/budget/i);
-        if (await budgetInput.isVisible().catch(() => false)) {
-          await budgetInput.fill(testJob.budget.toString());
-        }
-
-        // Submit
-        const submitButton = page.getByRole('button', {
-          name: /post|submit|finish/i,
-        });
-        await submitButton.click();
-
-        await waitForNetworkIdle(page);
-
-        // Verify success
-        const hasSuccessIndicator =
-          (await page
-            .getByText(/success|created/i)
-            .isVisible()
-            .catch(() => false)) || page.url().includes('/jobs/');
-
-        expect(hasSuccessIndicator).toBeTruthy();
-      }
-    }
+    const hasMessage = await page
+      .getByText(/success|created/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    expect(hasMessage || !page.url().includes('/jobs/create')).toBeTruthy();
   });
 });
 
 test.describe('Job Management', () => {
-  // No beforeEach needed - session is pre-loaded via storageState
+  // storageState alone is not enough here. It restores the app JWT fine — the
+  // page renders authenticated — but the Supabase half of the session does not
+  // survive the file round-trip, and /api/properties is RLS-scoped off that
+  // half, so it returns 200 with zero rows and the wizard shows "No properties
+  // found". Re-minting into this context reproduces the configuration that is
+  // measured working in global setup. See establishSessionInContext.
+  test.beforeEach(async ({ page }) => {
+    await establishSessionInContext(page, TEST_USERS.homeowner);
+  });
 
   test('homeowner can edit their own job', async ({ page }) => {
     // Navigate to jobs list

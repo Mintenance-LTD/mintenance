@@ -14,6 +14,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# Repo default GITHUB_TOKEN is read-only. CodeQL analyze needs
+# security-events: write to upload SARIF, and the PR-comment step needs
+# pull-requests: write — both sit after the npm-audit step, so they'll
+# start running (and would 403) once the dependency remediation lands.
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  actions: read
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest
@@ -37,13 +47,15 @@ jobs:
       timeout-minutes: 10
 
     - name: Run security audit
-      # 2026-05-30: aligned to `high` (matches ci-cd.yml). The 25 remaining
-      # moderate advisories are all transitive build/dev tooling (expo
-      # toolchain, @remotion/*, @google-cloud/storage→gaxios, next→postcss)
-      # with no non-breaking fix; `npm audit fix --force` would force expo/next
-      # major bumps. Block on high/critical (currently clean); triage moderates
-      # via the uploaded security-reports artifact + scheduled Snyk run.
-      run: npm audit --audit-level high
+      # 2026-07-28: switched from bare `npm audit --audit-level high` to the
+      # same audit-ci gate ci-cd.yml uses (audit-ci.jsonc: prod deps only,
+      # annotated allowlist). After the 2026-07-27/28 dependency remediation
+      # the remaining highs are all expo-57-blocked or dev-toolchain — the
+      # bare audit could never go green on them and had made this workflow
+      # permanently red, while audit-ci still blocks any NEW high/critical
+      # advisory. Allowlisted items are tracked in audit-ci.jsonc with their
+      # fix paths.
+      run: npm run audit:security
 
     - name: Run Snyk security scan
       if: ${{ env.HAS_SNYK == 'true' }}
@@ -67,12 +79,17 @@ jobs:
         cd apps/web
         npx eslint . --ext .ts,.tsx --format json --output-file eslint-security-report.json || true
 
+    # base/head only make sense on pull_request diffs. On a push to main,
+    # `base: main` == HEAD and the action hard-fails with "BASE and HEAD
+    # commits are the same" (it had always been broken for push runs — the
+    # audit step ahead of it failed first until 2026-07-28). Left blank, the
+    # action derives the range from the push event itself.
     - name: Check for secrets (TruffleHog)
       uses: trufflesecurity/trufflehog@bff3d2670b362bbb4a0bcdeffea146cbc2ad3abd # main
       with:
         path: ./
-        base: main
-        head: HEAD
+        base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+        head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
         extra_args: --debug --only-verified
 
     # Gitleaks runs our custom .gitleaks.toml which catches Google AIza keys,

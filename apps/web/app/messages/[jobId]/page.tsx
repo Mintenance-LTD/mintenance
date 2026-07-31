@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { MessageInput } from '@/components/messaging/MessageInput';
 import { logger } from '@/lib/logger';
 import toast from 'react-hot-toast';
-import { CreateContractDialog } from '@/app/contractor/messages/components/CreateContractDialog';
+import { CreateContractDialog } from '@/app/contractor/(dashboard)/messages/components/CreateContractDialog';
 import { QuoteViewDialog } from './components/QuoteViewDialog';
 import { VideoCallScheduler } from '@/app/video-calls/components/VideoCallScheduler';
 import { useChatData } from './components/useChatData';

@@ -11,7 +11,7 @@
  * - Homeowner user will have 2 test properties available
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Job Posting Flow', () => {
   test.describe('Job Creation Page Access', () => {
@@ -121,37 +121,12 @@ test.describe('Job Posting Flow', () => {
       expect(hasStep2Indicator || hasFileInput || hasUploadText).toBeTruthy();
     });
 
-    test('has budget input section', async ({ page }) => {
-      await page.goto('/jobs/create');
-
-      // Wait for form to load
-      await page
-        .waitForSelector('[data-testid="job-create-form"]', { timeout: 10000 })
-        .catch(() => {});
-
-      if (page.url().includes('login') || page.url().includes('auth')) {
-        // skipped: runtime bail — not authenticated (this spec relies on pre-seeded storage state; redirected to login) (2026-07-02 triage)
-        test.skip();
-        return;
-      }
-
-      // Check if Step 3 (Budget) exists in the DOM using data-testid
-      const hasStep3InDOM =
-        (await page.locator('[data-testid="step-3-budget"]').count()) > 0;
-
-      // Check if budget elements are visible on current view
-      const hasBudgetHeading = await page
-        .getByText('Set your budget and timeline')
-        .isVisible()
-        .catch(() => false);
-      const hasBudgetText = await page
-        .getByText(/budget|contractors provide accurate/i)
-        .isVisible()
-        .catch(() => false);
-
-      // Budget functionality exists if Step 3 exists in DOM (multi-step form) or budget visible (single-page)
-      expect(hasStep3InDOM || hasBudgetHeading || hasBudgetText).toBeTruthy();
-    });
+    // Removed: 'has budget input section'. Budget collection was deleted from
+    // the wizard on 2026-05-22 — step 3 is now Timeline only. The test asserted
+    // on `step-3-budget`, the heading "Set your budget and timeline" and the
+    // word "budget", none of which exist any more, so it was asserting the
+    // presence of a deliberately removed feature. Step 3's remaining content is
+    // covered by 'has urgency selection' below.
 
     test('has urgency selection', async ({ page }) => {
       await page.goto('/jobs/create');
@@ -167,15 +142,17 @@ test.describe('Job Posting Flow', () => {
         return;
       }
 
-      // Check if Step 3 (Budget) exists in step indicators (proves multi-step form has urgency capability)
-      // Urgency is part of Step 3 (Budget & Timeline)
+      // Step 3's label is "Timeline" (STEPS in _components/types.ts); it was
+      // renamed from "Budget" when budget collection was removed. Only the
+      // current step is mounted, so on step 1 the progress indicator is the
+      // only evidence available — the urgency controls below are step-3 only.
       const hasStep3Indicator =
         (await page
           .getByText(/^3$/)
           .isVisible()
           .catch(() => false)) &&
         (await page
-          .getByText('Budget')
+          .getByText('Timeline')
           .isVisible()
           .catch(() => false));
 

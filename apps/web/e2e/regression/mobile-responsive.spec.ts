@@ -16,7 +16,8 @@
  *   - Test users exist (for authenticated tests)
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
 import { loginAsHomeowner, clearAuth } from '../helpers/auth';
 import { waitForNetworkIdle } from '../helpers/test-data';
 
@@ -184,10 +185,13 @@ test.describe('Mobile: Job List', () => {
       return;
     }
 
-    // Cards should be full-width on mobile (no side-by-side layout)
-    const cards = page.locator(
-      '[data-testid="job-card"], [class*="card"], table tbody tr'
-    );
+    // Cards should be full-width on mobile (no side-by-side layout).
+    // Scoped to the content area and without the old `[class*="card"]` clause:
+    // that matched the sidebar's lucide `credit-card` icon, whose `.ic` rule
+    // makes it 16px, so the assertion measured an icon rather than a card.
+    const cards = page
+      .locator('.me-content, #main-content')
+      .locator('[data-testid="job-card"], .job-row, table tbody tr');
     const cardCount = await cards.count();
 
     if (cardCount === 0) {
@@ -248,7 +252,7 @@ test.describe('Mobile: Form Submission', () => {
 
     // Email and password fields should be visible and usable
     const emailInput = page.getByLabel(/email/i);
-    const passwordInput = page.getByLabel(/password/i);
+    const passwordInput = page.getByRole('textbox', { name: /password/i });
 
     await expect(emailInput).toBeVisible();
     await expect(passwordInput).toBeVisible();
@@ -469,9 +473,12 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
       return;
     }
 
-    const open = page
+    // Scoped to #main-content: unscoped this matched the /properties/compliance
+    // nav item, which is off-screen at the 375px mobile viewport.
+    const content = page.locator('#main-content');
+    const open = content
       .getByRole('link', { name: /open|view|manage/i })
-      .or(page.locator('a[href*="/properties/"]'))
+      .or(content.locator('a[href*="/properties/"]'))
       .first();
     if (!(await open.isVisible().catch(() => false))) {
       // skipped: runtime bail — no property link visible (seed data missing) (2026-07-02 triage)

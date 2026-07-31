@@ -5,7 +5,11 @@
 
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { EnhancedRateLimiter } from '@/lib/rate-limiter-enhanced';
-import { getRateLimitConfig, getUserTier, shouldBypassRateLimit } from '@/lib/constants/rate-limits';
+import {
+  getRateLimitConfig,
+  getUserTier,
+  shouldBypassRateLimit,
+} from '@/lib/constants/rate-limits';
 import type { NextRequest } from 'next/server';
 
 // Mock NextRequest
@@ -101,7 +105,8 @@ describe('Rate Limit Bypass Rules', () => {
     vi.resetModules();
 
     // Dynamic import to pick up the new env vars at module evaluation time
-    const { shouldBypassRateLimit: freshBypass } = await import('@/lib/constants/rate-limits');
+    const { shouldBypassRateLimit: freshBypass } =
+      await import('@/lib/constants/rate-limits');
 
     const request = createMockRequest('/api/test', {
       'x-forwarded-for': '192.168.1.1',
@@ -114,7 +119,8 @@ describe('Rate Limit Bypass Rules', () => {
     vi.resetModules();
 
     // Dynamic import to pick up the new env vars at module evaluation time
-    const { shouldBypassRateLimit: freshBypass } = await import('@/lib/constants/rate-limits');
+    const { shouldBypassRateLimit: freshBypass } =
+      await import('@/lib/constants/rate-limits');
 
     const request = createMockRequest('/api/internal', {
       'x-service-token': 'secret-token-1',
@@ -154,7 +160,9 @@ describe('Enhanced Rate Limiter', () => {
       await rateLimiter.checkLimit(request, { identifier: 'test-user' });
     }
 
-    const result = await rateLimiter.checkLimit(request, { identifier: 'test-user' });
+    const result = await rateLimiter.checkLimit(request, {
+      identifier: 'test-user',
+    });
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
     expect(result.retryAfter).toBeGreaterThan(0);
@@ -303,6 +311,98 @@ describe('Redis Enforcement (REDIS_REQUIRED)', () => {
     expect(warnCalls).toMatch(/in-memory rate limiting|No Redis configured/i);
     warnSpy.mockRestore();
   });
+
+  it('should honor explicit REDIS_REQUIRED=false opt-out in production', async () => {
+    // The init error message has always said "or set REDIS_REQUIRED=false",
+    // but the old expression made that dead code in production. Pin the
+    // documented opt-out: no Redis + production + explicit false → in-memory
+    // fallback instead of blocking every request.
+    process.env.REDIS_REQUIRED = 'false';
+    process.env.NODE_ENV = 'production';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.E2E_TESTING;
+
+    const limiter = new EnhancedRateLimiter();
+    const result = await limiter.checkLimit(createMockRequest('/api/test'), {
+      identifier: 'prod-redis-opt-out',
+      tier: 'anonymous',
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it('should still block in production without Redis when no opt-out is set', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.REDIS_REQUIRED;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.E2E_TESTING;
+
+    const limiter = new EnhancedRateLimiter();
+    const result = await limiter.checkLimit(createMockRequest('/api/test'), {
+      identifier: 'prod-fail-closed',
+      tier: 'anonymous',
+    });
+    expect(result.allowed).toBe(false);
+  });
+});
+
+describe('E2E_TESTING rate limit bypass', () => {
+  const origEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...origEnv };
+  });
+
+  it('EnhancedRateLimiter allows all requests when E2E_TESTING=true', async () => {
+    process.env.E2E_TESTING = 'true';
+    process.env.NODE_ENV = 'production';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.REDIS_REQUIRED;
+
+    const limiter = new EnhancedRateLimiter();
+    const request = createMockRequest('/api/auth/login');
+    // Well past the anonymous login limit of 5 — every call must pass.
+    for (let i = 0; i < 20; i++) {
+      const result = await limiter.checkLimit(request, {
+        identifier: 'e2e-bypass',
+        tier: 'anonymous',
+      });
+      expect(result.allowed).toBe(true);
+    }
+  });
+
+  it('RedisRateLimiter allows criticality-tagged requests when E2E_TESTING=true', async () => {
+    process.env.E2E_TESTING = 'true';
+    process.env.NODE_ENV = 'production';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const { RedisRateLimiter } = await import('@/lib/rate-limiter');
+    const limiter = new RedisRateLimiter();
+    const result = await limiter.checkRateLimit({
+      windowMs: 60_000,
+      maxRequests: 5,
+      identifier: 'e2e-auth-bypass',
+      criticality: 'auth',
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it('RedisRateLimiter still fails closed for criticality routes without the flag', async () => {
+    delete process.env.E2E_TESTING;
+    process.env.NODE_ENV = 'production';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const { RedisRateLimiter } = await import('@/lib/rate-limiter');
+    const limiter = new RedisRateLimiter();
+    const result = await limiter.checkRateLimit({
+      windowMs: 60_000,
+      maxRequests: 5,
+      identifier: 'prod-auth-fail-closed',
+      criticality: 'auth',
+    });
+    expect(result.allowed).toBe(false);
+  });
 });
 
 describe('Security Event Logging', () => {
@@ -351,7 +451,7 @@ describe('Rate Limiter Reset Functionality', () => {
     await rateLimiter.reset('reset-test', '/api/test');
 
     // Small delay so that expire(key, 0) entry is strictly in the past
-    await new Promise(resolve => setTimeout(resolve, 2));
+    await new Promise((resolve) => setTimeout(resolve, 2));
 
     // Should be allowed again
     result = await rateLimiter.checkLimit(request, {

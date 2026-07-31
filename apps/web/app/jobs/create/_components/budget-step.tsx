@@ -125,6 +125,7 @@ export function BudgetStep({
               <button
                 key={option.value}
                 type='button'
+                data-testid={`urgency-${option.value}`}
                 onClick={() =>
                   setFormData((prev) => ({
                     ...prev,
