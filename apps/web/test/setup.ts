@@ -335,9 +335,13 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
             let previous: string;
             do {
               previous = safeMatch;
-              safeMatch = safeMatch
-                .replace(/\s+on\w+=["'][^"']*["']/gi, '')
-                .replace(/\s+on\w+=\S*/gi, '');
+              // Neutralize event-handler attributes by removing the `on` prefix
+              // from attribute names (e.g. ` onclick=` -> ` click=`).
+              // Re-apply until stable to prevent re-emergence in malformed input.
+              safeMatch = safeMatch.replace(
+                /(\s+)on([a-z0-9_-]+)\s*=/gi,
+                '$1$2='
+              );
             } while (safeMatch !== previous);
             return safeMatch;
           }
