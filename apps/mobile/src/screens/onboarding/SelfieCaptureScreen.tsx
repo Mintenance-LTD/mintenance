@@ -12,10 +12,10 @@
  *      local state and rendered as a preview with "Use photo"
  *      and "Retake" buttons. No frame goes to the server until
  *      the user confirms.
- *   4. On confirm: fetch the URI → blob → arrayBuffer → upload
- *      to the existing `profile-images` bucket under
- *      `selfies/{userId}/{timestamp}.jpg`, then update
- *      profiles.profile_image_url with the public URL.
+ *   4. On confirm: POST the frame as multipart to
+ *      /api/users/selfie, which uploads it with the service role and
+ *      sets profile_image_url + the profile_photo_is_selfie trust
+ *      flag (a flag clients are deliberately not granted).
  *
  * Intentionally NO "pick from library" affordance. The oval
  * overlay is a UX cue, not a face-detection check — pose / face
@@ -37,7 +37,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
@@ -72,35 +72,30 @@ export const SelfieCaptureScreen: React.FC = () => {
     if (!previewUri || !user?.id) return;
     setUploading(true);
     try {
-      const response = await fetch(previewUri);
-      const blob = await response.blob();
-      const arrayBuffer = await new Response(blob).arrayBuffer();
-      const filePath = `selfies/${user.id}/${Date.now()}.jpg`;
+      // 2026-07-31: this used to upload client-side (fetch → blob →
+      // arrayBuffer → supabase.storage) and then write the profiles row
+      // directly. That failed for THREE independent reasons, all verified
+      // against the live project:
+      //   1. the storage INSERT policy on `profile-images` requires
+      //      auth.uid() === foldername[1], but the path was
+      //      `selfies/{uid}/…` → first folder "selfies" → RLS 403;
+      //   2. `profiles.profile_photo_is_selfie` has SELECT but NOT UPDATE
+      //      for `authenticated` (it's a trust signal, deliberately
+      //      client-unwritable) → 42501 even if the upload had landed;
+      //   3. the RN fetch→blob→arrayBuffer pattern is the one documented
+      //      as "never landed bytes" on Hermes (see the assessment-photo
+      //      fix, AUDIT_LOG 2026-07-26).
+      // Server-mediated multipart fixes all three at once: the service
+      // role bypasses storage RLS, sets the trust flag legitimately, and
+      // the {uri,name,type} part is the pattern proven to work on device.
+      const formData = new FormData();
+      formData.append('selfie', {
+        uri: previewUri,
+        name: `selfie-${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      } as unknown as Blob);
 
-      const { error: uploadError } = await supabase.storage
-        .from('profile-images')
-        .upload(filePath, arrayBuffer, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('profile-images')
-        .getPublicUrl(filePath);
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          profile_image_url: urlData.publicUrl,
-          // 2026-05-10 (AUDIT_PUNCH_LIST P2 #38): the column landed in
-          // migration `20260510071500_profiles_add_profile_photo_is_selfie`.
-          // This screen is camera-only (no library picker), so any upload
-          // through here is by construction a live-capture selfie.
-          profile_photo_is_selfie: true,
-        })
-        .eq('id', user.id);
-      if (profileError) throw profileError;
+      await mobileApiClient.postFormData('/api/users/selfie', formData);
 
       await refreshUser();
       navigation.goBack();
