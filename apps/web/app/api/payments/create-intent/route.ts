@@ -12,6 +12,10 @@ import {
 import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { stripe } from '@/lib/stripe';
+import {
+  isMissingCustomerError,
+  clearStaleStripeCustomerId,
+} from '@/lib/stripe/stale-customer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
 
@@ -471,11 +475,6 @@ export const POST = withApiHandler(
       // and retry the charge WITHOUT a customer (a one-off card payment
       // doesn't need one; a genuinely saved card would already have been
       // re-created under the active key).
-      const isMissingCustomerError = (err: unknown): boolean => {
-        const e = err as { code?: string; param?: string } | null;
-        return e?.code === 'resource_missing' && e?.param === 'customer';
-      };
-
       let paymentIntent: Awaited<
         ReturnType<typeof stripe.paymentIntents.create>
       >;
@@ -497,22 +496,12 @@ export const POST = withApiHandler(
           throw err;
         }
 
-        logger.warn(
-          'Stored stripe_customer_id not found under the active Stripe key — clearing it and retrying the charge without a customer',
-          {
-            service: 'payments',
-            userId: user.id,
-            jobId,
-            stripeCustomerId: payerCustomerId,
-          }
-        );
-
         // Self-heal so future save-card flows recreate the customer under
-        // the active key. Best-effort: never block the retry on this write.
-        await serverSupabase
-          .from('profiles')
-          .update({ stripe_customer_id: null })
-          .eq('id', user.id);
+        // the active key, then retry the charge without a customer.
+        await clearStaleStripeCustomerId(user.id, payerCustomerId, {
+          service: 'payments',
+          operation: 'create_payment_intent',
+        });
 
         // New idempotency key: the params now differ from the failed
         // attempt, and Stripe rejects a reused key with changed parameters.
