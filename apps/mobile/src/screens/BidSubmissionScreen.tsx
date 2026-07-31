@@ -18,6 +18,7 @@ import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { Job } from '@mintenance/types';
 import { JobsStackParamList } from '../navigation/types';
+import { goBackSafe } from '../navigation/hooks';
 import { logger } from '../utils/logger';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -433,7 +434,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             text: 'OK',
             onPress: () => {
               allowExit();
-              navigation.goBack();
+              goBackSafe(navigation, 'JobsList');
             },
           },
         ]);
@@ -485,7 +486,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           text: 'OK',
           onPress: () => {
             allowExit();
-            navigation.goBack();
+            goBackSafe(navigation, 'JobsList');
           },
         },
       ]);
@@ -518,7 +519,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           the job detail screen.
         </Text>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           style={{
             marginTop: 18,
@@ -549,7 +550,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >

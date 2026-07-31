@@ -94,7 +94,11 @@ jest.mock('react-native-maps', () => {
 const mockGoBack = jest.fn();
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ goBack: mockGoBack, navigate: mockNavigate }),
+  useNavigation: () => ({
+    goBack: mockGoBack,
+    navigate: mockNavigate,
+    canGoBack: () => true,
+  }),
   // Run the focus-effect callback synchronously on mount (mirrors real lib).
   useFocusEffect: (cb: () => void | (() => void)) => {
     const ReactLocal = require('react');

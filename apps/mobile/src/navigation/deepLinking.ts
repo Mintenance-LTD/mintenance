@@ -29,12 +29,29 @@ import { logger } from '../utils/logger';
  * below, converting notification data into navigation URLs that React
  * Navigation can resolve through this same config.
  */
-const linkingConfig: LinkingOptions<RootStackParamList>['config'] = {
+// 2026-07-31 back-button audit P0-2/P1-4: every nested level declares
+// an initialRouteName so a COLD-START deep link builds the parent
+// route beneath the target instead of mounting the target as the only
+// route in its stack. Without this, `bookings/:id` mounted
+// BookingDetails alone on the ROOT stack (no tab bar, goBack a no-op —
+// fully stuck on iOS), and 11 detail routes (JobDetails, JobPayment,
+// ContractView, Bid*, PhotoReview, ReviewSubmission, Messaging,
+// PropertyDetail, Subscription) rendered dead back buttons.
+// Typed via the cast at the bottom: our tab param lists are declared
+// `NavigatorScreenParams<...> | undefined` (so navigate('JobsTab')
+// works bare), and that union collapses React Navigation's derived
+// PathConfig `initialRouteName` type to `undefined` — a library typing
+// limitation, not a runtime one. The shape below is the documented
+// linking-config format.
+const linkingConfig = {
+  initialRouteName: 'Main',
   screens: {
     Main: {
+      initialRouteName: 'HomeTab',
       screens: {
         HomeTab: 'home',
         JobsTab: {
+          initialRouteName: 'JobsList',
           screens: {
             JobsList: 'jobs',
             JobDetails: 'jobs/:jobId',
@@ -48,12 +65,14 @@ const linkingConfig: LinkingOptions<RootStackParamList>['config'] = {
         },
         AddTab: 'add',
         MessagingTab: {
+          initialRouteName: 'MessagesList',
           screens: {
             MessagesList: 'messages',
             Messaging: 'messages/:conversationId',
           },
         },
         ProfileTab: {
+          initialRouteName: 'ProfileMain',
           screens: {
             ProfileMain: 'profile',
             Properties: 'properties',
@@ -86,7 +105,7 @@ const linkingConfig: LinkingOptions<RootStackParamList>['config'] = {
     },
     BookingDetails: 'bookings/:bookingId',
   },
-};
+} as unknown as LinkingOptions<RootStackParamList>['config'];
 
 // ============================================================================
 // LINKING OPTIONS

@@ -214,6 +214,7 @@ import BidSubmissionScreen from '../BidSubmissionScreen';
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
+  canGoBack: jest.fn(() => true),
   setOptions: jest.fn(),
   addListener: jest.fn(() => jest.fn()),
   dispatch: jest.fn(),

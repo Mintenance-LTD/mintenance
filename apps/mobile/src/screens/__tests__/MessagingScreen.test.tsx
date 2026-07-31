@@ -443,6 +443,7 @@ const baseParams = {
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
+  canGoBack: jest.fn(() => true),
   getParent: jest.fn(() => ({ navigate: jest.fn() })),
 } as never;
 

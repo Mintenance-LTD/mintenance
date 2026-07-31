@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goBackSafe } from '../../navigation/hooks';
 import { Badge } from '../../components/ui/Badge/Badge';
 import { me } from '../../design-system/mint-editorial';
 import { styles, CATEGORY_ICONS } from './PropertyDetailStyles';
@@ -245,7 +246,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
-      navigation.goBack();
+      goBackSafe(navigation, 'Properties');
     },
     onError: (err: unknown) => {
       // 2026-05-26 audit-65 P2: previously every error collapsed to
@@ -414,7 +415,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     return (
       <ErrorView
         message='Property reference missing. Please open the property from your portfolio.'
-        onRetry={() => navigation.goBack()}
+        onRetry={() => goBackSafe(navigation, 'Properties')}
       />
     );
   if (isLoading) return <LoadingSpinner message='Loading property...' />;
@@ -775,7 +776,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'Properties')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

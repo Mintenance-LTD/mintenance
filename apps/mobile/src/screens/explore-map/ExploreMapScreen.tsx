@@ -820,17 +820,23 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
 
       {/* ── FLOATING TOP BAR ─────────────────────────────────────────────── */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        {/* Back + Search pill row */}
+        {/* Back + Search pill row. The back arrow only renders when it
+            can actually do something — as the contractor centre-tab
+            ROOT (AppNavigator AddTab) there is no onBackToList and
+            nothing to pop, so the arrow was permanently dead
+            (2026-07-31 back-button audit P1-3). */}
         <View style={styles.searchRow}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={onBackToList || (() => navigation.goBack())}
-            accessibilityRole='button'
-            accessibilityLabel='Back to list'
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Ionicons name='arrow-back' size={20} color={me.ink} />
-          </TouchableOpacity>
+          {(onBackToList || navigation.canGoBack()) && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBackToList || (() => navigation.goBack())}
+              accessibilityRole='button'
+              accessibilityLabel='Back to list'
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name='arrow-back' size={20} color={me.ink} />
+            </TouchableOpacity>
+          )}
           <View style={styles.searchPill}>
             <Ionicons name='search' size={18} color={me.ink} />
             <View style={styles.searchTextWrap}>

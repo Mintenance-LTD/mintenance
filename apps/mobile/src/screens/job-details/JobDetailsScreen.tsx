@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
+import { goBackSafe } from '../../navigation/hooks';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import { useJobBids, useMyBidForJob } from '../../hooks/useJobs';
 import { BidService } from '../../services/BidService';
@@ -273,7 +274,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <ErrorView
         message='Missing job reference. The link you opened did not include a job id.'
-        onRetry={() => navigation.goBack()}
+        onRetry={() => goBackSafe(navigation, 'JobsList')}
       />
     );
   }
@@ -297,7 +298,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   }
   if (!job) {
     return (
-      <ErrorView message='Job not found' onRetry={() => navigation.goBack()} />
+      <ErrorView
+        message='Job not found'
+        onRetry={() => goBackSafe(navigation, 'JobsList')}
+      />
     );
   }
 
@@ -359,7 +363,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + 8 }]}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >

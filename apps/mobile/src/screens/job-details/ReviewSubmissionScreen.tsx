@@ -36,6 +36,7 @@ import { RouteProp } from '@react-navigation/native';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
+import { goBackSafe } from '../../navigation/hooks';
 import { me } from '../../design-system/mint-editorial';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ReviewSubmission'>;
@@ -95,7 +96,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
       });
       HapticService.success();
       Alert.alert('Review submitted', 'Thank you for your feedback!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        { text: 'OK', onPress: () => goBackSafe(navigation, 'JobsList') },
       ]);
     } catch (err) {
       HapticService.error();
@@ -117,7 +118,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
       <View style={styles.topNav}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
