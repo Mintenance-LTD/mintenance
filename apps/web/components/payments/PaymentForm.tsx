@@ -155,7 +155,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     const uuid =
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
-        : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+        : typeof crypto !== 'undefined' && 'getRandomValues' in crypto
+          ? `${Date.now().toString(36)}${Array.from(
+              crypto.getRandomValues(new Uint8Array(16))
+            )
+              .map((b) => b.toString(16).padStart(2, '0'))
+              .join('')}`
+          : `${Date.now().toString(36)}fallback`;
     idempotencyKeyRef.current = `create_payment_intent:${jobId}:${uuid}`;
   }
 
