@@ -232,6 +232,23 @@ export function CompareBidsTable({
                   View
                 </button>
               )}
+              {/* 2026-07-31 audit P0: this surface (the DEFAULT theme —
+                  middleware injects mintenance-theme=mint-editorial for
+                  every visitor) had no way to reach the contractor's
+                  profile, so a homeowner could not see anyone's previous
+                  work, reviews or verification before hiring. The legacy
+                  BidCard has always had this link; the redesign dropped it.
+                  Same href contract as BidCard.tsx — the PUBLIC plural
+                  /contractors/[id] route (the singular /contractor/[id] is
+                  auth-gated to contractors only), carrying the bid context
+                  so the profile can offer inline accept/decline. */}
+              <Link
+                href={`/contractors/${bid.contractor.id}?returnTo=job&jobId=${jobId}&bidId=${bid.id}&bidAmount=${bid.amount}`}
+                className='btn btn-ghost btn-sm'
+                style={{ justifyContent: 'center' }}
+              >
+                View profile
+              </Link>
               <Link
                 href={`/messages?jobId=${jobId}`}
                 className='btn btn-ghost btn-sm'
