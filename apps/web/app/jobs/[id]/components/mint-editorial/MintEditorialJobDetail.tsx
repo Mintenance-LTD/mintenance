@@ -36,10 +36,12 @@ import {
   formatGBP,
   formatPosted,
   statusBadge,
+  NextStepCard,
   type ContractorShape,
   type JobShape,
   type PropertyShape,
 } from './MintEditorialJobCards';
+import { computeNextStepForJob } from './jobDetailHelpers';
 import {
   SelectedContractorCard,
   HowPaymentWorksCard,
@@ -168,6 +170,11 @@ export function MintEditorialJobDetail({
         }`;
 
   const escrowHeld = lifecycle.escrowStatus === 'held' ? job.budget : 0;
+
+  // The ONLY surface on this theme that routes to the escrow-funding
+  // page — without it the lifecycle dead-ends after contract signing
+  // (/api/jobs/[id]/start requires escrow `held`).
+  const nextStep = computeNextStepForJob(job, lifecycle);
 
   // Preferred start date is stashed in `requirements.preferred_start_date`
   // by the job-creation wizard (see /jobs/create utils/submitJob.ts).
@@ -375,21 +382,23 @@ export function MintEditorialJobDetail({
           gap: 24,
         }}
       >
-        <MintEditorialJobTabBody
-          tab={tab}
-          job={job}
-          property={property}
-          pendingBids={pending}
-          allBids={bids}
-          photos={photos}
-          beforePhotos={beforePhotos}
-          afterPhotos={afterPhotos}
-          buildingAssessment={buildingAssessment}
-          lifecycle={lifecycle}
-          selectedId={selectedId}
-          recommendedId={recommendedId}
-          onSelect={setSelectedId}
-        />
+        <div id='bids' style={{ minWidth: 0 }}>
+          <MintEditorialJobTabBody
+            tab={tab}
+            job={job}
+            property={property}
+            pendingBids={pending}
+            allBids={bids}
+            photos={photos}
+            beforePhotos={beforePhotos}
+            afterPhotos={afterPhotos}
+            buildingAssessment={buildingAssessment}
+            lifecycle={lifecycle}
+            selectedId={selectedId}
+            recommendedId={recommendedId}
+            onSelect={setSelectedId}
+          />
+        </div>
 
         {/* Right rail — sticky */}
         <aside
@@ -401,6 +410,8 @@ export function MintEditorialJobDetail({
             alignSelf: 'start',
           }}
         >
+          <NextStepCard step={nextStep} />
+
           {selectedBid ? (
             <SelectedContractorCard
               bid={selectedBid}
