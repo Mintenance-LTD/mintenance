@@ -8,7 +8,6 @@ import {
   StatusBar,
   Dimensions,
   SafeAreaView,
-  BackHandler,
   Platform,
 } from 'react-native';
 import { styles } from './videoCallInterfaceStyles';
@@ -26,6 +25,7 @@ import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
 import VideoCallHeader from './VideoCallHeader';
 import VideoCallControls from './VideoCallControls';
+import { useEndCallBackHandler } from './useEndCallBackHandler';
 
 // Temporary mock for Camera until expo-camera is installed
 const Camera = {
@@ -92,7 +92,6 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
 
   useEffect(() => {
     initializeCall();
-    setupBackHandler();
     return () => {
       cleanup();
     };
@@ -324,19 +323,7 @@ const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
     setShowControls(true);
   }, []);
 
-  const setupBackHandler = useCallback(() => {
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        Alert.alert('End Call', 'Are you sure you want to end this call?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'End Call', onPress: endCall, style: 'destructive' },
-        ]);
-        return true;
-      }
-    );
-    return () => backHandler.remove();
-  }, [endCall]);
+  useEndCallBackHandler(endCall);
 
   const formatDuration = useCallback((seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
