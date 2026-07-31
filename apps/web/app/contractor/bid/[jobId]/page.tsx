@@ -4,7 +4,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BidSubmissionClient2025 } from './components/BidSubmissionClient2025';
 import { redirect } from 'next/navigation';
-import { logger } from '@mintenance/shared';
+import { logger, platformFeeRateForTier } from '@mintenance/shared';
+import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
 
 export const metadata: Metadata = {
   title: 'Submit Bid | Mintenance',
@@ -98,6 +99,13 @@ export default async function BidSubmissionPage2025({
     .eq('contractor_id', user.id)
     .single();
 
+  // Resolve THIS contractor's effective fee rate with the same resolver
+  // the escrow release charges with, so the bid preview quotes their real
+  // rate instead of a hardcoded 5%. (2026-07-22 fee-consistency fix.)
+  const platformFeeRate = platformFeeRateForTier(
+    await FeeCalculationService.resolveContractorTier(user.id)
+  );
+
   // `me-legacy-fit` palette-maps this still-legacy bid form's Tailwind
   // classes onto the Mint Editorial tokens. The shim is self-gating —
   // its selectors require a `.me-root` ancestor (provided by the
@@ -136,6 +144,7 @@ export default async function BidSubmissionPage2025({
               }
             : undefined
         }
+        platformFeeRate={platformFeeRate}
       />
     </div>
   );

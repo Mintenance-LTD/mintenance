@@ -3,6 +3,7 @@
 import React from 'react';
 import { Ruler } from 'lucide-react';
 import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
+import { formatPlatformFeePercent } from '@mintenance/shared';
 import type { LineItem, BidJobRoomScope } from './bidSubmissionTypes';
 
 interface BidFormAdvancedModeProps {
@@ -14,6 +15,8 @@ interface BidFormAdvancedModeProps {
   laborTotal: number;
   materialTotal: number;
   equipmentTotal: number;
+  /** Decimal (0.05 = 5%). Formatted with formatPlatformFeePercent so the
+   *  label matches every other fee surface. (2026-07-22 fee fix.) */
   platformFeeRate: number;
   platformFee: number;
   youWillReceive: number;
@@ -389,7 +392,7 @@ export function BidFormAdvancedMode({
             </div>
             <div className='flex justify-between items-center'>
               <span className='text-sm text-teal-700'>
-                Platform fee ({platformFeeRate}%)
+                Platform fee ({formatPlatformFeePercent(platformFeeRate)})
               </span>
               <span className='text-sm font-medium text-rose-600'>
                 -£{platformFee.toFixed(2)}

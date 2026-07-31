@@ -184,6 +184,16 @@ jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 
+// useContractorFeeRate — the screen's platform fee is now tier-driven
+// (2026-07-22), resolved server-side via /api/subscriptions/status. Mock
+// it with a settable rate so tests can prove the breakdown tracks the
+// contractor's real tier instead of the old hardcoded 5%. Avoids pulling
+// a QueryClientProvider into this screen's render.
+let mockFeeRate = 0.05;
+jest.mock('../../hooks/useContractorFeeRate', () => ({
+  useContractorFeeRate: () => ({ rate: mockFeeRate, isLoading: false }),
+}));
+
 // supabase — job_rooms fetch; drive via mockRoomsResult.
 let mockRoomsResult: { data: unknown; error: unknown } = {
   data: [],
@@ -245,6 +255,7 @@ describe('BidSubmissionScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUser = { id: 'contractor-1', role: 'contractor' };
+    mockFeeRate = 0.05;
     mockGetJobById.mockResolvedValue(baseJob);
     mockSubmitBid.mockResolvedValue({ id: 'bid-1' });
     mockApiPatch.mockResolvedValue({});
@@ -329,8 +340,25 @@ describe('BidSubmissionScreen', () => {
     await waitFor(() => {
       expect(utils.getByText('£250.00')).toBeTruthy();
     });
+    expect(utils.getByText('Platform fee (5%)')).toBeTruthy();
     expect(utils.getByText('-£15.00')).toBeTruthy();
     expect(utils.getByText('£285.00')).toBeTruthy();
+  });
+
+  it("quotes the contractor's real tier rate, not a hardcoded 5%", async () => {
+    // Regression guard for the 2026-07-22 fee-consistency fix: the fee was
+    // hardcoded to 5% for every contractor. A Basic-tier contractor (12%)
+    // on the same £250 bid (VAT-inclusive £300) must be quoted 12% = £36,
+    // earning £264 — not £15/£285.
+    mockFeeRate = 0.12;
+    const utils = renderScreen();
+    await waitFor(() => utils.getByLabelText('Bid amount in pounds'));
+    fireEvent.changeText(utils.getByLabelText('Bid amount in pounds'), '250');
+    await waitFor(() => {
+      expect(utils.getByText('Platform fee (12%)')).toBeTruthy();
+    });
+    expect(utils.getByText('-£36.00')).toBeTruthy();
+    expect(utils.getByText('£264.00')).toBeTruthy();
   });
 
   it('shows desc char-count error hint below MIN_DESC', async () => {

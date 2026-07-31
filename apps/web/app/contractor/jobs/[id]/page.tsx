@@ -21,6 +21,8 @@ import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAs
 import { JobInfoSidebar } from './components/JobInfoSidebar';
 import { JobProgressStepper } from './components/JobProgressStepper';
 import { MintEditorialJobDetailView } from './components/MintEditorialJobDetailView';
+import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
+import { platformFeeRateForTier } from '@mintenance/shared';
 import {
   JOB_STATUS_CONFIG,
   buildContractorProgressSteps,
@@ -270,6 +272,14 @@ export default async function ContractorJobDetailPage({
       }
     : null;
 
+  // Resolve THIS contractor's effective fee rate with the same resolver
+  // the escrow release charges with, so the "You'll be paid" panel shows
+  // their real tier rate (e.g. 5% for a founding member) rather than a
+  // hardcoded 8%. (2026-07-22 fee-consistency fix.)
+  const platformFeeRate = platformFeeRateForTier(
+    await FeeCalculationService.resolveContractorTier(user.id)
+  );
+
   if (isMintEditorial) {
     return (
       <MintEditorialJobDetailView
@@ -317,6 +327,7 @@ export default async function ContractorJobDetailPage({
         buildingAssessment={buildingAssessment}
         userId={user.id}
         messageHref={messageHref}
+        platformFeeRate={platformFeeRate}
       />
     );
   }

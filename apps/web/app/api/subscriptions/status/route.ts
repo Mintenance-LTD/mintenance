@@ -4,6 +4,11 @@ import { SubscriptionService } from '@/lib/services/subscription/SubscriptionSer
 import { HomeownerSubscriptionService } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { getEarlyAccessEntitlement } from '@/lib/subscription/early-access';
+import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
+import {
+  platformFeeRateForTier,
+  formatPlatformFeePercent,
+} from '@mintenance/shared';
 
 /**
  * GET /api/subscriptions/status
@@ -15,9 +20,14 @@ export const GET = withApiHandler(
     const earlyAccess = await getEarlyAccessEntitlement(user.id);
 
     if (user.role === 'homeowner') {
-      const subscription = await HomeownerSubscriptionService.getCurrentSubscription(user.id);
-      const earlyAccessEligible = earlyAccess.eligible && earlyAccess.role === 'homeowner';
-      const hasActivePremium = Boolean(subscription && ['active', 'trial'].includes(String(subscription.status)));
+      const subscription =
+        await HomeownerSubscriptionService.getCurrentSubscription(user.id);
+      const earlyAccessEligible =
+        earlyAccess.eligible && earlyAccess.role === 'homeowner';
+      const hasActivePremium = Boolean(
+        subscription &&
+        ['active', 'trial'].includes(String(subscription.status))
+      );
 
       return NextResponse.json({
         role: 'homeowner',
@@ -43,13 +53,30 @@ export const GET = withApiHandler(
       });
     }
 
-    const subscription = await SubscriptionService.getContractorSubscription(user.id);
+    const subscription = await SubscriptionService.getContractorSubscription(
+      user.id
+    );
     const trialStatus = await TrialService.getTrialStatus(user.id);
-    const requiresSubscription = await TrialService.requiresSubscription(user.id);
-    const earlyAccessEligible = earlyAccess.eligible && earlyAccess.role === 'contractor';
+    const requiresSubscription = await TrialService.requiresSubscription(
+      user.id
+    );
+    const earlyAccessEligible =
+      earlyAccess.eligible && earlyAccess.role === 'contractor';
+
+    // Effective platform fee for THIS contractor, resolved with the exact
+    // same logic the escrow release uses to charge them — so every "You'll
+    // be paid" / "Platform fee (x%)" surface on web and mobile can display
+    // the real rate instead of a hardcoded guess. (2026-07-22 fee fix.)
+    const effectiveTier = await FeeCalculationService.resolveContractorTier(
+      user.id
+    );
+    const platformFeeRate = platformFeeRateForTier(effectiveTier);
 
     return NextResponse.json({
       role: 'contractor',
+      effectiveTier,
+      platformFeeRate,
+      platformFeePercent: formatPlatformFeePercent(platformFeeRate),
       subscription: subscription
         ? {
             id: subscription.id,

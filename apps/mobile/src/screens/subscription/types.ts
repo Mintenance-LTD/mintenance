@@ -41,6 +41,13 @@ export interface SubscriptionStatus {
     eligible: boolean;
     cohortLimit: number | null;
   };
+  // 2026-07-22 fee-consistency fix: the contractor's effective platform
+  // fee, resolved server-side with the same resolver the escrow release
+  // charges with. Present only for the contractor role. Display surfaces
+  // (bid preview) read this instead of a hardcoded percent.
+  effectiveTier?: 'free' | 'basic' | 'professional' | 'enterprise';
+  platformFeeRate?: number;
+  platformFeePercent?: string;
 }
 
 export const getFeatureStrings = (
