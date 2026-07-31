@@ -47,6 +47,18 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Back affordance restored 2026-07-31 (back-button audit P2): the
+  // Mint top bar replaced ScreenHeader and lost its back button.
+  backButtonTop: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    ...me.shadow.card,
+  },
   propertyCard: {
     backgroundColor: me.surface,
     borderRadius: 20,

@@ -17,15 +17,30 @@ interface NotificationHeaderProps {
   unreadCount: number;
   paddingTop: number;
   onMarkAllAsRead: () => void;
+  /** Dismiss affordance for the modal presentation — without it the
+   *  screen was gesture/hardware-back only (2026-07-31 audit P2). */
+  onClose?: () => void;
 }
 
 export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
   unreadCount,
   paddingTop,
   onMarkAllAsRead,
+  onClose,
 }) => {
   return (
     <View style={[styles.header, { paddingTop: paddingTop + 12 }]}>
+      {onClose && (
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
+          accessibilityRole='button'
+          accessibilityLabel='Close notifications'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
+        </TouchableOpacity>
+      )}
       <View style={styles.row}>
         <View style={styles.titleBlock}>
           <Text style={styles.eyebrow}>Inbox</Text>
@@ -62,6 +77,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     backgroundColor: me.bg,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    ...me.shadow.card,
   },
   row: {
     flexDirection: 'row',
