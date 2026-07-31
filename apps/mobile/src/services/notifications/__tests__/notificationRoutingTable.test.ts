@@ -165,6 +165,12 @@ describe('notificationRoutingTable', () => {
       'bid_rejected',
       'bid_accepted',
       'quote_sent',
+      // 2026-07-31: payment_required (fund-escrow prompt at contract
+      // acceptance), payment_secured (webhook stakeholder fanout) and
+      // payment_failed previously fell to the inbox.
+      'payment_required',
+      'payment_secured',
+      'payment_failed',
     ];
 
     it.each(JOB_DETAIL_TYPES)(
@@ -197,6 +203,26 @@ describe('notificationRoutingTable', () => {
         expect(inner.params).toEqual({ jobId: 'job-snake' });
       }
     );
+  });
+
+  describe('routeForNotification — payment_required actionUrl-only payload', () => {
+    // notifyPaymentEvent ships NO metadata — only actionUrl
+    // `/jobs/:id/payment`. The UUID path parse must still extract the
+    // jobId (segment split stops at the trailing /payment).
+    it('extracts jobId from /jobs/:id/payment actionUrl', () => {
+      const uuid = '0b6e6a2e-1111-4222-8333-444455556666';
+      expect(
+        routeForNotification('payment_required', {
+          action_url: `/jobs/${uuid}/payment`,
+        })
+      ).toEqual({
+        screen: 'Main',
+        params: {
+          screen: 'JobsTab',
+          params: { screen: 'JobDetails', params: { jobId: uuid } },
+        },
+      });
+    });
   });
 
   describe('routeForNotification — bid_received', () => {
