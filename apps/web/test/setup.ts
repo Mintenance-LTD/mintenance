@@ -290,7 +290,7 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
     do {
       previous = result;
       result = result.replace(
-        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+        /<script\b[^<]*(?:(?!<\/script\b[^>]*>)<[^<]*)*<\/script\b[^>]*>/gi,
         ''
       );
       result = result.replace(/<script.*?\/>/gi, '');
