@@ -211,6 +211,9 @@ vi.mock('@/lib/services/notifications/NotificationService', () => ({
 vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
   notifyJobStatusChange: mocks.notifyJobStatusChange,
   notifyJobConfirmed: mocks.notifyJobConfirmed,
+  // payment_required prompt fired at contract acceptance (2026-07-31);
+  // a partial factory makes the route call undefined() → 500.
+  notifyPaymentEvent: vi.fn(async () => undefined),
 }));
 
 vi.mock('@/lib/email-service', () => ({
