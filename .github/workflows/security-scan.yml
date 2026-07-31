@@ -85,7 +85,7 @@ jobs:
     # audit step ahead of it failed first until 2026-07-28). Left blank, the
     # action derives the range from the push event itself.
     - name: Check for secrets (TruffleHog)
-      uses: trufflesecurity/trufflehog@bff3d2670b362bbb4a0bcdeffea146cbc2ad3abd # main
+      uses: trufflesecurity/trufflehog@f328fd549ee054f710c3c639593344e2b2b236b0 # main
       with:
         path: ./
         base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
