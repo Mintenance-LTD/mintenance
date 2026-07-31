@@ -296,6 +296,15 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
       result = result.replace(/<script.*?\/>/gi, '');
     } while (result !== previous);
 
+    // Defensive cleanup for malformed/partial script tag fragments that may remain
+    // after earlier replacements; repeat until stable to prevent re-formation.
+    do {
+      previous = result;
+      result = result
+        .replace(/<script\b[^>]*>/gi, '')
+        .replace(/<\/script\b[^>]*>/gi, '');
+    } while (result !== previous);
+
     // Remove event handlers
     result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
     result = result.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
