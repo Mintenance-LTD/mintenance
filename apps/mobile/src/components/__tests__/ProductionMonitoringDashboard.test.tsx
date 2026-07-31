@@ -411,8 +411,11 @@ describe('ProductionMonitoringDashboard - system health uptime & lastCheck', () 
         },
       })
     );
-    expect(getByText(/5h/)).toBeTruthy();
-    expect(getByText(/42/)).toBeTruthy();
+    // One combined assertion on the exact uptime string: the dashboard
+    // renders other numbers (lastCheck locale time, metric values) that can
+    // coincidentally contain "42", which made the bare /42/ getByText throw
+    // "Found multiple elements" on CI (2026-07-28).
+    expect(getByText(/5h\s*42\s*m/)).toBeTruthy();
   });
 
   it('falls back to Date.now() when health.lastCheck is missing', async () => {

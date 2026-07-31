@@ -102,6 +102,12 @@ jobs:
 
       - name: Validate environment
         working-directory: apps/mobile
+        # These secrets exist in repo settings but were never mapped into this
+        # step's env, so validate:env failed on every run (2026-07-27 triage).
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
         run: npm run validate:env
 
       - name: Type check
@@ -137,7 +143,7 @@ jobs:
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
         with:
           expo-version: latest
           eas-version: latest
@@ -216,7 +222,7 @@ jobs:
           cache: 'npm'
 
       - name: Setup Expo
-        uses: expo/expo-github-action@f7ab52df0e03970fe1e260a2a5307c8f4dbd2587 # v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
         with:
           expo-version: latest
           eas-version: latest

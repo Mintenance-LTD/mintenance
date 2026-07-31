@@ -78,8 +78,8 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
   describe('Complete Payment Workflow', () => {
     it('should handle successful end-to-end payment flow', async () => {
       const futureYear = new Date().getFullYear() + 1;
-      const jobId = 'job-123';
-      const contractorId = 'contractor-456';
+      const jobId = '11111111-1111-4111-8111-111111111123';
+      const contractorId = '22222222-2222-4222-8222-222222222456';
       const amount = 250;
       const clientSecret = 'pi_test_123_secret_456';
       const paymentMethodId = 'pm_test_789';
@@ -94,11 +94,20 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       });
 
       expect(initResult.client_secret).toBe(clientSecret);
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 250,
-        jobId,
-        contractorId,
-      });
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          currency: 'gbp',
+          amount: 250,
+          jobId,
+          contractorId,
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
 
       // Step 2: Create payment method (Stripe SDK directly).
       (stripeCreatePaymentMethod as jest.Mock).mockResolvedValueOnce({
@@ -137,7 +146,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
 
       // Step 4: Create escrow transaction via the API.
       mockApi.post.mockResolvedValueOnce({
-        id: 'escrow-123',
+        id: '33333333-3333-4333-8333-333333333123',
         status: 'pending',
         amount,
       });
@@ -170,7 +179,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         '/api/payments/confirm-intent',
         {
           paymentIntentId: 'pi_test_123',
-          jobId: 'escrow-123',
+          jobId: '33333333-3333-4333-8333-333333333123',
         }
       );
     });
@@ -207,7 +216,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
     it('should release escrow via the release endpoint with explicit params', async () => {
       const paymentIntentId = 'pi_test_123';
       const jobId = 'job-789';
-      const contractorId = 'contractor-456';
+      const contractorId = '22222222-2222-4222-8222-222222222456';
       const amount = 300;
 
       mockApi.post.mockResolvedValueOnce({ success: true });
@@ -250,8 +259,9 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         url: 'https://connect.stripe.com/express/onboarding/acct_123',
       });
 
-      const result =
-        await PaymentService.setupContractorPayout('contractor-456');
+      const result = await PaymentService.setupContractorPayout(
+        '22222222-2222-4222-8222-222222222456'
+      );
 
       expect(result.accountUrl).toBe(
         'https://connect.stripe.com/express/onboarding/acct_123'
@@ -276,8 +286,9 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         },
       });
 
-      const status =
-        await PaymentService.getContractorPayoutStatus('contractor-456');
+      const status = await PaymentService.getContractorPayoutStatus(
+        '22222222-2222-4222-8222-222222222456'
+      );
 
       expect(mockApi.get).toHaveBeenCalledWith(
         '/api/payments/stripe-connect/status'
@@ -290,8 +301,9 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
     it('should report no payout account when no Connect account exists', async () => {
       mockApi.get.mockResolvedValueOnce({ success: true, status: null });
 
-      const status =
-        await PaymentService.getContractorPayoutStatus('contractor-456');
+      const status = await PaymentService.getContractorPayoutStatus(
+        '22222222-2222-4222-8222-222222222456'
+      );
 
       expect(status.hasAccount).toBe(false);
       expect(status.accountComplete).toBe(false);
@@ -347,8 +359,8 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
 
       const result = await PaymentService.initializePayment({
         amount: 100,
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
+        jobId: '11111111-1111-4111-8111-111111111101',
+        contractorId: '22222222-2222-4222-8222-222222222201',
       });
 
       expect(result.client_secret).toBe('pi_test_retry_success');
@@ -394,15 +406,15 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       const invalidAmounts = [
         { amount: -10, error: 'Amount must be greater than 0' },
         { amount: 0, error: 'Amount must be greater than 0' },
-        { amount: 100001, error: 'Amount cannot exceed £100,000' },
+        { amount: 10001, error: 'Amount exceeds maximum (£10,000)' },
       ];
 
       for (const { amount, error } of invalidAmounts) {
         await expect(
           PaymentService.initializePayment({
             amount,
-            jobId: 'job-1',
-            contractorId: 'contractor-1',
+            jobId: '11111111-1111-4111-8111-111111111101',
+            contractorId: '22222222-2222-4222-8222-222222222201',
           })
         ).rejects.toThrow(error);
       }
@@ -418,17 +430,23 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
 
         await PaymentService.initializePayment({
           amount: input,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         });
 
         expect(mockApi.post).toHaveBeenLastCalledWith(
           '/api/payments/create-intent',
           {
+            currency: 'gbp',
             amount: input,
-            jobId: 'job-1',
-            contractorId: 'contractor-1',
-          }
+            jobId: '11111111-1111-4111-8111-111111111101',
+            contractorId: '22222222-2222-4222-8222-222222222201',
+          },
+          expect.objectContaining({
+            headers: expect.objectContaining({
+              'Idempotency-Key': expect.any(String),
+            }),
+          })
         );
       }
     });
@@ -520,13 +538,13 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
     });
 
     it('should retrieve job-specific escrow transactions', async () => {
-      const jobId = 'job-123';
+      const jobId = '11111111-1111-4111-8111-111111111123';
       const mockTransactions = [
         {
           id: 'escrow-1',
           job_id: jobId,
           payer_id: 'homeowner-1',
-          payee_id: 'contractor-1',
+          payee_id: '22222222-2222-4222-8222-222222222201',
           amount: 300,
           status: 'held',
         },
@@ -626,8 +644,8 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       const promises = Array.from({ length: concurrentRequests }, (_, i) =>
         PaymentService.initializePayment({
           amount: 100 + i,
-          jobId: `job-${i}`,
-          contractorId: `contractor-${i}`,
+          jobId: `1111111${i}-1111-4111-8111-111111111111`,
+          contractorId: `2222222${i}-2222-4222-8222-222222222222`,
         })
       );
 

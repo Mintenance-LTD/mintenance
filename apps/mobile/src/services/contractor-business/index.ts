@@ -20,8 +20,11 @@ export class ContractorBusinessSuite {
   static finance = FinancialManagementService;
 
   // Instance methods kept for hook compatibility — all delegate to finance.
-  async getFinancialSummary(contractorId: string) {
-    return ContractorBusinessSuite.finance.getFinancialSummary(contractorId);
+  async getFinancialSummary(contractorId: string, months?: number) {
+    return ContractorBusinessSuite.finance.getFinancialSummary(
+      contractorId,
+      months
+    );
   }
 
   async createInvoice(invoiceData: Record<string, unknown>) {

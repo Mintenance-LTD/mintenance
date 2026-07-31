@@ -4,7 +4,7 @@
 // ============================================================================
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Appearance, ViewStyle } from 'react-native';
+import { Appearance, ViewStyle, type ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from './tokens';
 import { logger } from '../utils/logger';

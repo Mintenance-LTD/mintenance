@@ -280,7 +280,7 @@ export const TIER_PRICING = {
     price: 0,
     period: 'forever',
     description: 'Free to start — pay only when you win work',
-    platformFeeRate: 0.12,
+    platformFeeRate: SHARED_FEE_RATES.free,
     bidLimit: 10,
     activeJobsLimit: 3,
   },
@@ -289,7 +289,7 @@ export const TIER_PRICING = {
     price: 0,
     period: 'month',
     description: 'Free to start — pay only when you win work',
-    platformFeeRate: 0.12,
+    platformFeeRate: SHARED_FEE_RATES.basic,
     bidLimit: 10,
     activeJobsLimit: 3,
   },
@@ -299,7 +299,7 @@ export const TIER_PRICING = {
     period: 'month',
     description: 'For growing contractor businesses',
     popular: true,
-    platformFeeRate: 0.08,
+    platformFeeRate: SHARED_FEE_RATES.professional,
     bidLimit: 'unlimited' as const,
     activeJobsLimit: 'unlimited' as const,
   },
@@ -308,23 +308,23 @@ export const TIER_PRICING = {
     price: 99,
     period: 'month',
     description: 'For established businesses and teams',
-    platformFeeRate: 0.05,
+    platformFeeRate: SHARED_FEE_RATES.enterprise,
     bidLimit: 'unlimited' as const,
     activeJobsLimit: 'unlimited' as const,
   },
 } as const;
 
 /**
- * Platform fee rate by contractor tier — single source of truth.
- * Imported by FeeCalculationService (Sprint 2) and the pricing landing page.
- * No tier cap on fees (the £50 cap was removed 2026-05-22).
+ * Platform fee rate by contractor tier.
+ *
+ * 2026-07-22: the canonical table moved to @mintenance/shared so the
+ * mobile app reads the SAME numbers (it cannot import from apps/web).
+ * Re-exported here under the original name so existing web importers
+ * (FeeCalculationService, FeeTransferService, pricing-plans) are
+ * unchanged. Edit the rates in packages/shared/src/pricing/platform-fees.ts.
  */
-export const PLATFORM_FEE_RATE_BY_TIER = {
-  free: 0.12,
-  basic: 0.12,
-  professional: 0.08,
-  enterprise: 0.05,
-} as const;
+export { PLATFORM_FEE_RATE_BY_TIER } from '@mintenance/shared';
+import { PLATFORM_FEE_RATE_BY_TIER as SHARED_FEE_RATES } from '@mintenance/shared';
 
 /**
  * Pricing information for homeowner subscription tiers

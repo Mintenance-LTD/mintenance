@@ -45,7 +45,7 @@ export async function getNearbyContractors(
       .select(
         `
           id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, latitude, longitude, created_at,
-          contractor_skills (
+          contractor_skills!contractor_id (
             skill_name
           )
         `
@@ -124,7 +124,7 @@ export async function getPreviousContractors(
             bio,
             profile_image_url,
             phone,
-            contractor_skills (
+            contractor_skills!contractor_id (
               skill_name
             )
           )

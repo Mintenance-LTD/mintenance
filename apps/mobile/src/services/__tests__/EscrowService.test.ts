@@ -60,10 +60,14 @@ describe('getEscrowStatus', () => {
 
 describe('getEscrowTimeline', () => {
   it('builds completed steps for an approved + completed escrow', async () => {
+    // Typed-row migration 2026-07-27: the old fixture set `job_completed_at`
+    // directly on the escrow row — a column that does NOT exist in the live
+    // schema (it always read undefined in prod, so this step could never
+    // complete). The real signal is jobs.completed_at via the FK join.
     __setMockData({
       id: 'e1',
       status: 'completed',
-      job_completed_at: '2026-06-01',
+      job: { completed_at: '2026-06-01' },
       homeowner_approval: true,
       created_at: '2026-05-01',
       released_at: '2026-06-05',

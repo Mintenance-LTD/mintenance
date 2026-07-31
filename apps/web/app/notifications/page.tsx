@@ -32,6 +32,7 @@ import {
   type InboxFilter,
   type InboxNotification,
 } from '@/components/notifications/NotificationsInboxView';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface Notification {
   id: string;
@@ -83,6 +84,7 @@ function legacyToInbox(filter: FilterType): InboxFilter {
 
 export default function NotificationsPage2025() {
   const router = useRouter();
+  const confirm = useConfirm();
   const { user, loading: loadingUser } = useCurrentUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
@@ -222,12 +224,13 @@ export default function NotificationsPage2025() {
   };
 
   const handleClearAll = async () => {
-    if (
-      !confirm(
-        'Are you sure you want to clear all notifications? This action cannot be undone.'
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: 'Clear all notifications?',
+      description: 'This action cannot be undone.',
+      confirmText: 'Clear all',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const deletePromises = notifications.map((n) =>
@@ -279,7 +282,12 @@ export default function NotificationsPage2025() {
   };
 
   const handleDeleteNotification = async (notificationId: string) => {
-    if (!confirm('Are you sure you want to delete this notification?')) return;
+    const ok = await confirm({
+      title: 'Delete this notification?',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, {

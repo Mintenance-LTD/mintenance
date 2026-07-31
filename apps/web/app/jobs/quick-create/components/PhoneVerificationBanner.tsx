@@ -2,32 +2,54 @@
 
 import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 
 /**
- * Renders a "verify your phone" warning when the user hasn't completed
- * phone verification AND the dev-skip flag isn't on. Extracted from
- * `quick-create/page.tsx` on 2026-05-09 for AUDIT_PUNCH_LIST P2 #41.
+ * Renders a "verify your phone" warning when the gate actually applies
+ * to this user. Extracted from `quick-create/page.tsx` on 2026-05-09
+ * for AUDIT_PUNCH_LIST P2 #41.
+ *
+ * The verdict comes from `GET /api/users/profile`, not from
+ * `phone_verified` alone: early-access homeowners are waived by signup
+ * rank, which the browser can't compute. Fetching it also keeps this
+ * banner in step with what `POST /api/jobs` will actually enforce —
+ * the previous env-var bypass could disagree with the server and leave
+ * the user staring at an unexplained 4xx.
  *
  * Returns null when there's nothing to show, so callers can drop it
  * unconditionally.
  */
-export function PhoneVerificationBanner({
-  phoneVerified,
-}: {
-  phoneVerified: boolean | undefined;
-}) {
+export function PhoneVerificationBanner() {
   const router = useRouter();
 
-  // 2026-05-27 audit-P2-8: gate the client-side bypass on
+  const { data } = useQuery({
+    queryKey: ['phone-verification-required'],
+    queryFn: async () => {
+      const res = await fetch('/api/users/profile', {
+        credentials: 'same-origin',
+      });
+      if (!res.ok) {
+        throw new Error('Failed to load verification status');
+      }
+      return (await res.json()) as { phoneVerificationRequired?: boolean };
+    },
+    staleTime: 30_000,
+  });
+
+  // 2026-05-27 audit-P2-8: the dev bypass stays gated on
   // NODE_ENV !== 'production' to match the server-side P0.1 fix
-  // (CLAUDE.md). Without this prod guard, a leaked
-  // NEXT_PUBLIC_SKIP_PHONE_VERIFICATION=true would hide this
-  // banner even though /api/jobs still rejects the post — the
-  // user clicks Post Job, gets a 4xx, with no actionable prompt.
+  // (CLAUDE.md). Without the prod guard, a leaked
+  // NEXT_PUBLIC_SKIP_PHONE_VERIFICATION=true would hide this banner
+  // even though /api/jobs still rejects the post — the user clicks
+  // Post Job, gets a 4xx, with no actionable prompt.
   const devBypass =
     process.env.NODE_ENV !== 'production' &&
     process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true';
-  if (phoneVerified || devBypass) {
+
+  // Render only on an explicit true — staying quiet while the status
+  // loads beats flashing "verify your phone" at someone who doesn't
+  // need to.
+  if (devBypass || data?.phoneVerificationRequired !== true) {
     return null;
   }
 

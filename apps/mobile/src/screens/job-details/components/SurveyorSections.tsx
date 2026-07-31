@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 
@@ -130,15 +130,81 @@ interface FindingItem {
   description?: string;
   probableCause?: string;
   isPrimary?: boolean;
+  /** Walkthrough provenance — see AssessmentFinding on the server. */
+  sourceFrameIndex?: number;
+  sourceFrameIndexes?: number[];
+  /** Asserts nothing is wrong — the absence of a defect, not a defect. */
+  isClear?: boolean;
+  /** Seen in one frame of a multi-frame walk; the rest disagreed. */
+  unconfirmed?: boolean;
 }
 
-/** Element-by-element list of every distinct defect (2+ findings only). */
-export function FindingsList({ findings }: { findings?: FindingItem[] }) {
+/**
+ * Whether a finding actually reports a defect.
+ *
+ * Half a walkthrough's findings are clean bills of health ("the wall appears to
+ * be in good condition"). Those need no photograph. Anything at condition 2+ or
+ * developing-and-worse is a claim about the property, and a claim about
+ * someone's property should be checkable against what the camera saw.
+ */
+function reportsACondition(finding: FindingItem): boolean {
+  if (typeof finding.conditionRating === 'number') {
+    return finding.conditionRating >= 2;
+  }
+  return (
+    finding.severity === 'developing' ||
+    finding.severity === 'significant' ||
+    finding.severity === 'dangerous'
+  );
+}
+
+/** Cap on the fallback strip — enough to judge by, not a second gallery. */
+const MAX_FALLBACK_FRAMES = 6;
+
+/**
+ * Whether a finding asserts nothing is wrong.
+ *
+ * Prefers the flag the merge sets, falling back to deriving it so surveys
+ * stored before the flag existed stop listing "the wall is in good condition"
+ * as a finding. RICS rating 1 means no repair is needed.
+ */
+function isClearReading(f: FindingItem): boolean {
+  if (typeof f.isClear === 'boolean') return f.isClear;
+  return f.severity === 'early' && f.conditionRating === 1;
+}
+
+/**
+ * Element-by-element list of every distinct defect (2+ findings only).
+ *
+ * `frameUrls` are the walkthrough's keyframes in index order. When present,
+ * each finding shows the frame it was read from, because a survey asserting
+ * "mould above the cabinets" in a new-build kitchen is not something anyone
+ * should have to take on trust — you can look at the picture and judge.
+ */
+export function FindingsList({
+  findings,
+  frameUrls,
+}: {
+  findings?: FindingItem[];
+  frameUrls?: string[];
+}) {
   if (!findings || findings.length < 2) return null;
+
+  // Clean readings are the absence of a defect. Listed as peers they made one
+  // survey report the same window as misaligned AND in good condition.
+  const defects = findings.filter((f) => !isClearReading(f));
+  const clearElements = Array.from(
+    new Set(
+      findings
+        .filter((f) => isClearReading(f))
+        .map((f) => f.element.replace(/_/g, ' '))
+    )
+  );
+
   return (
     <View style={s.section}>
-      <Text style={s.sectionTitle}>Findings ({findings.length})</Text>
-      {findings.map((f, i) => {
+      <Text style={s.sectionTitle}>Findings ({defects.length})</Text>
+      {defects.map((f, i) => {
         const cond =
           f.conditionRating === 1 ||
           f.conditionRating === 2 ||
@@ -152,6 +218,11 @@ export function FindingsList({ findings }: { findings?: FindingItem[] }) {
                 {f.element.replace(/_/g, ' ')}
               </Text>
               {f.isPrimary ? <Text style={s.primaryTag}>PRIMARY</Text> : null}
+              {f.unconfirmed ? (
+                <View style={s.unconfirmedChip}>
+                  <Text style={s.unconfirmedChipText}>Unconfirmed</Text>
+                </View>
+              ) : null}
               <View style={s.sevChip}>
                 <Text style={s.sevChipText}>{f.severity}</Text>
               </View>
@@ -172,9 +243,85 @@ export function FindingsList({ findings }: { findings?: FindingItem[] }) {
                 {f.probableCause}
               </Text>
             ) : null}
+            {(() => {
+              const idx = f.sourceFrameIndex;
+              const url =
+                typeof idx === 'number' ? frameUrls?.[idx] : undefined;
+
+              if (url) {
+                // How many frames saw the same defect. One sighting out of a
+                // dozen frames deserves more scepticism than five, so say which
+                // it was rather than leaving every finding looking equally sure.
+                const seen = f.sourceFrameIndexes?.length ?? 1;
+                return (
+                  <View style={s.evidence}>
+                    <Image
+                      source={{ uri: url }}
+                      style={s.evidenceImage}
+                      resizeMode='cover'
+                      accessibilityLabel={`Frame the ${f.element.replace(/_/g, ' ')} finding was read from`}
+                    />
+                    <Text style={s.evidenceCaption}>
+                      {seen > 1
+                        ? `Seen in ${seen} frames · showing frame ${idx! + 1}`
+                        : `Seen in 1 frame (frame ${idx! + 1})`}
+                    </Text>
+                  </View>
+                );
+              }
+
+              // Surveys recorded before provenance existed have no per-finding
+              // frame, and it cannot be reconstructed — their stored evidence is
+              // empty. A finding that reports a defect still shows the
+              // walkthrough's frames, captioned so the uncertainty is explicit.
+              // Findings that report no defect get nothing: a clean bill of
+              // health needs no photograph.
+              if (!reportsACondition(f)) return null;
+              const available = (frameUrls ?? [])
+                .map((u, i) => ({ u, i }))
+                .filter((x) => Boolean(x.u));
+              if (available.length === 0) return null;
+              const shown = available.slice(0, MAX_FALLBACK_FRAMES);
+
+              return (
+                <View style={s.evidence}>
+                  <View style={s.evidenceStrip}>
+                    {shown.map(({ u, i }) => (
+                      <Image
+                        key={i}
+                        source={{ uri: u }}
+                        style={s.evidenceThumb}
+                        resizeMode='cover'
+                        accessibilityLabel={`Walkthrough frame ${i + 1}`}
+                      />
+                    ))}
+                  </View>
+                  <Text style={s.evidenceCaption}>
+                    Exact frame not recorded ·{' '}
+                    {shown.length === available.length
+                      ? `all ${available.length} frames`
+                      : `${shown.length} of ${available.length} frames`}{' '}
+                    from this walkthrough
+                  </Text>
+                </View>
+              );
+            })()}
           </View>
         );
       })}
+      {defects.length === 0 ? (
+        <Text style={s.bodyText}>
+          No defects were identified in this survey.
+        </Text>
+      ) : null}
+      {clearElements.length > 0 ? (
+        // Kept on the record — "we looked and it was fine" is worth saying —
+        // but not as a peer of an actual defect.
+        <Text style={s.clearLine}>
+          <Text style={s.fieldLabel}>Checked and clear: </Text>
+          {clearElements.join(', ')}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -187,6 +334,30 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
+  },
+  evidence: { marginTop: 10 },
+  evidenceImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    backgroundColor: me.line2,
+  },
+  evidenceCaption: { fontSize: 11, color: me.ink3, marginTop: 4 },
+  unconfirmedChip: {
+    backgroundColor: me.bg2,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  unconfirmedChipText: { fontSize: 11, fontWeight: '600', color: me.ink3 },
+  clearLine: { fontSize: 12, color: me.ink3, marginTop: 8 },
+  evidenceStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  evidenceThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: me.line,
   },
   findingHeader: {
     flexDirection: 'row',

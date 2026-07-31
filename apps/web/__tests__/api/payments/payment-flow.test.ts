@@ -144,6 +144,9 @@ vi.mock('@/lib/rate-limit', () => ({
 // Idempotency
 vi.mock('@/lib/idempotency', () => ({
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
+  // Deterministic variant (audit 2026-07-27) — same mock so existing
+  // mockReturnValue setups drive both entry points.
+  getDeterministicIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
 }));
@@ -325,6 +328,17 @@ vi.mock('@/lib/errors/payment-errors', () => ({
 
 // Loggers
 vi.mock('@mintenance/shared', () => ({
+  // The 2026-07 tiered-pricing work moved the platform fee rates into
+  // @mintenance/shared. A vi.mock factory must return EVERY export its
+  // consumers import, or they throw at import time -- which is what turned
+  // this suite red without any production code being wrong.
+  PLATFORM_FEE_RATE_BY_TIER: {
+    free: 0.12,
+    basic: 0.12,
+    professional: 0.08,
+    enterprise: 0.05,
+  },
+  DEFAULT_PLATFORM_FEE_RATE: 0.12,
   logger: mocks.logger,
   BUSINESS_RULES: {
     MAX_JOBS_PER_HOUR: 20,

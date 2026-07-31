@@ -5,11 +5,18 @@ import { applyMemoryAdjustments } from '../memory-adjustments';
 import { formatSAM3EvidenceForFusion } from '../evidence-formatter';
 import { BayesianFusionService } from '../BayesianFusionService';
 import { mondrianConformalPrediction } from '../conformal-prediction';
-import { computeOODScore, computeDetectorDisagreement } from '../detector-metrics';
-import { normalizeDamageCategory, getSafetyThreshold } from '../normalization-utils';
+import {
+  computeOODScore,
+  computeDetectorDisagreement,
+} from '../detector-metrics';
+import {
+  normalizeDamageCategory,
+  getSafetyThreshold,
+} from '../normalization-utils';
 import { ContextFeatureService } from '../ContextFeatureService';
 import { CriticModule } from '../critic';
 import { logDecisionForShadowMode } from '../shadow-mode-logger';
+import { clampAbstainedAssessment } from '../abstention-clamp';
 import type { AiAssessmentPayload } from '../validation-schemas';
 import type {
   Phase1BuildingAssessment,
@@ -36,7 +43,7 @@ interface PostProcessInput {
  * runs Bayesian fusion, conformal prediction, and the Safe-LUCB critic.
  */
 export async function postProcessAssessment(
-  input: PostProcessInput,
+  input: PostProcessInput
 ): Promise<Phase1BuildingAssessment> {
   const {
     aiResponse,
@@ -54,7 +61,9 @@ export async function postProcessAssessment(
     roboflowDetections,
     visionAnalysis: visionAnalysis || undefined,
     sam3Segmentation: sam3Segmentation ? sam3Segmentation : undefined,
-    sceneGraphFeatures: (sceneGraphFeatures ? sceneGraphFeatures : undefined) as SceneGraphFeatures | undefined,
+    sceneGraphFeatures: (sceneGraphFeatures
+      ? sceneGraphFeatures
+      : undefined) as SceneGraphFeatures | undefined,
   });
 
   // Apply memory adjustments
@@ -70,26 +79,29 @@ export async function postProcessAssessment(
       damageType: assessment.damageAssessment.damageType,
       hasCriticalHazards: assessment.safetyHazards.hasCriticalHazards,
     },
-    sceneGraphFeatures: (sceneGraphFeatures || null) as SceneGraphFeatures | null,
+    sceneGraphFeatures: (sceneGraphFeatures ||
+      null) as SceneGraphFeatures | null,
   });
 
   // Mondrian Conformal Prediction
   const propertyType = context?.propertyType || 'residential';
   const propertyAge = context?.ageOfProperty || 50;
   const region = context?.location || 'unknown';
-  const damageCategory = normalizeDamageCategory(assessment.damageAssessment.damageType);
+  const damageCategory = normalizeDamageCategory(
+    assessment.damageAssessment.damageType
+  );
 
   const cpResult = await mondrianConformalPrediction(
     bayesianFusionResult.mean,
     bayesianFusionResult.variance,
-    { propertyType, propertyAge, region, damageCategory },
+    { propertyType, propertyAge, region, damageCategory }
   );
 
   // Detector metrics
   const detectorDisagreement = computeDetectorDisagreement(
     roboflowDetections,
     visionAnalysis,
-    assessment.damageAssessment.confidence,
+    assessment.damageAssessment.confidence
   );
   const oodScore = computeOODScore(roboflowDetections, bayesianFusionResult);
 
@@ -115,7 +127,9 @@ export async function postProcessAssessment(
     fusion_confidence: bayesianFusionResult.mean,
     fusion_variance: bayesianFusionResult.variance,
     cp_set_size: cpResult.predictionSet.length,
-    safety_critical_candidate: assessment.safetyHazards.hasCriticalHazards ? 1 : 0,
+    safety_critical_candidate: assessment.safetyHazards.hasCriticalHazards
+      ? 1
+      : 0,
     lighting_quality: imageQuality.lightingQuality,
     image_clarity: imageQuality.imageClarity,
     property_age: propertyAge,
@@ -139,7 +153,9 @@ export async function postProcessAssessment(
   // Shadow mode logic
   const shadowModeEnabled = process.env.SHADOW_MODE_ENABLED === 'true';
   const shadowModeTestingEnabled = process.env.SHADOW_MODE_TESTING === 'true';
-  const shadowModeProbability = parseFloat(process.env.SHADOW_MODE_PROBABILITY || '0.1');
+  const shadowModeProbability = parseFloat(
+    process.env.SHADOW_MODE_PROBABILITY || '0.1'
+  );
 
   let finalDecision = criticDecision.arm;
   let decisionReason = criticDecision.reason;
@@ -162,7 +178,8 @@ export async function postProcessAssessment(
         });
       } else {
         finalDecision = 'escalate';
-        decisionReason = 'Shadow mode testing: Forced escalation for comparison';
+        decisionReason =
+          'Shadow mode testing: Forced escalation for comparison';
         logger.info('Shadow mode testing: Forcing escalation for comparison', {
           originalDecision: criticDecision.arm,
           probability: shadowModeProbability,
@@ -194,5 +211,9 @@ export async function postProcessAssessment(
     fusionVariance: bayesianFusionResult.variance,
   };
 
-  return assessment;
+  // Last step, deliberately: when the survey admits it could not diagnose from
+  // the photos, stop it also asserting Condition 3, 70% confidence, an 80/100
+  // insurance risk and a 24-hour callout. Genuine hazards pass through
+  // untouched — see abstention-clamp.ts for why that carve-out exists.
+  return clampAbstainedAssessment(assessment);
 }

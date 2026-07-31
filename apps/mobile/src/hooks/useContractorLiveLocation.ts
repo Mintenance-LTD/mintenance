@@ -14,13 +14,32 @@
  * query returns nothing and we stay in the empty state.
  */
 import { useEffect, useRef, useState } from 'react';
+import {
+  deriveTravelStage,
+  isArrivedContext,
+  isFixTrustable,
+  type TravelStage,
+} from '@mintenance/shared';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 
-// Three platform-specific aliases all mean "contractor is at the site":
-// mobile JobContextLocationService writes 'on_job'; the web location route
-// accepts 'arrived' / 'on_site'.
-const ARRIVED_CONTEXTS = new Set(['on_job', 'arrived', 'on_site']);
+// The travel stage machine (stages, thresholds, late overlay, copy/tone) is
+// canonical in @mintenance/shared so web's ContractorTravelTracking derives
+// the exact same states. Re-exported here under the names mobile already
+// imports, so call sites and tests are unchanged.
+export {
+  deriveTravelStage as deriveStage,
+  withLateStage,
+  travelPresentation,
+  isFixTrustable,
+  isArrivedContext,
+  travelBadgeLabel,
+  NEARBY_ETA_MINUTES,
+  ARRIVING_ETA_MINUTES,
+  LATE_GRACE_MINUTES,
+  TRAVELING_FRESH_MS,
+} from '@mintenance/shared';
+export type { TravelStage, TravelPresentation } from '@mintenance/shared';
 
 const SELECT =
   'latitude, longitude, heading, eta_minutes, is_sharing_location, is_active, location_timestamp, updated_at, context';
@@ -50,6 +69,8 @@ export interface ContractorLiveState {
   hasArrived: boolean;
   /** isLive && !hasArrived — en route. */
   isTraveling: boolean;
+  /** Journey stage for the homeowner surfaces (see TravelStage). */
+  stage: TravelStage;
   eta: number | null;
   lastFix: string | null;
   /** Coerced, finite coordinates for the map (null until a valid fix). */
@@ -60,6 +81,7 @@ const EMPTY: ContractorLiveState = {
   isLive: false,
   hasArrived: false,
   isTraveling: false,
+  stage: 'idle',
   eta: null,
   lastFix: null,
   position: null,
@@ -67,27 +89,53 @@ const EMPTY: ContractorLiveState = {
 
 // Postgres NUMERIC columns are serialised by supabase-js as strings; coerce
 // before handing coordinates to react-native-maps (which crashes on NaN).
+// Guard null/undefined explicitly: Number(null) === 0, which would otherwise
+// turn a null latitude into a valid-looking (0, lng) pin in the Atlantic.
 function toFinite(value: unknown): number | null {
+  if (value == null) return null;
   const n = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
-function derive(row: ContractorLiveRow | null): ContractorLiveState {
+// `now` is injectable for deterministic tests.
+export function derive(
+  row: ContractorLiveRow | null,
+  now: number = Date.now()
+): ContractorLiveState {
   if (!row) return EMPTY;
-  const isLive = !!row.is_sharing_location && !!row.is_active;
-  const hasArrived = row.context != null && ARRIVED_CONTEXTS.has(row.context);
+  const hasArrived = isArrivedContext(row.context);
+  const lastFix = row.location_timestamp ?? row.updated_at ?? null;
+
+  // Freshness gates the en-route surfaces only. An arrived contractor is
+  // trusted regardless of fix age; a traveling one must have a recent fix.
+  // Shared with web via @mintenance/shared's isFixTrustable.
+  const trustable = isFixTrustable(lastFix, hasArrived, now);
+
+  // Raw sharing flags, then downgraded by freshness so every consumer that
+  // reads `isLive` (e.g. HomeownerLocationRequest's "Sharing live location"
+  // card) drops a stale session automatically.
+  const isLive = !!row.is_sharing_location && !!row.is_active && trustable;
+
   const lat = toFinite(row.latitude);
   const lng = toFinite(row.longitude);
+  // Drop a stale en-route position so the map never renders a frozen "LIVE"
+  // pin + dashed line; keep an arrived contractor's marker on the site.
   const position =
-    lat != null && lng != null
+    lat != null && lng != null && trustable
       ? { latitude: lat, longitude: lng, heading: toFinite(row.heading) }
       : null;
+
+  const isTraveling = isLive && !hasArrived;
+  // A stale ETA is meaningless — only surface it while trustable.
+  const eta = trustable ? (row.eta_minutes ?? null) : null;
+
   return {
     isLive,
     hasArrived,
-    isTraveling: isLive && !hasArrived,
-    eta: row.eta_minutes ?? null,
-    lastFix: row.location_timestamp ?? row.updated_at ?? null,
+    isTraveling,
+    stage: deriveTravelStage(hasArrived, isTraveling, eta),
+    eta,
+    lastFix,
     position,
   };
 }

@@ -209,6 +209,7 @@ export function MintEditorialJobsList({ jobs }: Props) {
                   key={j.id}
                   href={`/jobs/${j.id}`}
                   className='job-row'
+                  data-testid='job-card'
                   style={{
                     cursor: 'pointer',
                     color: 'inherit',
@@ -248,6 +249,7 @@ export function MintEditorialJobsList({ jobs }: Props) {
                   key={j.id}
                   href={`/jobs/${j.id}`}
                   className='job-row'
+                  data-testid='job-card'
                   style={{
                     cursor: 'pointer',
                     color: 'inherit',

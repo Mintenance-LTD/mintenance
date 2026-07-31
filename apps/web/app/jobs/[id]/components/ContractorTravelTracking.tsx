@@ -4,9 +4,16 @@ import { useEffect, useState, useRef } from 'react';
 import { useRealtime } from '@/hooks/useRealtime';
 import { DynamicGoogleMap } from '@/components/maps';
 import { theme } from '@/lib/theme';
-import { logger } from '@mintenance/shared';
+import {
+  deriveTravelStage,
+  isArrivedContext,
+  isFixTrustable,
+  travelPresentation,
+  travelBadgeLabel,
+} from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 import { useContractorLocationHydration } from './useContractorLocationHydration';
+import { TravelTrackingWaiting } from './TravelTrackingWaiting';
 
 interface ContractorTravelTrackingProps {
   jobId: string;
@@ -33,7 +40,6 @@ export function ContractorTravelTracking({
 }: ContractorTravelTrackingProps) {
   const [contractorLocation, setContractorLocation] =
     useState<ContractorLocationData | null>(null);
-  const [isTraveling, setIsTraveling] = useState(false);
   const mapRef = useRef<google.maps.Map | null>(null);
   const contractorMarkerRef = useRef<google.maps.Marker | null>(null);
   const routeLineRef = useRef<google.maps.Polyline | null>(null);
@@ -90,7 +96,6 @@ export function ContractorTravelTracking({
     };
 
     setContractorLocation(locationData);
-    setIsTraveling(locationData.context === 'traveling');
 
     // Update map markers
     updateMapMarkers(locationData);
@@ -104,7 +109,7 @@ export function ContractorTravelTracking({
     onHydrate: handleLocationEvent,
   });
 
-  const { status } = useRealtime({
+  useRealtime({
     table: 'contractor_locations',
     filter: `job_id=eq.${jobId}`,
     onInsert: handleLocationEvent,
@@ -206,70 +211,12 @@ export function ContractorTravelTracking({
 
   if (!contractorLocation) {
     return (
-      <div
-        style={{
-          backgroundColor: theme.colors.surface,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius.lg,
-          overflow: 'hidden',
+      <TravelTrackingWaiting
+        destination={destination}
+        onMapLoad={(map) => {
+          mapRef.current = map;
         }}
-      >
-        {/* Map showing job destination */}
-        <div style={{ width: '100%', height: '200px' }}>
-          <DynamicGoogleMap
-            center={destination}
-            zoom={15}
-            onMapLoad={(map) => {
-              mapRef.current = map;
-              new google.maps.Marker({
-                position: destination,
-                map,
-                icon: {
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 10,
-                  fillColor: '#10B981',
-                  fillOpacity: 1,
-                  strokeColor: '#FFFFFF',
-                  strokeWeight: 2,
-                },
-                title: 'Job Location',
-              });
-            }}
-            style={{ width: '100%', height: '100%' }}
-          />
-        </div>
-        <div
-          style={{
-            padding: `${theme.spacing[4]} ${theme.spacing[5]}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[3],
-          }}
-        >
-          <Icon name='mapPin' size={20} color={theme.colors.textTertiary} />
-          <div>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
-              }}
-            >
-              Waiting for Contractor
-            </h3>
-            <p
-              style={{
-                margin: 0,
-                color: theme.colors.textSecondary,
-                fontSize: theme.typography.fontSize.xs,
-              }}
-            >
-              They will appear on the map when travelling to the job location.
-            </p>
-          </div>
-        </div>
-      </div>
+      />
     );
   }
 
@@ -280,6 +227,28 @@ export function ContractorTravelTracking({
   const lastUpdate = new Date(contractorLocation.timestamp);
   const minutesAgo = Math.floor((nowMs - lastUpdate.getTime()) / 60000);
 
+  // 2026-07-20 web parity: derive the journey stage with the SAME machine
+  // mobile uses (@mintenance/shared) instead of a flat
+  // `context === 'traveling'` boolean. This also brings web the freshness
+  // gate it never had — previously a stale row (app killed mid-trip) kept
+  // rendering "on the way, ETA N minutes" indefinitely.
+  const hasArrived = isArrivedContext(contractorLocation.context);
+  const trustable = isFixTrustable(
+    contractorLocation.timestamp,
+    hasArrived,
+    nowMs
+  );
+  const eta = trustable ? contractorLocation.eta : null;
+  const stage = deriveTravelStage(hasArrived, trustable && !hasArrived, eta);
+  const presentation = travelPresentation(stage, { eta });
+  // `tone` is semantic; map it to this surface's legacy theme colours.
+  const toneColor =
+    presentation.tone === 'ok'
+      ? theme.colors.success
+      : presentation.tone === 'warn'
+        ? theme.colors.warning
+        : theme.colors.info;
+
   return (
     <div
       style={{
@@ -289,8 +258,9 @@ export function ContractorTravelTracking({
         padding: theme.spacing[6],
       }}
     >
-      {/* ETA Banner */}
-      {isTraveling && (
+      {/* Stage banner — copy, tone and badge wording all come from the
+          shared travel machine, so this reads identically to mobile. */}
+      {stage !== 'idle' && (
         <div
           style={{
             display: 'flex',
@@ -298,9 +268,9 @@ export function ContractorTravelTracking({
             alignItems: 'center',
             marginBottom: theme.spacing[4],
             padding: theme.spacing[4],
-            backgroundColor: theme.colors.info + '20',
+            backgroundColor: toneColor + '20',
             borderRadius: theme.borderRadius.md,
-            border: `1px solid ${theme.colors.info}`,
+            border: `1px solid ${toneColor}`,
           }}
         >
           <div>
@@ -316,8 +286,12 @@ export function ContractorTravelTracking({
                 gap: theme.spacing[2],
               }}
             >
-              <Icon name='car' size={24} color={theme.colors.info} />
-              Contractor is on the way
+              <Icon
+                name={stage === 'arrived' ? 'mapPin' : 'car'}
+                size={24}
+                color={toneColor}
+              />
+              {presentation.title}
             </h3>
             <p
               style={{
@@ -326,16 +300,15 @@ export function ContractorTravelTracking({
                 color: theme.colors.textSecondary,
               }}
             >
-              Estimated arrival:{' '}
-              <strong>{contractorLocation.eta} minutes</strong>
+              {presentation.subtitle}
             </p>
           </div>
           <div
             style={{
               padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
               borderRadius: theme.borderRadius.full,
-              backgroundColor: theme.colors.success + '20',
-              color: theme.colors.success,
+              backgroundColor: toneColor + '20',
+              color: toneColor,
               fontSize: theme.typography.fontSize.sm,
               fontWeight: theme.typography.fontWeight.medium,
               display: 'flex',
@@ -348,11 +321,11 @@ export function ContractorTravelTracking({
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                backgroundColor: theme.colors.success,
+                backgroundColor: toneColor,
                 animation: 'pulse 2s infinite',
               }}
             />
-            Live
+            {travelBadgeLabel(stage)}
           </div>
         </div>
       )}

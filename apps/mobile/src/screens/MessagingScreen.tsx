@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { MessagingStackParamList } from '../navigation/types';
+import { goBackSafe } from '../navigation/hooks';
 import { RouteProp } from '@react-navigation/native';
 import { Message } from '../services/MessagingService';
 // AUDIT_PUNCH_LIST P1 #23 (B-P1-2) — VideoCallInterface (live WebRTC
@@ -466,7 +467,10 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   if (loading) return <MessagingLoading />;
-  if (error) return <MessagingError onRetry={() => navigation.goBack()} />;
+  if (error)
+    return (
+      <MessagingError onRetry={() => goBackSafe(navigation, 'MessagesList')} />
+    );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -485,7 +489,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             jobTitle={jobTitle}
             userId={user?.id || ''}
             jobId={jobId}
-            onGoBack={() => navigation.goBack()}
+            onGoBack={() => goBackSafe(navigation, 'MessagesList')}
             // 2026-04-30 audit P1: video call backend is unbuilt
             // (call_participants table doesn't exist in live schema —
             // see audit P0-1 disposition for CallManager.ts).

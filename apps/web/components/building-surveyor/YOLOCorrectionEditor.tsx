@@ -2,7 +2,7 @@
 
 /**
  * YOLO Correction Editor Component
- * 
+ *
  * Allows users to correct AI detections by:
  * - Viewing bounding boxes on images
  * - Adding new detections
@@ -13,6 +13,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { logger } from '@mintenance/shared';
+import toast from 'react-hot-toast';
 import { Card } from '@/components/ui/Card.unified';
 import { Icon } from '@/components/ui/Icon';
 import { loadClassNames } from '@/lib/services/building-surveyor/yolo-class-names';
@@ -52,21 +53,30 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [detections, setDetections] = useState<CorrectedDetection[]>([]);
-  const [selectedDetection, setSelectedDetection] = useState<string | null>(null);
+  const [selectedDetection, setSelectedDetection] = useState<string | null>(
+    null
+  );
   const [isDrawing, setIsDrawing] = useState(false);
-  const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
-  const [drawCurrent, setDrawCurrent] = useState<{ x: number; y: number } | null>(null);
+  const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [drawCurrent, setDrawCurrent] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [classNames, setClassNames] = useState<string[]>([]);
-  const [showClassSelector, setShowClassSelector] = useState<string | null>(null);
+  const [showClassSelector, setShowClassSelector] = useState<string | null>(
+    null
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   // Load class names
   useEffect(() => {
     const names = loadClassNames(process.env.NEXT_PUBLIC_YOLO_DATA_YAML_PATH);
     setClassNames(names);
-    
+
     // Initialize with original detections
-    const initial: CorrectedDetection[] = originalDetections.map(det => ({
+    const initial: CorrectedDetection[] = originalDetections.map((det) => ({
       id: det.id,
       class: det.className,
       bbox: {
@@ -84,11 +94,11 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
   useEffect(() => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    
+
     img.onload = () => {
       setImageSize({ width: img.width, height: img.height });
       setImageLoaded(true);
-      
+
       // Set canvas size
       if (canvasRef.current) {
         const canvas = canvasRef.current;
@@ -100,7 +110,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
         canvas.style.height = `${canvas.height}px`;
       }
     };
-    
+
     img.src = imageUrl;
     imageRef.current = img;
   }, [imageUrl]);
@@ -137,7 +147,9 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
       ctx.strokeRect(x, y, width, height);
 
       // Fill with semi-transparent color
-      ctx.fillStyle = isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+      ctx.fillStyle = isSelected
+        ? 'rgba(59, 130, 246, 0.1)'
+        : 'rgba(239, 68, 68, 0.1)';
       ctx.fillRect(x, y, width, height);
 
       // Label background
@@ -159,12 +171,12 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
     if (isDrawing && drawStart && drawCurrent) {
       const scaleX = canvas.width / imageSize.width;
       const scaleY = canvas.height / imageSize.height;
-      
+
       const startX = drawStart.x * scaleX;
       const startY = drawStart.y * scaleY;
       const currentX = drawCurrent.x * scaleX;
       const currentY = drawCurrent.y * scaleY;
-      
+
       const x = Math.min(startX, currentX);
       const y = Math.min(startY, currentY);
       const width = Math.abs(currentX - startX);
@@ -175,7 +187,15 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(x, y, width, height);
     }
-  }, [detections, selectedDetection, imageLoaded, imageSize, isDrawing, drawStart, drawCurrent]);
+  }, [
+    detections,
+    selectedDetection,
+    imageLoaded,
+    imageSize,
+    isDrawing,
+    drawStart,
+    drawCurrent,
+  ]);
 
   // Redraw when state changes
   useEffect(() => {
@@ -192,7 +212,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
     const y = (e.clientY - rect.top) * (imageSize.height / canvas.height);
 
     // Check if clicking on existing box
-    const clickedDetection = detections.find(det => {
+    const clickedDetection = detections.find((det) => {
       const scaleX = canvas.width / imageSize.width;
       const scaleY = canvas.height / imageSize.height;
       const boxX = det.bbox.x * scaleX;
@@ -223,12 +243,12 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !drawStart || !canvasRef.current) return;
-    
+
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (imageSize.width / canvas.width);
     const y = (e.clientY - rect.top) * (imageSize.height / canvas.height);
-    
+
     setDrawCurrent({ x, y });
     drawBoundingBoxes();
   };
@@ -266,7 +286,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
 
   // Remove detection
   const handleRemove = (id: string) => {
-    setDetections(detections.filter(d => d.id !== id));
+    setDetections(detections.filter((d) => d.id !== id));
     if (selectedDetection === id) {
       setSelectedDetection(null);
     }
@@ -275,7 +295,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
   // Change class
   const handleClassChange = (id: string, newClass: string) => {
     setDetections(
-      detections.map(det =>
+      detections.map((det) =>
         det.id === id ? { ...det, class: newClass } : det
       )
     );
@@ -284,14 +304,14 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
 
   // Calculate corrections made
   const calculateCorrectionsMade = () => {
-    const added = detections.filter(d => d.id.startsWith('new-'));
+    const added = detections.filter((d) => d.id.startsWith('new-'));
     const removed = originalDetections.filter(
-      orig => !detections.find(d => d.id === orig.id)
+      (orig) => !detections.find((d) => d.id === orig.id)
     );
     const adjusted = detections
-      .filter(d => !d.id.startsWith('new-'))
-      .filter(d => {
-        const orig = originalDetections.find(o => o.id === d.id);
+      .filter((d) => !d.id.startsWith('new-'))
+      .filter((d) => {
+        const orig = originalDetections.find((o) => o.id === d.id);
         if (!orig) return false;
         return (
           orig.className !== d.class ||
@@ -314,28 +334,31 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
       await onSave(detections);
     } catch (error) {
       logger.error('Failed to save correction:', error);
-      alert('Failed to save correction. Please try again.');
+      toast.error('Failed to save correction. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Card variant="default" padding="lg" className="w-full max-w-4xl mx-auto">
-      <div className="space-y-4">
+    <Card variant='default' padding='lg' className='w-full max-w-4xl mx-auto'>
+      <div className='space-y-4'>
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className='flex items-center justify-between'>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Correct Detections</h3>
-            <p className="text-sm text-gray-600">
-              Click and drag to add boxes, click existing boxes to select, delete to remove
+            <h3 className='text-lg font-semibold text-gray-900'>
+              Correct Detections
+            </h3>
+            <p className='text-sm text-gray-600'>
+              Click and drag to add boxes, click existing boxes to select,
+              delete to remove
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className='flex gap-2'>
             {onCancel && (
               <button
                 onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50'
               >
                 Cancel
               </button>
@@ -343,7 +366,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
             <button
               onClick={handleSubmit}
               disabled={isSaving}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className='px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
             >
               {isSaving ? 'Saving...' : 'Save Corrections'}
             </button>
@@ -351,31 +374,35 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
         </div>
 
         {/* Canvas */}
-        <div className="relative border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+        <div className='relative border border-gray-200 rounded-lg overflow-hidden bg-gray-50'>
           <canvas
             ref={canvasRef}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            className="cursor-crosshair max-w-full h-auto"
+            className='cursor-crosshair max-w-full h-auto'
             style={{ display: imageLoaded ? 'block' : 'none' }}
           />
           {!imageLoaded && (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <Icon name="image" size={48} className="mx-auto text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500">Loading image...</p>
+            <div className='flex items-center justify-center h-64'>
+              <div className='text-center'>
+                <Icon
+                  name='image'
+                  size={48}
+                  className='mx-auto text-gray-400 mb-2'
+                />
+                <p className='text-sm text-gray-500'>Loading image...</p>
               </div>
             </div>
           )}
         </div>
 
         {/* Detection List */}
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">
+        <div className='border border-gray-200 rounded-lg p-4 bg-gray-50'>
+          <h4 className='text-sm font-semibold text-gray-900 mb-3'>
             Detections ({detections.length})
           </h4>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className='space-y-2 max-h-48 overflow-y-auto'>
             {detections.map((det) => (
               <div
                 key={det.id}
@@ -385,13 +412,15 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
                     : 'border-gray-200 bg-white'
                 }`}
               >
-                <div className="flex items-center gap-3 flex-1">
+                <div className='flex items-center gap-3 flex-1'>
                   <button
                     onClick={() => setSelectedDetection(det.id)}
-                    className="text-left flex-1"
+                    className='text-left flex-1'
                   >
-                    <div className="text-sm font-medium text-gray-900">{det.class}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className='text-sm font-medium text-gray-900'>
+                      {det.class}
+                    </div>
+                    <div className='text-xs text-gray-500'>
                       {Math.round(det.bbox.x)}, {Math.round(det.bbox.y)} -{' '}
                       {Math.round(det.bbox.width)}×{Math.round(det.bbox.height)}
                     </div>
@@ -399,10 +428,12 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
                   {showClassSelector === det.id ? (
                     <select
                       value={det.class}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleClassChange(det.id, e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        handleClassChange(det.id, e.target.value)
+                      }
                       onBlur={() => setShowClassSelector(null)}
                       autoFocus
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      className='text-sm border border-gray-300 rounded px-2 py-1'
                     >
                       {classNames.map((name) => (
                         <option key={name} value={name}>
@@ -413,7 +444,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
                   ) : (
                     <button
                       onClick={() => setShowClassSelector(det.id)}
-                      className="text-xs text-blue-600 hover:text-blue-700"
+                      className='text-xs text-blue-600 hover:text-blue-700'
                     >
                       Change
                     </button>
@@ -421,15 +452,15 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
                 </div>
                 <button
                   onClick={() => handleRemove(det.id)}
-                  className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-                  title="Remove detection"
+                  className='p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded'
+                  title='Remove detection'
                 >
-                  <Icon name="x" size={16} />
+                  <Icon name='x' size={16} />
                 </button>
               </div>
             ))}
             {detections.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">
+              <p className='text-sm text-gray-500 text-center py-4'>
                 No detections. Click and drag on the image to add one.
               </p>
             )}
@@ -437,7 +468,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
         </div>
 
         {/* Instructions */}
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className='text-xs text-gray-500 space-y-1'>
           <p>• Click and drag on image to add new detection</p>
           <p>• Click existing box to select it</p>
           <p>• Click "Change" to modify class label</p>
@@ -447,4 +478,3 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
     </Card>
   );
 }
-

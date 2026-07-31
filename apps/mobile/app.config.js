@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { buildAndroidIntentData } = require('./deepLinkIntentFilters');
 
 // Simple console logger for config file
 const logger = {
@@ -220,7 +221,7 @@ module.exports = {
         },
       },
       package: 'com.mintenance.app',
-      versionCode: 17,
+      versionCode: 18,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
@@ -232,20 +233,20 @@ module.exports = {
       // requires /.well-known/assetlinks.json on mintenance.co.uk to list this
       // package (com.mintenance.app) + the release signing-cert SHA-256.
       // Requires an EAS/native rebuild to re-generate AndroidManifest.
+      // 2026-07-21: these `data` entries were previously just
+      // `{ scheme, host }` — which claims EVERY path on the domain, including
+      // /auth/callback and the password flows the iOS association file
+      // deliberately excludes. Now derived from the canonical allowlist in
+      // packages/shared/deep-link-paths.json, the same file the AASA route
+      // reads, so the two platforms cannot drift again.
       intentFilters: [
         {
           action: 'VIEW',
           autoVerify: true,
-          data: [
-            {
-              scheme: 'https',
-              host: 'mintenance.co.uk',
-            },
-            {
-              scheme: 'https',
-              host: 'www.mintenance.co.uk',
-            },
-          ],
+          data: buildAndroidIntentData([
+            'mintenance.co.uk',
+            'www.mintenance.co.uk',
+          ]),
           category: ['BROWSABLE', 'DEFAULT'],
         },
       ],

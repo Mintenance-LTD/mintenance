@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface StickyBottomCTAProps {
   price?: number;
@@ -70,10 +71,7 @@ export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(
             testID={`${testID}-button`}
           >
             {loading ? (
-              <ActivityIndicator
-                size='small'
-                color={theme.colors.textInverse}
-              />
+              <ActivityIndicator size='small' color={me.onBrand} />
             ) : (
               <Text style={styles.buttonText}>{buttonText}</Text>
             )}
@@ -133,7 +131,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    backgroundColor: theme.colors.textPrimary,
+    // 2026-07-20 redesign: the primary CTA was near-black, which fought the
+    // Mint Editorial brand on every job-detail screen. Mint reads as the
+    // product's own action colour; trust is carried by `secondaryText`.
+    backgroundColor: me.brand,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },

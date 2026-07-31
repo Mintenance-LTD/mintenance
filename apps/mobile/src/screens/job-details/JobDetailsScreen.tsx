@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
+import { goBackSafe } from '../../navigation/hooks';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import { useJobBids, useMyBidForJob } from '../../hooks/useJobs';
 import { BidService } from '../../services/BidService';
@@ -24,8 +25,12 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
-import { ContractorOnTheWayBanner } from './components/ContractorOnTheWayBanner';
-import { useContractorLiveLocation } from '../../hooks/useContractorLiveLocation';
+import { ContractorArrivedCard } from './components/ContractorArrivedCard';
+import {
+  useContractorLiveLocation,
+  withLateStage,
+} from '../../hooks/useContractorLiveLocation';
+import { haversineDistance } from '../../services/ServiceAreasGeo';
 import {
   JobAccessCard,
   type PropertyAccess,
@@ -75,7 +80,7 @@ interface Props {
  * (AUDIT_PUNCH_LIST P2 #44c) into typed sub-components under
  * `job-details/components/` (`JobTitleSection`, `JobDetailsList`,
  * `JobBidsList`, `JobQuickActions`, `LogExpenseRow`,
- * `WithdrawBidButton`, `DetailRow`) and a shared bid-status-colour
+ * `WithdrawBidButton`) and a shared bid-status-colour
  * helper at `job-details/bidStatusColors.ts`. Public behaviour
  * preserved; only the orchestration + state remain here.
  */
@@ -144,18 +149,28 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
-  // The contractor only travels to the property once the contract is signed
-  // by both parties (`accepted`) — or once work is already under way
-  // (`in_progress`). Before the contract is accepted the job sits at the
-  // "Contract" lifecycle step with no scheduled visit, so the "on the way"
-  // banner, ETA card, live map and location section must stay hidden even if a
-  // stale `contractor_locations` row exists. (Reported 2026-06-18: banner was
-  // showing during the unsigned Contract phase because the gate keyed only off
-  // `assigned`/`in_progress` and ignored contract acceptance.)
+  // The contractor only travels to the property once the job is under way
+  // (`in_progress`) or the homeowner has secured payment — contract accepted
+  // AND escrow funded. Before that the job sits at the Contract/pre-payment
+  // step, so the "on the way" banner, ETA card, live map and location section
+  // must stay hidden even if a `contractor_locations` row exists.
+  //   - 2026-06-18: gate ignored contract acceptance → banner showed during
+  //     the unsigned Contract phase.
+  //   - 2026-07-18: gate ignored escrow → contractor appeared "on the way" to
+  //     a job the homeowner hadn't paid into escrow ("Pay Now" still visible).
+  //     `in_progress` already implies escrow was funded (a job can't start
+  //     without it), so the escrow check only constrains the `assigned` branch.
+  //     Freshness of the fix itself is handled in useContractorLiveLocation.
   const contractAccepted = viewModel.contractStatus === 'accepted';
+  const escrowFunded = [
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ].includes(viewModel.escrowStatus ?? '');
   const canShowContractorTravel =
     job?.status === 'in_progress' ||
-    (job?.status === 'assigned' && contractAccepted);
+    (job?.status === 'assigned' && contractAccepted && escrowFunded);
 
   // Live contractor position for the homeowner's "on the way" banner + map.
   // One subscription, fed to the banner, the ETA card and JobLocationMap.
@@ -164,6 +179,38 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const contractorLive = useContractorLiveLocation(job?.id, {
     enabled: isOwner && !!job?.contractor_id && canShowContractorTravel,
   });
+
+  // Straight-line distance (miles) from the live contractor position to the
+  // job, folded into the "on the way" banner subtitle. Null until both the
+  // contractor's fix and the job coordinates are known. Miles, not km — the
+  // homeowner audience is UK.
+  const distanceMiles = useMemo(() => {
+    const pos = contractorLive.position;
+    if (!pos) return null;
+    const jLat = Number(job?.latitude);
+    const jLng = Number(job?.longitude);
+    if (!Number.isFinite(jLat) || !Number.isFinite(jLng)) return null;
+    const km = haversineDistance(pos.latitude, pos.longitude, jLat, jLng);
+    return km * 0.621371; // km → miles
+  }, [contractorLive.position, job?.latitude, job?.longitude]);
+
+  // Agreed appointment start, if the job has been scheduled. Rides on the job
+  // object as a runtime extra (`scheduledStartDate`, camelCase) that the web
+  // GET /api/jobs/[id] returns and formatJob whitelists — the canonical Job
+  // type doesn't declare it, hence the cast.
+  const scheduledStartMs = useMemo(() => {
+    const raw = (job as { scheduledStartDate?: string | null } | null)
+      ?.scheduledStartDate;
+    if (!raw) return null;
+    const ms = Date.parse(raw);
+    return Number.isFinite(ms) ? ms : null;
+  }, [job]);
+
+  // Effective stage for the homeowner surfaces: the GPS-derived stage, with a
+  // 'late' overlay when the contractor is en route past the agreed start.
+  // Computed each render (not memoised) so the flip happens as soon as the
+  // deadline passes on the next realtime location tick — cheap enough.
+  const travelStage = withLateStage(contractorLive.stage, { scheduledStartMs });
 
   // Homeowners get the full list from useJobBids; contractors get
   // their own single bid (zero or one row) from useMyBidForJob. The
@@ -227,7 +274,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <ErrorView
         message='Missing job reference. The link you opened did not include a job id.'
-        onRetry={() => navigation.goBack()}
+        onRetry={() => goBackSafe(navigation, 'JobsList')}
       />
     );
   }
@@ -251,7 +298,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   }
   if (!job) {
     return (
-      <ErrorView message='Job not found' onRetry={() => navigation.goBack()} />
+      <ErrorView
+        message='Job not found'
+        onRetry={() => goBackSafe(navigation, 'JobsList')}
+      />
     );
   }
 
@@ -262,6 +312,14 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasPhotos = photos.length > 0;
   const locationStr =
     typeof job.location === 'string' ? job.location : job.city || '';
+  const jobLat = typeof job.latitude === 'number' ? job.latitude : null;
+  const jobLng = typeof job.longitude === 'number' ? job.longitude : null;
+  const hasJobCoords = jobLat != null && jobLng != null && !!locationStr;
+  // While the contractor is en route, the location map is promoted to a live
+  // hero near the top of the screen (the fused "on the way" banner + map);
+  // otherwise it stays in its normal lower section. Rendering it in exactly
+  // one place keeps a single MapView mounted.
+  const showLiveHero = isOwner && contractorLive.isTraveling && hasJobCoords;
   const budget = job.budget || job.budget_min || 0;
   const urgency = job.urgency || job.priority || 'medium';
   const categoryIcon =
@@ -305,7 +363,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + 8 }]}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
@@ -338,8 +396,28 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           daysAgo={daysAgo}
         />
 
-        {isOwner && contractorLive.isTraveling && (
-          <ContractorOnTheWayBanner eta={contractorLive.eta} />
+        {showLiveHero && jobLat != null && jobLng != null && (
+          <View style={styles.sectionPadded}>
+            <JobLocationMap
+              address={locationStr}
+              latitude={jobLat}
+              longitude={jobLng}
+              contractorLocation={contractorLive.position}
+              stage={travelStage}
+              eta={contractorLive.eta}
+              distanceMiles={distanceMiles}
+            />
+          </View>
+        )}
+
+        {/* On arrival the live hero collapses (showLiveHero goes false, so the
+            map drops back to its normal section) and this compact card hands
+            the homeowner off to the work phase. */}
+        {isOwner && contractorLive.hasArrived && (
+          <ContractorArrivedCard
+            arrivedAtIso={contractorLive.lastFix}
+            jobStatus={job.status}
+          />
         )}
 
         <View style={styles.divider} />
@@ -390,15 +468,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.description}>{job.description}</Text>
         </View>
 
-        {job.latitude != null && job.longitude != null && locationStr ? (
+        {!showLiveHero && jobLat != null && jobLng != null ? (
           <>
             <View style={styles.divider} />
             <View style={styles.sectionPadded}>
               <JobLocationMap
                 address={locationStr}
-                latitude={job.latitude}
-                longitude={job.longitude}
+                latitude={jobLat}
+                longitude={jobLng}
                 contractorLocation={contractorLive.position}
+                stage={travelStage}
               />
             </View>
           </>

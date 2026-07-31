@@ -15,7 +15,7 @@
  * existing handlers (toggle active, delete, create modal) are
  * unchanged — only the visual layer is redrawn.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -34,18 +34,23 @@ import type { ServiceArea } from '../services/ServiceAreasService';
 import { DeleteConfirmationModal } from '../components/service-areas/DeleteConfirmationModal';
 import { CreateServiceAreaModal } from '../components/service-areas/CreateServiceAreaModal';
 import { RadiusRingsCard } from '../components/service-areas/RadiusRingsCard';
+import { RadiusStepper } from '../components/service-areas/RadiusStepper';
 import { TravelSurchargeCard } from '../components/service-areas/TravelSurchargeCard';
 import { useServiceAreas } from '../hooks/useServiceAreas';
+import { useRadiusDraft } from '../hooks/useRadiusDraft';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { KM_PER_MILE } from '@mintenance/shared';
+import { kmToWholeMiles } from '../components/service-areas/radiusModel';
 import { me } from '../design-system/mint-editorial';
 import { styles as s } from './service-areas/styles';
 
 const HIT = { top: 8, bottom: 8, left: 8, right: 8 };
-const KM_PER_MILE = 1.609;
 
-const kmToMiles = (km: number | undefined): number =>
-  !km ? 0 : Math.round(km / KM_PER_MILE);
+// 2026-07-20: conversion moved to @mintenance/shared so Service Areas,
+// contractor Discover and live travel tracking all convert identically.
+// 2026-07-22: the whole-mile wrapper now lives in radiusModel alongside
+// the editor's clamping, so the display and the editor round alike.
 
 const fmtGBP = (n: number): string =>
   `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -68,13 +73,20 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
     handleRefresh,
     handleCreateServiceArea,
     handleToggleActive,
+    handleUpdateRadii,
     handleDeletePress,
     handleDeleteConfirm,
   } = useServiceAreas();
 
-  const [radiusMode, setRadiusMode] = useState<'standard' | 'extended'>(
-    'standard'
-  );
+  // Derive headline numbers from the first active area (or first area).
+  // Computed before the loading return so the draft hook's order is
+  // stable across renders.
+  const primary =
+    serviceAreas.find((a) => a.is_active && a.is_primary_area) ??
+    serviceAreas.find((a) => a.is_active) ??
+    serviceAreas[0];
+
+  const radius = useRadiusDraft({ primary, onSave: handleUpdateRadii });
 
   const profileAddress = user
     ? {
@@ -88,20 +100,12 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
 
   if (loading) return <LoadingSpinner message='Loading service areas…' />;
 
-  // Derive headline numbers from the first active area (or first area).
-  const primary =
-    serviceAreas.find((a) => a.is_active && a.is_primary_area) ??
-    serviceAreas.find((a) => a.is_active) ??
-    serviceAreas[0];
-
+  const boroughs = collectBoroughs(serviceAreas);
   const primaryCity = primary?.cities?.[0] ?? user?.city ?? 'your area';
-  const primaryRadiusMiles = kmToMiles(primary?.radius_km);
-  const extendedRadiusMiles = primary
-    ? Math.max(
-        primaryRadiusMiles + 4,
-        kmToMiles(primary.max_distance_km ?? (primary.radius_km ?? 0) * 1.6)
-      )
-    : 0;
+  // Read the live draft, not the saved row, so the headline and the
+  // rings track the stepper before Save is pressed.
+  const primaryRadiusMiles = radius.standardMiles;
+  const extendedRadiusMiles = primary ? radius.extendedMiles : 0;
   const surchargeRate = primary?.per_km_rate
     ? primary.per_km_rate * KM_PER_MILE
     : 0;
@@ -151,8 +155,16 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
                 <RadiusRingsCard
                   standardMiles={primaryRadiusMiles}
                   extendedMiles={extendedRadiusMiles}
-                  selectedMode={radiusMode}
-                  onSelectMode={setRadiusMode}
+                  selectedMode={radius.mode}
+                  onSelectMode={radius.setMode}
+                />
+                <RadiusStepper
+                  mode={radius.mode}
+                  miles={radius.editingMiles}
+                  dirty={radius.dirty}
+                  saving={radius.saving}
+                  onStep={radius.step}
+                  onSave={radius.save}
                 />
                 {surchargeRate > 0 ? (
                   <TravelSurchargeCard
@@ -161,13 +173,22 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
                     formatCurrency={fmtGBP}
                   />
                 ) : null}
-                <Text style={s.sectionEyebrow}>
-                  Boroughs you serve · {serviceAreas.length}
-                </Text>
-                <BoroughChipRow
-                  areas={serviceAreas}
-                  onAdd={() => setCreateModalVisible(true)}
-                />
+                {/* Only render when there are boroughs to show, and count
+                    exactly those (see collectBoroughs). Radius areas carry no
+                    `cities`, so this section stays hidden for them rather
+                    than claiming a count above an empty row — adding a zone
+                    is still available from the header's + button. */}
+                {boroughs.length > 0 ? (
+                  <>
+                    <Text style={s.sectionEyebrow}>
+                      Boroughs you serve · {boroughs.length}
+                    </Text>
+                    <BoroughChipRow
+                      areas={serviceAreas}
+                      onAdd={() => setCreateModalVisible(true)}
+                    />
+                  </>
+                ) : null}
                 <Text style={s.sectionEyebrow}>Coverage zones</Text>
               </View>
             ) : null}
@@ -213,14 +234,23 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const BoroughChipRow: React.FC<{
-  areas: ServiceArea[];
-  onAdd: () => void;
-}> = ({ areas, onAdd }) => {
-  // Surface up to 8 cities across all active areas. The "+ £X"
-  // surcharge tag appears when the area has any per_km surcharge —
-  // an honest signal that this borough costs more.
-  const items: { name: string; surcharge: number; key: string }[] = [];
+export interface BoroughChip {
+  name: string;
+  surcharge: number;
+  key: string;
+}
+
+/**
+ * De-duplicated boroughs across all ACTIVE areas.
+ *
+ * 2026-07-20: exported so the section header counts exactly what the row
+ * renders. The header previously read `serviceAreas.length` — the number of
+ * *areas* — while the chips come from each area's `cities[]`, which is only
+ * populated for `area_type: 'cities'`. A radius area (the default) never
+ * fills it, so the screen showed "Boroughs you serve · 1" above an empty row.
+ */
+export function collectBoroughs(areas: ServiceArea[]): BoroughChip[] {
+  const items: BoroughChip[] = [];
   areas.forEach((a) => {
     if (!a.is_active) return;
     const cities = a.cities || [];
@@ -228,11 +258,22 @@ const BoroughChipRow: React.FC<{
       if (items.find((x) => x.name === c)) return;
       items.push({
         name: c,
+        // The "+ £X" surcharge tag is an honest signal that this borough
+        // costs more to reach.
         surcharge: a.base_travel_charge ?? 0,
         key: `${a.id}-${c}`,
       });
     });
   });
+  return items;
+}
+
+const BoroughChipRow: React.FC<{
+  areas: ServiceArea[];
+  onAdd: () => void;
+}> = ({ areas, onAdd }) => {
+  // Surface up to 8 boroughs across all active areas.
+  const items = collectBoroughs(areas);
   return (
     <ScrollView
       horizontal
@@ -292,7 +333,7 @@ const AreaCard: React.FC<{
           {area.area_name}
         </Text>
         <Text style={s.areaMeta}>
-          {kmToMiles(area.radius_km)} mi radius
+          {kmToWholeMiles(area.radius_km)} mi radius
           {area.cities?.length ? ` · ${area.cities[0]}` : ''}
         </Text>
       </View>
@@ -323,7 +364,7 @@ const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
     </View>
     <Text style={s.emptyTitle}>Set your service area</Text>
     <Text style={s.emptyDesc}>
-      Tell us how far you'll travel. Mint only matches you with jobs inside your
+      Tell us how far you’ll travel. Mint only matches you with jobs inside your
       radius (with optional surcharge beyond).
     </Text>
     <TouchableOpacity style={s.emptyBtn} onPress={onAdd}>

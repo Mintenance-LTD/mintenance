@@ -44,6 +44,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient, API_BASE_URL } from '../../utils/mobileApiClient';
 import { JobCRUDService } from '../../services/JobCRUDService';
 import { JobsStackParamList } from '../../navigation/types';
+import { goBackSafe } from '../../navigation/hooks';
 import { me } from '../../design-system/mint-editorial';
 import { ContractSignatureSection } from './components/ContractSignatureSection';
 import { ContractTermsView } from './components/ContractTermsView';
@@ -334,7 +335,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         </Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
         >
           <Text style={styles.retryButtonText}>Go back</Text>
         </TouchableOpacity>
@@ -352,7 +353,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import deepLinkPaths from '@mintenance/shared/deep-link-paths.json';
 
 /**
  * GET /.well-known/apple-app-site-association
@@ -27,6 +28,25 @@ import { NextResponse } from 'next/server';
 // Mirrors apps/mobile/app.config.js ios.bundleIdentifier.
 const IOS_BUNDLE_ID = 'com.mintenance.app';
 
+/**
+ * Build the `components` allowlist from the canonical path list shared with
+ * the Android intent filters (2026-07-21). Previously this array was
+ * hand-written here while Android claimed the whole domain, and the two
+ * drifted. Excludes are emitted FIRST — iOS evaluates components in order and
+ * takes the first match.
+ */
+export function buildIosComponents(): { '/': string; exclude?: true }[] {
+  const excludes = deepLinkPaths.browserOnly.map((p) => ({
+    '/': `${p}*`,
+    exclude: true as const,
+  }));
+  const includes = deepLinkPaths.appHandled.flatMap((entry) => [
+    ...(entry.exact ? [{ '/': entry.path }] : []),
+    ...(entry.children ? [{ '/': `${entry.path}/*` }] : []),
+  ]);
+  return [...excludes, ...includes];
+}
+
 export const dynamic = 'force-dynamic';
 
 export function GET() {
@@ -44,25 +64,7 @@ export function GET() {
       details: [
         {
           appIDs: [appID],
-          components: [
-            // Password flows stay in the browser / email client.
-            { '/': '/reset-password*', exclude: true },
-            { '/': '/forgot-password*', exclude: true },
-            // App-handled entity paths (see deepLinking.ts linkingConfig).
-            { '/': '/jobs' },
-            { '/': '/jobs/*' },
-            { '/': '/payment/*' },
-            { '/': '/contracts/*' },
-            { '/': '/messages' },
-            { '/': '/messages/*' },
-            { '/': '/contractors/*' },
-            { '/': '/properties' },
-            { '/': '/properties/*' },
-            { '/': '/bookings/*' },
-            { '/': '/notifications' },
-            { '/': '/profile' },
-            { '/': '/profile/*' },
-          ],
+          components: buildIosComponents(),
         },
       ],
     },

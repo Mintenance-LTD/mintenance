@@ -168,6 +168,31 @@ describe('useExploreMapViewModel — fetch success / mapping / sorting', () => {
     expect(job.budget).toBeNull();
   });
 
+  it('maps photo fields, defaulting when the API predates them (2026-07-20)', async () => {
+    mockGet.mockResolvedValue({
+      jobs: [
+        makeRow({
+          id: 'with-photo',
+          photo_url: 'https://cdn.test/signed.jpg',
+          photo_count: '4',
+        }),
+        // Older deployed API: fields absent entirely.
+        makeRow({ id: 'legacy-api', latitude: 51.52 }),
+        // Bad seed data: non-string photo_url must not reach <Image>.
+        makeRow({ id: 'bad-url', latitude: 51.53, photo_url: 123 }),
+      ],
+    });
+    const { result } = renderHook(() => useExploreMapViewModel());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const byId = Object.fromEntries(result.current.jobs.map((j) => [j.id, j]));
+    expect(byId['with-photo'].photoUrl).toBe('https://cdn.test/signed.jpg');
+    expect(byId['with-photo'].photoCount).toBe(4);
+    expect(byId['legacy-api'].photoUrl).toBeNull();
+    expect(byId['legacy-api'].photoCount).toBe(0);
+    expect(byId['bad-url'].photoUrl).toBeNull();
+  });
+
   it('drops rows with missing/invalid coordinates', async () => {
     mockGet.mockResolvedValue({
       jobs: [

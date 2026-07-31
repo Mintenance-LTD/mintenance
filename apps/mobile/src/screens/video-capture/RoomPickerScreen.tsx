@@ -1,0 +1,399 @@
+/**
+ * Pick the room to film before the recorder opens.
+ *
+ * The walkthrough used to be one 60-second take of a whole property, driven by
+ * a fixed exterior→interior→damage→recap script on a timer. It could not know
+ * where the person was standing, so it told someone filming their kitchen to
+ * "pan across the front facade".
+ *
+ * Choosing a room first fixes that: the guidance can name real things to point
+ * at, the clip is short enough to stay sharp, and a shaky room costs only that
+ * room instead of the whole survey.
+ *
+ * Most properties have no `property_rooms` rows — the add-property form
+ * collects bedroom and bathroom COUNTS and nothing ever turns them into rooms.
+ * When the list is empty this offers to do exactly that rather than dead-ending
+ * on "no rooms yet".
+ */
+
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { logger } from '@mintenance/shared';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import { me } from '../../design-system/mint-editorial';
+
+/**
+ * Shape returned by GET /api/properties/:id/survey-summary — the room list
+ * already carries each room's survey history, so this screen needs one request
+ * rather than a room fetch plus an assessments fetch.
+ */
+interface Room {
+  roomId: string;
+  name: string;
+  type: string;
+  surveyCount: number;
+  latest: {
+    severity: string | null;
+    createdAt: string | null;
+  } | null;
+}
+
+interface SurveySummary {
+  roomsTotal: number;
+  roomsSurveyed: number;
+  worstSeverity: string | null;
+  roomsNeedingAttention: number;
+  rooms: Room[];
+}
+
+/** Severities that mean "look at this", matching the roll-up's own threshold. */
+const NEEDS_ATTENTION = new Set(['significant', 'dangerous']);
+
+interface Props {
+  navigation: {
+    goBack: () => void;
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+  };
+  route: {
+    params: {
+      propertyId: string;
+      propertyName?: string;
+      /**
+       * Forwarded straight through to the recorder. The assessment wizard
+       * passes a callback so it can tick its walkthrough step; this screen
+       * sits between the two and must not swallow it.
+       */
+      onComplete?: (assessmentId: string) => void;
+    };
+  };
+}
+
+/** Material icon per room type, falling back to a generic room. */
+const ROOM_ICON: Record<string, string> = {
+  kitchen: 'countertops',
+  bathroom: 'bathtub',
+  bedroom: 'bed',
+  living_room: 'weekend',
+  dining_room: 'dining',
+  garage: 'garage',
+  garden: 'yard',
+  exterior: 'home',
+  roof: 'roofing',
+  hallway: 'door-front',
+  office: 'desk',
+  utility: 'local-laundry-service',
+  other: 'meeting-room',
+};
+
+export const RoomPickerScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { propertyId, propertyName, onComplete } = route.params;
+
+  const [summary, setSummary] = useState<SurveySummary | null>(null);
+  // null = not loaded yet, false = loaded, true = the fetch failed. An empty
+  // list and a failed load must not look the same.
+  const [loadFailed, setLoadFailed] = useState<boolean | null>(null);
+  const [seeding, setSeeding] = useState(false);
+
+  const rooms = summary?.rooms ?? [];
+
+  const load = useCallback(async () => {
+    try {
+      const res = await mobileApiClient.get<SurveySummary>(
+        `/api/properties/${propertyId}/survey-summary`
+      );
+      setSummary({
+        roomsTotal: res?.roomsTotal ?? 0,
+        roomsSurveyed: res?.roomsSurveyed ?? 0,
+        worstSeverity: res?.worstSeverity ?? null,
+        roomsNeedingAttention: res?.roomsNeedingAttention ?? 0,
+        rooms: Array.isArray(res?.rooms) ? res.rooms : [],
+      });
+      setLoadFailed(false);
+    } catch (error) {
+      logger.warn('Failed to load rooms for walkthrough', { error });
+      setLoadFailed(true);
+    }
+  }, [propertyId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const seedRooms = async () => {
+    setSeeding(true);
+    try {
+      await mobileApiClient.post(
+        `/api/properties/${propertyId}/rooms/seed`,
+        {}
+      );
+      // Re-read the summary rather than trusting the seed response, so the
+      // room shape and survey history come from one place.
+      await load();
+    } catch (error) {
+      logger.error('Failed to seed rooms', { error });
+      setLoadFailed(true);
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  const pickRoom = (room: Room) => {
+    navigation.navigate('VideoCapture', {
+      propertyId,
+      walkthrough: true,
+      roomId: room.roomId,
+      roomName: room.name,
+      roomType: room.type,
+      onComplete,
+    });
+  };
+
+  /**
+   * The original whole-property script is still the right tool for an exterior
+   * survey, so it stays available — just no longer the only option, and no
+   * longer the one you get by accident while standing in a kitchen.
+   */
+  const filmWholeProperty = () => {
+    navigation.navigate('VideoCapture', {
+      propertyId,
+      walkthrough: true,
+      onComplete,
+    });
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          style={styles.backBtn}
+        >
+          <Icon name='arrow-back' size={24} color={me.ink} />
+        </TouchableOpacity>
+        <Text style={styles.title} accessibilityRole='header'>
+          Which room?
+        </Text>
+        <View style={styles.backBtn} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={styles.lede}>
+          Film one room at a time — about 20 seconds each.
+          {propertyName ? ` ${propertyName}.` : ''}
+        </Text>
+
+        {loadFailed === null && (
+          <ActivityIndicator style={styles.spinner} color={me.brand} />
+        )}
+
+        {loadFailed === true && (
+          <View style={styles.notice}>
+            <Text style={styles.noticeText}>
+              We couldn&apos;t load this property&apos;s rooms.
+            </Text>
+            <TouchableOpacity onPress={() => void load()}>
+              <Text style={styles.noticeAction}>Try again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {loadFailed === false && rooms.length === 0 && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>No rooms set up yet</Text>
+            <Text style={styles.emptyBody}>
+              We can start from the bedroom and bathroom counts on this
+              property, plus a kitchen, living room and hallway. You can rename
+              or remove any of them afterwards.
+            </Text>
+            <TouchableOpacity
+              style={[styles.primaryBtn, seeding && styles.primaryBtnDisabled]}
+              onPress={() => void seedRooms()}
+              disabled={seeding}
+              accessibilityRole='button'
+            >
+              <Text style={styles.primaryText}>
+                {seeding ? 'Setting up…' : 'Set up rooms'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {summary && summary.roomsTotal > 0 && (
+          <View style={styles.progress}>
+            <Text style={styles.progressText}>
+              {summary.roomsSurveyed} of {summary.roomsTotal} rooms surveyed
+            </Text>
+            {summary.roomsNeedingAttention > 0 && (
+              <Text style={styles.progressWarn}>
+                {summary.roomsNeedingAttention} need
+                {summary.roomsNeedingAttention === 1 ? 's' : ''} attention
+              </Text>
+            )}
+          </View>
+        )}
+
+        {rooms.map((room) => {
+          const severity = room.latest?.severity ?? null;
+          const flagged = severity ? NEEDS_ATTENTION.has(severity) : false;
+          return (
+            <TouchableOpacity
+              key={room.roomId}
+              style={styles.roomRow}
+              onPress={() => pickRoom(room)}
+              accessibilityRole='button'
+              accessibilityLabel={`Film ${room.name}`}
+            >
+              <View style={[styles.roomIcon, flagged && styles.roomIconFlag]}>
+                <Icon
+                  name={ROOM_ICON[room.type] ?? 'meeting-room'}
+                  size={20}
+                  color={flagged ? me.errFg : me.brand2}
+                />
+              </View>
+              <View style={styles.roomMain}>
+                <Text style={styles.roomName}>{room.name}</Text>
+                <Text style={[styles.roomType, flagged && styles.roomTypeFlag]}>
+                  {room.latest
+                    ? `${severity ?? 'surveyed'} · ${room.surveyCount} survey${
+                        room.surveyCount === 1 ? '' : 's'
+                      }`
+                    : `${room.type.replace(/_/g, ' ')} · not surveyed`}
+                </Text>
+              </View>
+              {room.surveyCount > 0 && (
+                // The row's own tap films the room again; this opens what was
+                // already filmed. Without it the count above is a fact the user
+                // can read but not act on.
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('AssessmentHistory', {
+                      propertyId,
+                      roomId: room.roomId,
+                      roomName: room.name,
+                    })
+                  }
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole='button'
+                  accessibilityLabel={`View past surveys for ${room.name}`}
+                  style={styles.roomHistoryBtn}
+                >
+                  <Icon name='history' size={20} color={me.ink3} />
+                </TouchableOpacity>
+              )}
+              <Icon name='chevron-right' size={22} color={me.ink4} />
+            </TouchableOpacity>
+          );
+        })}
+
+        {loadFailed === false && (
+          <TouchableOpacity
+            style={styles.wholeProperty}
+            onPress={filmWholeProperty}
+            accessibilityRole='button'
+          >
+            <Text style={styles.wholePropertyText}>
+              Film the whole property instead
+            </Text>
+            <Text style={styles.wholePropertyHint}>
+              One 60-second pass, starting outside
+            </Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: me.bg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backBtn: { width: 40, height: 40, justifyContent: 'center' },
+  title: { fontSize: 18, fontWeight: '600', color: me.ink },
+  scroll: { padding: 16, paddingBottom: 40 },
+  lede: { fontSize: 14, color: me.ink2, marginBottom: 16 },
+  spinner: { marginTop: 24 },
+  notice: {
+    backgroundColor: me.warnBg,
+    borderRadius: 12,
+    padding: 14,
+    gap: 6,
+  },
+  noticeText: { fontSize: 13, color: me.warnFg },
+  noticeAction: { fontSize: 13, fontWeight: '700', color: me.warnFg },
+  empty: {
+    backgroundColor: me.surface,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: me.line,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: me.ink,
+    marginBottom: 6,
+  },
+  emptyBody: { fontSize: 13, color: me.ink3, lineHeight: 19, marginBottom: 14 },
+  primaryBtn: {
+    backgroundColor: me.brand,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  primaryBtnDisabled: { opacity: 0.6 },
+  primaryText: { color: me.onBrand, fontSize: 14, fontWeight: '600' },
+  roomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: me.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: me.line,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  roomIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: me.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  roomIconFlag: { backgroundColor: me.errBg },
+  roomHistoryBtn: { paddingHorizontal: 6, paddingVertical: 4 },
+  roomMain: { flex: 1 },
+  roomName: { fontSize: 15, fontWeight: '600', color: me.ink },
+  roomType: { fontSize: 12, color: me.ink3, textTransform: 'capitalize' },
+  roomTypeFlag: { color: me.errFg, fontWeight: '600' },
+  progress: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  progressText: { fontSize: 12, color: me.ink3, fontWeight: '600' },
+  progressWarn: { fontSize: 12, color: me.errFg, fontWeight: '700' },
+  wholeProperty: { marginTop: 16, alignItems: 'center', paddingVertical: 10 },
+  wholePropertyText: { fontSize: 14, fontWeight: '600', color: me.brand2 },
+  wholePropertyHint: { fontSize: 12, color: me.ink3, marginTop: 2 },
+});

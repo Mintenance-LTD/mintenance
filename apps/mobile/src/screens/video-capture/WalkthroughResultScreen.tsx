@@ -29,6 +29,8 @@ interface Props {
       assessment: Record<string, unknown>;
       frameCount?: number;
       framesAssessed?: number;
+      /** Stored keyframes in index order; findings hold a sourceFrameIndex. */
+      frameUrls?: string[];
     };
   };
 }
@@ -37,20 +39,37 @@ export const WalkthroughResultScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {
-  const { assessment, frameCount, framesAssessed } = route.params;
+  const { assessment, frameCount, framesAssessed, frameUrls } = route.params;
 
-  // AIAnalysisCard reads everything from `assessmentData`; the legacy AIAnalysis
-  // fields are unused on the rich path, so minimal defaults are fine.
+  const damage = assessment?.damageAssessment as
+    | { confidence?: number; severity?: string }
+    | undefined;
+  const urgency = assessment?.urgency as
+    | { recommendedActionTimeline?: string }
+    | undefined;
+
+  // AIAnalysisCard renders the rich card when `assessmentData.damageAssessment`
+  // is present and otherwise falls back to a legacy card built from the fields
+  // below — so these are NOT unused, as an earlier comment here claimed. They
+  // used to be hardcoded 'Low' and '', which is what produced a confident-
+  // looking "Low complexity" and an empty duration row on a walkthrough that
+  // had in fact returned nothing. Derive them instead (same severity mapping
+  // JobDetailsViewModel uses) so the fallback can only state what it knows.
+  const complexity: 'Low' | 'Medium' | 'High' =
+    damage?.severity === 'dangerous' || damage?.severity === 'significant'
+      ? 'High'
+      : damage?.severity === 'developing'
+        ? 'Medium'
+        : 'Low';
+
   const aiAnalysis = {
-    confidence:
-      (assessment?.damageAssessment as { confidence?: number } | undefined)
-        ?.confidence ?? 0,
+    confidence: damage?.confidence ?? 0,
     detectedItems: [],
     safetyConcerns: [],
     recommendedActions: [],
-    estimatedComplexity: 'Low' as const,
+    estimatedComplexity: complexity,
     suggestedTools: [],
-    estimatedDuration: '',
+    estimatedDuration: urgency?.recommendedActionTimeline ?? 'Not estimated',
     assessmentData: assessment,
     source: 'mobile_walkthrough',
   };
@@ -79,7 +98,11 @@ export const WalkthroughResultScreen: React.FC<Props> = ({
           </Text>
         )}
 
-        <AIAnalysisCard aiAnalysis={aiAnalysis} aiLoading={false} />
+        <AIAnalysisCard
+          aiAnalysis={aiAnalysis}
+          aiLoading={false}
+          frameUrls={frameUrls}
+        />
 
         <TouchableOpacity
           style={styles.doneBtn}

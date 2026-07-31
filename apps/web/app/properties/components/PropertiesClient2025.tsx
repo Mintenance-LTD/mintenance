@@ -398,7 +398,7 @@ export function PropertiesClient2025({
                       : ' Upgrade to Agency for unlimited.'}
                   </p>
                   <Link
-                    href='/subscription-plans'
+                    href='/pricing'
                     className='inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors text-sm'
                   >
                     <Crown className='w-4 h-4' />

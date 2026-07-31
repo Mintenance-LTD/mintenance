@@ -201,14 +201,34 @@ export type ProfileStackParamList = {
     | { propertyId?: string; propertyAddress?: string }
     | undefined;
   AddProperty: undefined;
+  /** Choose which room to film before the recorder opens. */
+  RoomPicker: { propertyId: string; propertyName?: string };
   VideoCapture:
-    | { assessmentId?: string; propertyId?: string; walkthrough?: boolean }
+    | {
+        assessmentId?: string;
+        propertyId?: string;
+        walkthrough?: boolean;
+        /** Set by RoomPicker — scopes the guidance and the assessment. */
+        roomId?: string;
+        roomName?: string;
+        roomType?: string;
+      }
     | undefined;
   WalkthroughResult: {
     assessment: Record<string, unknown>;
     frameCount?: number;
     framesAssessed?: number;
+    /** Stored keyframes in index order; findings hold a sourceFrameIndex. */
+    frameUrls?: string[];
   };
+  /** Past surveys for a property, optionally narrowed to one room. */
+  AssessmentHistory: {
+    propertyId: string;
+    roomId?: string;
+    roomName?: string;
+  };
+  /** Re-open one saved survey. */
+  AssessmentDetail: { assessmentId: string; title?: string };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;
   Reviews: undefined;

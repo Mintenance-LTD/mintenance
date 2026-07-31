@@ -23,7 +23,7 @@ export async function scheduleAutoReleaseForCompletion(
   try {
     const { data: escrowRow } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, auto_release_date')
+      .select('id, auto_release_date, auto_approval_date, homeowner_approval')
       .eq('job_id', jobId)
       .eq('status', 'held')
       .limit(1)
@@ -34,6 +34,19 @@ export async function scheduleAutoReleaseForCompletion(
         { service: 'jobs', jobId }
       );
       return;
+    }
+
+    // Start the 7-day homeowner-review clock and propagate the after-photo
+    // verification results onto the escrow row. Without this the auto-release
+    // cron selects the row (auto_release_date elapsed) but evaluate.ts then
+    // rejects it: checkAutoApprovalEligibility needs auto_approval_date, and
+    // gate 3 needs photo_verification_status='verified' + geolocation_verified —
+    // all live on escrow_transactions and were never written on the photo path,
+    // so funds stalled past the 7-day window. Guarded to the first completion of
+    // a not-yet-approved row: never overwrite an existing clock, and skip if the
+    // homeowner already approved (their human review supersedes these gates).
+    if (!escrowRow.auto_approval_date && !escrowRow.homeowner_approval) {
+      await stampApprovalClockAndVerification(jobId, escrowRow.id);
     }
 
     // Already scheduled (e.g. the homeowner-approval path beat us). Nothing
@@ -103,5 +116,55 @@ export async function scheduleAutoReleaseForCompletion(
       service: 'jobs',
       jobId,
     });
+  }
+}
+
+/**
+ * Derive the after-photo verification signals from job_photos_metadata (which
+ * the upload route already wrote) and stamp them plus the 7-day auto-approval
+ * clock onto the escrow row. Kept self-contained here rather than threaded from
+ * the route so the (already 500+ line) upload route needs no change.
+ *
+ * The route only ever inserts after-photos that PASSED the quality gate (it
+ * `continue`s on failure), and it throws if none remain — so any 'after' row
+ * existing means quality passed. geolocation_verified is stamped per photo
+ * (true within 100m, null when no location was captured); we require at least
+ * one geo-proven photo, otherwise the row stays on manual-approval-only, which
+ * is the safe default for the automated release gate.
+ */
+async function stampApprovalClockAndVerification(
+  jobId: string,
+  escrowId: string
+): Promise<void> {
+  const { data: afterPhotos } = await serverSupabase
+    .from('job_photos_metadata')
+    .select('verified, geolocation_verified')
+    .eq('job_id', jobId)
+    .eq('photo_type', 'after');
+
+  const photoQualityPassed =
+    !!afterPhotos && afterPhotos.some((p) => p.verified !== false);
+  const geolocationVerified =
+    !!afterPhotos && afterPhotos.some((p) => p.geolocation_verified === true);
+
+  const autoApprovalDate = new Date(Date.now() + SEVEN_DAYS_MS).toISOString();
+  const { error: verifyStampErr } = await serverSupabase
+    .from('escrow_transactions')
+    .update({
+      auto_approval_date: autoApprovalDate,
+      photo_verification_status: photoQualityPassed ? 'verified' : 'failed',
+      photo_quality_passed: photoQualityPassed,
+      geolocation_verified: geolocationVerified,
+      timestamp_verified: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', escrowId)
+    .is('auto_approval_date', null);
+  if (verifyStampErr) {
+    logger.error(
+      'Failed to stamp auto_approval_date / photo verification on escrow',
+      verifyStampErr,
+      { service: 'jobs', jobId, escrowId }
+    );
   }
 }

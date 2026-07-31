@@ -190,6 +190,44 @@ export interface AssessmentFinding {
   confidence: number;
   /** True for the single most serious finding (the one mirrored into the top-level fields). */
   isPrimary?: boolean;
+  /**
+   * Walkthrough provenance — which keyframe this finding came from.
+   *
+   * A survey merges findings from up to 20 frames, so a claim like "mould above
+   * the cabinets" arrives with no way to check it against what the camera
+   * actually saw. These carry the frame identity through the merge so the UI
+   * can show the picture the claim was made from.
+   *
+   * Frame INDEX, not URL: frame URLs are signed and expire, whereas the index
+   * maps stably onto assessment_images.image_index for the life of the row.
+   *
+   * Undefined for single-photo assessments, which have only one image anyway.
+   */
+  /** The frame whose sighting supplied this finding's description. */
+  sourceFrameIndex?: number;
+  /**
+   * Every frame the defect was seen in, ascending. Length is a credibility
+   * signal in its own right — something spotted in one frame of twelve is
+   * weaker evidence than something seen in five.
+   */
+  sourceFrameIndexes?: number[];
+  /**
+   * The finding asserts nothing is wrong ("the wall appears to be in good
+   * condition"). RICS rating 1 means no repair is needed, so these are the
+   * absence of a defect, not a defect — kept so "we looked and it was fine" is
+   * still on the record, but flagged so the UI never lists them beside real
+   * defects. Listing both made one walkthrough report the same window as
+   * misaligned AND in good condition, as peers.
+   */
+  isClear?: boolean;
+  /**
+   * Seen in exactly one frame of a multi-frame walkthrough.
+   *
+   * A defect eleven frames disagreed with is not the same claim as one five
+   * frames saw. This is where shadow-on-a-white-ceiling false positives land,
+   * so it is surfaced rather than silently trusted.
+   */
+  unconfirmed?: boolean;
 }
 
 export interface SpecialistReferral {
@@ -308,6 +346,24 @@ export interface AssessmentContext {
   userId?: string;
   /** Before photos fetched from job_photos_metadata for before/after comparison. */
   beforeImageUrls?: string[];
+  /**
+   * Set when the walkthrough covers one room rather than the whole property,
+   * so the surveyor model knows it is looking at (say) a kitchen instead of an
+   * anonymous interior. The id is verified against the anchored property
+   * before it is persisted — never trust it as an anchor on its own.
+   */
+  room?: { id?: string; name?: string; type?: string };
+  /**
+   * Set when this image is one keyframe of a video walkthrough.
+   *
+   * The surveyor prompt tells the model to report every defect it can see,
+   * which is right for a single submitted photo and wrong when the same room is
+   * assessed a dozen times over: it becomes a dozen independent invitations to
+   * find something, and the merge keeps the worst of them. Knowing it is frame
+   * 3 of 12 lets the model leave a marginal call to the frames that see it
+   * better instead of guessing.
+   */
+  walkthroughFrame?: { index: number; total: number };
 }
 
 /**

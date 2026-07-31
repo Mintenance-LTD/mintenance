@@ -34,6 +34,9 @@ import { me } from '../design-system/mint-editorial';
 import { goToTab } from '../navigation/hooks';
 import { useSilverMode } from '../hooks/useSilverMode';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { usePhoneVerificationGate } from '../hooks/usePhoneVerificationGate';
+import { PhoneVerificationModal } from '../components/verification/PhoneVerificationModal';
+import { PhoneVerificationBanner } from '../components/verification/PhoneVerificationBanner';
 
 interface Props {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'JobPosting'>;
@@ -66,6 +69,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const createJobMutation = useCreateJob();
+  const phoneVerification = usePhoneVerificationGate();
   // 2026-05-23: silver-mode users used to be auto-routed to a
   // separate 3-step PostJobWizardScreen. That screen duplicated this
   // one's validation + submit pipeline and was already starting to
@@ -290,6 +294,11 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         navigation.navigate('JobDetails', { jobId: result?.id || 'job-1' });
       }, delay);
     } catch (error) {
+      // Homeowner phone-verification 403 → open the verify modal and
+      // retry this submission once verified (draft state is intact).
+      if (phoneVerification.intercept(error, () => handleSubmit())) {
+        return; // finally still resets the submitting state
+      }
       logger.error('Job posting failed:', error);
       setSubmissionError((error as Error).message || 'Failed to create job');
       ErrorManager.handleError(error as Error, {
@@ -332,6 +341,9 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <PhoneVerificationBanner
+          style={{ marginHorizontal: 20, marginTop: 4 }}
+        />
         <JobPostingFormFields
           title={title}
           description={description}
@@ -407,6 +419,11 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
+      <PhoneVerificationModal
+        visible={phoneVerification.visible}
+        onClose={phoneVerification.close}
+        onVerified={phoneVerification.handleVerified}
+      />
     </View>
   );
 };

@@ -211,6 +211,9 @@ vi.mock('@/lib/services/notifications/NotificationService', () => ({
 vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
   notifyJobStatusChange: mocks.notifyJobStatusChange,
   notifyJobConfirmed: mocks.notifyJobConfirmed,
+  // payment_required prompt fired at contract acceptance (2026-07-31);
+  // a partial factory makes the route call undefined() → 500.
+  notifyPaymentEvent: vi.fn(async () => undefined),
 }));
 
 vi.mock('@/lib/email-service', () => ({
@@ -622,6 +625,138 @@ describe('Job Lifecycle - 1. Job posted', () => {
     expect(body.job.id).toBe(JOB_ID);
     expect(body.job.status).toBe('posted');
     expect(body.job.homeowner_id).toBe(homeownerUser.id);
+  });
+});
+
+// ============================================================================
+// 1b. HOMEOWNER VERIFICATION GATE: the 403 must name what is actually
+// missing. 2026-07-26 audit: it used to always blame the phone, even for
+// email-only failures — combined with the profiles.verified sync gap that
+// mislabelled every blocked homeowner in production.
+// ============================================================================
+describe('Job Lifecycle - 1b. Homeowner verification gate', () => {
+  let jobsPOST: (
+    req: NextRequest,
+    ctx: { params: Promise<Record<string, string>> }
+  ) => Promise<Response>;
+  let isFullyVerified: ReturnType<typeof vi.fn>;
+
+  // The mobile app opens its in-flow verification modal when the 403
+  // message matches this (apps/mobile .../verification/phoneVerification.ts).
+  // Any message where the phone is among the missing requirements MUST
+  // match; the email-only message MUST NOT.
+  const MOBILE_MODAL_TRIGGER = /phone verification required|verify your phone/i;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    setupInfrastructureMocks(homeownerUser);
+
+    const mod = await import('@/app/api/jobs/route');
+    jobsPOST = mod.POST;
+    const svc =
+      await import('@/lib/services/verification/HomeownerVerificationService');
+    isFullyVerified = svc.HomeownerVerificationService
+      .isFullyVerified as unknown as ReturnType<typeof vi.fn>;
+  });
+
+  const postJob = () =>
+    jobsPOST(
+      createPostRequest('http://localhost:3000/api/jobs', {
+        title: 'Fix leaking bathroom tap',
+        description:
+          'The kitchen tap has been leaking for a week and needs repair',
+        category: 'plumbing',
+        budget: 200,
+        location: 'London, UK',
+      }),
+      noSegment()
+    );
+
+  it('403s blaming the phone when only the phone is unverified', async () => {
+    isFullyVerified.mockResolvedValueOnce({
+      verified: false,
+      emailVerified: true,
+      phoneVerified: false,
+      canPostJobs: false,
+    });
+
+    const res = await postJob();
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.message).toBe(
+      'Phone verification required. Please verify your phone number before posting jobs'
+    );
+    expect(body.error.message).toMatch(MOBILE_MODAL_TRIGGER);
+  });
+
+  it('403s naming both when email and phone are unverified, still triggering the mobile modal', async () => {
+    isFullyVerified.mockResolvedValueOnce({
+      verified: false,
+      emailVerified: false,
+      phoneVerified: false,
+      canPostJobs: false,
+    });
+
+    const res = await postJob();
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.message).toContain('phone number');
+    expect(body.error.message).toContain('email address');
+    expect(body.error.message).toMatch(MOBILE_MODAL_TRIGGER);
+  });
+
+  it('403s blaming the email, without the phone phrasing, when only the email is unverified', async () => {
+    isFullyVerified.mockResolvedValueOnce({
+      verified: false,
+      emailVerified: false,
+      phoneVerified: true,
+      canPostJobs: false,
+    });
+
+    const res = await postJob();
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.message).toBe(
+      'Email verification required. Please confirm your email address before posting jobs'
+    );
+    expect(body.error.message).not.toMatch(MOBILE_MODAL_TRIGGER);
+  });
+
+  // Early-access cohort (2026-07-29): the first 50 homeowners post
+  // without phone verification. The service folds the waiver into
+  // canPostJobs; the route must not re-impose the phone requirement
+  // on top of it, and email verification must survive the waiver.
+  describe('when the early-access waiver applies', () => {
+    it('lets an email-verified homeowner post with an unverified phone', async () => {
+      isFullyVerified.mockResolvedValueOnce({
+        verified: true,
+        emailVerified: true,
+        phoneVerified: false,
+        phoneVerificationWaived: true,
+        canPostJobs: true,
+      });
+
+      const res = await postJob();
+      expect(res.status).not.toBe(403);
+    });
+
+    it('still 403s on an unverified email, and does not blame the phone', async () => {
+      isFullyVerified.mockResolvedValueOnce({
+        verified: false,
+        emailVerified: false,
+        phoneVerified: false,
+        phoneVerificationWaived: true,
+        canPostJobs: false,
+      });
+
+      const res = await postJob();
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.error.message).toBe(
+        'Email verification required. Please confirm your email address before posting jobs'
+      );
+      expect(body.error.message).not.toMatch(MOBILE_MODAL_TRIGGER);
+    });
   });
 });
 

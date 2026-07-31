@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { formatMilesFromKm } from '@mintenance/shared';
 import type { ContractorMeeting } from '@mintenance/types';
 import type { ContractorLocation } from '../../../services/meeting/types';
 import { me } from '../../../design-system/mint-editorial';
@@ -83,7 +84,8 @@ export function LocationMapSection({
             <View style={styles.distanceInfo}>
               <Ionicons name='location' size={16} color={me.ink2} />
               <Text style={styles.distanceText}>
-                {distanceKm.toFixed(1)} km away
+                {/* distance is km (as stored/queried); UI speaks miles. */}
+                {formatMilesFromKm(distanceKm)} away
               </Text>
               {etaMinutes !== null ? (
                 <Text style={styles.estimatedTime}>ETA: {etaMinutes} mins</Text>

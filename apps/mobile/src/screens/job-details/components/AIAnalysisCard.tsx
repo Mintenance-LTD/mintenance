@@ -89,11 +89,18 @@ interface BuildingAssessmentCardProps {
       })
     | null;
   aiLoading: boolean;
+  /**
+   * Walkthrough keyframes in index order. Findings carry a sourceFrameIndex
+   * into this, letting each one show the frame it was read from. Omitted for
+   * single-photo assessments.
+   */
+  frameUrls?: string[];
 }
 
 export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
   aiAnalysis,
   aiLoading,
+  frameUrls,
 }) => {
   const [expanded, setExpanded] = useState(true);
 
@@ -189,7 +196,7 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
             taxonomyClassId={a.taxonomyClassId}
             probableCause={a.probableCause}
           />
-          <FindingsList findings={a.findings} />
+          <FindingsList findings={a.findings} frameUrls={frameUrls} />
           {a.homeownerExplanation && (
             <HomeownerSection
               whatIsIt={a.homeownerExplanation.whatIsIt}

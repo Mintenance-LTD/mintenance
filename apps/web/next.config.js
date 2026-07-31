@@ -211,6 +211,15 @@ const nextConfig = {
         __dirname,
         '../../packages/design-tokens/src/unified-tokens.ts'
       ),
+      // The bare '@mintenance/shared' alias below is a PREFIX match (no
+      // trailing $), so without this entry the deep-link JSON subpath would
+      // rewrite to .../shared/src/index.ts/deep-link-paths.json and fail
+      // ("Module not found" — broke every CI `next build --webpack` since
+      // 2026-07-21; Vercel's turbopack build ignores webpack() and passed).
+      '@mintenance/shared/deep-link-paths.json': path.resolve(
+        __dirname,
+        '../../packages/shared/deep-link-paths.json'
+      ),
       '@mintenance/types': path.resolve(
         __dirname,
         '../../packages/types/src/index.ts'

@@ -442,7 +442,7 @@ export function RecentJobsCard({
               </div>
               <div className='t-meta'>
                 {j.contractor ? `${j.contractor} · ` : ''}
-                {j.date}
+                {new Date(j.date).toLocaleDateString('en-GB')}
               </div>
             </div>
             <div className='me-list-amount'>

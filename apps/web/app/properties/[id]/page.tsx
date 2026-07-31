@@ -20,7 +20,11 @@ interface ContractorProfile {
 
 interface ContractorBid {
   contractor_id: string;
-  contractor?: ContractorProfile[];
+  // Supabase returns a many-to-one embed (`contractor:profiles!contractor_id`)
+  // as a single OBJECT, not an array. Older code here assumed an array and
+  // always read `undefined`. Accept both shapes so the name resolves either
+  // way (mirrors the defensive Array.isArray handling in dashboard/page.tsx).
+  contractor?: ContractorProfile | ContractorProfile[] | null;
   status: string;
 }
 
@@ -141,8 +145,17 @@ export default async function PropertyDetailPage({
     const acceptedBid = (
       job.contractor_bids as ContractorBid[] | undefined
     )?.find((bid) => bid.status === 'accepted');
-    const contractor = acceptedBid?.contractor
-      ? `${acceptedBid.contractor?.[0]?.first_name || ''} ${acceptedBid.contractor?.[0]?.last_name || ''}`.trim()
+    // Many-to-one embeds come back as an object; guard for the legacy
+    // array shape too so the contractor name resolves regardless of the
+    // driver's return shape. Previously this only did array access and
+    // always produced an empty string → `job.contractor` was falsy
+    // everywhere downstream (Jobs tab, saved trades, timeline).
+    const contractorProfile = Array.isArray(acceptedBid?.contractor)
+      ? acceptedBid?.contractor[0]
+      : acceptedBid?.contractor;
+    const contractor = contractorProfile
+      ? `${contractorProfile.first_name || ''} ${contractorProfile.last_name || ''}`.trim() ||
+        null
       : null;
 
     return {
@@ -151,7 +164,12 @@ export default async function PropertyDetailPage({
       status: job.status,
       contractor,
       amount: parseFloat(job.budget) || 0,
-      date: new Date(job.created_at).toLocaleDateString('en-GB'),
+      // Pass the raw ISO timestamp down. Consumers either format it at
+      // render time (Jobs tab, recent-jobs card, CSV export) or parse it
+      // with `new Date(...)` (charts, health score, timeline). The old
+      // pre-formatted 'dd/mm/yyyy' string re-parsed as Invalid Date
+      // (dd > 12) or the wrong US month (dd <= 12) in V8.
+      date: job.created_at,
       category: job.category || 'General',
     };
   });

@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-require-imports, import/first --
+ * jest.mock factories are hoisted above imports, so they can only reach
+ * modules via require(), and the mocked bindings must be imported after
+ * those factories. Both rules are unavoidable in this file's pattern.
+ */
 /**
  * ExploreMapScreen — branch-coverage suite.
  *
@@ -89,14 +94,17 @@ jest.mock('react-native-maps', () => {
 const mockGoBack = jest.fn();
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ goBack: mockGoBack, navigate: mockNavigate }),
+  useNavigation: () => ({
+    goBack: mockGoBack,
+    navigate: mockNavigate,
+    canGoBack: () => true,
+  }),
   // Run the focus-effect callback synchronously on mount (mirrors real lib).
   useFocusEffect: (cb: () => void | (() => void)) => {
     const ReactLocal = require('react');
     ReactLocal.useEffect(() => {
       const cleanup = cb();
       return typeof cleanup === 'function' ? cleanup : undefined;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
   },
 }));
@@ -113,6 +121,17 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // ── icons ──
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
+
+// 2026-07-20: this was the one hook the suite left unmocked. It fires a real
+// `mobileApiClient.get('/api/contractor/service-areas')` on mount, which
+// resolves (and logs through ErrorHandler) AFTER the test environment is torn
+// down — so jest reported "import after the Jest environment has been torn
+// down" and exited non-zero even with all 50 tests green. The coverage
+// overlay is not what any test here asserts; stub it so the suite is
+// hermetic.
+jest.mock('../useCoverageAreas', () => ({
+  useCoverageAreas: () => [],
+}));
 
 // ── map availability (toggle per-test) ──
 let mockShouldRenderNativeMap = true;
@@ -145,6 +164,8 @@ jest.mock('../viewmodels/ExploreMapViewModel', () => ({
   useExploreMapViewModel: () => mockVmState,
 }));
 
+import { formatMilesFromKm } from '@mintenance/shared';
+import { DEFAULT_MATCH_RADIUS_KM } from '../constants';
 import { ExploreMapScreen } from '../ExploreMapScreen';
 
 const baseRegion = {
@@ -167,6 +188,8 @@ const makeJob = (overrides: any = {}) => ({
   distance: 2.3,
   homeowner_name: 'Alice',
   created_at: new Date(Date.now() - 30 * 60000).toISOString(),
+  photoUrl: null,
+  photoCount: 0,
   ...overrides,
 });
 
@@ -298,7 +321,10 @@ describe('ExploreMapScreen — empty-state guidance card', () => {
     const { getByLabelText, getByText } = render(<ExploreMapScreen />);
     expect(
       getByText(
-        'Mintenance searches within ~25km of where the map is centred. Try removing the category filter or panning the map to a different area.'
+        // 2026-07-20: the radius is stated in miles and derived from
+        // DEFAULT_MATCH_RADIUS_KM, so this asserts the same derivation rather
+        // than a hardcoded number that could drift from the query.
+        `Mintenance searches within ~${formatMilesFromKm(DEFAULT_MATCH_RADIUS_KM)} of where the map is centred. Try removing the category filter or panning the map to a different area.`
       )
     ).toBeTruthy();
     fireEvent.press(getByLabelText('Clear category filter'));
@@ -356,7 +382,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
     const { getByText } = render(<ExploreMapScreen />);
     // budget_min 150 vs budget_max 250 → range formatting.
     expect(getByText('Fix leaking tap')).toBeTruthy();
-    expect(getByText('2.3 km · 30m ago')).toBeTruthy();
+    expect(getByText('1.4 mi · 30m ago')).toBeTruthy();
   });
 
   it('renders single-budget when min === max via formatCurrency', () => {
@@ -383,7 +409,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
       jobCount: 1,
     });
     const { getByText } = render(<ExploreMapScreen />);
-    expect(getByText('5 km · Recently posted')).toBeTruthy();
+    expect(getByText('3.1 mi · Recently posted')).toBeTruthy();
   });
 
   it('renders hours-ago label for a few-hours-old job', () => {
@@ -397,7 +423,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
       jobCount: 1,
     });
     const { getByText } = render(<ExploreMapScreen />);
-    expect(getByText('1 km · 3h ago')).toBeTruthy();
+    expect(getByText('0.6 mi · 3h ago')).toBeTruthy();
   });
 
   it('renders days-ago label for an old job', () => {
@@ -411,7 +437,7 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
       jobCount: 1,
     });
     const { getByText } = render(<ExploreMapScreen />);
-    expect(getByText('1 km · 2d ago')).toBeTruthy();
+    expect(getByText('0.6 mi · 2d ago')).toBeTruthy();
   });
 
   it('handles a null category job (falls back to general marker)', () => {
@@ -456,12 +482,19 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
 });
 
 describe('ExploreMapScreen — carousel card interactions', () => {
-  it('selects job + animates on card press (native map)', () => {
+  // 2026-07-20 redesign: the whole card body opens the job detail (it
+  // previously only re-selected the job — the marker tap already had).
+  it('card press opens job details', () => {
     const job = makeJob();
     mockVmState = makeVm({ jobs: [job], jobCount: 1 });
     const { getByText } = render(<ExploreMapScreen />);
     fireEvent.press(getByText('Fix leaking tap'));
-    expect(mockHandleJobSelect).toHaveBeenCalledWith(job);
+    expect(mockGoToTab).toHaveBeenCalledWith(expect.anything(), 'JobsTab', {
+      screen: 'JobDetails',
+      params: { jobId: 'job-1' },
+    });
+    // handleViewDetails clears the selection on the way out.
+    expect(mockHandleJobSelect).toHaveBeenCalledWith(null);
   });
 
   it('Quick Bid navigates via goToTab → BidSubmission', () => {
@@ -489,12 +522,15 @@ describe('ExploreMapScreen — carousel card interactions', () => {
     });
   });
 
-  it('card press with non-finite coords does not animate but still selects', () => {
+  it('card press opens details even for non-finite coords', () => {
     const job = makeJob({ latitude: NaN, longitude: NaN });
     mockVmState = makeVm({ jobs: [job], jobCount: 1 });
     const { getByText } = render(<ExploreMapScreen />);
     fireEvent.press(getByText('Fix leaking tap'));
-    expect(mockHandleJobSelect).toHaveBeenCalledWith(job);
+    expect(mockGoToTab).toHaveBeenCalledWith(expect.anything(), 'JobsTab', {
+      screen: 'JobDetails',
+      params: { jobId: 'job-1' },
+    });
   });
 
   it('fires carousel momentum scroll → selects job + animates', () => {
@@ -503,9 +539,9 @@ describe('ExploreMapScreen — carousel card interactions', () => {
     mockVmState = makeVm({ jobs: [job, job2], jobCount: 2, selectedJob: job });
     const { getByTestId } = render(<ExploreMapScreen />);
     const flatlist = getByTestId('carousel-flatlist');
-    // CARD_WIDTH (375*0.78=292.5) + 12 = 304.5 → offset ~305 rounds to index 1.
+    // CARD_WIDTH (375-32=343) + 12 = 355 → offset 355 rounds to index 1.
     fireEvent(flatlist, 'momentumScrollEnd', {
-      nativeEvent: { contentOffset: { x: 305 } },
+      nativeEvent: { contentOffset: { x: 355 } },
     });
     // index 1 → job2 (different id than the selected job1).
     expect(mockHandleJobSelect).toHaveBeenCalledWith(job2);
@@ -561,6 +597,63 @@ describe('ExploreMapScreen — carousel card interactions', () => {
     // The retry's scrollToIndex throws and is caught inside the setTimeout.
     expect(() => jest.runAllTimers()).not.toThrow();
     jest.useRealTimers();
+  });
+});
+
+describe('ExploreMapScreen — photo header + page indicator (2026-07-20 redesign)', () => {
+  it('renders the "1/N" photo chip when the job has multiple photos', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ photoUrl: 'https://cdn.test/p.jpg', photoCount: 4 })],
+      jobCount: 1,
+    });
+    const { getByText } = render(<ExploreMapScreen />);
+    expect(getByText('1/4')).toBeTruthy();
+  });
+
+  it('hides the photo chip for single-photo and photo-less jobs', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ photoUrl: 'https://cdn.test/p.jpg', photoCount: 1 })],
+      jobCount: 1,
+    });
+    const { queryByText } = render(<ExploreMapScreen />);
+    expect(queryByText('1/1')).toBeNull();
+  });
+
+  it('shows the Urgent badge on the photo scrim for emergency jobs', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ urgency: 'emergency' })],
+      jobCount: 1,
+    });
+    const { getByText } = render(<ExploreMapScreen />);
+    expect(getByText('Urgent')).toBeTruthy();
+  });
+
+  it('does not show the Urgent badge for medium urgency', () => {
+    mockVmState = makeVm({ jobs: [makeJob()], jobCount: 1 });
+    const { queryByText } = render(<ExploreMapScreen />);
+    expect(queryByText('Urgent')).toBeNull();
+  });
+
+  it('renders page dots for 2+ jobs, none for a single job', () => {
+    mockVmState = makeVm({
+      jobs: [makeJob({ id: 'a' }), makeJob({ id: 'b', title: 'Second' })],
+      jobCount: 2,
+    });
+    const { getByTestId, rerender } = render(<ExploreMapScreen />);
+    expect(getByTestId('carousel-dots')).toBeTruthy();
+
+    mockVmState = makeVm({ jobs: [makeJob()], jobCount: 1 });
+    rerender(<ExploreMapScreen key='single' />);
+    expect(() => getByTestId('carousel-dots')).toThrow();
+  });
+
+  it('degrades to a "N of M" counter past the dot limit and tracks selection', () => {
+    const jobs = Array.from({ length: 12 }, (_, i) =>
+      makeJob({ id: `job-${i}`, title: `Job ${i}` })
+    );
+    mockVmState = makeVm({ jobs, jobCount: 12, selectedJob: jobs[4] });
+    const { getByText } = render(<ExploreMapScreen />);
+    expect(getByText('5 of 12')).toBeTruthy();
   });
 });
 

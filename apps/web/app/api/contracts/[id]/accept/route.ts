@@ -13,6 +13,7 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { notifyPaymentEvent } from '@/lib/services/notifications/NotificationHelper';
 import { EmailService } from '@/lib/email-service';
 import { ContractSignatoriesService } from '@/lib/services/contracts/ContractSignatoriesService';
 import {
@@ -415,6 +416,22 @@ export const POST = withApiHandler(
           );
           // Don't fail the request
         }
+
+        // Dedicated payment prompt for the homeowner. The
+        // contract_signed message above only *mentions* escrow in body
+        // text; payment_required is the actionable event that deep-links
+        // straight to /jobs/[id]/payment (and the mobile routing table
+        // sends it to the job's Pay CTA). Fires only inside the
+        // shouldFireAcceptedFanout guard, so the simultaneous-sign race
+        // and idempotent retries emit it exactly once. Swallows its own
+        // errors — never fails the signing request.
+        await notifyPaymentEvent({
+          userId: contract.homeowner_id,
+          jobId: contract.job_id,
+          jobTitle: updatedContract.title || 'your job',
+          amount: Number(updatedContract.amount ?? 0),
+          eventType: 'required',
+        });
 
         // Send email to both parties about fully accepted contract
         try {

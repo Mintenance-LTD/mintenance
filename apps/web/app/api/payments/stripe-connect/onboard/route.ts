@@ -4,6 +4,17 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ensureConnectAccount } from '@/lib/stripe/connect/accounts';
 import { createOnboardingLink } from '@/lib/stripe/connect/onboarding';
 import { BadRequestError } from '@/lib/errors/api-error';
+import { z } from 'zod';
+
+// Optional body: `{ client: 'mobile' }` steers the onboarding return URL
+// (see the audit-23 note in the handler). Anything unparseable is treated
+// as an absent body, never a 400 — mobile clients in the field send no
+// body at all.
+const onboardBodySchema = z
+  .object({
+    client: z.enum(['mobile', 'web']).optional(),
+  })
+  .strict();
 
 /**
  * POST /api/payments/stripe-connect/onboard
@@ -25,8 +36,10 @@ export const POST = withApiHandler(
     // session never resolved.
     let client: 'mobile' | 'web' | undefined;
     try {
-      const body = await request.json();
-      if (body?.client === 'mobile') client = 'mobile';
+      const parsed = onboardBodySchema.safeParse(await request.json());
+      if (parsed.success && parsed.data.client === 'mobile') {
+        client = 'mobile';
+      }
     } catch {
       // Body is optional — fall through with client = undefined.
     }

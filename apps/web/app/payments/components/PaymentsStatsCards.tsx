@@ -7,8 +7,12 @@ import { formatMoney } from '@/lib/utils/currency';
 
 interface PaymentsStatsCardsProps {
   totalPaid: number;
+  /** Count of rows summed into `totalPaid` (paid statuses only). Drives the
+   *  "Across N transactions" subtitle so it agrees with the total. */
+  paidTransactionCount: number;
   pendingAmount: number;
   refundedAmount: number;
+  /** All transactions, including pending — drives the "all-time" tile. */
   transactionCount: number;
 }
 
@@ -23,6 +27,7 @@ interface PaymentsStatsCardsProps {
  */
 export function PaymentsStatsCards({
   totalPaid,
+  paidTransactionCount,
   pendingAmount,
   refundedAmount,
   transactionCount,
@@ -50,8 +55,8 @@ export function PaymentsStatsCards({
           <div className='num'>{formatMoney(totalPaid, 'GBP')}</div>
           <div className='sub'>
             <span>
-              {transactionCount > 0
-                ? `Across ${transactionCount} ${transactionCount === 1 ? 'transaction' : 'transactions'}`
+              {paidTransactionCount > 0
+                ? `Across ${paidTransactionCount} ${paidTransactionCount === 1 ? 'transaction' : 'transactions'}`
                 : 'No transactions yet'}
             </span>
           </div>

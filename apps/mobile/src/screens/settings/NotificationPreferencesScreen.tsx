@@ -33,6 +33,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { me } from '../../design-system/mint-editorial';
+import { MintScreenBackBar } from '../../components/shared';
 import { logger } from '../../utils/logger';
 import { styles } from './notificationPreferencesStyles';
 
@@ -275,6 +276,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <MintScreenBackBar fallbackScreen='ProfileMain' />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[

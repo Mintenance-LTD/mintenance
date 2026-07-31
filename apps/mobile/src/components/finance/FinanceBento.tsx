@@ -36,7 +36,10 @@ export const FinanceBento: React.FC<Props> = ({
   formatCurrency,
 }) => {
   const tiles: TileSpec[] = [
-    { label: 'Cash in', amount: cashIn, fg: me.brand },
+    // 2026-07-20: was "Cash in", which overpromises — this is
+    // `escrow_revenue`, i.e. escrow that has actually been released to the
+    // contractor. "Received" is what that money is.
+    { label: 'Received', amount: cashIn, fg: me.brand },
     { label: 'Expenses', amount: expenses, fg: me.errFg },
     { label: 'In escrow', amount: inEscrow, fg: me.warnFg },
     { label: 'Outstanding', amount: outstanding, fg: me.ink2 },

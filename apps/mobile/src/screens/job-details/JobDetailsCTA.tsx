@@ -4,15 +4,11 @@
  * Decides which single CTA to show based on job status, user role,
  * contract status, escrow status, and bid state.
  */
-import React, { useState } from 'react';
-import { Alert } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
+import React from 'react';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StickyBottomCTA } from '../../components/ui/StickyBottomCTA';
 import type { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
-import { JobService } from '../../services/JobService';
-import { queryKeys } from '../../lib/queryClient';
 import { ReadyToStartCTA } from './ReadyToStartCTA';
 import { isEscrowFunded, isEscrowHeldOnly } from '../../utils/escrowStatus';
 
@@ -46,13 +42,13 @@ export interface CTAContext {
   // the 6-assigned-but-0-in_progress live state.
   beforePhotoCount: number;
   // Dual-key check: bids come from both camelCase (Bid type) and snake_case (raw Supabase) formats
-  bidsArray: Array<{
+  bidsArray: {
     id: string;
     contractorId?: string;
     contractor_id?: string;
     status?: string;
     amount?: number;
-  }>;
+  }[];
 }
 
 /**
@@ -418,7 +414,7 @@ export function getPriorityCTA({
               jobTitle: job.title,
             })
           }
-          secondaryText='Secure payment in escrow'
+          secondaryText='Held in escrow until you approve the work'
         />
       );
     }

@@ -12,6 +12,7 @@ import { BeforeAfterSlider } from '@/components/ui/BeforeAfterSlider';
 import { RejectCompletionDialog } from './RejectCompletionDialog';
 import { InspectionChecklist } from './InspectionChecklist';
 import { format, formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
 
 interface ApprovalData {
@@ -85,13 +86,13 @@ export function HomeownerApprovalClient() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to approve');
       }
-      alert(
+      toast.success(
         'Completion approved successfully! Funds will be released after a 48-hour cooling-off period.'
       );
       await fetchApprovalData();
     } catch (error) {
       logger.error('Error approving:', error);
-      alert('Failed to approve: ' + (error as Error).message);
+      toast.error('Failed to approve: ' + (error as Error).message);
     } finally {
       setActionLoading(false);
     }
@@ -110,13 +111,13 @@ export function HomeownerApprovalClient() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to reject');
       }
-      alert('Completion rejected. An admin will review.');
+      toast.success('Completion rejected. An admin will review.');
       setShowRejectDialog(false);
       setRejectionReason('');
       await fetchApprovalData();
     } catch (error) {
       logger.error('Error rejecting:', error);
-      alert('Failed to reject: ' + (error as Error).message);
+      toast.error('Failed to reject: ' + (error as Error).message);
     } finally {
       setActionLoading(false);
     }
@@ -138,7 +139,7 @@ export function HomeownerApprovalClient() {
       setInspectionCompleted(true);
     } catch (error) {
       logger.error('Error marking inspection:', error);
-      alert('Failed to mark inspection');
+      toast.error('Failed to mark inspection');
     } finally {
       setActionLoading(false);
     }

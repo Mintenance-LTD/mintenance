@@ -12,9 +12,31 @@ export {
 
 // Shared utilities and helpers
 export { logger } from './logger';
-export { formatDate, formatCurrency, formatPhone } from './formatters';
+export {
+  formatDate,
+  formatCurrency,
+  formatPhone,
+  kmToMiles,
+  milesToKm,
+  formatMilesFromKm,
+  KM_PER_MILE,
+} from './formatters';
 export { debounce, throttle, hashString } from './utils';
 export { generateId, sanitizeString } from './helpers';
+
+// Platform fee — single source of truth for the % Mintenance takes,
+// shared by web and mobile so every fee display agrees (2026-07-22).
+export type {
+  ContractorFeeTier,
+  PlatformFeeBreakdown,
+} from './pricing/platform-fees';
+export {
+  PLATFORM_FEE_RATE_BY_TIER,
+  DEFAULT_PLATFORM_FEE_RATE,
+  platformFeeRateForTier,
+  formatPlatformFeePercent,
+  platformFeeBreakdown,
+} from './pricing/platform-fees';
 
 // Materials types and utilities
 export type {

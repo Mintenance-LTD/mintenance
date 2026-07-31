@@ -56,6 +56,7 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
     error,
     refreshing,
     selectedPeriod,
+    periodMonths,
     setSelectedPeriod,
     handleRefresh,
   } = useFinanceDashboard();
@@ -120,7 +121,11 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           <Text style={styles.sub}>This month so far</Text>
         </View>
 
-        <FinanceEditorialHero monthlyRevenue={monthly} formatCurrency={fmt} />
+        <FinanceEditorialHero
+          monthlyRevenue={monthly}
+          formatCurrency={fmt}
+          periodMonths={periodMonths}
+        />
 
         <FinanceBento
           cashIn={financialData?.escrow_revenue ?? 0}

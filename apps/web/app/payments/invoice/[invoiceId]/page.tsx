@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { InvoicePaymentClient } from '@/app/contractor/invoices/components/InvoicePaymentClient';
+import { InvoicePaymentClient } from '@/app/contractor/(dashboard)/invoices/components/InvoicePaymentClient';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -27,7 +27,9 @@ export default function InvoicePaymentPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [paymentData, setPaymentData] = useState<PaymentIntentData | null>(null);
+  const [paymentData, setPaymentData] = useState<PaymentIntentData | null>(
+    null
+  );
 
   useEffect(() => {
     const initiatePayment = async () => {
@@ -54,7 +56,9 @@ export default function InvoicePaymentPage() {
         const data = await response.json();
         setPaymentData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load payment form');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load payment form'
+        );
       } finally {
         setLoading(false);
       }
@@ -67,10 +71,10 @@ export default function InvoicePaymentPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-teal-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading payment form...</p>
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='text-center'>
+          <Loader2 className='h-12 w-12 animate-spin text-teal-600 mx-auto mb-4' />
+          <p className='text-gray-600'>Loading payment form...</p>
         </div>
       </div>
     );
@@ -78,16 +82,16 @@ export default function InvoicePaymentPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
+      <div className='min-h-screen flex items-center justify-center p-4'>
+        <div className='max-w-md w-full'>
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
             <AlertDescription>
-              <p className="font-semibold mb-2">Payment Error</p>
+              <p className='font-semibold mb-2'>Payment Error</p>
               <p>{error}</p>
               <button
                 onClick={() => router.back()}
-                className="mt-4 text-sm underline"
+                className='mt-4 text-sm underline'
               >
                 Go back
               </button>
@@ -100,9 +104,9 @@ export default function InvoicePaymentPage() {
 
   if (!paymentData?.paymentIntent?.clientSecret) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+      <div className='min-h-screen flex items-center justify-center'>
+        <Alert variant='destructive'>
+          <AlertCircle className='h-4 w-4' />
           <AlertDescription>
             Payment intent not found. Please try again.
           </AlertDescription>

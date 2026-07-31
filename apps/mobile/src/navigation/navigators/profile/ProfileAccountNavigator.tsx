@@ -14,7 +14,10 @@ import { EditPropertyScreen } from '../../../screens/properties/EditPropertyScre
 import { PropertyAssessmentScreen } from '../../../screens/assessment/PropertyAssessmentScreen';
 import { AddPropertyScreen } from '../../../screens/properties/AddPropertyScreen';
 import { VideoCaptureScreen } from '../../../screens/video-capture/VideoCaptureScreen';
+import { RoomPickerScreen } from '../../../screens/video-capture/RoomPickerScreen';
 import { WalkthroughResultScreen } from '../../../screens/video-capture/WalkthroughResultScreen';
+import { AssessmentHistoryScreen } from '../../../screens/assessment/AssessmentHistoryScreen';
+import { AssessmentDetailScreen } from '../../../screens/assessment/AssessmentDetailScreen';
 import { JobPhotoUploadScreen } from '../../../screens/job-details/JobPhotoUploadScreen';
 import { PaymentHistoryScreen } from '../../../screens/payment/PaymentHistoryScreen';
 import { SubscriptionScreen } from '../../../screens/subscription/SubscriptionScreen';
@@ -101,6 +104,11 @@ export const SafePropertyAssessmentScreen = withScreenErrorBoundary(
   'Property Assessment',
   { fallbackRoute: 'PropertyDetail' }
 );
+export const SafeRoomPickerScreen = withScreenErrorBoundary(
+  RoomPickerScreen as unknown as React.ComponentType<Record<string, unknown>>,
+  'Choose a room',
+  { fallbackRoute: 'PropertyDetail' }
+);
 export const SafeVideoCaptureScreen = withScreenErrorBoundary(
   VideoCaptureScreen as unknown as React.ComponentType<Record<string, unknown>>,
   'Video Capture',
@@ -112,6 +120,20 @@ export const SafeWalkthroughResultScreen = withScreenErrorBoundary(
   >,
   'Walkthrough Survey',
   { fallbackRoute: 'PropertyAssessment' }
+);
+export const SafeAssessmentHistoryScreen = withScreenErrorBoundary(
+  AssessmentHistoryScreen as unknown as React.ComponentType<
+    Record<string, unknown>
+  >,
+  'Survey history',
+  { fallbackRoute: 'PropertyDetail' }
+);
+export const SafeAssessmentDetailScreen = withScreenErrorBoundary(
+  AssessmentDetailScreen as unknown as React.ComponentType<
+    Record<string, unknown>
+  >,
+  'Survey',
+  { fallbackRoute: 'PropertyDetail' }
 );
 export const SafeJobPhotoUploadScreen = withScreenErrorBoundary(
   JobPhotoUploadScreen as unknown as React.ComponentType<

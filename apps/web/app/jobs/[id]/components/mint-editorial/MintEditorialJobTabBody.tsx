@@ -11,7 +11,11 @@
 import React from 'react';
 import Link from 'next/link';
 import type { Bid } from '../BidCard';
-import type { JobShape, PropertyShape } from './MintEditorialJobCards';
+import {
+  formatGBP,
+  type JobShape,
+  type PropertyShape,
+} from './MintEditorialJobCards';
 import { CompareBidsTable } from './CompareBidsTable';
 import { MintEditorialJobTimeline } from './MintEditorialJobTimeline';
 import { BuildingAssessmentDisplay } from '../BuildingAssessmentDisplay';
@@ -85,6 +89,10 @@ export function MintEditorialJobTabBody({
       | undefined) ?? null;
   const showAiCard =
     tab === 'overview' && (aiAssessmentData || photos.length > 0);
+  // Derived from allBids (not pendingBids) so a job past the bidding stage
+  // reports its accepted bid rather than claiming it is still waiting.
+  const acceptedBid =
+    (allBids ?? []).find((b) => b.status === 'accepted') ?? null;
   return (
     <div className='col' style={{ gap: 18, minWidth: 0 }}>
       {tab === 'bids' || tab === 'overview' ? (
@@ -96,6 +104,28 @@ export function MintEditorialJobTabBody({
             onSelect={onSelect}
             jobId={job.id}
           />
+        ) : acceptedBid ? (
+          // 2026-07-21: previously fell straight through to "Waiting for
+          // bids" once the bid was accepted, because only PENDING bids were
+          // considered. On a job with a signed contract and an assigned
+          // contractor that read as though nothing had happened.
+          <div className='card card-pad' style={{ textAlign: 'center' }}>
+            <h2 className='t-h4' style={{ marginBottom: 6 }}>
+              Bid accepted
+            </h2>
+            <p className='t-body'>
+              {formatGBP(acceptedBid.amount)} with{' '}
+              {acceptedBid.contractor.company_name ||
+                [
+                  acceptedBid.contractor.first_name,
+                  acceptedBid.contractor.last_name,
+                ]
+                  .filter(Boolean)
+                  .join(' ') ||
+                'your contractor'}
+              . Bidding is closed — see Timeline for what happens next.
+            </p>
+          </div>
         ) : (
           <div className='card card-pad' style={{ textAlign: 'center' }}>
             <h2 className='t-h4' style={{ marginBottom: 6 }}>

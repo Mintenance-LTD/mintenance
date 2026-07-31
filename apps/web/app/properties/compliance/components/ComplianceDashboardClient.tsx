@@ -2,9 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
 import { exportToPDFAdvanced } from '@/lib/utils/exportUtils';
-import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   Shield,
   ShieldAlert,
@@ -12,7 +10,6 @@ import {
   ShieldX,
   Clock,
   Upload,
-  Wrench,
   ChevronDown,
   ChevronUp,
   HelpCircle,
@@ -34,6 +31,8 @@ import type {
   PropertyWithCompliance,
   ComplianceSummary,
 } from './compliance-types';
+import { CertificateFormModal } from './CertificateFormModal';
+import { RenewalButton } from './RenewalButton';
 
 interface Props {
   properties: PropertyWithCompliance[];
@@ -50,6 +49,12 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
   );
 
   const [exporting, setExporting] = useState(false);
+
+  const [certTarget, setCertTarget] = useState<{
+    propertyId: string;
+    propertyName: string;
+    certType: string;
+  } | null>(null);
 
   // Theme detection — when Mint Editorial is active, swap the header
   // + summary tiles for the canonical .t-h1 / .kpi components from the
@@ -374,13 +379,20 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                               <p className='text-xs text-gray-400 mb-3'>
                                 No certificate uploaded
                               </p>
-                              <Link
-                                href={`/api/properties/${property.id}/compliance?action=upload&type=${type}`}
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  setCertTarget({
+                                    propertyId: property.id,
+                                    propertyName: property.property_name,
+                                    certType: type,
+                                  })
+                                }
                                 className='inline-flex items-center gap-1 text-xs px-2 py-1 bg-white rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors'
                               >
                                 <Upload className='w-3 h-3' />
                                 Upload Certificate
-                              </Link>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -430,52 +442,20 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
           );
         })}
       </div>
+
+      {certTarget && (
+        <CertificateFormModal
+          propertyId={certTarget.propertyId}
+          propertyName={certTarget.propertyName}
+          initialCertType={certTarget.certType}
+          onClose={() => setCertTarget(null)}
+        />
+      )}
     </div>
   );
 }
 
 // ── Summary Card ─────────────────────────────────────────────────────
-
-function RenewalButton({ certId }: { certId: string }) {
-  const [loading, setLoading] = useState(false);
-
-  const handleRenew = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/compliance/${certId}/renew`, {
-        method: 'POST',
-        headers: { ...(await getCsrfHeaders()) },
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || 'Failed to create renewal job');
-        return;
-      }
-      if (data.alreadyExists) {
-        toast('A renewal job already exists', { icon: 'ℹ️' });
-      } else {
-        toast.success('Renewal job created!');
-      }
-      window.location.href = `/jobs/${data.jobId}`;
-    } catch {
-      toast.error('Failed to create renewal job');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <button
-      type='button'
-      onClick={handleRenew}
-      disabled={loading}
-      className='inline-flex items-center gap-1 text-xs px-2 py-1 bg-white/80 rounded border border-current/20 hover:bg-white transition-colors disabled:opacity-50'
-    >
-      <Wrench className='w-3 h-3' />
-      {loading ? 'Creating...' : 'Renew Now'}
-    </button>
-  );
-}
 
 function SummaryCard({
   icon,

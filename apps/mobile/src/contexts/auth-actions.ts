@@ -82,6 +82,24 @@ export const initializePushNotifications = async (
 };
 
 /**
+ * Offline-consolidation Phase 1 (2026-07-27): drain any residue from the
+ * legacy SQLite offline queue (SyncManager's offline_actions + dirty rows)
+ * into the canonical OfflineManager queue, and emit the measurement
+ * telemetry that gates the legacy system's retirement. Fire-and-forget —
+ * must never block or fail auth. Runs once per launch (guarded inside).
+ */
+const drainLegacyOfflineQueue = (userId: string): void => {
+  void import('../services/offline/LegacyQueueDrain')
+    .then(({ drainLegacySqliteQueue }) => drainLegacySqliteQueue(userId))
+    .catch((err) => {
+      logger.warn('[AUTH] Legacy offline-queue drain failed to start', {
+        userId,
+        err,
+      });
+    });
+};
+
+/**
  * Restore a previously persisted session, refresh tokens if needed,
  * and fetch the current user from the server.
  */
@@ -158,6 +176,7 @@ export const restoreSession = async (
     if (currentUser) {
       addBreadcrumb(`User session restored: ${currentUser.email}`, 'auth');
       initializePushNotifications(currentUser.id);
+      drainLegacyOfflineQueue(currentUser.id);
     }
   } catch (error) {
     handleError(error, 'Auth check');
@@ -201,6 +220,7 @@ export const performSignIn = async (
       });
       addBreadcrumb(`User signed in: ${signedInUser.email}`, 'auth');
       initializePushNotifications(signedInUser.id);
+      drainLegacyOfflineQueue(signedInUser.id);
 
       // 2026-04-30 audit P1 (Authentication + signup side-effect
       // parity): web `/api/auth/register` initialises a contractor

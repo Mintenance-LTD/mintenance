@@ -23,15 +23,25 @@ export class EnhancedRateLimiter {
 
   constructor() {
     this.fallbackStore = new InMemoryStore();
-    this.init();
+    // Failures surface where initPromise is re-awaited (getStore → checkLimit,
+    // which fails closed in production). Without this catch, the
+    // constructor-time rejection is unhandled — Next.js logged
+    // "unhandledRejection" on every cold start in prod-without-Redis.
+    this.init().catch(() => {});
   }
 
   private async init() {
     if (this.initPromise) return this.initPromise;
     this.initPromise = (async () => {
+      // REDIS_REQUIRED=false is an explicit operator opt-out (the error
+      // message below has always advertised it, but the old expression
+      // `=== 'true' || production` made it dead code in production — the
+      // only environment that ever emits the message). Default posture is
+      // unchanged: production without an explicit opt-out still throws.
       const redisRequired =
         process.env.REDIS_REQUIRED === 'true' ||
-        process.env.NODE_ENV === 'production';
+        (process.env.NODE_ENV === 'production' &&
+          process.env.REDIS_REQUIRED !== 'false');
       const hasRedisConfig = !!process.env.UPSTASH_REDIS_REST_URL;
       try {
         if (hasRedisConfig) {
@@ -86,6 +96,20 @@ export class EnhancedRateLimiter {
         typeof request === 'string' ? request : new URL(request.url).pathname;
       const identifier = options.identifier || getIdentifier(request);
       const tier = options.tier || getTierFromRequest(request);
+
+      // E2E bypass — same gate as the /api/test-auth/login fixture. A serial
+      // Playwright suite issues hundreds of requests from one IP, so real
+      // per-IP limits (5 logins/15min) can never hold. E2E_TESTING is never
+      // set in production (enforced by the test-auth route contract).
+      if (process.env.E2E_TESTING === 'true') {
+        return {
+          allowed: true,
+          limit: Number.MAX_SAFE_INTEGER,
+          remaining: Number.MAX_SAFE_INTEGER,
+          resetTime: Date.now() + 60000,
+          tier,
+        };
+      }
 
       if (
         !options.bypassCheck &&

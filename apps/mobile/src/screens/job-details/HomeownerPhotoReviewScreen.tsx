@@ -33,6 +33,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobService } from '../../services/JobService';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import type { JobsStackParamList } from '../../navigation/types';
+import { goBackSafe } from '../../navigation/hooks';
 import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
 import { styles } from './photoReviewStyles';
@@ -175,7 +176,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       Alert.alert(
         'Work Approved',
         'Payment will be released to the contractor. Thank you!',
-        [{ text: 'Done', onPress: () => navigation.goBack() }]
+        [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
       );
     } catch (err) {
       const msg =
@@ -198,7 +199,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       Alert.alert(
         'Changes Requested',
         'The contractor has been notified and will review your feedback.',
-        [{ text: 'Done', onPress: () => navigation.goBack() }]
+        [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
       );
     } catch (err) {
       const msg =
@@ -233,7 +234,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackSafe(navigation, 'JobsList')}
             accessibilityRole='button'
           >
             <Ionicons name='arrow-back' size={22} color={me.ink} />
@@ -263,7 +264,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackSafe(navigation, 'JobsList')}
           accessibilityRole='button'
         >
           <Ionicons name='arrow-back' size={22} color={me.ink} />

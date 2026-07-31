@@ -14,6 +14,7 @@ import { getFeatureLimit } from '@/lib/feature-access-config';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
+import { normalisePropertyType } from '@/lib/properties/property-type';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -220,7 +221,7 @@ export const POST = withApiHandler(
               error: `Property limit reached. Your ${tier === 'free' ? 'Free' : tier} plan allows ${limit} ${limit === 1 ? 'property' : 'properties'}.`,
               limit,
               current: currentCount,
-              upgradeUrl: '/subscription-plans',
+              upgradeUrl: '/pricing',
             },
             { status: 403 }
           );
@@ -250,28 +251,13 @@ export const POST = withApiHandler(
         .filter(Boolean)
         .join(', ');
 
-    // Normalize property type from both web (house/apartment/condo/townhouse)
-    // and mobile (house/flat/bungalow/maisonette/other) vocabularies into the
-    // canonical DB values ('residential' | 'commercial'). 'commercial' is
-    // reserved for future expansion; everything else maps to 'residential'.
-    const RESIDENTIAL_TYPES = new Set([
-      'house',
-      'flat',
-      'apartment',
-      'condo',
-      'townhouse',
-      'bungalow',
-      'maisonette',
-      'other',
-      'residential',
-    ]);
-    const rawType = (body.property_type || '').toLowerCase();
+    // Normalise the client's vocabulary onto the three values the CHECK
+    // accepts. Shared with PUT via lib/properties/property-type — this logic
+    // used to live only here, and PUT writing the raw value through was what
+    // made editing a property from mobile fail against the constraint.
     const property_type =
-      rawType === 'commercial'
-        ? 'commercial'
-        : RESIDENTIAL_TYPES.has(rawType)
-          ? 'residential'
-          : body.property_type;
+      normalisePropertyType(body.property_type as string | null | undefined) ??
+      body.property_type;
 
     // Auto-generate property_name if not provided (mobile doesn't send it)
     const property_name =

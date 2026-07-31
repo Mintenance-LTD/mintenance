@@ -14,6 +14,56 @@ interface TestUser {
 }
 
 /**
+ * Re-mint the session directly into this page's browser context.
+ *
+ * WHY THIS EXISTS (2026-07-30): a session minted live into a context works,
+ * but the same session restored from the storageState file does not — for the
+ * Supabase half of it. Measured in a single CI run, same user, same server:
+ *
+ *   global setup, live context  /api/properties -> 200 properties=[2]
+ *   inside the test, from file  /api/properties -> 200 {"properties":[]}
+ *
+ * and identical both ways in each case (APIRequestContext and a real browser
+ * page), so it is the session that differs, not the fetch mechanism.
+ *
+ * The app JWT survives the round-trip fine — `/api/auth/session` returns the
+ * right user, middleware lets the page through, the account chip renders — so
+ * the page looks authenticated. But `/api/properties` resolves its client as
+ * `createRequestScopedClient(request) ?? serverSupabase`, i.e. RLS-scoped off
+ * the Supabase JWT, and that half comes back unusable. RLS then returns zero
+ * rows with a 200 and no error, so the wizard renders "No properties found"
+ * and the test times out waiting for a property card, blaming the wizard.
+ *
+ * Ruled out, so they are not re-tried: Set-Cookie mangling when test-auth
+ * copies the app cookies (node yields both entries), cookies captured outside
+ * the context jar (context.request shares it), __Host-/Secure cookies dropped
+ * over CI's plain-http production build (the whole round-trip incl. restore
+ * survives in Chromium), refresh-token rotation across workers (traces contain
+ * no Supabase calls), and the service-role fallback firing (it would have
+ * returned the rows, and getSupabaseServiceKey throws when unset).
+ *
+ * POSTing through `page.request` puts the Set-Cookie headers straight into this
+ * context's cookie jar — exactly the configuration proven to work above — so
+ * callers get a session that reaches the data APIs, not just the shell.
+ *
+ * Returns false when the endpoint is unavailable (no E2E_AUTH_SECRET, or a
+ * server without E2E_TESTING) so callers can decide whether to skip.
+ */
+export async function establishSessionInContext(
+  page: Page,
+  user: TestUser
+): Promise<boolean> {
+  const secret = process.env.E2E_AUTH_SECRET;
+  if (!secret) return false;
+
+  const res = await page.request.post('/api/test-auth/login', {
+    headers: { 'x-e2e-auth-secret': secret },
+    data: { email: user.email, password: user.password },
+  });
+  return res.ok();
+}
+
+/**
  * Test user credentials (these should exist in your test database)
  *
  * To set up test users:
@@ -120,7 +170,9 @@ export async function login(page: Page, user: TestUser): Promise<void> {
 
   // Fill in credentials
   await page.getByLabel(/email/i).fill(user.email);
-  await page.getByLabel(/password/i).fill(user.password);
+  // Role-scoped: the "Show password" toggle's aria-label also matches
+  // getByLabel(/password/i) (strict-mode violation); textbox excludes it.
+  await page.getByRole('textbox', { name: /password/i }).fill(user.password);
 
   // Submit form and wait for navigation
   await Promise.all([
@@ -139,17 +191,19 @@ export async function login(page: Page, user: TestUser): Promise<void> {
   // This ensures localStorage/cookies are properly set before proceeding
   await page.waitForTimeout(2000);
 
-  // Verify authentication persisted by checking if user data exists in localStorage
-  const hasSession = await page.evaluate(() => {
-    const keys = Object.keys(localStorage);
-    return keys.some(
-      (key) => key.includes('supabase.auth.token') || key.includes('sb-')
-    );
-  });
+  // Verify authentication persisted. The app's login is COOKIE-based
+  // (/api/auth/login mints the [__Host-]mintenance-auth JWT via
+  // authManager; nothing is written to localStorage), so check the
+  // context's cookie jar — the old localStorage probe was a relic of
+  // client-side Supabase auth and failed every UI login in CI.
+  const cookies = await page.context().cookies();
+  const hasSession = cookies.some(
+    (c) => c.name.includes('mintenance-auth') || c.name.startsWith('sb-')
+  );
 
   if (!hasSession) {
     throw new Error(
-      'Authentication session not established - localStorage empty'
+      'Authentication session not established - no auth cookie in context'
     );
   }
 }
@@ -294,6 +348,17 @@ async function getCurrentUserRole(
  */
 export async function clearAuth(page: Page): Promise<void> {
   await page.context().clearCookies();
+
+  // Storage is per-origin. A freshly created page sits on about:blank, which
+  // is an opaque origin — touching localStorage there throws
+  // "SecurityError: Access is denied for this document" and fails the test
+  // before it has navigated anywhere. There is no storage to clear in that
+  // case, so skip it.
+  const url = page.url();
+  if (!url.startsWith('http')) {
+    return;
+  }
+
   await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();

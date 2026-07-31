@@ -22,6 +22,9 @@ import {
   SafePropertyDetailScreen,
   SafeEditPropertyScreen,
   SafePropertyAssessmentScreen,
+  SafeAssessmentDetailScreen,
+  SafeAssessmentHistoryScreen,
+  SafeRoomPickerScreen,
   SafeVideoCaptureScreen,
   SafeWalkthroughResultScreen,
   SafeJobPhotoUploadScreen,
@@ -243,6 +246,11 @@ const ProfileNavigator = () => {
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen
+        name='RoomPicker'
+        component={SafeRoomPickerScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
         name='VideoCapture'
         component={SafeVideoCaptureScreen}
         options={{ headerShown: false }}
@@ -250,6 +258,16 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='WalkthroughResult'
         component={SafeWalkthroughResultScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='AssessmentHistory'
+        component={SafeAssessmentHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='AssessmentDetail'
+        component={SafeAssessmentDetailScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen

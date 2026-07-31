@@ -125,7 +125,7 @@ export class HomeownerApprovalService {
     escrowId: string,
     homeownerId: string,
     comments?: string,
-    options: { internal?: boolean } = {}
+    options: { internal?: boolean; waiveCoolingOff?: boolean } = {}
   ): Promise<void> {
     try {
       // Verify homeowner has permission
@@ -184,51 +184,52 @@ export class HomeownerApprovalService {
         created_at: new Date().toISOString(),
       });
 
-      // Calculate cooling-off period end (48 hours from now)
+      // 48h cooling-off unless waived (homeowner's explicit waiver; null = waived).
       const coolingOffEndsAt = new Date();
       coolingOffEndsAt.setHours(coolingOffEndsAt.getHours() + 48);
+      const waived = options.waiveCoolingOff === true;
+      const coolingOffValue = waived ? null : coolingOffEndsAt.toISOString();
 
-      // Update escrow
       await serverSupabase
         .from('escrow_transactions')
         .update({
           homeowner_approval: true,
           homeowner_approval_at: new Date().toISOString(),
-          cooling_off_ends_at: coolingOffEndsAt.toISOString(),
-          auto_approval_date: null, // Clear auto-approval date
-          release_blocked_reason: 'Cooling-off period active (48 hours)',
+          cooling_off_ends_at: coolingOffValue,
+          auto_approval_date: null,
+          release_blocked_reason: waived
+            ? null
+            : 'Cooling-off period active (48 hours)',
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrowId);
 
-      // Log status change
       await EscrowStatusService.updateStatusLog(
         escrowId,
-        'cooling_off',
+        waived ? 'approved' : 'cooling_off',
         `Homeowner approved${comments ? `: ${comments}` : ''}`
       );
 
-      // Send notification to contractor
       if (job.contractor_id) {
         await sendApprovalNotification(escrowId, job.contractor_id);
       }
 
-      // Sprint 5.7: central audit log so security incidents can be
-      // reconstructed without joining homeowner_approval_history.
-      // Distinct action verb for auto vs explicit so audit queries can
-      // filter (set by caller via the comments string convention).
+      // Sprint 5.7: central audit log. Distinct action verbs (auto/waived/normal).
       const isAutoApproval = comments?.startsWith('auto_approved_') ?? false;
       await logAuditEvent({
         actorId: homeownerId,
         category: 'escrow_decision',
         action: isAutoApproval
           ? 'auto_approve_completion'
-          : 'approve_completion',
+          : waived
+            ? 'approve_completion_cooling_off_waived'
+            : 'approve_completion',
         targetId: escrowId,
         before: { homeowner_approval: false },
         after: {
           homeowner_approval: true,
-          cooling_off_ends_at: coolingOffEndsAt.toISOString(),
+          cooling_off_ends_at: coolingOffValue,
+          cooling_off_waived: waived,
           comments: comments || null,
           job_id: job.id,
         },

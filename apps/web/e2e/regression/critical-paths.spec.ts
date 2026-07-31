@@ -18,7 +18,8 @@
  *   - Test properties seeded (global-setup.ts handles this)
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
 import {
   loginAsHomeowner,
   loginAsContractor,
@@ -30,6 +31,11 @@ import {
   createTestBid,
   waitForNetworkIdle,
 } from '../helpers/test-data';
+import {
+  openJobWizard,
+  fillJobWizardToReview,
+  submitJobWizard,
+} from '../helpers/job-wizard';
 
 // ---------------------------------------------------------------------------
 // Shared helpers scoped to this file
@@ -100,69 +106,34 @@ test.describe('Regression: Job Creation Flow', () => {
 
   test('homeowner can fill and submit job form', async ({ page }) => {
     await loginAsHomeowner(page);
-    await navigateAuthenticated(page, '/jobs/create');
 
-    // Wait for form to fully render (multi-step forms may lazy-load)
-    await page.waitForTimeout(2000);
-
-    // -- Fill title --
-    const titleInput = page.getByLabel(/title|job title/i);
-    if (await titleInput.isVisible().catch(() => false)) {
-      await titleInput.fill(jobData.title);
+    if (!(await openJobWizard(page))) {
+      // skipped: runtime bail — session not accepted, redirected to login
+      test.skip();
+      return;
     }
 
-    // -- Fill description --
-    const descInput = page.getByLabel(/description|describe|details/i);
-    if (await descInput.isVisible().catch(() => false)) {
-      await descInput.fill(jobData.description);
-    }
+    // The wizard gates each step's Next button on specific fields; the helper
+    // fills them via data-testid and asserts Next becomes enabled, so a
+    // validation regression surfaces as a clear failure instead of a 60s click
+    // timeout on a disabled button.
+    await fillJobWizardToReview(page, {
+      title: jobData.title,
+      description: jobData.description,
+      category: 'plumbing',
+      urgency: 'medium',
+    });
 
-    // -- Select category --
-    const categorySelect = page.getByLabel(/category|type|trade/i);
-    if (await categorySelect.isVisible().catch(() => false)) {
-      await categorySelect
-        .selectOption({ label: 'Plumbing' })
-        .catch(async () => {
-          // May be a button group instead of <select>
-          const plumbingOption = page.getByText(/plumbing/i).first();
-          if (await plumbingOption.isVisible().catch(() => false)) {
-            await plumbingOption.click();
-          }
-        });
-    }
+    await submitJobWizard(page);
 
-    // -- Fill budget --
-    const budgetInput = page.getByLabel(/budget|cost|price/i);
-    if (await budgetInput.isVisible().catch(() => false)) {
-      await budgetInput.fill(jobData.budget.toString());
-    }
+    const succeeded =
+      (await page
+        .getByText(/success|created|posted/i)
+        .first()
+        .isVisible()
+        .catch(() => false)) || /\/jobs\/[a-z0-9-]+/.test(page.url());
 
-    // -- Fill postcode / location --
-    const postcodeInput = page.getByLabel(/postcode|zip|location/i);
-    if (await postcodeInput.isVisible().catch(() => false)) {
-      await postcodeInput.fill(jobData.postcode || 'SW1A 1AA');
-    }
-
-    // -- Submit --
-    const submitBtn = page
-      .getByRole('button', {
-        name: /post.*job|create.*job|submit|next|continue/i,
-      })
-      .first();
-
-    if (await submitBtn.isVisible().catch(() => false)) {
-      await submitBtn.click();
-      await waitForNetworkIdle(page);
-
-      // Verify: success toast, redirect to job detail, or confirmation text
-      const succeeded =
-        (await page
-          .getByText(/success|created|posted/i)
-          .isVisible()
-          .catch(() => false)) || /\/jobs\/[a-z0-9-]+/.test(page.url());
-
-      expect(succeeded).toBeTruthy();
-    }
+    expect(succeeded).toBeTruthy();
   });
 
   test('job appears in jobs list after creation', async ({ page }) => {
@@ -332,10 +303,12 @@ test.describe('Regression: Payment & Escrow Flow', () => {
     await navigateAuthenticated(page, '/jobs');
     await page.waitForTimeout(2000);
 
-    // Find a job that might have bids
-    const jobLink = page
-      .locator('a[href*="/jobs/"]')
-      .or(page.getByRole('link', { name: /view|details/i }))
+    // Find a job that might have bids. Scoped to #main-content and excluding
+    // /jobs/create — unscoped, this matched the "Post a job" top-nav tab.
+    const content = page.locator('#main-content');
+    const jobLink = content
+      .locator('a[href*="/jobs/"]:not([href$="/jobs/create"])')
+      .or(content.getByRole('link', { name: /view|details/i }))
       .first();
 
     if (await jobLink.isVisible().catch(() => false)) {

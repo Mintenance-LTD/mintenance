@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   backdrop: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   dropdownCard: {

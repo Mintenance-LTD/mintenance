@@ -36,6 +36,8 @@ interface Transaction {
   platformFee?: number;
   processingFee?: number;
   subtotal?: number;
+  homeowner_approval?: boolean;
+  cooling_off_ends_at?: string;
 }
 
 interface Props {
@@ -192,7 +194,10 @@ export function MintEditorialTransactionList({
             </div>
 
             {/* Status */}
-            <div className='me-tx-status' style={{ width: 140, textAlign: 'right' }}>
+            <div
+              className='me-tx-status'
+              style={{ width: 140, textAlign: 'right' }}
+            >
               <span className={badge.className}>{badge.label}</span>
             </div>
 
@@ -209,12 +214,17 @@ export function MintEditorialTransactionList({
                   <button
                     type='button'
                     className='btn btn-primary btn-sm'
+                    title={
+                      tx.homeowner_approval
+                        ? undefined
+                        : 'Approves the work and releases payment now, waiving the 48-hour cooling-off period'
+                    }
                     onClick={(e) => {
                       e.stopPropagation();
                       onReleasePayment(tx.id);
                     }}
                   >
-                    Release
+                    {tx.homeowner_approval ? 'Release' : 'Approve & Release'}
                   </button>
                   <button
                     type='button'

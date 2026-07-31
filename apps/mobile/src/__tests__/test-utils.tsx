@@ -1,8 +1,14 @@
 import React, { ReactElement } from 'react';
-import { render as rtlRender, RenderOptions } from '@testing-library/react-native';
+import {
+  render as rtlRender,
+  RenderOptions,
+} from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock providers for testing - avoid importing real providers to prevent circular dependencies
-const MockProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const MockProviders: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   // Provide minimal context values for testing
   const mockAuthValue = {
     user: null,
@@ -20,12 +26,30 @@ const MockProviders: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const AuthContext = React.createContext(mockAuthValue);
   const ThemeContext = React.createContext(mockThemeValue);
 
+  // Real screens now reach for react-query (useContractorFeeRate,
+  // PhoneVerificationBanner's useQueryClient) — renders without a
+  // QueryClientProvider throw "No QueryClient set". Stable per-render
+  // instance (useState so re-renders don't churn a new client),
+  // retries off on queries + mutations, gcTime 0 so no state leaks
+  // between tests.
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { retry: false, gcTime: 0 },
+          mutations: { retry: false },
+        },
+      })
+  );
+
   return (
-    <AuthContext.Provider value={mockAuthValue}>
-      <ThemeContext.Provider value={mockThemeValue}>
-        {children}
-      </ThemeContext.Provider>
-    </AuthContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={mockAuthValue}>
+        <ThemeContext.Provider value={mockThemeValue}>
+          {children}
+        </ThemeContext.Provider>
+      </AuthContext.Provider>
+    </QueryClientProvider>
   );
 };
 

@@ -16,7 +16,7 @@ import { getGradient } from '@/lib/theme-enhancements';
 import { cn } from '@/lib/utils';
 
 // Extend shared Button props for backward compatibility
-type ButtonVariant =
+export type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'outline'

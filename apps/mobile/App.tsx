@@ -31,6 +31,15 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Swallow error if called too late (e.g. in tests)
 });
 
+/**
+ * Hard cap on cold-start initialization. Because we suppress the native
+ * splash's auto-hide above, a boot step that never settles would keep the
+ * splash up forever with no error and no way out. Every init step is
+ * best-effort, so after this we render regardless and let stragglers finish
+ * in the background.
+ */
+const INIT_WATCHDOG_MS = 10_000;
+
 // ============================================================================
 // SENTRY - error tracking initialization
 // ============================================================================
@@ -177,6 +186,27 @@ export default function App(): React.JSX.Element {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
+    // 2026-07-19: startup watchdog. Every await below is a native-module or
+    // I/O call, and a THROW is already handled (catch → finally → setIsReady).
+    // What was NOT handled is a promise that never SETTLES — a hung
+    // TaskManager/haptics/storage call left `isReady` false forever, so the
+    // native splash never hid and the app was stranded on the logo with no
+    // error and no recovery (reported on an internal build 2026-07-19).
+    // Boot is best-effort by design, so cap it: render the app regardless and
+    // let the individual services finish (or fail) in the background.
+    let settled = false;
+    const markReady = (): void => {
+      if (settled) return;
+      settled = true;
+      setIsReady(true);
+    };
+    const watchdog = setTimeout(() => {
+      logger.warn('Initialization watchdog fired — rendering app anyway', {
+        service: 'app',
+      });
+      markReady();
+    }, INIT_WATCHDOG_MS);
+
     const initialize = async (): Promise<void> => {
       try {
         logger.info('Mintenance app initializing', { service: 'app' });
@@ -238,11 +268,13 @@ export default function App(): React.JSX.Element {
       } catch (error) {
         logger.error('Initialization error', error, { service: 'app' });
       } finally {
-        setIsReady(true);
+        clearTimeout(watchdog);
+        markReady();
       }
     };
 
     initialize();
+    return () => clearTimeout(watchdog);
   }, []);
 
   // 2026-04-30 audit P0-10: keep the launcher badge in sync with the

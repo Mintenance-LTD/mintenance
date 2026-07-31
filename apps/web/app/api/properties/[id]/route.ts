@@ -14,6 +14,7 @@ import { updatePropertySchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
+import { normalisePropertyType } from '@/lib/properties/property-type';
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
@@ -146,7 +147,20 @@ export const PUT = withApiHandler(
     if (city !== undefined) updateData.city = city;
     if (postcode !== undefined) updateData.postcode = postcode;
     if (country !== undefined) updateData.country = country;
-    if (type !== undefined) updateData.property_type = type;
+    // 2026-07-27 bug fix: same failure mode as the square_footage note below.
+    // updatePropertySchema accepts house / flat / apartment / … because that is
+    // what the forms offer, but properties_property_type_check permits only
+    // residential | commercial | rental. This wrote the client's word straight
+    // through, so saving an edit from mobile — which posts the literal 'house'
+    // — hit 23514 and surfaced as "Database operation failed" with nothing
+    // saved. POST has always normalised; PUT never did.
+    if (type !== undefined) {
+      const canonicalType = normalisePropertyType(type);
+      if (!canonicalType) {
+        throw new BadRequestError(`Unsupported property type: ${type}`);
+      }
+      updateData.property_type = canonicalType;
+    }
     if (bedrooms !== undefined) updateData.bedrooms = bedrooms ?? null;
     if (bathrooms !== undefined) updateData.bathrooms = bathrooms ?? null;
     // 2026-05-21 bug fix: the DB CHECK constraint
@@ -266,13 +280,17 @@ export const DELETE = withApiHandler(
 
     // 2026-05-26 audit-65 P1: also check for cross-flow blockers
     // that the deletion would silently break / orphan:
-    //   - anonymous_reports.property_id is SET NULL, BUT
-    //     anonymous_report_tokens.property_id is CASCADE — so
-    //     deleting the property keeps the report row in the DB but
-    //     wipes the token, and the landlord reports list/detail
-    //     both require `anonymous_report_tokens!inner`, leaving
-    //     reports orphaned-but-unreachable. Block deletion until
-    //     the reports are resolved or detached.
+    //   - anonymous_reports survive a property delete and stay
+    //     READABLE as of 2026-07-26 (migration 20260726115252 made
+    //     anonymous_report_tokens.property_id ON DELETE SET NULL, so
+    //     the token row — which is what the owner-scoped RLS and the
+    //     `anonymous_report_tokens!inner` joins resolve through —
+    //     outlives the property instead of cascading). Retention no
+    //     longer depends on this blocker. It is kept because the
+    //     report's property linkage still nulls out, so a landlord
+    //     with several properties could no longer tell which one a
+    //     retained report referred to. Blocking prompts them to
+    //     resolve first, preserving that context.
     //   - maintenance_tickets.property_id is CASCADE — portfolio
     //     users would silently lose ticket history. Block on
     //     non-terminal tickets (anything not closed/resolved).
@@ -311,7 +329,7 @@ export const DELETE = withApiHandler(
       blockers.push({
         code: 'ANONYMOUS_REPORTS_ON_PROPERTY',
         count: anonReportsRes.count ?? 0,
-        message: `${anonReportsRes.count} anonymous report(s) reference this property. Deleting the property would orphan them (the report rows survive but the token link cascades). Archive or resolve the reports first, or contact support to migrate them.`,
+        message: `${anonReportsRes.count} anonymous report(s) reference this property. The reports themselves are retained if you delete it, but they would lose their link to this property. Resolve or archive them first so the history stays attributable.`,
       });
     }
     if (

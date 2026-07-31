@@ -6,7 +6,8 @@ import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { MessageInput } from '@/components/messaging/MessageInput';
 import { logger } from '@/lib/logger';
-import { CreateContractDialog } from '@/app/contractor/messages/components/CreateContractDialog';
+import toast from 'react-hot-toast';
+import { CreateContractDialog } from '@/app/contractor/(dashboard)/messages/components/CreateContractDialog';
 import { QuoteViewDialog } from './components/QuoteViewDialog';
 import { VideoCallScheduler } from '@/app/video-calls/components/VideoCallScheduler';
 import { useChatData } from './components/useChatData';
@@ -178,7 +179,7 @@ function ChatContent({ params }: ChatPageProps) {
             // wording confirms the action and points back at the
             // existing surface (this same messages thread) so the
             // user knows where to find it.
-            alert(
+            toast.success(
               'Video call scheduled. You can view it from this messages thread.'
             );
           }}

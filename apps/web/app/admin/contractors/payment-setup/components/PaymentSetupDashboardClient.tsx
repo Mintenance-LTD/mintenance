@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import toast from 'react-hot-toast';
 
 interface Contractor {
   contractorId: string;
@@ -46,7 +47,7 @@ export function PaymentSetupDashboardClient({ contractors }: Props) {
 
       setSent((prev) => new Set(prev).add(contractorId));
     } catch (error) {
-      alert('Failed to send reminder');
+      toast.error('Failed to send reminder');
     } finally {
       setSending(null);
     }

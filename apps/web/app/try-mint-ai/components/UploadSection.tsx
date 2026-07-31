@@ -9,6 +9,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import toast from 'react-hot-toast';
 import type { UploadState } from './TryMintAIClient';
 
 interface UploadSectionProps {
@@ -70,7 +71,7 @@ export function UploadSection({
       // Validate file sizes (max 10MB each)
       const validFiles = limitedFiles.filter((file) => {
         if (file.size > 10 * 1024 * 1024) {
-          alert(`${file.name} is too large. Maximum file size is 10MB.`);
+          toast.error(`${file.name} is too large. Maximum file size is 10MB.`);
           return false;
         }
         return true;

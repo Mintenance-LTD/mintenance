@@ -4,11 +4,16 @@ import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, NotFoundError } from '@/lib/errors/api-error';
 import { z } from 'zod';
+import { radiusPairError } from './radius-pair';
 
 const updateServiceAreaSchema = z.object({
   area_name: z.string().min(1).max(255).optional(),
   description: z.string().max(500).optional(),
   radius_km: z.number().min(1).max(200).optional(),
+  // The outer threshold a contractor will still travel to, billed at
+  // `per_km_rate`. Must stay >= radius_km — enforced against the MERGED
+  // row below, not here, because a PATCH may send either field alone.
+  max_distance_km: z.number().min(1).max(200).optional(),
   center_latitude: z.number().min(-90).max(90).optional(),
   center_longitude: z.number().min(-180).max(180).optional(),
   is_active: z.boolean().optional(),
@@ -26,7 +31,10 @@ export const PATCH = withApiHandler(
   async (request, { user, params }) => {
     const id = (params as Record<string, string>)?.id;
     if (!id) {
-      return NextResponse.json({ error: 'Missing service area id' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing service area id' },
+        { status: 400 }
+      );
     }
 
     let body: unknown;
@@ -44,16 +52,24 @@ export const PATCH = withApiHandler(
       );
     }
 
-    // Verify ownership
+    // Verify ownership. radius_km / max_distance_km come back too so the
+    // two thresholds can be validated against each other after merging —
+    // a PATCH that moves only one of them still has to land on a
+    // consistent row.
     const { data: existing } = await serverSupabase
       .from('service_areas')
-      .select('id')
+      .select('id, radius_km, max_distance_km')
       .eq('id', id)
       .eq('contractor_id', user.id)
       .single();
 
     if (!existing) {
       throw new NotFoundError('Service area not found');
+    }
+
+    const pairError = radiusPairError(parsed.data, existing);
+    if (pairError) {
+      return NextResponse.json({ error: pairError }, { status: 400 });
     }
 
     // If setting as primary, unset existing primary first
@@ -92,7 +108,10 @@ export const DELETE = withApiHandler(
   async (_request, { user, params }) => {
     const id = (params as Record<string, string>)?.id;
     if (!id) {
-      return NextResponse.json({ error: 'Missing service area id' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing service area id' },
+        { status: 400 }
+      );
     }
 
     // Verify ownership before delete

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
+import { goBackSafe } from '../../navigation/hooks';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -254,6 +255,15 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
           Invoices / CRMDashboard. Eyebrow + serif headline + add
           button in the top bar. */}
       <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backButtonTop}
+          onPress={() => goBackSafe(navigation, 'ProfileMain')}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
+        </TouchableOpacity>
         <View style={styles.headerBlock}>
           <Text style={styles.eyebrow}>Property management</Text>
           <Text style={styles.headline} accessibilityRole='header'>

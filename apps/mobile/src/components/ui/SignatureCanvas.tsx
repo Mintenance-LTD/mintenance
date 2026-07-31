@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   placeholder: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },

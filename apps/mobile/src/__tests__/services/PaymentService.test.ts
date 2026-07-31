@@ -86,16 +86,26 @@ describe('PaymentService', () => {
 
       const result = await PaymentService.initializePayment({
         amount: 150,
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
+        jobId: '11111111-1111-4111-8111-111111111101',
+        contractorId: '22222222-2222-4222-8222-222222222201',
       });
 
       // Server takes GBP units — the client does NOT multiply by 100.
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 150,
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
-      });
+      // A stable idempotency key is attached in the request headers.
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          currency: 'gbp',
+          amount: 150,
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
       expect(result.client_secret).toBe('pi_test_secret');
     });
 
@@ -105,8 +115,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: 150,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         })
       ).rejects.toThrow('Invalid amount');
 
@@ -120,8 +130,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: 0,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         })
       ).rejects.toThrow('Amount must be greater than 0');
 
@@ -129,10 +139,10 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: 100001,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         })
-      ).rejects.toThrow('Amount cannot exceed £100,000');
+      ).rejects.toThrow('Amount exceeds maximum (£10,000)');
     });
 
     it('passes decimal amounts through unchanged', async () => {
@@ -140,24 +150,33 @@ describe('PaymentService', () => {
 
       const result = await PaymentService.initializePayment({
         amount: 99.99,
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
+        jobId: '11111111-1111-4111-8111-111111111101',
+        contractorId: '22222222-2222-4222-8222-222222222201',
       });
 
       expect(result.client_secret).toBe('pi_secret_test');
-      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
-        amount: 99.99,
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
-      });
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/create-intent',
+        {
+          currency: 'gbp',
+          amount: 99.99,
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
+        },
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Idempotency-Key': expect.any(String),
+          }),
+        })
+      );
     });
 
     it('rejects negative amounts', async () => {
       await expect(
         PaymentService.initializePayment({
           amount: -100,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         })
       ).rejects.toThrow('Amount must be greater than 0');
     });
@@ -166,8 +185,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: NaN,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         })
       ).rejects.toThrow('Amount must be greater than 0');
     });
@@ -177,8 +196,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.initializePayment({
           amount: Infinity,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
         })
       ).rejects.toThrow('Amount must be greater than 0');
     });
@@ -305,8 +324,8 @@ describe('PaymentService', () => {
 
       const result = await PaymentService.releaseEscrow({
         paymentIntentId: 'pi_test_123',
-        jobId: 'job-1',
-        contractorId: 'contractor-1',
+        jobId: '11111111-1111-4111-8111-111111111101',
+        contractorId: '22222222-2222-4222-8222-222222222201',
         amount: 150,
       });
 
@@ -314,8 +333,8 @@ describe('PaymentService', () => {
         '/api/payments/release-escrow',
         {
           paymentIntentId: 'pi_test_123',
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
           amount: 150,
         }
       );
@@ -329,8 +348,8 @@ describe('PaymentService', () => {
       await expect(
         PaymentService.releaseEscrow({
           paymentIntentId: 'pi_test_123',
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
+          jobId: '11111111-1111-4111-8111-111111111101',
+          contractorId: '22222222-2222-4222-8222-222222222201',
           amount: 150,
         })
       ).rejects.toThrow('Payment not found');
@@ -389,12 +408,10 @@ describe('PaymentService', () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        order: jest
-          .fn()
-          .mockResolvedValue({
-            data: null,
-            error: { message: 'Database error' },
-          }),
+        order: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'Database error' },
+        }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);
 

@@ -36,10 +36,12 @@ import {
   formatGBP,
   formatPosted,
   statusBadge,
+  NextStepCard,
   type ContractorShape,
   type JobShape,
   type PropertyShape,
 } from './MintEditorialJobCards';
+import { computeNextStepForJob } from './jobDetailHelpers';
 import {
   SelectedContractorCard,
   HowPaymentWorksCard,
@@ -52,6 +54,13 @@ import {
   MintEditorialJobTabBody,
   type TabKey,
 } from './MintEditorialJobTabBody';
+import {
+  pendingOnly,
+  acceptedBidOf,
+  bidContractorName,
+  pickRecommended,
+  median,
+} from './bidDerivation';
 
 interface LifecycleData {
   contractStatus?: string | null;
@@ -87,42 +96,6 @@ interface Props {
    *  through to the Overview tab body so the AI card surfaces. */
   buildingAssessment?: Record<string, unknown> | null;
   lifecycle: LifecycleData;
-}
-
-function pendingOnly(bids: Bid[]): Bid[] {
-  return bids.filter((b) => b.status === 'pending');
-}
-
-/**
- * Pick the "recommended" bid by a small heuristic: highest rating
- * × verified status, then lowest amount as a tiebreaker. Returns
- * null if there's nothing to score. The canonical mock uses a
- * dedicated AI model; this is a transparent in-page approximation.
- */
-function pickRecommended(bids: Bid[]): string | null {
-  if (bids.length === 0) return null;
-  let bestId: string | null = null;
-  let bestScore = -Infinity;
-  for (const b of bids) {
-    const rating = b.contractor.rating ?? 4.0;
-    const verified = b.contractor.admin_verified ? 0.4 : 0;
-    const priceWeight = 1 - Math.min(1, (b.amount || 0) / 5000) * 0.3;
-    const score = rating + verified + priceWeight;
-    if (score > bestScore) {
-      bestScore = score;
-      bestId = b.id;
-    }
-  }
-  return bestId;
-}
-
-function median(values: number[]): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
-    : sorted[mid];
 }
 
 const TABS: {
@@ -174,8 +147,15 @@ export function MintEditorialJobDetail({
   ).length;
   const med = median(pending.map((b) => b.amount));
   const recommended = pending.find((b) => b.id === recommendedId);
-  const aiSummary =
-    pending.length === 0
+  // 2026-07-21: every bid signal here keyed off `pending` only, so the moment
+  // a bid was ACCEPTED the page reverted to "Waiting for bids" — on a job that
+  // by then had an assigned contractor, a signed contract and work underway.
+  // An accepted bid means bidding is over, not that it never happened.
+  const acceptedBid = acceptedBidOf(bids);
+  const acceptedName = acceptedBid ? bidContractorName(acceptedBid) : null;
+  const aiSummary = acceptedBid
+    ? `Bid accepted — ${formatGBP(acceptedBid.amount)} with ${acceptedName}. Bidding is closed for this job.`
+    : pending.length === 0
       ? 'Waiting for bids. We typically see the first bid within an hour of posting.'
       : `${pending.length} ${pending.length === 1 ? 'bid' : 'bids'} in${
           verifiedCount > 0 ? ` (${verifiedCount} verified)` : ''
@@ -190,6 +170,11 @@ export function MintEditorialJobDetail({
         }`;
 
   const escrowHeld = lifecycle.escrowStatus === 'held' ? job.budget : 0;
+
+  // The ONLY surface on this theme that routes to the escrow-funding
+  // page — without it the lifecycle dead-ends after contract signing
+  // (/api/jobs/[id]/start requires escrow `held`).
+  const nextStep = computeNextStepForJob(job, lifecycle);
 
   // Preferred start date is stashed in `requirements.preferred_start_date`
   // by the job-creation wizard (see /jobs/create utils/submitJob.ts).
@@ -269,7 +254,9 @@ export function MintEditorialJobDetail({
     }
   };
 
-  const tabCounts = { bids: pending.length, photos: photos.length };
+  // Count every bid, not just pending ones — otherwise the tab reads
+  // "Bids · 0" on a job whose bid was accepted (see acceptedBid above).
+  const tabCounts = { bids: bids.length, photos: photos.length };
 
   return (
     <>
@@ -395,21 +382,23 @@ export function MintEditorialJobDetail({
           gap: 24,
         }}
       >
-        <MintEditorialJobTabBody
-          tab={tab}
-          job={job}
-          property={property}
-          pendingBids={pending}
-          allBids={bids}
-          photos={photos}
-          beforePhotos={beforePhotos}
-          afterPhotos={afterPhotos}
-          buildingAssessment={buildingAssessment}
-          lifecycle={lifecycle}
-          selectedId={selectedId}
-          recommendedId={recommendedId}
-          onSelect={setSelectedId}
-        />
+        <div id='bids' style={{ minWidth: 0 }}>
+          <MintEditorialJobTabBody
+            tab={tab}
+            job={job}
+            property={property}
+            pendingBids={pending}
+            allBids={bids}
+            photos={photos}
+            beforePhotos={beforePhotos}
+            afterPhotos={afterPhotos}
+            buildingAssessment={buildingAssessment}
+            lifecycle={lifecycle}
+            selectedId={selectedId}
+            recommendedId={recommendedId}
+            onSelect={setSelectedId}
+          />
+        </div>
 
         {/* Right rail — sticky */}
         <aside
@@ -421,6 +410,8 @@ export function MintEditorialJobDetail({
             alignSelf: 'start',
           }}
         >
+          <NextStepCard step={nextStep} />
+
           {selectedBid ? (
             <SelectedContractorCard
               bid={selectedBid}

@@ -6,6 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface JobCardQuickActionsProps {
   jobId: string;
@@ -28,6 +29,7 @@ export function JobCardQuickActions({
   const [showMenu, setShowMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const confirm = useConfirm();
 
   const refreshData = useCallback(() => {
     if (onRefresh) {
@@ -122,7 +124,12 @@ export function JobCardQuickActions({
   }, [jobId, refreshData, router]);
 
   const handleArchive = useCallback(async () => {
-    if (!confirm('Archive this job? You can restore it later.')) {
+    const ok = await confirm({
+      title: 'Archive this job?',
+      description: 'You can restore it later.',
+      confirmText: 'Archive',
+    });
+    if (!ok) {
       setShowMenu(false);
       return;
     }
@@ -153,12 +160,16 @@ export function JobCardQuickActions({
     } finally {
       setIsLoading(false);
     }
-  }, [jobId, refreshData]);
+  }, [jobId, refreshData, confirm]);
 
   const handleDelete = useCallback(async () => {
-    if (
-      !confirm('Delete this job permanently? This action cannot be undone.')
-    ) {
+    const ok = await confirm({
+      title: 'Delete this job permanently?',
+      description: 'This action cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) {
       setShowMenu(false);
       return;
     }
@@ -189,7 +200,7 @@ export function JobCardQuickActions({
     } finally {
       setIsLoading(false);
     }
-  }, [jobId, refreshData]);
+  }, [jobId, refreshData, confirm]);
 
   return (
     <div className='absolute top-4 right-4 z-10'>

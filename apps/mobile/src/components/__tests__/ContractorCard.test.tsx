@@ -1,5 +1,9 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- jest.mock factories
+ * are hoisted above imports and can only reach modules via require().
+ */
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { formatMilesFromKm } from '@mintenance/shared';
+import { render, fireEvent } from '@testing-library/react-native';
 import ContractorCard from '../ContractorCard';
 import { ContractorProfile, ContractorSkill, Review } from '@mintenance/types';
 import { Alert } from 'react-native';
@@ -141,7 +145,8 @@ describe('ContractorCard', () => {
 
       expect(getByText('John Smith')).toBeTruthy();
       expect(getByText('4.8 (45 jobs)')).toBeTruthy();
-      expect(getByText('📍 2.5 km away')).toBeTruthy();
+      // 2026-07-20: distance is stored in km, displayed in miles.
+      expect(getByText(`📍 ${formatMilesFromKm(2.5)} away`)).toBeTruthy();
       expect(getByTestId('swipeable-card-wrapper')).toBeTruthy();
     });
 

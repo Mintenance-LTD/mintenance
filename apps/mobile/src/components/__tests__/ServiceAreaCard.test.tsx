@@ -1,7 +1,15 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { ServiceAreaCard } from '../ServiceAreaCard';
+import { formatMilesFromKm, KM_PER_MILE } from '@mintenance/shared';
 import { ServiceArea } from '../services/ServiceAreasService';
+
+// 2026-07-20: the card displays distance in miles and the travel rate per
+// mile (km remains the stored unit). Expectations derive from the shared
+// helpers — which have their own unit tests — rather than hardcoded magic
+// numbers, so they cannot drift from the conversion.
+const miles = (km: number) => formatMilesFromKm(km);
+const perMile = (perKm: number) => `£${(perKm * KM_PER_MILE).toFixed(2)}`;
 
 // Mock theme module
 jest.mock('../../theme', () => ({
@@ -184,8 +192,8 @@ describe('ServiceAreaCard', () => {
 
       expect(getByText('Base Travel')).toBeTruthy();
       expect(getByText('£30.50')).toBeTruthy();
-      expect(getByText('Per KM')).toBeTruthy();
-      expect(getByText('£3.25')).toBeTruthy();
+      expect(getByText('Per mile')).toBeTruthy();
+      expect(getByText(perMile(3.25))).toBeTruthy();
       expect(getByText('Min Job')).toBeTruthy();
       expect(getByText('£75.00')).toBeTruthy();
       expect(getByText('Response')).toBeTruthy();
@@ -570,7 +578,9 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 500m radius/)).toBeTruthy();
+      expect(
+        getByText(new RegExp(`Coverage: ${miles(0.5)} radius`))
+      ).toBeTruthy();
     });
 
     it('should format < 1km as meters (0.123km → 123m)', () => {
@@ -588,7 +598,9 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 123m radius/)).toBeTruthy();
+      expect(
+        getByText(new RegExp(`Coverage: ${miles(0.123)} radius`))
+      ).toBeTruthy();
     });
 
     it('should format >= 1km as kilometers (1.5km → 1.5km)', () => {
@@ -606,7 +618,9 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 1.5km radius/)).toBeTruthy();
+      expect(
+        getByText(new RegExp(`Coverage: ${miles(1.5)} radius`))
+      ).toBeTruthy();
     });
 
     it('should format >= 1km as kilometers (25km → 25km)', () => {
@@ -624,7 +638,9 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 25km radius/)).toBeTruthy();
+      expect(
+        getByText(new RegExp(`Coverage: ${miles(25)} radius`))
+      ).toBeTruthy();
     });
 
     it('should use Math.round for meters (0.567km → 567m)', () => {
@@ -642,7 +658,9 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 567m radius/)).toBeTruthy();
+      expect(
+        getByText(new RegExp(`Coverage: ${miles(0.567)} radius`))
+      ).toBeTruthy();
     });
   });
 
@@ -674,7 +692,7 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText('£3.75')).toBeTruthy();
+      expect(getByText(perMile(3.75))).toBeTruthy();
     });
 
     it('should format minimum_job_value as £X.XX', () => {
@@ -719,7 +737,7 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText('£5.00')).toBeTruthy();
+      expect(getByText(perMile(5))).toBeTruthy();
     });
   });
 
@@ -739,7 +757,9 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 10km radius/)).toBeTruthy();
+      expect(
+        getByText(new RegExp(`Coverage: ${miles(10)} radius`))
+      ).toBeTruthy();
     });
 
     it('should display formatted radius_km (5km → 5km radius)', () => {
@@ -757,7 +777,9 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 5km radius/)).toBeTruthy();
+      expect(
+        getByText(new RegExp(`Coverage: ${miles(5)} radius`))
+      ).toBeTruthy();
     });
 
     it('should show max distance when max_distance_km exists', () => {
@@ -776,7 +798,11 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      expect(getByText(/Coverage: 10km radius • Max: 20km/)).toBeTruthy();
+      expect(
+        getByText(
+          new RegExp(`Coverage: ${miles(10)} radius • Max: ${miles(20)}`)
+        )
+      ).toBeTruthy();
     });
 
     it('should hide max distance when max_distance_km is undefined', () => {
@@ -1295,7 +1321,7 @@ describe('ServiceAreaCard', () => {
       );
 
       expect(getByText('£999999.99')).toBeTruthy();
-      expect(getByText('£8888.88')).toBeTruthy();
+      expect(getByText(perMile(8888.88))).toBeTruthy();
       expect(getByText('£777777.77')).toBeTruthy();
     });
 
@@ -1374,9 +1400,14 @@ describe('ServiceAreaCard', () => {
       expect(getByText('PRIMARY')).toBeTruthy();
       expect(getByText('Active')).toBeTruthy();
       expect(getByText('Radius Coverage')).toBeTruthy();
-      expect(getByText(/Coverage: 15km radius • Max: 25km/)).toBeTruthy();
+      expect(
+        getByText(
+          new RegExp(`Coverage: ${miles(15)} radius • Max: ${miles(25)}`)
+        )
+      ).toBeTruthy();
       expect(getByText('£35.00')).toBeTruthy();
-      expect(getByText('£4.50')).toBeTruthy();
+      // per_km_rate 4.50 is displayed per mile
+      expect(getByText(perMile(4.5))).toBeTruthy();
       expect(getByText('£100.00')).toBeTruthy();
       expect(getByText('12h')).toBeTruthy();
       expect(getByText('Weekend +25%')).toBeTruthy();
@@ -1453,7 +1484,7 @@ describe('ServiceAreaCard', () => {
       expect(getByText('City Coverage')).toBeTruthy();
       expect(getByText('3 cities')).toBeTruthy();
       expect(getByText('£40.00')).toBeTruthy();
-      expect(getByText('£5.00')).toBeTruthy();
+      expect(getByText(perMile(5))).toBeTruthy();
       expect(getByText('Priority 3')).toBeTruthy();
     });
 

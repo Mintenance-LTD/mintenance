@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { OptimizedImage } from '../optimized/OptimizedImage';
 import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface HostCardProps {
   avatar?: string;
@@ -66,12 +67,20 @@ export const HostCard: React.FC<HostCardProps> = memo(
             <Text style={styles.name} numberOfLines={1}>
               {name}
             </Text>
-            {rating !== undefined && (
-              <View style={styles.ratingInline}>
-                <Ionicons name='star' size={12} color={theme.colors.accent} />
-                <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-              </View>
-            )}
+            {/* 2026-07-20 redesign: an unrated person rendered as "★ 0.0",
+                which reads as *bad* rather than *new*. Show a neutral "New"
+                pill until they have a real rating. */}
+            {rating !== undefined &&
+              (rating > 0 ? (
+                <View style={styles.ratingInline}>
+                  <Ionicons name='star' size={12} color={theme.colors.accent} />
+                  <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+                </View>
+              ) : (
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>New</Text>
+                </View>
+              ))}
           </View>
           {subtitle && (
             <Text style={styles.subtitle} numberOfLines={1}>
@@ -174,6 +183,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: theme.colors.textPrimary,
+  },
+  newBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: me.brandSoft,
+  },
+  newBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand2,
   },
   subtitle: {
     fontSize: 14,

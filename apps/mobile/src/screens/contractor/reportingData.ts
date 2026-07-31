@@ -1,5 +1,4 @@
 import { supabase } from '../../config/supabase';
-import { me } from '../../design-system/mint-editorial';
 
 interface MarketingStats {
   completedJobs: number;
@@ -8,55 +7,17 @@ interface MarketingStats {
   totalEarnings: number;
   averageRating: number;
   totalReviews: number;
-  monthlyTrend: Array<{ month: string; count: number; earnings: number }>;
-  categoryBreakdown: Array<{ category: string; count: number }>;
+  monthlyTrend: { month: string; count: number; earnings: number }[];
+  categoryBreakdown: { category: string; count: number }[];
   ratingDistribution: Record<string, number>;
-  recentReviews: Array<{
+  recentReviews: {
     id: string;
     rating: number;
     comment: string;
     reviewer_name: string;
     created_at: string;
-  }>;
+  }[];
 }
-
-export const DATE_RANGES = [
-  { key: '7d' as const, label: '7 days', days: 7 },
-  { key: '30d' as const, label: '30 days', days: 30 },
-  { key: '90d' as const, label: '90 days', days: 90 },
-  { key: '1y' as const, label: 'This year', days: 365 },
-];
-
-export const KPI_CONFIG = [
-  {
-    key: 'jobs',
-    icon: 'checkmark-circle-outline' as const,
-    color: me.brand,
-    bg: me.brandSoft,
-    label: 'Jobs Done',
-  },
-  {
-    key: 'winRate',
-    icon: 'trending-up-outline' as const,
-    color: '#3B82F6',
-    bg: '#DBEAFE',
-    label: 'Win Rate',
-  },
-  {
-    key: 'earnings',
-    icon: 'cash-outline' as const,
-    color: me.accent,
-    bg: me.warnBg,
-    label: 'Earnings',
-  },
-  {
-    key: 'rating',
-    icon: 'star-outline' as const,
-    color: '#8B5CF6',
-    bg: '#EDE9FE',
-    label: 'Avg Rating',
-  },
-];
 
 export const EMPTY_STATS: MarketingStats = {
   completedJobs: 0,

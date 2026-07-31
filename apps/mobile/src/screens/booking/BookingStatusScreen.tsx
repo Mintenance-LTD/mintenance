@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
+import { MintScreenBackBar } from '../../components/shared';
 import { BookingTabs } from './BookingTabs';
 import { BookingList } from './BookingList';
 import { BookingLoading } from './BookingLoading';
@@ -161,6 +162,11 @@ export const BookingStatusScreen: React.FC<{
 
   return (
     <SafeAreaView style={styles.container}>
+      <MintScreenBackBar
+        title='Bookings'
+        fallbackScreen='ProfileMain'
+        withTopInset={false}
+      />
       {loading && <BookingLoading />}
       {!loading && error && (
         <BookingError error={error} onRetry={loadBookings} />

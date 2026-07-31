@@ -25,15 +25,22 @@ export async function persistWalkthroughRow(params: {
   userId: string;
   jobId?: string;
   propertyId?: string;
+  /**
+   * Optional room anchor. The caller must already have verified the room
+   * belongs to `propertyId` — this function trusts what it is given.
+   */
+  roomId?: string;
   domain: string;
   cacheKey: string;
   assessment: Phase1BuildingAssessment;
 }): Promise<string | null> {
-  const { userId, jobId, propertyId, domain, cacheKey, assessment } = params;
+  const { userId, jobId, propertyId, roomId, domain, cacheKey, assessment } =
+    params;
   const row = {
     user_id: userId,
     job_id: jobId ?? null,
     property_id: propertyId ?? null,
+    room_id: roomId ?? null,
     cache_key: cacheKey,
     domain,
     damage_type: assessment.damageAssessment.damageType,

@@ -475,7 +475,7 @@ export const styles = StyleSheet.create({
   },
   heroImage: { resizeMode: 'cover' },
   heroDimOverlay: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.18)',
   },
   heroAvatarWrap: {

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
+import { milesToKm } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface ProfileAddress {
@@ -38,7 +39,14 @@ interface CreateServiceAreaModalProps {
   defaultAddress?: ProfileAddress;
 }
 
-const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50];
+/**
+ * Coverage radius options in MILES (2026-07-20). These were km, while the
+ * Service Areas screen displayed the saved value in miles — so a contractor
+ * picked "10 km" and the screen then called it "6 mi radius". The picker now
+ * speaks the same unit as every other surface; radius_km is still what gets
+ * stored.
+ */
+const RADIUS_OPTIONS_MILES = [3, 5, 10, 15, 20, 30];
 
 export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
   visible,
@@ -49,11 +57,17 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
 }) => {
   const [areaName, setAreaName] = useState('');
   const [postcode, setPostcode] = useState('');
-  const [radiusKm, setRadiusKm] = useState(10);
+  // Default 5 mi (~8 km) — the closest option to the previous 10 km default,
+  // chosen to avoid silently widening the area a new contractor covers
+  // (service areas drive the job-notification audience).
+  const [radiusMiles, setRadiusMiles] = useState(5);
   const [isPrimary, setIsPrimary] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [prefilledCoords, setPrefilledCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [prefilledCoords, setPrefilledCoords] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
   const hasPrefilledRef = useRef(false);
 
   // Pre-fill from profile address when modal opens for the first time
@@ -63,7 +77,10 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
       if (defaultAddress.city) setAreaName(defaultAddress.city);
       if (defaultAddress.postcode) setPostcode(defaultAddress.postcode);
       if (defaultAddress.latitude != null && defaultAddress.longitude != null) {
-        setPrefilledCoords({ lat: defaultAddress.latitude, lon: defaultAddress.longitude });
+        setPrefilledCoords({
+          lat: defaultAddress.latitude,
+          lon: defaultAddress.longitude,
+        });
       }
     }
     if (!visible) {
@@ -76,14 +93,17 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
     if (defaultAddress.city) setAreaName(defaultAddress.city);
     if (defaultAddress.postcode) setPostcode(defaultAddress.postcode);
     if (defaultAddress.latitude != null && defaultAddress.longitude != null) {
-      setPrefilledCoords({ lat: defaultAddress.latitude, lon: defaultAddress.longitude });
+      setPrefilledCoords({
+        lat: defaultAddress.latitude,
+        lon: defaultAddress.longitude,
+      });
     }
   };
 
   const reset = () => {
     setAreaName('');
     setPostcode('');
-    setRadiusKm(10);
+    setRadiusMiles(5);
     setIsPrimary(false);
     setGeocoding(false);
     setSaving(false);
@@ -99,10 +119,11 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
     query: string
   ): Promise<{ lat: number; lon: number } | null> => {
     try {
-      const response = await mobileApiClient.post<{ latitude: number; longitude: number; formatted_address: string }>(
-        '/api/geocode-proxy',
-        { address: query + ', UK' }
-      );
+      const response = await mobileApiClient.post<{
+        latitude: number;
+        longitude: number;
+        formatted_address: string;
+      }>('/api/geocode-proxy', { address: query + ', UK' });
       return { lat: response.latitude, lon: response.longitude };
     } catch {
       return null;
@@ -152,13 +173,16 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
         area_name: nameTrimmed,
         center_latitude: coords.lat,
         center_longitude: coords.lon,
-        radius_km: radiusKm,
+        // Stored in km; the picker above is miles. Rounded to 2dp so the
+        // value reads sensibly if it is ever surfaced raw.
+        radius_km: Math.round(milesToKm(radiusMiles) * 100) / 100,
         is_primary_area: isPrimary,
       });
       reset();
       onCreated();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create service area';
+      const msg =
+        err instanceof Error ? err.message : 'Failed to create service area';
       Alert.alert('Error', msg);
     } finally {
       setSaving(false);
@@ -170,7 +194,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType='slide'
       transparent
       onRequestClose={handleClose}
     >
@@ -182,15 +206,23 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Add Service Area</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn} disabled={isLoading}>
-              <Ionicons name="close" size={22} color={theme.colors.textPrimary} />
+            <TouchableOpacity
+              onPress={handleClose}
+              style={styles.closeBtn}
+              disabled={isLoading}
+            >
+              <Ionicons
+                name='close'
+                size={22}
+                color={theme.colors.textPrimary}
+              />
             </TouchableOpacity>
           </View>
 
           <ScrollView
             style={styles.body}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps='handled'
           >
             {/* Use profile address shortcut */}
             {defaultAddress?.postcode && (
@@ -199,8 +231,14 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
                 onPress={fillFromProfile}
                 disabled={isLoading}
               >
-                <Ionicons name="person-circle-outline" size={18} color={theme.colors.primary} />
-                <Text style={styles.profileBtnText}>Use My Profile Address</Text>
+                <Ionicons
+                  name='person-circle-outline'
+                  size={18}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.profileBtnText}>
+                  Use My Profile Address
+                </Text>
               </TouchableOpacity>
             )}
 
@@ -208,7 +246,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             <Text style={styles.label}>Area Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Cheltenham Central"
+              placeholder='e.g. Cheltenham Central'
               placeholderTextColor={theme.colors.textTertiary}
               value={areaName}
               onChangeText={setAreaName}
@@ -219,34 +257,37 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             <Text style={styles.label}>Postcode or Town *</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. GL50 1QN or Cheltenham"
+              placeholder='e.g. GL50 1QN or Cheltenham'
               placeholderTextColor={theme.colors.textTertiary}
               value={postcode}
               onChangeText={setPostcode}
-              autoCapitalize="characters"
+              autoCapitalize='characters'
               editable={!isLoading}
             />
             <Text style={styles.hint}>
-              We'll pin the centre of your service area here.
+              We’ll pin the centre of your service area here.
             </Text>
 
             {/* Radius */}
             <Text style={styles.label}>Coverage Radius</Text>
             <View style={styles.radiusRow}>
-              {RADIUS_OPTIONS.map((r) => (
+              {RADIUS_OPTIONS_MILES.map((r) => (
                 <TouchableOpacity
                   key={r}
-                  style={[styles.radiusChip, radiusKm === r && styles.radiusChipActive]}
-                  onPress={() => setRadiusKm(r)}
+                  style={[
+                    styles.radiusChip,
+                    radiusMiles === r && styles.radiusChipActive,
+                  ]}
+                  onPress={() => setRadiusMiles(r)}
                   disabled={isLoading}
                 >
                   <Text
                     style={[
                       styles.radiusChipText,
-                      radiusKm === r && styles.radiusChipTextActive,
+                      radiusMiles === r && styles.radiusChipTextActive,
                     ]}
                   >
-                    {r} km
+                    {r} mi
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -258,9 +299,15 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
               onPress={() => setIsPrimary((v) => !v)}
               disabled={isLoading}
             >
-              <View style={[styles.checkbox, isPrimary && styles.checkboxChecked]}>
+              <View
+                style={[styles.checkbox, isPrimary && styles.checkboxChecked]}
+              >
                 {isPrimary && (
-                  <Ionicons name="checkmark" size={14} color={theme.colors.textInverse} />
+                  <Ionicons
+                    name='checkmark'
+                    size={14}
+                    color={theme.colors.textInverse}
+                  />
                 )}
               </View>
               <View style={styles.checkLabel}>
@@ -279,7 +326,10 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color={theme.colors.textInverse} />
+              <ActivityIndicator
+                size='small'
+                color={theme.colors.textInverse}
+              />
             ) : (
               <Text style={styles.submitText}>Save Service Area</Text>
             )}

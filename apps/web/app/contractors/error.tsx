@@ -38,31 +38,34 @@ export default function ContractorsError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100">
-            <Users className="h-8 w-8 text-blue-600" />
+    <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8'>
+      <div className='max-w-md w-full space-y-8'>
+        <div className='text-center'>
+          <div className='mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100'>
+            <Users className='h-8 w-8 text-blue-600' />
           </div>
 
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+          <h2 className='mt-6 text-3xl font-bold text-gray-900'>
             Contractors Unavailable
           </h2>
 
-          <p className="mt-2 text-sm text-gray-600">
-            We couldn't load the contractors list. This is usually a temporary issue.
+          <p className='mt-2 text-sm text-gray-600'>
+            We couldn't load the contractors list. This is usually a temporary
+            issue.
           </p>
 
           {error.digest && (
-            <p className="mt-2 text-xs text-gray-500">
+            <p className='mt-2 text-xs text-gray-500'>
               Error ID: {error.digest}
             </p>
           )}
 
           {/* Info about the error */}
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg text-left">
-            <p className="text-sm font-medium text-blue-900 mb-2">What you can do:</p>
-            <ul className="list-disc list-inside text-xs text-blue-700 space-y-1">
+          <div className='mt-4 p-4 bg-blue-50 rounded-lg text-left'>
+            <p className='text-sm font-medium text-blue-900 mb-2'>
+              What you can do:
+            </p>
+            <ul className='list-disc list-inside text-xs text-blue-700 space-y-1'>
               <li>Try refreshing the page</li>
               <li>Check your search filters</li>
               <li>Browse by category instead</li>
@@ -71,48 +74,51 @@ export default function ContractorsError({
           </div>
         </div>
 
-        <div className="mt-8 space-y-3">
+        <div className='mt-8 space-y-3'>
           <Button
             onClick={reset}
-            variant="primary"
-            className="w-full flex items-center justify-center"
+            variant='primary'
+            className='w-full flex items-center justify-center'
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <RefreshCw className='mr-2 h-4 w-4' />
             Try again
           </Button>
 
           <Button
-            onClick={() => router.push('/find-contractors')}
-            variant="secondary"
-            className="w-full flex items-center justify-center"
+            onClick={() => router.push('/contractors')}
+            variant='secondary'
+            className='w-full flex items-center justify-center'
           >
-            <Search className="mr-2 h-4 w-4" />
+            <Search className='mr-2 h-4 w-4' />
             Search contractors
           </Button>
 
           <Button
             onClick={() => router.push('/dashboard')}
-            variant="outline"
-            className="w-full flex items-center justify-center"
+            variant='outline'
+            className='w-full flex items-center justify-center'
           >
-            <Home className="mr-2 h-4 w-4" />
+            <Home className='mr-2 h-4 w-4' />
             Go to dashboard
           </Button>
         </div>
 
-        <div className="mt-6 border-t pt-6">
-          <h3 className="text-sm font-medium text-gray-900">
+        <div className='mt-6 border-t pt-6'>
+          <h3 className='text-sm font-medium text-gray-900'>
             Alternative options:
           </h3>
-          <ul className="mt-2 text-sm text-gray-600 list-disc list-inside space-y-1">
+          <ul className='mt-2 text-sm text-gray-600 list-disc list-inside space-y-1'>
             <li>Post a job and let contractors find you</li>
             <li>Browse contractor categories</li>
             <li>Check featured contractors</li>
             <li>View your saved contractors</li>
           </ul>
-          <p className="mt-3 text-sm text-gray-600">
+          <p className='mt-3 text-sm text-gray-600'>
             Need help finding contractors?{' '}
-            <a href="mailto:support@mintenance.co.uk" className="text-blue-600 hover:underline">
+            <a
+              href='mailto:support@mintenance.co.uk'
+              className='text-blue-600 hover:underline'
+            >
               Contact support
             </a>
           </p>
@@ -120,11 +126,11 @@ export default function ContractorsError({
 
         {/* Development error details */}
         {process.env.NODE_ENV === 'development' && (
-          <details className="mt-4 p-4 bg-gray-100 rounded-lg">
-            <summary className="cursor-pointer text-sm font-medium text-gray-700">
+          <details className='mt-4 p-4 bg-gray-100 rounded-lg'>
+            <summary className='cursor-pointer text-sm font-medium text-gray-700'>
               Error Details (Development Only)
             </summary>
-            <pre className="mt-2 text-xs text-red-600 overflow-auto max-h-40">
+            <pre className='mt-2 text-xs text-red-600 overflow-auto max-h-40'>
               {error.stack}
             </pre>
           </details>

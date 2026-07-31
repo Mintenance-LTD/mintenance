@@ -17,6 +17,261 @@ ran a mobile backend schema-alignment audit (live Postgres error logs + `informa
 cross-check), shipped 5 commits, applied 2 live migrations, and deleted ~45 files of orphaned dead
 code — see "2026-06-06" immediately below.
 
+### 2026-07-31 — full user-flow audit (6 agents) + same-day fix batch
+
+Six parallel audit agents traced every user flow (job lifecycle web+mobile, mobile back-buttons,
+property features, notification parity, remaining features) with file:line evidence, then the whole
+P0 slate was fixed same-session. 8 commits (`2cdf802a2`…`c66fc7baa`), both suites fully green after
+(web 2938/2938; mobile 12514 pass / 5 tracked skips / 0 fail — one flaky failure did not reproduce
+across two reruns).
+
+**Found → FIXED (same session):**
+
+1. **P0 web: Mint Editorial (default theme) had NO escrow-funding CTA** — `NextStepCard` was
+   imported nowhere and pointed at a nonexistent `#payment-section` anchor; since `/start` requires
+   escrow `held`, every default-theme homeowner stalled after contract signing. Now mounted in the
+   right rail, routing to `/jobs/[id]/payment` (`bde7a566f`, +5 pinning tests).
+2. **P0 notifications: `payment_required` had zero production callers** — homeowner's only cue to
+   fund escrow was `contract_signed` body text. Now fired in `contracts/[id]/accept` inside the
+   accepted-fanout guard (exactly-once); mobile routing table gained `payment_required` /
+   `payment_secured` / `payment_failed` → JobDetails (`bbe1b28c3`).
+3. **P0 mobile: VideoCallInterface BackHandler leak** — subscription `remove()` discarded + listener
+   returns true unconditionally → after any call, hardware back swallowed app-wide until app kill.
+   Extracted `useEndCallBackHandler` with proper cleanup (+3 tests, `84114866a` series).
+4. **P0/P1 mobile: linking config had no `initialRouteName` at any level** — cold-start
+   `bookings/:id` mounted alone on the root stack (iOS fully stuck); 11 detail routes got dead back
+   buttons. `initialRouteName` declared at every level; `goBackSafe` (previously 0 adopters) adopted
+   across 12 screens / 26 call sites; ExploreMap's permanently-dead tab-root back arrow now hidden
+   when it can't act (`4188f060d`).
+5. **P2 mobile: 7 screens had no back affordance** (headerShown:false everywhere). New shared
+   `MintScreenBackBar` on LearningCards/Accessibility/NotificationPrefs/BookingStatus; Properties
+   top bar regained a back button; Notifications modal gained a close (`84114866a`). WelcomeScreen
+   left forward-only intentionally.
+6. **P1 web properties: fixes were stranded on unmerged branch `claude/ecstatic-germain-23d9e9`**
+   (contractor-embed `[0]`-on-object blank names + en-GB date re-parse corrupting ~11 consumers).
+   Cherry-picked as `3482668b6`.
+7. **Fee-tier working set committed atomically** (`2cdf802a2`) — untracked load-bearing
+   `packages/shared/src/pricing` + `useContractorFeeRate` were imported by modified files; a partial
+   commit would have broken the shared build.
+
+**Stale-record corrections established by the audit:** P1-8 is stale (mobile escrow funding is
+native `@stripe/stripe-react-native`, NOT a web redirect); the 2026-07-10 "7-day auto-release DEAD"
+is FIXED (`photos/after/_schedule-auto-release.ts` arms it directly); embedded-checkout amount
+bypass FIXED; PATCH raw-status FIXED (enum + state machine — residual: machine-legal transitions can
+still skip photo/escrow gates, P2 open); invoice 5% fee FIXED (tier-aware); 2026-06-11 mobile
+assessment breaks ALL FIXED.
+
+**Still open (not fixed this session):** web bid-decline UI missing (reject/unreject routes have no
+callers); homeowner travel-tracking view absent on mint-editorial web + trips notification lacks
+actionUrl; job creation accepts client-supplied `status` (P1 — pin to `posted`); homeowner signup
+phone labelled optional but server-required; manual escrow release never notifies the homeowner;
+mobile jobs-archive filter missing; request-changes doesn't reset `auto_approval_date`; add-property
+discards squareFeet, edit fabricates year_built, `parseInt` truncates half-baths; property/room
+photo uploads still trust client MIME; iOS push still blocked on `GOOGLE_SERVICES_PLIST`; ALL
+committed mobile wins unshipped until the EAS build lands. Zero runtime/browser/device verification
+this session — everything above is code-read + unit-tested.
+
+### 2026-07-29 — e2e green-up round 3 (PRs #1269, #1270)
+
+Continued the CI e2e green-up. Measured, not estimated: run 30432147313 was 39 failed / 76 passed;
+after the round-1 commit run 30449947284 was **25 failed / 84 passed**.
+
+**The mass click-blocker.** `components/CookieConsent.tsx` renders a full-viewport
+`fixed inset-0 bg-black/20 z-40` backdrop one second after mount when no consent is stored. Its own
+comment calls it "purely visual", but it intercepts pointer events everywhere, so _any_ Playwright
+click issued more than a second after navigation retried until the 60s timeout — roughly 10 failures
+across full-user-journey, critical-paths, contractor-flow and mobile-responsive. Fixed with a shared
+`e2e/fixtures.ts` that pre-seeds the consent key via `addInitScript` (deliberately not
+`storageState` — the init script survives `clearAuth()`'s `localStorage.clear()` by re-seeding on
+the next navigation). Production behaviour untouched; whether that backdrop _should_ swallow clicks
+is a GDPR/product question, not a test one.
+
+**Three genuine app bugs the suite surfaced** (the rest were stale tests):
+
+1. **Job wizard dead end.** `app/jobs/create/page.tsx` gated step 1 on `description.length >= 50`
+   while `details-step.tsx`, `constants.ts` (`MIN_DESCRIPTION_LENGTH`) and the api-contracts schema
+   all used 20. At 20–49 characters the user saw a green "Description is detailed enough" tick next
+   to a permanently disabled Next button with no explanation. Now reads the shared constant.
+2. **Homeowner signup dead end.** The server's `registerSchema` (`lib/validation/schemas-auth.ts`)
+   requires a phone for homeowners; the client schema had it optional and the label rendered "Phone
+   number (optional)". Following the UI exactly produced a bare "Validation failed" naming no field.
+   Client aligned to the server (phone capture backs homeowner phone verification, so the server is
+   the correct side).
+3. **Public contractor profiles are auth-gated — NOT fixed, tracked.** `app/contractor/layout.tsx`
+   redirects all of `/contractor/*` to `/login` unless `role === 'contractor'`, and it wraps the
+   public `[id]` route too. So `middleware/public-routes.ts`'s `UUID_CONTRACTOR_PROFILE_RE`
+   whitelist and every `sitemap.ts` contractor URL are dead — for Googlebot, logged-out users, and
+   logged-in homeowners alike. Needs a route-group restructure (~30 directories). The e2e test is
+   left deliberately failing rather than skipped.
+
+**Accessibility triage from the previous session was wrong.** The `accessibility` project has no
+`storageState`, so 8 of the 9 "page" scans are the same `/login` scan under different names — a
+token fix alone would produce a green that never scanned a dashboard. Two more failures were broken
+_test_ code, not app defects: the form-label `evaluate` callback referenced its own outer `hasLabel`
+const inside page context (ReferenceError on the first input), and the skip-link selector used an
+exact `a[href="#main"]` against the real `href="#main-content"`. Both fixed.
+
+The contrast failure is real and **axe-confirmed, not computed**: `--me-brand` `#3f8c7a` on
+`--me-bg` `#f3f7f4` is **3.7:1** against a 4.5:1 requirement, across 233 nodes. `--me-brand-2`
+`#2f6f5f` already exists in the palette and passes (5.46:1 as text, 5.90:1 with white on it).
+Deliberately **not** changed — that is a visible brand shift across 200+ sites and wants design
+sign-off. Retarget the project first, then decide the token.
+
+**Playwright gotchas worth remembering.** `getByLabel` reads `aria-label` off _any_ element, not
+just form controls — `ProgressBar`'s `aria-label="Step 1: Details"` collided with
+`getByLabel(/description|details/i)`, and the specs' own `.catch(() => false)` swallowed the
+resulting strict-mode violation, silently leaving fields unfilled. `[class*="card"]` matches
+lucide's `lucide-credit-card` icon, which `.me-root .ic` sizes to 16px — exactly the width the
+mobile card assertion was receiving. Unscoped `getByRole('link').first()` resolves to the sr-only
+"Skip to content" link. Scope locators to `#main-content` / `.me-content`.
+
+Also: `apps/web/playwright-report/index.html` is tracked and 530KB, so any local
+`playwright test --list` regenerates it and the pre-commit 488KB file-size gate then blocks the
+commit. Don't `git add -A` in this repo.
+
+### 2026-07-26 (later) — assessment-photo security, team invites, green suite
+
+Follow-up session working the recommendations from the audit below.
+
+**1. assessment-photos bucket + mobile upload (had to land together).** The bucket was `public=true`
+and both mobile upload paths were broken; fixing the upload first would have started streaming
+interior photographs of homes into a world-readable bucket. **The upload defect is no longer a
+hypothesis** — the walkthrough route already documents "client-side direct-to-Supabase uploads from
+React Native never landed bytes (0 objects ever in the bucket)", and `storage.objects` confirms 0.
+No device test was needed to establish it was broken. Bucket flipped private (`20260726135946`,
+zero-risk: 0 objects, and the 30 `assessment_images` rows point at Job-storage); new
+`POST /api/assessments/photo-upload` does server-mediated multipart upload with the service role;
+both mobile call sites stream `{uri,name,type}` parts; format derived from magic bytes not the
+client header (HEIC was being stored as undecodable "JPEG"); `lib/api/assessment-storage.ts` mirrors
+job-storage, and GET status re-signs on read. Failures now surface — 502 from the route,
+`uploadPhotosToStorage` throws, and the wizard says "Saved, but the photos did not upload".
+
+**2. Team invites, end to end.** `property_team_members` had a real 4-role permission matrix, an
+email service, and zero rows — because the only RLS policy was owner-scoped, so an invitee could
+never see the row addressed to them. Migration `20260726143340` splits the single `FOR ALL` policy
+into per-command policies so SELECT can widen to the invitee **without** adding a second permissive
+policy (advisor still reports 0 multiple_permissive / 0 initplan). Writes stay owner-only
+deliberately: an invitee who could UPDATE their own row could also rewrite `role`. New
+`/api/properties/invites` (GET list, POST accept/decline) verifies the caller's email against
+`profiles`, and `PendingPropertyInvites` surfaces them on `/properties` — so it is reachable, not
+just built. RLS proven with a seeded + rolled-back transaction: invitee sees their own invite
+case-insensitively, unrelated users do not, owner still does.
+
+**3. Empty vs broken.** `BulkOperations` now distinguishes "no other properties" from "couldn't load
+them" with a retry, instead of swallowing into `.catch(() => {})`. The mobile upload path was fixed
+in (1). `properties/[id]/page.tsx`'s unread `jobsError` was deliberately **left alone** — branch
+`claude/ecstatic-germain-23d9e9` owns that file and editing it here would conflict; the Timeline
+row-dropping is already fixed by their date change.
+
+**4. The 72 red tests were never the pricing refactor.** Diagnosed rather than landed or shelved.
+Four files carried `vi.mock('@mintenance/shared', …)` factories that predate the tiered-pricing work
+and therefore omit its new `PLATFORM_FEE_RATE_BY_TIER` export — a mock factory must return every
+export its consumers import, so `feature-access-config` threw at import time. The fifth,
+`InvoiceManagementClient.test.tsx`, was failing for a completely unrelated pre-existing reason: the
+component calls `useConfirm()` and the test rendered it outside `ConfirmDialogProvider`. Both files
+there are unmodified at HEAD, so that failure predates all the uncommitted work. Production code was
+coherent throughout.
+
+**Web suite: 2683 passed / 0 failed (236 files), exit 0** — green for the first time in this
+session, up from 2485 at the last audit. tsc exit 0 on both apps; eslint 0 errors.
+
+**Still open:** the mobile upload has not been watched on a physical device (evidence it was broken
+is conclusive and the replacement matches a route known to work, but nobody has seen bytes land from
+a phone); raw `req.json()` on team/tenants; the add/edit property form's four discarded fields;
+`units` RLS owner lockout; the two recurring tables' conflicting frequency vocabularies.
+
+### 2026-07-26 — property-feature audit (4 agents) + compliance/bulk remediation
+
+**Scope:** Full property-feature audit via 4 parallel agents — web API routes (security-expert), web
+property UI, mobile property/assessment (mobile-developer), and the live DB via Supabase MCP (21
+property tables, RLS/FK/CHECK/buckets/advisors). Findings recorded in memory
+`project_property_features_audit_2026_07_26.md`.
+
+**Headline finding (fixed in a parallel session):** `building_assessments` SELECT policy carried a
+`user_id IS NULL` disjunct, exposing 474/495 shadow-mode AI assessment rows to **anon** via
+PostgREST. Reproduced live with the anon key, then closed (policy scoped `TO authenticated`, dead
+wrong-column join and over-broad `job_photos_metadata` contractor branch removed). Live-only fix —
+**no repo migration file exists yet; the source `.sql` migrations still describe the old policy.**
+
+**Shipped this session (property/compliance only):**
+
+| Area                           | Change                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Compliance API                 | `POST /api/properties/[id]/compliance` had **zero** validation — raw body destructure. Added `./schema.ts` (`.strict()` Zod, 9-value `cert_type` enum matching the live CHECK, http(s)-only `document_url`, issued≤expiry).                                                                                                                                                                            |
+| Compliance API                 | Fixed the data-integrity bug the schema exposed: unparseable `expiry_date` → `NaN` day-math → cert stored `status: 'valid'`. Calendar dates now round-trip-validated (`Date.parse` alone lets `2026-02-31` roll over to 3 Mar).                                                                                                                                                                        |
+| Compliance UI                  | **The web had no working way to create a certificate at all** — the dashboard's only affordance linked to `/api/.../compliance?action=upload`, a JSON endpoint with no such handler; no client anywhere POSTed to it (consistent with 0 live rows). Added `CertificateFormModal.tsx` + wired the tile button to it.                                                                                    |
+| Bulk operations                | `BulkOperations.tsx` read `data.data` but `GET /api/properties` returns `{ properties }` → `.filter` threw into a swallowed `.catch`, so the Agency-tier bulk-post feature could never list properties. Fixed the response shape.                                                                                                                                                                      |
+| Tests                          | New `compliance/__tests__/compliance-schema.test.ts` — 14 tests, all pass.                                                                                                                                                                                                                                                                                                                             |
+| Docs                           | Corrected two stale punch-list entries (items 17 and 20 below).                                                                                                                                                                                                                                                                                                                                        |
+| **Anon-report retention (DB)** | Migration `20260726115252` — `anonymous_report_tokens.property_id` → nullable + `ON DELETE SET NULL`. Closes the transitive wipe (property → token CASCADE → report CASCADE) that survived the 2026-05-21 retention pass.                                                                                                                                                                              |
+| Public report form             | `/api/report/[token]` GET + POST now treat a property-less token as deactivated (410), since the token deliberately outlives its property. GET also hardened against the array-vs-object join shape.                                                                                                                                                                                                   |
+| Tier gates                     | `recurring-maintenance` PATCH and `report-token` PATCH gained the `requireLandlordTier` check that only POST carried — a downgraded landlord could re-arm schedules / re-activate tenant links forever. **Gated on the re-activation direction only** (`is_active === true`); switching OFF and DELETE stay open to every tier so a downgraded user is never trapped with automation they cannot stop. |
+
+**Why `anonymous_report_tokens.property_id` and not `anonymous_reports.token_id`:**
+`anonymous_reports` RLS resolves the landlord _exclusively_ through
+`token_id → anonymous_report_tokens.owner_id` (there is no owner column on the report), and the
+landlord list/detail queries join `anonymous_report_tokens!inner`. Nulling the report's token link
+would have retained the rows as **admin-only orphans**. Keeping the token alive retains them _and_
+keeps them readable by the owner.
+
+**Retention proof (live, seeded + rolled back):** inserted property → token → report, deleted the
+property, then observed `report_rows_surviving=1`, `token_rows_surviving=1`,
+`token.property_id=NULL`, `report.token_id` intact, and the owner-scoped RLS predicate still `true`.
+Transaction rolled back; verified 0 leaked rows and `properties` still at 10.
+
+The delete-guard blocker on anonymous reports was **kept, not removed** — retention no longer needs
+it, but the report's property linkage still nulls out, so blocking preserves attribution for a
+landlord with several properties. Its comment and 409 message were corrected (both described the
+now-fixed cascade). Relaxing it is a safe follow-up if property deletion should just proceed.
+
+**Verification:** `tsc --noEmit -p apps/web` exit 0; `eslint` 0 errors on all changed files (2
+warnings pre-existing at HEAD — `Clock` / `ComplianceCert` unused, 1 occurrence each at HEAD and in
+the working tree); new schema suite 14/14.
+
+**Full web suite: 2584 passed / 72 failed (233 files).** The 72 failures are **not from this work**
+— all 5 failing files are escrow/payments/invoices (`escrow-lifecycle`, `payment-flow`,
+`release-escrow-helpers`, `contractor-invoice-pay`, `InvoiceManagementClient`), zero mention of
+property or compliance. They trace to an in-flight, uncommitted platform-fee refactor already in the
+tree at session start (new `packages/shared/src/pricing/platform-fees.ts` + modified
+`FeeCalculator.ts`, `feature-access-config.ts`, `subscriptions/status/route.ts`); the failing tests
+exercise `FeeCalculationService` and assert tiered-pricing behaviour. **Left untouched — someone
+else's in-flight work, but the suite is red until it lands.**
+
+**Still open from this audit:** `assessment-photos` bucket is public (mobile depends on
+`getPublicUrl`, so flipping it needs a coordinated signed-URL change); mobile wizard/quick-AI photo
+uploads still use the RN direct-to-storage path the walkthrough code says "never landed bytes" on
+Hermes (needs an on-device test); raw `req.json()` on team/tenants and the non-gated fields of
+recurring-maintenance/report-token; `units` RLS locks out non-org owners (latent, 0 rows); the two
+recurring tables still disagree on their frequency CHECK vocabularies.
+
+**Tier-gate coverage — CLOSED (follow-up commit).** The earlier note here claimed no harness existed
+to extend. That was wrong, and based on too narrow a grep (tier-helper mocks, and imports of a
+_properties_ route specifically). `__tests__/api/routes/` in fact holds a well-established
+route-handler pattern (`bid-accept`, `bid-reject`, `confirm-completion`, `contractor-invoice-pay`…):
+`vi.hoisted()` mocks for `@/lib/auth`, `@/lib/csrf`, `@/lib/rate-limiter` and `serverSupabase`, with
+`withApiHandler` left to run for real and params passed as `{ params: Promise.resolve({...}) }`.
+
+New `__tests__/api/routes/property-tier-gates.test.ts` (9 tests) builds on it and pins both halves
+of the contract on each route: Free tier + `is_active: true` → 402 with the right `feature` key;
+Free tier + `is_active: false` → 200 **and the gate never consulted**; Landlord → 200 with
+`hasFeatureAccess` called as `(feature, 'homeowner', tier)`; admin → 200 with the tier lookup never
+performed; `DELETE` → 200, ungated.
+
+`hasFeatureAccess` is mocked rather than run for real, deliberately: the tier→feature matrix is a
+separate concern and `lib/feature-access-config.ts` is mid-rework by the tiered-pricing change, so
+binding these tests to it would make them fail on someone else's WIP. What is asserted is that the
+_route_ consults the gate on re-activation and skips it otherwise.
+
+**Mutation-checked:** restoring the pre-fix handlers from `HEAD~1` makes exactly 4 of the 9 fail
+(both "blocks" cases and both "gate consulted" cases); restoring the fix makes them pass again — so
+the tests detect the regression rather than passing vacuously. A first draft of the DELETE case
+_did_ pass vacuously: it sent `scheduleId` in the body, but that handler reads it from the query
+string, so the route 400'd and `not.toBe(402)` was trivially true. It now sends the query param and
+asserts an exact 200; every other `not.toBe(402)` was likewise tightened to an exact status.
+
+Suite after: **2593 passed / 72 failed** — +9 tests, the same 5 unrelated escrow/payment files
+failing as before.
+
 ### 2026-06-06 — mobile backend schema-alignment audit + dead-code removal
 
 **Scope:** Audited the mobile app's backend (web API routes it calls + its direct-Supabase reads)
@@ -526,17 +781,29 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
 16. **P2**: 8 auth routes use raw `x-forwarded-for` in logging (not enforcement). Replace with
     `getClientIp()` for consistency.
 17. **P2**: 6 orphan mobile screens unclear reachability (HelpCenter, ServiceRequest, ServiceAreas,
-    PerformanceDashboard, MeetingDetails, PropertyAssessment) — wire into nav or delete.
+    PerformanceDashboard, MeetingDetails, ~~PropertyAssessment~~) — wire into nav or delete.
+    _(2026-07-26: `PropertyAssessment` is NOT an orphan — registered in `ProfileNavigator.tsx:241`
+    and reached from `PropertyDetailScreen.tsx:723` behind the `canRunAssessment` capability. The
+    other five were not re-checked.)_
 18. **P2**: No `turbo.json` — CI build uses manual npm workspace ordering, no caching.
 19. **P3 (deferred)**: PostGIS schema move (Option A accepted — functions patched, extension stays
     in `public`), mobile TLS cert pinning (runbook in `docs/MOBILE_CERT_PINNING_RUNBOOK.md`),
     SQLCipher for `mintenance_local.db`, CSP nonce rollout (scaffold ready behind `ENABLE_CSP_NONCE`
     flag), Sentry `beforeSend` scrub on mobile, Job type snake_case/camelCase consolidation
     (PKG-P1-4).
-20. **P2 (NEW 2026-05-10)**: `compliance_certificates.property_id` FK is `ON DELETE CASCADE`. UK
+20. ~~**P2 (NEW 2026-05-10)**: `compliance_certificates.property_id` FK is `ON DELETE CASCADE`. UK
     landlords legally must retain gas safety certs ≥ 2 yr and EICRs ≥ 5 yr — a property delete
     currently wipes those records. Same concern for `property_tenants` and `anonymous_reports`. Fix
-    is `ON DELETE SET NULL` (with nullable `property_id`) or app-layer guard.
+    is `ON DELETE SET NULL` (with nullable `property_id`) or app-layer guard.~~ **RESOLVED —
+    verified live 2026-07-26.** `compliance_certificates.property_id`,
+    `property_tenants.property_id` and `anonymous_reports.property_id` are all `ON DELETE SET NULL`
+    on the live DB (migrations `20260521103335`, `20260521104934`, `20260521150000`), plus an
+    app-layer guard in `apps/web/app/api/properties/[id]/route.ts` that 409-blocks delete on active
+    jobs / open tickets / anonymous reports. **One gap remains (still P2):**
+    `anonymous_report_tokens.property_id` is `CASCADE` and `anonymous_reports.token_id` is
+    `CASCADE`, so a property delete still wipes anonymous reports _transitively_ through the token
+    chain. Note also that SET-NULL'd rows become invisible to owner-scoped RLS (retained but
+    unreachable outside service role) — retention is satisfied, retrieval is not.
 
 ### 2026-04-23 — Full-Stack Re-Audit (live-DB + every page/route/screen)
 

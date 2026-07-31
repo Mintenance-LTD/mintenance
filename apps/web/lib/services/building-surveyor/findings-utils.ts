@@ -34,6 +34,11 @@ interface RawFinding {
   probableCause?: string;
   confidence?: number;
   isPrimary?: boolean;
+  /** Walkthrough frame provenance; absent on single-photo assessments. */
+  sourceFrameIndex?: number;
+  sourceFrameIndexes?: number[];
+  isClear?: boolean;
+  unconfirmed?: boolean;
 }
 
 interface SingularFallback {
@@ -78,6 +83,15 @@ export function normalizeFindings(
           ? f.confidence
           : (fallback.confidence ?? 0),
       isPrimary: f.isPrimary,
+      // Walkthrough provenance. This mapper rebuilds findings field by field,
+      // so anything not named here is dropped — the frame identity stamped on
+      // during the cross-frame merge has to be carried through explicitly or
+      // the UI loses the ability to show which picture a claim came from.
+      // Undefined for single-photo assessments.
+      sourceFrameIndex: f.sourceFrameIndex,
+      sourceFrameIndexes: f.sourceFrameIndexes,
+      isClear: f.isClear,
+      unconfirmed: f.unconfirmed,
     }));
 
   // No findings array — synthesise one from the singular fields.

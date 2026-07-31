@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSilverMode } from '../../hooks/useSilverMode';
 import { me } from '../../design-system/mint-editorial';
+import { MintScreenBackBar } from '../../components/shared';
 
 export const AccessibilitySettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -32,32 +33,32 @@ export const AccessibilitySettingsScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
-    >
-      <View style={styles.section}>
-        <View style={styles.rowTop}>
-          <View style={styles.rowLabelGroup}>
-            <Text style={styles.rowTitle}>Silver mode</Text>
-            <Text style={styles.rowDesc}>
-              Larger fonts and bigger taps across key flows. Best if you find
-              the standard layout hard to read or hit.
-            </Text>
+    <View style={styles.container}>
+      <MintScreenBackBar title='Accessibility' fallbackScreen='ProfileMain' />
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}>
+        <View style={styles.section}>
+          <View style={styles.rowTop}>
+            <View style={styles.rowLabelGroup}>
+              <Text style={styles.rowTitle}>Silver mode</Text>
+              <Text style={styles.rowDesc}>
+                Larger fonts and bigger taps across key flows. Best if you find
+                the standard layout hard to read or hit.
+              </Text>
+            </View>
+            <Switch
+              value={silverMode}
+              onValueChange={() => {
+                void toggle();
+              }}
+              trackColor={{
+                false: me.line,
+                true: me.brand,
+              }}
+            />
           </View>
-          <Switch
-            value={silverMode}
-            onValueChange={() => {
-              void toggle();
-            }}
-            trackColor={{
-              false: me.line,
-              true: me.brand,
-            }}
-          />
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 

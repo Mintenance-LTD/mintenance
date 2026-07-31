@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 export interface ContractorProfile {
   first_name: string | null;
@@ -86,6 +87,7 @@ export function useContractData(jobId: string, userRole: string) {
   const [rejectReason, setRejectReason] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { csrfToken } = useCSRF();
+  const confirm = useConfirm();
 
   const fetchContract = useCallback(async () => {
     setLoading(true);
@@ -171,12 +173,13 @@ export function useContractData(jobId: string, userRole: string) {
 
   const handleDeleteContract = async () => {
     if (!contract || isDeleting) return;
-    if (
-      !confirm(
-        'Are you sure you want to delete this contract? This cannot be undone.'
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: 'Delete this contract?',
+      description: 'This cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     setIsDeleting(true);
     setError(null);
     try {

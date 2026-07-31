@@ -3,7 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
 import {
-  getIdempotencyKeyFromRequest,
+  getDeterministicIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
   releaseIdempotencyClaim,
@@ -52,12 +52,16 @@ export const POST = withApiHandler(
     // Get MFA token from header if present
     const mfaToken = request.headers.get('x-mfa-token');
 
-    // Idempotency check - prevent duplicate refunds (with distributed locking)
-    const idempotencyKey = getIdempotencyKeyFromRequest(
+    // Idempotency check - prevent duplicate refunds (with distributed locking).
+    // Audit 2026-07-27: deterministic header-less fallback so double-taps
+    // dedupe without client cooperation. The requested amount is part of the
+    // identity so a legitimately distinct second PARTIAL refund (different
+    // amount, same escrow) within the 24h TTL is not swallowed by the cache.
+    const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
       request,
       'refund_payment',
       user.id,
-      escrowTransactionId
+      `${escrowTransactionId}:${typeof amount === 'number' ? amount : 'full'}`
     );
 
     // Use distributed locking for idempotency check

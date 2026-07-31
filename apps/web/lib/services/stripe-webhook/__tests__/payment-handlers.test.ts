@@ -34,6 +34,7 @@ function buildChain(overrides?: {
     'upsert',
     'eq',
     'neq',
+    'in',
     'or',
     'order',
     'limit',
@@ -89,6 +90,7 @@ import {
   handlePaymentIntentCanceled,
   handleChargeRefunded,
 } from '../payment-handlers';
+import { handleChargeFailed } from '../charge-handlers';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -245,6 +247,9 @@ describe('handlePaymentIntentFailed', () => {
         id: ESCROW_ID,
         job_id: JOB_ID,
         payer_id: VALID_UUID,
+        // Pre-money state: the out-of-order guard allows the failed
+        // transition only from pending/failed/canceled.
+        status: 'pending',
       },
     });
     mockFrom.mockReturnValue(chain);
@@ -285,7 +290,12 @@ describe('handlePaymentIntentFailed', () => {
 
   it('does not notify when no homeowner ID', async () => {
     const chain = buildChain({
-      singleData: { id: ESCROW_ID, job_id: JOB_ID, payer_id: null },
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        payer_id: null,
+        status: 'pending',
+      },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -302,7 +312,7 @@ describe('handlePaymentIntentCanceled', () => {
   beforeEach(() => {
     mockNotify = vi.fn().mockResolvedValue(undefined);
     const chain = buildChain({
-      singleData: { id: ESCROW_ID, job_id: JOB_ID },
+      singleData: { id: ESCROW_ID, job_id: JOB_ID, status: 'pending' },
     });
     mockFrom.mockReturnValue(chain);
   });
@@ -380,6 +390,26 @@ describe('handleChargeRefunded', () => {
     expect(mockFrom).not.toHaveBeenCalledWith('escrow_transactions');
   });
 
+  it('out-of-order: a LATE payment_intent.succeeded after refund must not resurrect the escrow', async () => {
+    // Refund landed first (charge.refunded), then a delayed/replayed
+    // payment_intent.succeeded arrives. The succeeded handler's
+    // TERMINAL_OR_RELEASING guard must ignore it — otherwise a refunded
+    // escrow flips back to 'held' and becomes releasable a second time.
+    const chain = buildChain({
+      singleData: { id: ESCROW_ID, job_id: JOB_ID, status: 'refunded' },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    const mockNotify2 = vi.fn().mockResolvedValue(undefined);
+    await handlePaymentIntentSucceeded(makePaymentIntent(), mockNotify2);
+
+    expect(chain.update).not.toHaveBeenCalled();
+    expect(mockLoggerWarn).toHaveBeenCalledWith(
+      'Ignoring payment_intent.succeeded for escrow already past held',
+      expect.objectContaining({ currentStatus: 'refunded' })
+    );
+  });
+
   it('handles refund record failure gracefully', async () => {
     // First call returns escrow, but we need upsert to throw for refunds table
     let callCount = 0;
@@ -412,5 +442,131 @@ describe('handleChargeRefunded', () => {
       expect.any(Error),
       expect.objectContaining({ chargeId: 'ch_test_123' })
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Out-of-order event guards (depth audit 2026-07-27)
+//
+// Stripe delivers webhooks at-least-once with NO ordering guarantee. Once an
+// escrow holds (or has released) real money, stale failure/cancellation
+// events must be inert. Before 2026-07-27 only payment_intent.succeeded was
+// guarded — a delayed `canceled` could flip a funded escrow to 'canceled'.
+// ---------------------------------------------------------------------------
+describe('out-of-order event guards', () => {
+  let mockNotify: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    mockNotify = vi.fn().mockResolvedValue(undefined);
+  });
+
+  function chainWithStatus(status: string) {
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        payer_id: VALID_UUID,
+        status,
+      },
+    });
+    mockFrom.mockReturnValue(chain);
+    return chain;
+  }
+
+  const MONEY_STATES = [
+    'held',
+    'release_pending',
+    'completed',
+    'refunded',
+    'disputed',
+  ];
+
+  for (const state of MONEY_STATES) {
+    it(`late payment_intent.payment_failed is IGNORED when escrow is '${state}'`, async () => {
+      const chain = chainWithStatus(state);
+      await handlePaymentIntentFailed(makePaymentIntent(), mockNotify);
+
+      expect(chain.update).not.toHaveBeenCalled();
+      expect(mockNotify).not.toHaveBeenCalled();
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        expect.stringContaining('out-of-order guard'),
+        expect.objectContaining({ currentStatus: state })
+      );
+    });
+
+    it(`late payment_intent.canceled is IGNORED when escrow is '${state}'`, async () => {
+      const chain = chainWithStatus(state);
+      await handlePaymentIntentCanceled(makePaymentIntent(), mockNotify);
+
+      expect(chain.update).not.toHaveBeenCalled();
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        expect.stringContaining('out-of-order guard'),
+        expect.objectContaining({ currentStatus: state })
+      );
+    });
+  }
+
+  it("late charge.failed is IGNORED when escrow is 'completed'", async () => {
+    const chain = chainWithStatus('completed');
+    await handleChargeFailed(makeCharge(), mockNotify);
+
+    expect(chain.update).not.toHaveBeenCalled();
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("charge.failed still applies from 'pending' (legitimate failure ordering)", async () => {
+    const chain = chainWithStatus('pending');
+    await handleChargeFailed(makeCharge(), mockNotify);
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed' })
+    );
+    expect(mockNotify).toHaveBeenCalledWith(
+      VALID_UUID,
+      'Payment Failed',
+      expect.any(String),
+      'payment_failed'
+    );
+  });
+
+  it("redelivered payment_intent.payment_failed on an already-'failed' escrow is idempotent (no crash, no guard trip)", async () => {
+    const chain = chainWithStatus('failed');
+    await handlePaymentIntentFailed(makePaymentIntent(), mockNotify);
+
+    // Same-state reapplication is allowed — harmless, keeps retries green.
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed' })
+    );
+  });
+
+  it('write-time re-assertion: the failed-update itself carries the pre-money status filter', async () => {
+    const chain = chainWithStatus('pending');
+    await handlePaymentIntentFailed(makePaymentIntent(), mockNotify);
+
+    // .in('status', PRE_MONEY_STATUSES) closes the lookup→update race window
+    // against a concurrent payment_intent.succeeded.
+    expect(chain.in).toHaveBeenCalledWith(
+      'status',
+      expect.arrayContaining(['pending'])
+    );
+  });
+
+  it('guard lookup error → escrow untouched, metadata fallback still marks the job', async () => {
+    const chain = buildChain({ singleError: { message: 'lookup timeout' } });
+    mockFrom.mockReturnValue(chain);
+
+    await handlePaymentIntentFailed(
+      makePaymentIntent({
+        metadata: { jobId: JOB_ID, homeownerId: VALID_UUID },
+      }),
+      mockNotify
+    );
+
+    // Escrow status must NOT be rewritten blind when its state is unknown…
+    expect(chain.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed' })
+    );
+    // …but the job-level payment_status fallback (metadata-driven) still runs.
+    expect(mockFrom).toHaveBeenCalledWith('jobs');
   });
 });

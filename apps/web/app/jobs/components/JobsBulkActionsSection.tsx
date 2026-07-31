@@ -6,6 +6,7 @@ import { BulkActionsBar } from './BulkActionsBar';
 import { ConfirmationModal } from './ConfirmationModal';
 import { logger } from '@/lib/logger';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import toast from 'react-hot-toast';
 
 interface ProcessedJob {
   id: string;
@@ -58,7 +59,7 @@ export function JobsBulkActionsSection({
       window.location.reload();
     } catch (error) {
       logger.error('Error archiving jobs', error);
-      alert('Failed to archive some jobs. Please try again.');
+      toast.error('Failed to archive some jobs. Please try again.');
     } finally {
       setBulkActionLoading(false);
       onCancelSelection();
@@ -103,7 +104,7 @@ export function JobsBulkActionsSection({
       URL.revokeObjectURL(url);
     } catch (error) {
       logger.error('Error exporting jobs', error);
-      alert('Failed to export jobs. Please try again.');
+      toast.error('Failed to export jobs. Please try again.');
     } finally {
       setBulkActionLoading(false);
     }
@@ -129,7 +130,7 @@ export function JobsBulkActionsSection({
       window.location.reload();
     } catch (error) {
       logger.error('Error deleting jobs', error);
-      alert('Failed to delete some jobs. Please try again.');
+      toast.error('Failed to delete some jobs. Please try again.');
     } finally {
       setBulkActionLoading(false);
       setShowDeleteModal(false);

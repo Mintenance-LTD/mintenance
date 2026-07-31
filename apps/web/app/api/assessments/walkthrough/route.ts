@@ -5,9 +5,20 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { checkAICostBudget } from '@/lib/ai/cost-budget';
+import { isSupportedImage } from '@/lib/api/image-signature';
+import { signAssessmentPath } from '@/lib/api/assessment-storage';
 import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurveyorConfig';
 import { authorizeAssessmentAnchors } from '@/app/api/building-surveyor/assess/_anchor-authorization';
 import { assessWalkthrough } from '@/lib/services/building-surveyor/video/walkthrough-assessment';
+import { withPropertyAge } from './property-age';
+import { ImageQualityService } from '@/lib/services/building-surveyor/ImageQualityService';
+import {
+  selectAssessableFrames,
+  describeExclusions,
+  type FrameQualityMetrics,
+} from '@/lib/services/building-surveyor/video/frame-quality';
+import { clampAbstainedAssessment } from '@/lib/services/building-surveyor/abstention-clamp';
+import { verifyWalkthroughFindings } from '@/lib/services/building-surveyor/video/verify-findings';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 import {
   persistWalkthroughRow,
@@ -25,33 +36,8 @@ const MAX_FRAMES = 20; // cost ceiling: 20 GPT-4o vision calls per walkthrough
 const MAX_FRAME_BYTES = 8 * 1024 * 1024; // 8MB/frame — a keyframe is well under this
 const FRAME_BUCKET = 'assessment-photos';
 
-// Leading-byte signatures for the image formats a phone keyframe can be.
-// Frames are stored under image/jpeg, but iOS may hand us HEIC and some
-// pipelines PNG/WebP — accept real images, reject anything else so the
-// public bucket can't be stuffed with junk under a forced content-type.
-function isSupportedImage(buf: Buffer): boolean {
-  if (buf.length < 12) return false;
-  // JPEG  FF D8 FF
-  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true;
-  // PNG   89 50 4E 47
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47)
-    return true;
-  // WebP  "RIFF"…"WEBP"
-  if (
-    buf.toString('ascii', 0, 4) === 'RIFF' &&
-    buf.toString('ascii', 8, 12) === 'WEBP'
-  )
-    return true;
-  // HEIC/HEIF  …."ftyp"<brand>
-  if (
-    buf.toString('ascii', 4, 8) === 'ftyp' &&
-    ['heic', 'heix', 'hevc', 'heif', 'mif1', 'msf1'].includes(
-      buf.toString('ascii', 8, 12)
-    )
-  )
-    return true;
-  return false;
-}
+// isSupportedImage now lives in @/lib/api/image-signature so the assessment
+// photo-upload route enforces exactly the same signature check.
 
 const SERVICE = 'assessment-walkthrough';
 
@@ -142,9 +128,47 @@ export const POST = withApiHandler(
       service: 'assessment-walkthrough',
     });
 
+    // The room arrives in client-supplied context, so it is a claim, not an
+    // anchor. Persisting it unchecked would let anyone file a survey against
+    // another property's room. Only a room that genuinely belongs to the
+    // property we just authorised is kept; anything else is dropped and the
+    // assessment stays property-scoped.
+    let roomId: string | undefined;
+    const claimedRoomId = context?.room?.id;
+    if (claimedRoomId && propertyId) {
+      const { data: room } = await serverSupabase
+        .from('property_rooms')
+        .select('id')
+        .eq('id', claimedRoomId)
+        .eq('property_id', propertyId)
+        .maybeSingle();
+
+      if (room?.id) {
+        roomId = room.id;
+      } else {
+        logger.warn('Walkthrough room ignored — not part of this property', {
+          service: SERVICE,
+          propertyId,
+          claimedRoomId,
+          userId: user.id,
+        });
+      }
+    }
+
+    // Tell the surveyor how old the building is.
+    //
+    // The phone sends only { room }, so every walkthrough was assessed with no
+    // idea of the property's age — and a kitchen built this year was reported as
+    // having established mould and structural movement. The age is read from
+    // properties.year_built here rather than accepted from the client for the
+    // same reason the room is verified: a claim that changes the diagnosis has
+    // to come from the server. Any client-supplied age/type is discarded.
+    const surveyContext = await withPropertyAge(context, propertyId);
+
     // Upload the frames server-side (service role → no client storage RLS).
     const folderId = `${propertyId ?? jobId}-${Date.now()}`;
-    const frameUrls = await uploadFramesToStorage(files, folderId);
+    const { urls: frameUrls, quality: frameQuality } =
+      await uploadFramesToStorage(files, folderId);
     if (frameUrls.length < MIN_FRAMES) {
       logger.error('Walkthrough frame upload failed server-side', {
         service: SERVICE,
@@ -163,9 +187,38 @@ export const POST = withApiHandler(
       .update([...frameUrls].sort().join('|'))
       .digest('hex');
 
+    // Leave the unassessable frames out of the fan-out. A motion-blurred smear
+    // or a near-black ceiling is not a neutral vote: asked to report every
+    // defect it can see, the model will find something in the noise. Each skip
+    // also saves a vision call.
+    const selection = selectAssessableFrames(frameQuality, MIN_FRAMES);
+    if (selection.excluded.length > 0) {
+      logger.info('Walkthrough frames excluded on quality', {
+        service: SERVICE,
+        total: frameUrls.length,
+        excluded: selection.excluded,
+        degraded: selection.degraded,
+        // Logged in full so the provisional thresholds in frame-quality.ts can
+        // be tuned against real walkthroughs instead of guessed at again.
+        metrics: frameQuality.map((q, i) => ({
+          index: i,
+          imageClarity: q?.imageClarity ?? null,
+          averageBrightness: q?.averageBrightness ?? null,
+          lightingQuality: q?.lightingQuality ?? null,
+        })),
+      });
+    }
+
     // Fan out across frames and merge into one property survey.
-    const { assessment, perFrameAssessments, frameCount, framesAssessed } =
-      await assessWalkthrough(frameUrls, context);
+    const {
+      assessment,
+      perFrameAssessments,
+      frameCount,
+      framesAssessed,
+      framesSkippedForQuality,
+    } = await assessWalkthrough(frameUrls, surveyContext, {
+      skipFrames: selection.skip,
+    });
 
     if (!assessment || perFrameAssessments.length === 0) {
       logger.warn('Walkthrough produced no usable frame assessment', {
@@ -184,33 +237,83 @@ export const POST = withApiHandler(
       );
     }
 
+    // Optional second look: ask the model whether it can point at the evidence
+    // behind each finding, and drop the ones it cannot. Off unless
+    // WALKTHROUGH_VERIFY_PASS=true. Orchestration lives in verify-findings.ts
+    // beside its own rules — see there for the safety rails.
+    const verified = await verifyWalkthroughFindings({
+      assessment,
+      frameUrls,
+      openaiApiKey: getConfig().openaiApiKey,
+    });
+
+    // Too few frames were assessable to be selective, so everything was
+    // assessed — including material the model cannot read. Say so on the survey
+    // rather than presenting it as if the footage were fine. The abstention
+    // clamp then caps what it may assert off that evidence, and leaves any
+    // genuinely dangerous finding alone.
+    const surveyed = selection.degraded
+      ? clampAbstainedAssessment({
+          ...verified,
+          needsOnsiteInspection: true,
+          onsiteInspectionReason: [
+            verified.onsiteInspectionReason,
+            `Most frames were unusable (${describeExclusions(selection.excluded)}), so this survey rests on poor footage.`,
+          ]
+            .filter(Boolean)
+            .join(' '),
+        })
+      : verified;
+
     const assessmentId = await persistWalkthroughRow({
       userId: user.id,
       jobId,
       propertyId,
+      roomId,
       domain,
       cacheKey,
-      assessment,
+      assessment: surveyed,
     });
     if (!assessmentId) {
       throw new Error('Failed to persist walkthrough assessment');
     }
 
-    // Save the frame images against the row (best-effort).
-    try {
-      await serverSupabase.from('assessment_images').insert(
+    // Link the frames to the row. Still non-fatal — the survey itself is worth
+    // keeping — but no longer silent.
+    //
+    // 2026-07-28: this failed on EVERY walkthrough and nobody could tell.
+    // assessment_images_image_index_check capped image_index at < 4 (inherited
+    // from the 4-photo assessment flow) while a walkthrough inserts up to 20
+    // frames in ONE statement, so the whole batch failed atomically. Worse, the
+    // try/catch below could never have reported it: supabase-js returns
+    // `{ error }` rather than throwing, and the return value was discarded, so
+    // the catch never fired and not even a warning was written. Production
+    // ended up with 53 frames in the bucket and zero rows here — which is why
+    // a finding could not show the image it came from. The constraint is fixed
+    // in migration 20260728…; this makes the next failure visible.
+    const { error: imgErr } = await serverSupabase
+      .from('assessment_images')
+      .insert(
         frameUrls.map((url, index) => ({
           assessment_id: assessmentId,
           image_url: url,
           image_index: index,
         }))
       );
-    } catch (imgErr) {
-      logger.warn('Failed to save walkthrough frame images', {
-        service: SERVICE,
-        assessmentId,
-        error: imgErr instanceof Error ? imgErr.message : String(imgErr),
-      });
+
+    if (imgErr) {
+      logger.error(
+        'Failed to link walkthrough frames to the assessment',
+        new Error(imgErr.message),
+        {
+          service: SERVICE,
+          assessmentId,
+          frameCount: frameUrls.length,
+          code: imgErr.code,
+          // Without these rows the survey renders with no source images.
+          impact: 'assessment saved without its frames',
+        }
+      );
     }
 
     // Training corpus (per-frame) + ONE lead-frame student shadow, after().
@@ -227,30 +330,56 @@ export const POST = withApiHandler(
       assessmentId,
       frameCount,
       framesAssessed,
-      findings: assessment.findings?.length ?? 0,
-      primaryDamage: assessment.damageAssessment.damageType,
+      findings: surveyed.findings?.length ?? 0,
+      primaryDamage: surveyed.damageAssessment.damageType,
+      framesSkippedForQuality,
+      degradedFootage: selection.degraded,
     });
 
     return NextResponse.json({
-      ...assessment,
+      // `surveyed`, not `assessment` — the client must see the same survey that
+      // was persisted, including the degraded-footage flag and its clamp.
+      ...surveyed,
       assessmentId,
       frameCount,
       framesAssessed,
+      framesSkippedForQuality,
+      // The stored frames, in index order. Findings carry a sourceFrameIndex
+      // into this array, which is how the result screen can show the picture a
+      // claim was made from without a second round trip.
+      frameUrls,
     });
   }
 );
 
 /**
- * Upload keyframe files to the public assessment-photos bucket under quick-ai/.
+ * Upload keyframe files to the assessment-photos bucket under quick-ai/.
  * Runs with the service role, so client-side storage RLS is not involved. A
  * frame that fails to store is logged and skipped (a bad frame must not sink
- * the walk); the surviving public URLs are returned in order.
+ * the walk); the surviving URLs are returned in order.
+ *
+ * The bucket went private in migration 20260726135946, so these are signed
+ * URLs. They are persisted into assessment_images as well as consumed by the
+ * vision call, so they take the long default TTL; read paths re-sign via
+ * resignAssessmentUrls rather than trusting a stored URL forever.
  */
+interface StoredFrames {
+  urls: string[];
+  /**
+   * Quality metrics per STORED frame, aligned index-for-index with `urls`.
+   * Aligned with urls rather than with `files` because a skipped file never
+   * becomes a frame, and everything downstream — assessment_images.image_index,
+   * sourceFrameIndex — is positional against `urls`.
+   */
+  quality: (FrameQualityMetrics | null)[];
+}
+
 async function uploadFramesToStorage(
   files: File[],
   folderId: string
-): Promise<string[]> {
+): Promise<StoredFrames> {
   const urls: string[] = [];
+  const quality: (FrameQualityMetrics | null)[] = [];
   for (let i = 0; i < files.length; i++) {
     try {
       const file = files[i]!;
@@ -289,10 +418,35 @@ async function uploadFramesToStorage(
         });
         continue;
       }
-      const { data } = serverSupabase.storage
-        .from(FRAME_BUCKET)
-        .getPublicUrl(path);
-      urls.push(data.publicUrl);
+      const signed = await signAssessmentPath(path);
+      if (!signed) {
+        logger.warn('Walkthrough frame could not be signed', {
+          service: SERVICE,
+          index: i,
+        });
+        continue;
+      }
+      urls.push(signed);
+
+      // Measured from the buffer already in hand — no refetch. Failure here is
+      // never fatal: a missing measurement means the frame is assessed as
+      // normal, since an absent metric is not evidence of a bad frame.
+      let metrics: FrameQualityMetrics | null = null;
+      try {
+        const m = await ImageQualityService.computeQualityFromImageData(buffer);
+        metrics = {
+          imageClarity: m.imageClarity,
+          lightingQuality: m.lightingQuality,
+          averageBrightness: m.averageBrightness,
+        };
+      } catch (qErr) {
+        logger.warn('Frame quality measurement failed — frame kept', {
+          service: SERVICE,
+          index: i,
+          error: qErr instanceof Error ? qErr.message : String(qErr),
+        });
+      }
+      quality.push(metrics);
     } catch (err) {
       logger.warn('Walkthrough frame store error', {
         service: SERVICE,
@@ -301,5 +455,5 @@ async function uploadFramesToStorage(
       });
     }
   }
-  return urls;
+  return { urls, quality };
 }

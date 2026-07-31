@@ -336,6 +336,33 @@ describe('RegisterScreen', () => {
     });
   });
 
+  it('forwards the step-3 phone number into signUp when provided', async () => {
+    // 2026-07-26 audit: the wizard->signUp phone hand-off had no test
+    // (and WizardStep3Contact's header wrongly claimed it didn't exist).
+    // profiles.phone comes from this value via the handle_new_user
+    // trigger, and PhoneVerificationModal prefills from it.
+    const mockSignUp = jest.fn().mockResolvedValue({});
+    renderAuth({ signUp: mockSignUp });
+
+    const utils = render(<RegisterScreen />);
+    const { getByTestId, getByText } = utils;
+
+    await fillThroughToStep3(utils, { role: 'homeowner' });
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId('phone-input'), ' 07984 596545 ');
+    });
+    await act(async () => {
+      fireEvent.press(getByText('Create Account'));
+    });
+
+    await waitFor(() => {
+      expect(mockSignUp).toHaveBeenCalledWith(
+        expect.objectContaining({ phone: '07984 596545' })
+      );
+    });
+  });
+
   it('navigates to EmailVerificationPending after successful registration', async () => {
     const mockSignUp = jest.fn().mockResolvedValue({});
     renderAuth({ signUp: mockSignUp });

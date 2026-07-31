@@ -9,6 +9,7 @@
  * mirror of the resolveCoordinates fallback pattern.
  */
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 
 export interface JobRow {
@@ -22,11 +23,21 @@ export interface JobRow {
   latitude: number | null;
   longitude: number | null;
   created_at: string | null;
+  /** Free-text address; feeds the discover match score's city check. */
+  location: string | null;
+  /** Legacy homeowner-posting photo URLs stored directly on the job row. */
+  photos: string[] | null;
   // Supabase types FK joins as an array even on many-to-one
   // relationships, so accept both shapes and normalise in the route.
   homeowner:
     | { first_name: string | null }
     | Array<{ first_name: string | null }>
+    | null;
+  /** Existence only — drives the "AI Assessed" badge on the client. */
+  building_assessments: { id: string }[] | null;
+  /** Homeowner-posting attachments; images feed the map card thumbnail. */
+  job_attachments:
+    | { file_url: string | null; file_type: string | null }[]
     | null;
 }
 
@@ -61,6 +72,47 @@ export function toNum(v: unknown): number | null {
   if (v == null) return null;
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+export interface JobThumbnail {
+  /** Freshly signed URL for the job's first photo, null when photo-less. */
+  photoUrl: string | null;
+  /** Total posting photos, so the card can show a "1/4" chip. */
+  photoCount: number;
+}
+
+/**
+ * Resolve one thumbnail per job for the explore-map card (2026-07-26).
+ *
+ * Same source-preference order as the web discover feed
+ * (`app/contractor/discover/page.tsx`): the legacy `jobs.photos` array
+ * wins, falling back to image-typed `job_attachments`. Only the FIRST
+ * photo is signed — the map card shows a single thumbnail, and signing
+ * all photos of 50 jobs would multiply storage round-trips for URLs
+ * nobody renders. `resignJobStorageUrls` is called per-row with a
+ * 1-element array (not one batched call) because it drops nulls, which
+ * would misalign a batched result with its input rows.
+ */
+export async function resolveJobThumbnails(
+  rows: Pick<JobRow, 'id' | 'photos' | 'job_attachments'>[]
+): Promise<Map<string, JobThumbnail>> {
+  const byJobId = new Map<string, JobThumbnail>();
+  await Promise.all(
+    rows.map(async (row) => {
+      const attachmentImages = (row.job_attachments ?? [])
+        .filter((a) => a.file_type === 'image' && a.file_url)
+        .map((a) => a.file_url as string);
+      const legacyPhotos = (row.photos ?? []).filter(Boolean);
+      const rawPhotos =
+        legacyPhotos.length > 0 ? legacyPhotos : attachmentImages;
+      const first = rawPhotos[0] ?? null;
+      const signed = first
+        ? ((await resignJobStorageUrls([first]))[0] ?? null)
+        : null;
+      byJobId.set(row.id, { photoUrl: signed, photoCount: rawPhotos.length });
+    })
+  );
+  return byJobId;
 }
 
 interface GeoJobIdRow {

@@ -104,10 +104,45 @@ const ERA_RISK_FLAGS: Array<{
 ];
 
 /**
+ * Age below which a property is treated as a new build.
+ *
+ * Covers the drying-out and snagging period: a new dwelling sheds construction
+ * moisture for roughly its first two heating seasons, so damp readings and
+ * hairline shrinkage cracks are EXPECTED here and mean something quite
+ * different from the same observation on a 60-year-old house.
+ */
+const NEW_BUILD_MAX_AGE_YEARS = 2;
+
+/**
+ * Guidance for a property young enough that most pathology is implausible.
+ *
+ * This exists because a real survey reported mould and structural movement in a
+ * kitchen built the same year — the model had no idea how old the building was
+ * (see the walkthrough route, which now supplies it from properties.year_built).
+ */
+function getNewBuildGuidance(ageOfProperty: number): string {
+  return `\n\nPROPERTY AGE: NEW BUILD (~${ageOfProperty} year${ageOfProperty === 1 ? '' : 's'} old)
+This building is brand new. That is strong evidence about what you are and are not looking at:
+- EXPECTED and NOT defects: hairline shrinkage cracking at plasterboard joints, ceiling/wall junctions and around openings; slightly elevated moisture as construction water dries out; nail pops; minor settlement cracks under 1mm; snagging-level finish blemishes. Report these as early / condition 1 at most, and say they are consistent with a new build drying out.
+- IMPLAUSIBLE without unmistakable evidence: established mould colonies, rising damp, penetrating damp with a tide line, timber decay, structural subsidence, perished masonry, failed DPC. Do NOT report any of these from a tonal difference, a shadow or a soft gradient. If you believe you can see one, name the specific visible evidence (defined edge, colour shift, spore texture, displacement of a straight reference) in "description" — and if you cannot name it, do not raise the finding.
+- Workmanship and compliance defects ARE plausible and worth reporting: missing seals, unfinished trims, misaligned doors or windows that visibly fail against a straight reference, exposed fixings, services left unprotected.
+- A brand-new building with nothing wrong is a normal and correct survey outcome. Do not manufacture a defect to fill the report.`;
+}
+
+/**
  * Get era-specific risk warnings based on approximate property age in years.
  */
 function getEraRiskWarnings(ageOfProperty?: number): string {
-  if (!ageOfProperty || ageOfProperty <= 0) return '';
+  // 0 is a real age, not a missing value — a property built this year. The old
+  // `!ageOfProperty` guard treated it as unknown and returned nothing, which
+  // silently withheld age context for precisely the newest buildings.
+  if (typeof ageOfProperty !== 'number' || !Number.isFinite(ageOfProperty)) {
+    return '';
+  }
+  if (ageOfProperty < 0) return '';
+  if (ageOfProperty <= NEW_BUILD_MAX_AGE_YEARS) {
+    return getNewBuildGuidance(ageOfProperty);
+  }
 
   const matchingEras = ERA_RISK_FLAGS.filter(
     (era) =>
@@ -264,6 +299,29 @@ READ THE WHOLE SCENE (do not tunnel-vision on one defect):
 - Set the top-level "ricsConditionRating" to the WORST conditionRating across all findings (a scene is only as good as its most serious defect).
 - If you genuinely see only one defect, return a single-element "findings" array — that is fine.
 
+LIGHT IS NOT A DEFECT (the commonest false positive):
+- Interior photographs are full of soft tonal gradients that are not damage. Before reporting discoloration, staining, damp or mould, ask whether what you are seeing is simply LIGHT.
+- Treat as lighting, not a defect, unless there is corroborating evidence: a soft gradient darkening toward a corner, ceiling or wall edge; a fade running away from a window, lamp or light fitting; the shadow cast by a curtain, rail, pelmet, door or piece of furniture; an even grey cast over a whole surface in a dim room; camera vignetting at the frame edge.
+- Real damp/mould staining has a defined EDGE, an irregular or tide-line shaped boundary, a colour shift (brown, yellow, grey-green speckling) rather than a pure light-to-dark ramp, and it does not move with the light source. Say which of these you can actually see.
+- The same applies to shape: a ceiling looks lower near the camera because of perspective. Do not report sagging, bowing or misalignment from a single oblique angle unless a straight reference (a rail, a shadow gap, a door frame, a tile line) visibly deviates.
+- A brand-new or recently decorated interior is a strong prior AGAINST damp, mould and structural movement. Weigh it.
+- If you cannot tell shadow from stain, that is an inconclusive finding, not a defect: say so in "description", set confidence below 40, and do not raise conditionRating above 1 on that basis alone.
+
+NORMAL BUILDING FEATURES ARE NOT DEFECTS:
+- Much of what a building is MEANT to look like reads as a defect if you are hunting for one. Before reporting, ask whether this is simply how the building was built.
+- Deliberate features, not damage: the shadow gap or expansion joint where a wall meets a ceiling or skirting; movement joints in masonry; trickle vents, air bricks and weep holes; service penetrations and sealed cable entries; pipe boxing and bulkheads (which are not bowing walls); coving and cornice shadow lines (which are not cracks); door and window frame reveals.
+- UK domestic norms, not faults: a socket near a kitchen counter is normal and compliant — it is where appliances plug in — and only a concern if it sits within about 300mm of a sink or tap, which a photograph usually cannot establish. Radiators under windows, extract fans, consumer units in cupboards, boxed-in soil pipes and exposed service runs in a garage or loft are all normal. Do not report a code concern you cannot actually measure from the image; if the geometry is the whole question, that is an inconclusive finding.
+- Work in progress is not a defect: fresh filler, mist coats, unfinished trims, protective film, a room mid-decoration. Say so in "sceneSummary" instead of reporting damage.
+
+SURFACES, MATERIALS AND OBJECTS:
+- Finish is not failure: textured or stipple paint and Artex are not cracking; grout and mortar joints are not mould; a feature wall or a deliberately dark paint is not staining; timber grain, knots and colour variation are not rot; stone and quartz veining is not a crack; new plaster drying unevenly is not damp.
+- Contents are not the building. Furniture, appliances, worktop clutter, pictures, rugs, curtains, laundry, a laptop — none of these are elements to assess, and none of their shadows or reflections are defects. A reflection in glass, a mirror or a glossy tile is not a crack or water.
+- Judge the ELEMENT, not what is standing in front of it. If contents obscure the element, say the view was obstructed rather than reporting what you imagine behind it.
+
+YOU CANNOT MEASURE FROM A PHOTOGRAPH:
+- Crack severity depends on width, and RICS distinguishes a sub-1mm hairline from a 5mm-plus structural crack. A photo with no scale reference does not tell you which. Do not assign a severity that depends on a measurement you do not have: describe what you see, name the range it could be, and say a width check is needed.
+- The same applies to depth, extent behind a surface, and moisture content. Moisture is measured with a meter, never inferred from colour alone.
+
 WHEN PHOTOS ARE INSUFFICIENT (the surveyor's honesty rule):
 - If blur, distance, lighting, or a hidden cause prevents a reliable diagnosis, set "needsOnsiteInspection": true, explain in "onsiteInspectionReason", set confidence below 40, and set "taxonomyClassId": null
 - Never guess a specific defect to avoid an inconclusive answer — name candidate classes in "description" instead
@@ -322,13 +380,30 @@ export function buildUserPrompt(
     prompt += `Property Type: ${sanitisePromptInput(context.propertyType, 100)}\n`;
   }
 
-  if (context?.ageOfProperty) {
+  // Numeric check, not truthiness: age 0 is a property built this year, and the
+  // previous `if (context?.ageOfProperty)` dropped it — so the newest buildings,
+  // where age matters most, were the ones that never had it stated.
+  if (
+    typeof context?.ageOfProperty === 'number' &&
+    Number.isFinite(context.ageOfProperty) &&
+    context.ageOfProperty >= 0
+  ) {
     const age = String(context.ageOfProperty).replace(/[^\d.]/g, '');
-    prompt += `Property Age: ${age} years\n`;
+    prompt += `Property Age: ${age} years${
+      context.ageOfProperty === 0 ? ' (built this year — new build)' : ''
+    }\n`;
   }
 
   if (context?.propertyDetails) {
     prompt += `Additional Context: ${sanitisePromptInput(context.propertyDetails, 500)}\n`;
+  }
+
+  if (context?.walkthroughFrame) {
+    const { index, total } = context.walkthroughFrame;
+    prompt += `\nThis is frame ${index + 1} of ${total} from a video walkthrough of the SAME space. The other frames cover the same elements from other angles and distances, and every frame's findings are merged afterwards.
+- Report only what THIS frame shows clearly. A marginal call is better left to a frame that sees it better — it is not your last chance to catch a defect.
+- Do not report a defect to be thorough. A defect that appears in only one frame of ${total} is treated as unconfirmed, so a guess here weakens the survey rather than strengthening it.
+- If this frame shows nothing wrong, returning an empty or clean findings array is the correct answer.\n`;
   }
 
   if (!hasMachineEvidence) {

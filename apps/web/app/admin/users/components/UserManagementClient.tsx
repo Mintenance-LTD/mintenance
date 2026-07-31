@@ -184,7 +184,7 @@ export function UserManagementClient({
   ) => {
     if (selectedUserIds.size === 0) return;
     if (action === 'reject' && !reason?.trim()) {
-      alert('Reason is required when rejecting verifications');
+      toast.error('Reason is required when rejecting verifications');
       return;
     }
     setBulkActionLoading(true);
@@ -255,7 +255,7 @@ export function UserManagementClient({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       logger.error('Error exporting users:', error);
-      alert('Failed to export users');
+      toast.error('Failed to export users');
     }
   };
 

@@ -473,4 +473,220 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
       expect.objectContaining({ jobId: 'job-1' })
     );
   });
+
+  // =========================================================================
+  // Depth: the confirm-completion → escrow-auto-release cron HANDOFF
+  // (audit 2026-07-27)
+  //
+  // The route does NOT release money itself. Its entire contract with the
+  // cron (EscrowAutoReleaseService) is a field stamp on the held escrow row:
+  //   status STAYS 'held'  +  auto_release_enabled=true  +
+  //   auto_release_date=now  +  homeowner_approval=true
+  // The cron's predicate filters on exactly those fields. If the stamp
+  // drifts (or starts flipping status), funds park forever — the 2026-05-13
+  // "funds stuck in limbo" incident. These tests pin the stamp.
+  // =========================================================================
+  describe('handoff to escrow-auto-release cron', () => {
+    function setupHandoffMocks(opts: {
+      escrowData?: Record<string, unknown> | null;
+      photoCount?: number;
+      jobUpdates?: Array<Record<string, unknown>>;
+      escrowUpdates?: Array<Record<string, unknown>>;
+    }) {
+      const escrowResult = {
+        data:
+          opts.escrowData === undefined
+            ? { id: 'escrow-1', status: 'held', amount: 25000 }
+            : opts.escrowData,
+        error: null,
+      };
+      mocks.supabaseFrom.mockImplementation((table: string) => {
+        if (table === 'jobs') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: completedJob, error: null }),
+              }),
+            }),
+            update: vi.fn().mockImplementation((payload) => {
+              opts.jobUpdates?.push(payload as Record<string, unknown>);
+              return { eq: vi.fn().mockResolvedValue({ error: null }) };
+            }),
+          };
+        }
+        if (table === 'escrow_transactions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue(escrowResult),
+                  }),
+                }),
+                in: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue(escrowResult),
+                  }),
+                }),
+              }),
+            }),
+            update: vi.fn().mockImplementation((payload) => {
+              opts.escrowUpdates?.push(payload as Record<string, unknown>);
+              return { eq: vi.fn().mockResolvedValue({ error: null }) };
+            }),
+          };
+        }
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    email: 'test@test.com',
+                    first_name: 'Test',
+                    last_name: 'User',
+                    company_name: 'Test Co',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === 'job_photos_metadata') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  count: opts.photoCount ?? 3,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+        };
+      });
+    }
+
+    it('stamps the held escrow with EXACTLY the cron-pickup fields and does NOT flip status', async () => {
+      const escrowUpdates: Array<Record<string, unknown>> = [];
+      const jobUpdates: Array<Record<string, unknown>> = [];
+      setupHandoffMocks({ escrowUpdates, jobUpdates });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/confirm-completion'
+        ),
+        segmentData('job-1')
+      );
+      expect(res.status).toBe(200);
+
+      expect(escrowUpdates).toHaveLength(1);
+      const stamp = escrowUpdates[0];
+      // The cron predicate: status='held' AND auto_release_enabled AND
+      // auto_release_date <= now. The stamp must satisfy it…
+      expect(stamp.auto_release_enabled).toBe(true);
+      expect(typeof stamp.auto_release_date).toBe('string');
+      expect(
+        new Date(stamp.auto_release_date as string).getTime()
+      ).toBeLessThanOrEqual(Date.now() + 1000);
+      expect(stamp.homeowner_approval).toBe(true);
+      expect(stamp.homeowner_inspection_completed).toBe(true);
+      expect(stamp.release_reason).toBe('homeowner_approved');
+      // …and must NOT touch status: 'held' is what the cron claims via CAS.
+      expect(stamp).not.toHaveProperty('status');
+
+      // Job flag: confirmation timestamp, and completed_at NOT overwritten
+      // (contractor-declared vs homeowner-approved are distinct events).
+      const jobStamp = jobUpdates.find(
+        (u) => u.completion_confirmed_by_homeowner === true
+      );
+      expect(jobStamp).toBeDefined();
+      expect(typeof jobStamp!.completion_confirmed_at).toBe('string');
+      expect(jobStamp).not.toHaveProperty('completed_at');
+    });
+
+    it('escrow already release_pending → succeeds WITHOUT re-stamping (cron already processing)', async () => {
+      const escrowUpdates: Array<Record<string, unknown>> = [];
+      setupHandoffMocks({
+        escrowData: {
+          id: 'escrow-1',
+          status: 'release_pending',
+          amount: 25000,
+        },
+        escrowUpdates,
+      });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/confirm-completion'
+        ),
+        segmentData('job-1')
+      );
+      expect(res.status).toBe(200);
+      expect(escrowUpdates).toHaveLength(0);
+    });
+
+    it('escrow in a terminal state → 400 BEFORE mutating the job (recoverable for the homeowner)', async () => {
+      const jobUpdates: Array<Record<string, unknown>> = [];
+      setupHandoffMocks({
+        escrowData: { id: 'escrow-1', status: 'completed', amount: 25000 },
+        jobUpdates,
+      });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/confirm-completion'
+        ),
+        segmentData('job-1')
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.message).toContain('completed');
+      // The pre-flight gate must fire before the confirmation flag is set —
+      // otherwise the homeowner can never retry (the "already confirmed"
+      // guard would block them forever).
+      expect(jobUpdates).toHaveLength(0);
+    });
+
+    it('no escrow row at all → 400 with no job mutation', async () => {
+      const jobUpdates: Array<Record<string, unknown>> = [];
+      setupHandoffMocks({ escrowData: null, jobUpdates });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/confirm-completion'
+        ),
+        segmentData('job-1')
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.message).toContain('No payment record');
+      expect(jobUpdates).toHaveLength(0);
+    });
+
+    it('no after-photos → 400 BEFORE the confirmation write (photo gate precedes mutation)', async () => {
+      const jobUpdates: Array<Record<string, unknown>> = [];
+      const escrowUpdates: Array<Record<string, unknown>> = [];
+      setupHandoffMocks({ photoCount: 0, jobUpdates, escrowUpdates });
+
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/confirm-completion'
+        ),
+        segmentData('job-1')
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.message).toContain('after-photos');
+      expect(jobUpdates).toHaveLength(0);
+      expect(escrowUpdates).toHaveLength(0);
+    });
+  });
 });

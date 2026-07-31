@@ -118,6 +118,7 @@ jest.mock('../../utils/logger', () => ({
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
+  canGoBack: jest.fn(() => true),
   setOptions: jest.fn(),
   getParent: jest.fn(() => ({ navigate: jest.fn() })),
 };

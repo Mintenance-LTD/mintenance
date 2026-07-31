@@ -12,6 +12,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { isPhoneVerificationWaivedFor } from '@/lib/services/verification/EarlyAccessCohort';
 
 /**
  * Zod schema for profile update validation.
@@ -94,7 +95,18 @@ export const GET = withApiHandler(
       throw error;
     }
 
-    return NextResponse.json({ profile });
+    // `phoneVerificationRequired` tells clients whether the gate
+    // actually applies to THIS user. Cohort membership depends on
+    // signup order, so no client can work it out locally — and native
+    // clients get the answer without an EAS rebuild. Older builds that
+    // ignore the field just nudge about a gate that no longer blocks
+    // them, which is cosmetic rather than a dead end.
+    const phoneVerificationRequired =
+      profile.role === 'homeowner' &&
+      !profile.phone_verified &&
+      !(await isPhoneVerificationWaivedFor(profile));
+
+    return NextResponse.json({ profile, phoneVerificationRequired });
   }
 );
 

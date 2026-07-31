@@ -9,7 +9,7 @@
  *   - parses the multipart body (400 if it isn't multipart),
  *   - requires an anchor (propertyId | jobId) and 2..20 frames,
  *   - authorizes the anchor via authorizeAssessmentAnchors (throws Forbidden),
- *   - uploads each frame to the `assessment-photos` bucket with the service
+ *   - uploads each frame to the private `assessment-photos` bucket with the service
  *     role, SKIPPING oversize (>8MB) or non-image (magic-byte) frames
  *     (SEC-002 hardening) — surviving < MIN_FRAMES -> 502,
  *   - fans the surviving frame URLs through the VLM (assessWalkthrough),
@@ -34,7 +34,7 @@ const mocks = vi.hoisted(() => ({
   rateLimiterCheckRateLimit: vi.fn(),
   supabaseFrom: vi.fn(),
   storageUpload: vi.fn(),
-  storageGetPublicUrl: vi.fn(),
+  storageCreateSignedUrl: vi.fn(),
   authorizeAssessmentAnchors: vi.fn(),
   checkAICostBudget: vi.fn(),
   assessWalkthrough: vi.fn(),
@@ -57,8 +57,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     storage: {
       from: () => ({
         upload: (...args: unknown[]) => mocks.storageUpload(...args),
-        getPublicUrl: (...args: unknown[]) =>
-          mocks.storageGetPublicUrl(...args),
+        // The bucket went private in 20260726135946, so the route signs each
+        // stored frame instead of reading back a public URL.
+        createSignedUrl: (...args: unknown[]) =>
+          mocks.storageCreateSignedUrl(...args),
       }),
     },
   },
@@ -190,7 +192,22 @@ const HOMEOWNER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const JOB_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const PROPERTY_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
-const PUBLIC_URL = 'https://storage.example/test/frame.jpg';
+const ROOM_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+
+/** What the property-scoped room lookup returns; null = not this property's. */
+let roomLookupResult: { id: string } | null = null;
+/**
+ * Stands in for the `properties` row the route reads to learn the building's
+ * age. The surveyor was previously told nothing about age, which is how a
+ * kitchen built this year came back with established mould.
+ */
+let propertyLookupResult: {
+  year_built: number | null;
+  property_type: string | null;
+} | null = { year_built: 1990, property_type: 'residential' };
+
+const SIGNED_URL =
+  'https://storage.example/storage/v1/object/sign/assessment-photos/quick-ai/x/0.jpg?token=t';
 
 const fakeAssessment = {
   damageAssessment: {
@@ -278,10 +295,38 @@ function setupDefaultMocks() {
   mocks.checkAICostBudget.mockResolvedValue({ allowed: true });
   mocks.authorizeAssessmentAnchors.mockResolvedValue(undefined);
   mocks.storageUpload.mockResolvedValue({ error: null });
-  mocks.storageGetPublicUrl.mockReturnValue({
-    data: { publicUrl: PUBLIC_URL },
+  mocks.storageCreateSignedUrl.mockResolvedValue({
+    data: { signedUrl: SIGNED_URL },
   });
   mocks.supabaseFrom.mockImplementation((table: string) => {
+    if (table === 'property_rooms') {
+      // The route looks the claimed room up scoped to the anchored property;
+      // `roomLookupResult` stands in for whether that row exists.
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: roomLookupResult,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      };
+    }
+    if (table === 'properties') {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: propertyLookupResult,
+              error: null,
+            }),
+          }),
+        }),
+      };
+    }
     if (table === 'assessment_images') {
       return { insert: vi.fn().mockResolvedValue({ error: null }) };
     }
@@ -290,8 +335,8 @@ function setupDefaultMocks() {
   mocks.assessWalkthrough.mockResolvedValue({
     assessment: fakeAssessment,
     perFrameAssessments: [
-      { url: PUBLIC_URL, assessment: fakeAssessment },
-      { url: PUBLIC_URL, assessment: fakeAssessment },
+      { url: SIGNED_URL, assessment: fakeAssessment },
+      { url: SIGNED_URL, assessment: fakeAssessment },
     ],
     frameCount: 2,
     framesAssessed: 2,
@@ -307,6 +352,8 @@ describe('POST /api/assessments/walkthrough (multipart)', () => {
   let POST: typeof import('@/app/api/assessments/walkthrough/route').POST;
 
   beforeEach(async () => {
+    roomLookupResult = null;
+    propertyLookupResult = { year_built: 1990, property_type: 'residential' };
     setupDefaultMocks();
     const mod = await import('@/app/api/assessments/walkthrough/route');
     POST = mod.POST;
@@ -406,6 +453,96 @@ describe('POST /api/assessments/walkthrough (multipart)', () => {
     );
   });
 
+  // ---- Property age reaches the surveyor ----
+  describe('property age', () => {
+    /** The context handed to assessWalkthrough on the last call. */
+    const contextArg = () =>
+      mocks.assessWalkthrough.mock.calls.at(-1)?.[1] as
+        | Record<string, unknown>
+        | undefined;
+
+    it('tells the surveyor how old the building is', async () => {
+      propertyLookupResult = { year_built: 1990, property_type: 'residential' };
+
+      const res = await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(res.status).toBe(200);
+      expect(contextArg()).toEqual(
+        expect.objectContaining({
+          ageOfProperty: expect.any(Number),
+          propertyType: 'residential',
+        })
+      );
+      expect(contextArg()?.ageOfProperty).toBeGreaterThan(30);
+    });
+
+    it('passes age 0 for a property built this year', async () => {
+      // The case that matters: a new build. 0 is a real age and must survive
+      // every falsy check between here and the prompt.
+      propertyLookupResult = {
+        year_built: new Date().getFullYear(),
+        property_type: 'residential',
+      };
+
+      await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(contextArg()?.ageOfProperty).toBe(0);
+    });
+
+    it('ignores an age the client tries to assert', async () => {
+      // An input that changes the diagnosis must come from the server, the same
+      // rule the room id follows.
+      propertyLookupResult = {
+        year_built: new Date().getFullYear(),
+        property_type: 'residential',
+      };
+
+      await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+          context: JSON.stringify({ ageOfProperty: 120 }),
+        })
+      );
+
+      expect(contextArg()?.ageOfProperty).toBe(0);
+    });
+
+    it('omits the age rather than guessing when year_built is unset', async () => {
+      propertyLookupResult = { year_built: null, property_type: 'residential' };
+
+      await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(contextArg()?.ageOfProperty).toBeUndefined();
+    });
+
+    it('still completes the walk when the property lookup finds nothing', async () => {
+      // Age is an enrichment. Losing a whole walkthrough of someone's filming
+      // because of it would be the wrong trade.
+      propertyLookupResult = null;
+
+      const res = await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(res.status).toBe(200);
+      expect(contextArg()?.ageOfProperty).toBeUndefined();
+    });
+  });
+
   // ---- Authorization failure propagates ----
   it('propagates 403 when the anchor is not authorized and does not upload or persist', async () => {
     const { ForbiddenError } = await import('@/lib/errors/api-error');
@@ -492,5 +629,58 @@ describe('POST /api/assessments/walkthrough (multipart)', () => {
     );
     expect(res.status).toBe(500);
     expect(mocks.scheduleWalkthroughTraining).not.toHaveBeenCalled();
+  });
+
+  // ---- Room anchor ----
+  //
+  // The room arrives inside client-supplied `context`, so it is a claim rather
+  // than an anchor: the route must confirm it belongs to the property it just
+  // authorised before persisting it. Otherwise anyone could file a survey
+  // against a room of someone else's property.
+  describe('room anchor', () => {
+    const withRoom = (roomId: string) =>
+      multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+        propertyId: PROPERTY_ID,
+        context: JSON.stringify({ room: { id: roomId, name: 'Kitchen' } }),
+      });
+
+    it('persists a room that belongs to the anchored property', async () => {
+      roomLookupResult = { id: ROOM_ID };
+
+      const res = await POST(withRoom(ROOM_ID));
+
+      expect(res.status).toBe(200);
+      expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
+        expect.objectContaining({ propertyId: PROPERTY_ID, roomId: ROOM_ID })
+      );
+    });
+
+    it('drops a room that belongs to a different property', async () => {
+      // The scoped lookup finds nothing — the claimed room is not this
+      // property's.
+      roomLookupResult = null;
+
+      const res = await POST(withRoom(ROOM_ID));
+
+      // The survey still succeeds, just property-scoped rather than rejected.
+      expect(res.status).toBe(200);
+      expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
+        expect.objectContaining({ roomId: undefined })
+      );
+      expect(mocks.logger.warn).toHaveBeenCalled();
+    });
+
+    it('stays property-scoped when no room is claimed', async () => {
+      const res = await POST(
+        multipartRequest([jpegFile(), jpegFile('g.jpg')], {
+          propertyId: PROPERTY_ID,
+        })
+      );
+
+      expect(res.status).toBe(200);
+      expect(mocks.persistWalkthroughRow).toHaveBeenCalledWith(
+        expect.objectContaining({ roomId: undefined })
+      );
+    });
   });
 });
