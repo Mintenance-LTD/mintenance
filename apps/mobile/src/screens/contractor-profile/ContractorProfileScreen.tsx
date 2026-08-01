@@ -23,6 +23,7 @@ import { useContractorProfileViewModel } from './viewmodels/ContractorProfileVie
 import {
   ProfileHeader,
   ProfileStats,
+  ProfilePerformance,
   ProfileActionButtons,
   PhotoGallery,
   ReviewsList,
@@ -188,6 +189,15 @@ export const ContractorProfileScreen: React.FC<
           jobsCompleted={viewModel.contractor.jobsCompleted}
           rating={viewModel.contractor.rating}
           reviewCount={viewModel.contractor.reviews}
+        />
+
+        {/* Performance signals — web parity (2026-07-31 audit P2-3) */}
+        <ProfilePerformance
+          responseTime={viewModel.contractor.responseTime}
+          onTimeCompletion={viewModel.contractor.onTimeCompletion}
+          repeatCustomers={viewModel.contractor.repeatCustomers}
+          yearsExperience={viewModel.contractor.yearsExperience}
+          jobsCompleted={viewModel.contractor.jobsCompleted}
         />
 
         {/* Primary CTA + secondary actions */}
