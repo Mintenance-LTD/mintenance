@@ -32,11 +32,29 @@ export interface FrameQualityMetrics {
 }
 
 /**
- * Sharpness floor. imageClarity is laplacianVariance/2000 clamped, so 0.10 is a
- * variance of ~200 — the service's own comment puts "blurry" under 100 and
- * "sharp" over 1000, so this sits deliberately close to the blurry end.
+ * Sharpness floor. imageClarity is laplacianVariance/2000 clamped.
+ *
+ * RETUNED 2026-08-01 from measured production frames after the first value
+ * (0.10, variance ~200) flagged EVERY frame of three real walkthroughs as too
+ * blurry — stamping each survey "rests on poor footage" and clamping its
+ * confidence, on footage that was perfectly sharp.
+ *
+ * The original figure trusted ImageQualityService's own comment ("blurry"
+ * under variance 100, "sharp" over 1000), which turns out to be calibrated for
+ * detail-rich scenes. Interior walkthrough frames are mostly smooth painted
+ * walls — barely any edges for the Laplacian to see — so SHARP frames measure
+ * tiny. Two frames from a real 1080x1920 walk, measured with the exact
+ * production maths:
+ *
+ *   frame0: brightness 0.550, variance 72.4, clarity 0.036   (sharp)
+ *   frame5: brightness 0.508, variance 34.0, clarity 0.017   (sharp)
+ *
+ * The floor now sits at variance 10 (clarity 0.005) — half the sharpest-wall
+ * baseline's own floor — so only a near-featureless smear fails. That keeps the
+ * gate's one honest job (a frame with nothing in it must not vote) while a
+ * frame of a flat wall, which is most of every room, always passes.
  */
-export const MIN_IMAGE_CLARITY = 0.1;
+export const MIN_IMAGE_CLARITY = 0.005;
 
 /** Below this the frame is essentially black; there is nothing in it to survey. */
 export const MIN_AVERAGE_BRIGHTNESS = 0.08;
