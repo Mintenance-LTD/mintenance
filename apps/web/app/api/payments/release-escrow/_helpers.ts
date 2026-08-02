@@ -246,15 +246,26 @@ export async function notifyAndEmailContractor(
 
   // Email notification (non-blocking)
   try {
+    // 2026-08-02 (select-schema audit): profiles has no `full_name` — the
+    // real columns are first_name/last_name (+ company_name). The old
+    // select failed WHOLESALE at PostgREST, so contractorProfile was
+    // always null and the payment-released email was silently never
+    // sent to the contractor.
     const { data: contractorProfile } = await serverSupabase
       .from('profiles')
-      .select('email, full_name')
+      .select('email, first_name, last_name, company_name')
       .eq('id', job.contractor_id)
       .single();
 
     if (contractorProfile?.email) {
+      const contractorName =
+        contractorProfile.company_name ||
+        [contractorProfile.first_name, contractorProfile.last_name]
+          .filter(Boolean)
+          .join(' ') ||
+        'Contractor';
       await EmailService.sendPaymentReleasedEmail(contractorProfile.email, {
-        contractorName: contractorProfile.full_name ?? 'Contractor',
+        contractorName,
         jobTitle: job.title,
         amount: amountPounds,
         transactionId: escrowTransactionId,

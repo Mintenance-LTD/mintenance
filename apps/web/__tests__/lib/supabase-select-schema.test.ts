@@ -230,19 +230,7 @@ function collectEmbeddedSelects(): Embedded[] {
  * migration may never have been applied. DELETE entries as they are fixed —
  * the test fails if a listed entry stops appearing, so the list cannot rot.
  */
-const KNOWN_BROKEN_FLAT_COLUMNS: readonly string[] = [
-  'bids.homeowner_id',
-  'jobs.metadata',
-  'jobs.total_amount',
-  'profiles.background_check_completed_at',
-  'profiles.background_check_id',
-  'profiles.background_check_provider',
-  'profiles.background_check_result',
-  'profiles.full_name',
-  'profiles.payout_speed_hours',
-  'profiles.payout_tier',
-  'properties.built_year',
-];
+const KNOWN_BROKEN_FLAT_COLUMNS: readonly string[] = [];
 
 /** `.from('table')` followed by `.select('…')` before any other `.from(`. */
 const FROM_RE = /\.from\(\s*'([a-z_]+)'\s*\)/g;

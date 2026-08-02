@@ -128,63 +128,11 @@ export class PaymentEnforcement {
     };
   }
 
-  /**
-   * Record payment method used for a job (for tracking and analytics)
-   */
-  static async recordPaymentMethod(
-    jobId: string,
-    paymentMethod: 'platform_escrow' | 'platform_direct' | 'cash' | 'other',
-    notes?: string
-  ): Promise<boolean> {
-    try {
-      // Update job metadata with payment method
-      const { data: job } = await serverSupabase
-        .from('jobs')
-        .select('metadata')
-        .eq('id', jobId)
-        .single();
-
-      const metadata = (job?.metadata as Record<string, unknown>) || {};
-
-      metadata.payment_method = paymentMethod;
-      metadata.payment_method_recorded_at = new Date().toISOString();
-      if (notes) {
-        metadata.payment_method_notes = notes;
-      }
-
-      const { error } = await serverSupabase
-        .from('jobs')
-        .update({ metadata })
-        .eq('id', jobId);
-
-      if (error) {
-        logger.error('Failed to record payment method', {
-          service: 'PaymentEnforcement',
-          jobId,
-          error: error.message,
-        });
-        return false;
-      }
-
-      // Log cash payments for monitoring
-      if (paymentMethod === 'cash') {
-        logger.warn('Cash payment recorded for job', {
-          service: 'PaymentEnforcement',
-          jobId,
-          notes,
-        });
-      }
-
-      return true;
-    } catch (err) {
-      logger.error('Error recording payment method', {
-        service: 'PaymentEnforcement',
-        jobId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      return false;
-    }
-  }
+  // recordPaymentMethod was deleted 2026-08-02 (select-schema audit): it
+  // read/wrote jobs.metadata, a column that does not exist, and had ZERO
+  // callers — dead code whose only possible behavior was to fail. If
+  // payment-method tracking is ever wanted, jobs needs a real column (or
+  // a dedicated table) first.
 
   /**
    * Get payment terms text for contracts
