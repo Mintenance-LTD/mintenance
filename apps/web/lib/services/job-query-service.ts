@@ -57,6 +57,12 @@ type JobRow = {
   location?: string | null;
   latitude?: number | string | null;
   longitude?: number | string | null;
+  property_id?: string | null;
+  property?: {
+    id: string;
+    address_line1: string | null;
+    city: string | null;
+  } | null;
   created_at: string;
   updated_at: string;
   archived_at?: string | null;
@@ -92,6 +98,8 @@ const jobSelectFields = `
   created_at,
   updated_at,
   archived_at,
+  property_id,
+  property:properties!property_id(id,address_line1,city),
   homeowner:profiles!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:profiles!contractor_id(id,first_name,last_name,email),
   bids(count)
@@ -116,6 +124,9 @@ const mapRowToJobSummary = (
   location?: string;
   bidCount?: number;
   archived_at?: string | null;
+  property_id?: string;
+  /** Short label for the job's property ("1 peveril road, Stafford"). */
+  propertyLabel?: string;
 } => ({
   id: row.id,
   title: row.title,
@@ -140,6 +151,12 @@ const mapRowToJobSummary = (
   location: row.location ?? undefined,
   bidCount: row.bids?.[0]?.count ?? 0,
   archived_at: row.archived_at ?? null,
+  property_id: row.property_id ?? undefined,
+  propertyLabel: row.property
+    ? [row.property.address_line1, row.property.city]
+        .filter(Boolean)
+        .join(', ') || undefined
+    : undefined,
 });
 
 const mapRowToJobDetail = (row: JobRow): JobDetail => ({
