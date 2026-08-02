@@ -94,6 +94,18 @@ function splitTopLevel(body: string): string[] {
 /** Aggregates and wildcards are not columns. */
 const NON_COLUMNS = new Set(['count', '*', '']);
 
+/**
+ * Strip PostgREST column aliasing: `alias:real_column` selects
+ * `real_column` and renames it. Validate the REAL column, not the alias.
+ * Also drops `::type` casts (`created_at::text`).
+ */
+function realColumn(part: string): string {
+  const afterAlias = part.includes(':')
+    ? part.slice(part.lastIndexOf(':') + 1)
+    : part;
+  return afterAlias.split('::')[0]!.trim();
+}
+
 interface Embedded {
   file: string;
   table: string;
@@ -140,7 +152,7 @@ function recordEmbed(
   for (const part of splitTopLevel(body)) {
     const parenIdx = part.indexOf('(');
     if (parenIdx === -1) {
-      const col = part.trim();
+      const col = realColumn(part);
       if (!NON_COLUMNS.has(col)) columns.push(col);
       continue;
     }
@@ -180,7 +192,130 @@ function collectEmbeddedSelects(): Embedded[] {
   return found;
 }
 
+// ---------------------------------------------------------------------------
+// Flat selects: `.from('table')` … `.select('a,b,c')`
+//
+// The DBS outage was this shape, not an embedded one. Two deliberate limits:
+//
+//  1. Only STRING-LITERAL selects are checked. `.select(jobSelectFields)` or
+//     a template literal with `${}` cannot be resolved statically, so they
+//     are skipped rather than guessed at.
+//  2. Only tables present in the snapshot are checked. Unlike embeds (7
+//     tables, so an unknown one is a real gap worth failing on), flat selects
+//     span 100+ tables; failing on every unsnapshotted one would make the
+//     suite unmaintainable. Unknown tables are counted and reported instead,
+//     so partial coverage stays visible rather than looking like a pass.
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-existing invalid columns, verified against the live schema on
+ * 2026-08-02. THESE ARE REAL BUGS, not test noise — every one of these
+ * selects fails at PostgREST, so the feature reading it cannot work.
+ * They are baselined only so this test can start guarding against NEW
+ * breakage today rather than waiting on a multi-feature fix.
+ *
+ * Known clusters:
+ *   - MFA (mfa_enabled/mfa_method/mfa_enrolled_at/totp_secret/phone_number)
+ *     read from `profiles`, which has none of them — lib/mfa/service/*,
+ *     api/auth/login, lib/payments/high-risk-checks.
+ *   - Background checks (background_check_*) — same shape as the DBS bug
+ *     fixed in d406f789b.
+ *   - Payout tiers (payout_tier/payout_speed_hours) — PayoutTierService,
+ *     PaymentEnforcement, api/payments/release-escrow.
+ *   - Assorted: profiles.full_name, jobs.total_amount, jobs.metadata,
+ *     bids.homeowner_id, properties.built_year (the real column is
+ *     `year_built` — transposed).
+ *
+ * Each needs its own fix: the data may live on another table, or a
+ * migration may never have been applied. DELETE entries as they are fixed —
+ * the test fails if a listed entry stops appearing, so the list cannot rot.
+ */
+const KNOWN_BROKEN_FLAT_COLUMNS: readonly string[] = [
+  'bids.homeowner_id',
+  'jobs.metadata',
+  'jobs.total_amount',
+  'profiles.background_check_completed_at',
+  'profiles.background_check_id',
+  'profiles.background_check_provider',
+  'profiles.background_check_result',
+  'profiles.full_name',
+  'profiles.mfa_enabled',
+  'profiles.mfa_enrolled_at',
+  'profiles.mfa_method',
+  'profiles.payout_speed_hours',
+  'profiles.payout_tier',
+  'profiles.phone_number',
+  'profiles.totp_secret',
+  'properties.built_year',
+];
+
+/** `.from('table')` followed by `.select('…')` before any other `.from(`. */
+const FROM_RE = /\.from\(\s*'([a-z_]+)'\s*\)/g;
+
+interface FlatSelect {
+  file: string;
+  table: string;
+  columns: string[];
+  raw: string;
+}
+
+function collectFlatSelects(): {
+  checked: FlatSelect[];
+  skippedNonLiteral: number;
+  skippedUnknownTable: Set<string>;
+} {
+  const checked: FlatSelect[] = [];
+  let skippedNonLiteral = 0;
+  const skippedUnknownTable = new Set<string>();
+
+  for (const root of SCAN_ROOTS) {
+    for (const file of walk(root)) {
+      const src = readFileSync(file, 'utf8');
+      if (!src.includes('.from(')) continue;
+      const rel = relative(REPO_ROOT, file).replace(/\\/g, '/');
+      FROM_RE.lastIndex = 0;
+      for (const m of src.matchAll(FROM_RE)) {
+        const table = m[1];
+        const after = src.slice(m.index! + m[0].length);
+        // The select must come before the next .from( — otherwise it belongs
+        // to a different query.
+        const nextFrom = after.search(/\.from\(/);
+        const selMatch = /\.select\(\s*(['"`])([\s\S]*?)\1/.exec(
+          nextFrom === -1 ? after : after.slice(0, nextFrom)
+        );
+        if (!selMatch) continue;
+
+        const quote = selMatch[1];
+        const body = selMatch[2];
+        // Template literal with interpolation, or a non-literal argument.
+        if (quote === '`' && body.includes('${')) {
+          skippedNonLiteral++;
+          continue;
+        }
+        if (!(table in DB_SCHEMA_SNAPSHOT)) {
+          skippedUnknownTable.add(table);
+          continue;
+        }
+        // Embedded parts inside a flat select are covered by the embed pass.
+        const columns = splitTopLevel(body)
+          .filter((p) => !p.includes('('))
+          .map(realColumn)
+          .filter((c) => !NON_COLUMNS.has(c));
+        if (columns.length === 0) continue;
+        checked.push({
+          file: rel,
+          table,
+          columns,
+          raw: `${table}.select('${body.replace(/\s+/g, ' ').trim()}')`,
+        });
+      }
+    }
+  }
+  return { checked, skippedNonLiteral, skippedUnknownTable };
+}
+
 const embeds = collectEmbeddedSelects();
+const flat = collectFlatSelects();
 
 describe('embedded Supabase selects match the live schema', () => {
   it('finds embedded selects to check (guards against the scanner silently breaking)', () => {
@@ -227,6 +362,64 @@ describe('embedded Supabase selects match the live schema', () => {
         `ENTIRE select when one embedded column is unknown, so this breaks the ` +
         `whole endpoint, not just the field.\n\n${violations.join('\n\n')}`
     ).toEqual([]);
+  });
+});
+
+describe('flat .from().select() pairs match the live schema', () => {
+  it('finds flat selects to check (guards against the scanner silently breaking)', () => {
+    expect(flat.checked.length).toBeGreaterThan(50);
+  });
+
+  it('introduces no NEW invalid columns, and shrinks the known-broken set', () => {
+    const found = [
+      ...new Set(
+        flat.checked.flatMap((s) =>
+          s.columns
+            .filter((c) => !DB_SCHEMA_SNAPSHOT[s.table]!.includes(c))
+            .map((c) => `${s.table}.${c}`)
+        )
+      ),
+    ].sort();
+
+    const added = found.filter((v) => !KNOWN_BROKEN_FLAT_COLUMNS.includes(v));
+    const fixed = KNOWN_BROKEN_FLAT_COLUMNS.filter((v) => !found.includes(v));
+
+    expect(
+      added,
+      `NEW invalid column(s) in a flat select. PostgREST rejects the whole ` +
+        `query, so the endpoint fails outright.\n` +
+        added
+          .map(
+            (v) =>
+              `  ${v}\n` +
+              flat.checked
+                .filter((s) => s.columns.some((c) => `${s.table}.${c}` === v))
+                .map((s) => `    ${s.file}\n      ${s.raw}`)
+                .join('\n')
+          )
+          .join('\n')
+    ).toEqual([]);
+
+    expect(
+      fixed,
+      `These were fixed — remove them from KNOWN_BROKEN_FLAT_COLUMNS so the ` +
+        `baseline keeps shrinking and cannot silently refill:\n  ${fixed.join('\n  ')}`
+    ).toEqual([]);
+  });
+
+  it('reports coverage so partial checking never looks like a full pass', () => {
+    // Not an assertion about correctness — a visible record of what is NOT
+    // covered, so nobody mistakes this suite for exhaustive.
+    const unknown = [...flat.skippedUnknownTable].sort();
+    // eslint-disable-next-line no-console
+    console.info(
+      `[select-schema] checked ${flat.checked.length} flat selects across ` +
+        `${Object.keys(DB_SCHEMA_SNAPSHOT).length} snapshotted tables; ` +
+        `skipped ${flat.skippedNonLiteral} non-literal selects and ` +
+        `${unknown.length} unsnapshotted tables` +
+        (unknown.length ? `: ${unknown.slice(0, 15).join(', ')}` : '')
+    );
+    expect(flat.checked.length).toBeGreaterThan(0);
   });
 });
 
