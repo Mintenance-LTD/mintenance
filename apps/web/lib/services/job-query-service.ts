@@ -60,7 +60,12 @@ type JobRow = {
   property_id?: string | null;
   property?: {
     id: string;
-    address_line1: string | null;
+    // NOTE: the live `properties` table has `address` — there is NO
+    // `address_line1` column. Selecting one broke the ENTIRE jobs query
+    // (PostgREST rejects the whole select), so every job list on web and
+    // mobile returned "Database operation failed" / 0 jobs. Verified
+    // against the live schema 2026-08-02.
+    address: string | null;
     city: string | null;
   } | null;
   created_at: string;
@@ -99,7 +104,7 @@ const jobSelectFields = `
   updated_at,
   archived_at,
   property_id,
-  property:properties!property_id(id,address_line1,city),
+  property:properties!property_id(id,address,city),
   homeowner:profiles!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:profiles!contractor_id(id,first_name,last_name,email),
   bids(count)
@@ -153,9 +158,8 @@ const mapRowToJobSummary = (
   archived_at: row.archived_at ?? null,
   property_id: row.property_id ?? undefined,
   propertyLabel: row.property
-    ? [row.property.address_line1, row.property.city]
-        .filter(Boolean)
-        .join(', ') || undefined
+    ? [row.property.address, row.property.city].filter(Boolean).join(', ') ||
+      undefined
     : undefined,
 });
 
