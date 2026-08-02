@@ -290,10 +290,25 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
     do {
       previous = result;
       result = result.replace(
-        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+        /<script\b[^<]*(?:(?!<\/script\b[^>]*>)<[^<]*)*<\/script\b[^>]*>/gi,
         ''
       );
-      result = result.replace(/<script.*?\/>/gi, '');
+
+      // Also stabilize self-closing script-like tags to avoid re-formation across replacements.
+      let previousSelfClosing: string;
+      do {
+        previousSelfClosing = result;
+        result = result.replace(/<script.*?\/>/gi, '');
+      } while (result !== previousSelfClosing);
+    } while (result !== previous);
+
+    // Defensive cleanup for malformed/partial script tag fragments that may remain
+    // after earlier replacements; repeat until stable to prevent re-formation.
+    do {
+      previous = result;
+      result = result
+        .replace(/<script\b[^>]*>/gi, '')
+        .replace(/<\/script\b[^>]*>/gi, '');
     } while (result !== previous);
 
     // Remove event handlers
@@ -320,9 +335,13 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
             let previous: string;
             do {
               previous = safeMatch;
-              safeMatch = safeMatch
-                .replace(/\s+on\w+=["'][^"']*["']/gi, '')
-                .replace(/\s+on\w+=\S*/gi, '');
+              // Neutralize event-handler attributes by removing the `on` prefix
+              // from attribute names (e.g. ` onclick=` -> ` click=`).
+              // Re-apply until stable to prevent re-emergence in malformed input.
+              safeMatch = safeMatch.replace(
+                /(\s+)on([a-z0-9_-]+)\s*=/gi,
+                '$1$2='
+              );
             } while (safeMatch !== previous);
             return safeMatch;
           }

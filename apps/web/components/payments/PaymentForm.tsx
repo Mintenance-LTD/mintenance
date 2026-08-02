@@ -152,10 +152,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   // and retries until the component unmounts (attempt resolves).
   const idempotencyKeyRef = useRef<string>('');
   if (!idempotencyKeyRef.current) {
-    const uuid =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    // Optional-chaining on a `Crypto | undefined` local, NOT `in` checks on the
+    // global: with @types/node loaded, a false `'randomUUID' in crypto` narrows
+    // the global to `never` (both lib.dom and Node's types declare randomUUID,
+    // so TS treats its absence as impossible) and the getRandomValues branch
+    // stopped compiling — which broke every production deploy from 31 Jul.
+    const c = globalThis.crypto as Crypto | undefined;
+    const uuid = c?.randomUUID
+      ? c.randomUUID()
+      : c?.getRandomValues
+        ? `${Date.now().toString(36)}${Array.from(
+            c.getRandomValues(new Uint8Array(16))
+          )
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join('')}`
+        : `${Date.now().toString(36)}fallback`;
     idempotencyKeyRef.current = `create_payment_intent:${jobId}:${uuid}`;
   }
 
