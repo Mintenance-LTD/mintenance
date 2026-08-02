@@ -241,7 +241,7 @@
     "production": {
       "android": {
         "serviceAccountKeyPath": "./credentials/play-store-service-account.json",
-        "track": "production",
+        "track": "internal",
         "releaseStatus": "draft"
       },
       "ios": {
