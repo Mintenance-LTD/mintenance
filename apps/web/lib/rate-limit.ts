@@ -176,10 +176,24 @@ export const RATE_LIMIT_CONFIGS = {
     uniqueTokenPerInterval: 5,
   },
 
-  // Payment endpoints: 10 requests per hour
+  // Payment MUTATIONS: 10 requests per hour. Deliberately tight — these
+  // move money.
   payment: {
     interval: 60 * 60 * 1000,
     uniqueTokenPerInterval: 10,
+  },
+
+  // Payment READS (e.g. listing saved cards): 30 per minute.
+  //
+  // 2026-08-02: the saved-cards GET ran on the `payment` budget above, so
+  // ten screen-loads in an hour — trivial when the screen is erroring and
+  // the user retries, or just tabbing in and out — locked them out for the
+  // rest of the hour behind "Rate limit exceeded". Reported from a device.
+  // A read that touches no money shouldn't share a mutation budget; this
+  // still bounds scraping of a user's own card list.
+  paymentRead: {
+    interval: 60 * 1000,
+    uniqueTokenPerInterval: 30,
   },
 
   // Search endpoints: 30 requests per minute

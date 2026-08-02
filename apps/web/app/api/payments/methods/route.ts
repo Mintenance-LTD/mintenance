@@ -33,7 +33,7 @@ export const GET = withApiHandler(
     // Custom payment rate limiting
     const rateLimitResult = await checkRateLimit(
       request,
-      RATE_LIMIT_CONFIGS.payment
+      RATE_LIMIT_CONFIGS.paymentRead
     );
     if (!rateLimitResult.success) {
       return rateLimitResult.response!;
@@ -71,7 +71,7 @@ export const GET = withApiHandler(
       });
       emptyResponse.headers.set(
         'X-RateLimit-Limit',
-        RATE_LIMIT_CONFIGS.payment.uniqueTokenPerInterval.toString()
+        RATE_LIMIT_CONFIGS.paymentRead.uniqueTokenPerInterval.toString()
       );
       emptyResponse.headers.set(
         'X-RateLimit-Remaining',
@@ -158,7 +158,7 @@ export const GET = withApiHandler(
 
     response.headers.set(
       'X-RateLimit-Limit',
-      RATE_LIMIT_CONFIGS.payment.uniqueTokenPerInterval.toString()
+      RATE_LIMIT_CONFIGS.paymentRead.uniqueTokenPerInterval.toString()
     );
     response.headers.set(
       'X-RateLimit-Remaining',

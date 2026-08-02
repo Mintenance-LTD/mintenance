@@ -129,6 +129,9 @@ vi.mock('@/lib/rate-limit', () => ({
   checkRateLimit: mocks.checkRateLimit,
   RATE_LIMIT_CONFIGS: {
     payment: { interval: 3600000, uniqueTokenPerInterval: 10 },
+    // Reads get their own budget — the saved-cards GET used to share the
+    // mutation limit and locked users out after 10 screen-loads an hour.
+    paymentRead: { interval: 60000, uniqueTokenPerInterval: 30 },
     api: { interval: 900000, uniqueTokenPerInterval: 100 },
     auth: { interval: 900000, uniqueTokenPerInterval: 5 },
     search: { interval: 60000, uniqueTokenPerInterval: 30 },
