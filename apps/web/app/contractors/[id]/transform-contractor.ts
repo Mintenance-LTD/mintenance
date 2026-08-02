@@ -145,3 +145,37 @@ export function transformContractorData(
       : undefined,
   };
 }
+
+/** Shape of GET /api/contractors/:id/metrics. */
+export interface ContractorMetrics {
+  winRate?: number;
+  responseTime?: string;
+  onTimeCompletion?: number;
+  repeatCustomers?: number;
+  avgProjectValue?: number;
+}
+
+/**
+ * Overlay the computed metrics onto a transformed contractor. Kept here
+ * beside the transformer (rather than inline in the client component) so
+ * the base shape and its overrides live together — and so the client stays
+ * under the 500-line cap.
+ *
+ * Mutates and returns `transformed` — callers pass a freshly transformed
+ * object, so there is no shared-reference hazard.
+ */
+export function applyContractorMetrics(
+  transformed: Contractor,
+  metrics: ContractorMetrics
+): Contractor {
+  if (metrics.onTimeCompletion !== undefined)
+    transformed.stats.onTimeCompletion = metrics.onTimeCompletion;
+  if (metrics.repeatCustomers !== undefined)
+    transformed.stats.repeatCustomers = metrics.repeatCustomers;
+  if (metrics.avgProjectValue !== undefined)
+    transformed.stats.avgProjectValue = metrics.avgProjectValue;
+  if (metrics.responseTime) transformed.responseTime = metrics.responseTime;
+  if (metrics.winRate !== undefined)
+    transformed.acceptanceRate = metrics.winRate;
+  return transformed;
+}

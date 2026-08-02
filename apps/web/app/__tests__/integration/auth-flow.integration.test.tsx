@@ -199,6 +199,15 @@ describe('Authentication Flow Integration Tests', () => {
       fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'newuser@example.com' },
       });
+      // Phone is REQUIRED for homeowners (the default role) — it backs the
+      // phone verification that POST /api/jobs enforces before a homeowner
+      // can post work. schemas-auth.ts refines on
+      // `role === 'homeowner' && !phone`, and RegisterForm only marks the
+      // field optional for contractors. Omitting it blocks submit client-side,
+      // so the register API is never called.
+      fireEvent.change(screen.getByLabelText(/phone/i), {
+        target: { value: '+447700900000' },
+      });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
         target: { value: 'SecurePass123!' },
       });
@@ -338,6 +347,10 @@ describe('Authentication Flow Integration Tests', () => {
       fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'test@example.com' },
       });
+      // Required for the default homeowner role — see the note above.
+      fireEvent.change(screen.getByLabelText(/phone/i), {
+        target: { value: '+447700900000' },
+      });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
         target: { value: 'SecurePass123!' },
       });
@@ -382,6 +395,10 @@ describe('Authentication Flow Integration Tests', () => {
       });
       fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'existing@example.com' },
+      });
+      // Required for the default homeowner role — see the note above.
+      fireEvent.change(screen.getByLabelText(/phone/i), {
+        target: { value: '+447700900000' },
       });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
         target: { value: 'SecurePass123!' },

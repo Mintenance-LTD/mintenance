@@ -83,6 +83,27 @@ describe('isFrameAssessable', () => {
     ).toBe(true);
   });
 
+  it('keeps real production frames of smooth painted walls', () => {
+    // Measured from an actual 1080x1920 walkthrough with the production maths.
+    // The first gate (0.10) failed BOTH of these — every survey got stamped
+    // "rests on poor footage" — because flat walls give the Laplacian almost
+    // nothing to see. Sharp wall footage must always pass.
+    expect(
+      isFrameAssessable({
+        imageClarity: 0.036, // frame0: variance 72.4, visibly sharp
+        lightingQuality: 0.7,
+        averageBrightness: 0.55,
+      }).assessable
+    ).toBe(true);
+    expect(
+      isFrameAssessable({
+        imageClarity: 0.017, // frame5: variance 34.0, visibly sharp
+        lightingQuality: 0.7,
+        averageBrightness: 0.508,
+      }).assessable
+    ).toBe(true);
+  });
+
   it('is unmoved by dim-but-readable lighting on its own', () => {
     // lightingQuality is recorded for tuning; only clarity and brightness
     // currently exclude, so a merely gloomy room is still surveyed.
@@ -93,8 +114,11 @@ describe('isFrameAssessable', () => {
 });
 
 describe('selectAssessableFrames', () => {
-  const blurry = { ...good, imageClarity: 0.01 };
-  const dark = { ...good, averageBrightness: 0.01 };
+  // Derived from the constants, not hardcoded: the gate was retuned once
+  // already (0.10 -> 0.005 after real frames measured 0.017-0.036), and a
+  // literal here silently becomes "sharp" the next time it moves.
+  const blurry = { ...good, imageClarity: MIN_IMAGE_CLARITY / 2 };
+  const dark = { ...good, averageBrightness: MIN_AVERAGE_BRIGHTNESS / 2 };
 
   it('skips nothing when every frame is fine', () => {
     const s = selectAssessableFrames([good, good, good], 2);

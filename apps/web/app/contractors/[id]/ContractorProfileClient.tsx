@@ -14,22 +14,11 @@ import { ContractorReviews } from './components/ContractorReviews';
 import { ContractorBookingWidget } from './components/ContractorBookingWidget';
 import { ContractorContactModal } from './components/ContractorContactModal';
 import { ContractorPortfolio } from './components/ContractorPortfolio';
+import { type Contractor } from './transform-contractor';
 import {
-  transformContractorData,
-  type Contractor,
-  type RawContractorData,
-} from './transform-contractor';
-
-interface Review {
-  id: string;
-  author: string;
-  rating: number;
-  date: string;
-  comment: string;
-  jobType: string;
-  helpful: number;
-  verified: boolean;
-}
+  fetchContractorProfile,
+  type ContractorReview as Review,
+} from './fetchContractorProfile';
 
 interface PortfolioItem {
   id: string;
@@ -95,85 +84,12 @@ function ContractorPublicProfilePage2025() {
         setLoading(true);
         setError(null);
 
-        // R7 #9 — pass ?postcode= so the API can resolve postcode-proof count.
-        // Prefer ?postcode= on the URL (from search result) → fall back to user's stored postcode.
-        const urlPostcode =
-          typeof window !== 'undefined'
-            ? new URLSearchParams(window.location.search).get('postcode') || ''
-            : '';
-        const postcodeQuery = urlPostcode
-          ? `?postcode=${encodeURIComponent(urlPostcode)}`
-          : '';
-        const [contractorResponse, reviewsResponse, metricsResponse] =
-          await Promise.all([
-            fetch(`/api/contractors/${contractorId}${postcodeQuery}`, {
-              credentials: 'include',
-            }),
-            fetch(`/api/contractors/${contractorId}/reviews`, {
-              credentials: 'include',
-            }).catch(() => null),
-            fetch(`/api/contractors/${contractorId}/metrics`, {
-              credentials: 'include',
-            }).catch(() => null),
-          ]);
+        const { contractor, reviews, portfolio } =
+          await fetchContractorProfile(contractorId);
 
-        if (!contractorResponse.ok) {
-          throw new Error(
-            `Failed to fetch contractor (${contractorResponse.status})`
-          );
-        }
-
-        const contractorData = await contractorResponse.json();
-        const rawContractor = contractorData.contractor as RawContractorData;
-        if (!rawContractor)
-          throw new Error('Contractor data not found in response');
-
-        let reviews: Review[] = [];
-        if (reviewsResponse && reviewsResponse.ok) {
-          const reviewsData = await reviewsResponse.json();
-          reviews = reviewsData.reviews || [];
-        }
-
-        let metrics: {
-          winRate?: number;
-          responseTime?: string;
-          onTimeCompletion?: number;
-          repeatCustomers?: number;
-          avgProjectValue?: number;
-        } = {};
-        if (metricsResponse && metricsResponse.ok) {
-          const metricsData = await metricsResponse.json();
-          metrics = metricsData.metrics || {};
-        }
-
-        const transformed = transformContractorData(
-          rawContractor,
-          contractorId
-        );
-        if (metrics.onTimeCompletion !== undefined)
-          transformed.stats.onTimeCompletion = metrics.onTimeCompletion;
-        if (metrics.repeatCustomers !== undefined)
-          transformed.stats.repeatCustomers = metrics.repeatCustomers;
-        if (metrics.avgProjectValue !== undefined)
-          transformed.stats.avgProjectValue = metrics.avgProjectValue;
-        if (metrics.responseTime)
-          transformed.responseTime = metrics.responseTime;
-        if (metrics.winRate !== undefined)
-          transformed.acceptanceRate = metrics.winRate;
-
-        setContractor(transformed);
+        setContractor(contractor);
         if (reviews.length > 0) setFetchedReviews(reviews);
-
-        // 2026-05-13 portfolio audit fix: the API now returns
-        // `portfolio: PortfolioItem[]` (one tile per completed job
-        // with after-photos, plus an "Other past work" tile for
-        // manual entries that aren't tied to a job). Previously this
-        // state was initialised as [] and never populated, so the
-        // ContractorPortfolio section always rendered empty even when
-        // the contractor had finished jobs with photos.
-        if (rawContractor.portfolio && rawContractor.portfolio.length > 0) {
-          setFetchedPortfolio(rawContractor.portfolio);
-        }
+        if (portfolio.length > 0) setFetchedPortfolio(portfolio);
       } catch (err) {
         logger.error('Error fetching contractor:', err, { service: 'app' });
         setError(
@@ -234,27 +150,17 @@ function ContractorPublicProfilePage2025() {
             </button>
             <button
               onClick={async () => {
+                // Reuses the same loader as the initial fetch. It used to
+                // re-implement it inline and only re-fetched the contractor,
+                // so a retry silently dropped reviews, metrics and portfolio.
                 setError(null);
                 setLoading(true);
                 try {
-                  const response = await fetch(
-                    `/api/contractors/${contractorId}`,
-                    { credentials: 'include' }
-                  );
-                  if (!response.ok)
-                    throw new Error(
-                      `Failed to fetch contractor (${response.status})`
-                    );
-                  const data = await response.json();
-                  if (data.contractor) {
-                    setContractor(
-                      transformContractorData(
-                        data.contractor as RawContractorData,
-                        contractorId
-                      )
-                    );
-                    setError(null);
-                  } else setError('Contractor data not found');
+                  const data = await fetchContractorProfile(contractorId);
+                  setContractor(data.contractor);
+                  if (data.reviews.length > 0) setFetchedReviews(data.reviews);
+                  if (data.portfolio.length > 0)
+                    setFetchedPortfolio(data.portfolio);
                 } catch (err) {
                   setError(
                     err instanceof Error
@@ -435,6 +341,7 @@ function ContractorPublicProfilePage2025() {
               onTimeCompletion={contractor.stats.onTimeCompletion}
               repeatCustomers={contractor.stats.repeatCustomers}
               yearsExperience={contractor.yearsExperience}
+              completedJobs={contractor.completedJobs}
             />
 
             {contractor.specialties.length > 0 && (
