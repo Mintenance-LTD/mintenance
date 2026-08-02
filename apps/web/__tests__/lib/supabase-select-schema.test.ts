@@ -239,13 +239,8 @@ const KNOWN_BROKEN_FLAT_COLUMNS: readonly string[] = [
   'profiles.background_check_provider',
   'profiles.background_check_result',
   'profiles.full_name',
-  'profiles.mfa_enabled',
-  'profiles.mfa_enrolled_at',
-  'profiles.mfa_method',
   'profiles.payout_speed_hours',
   'profiles.payout_tier',
-  'profiles.phone_number',
-  'profiles.totp_secret',
   'properties.built_year',
 ];
 

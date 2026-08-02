@@ -88,9 +88,12 @@ export async function disableMFA(userId: string): Promise<void> {
  */
 export async function getMFAStatus(userId: string) {
   try {
+    // `phone` is the real profiles column — `phone_number` never existed
+    // (it only appears on phone_verification_codes). This select failing
+    // wholesale was one reason getMFAStatus always threw.
     const { data: user, error } = await serverSupabase
       .from('profiles')
-      .select('mfa_enabled, mfa_method, mfa_enrolled_at, phone_number')
+      .select('mfa_enabled, mfa_method, mfa_enrolled_at, phone')
       .eq('id', userId)
       .single();
 
@@ -115,7 +118,7 @@ export async function getMFAStatus(userId: string) {
       enabled: user.mfa_enabled,
       method: user.mfa_method,
       enrolledAt: user.mfa_enrolled_at,
-      phoneNumber: user.phone_number,
+      phoneNumber: user.phone,
       backupCodesCount: backupCodesCount || 0,
       trustedDevicesCount: trustedDevicesCount || 0,
     };
