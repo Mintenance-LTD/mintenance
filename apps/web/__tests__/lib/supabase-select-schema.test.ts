@@ -297,8 +297,87 @@ function collectFlatSelects(): {
   return { checked, skippedNonLiteral, skippedUnknownTable };
 }
 
+// ---------------------------------------------------------------------------
+// Filter columns: `.eq('col', …)`, `.not('col', …)`, `.order('col')`, …
+//
+// Motivated by a bug the select passes could not see: RecommendationsService
+// filtered properties with `.eq('user_id', …)` — properties is keyed by
+// `owner_id`, so the query ALWAYS errored and recommendations never saw any
+// property context. Filter columns hit PostgREST exactly like select
+// columns: an unknown one rejects the whole query.
+//
+// Skipped, deliberately:
+//   - dotted paths (`job.homeowner_id`) — they reference embedded resources
+//     and need alias resolution to attribute correctly;
+//   - JSONB paths (`metadata->>key`);
+//   - non-literal column arguments;
+//   - `.or('a.eq.x,b.eq.y')` — its mini-grammar needs its own parser.
+// ---------------------------------------------------------------------------
+
+const FILTER_METHODS =
+  'eq|neq|gt|gte|lt|lte|like|ilike|is|in|contains|containedBy|not|filter|order|textSearch';
+const FILTER_RE = new RegExp(
+  `\\.(?:${FILTER_METHODS})\\(\\s*'([a-zA-Z_][a-zA-Z0-9_.>-]*)'`,
+  'g'
+);
+
+interface FilterUse {
+  file: string;
+  table: string;
+  column: string;
+  raw: string;
+}
+
+function collectFilterColumns(): {
+  checked: FilterUse[];
+  skippedUnknownTable: Set<string>;
+} {
+  const checked: FilterUse[] = [];
+  const skippedUnknownTable = new Set<string>();
+
+  for (const root of SCAN_ROOTS) {
+    for (const file of walk(root)) {
+      const src = readFileSync(file, 'utf8');
+      if (!src.includes('.from(')) continue;
+      const rel = relative(REPO_ROOT, file).replace(/\\/g, '/');
+      FROM_RE.lastIndex = 0;
+      for (const m of src.matchAll(FROM_RE)) {
+        const table = m[1];
+        const after = src.slice(m.index! + m[0].length);
+        const nextFrom = after.search(/\.from\(/);
+        const span = nextFrom === -1 ? after : after.slice(0, nextFrom);
+        if (!(table in DB_SCHEMA_SNAPSHOT)) {
+          skippedUnknownTable.add(table);
+          continue;
+        }
+        FILTER_RE.lastIndex = 0;
+        for (const f of span.matchAll(FILTER_RE)) {
+          const column = f[1];
+          // Embedded-resource paths and JSONB accessors are out of scope.
+          if (column.includes('.') || column.includes('>')) continue;
+          checked.push({
+            file: rel,
+            table,
+            column,
+            raw: `${table} … ${f[0]}'…')`,
+          });
+        }
+      }
+    }
+  }
+  return { checked, skippedUnknownTable };
+}
+
+/**
+ * Pre-existing invalid FILTER columns. Same contract as the (now empty)
+ * flat-select baseline: fails on NEW entries and on fixed-but-not-removed
+ * ones. Populate ONLY after verifying against the live schema.
+ */
+const KNOWN_BROKEN_FILTER_COLUMNS: readonly string[] = [];
+
 const embeds = collectEmbeddedSelects();
 const flat = collectFlatSelects();
+const filters = collectFilterColumns();
 
 describe('embedded Supabase selects match the live schema', () => {
   it('finds embedded selects to check (guards against the scanner silently breaking)', () => {
@@ -403,6 +482,57 @@ describe('flat .from().select() pairs match the live schema', () => {
         (unknown.length ? `: ${unknown.slice(0, 15).join(', ')}` : '')
     );
     expect(flat.checked.length).toBeGreaterThan(0);
+  });
+});
+
+describe('filter columns (.eq/.not/.order/…) match the live schema', () => {
+  it('finds filter usages to check (guards against the scanner silently breaking)', () => {
+    expect(filters.checked.length).toBeGreaterThan(100);
+  });
+
+  it('introduces no NEW invalid filter columns, and shrinks the known-broken set', () => {
+    const found = [
+      ...new Set(
+        filters.checked
+          .filter((f) => !DB_SCHEMA_SNAPSHOT[f.table]!.includes(f.column))
+          .map((f) => `${f.table}.${f.column}`)
+      ),
+    ].sort();
+
+    const added = found.filter((v) => !KNOWN_BROKEN_FILTER_COLUMNS.includes(v));
+    const fixed = KNOWN_BROKEN_FILTER_COLUMNS.filter((v) => !found.includes(v));
+
+    expect(
+      added,
+      `NEW invalid FILTER column(s). PostgREST rejects the whole query — the ` +
+        `RecommendationsService .eq('user_id') bug was this exact class.\n` +
+        added
+          .map(
+            (v) =>
+              `  ${v}\n` +
+              filters.checked
+                .filter((f) => `${f.table}.${f.column}` === v)
+                .map((f) => `    ${f.file}`)
+                .join('\n')
+          )
+          .join('\n')
+    ).toEqual([]);
+
+    expect(
+      fixed,
+      `Fixed — remove from KNOWN_BROKEN_FILTER_COLUMNS:\n  ${fixed.join('\n  ')}`
+    ).toEqual([]);
+  });
+
+  it('regression: properties are filtered by owner_id, never user_id', () => {
+    const propertyFilters = filters.checked.filter(
+      (f) => f.table === 'properties'
+    );
+    for (const f of propertyFilters) {
+      expect(f.column, `${f.file} filters properties by ${f.column}`).not.toBe(
+        'user_id'
+      );
+    }
   });
 });
 

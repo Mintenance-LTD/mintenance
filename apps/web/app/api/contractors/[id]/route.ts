@@ -135,8 +135,11 @@ export const GET = withApiHandler(
         const { count: reviewCount } = await serverSupabase
           .from('reviews')
           .select('*', { count: 'exact', head: true })
-          .eq('reviewee_id', id)
-          .eq('is_visible', true);
+          // reviews has no is_visible column (responses have moderation
+          // flags; reviews themselves are always visible) — the extra
+          // filter made this count error to null on every profile
+          // (filter-schema audit 2026-08-02).
+          .eq('reviewee_id', id);
 
         if (error || !contractor) {
           logger.info('Contractor not found', {

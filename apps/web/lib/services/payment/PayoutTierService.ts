@@ -58,7 +58,11 @@ export class PayoutTierService {
       const { count: disputeCount } = await serverSupabase
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
-        .eq('contractor_id', contractorId)
+        // escrow rows key the contractor as payee_id — there is no
+        // contractor_id column, so this filter used to error and disputes
+        // always counted as 0, inflating tiers (filter-schema audit
+        // 2026-08-02).
+        .eq('payee_id', contractorId)
         .eq('status', 'disputed');
 
       const disputes = disputeCount || 0;
