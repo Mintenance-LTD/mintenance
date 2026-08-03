@@ -389,7 +389,23 @@ export async function checkSubscriptionLimits(
         if (limit === 'unlimited') {
           break;
         }
-        const numericLimit = typeof limit === 'number' ? limit : 0;
+        // Fail OPEN on an unresolvable/nonsensical limit (unknown plan tier,
+        // missing feature config → getFeatureLimit returns `false`). The old
+        // `: 0` fallback failed CLOSED — `count >= 0` is always true, so ANY
+        // planType outside the known tiers blocked all bidding with a "limit of
+        // 0 bids" message. Allowing here matches this function's posture
+        // everywhere else (the count-query error branch and the outer catch
+        // both allow).
+        if (typeof limit !== 'number' || limit <= 0) {
+          logger.warn('Unresolvable bid limit — allowing (fail-open)', {
+            service: 'subscription-check',
+            contractorId,
+            planType,
+            limit,
+          });
+          break;
+        }
+        const numericLimit = limit;
         const { serverSupabase } = await import('@/lib/api/supabaseServer');
         const now = new Date();
         const startOfMonth = new Date(

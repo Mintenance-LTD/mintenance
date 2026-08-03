@@ -1562,6 +1562,13 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
 
     // Exactly one transfer.
     expect(mocks.stripeTransfersCreate).toHaveBeenCalledTimes(1);
+
+    // Stripe idempotency key is keyed on the stable escrow id so a
+    // lost-response retry returns the original transfer instead of double-paying.
+    expect(mocks.stripeTransfersCreate).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ idempotencyKey: `escrow_release_${ESCROW_ID}` })
+    );
   });
 
   it('transfer succeeded but final DB update failed → reconciliation audit row + 500, money NOT re-sent', async () => {
@@ -1595,16 +1602,17 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     expect(mocks.stripeTransfersCreate).toHaveBeenCalledTimes(1);
     expect(orderLog).toEqual(['cas-update', 'stripe-transfer', 'final-update']);
 
-    // Recovery trail: escrow_audit_log row with action='reconciliation_needed'
-    // carrying the transfer + reconciliation ids an operator needs.
+    // Recovery trail: escrow_audit_log row carrying the transfer +
+    // reconciliation ids an operator needs. Matched by release_reason (its
+    // distinctive marker) — action is 'released' (a CHECK-permitted value: the
+    // transfer DID succeed), NOT the old 'reconciliation_needed', which the
+    // escrow_audit_log.action CHECK rejects so the recovery insert was lost.
     const recon = auditInserts.find(
-      (r) => r.action === 'reconciliation_needed'
+      (r) => r.release_reason === 'transfer_succeeded_final_update_failed'
     );
     expect(recon).toBeDefined();
+    expect(recon!.action).toBe('released');
     expect(recon!.transfer_id).toBe(TRANSFER_ID);
-    expect(recon!.release_reason).toBe(
-      'transfer_succeeded_final_update_failed'
-    );
     expect(
       (recon!.metadata as Record<string, unknown>).reconciliation_id
     ).toBeTruthy();
@@ -1655,7 +1663,7 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     expect(result.platformFee).toBe(12.0); // 100 * 0.12 = 12.00
     expect(result.stripeFee).toBe(1.7); // 100 * 0.015 + 0.20 = 1.70
     expect(result.totalFees).toBe(13.7); // 12.00 + 1.70
-    expect(result.contractorAmount).toBe(86.3); // 100 - 13.70
+    expect(result.contractorAmount).toBe(88); // 100 - 12.00 platform (platform absorbs Stripe)
     expect(result.originalAmount).toBe(100);
     expect(result.platformFeeRate).toBe(0.12);
     expect(result.paymentType).toBe('final');
@@ -1668,7 +1676,7 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     expect(result.platformFee).toBe(0.5);
     expect(result.stripeFee).toBe(0.26); // 4 * 0.015 + 0.20 = 0.26
     expect(result.totalFees).toBe(0.76);
-    expect(result.contractorAmount).toBe(3.24); // 4 - 0.76
+    expect(result.contractorAmount).toBe(3.5); // 4 - 0.50 platform (platform absorbs Stripe)
   });
 
   it('should apply no maximum cap on large jobs (cap removed in tiered-pricing rollout)', () => {
@@ -1678,7 +1686,7 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     expect(result.platformFee).toBe(240.0);
     expect(result.stripeFee).toBe(30.2); // 2000 * 0.015 + 0.20 = 30.20
     expect(result.totalFees).toBe(270.2);
-    expect(result.contractorAmount).toBe(1729.8); // 2000 - 270.20
+    expect(result.contractorAmount).toBe(1760); // 2000 - 240.00 platform (platform absorbs Stripe)
   });
 
   it('should calculate correct fees for a typical 250 GBP plumbing job', () => {
@@ -1687,7 +1695,7 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     expect(result.platformFee).toBe(30.0); // 250 * 0.12 = 30.00
     expect(result.stripeFee).toBe(3.95); // 250 * 0.015 + 0.20 = 3.95
     expect(result.totalFees).toBe(33.95);
-    expect(result.contractorAmount).toBe(216.05); // 250 - 33.95
+    expect(result.contractorAmount).toBe(220); // 250 - 30.00 platform (platform absorbs Stripe)
   });
 
   it('should calculate fees in cents for Stripe API', () => {
@@ -1696,7 +1704,7 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     expect(result.originalAmount).toBe(25000);
     expect(result.platformFee).toBe(3000); // 30.00 GBP in pence (250 * 0.12)
     expect(result.stripeFee).toBe(395); // 3.95 GBP in pence
-    expect(result.contractorAmount).toBe(21605); // 216.05 GBP in pence
+    expect(result.contractorAmount).toBe(22000); // 220.00 GBP in pence (250 - 30 platform)
   });
 
   it('should handle deposit payment type with same 12 % Basic-tier rate', () => {

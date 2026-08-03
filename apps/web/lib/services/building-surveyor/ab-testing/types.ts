@@ -24,26 +24,28 @@ export interface ABTestConfig {
 
   // Traffic configuration
   traffic_split: {
-    control_percentage: number;      // 0-100
-    treatment_percentage: number;     // 0-100
-    ramp_up_schedule?: {             // Gradual rollout
+    control_percentage: number; // 0-100
+    treatment_percentage: number; // 0-100
+    ramp_up_schedule?: {
+      // Gradual rollout
       day: number;
       percentage: number;
     }[];
   };
 
   // Test parameters
-  minimum_sample_size: number;        // Per variant
+  minimum_sample_size: number; // Per variant
   maximum_duration_days: number;
-  confidence_level: number;           // e.g., 0.95
+  confidence_level: number; // e.g., 0.95
 
   // Success criteria
   success_metrics: {
     primary_metric: 'mAP50' | 'precision' | 'recall' | 'f1_score' | 'latency';
-    minimum_improvement: number;       // Percentage
-    guardrail_metrics: {              // Metrics that shouldn't degrade
+    minimum_improvement: number; // Fraction, e.g. 0.02 = 2% (NOT 2)
+    guardrail_metrics: {
+      // Metrics that shouldn't degrade
       metric: string;
-      max_degradation: number;         // Percentage
+      max_degradation: number; // Fraction, e.g. 0.05 = 5% (NOT 5)
     }[];
   };
 
@@ -94,7 +96,11 @@ export interface ABTestResult {
   };
 
   // Decision
-  recommendation: 'continue' | 'deploy_treatment' | 'keep_control' | 'inconclusive';
+  recommendation:
+    | 'continue'
+    | 'deploy_treatment'
+    | 'keep_control'
+    | 'inconclusive';
   confidence: number;
   reasons: string[];
 }

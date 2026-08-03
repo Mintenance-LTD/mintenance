@@ -203,6 +203,27 @@ export function createUserScopedClient(userJwt: string) {
 }
 
 /**
+ * Decode a Supabase auth-cookie value to its raw JSON string.
+ *
+ * @supabase/ssr writes the session as `base64-<base64url(JSON)>` when
+ * cookieEncoding is 'base64url' (the library default since 0.4). Legacy /
+ * unencoded cookies are plain JSON. Return the JSON string in both cases; on
+ * any decode error return the input untouched so the caller's JSON.parse still
+ * gets a fair attempt.
+ *
+ * Exported for unit tests.
+ */
+export function decodeSupabaseAuthCookie(raw: string): string {
+  const PREFIX = 'base64-';
+  if (!raw.startsWith(PREFIX)) return raw;
+  try {
+    return Buffer.from(raw.slice(PREFIX.length), 'base64url').toString('utf8');
+  } catch {
+    return raw;
+  }
+}
+
+/**
  * Extract the raw JWT from an incoming API request.
  * Checks Bearer token first (mobile clients), then falls back to
  * the Supabase auth cookie (web clients using Supabase Auth).
@@ -224,19 +245,24 @@ export function getUserJwtFromRequest(request: NextRequest): string | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const ref = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || '';
   if (ref) {
-    // @supabase/ssr stores session as base64-encoded JSON chunks
-    // The access_token is inside the decoded JSON object
+    // @supabase/ssr (>= 0.4) defaults to cookieEncoding:'base64url' and stores
+    // the session JSON as `base64-<base64url>` (single or chunked). A raw
+    // JSON.parse of that throws, so this whole path used to fall through to
+    // null — every cookie-authed web request then silently ran as service-role
+    // (RLS OFF). decodeSupabaseAuthCookie() strips the prefix and decodes so we
+    // recover the access_token and callers get an RLS-scoped client.
     const cookieValue = request.cookies.get(`sb-${ref}-auth-token`)?.value;
     if (cookieValue) {
       try {
-        const session = JSON.parse(cookieValue);
+        const session = JSON.parse(decodeSupabaseAuthCookie(cookieValue));
         if (session?.access_token) return session.access_token;
       } catch {
         // Cookie might be in chunked format (sb-<ref>-auth-token.0, .1, etc.)
         // or just the token itself
       }
     }
-    // Try chunked cookie format
+    // Try chunked cookie format. The full `base64-<base64url>` string is split
+    // across .0/.1/... chunks, so concatenate first, then decode once.
     let chunked = '';
     for (let i = 0; i < 10; i++) {
       const chunk = request.cookies.get(`sb-${ref}-auth-token.${i}`)?.value;
@@ -245,7 +271,7 @@ export function getUserJwtFromRequest(request: NextRequest): string | null {
     }
     if (chunked) {
       try {
-        const session = JSON.parse(chunked);
+        const session = JSON.parse(decodeSupabaseAuthCookie(chunked));
         if (session?.access_token) return session.access_token;
       } catch {
         // Not valid JSON

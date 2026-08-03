@@ -120,22 +120,35 @@ export async function performStripeTransfer(
   feeBreakdown: FeeBreakdown
 ): Promise<{ id: string }> {
   try {
-    const transfer = await stripe.transfers.create({
-      amount: contractorAmountCents,
-      currency: 'gbp',
-      destination: stripeConnectAccountId,
-      description: `Payment for job: ${job.title}`,
-      metadata: {
-        jobId: job.id,
-        escrowTransactionId,
-        homeownerId: job.homeowner_id,
-        contractorId: job.contractor_id,
-        releaseReason,
-        reconciliationId,
-        platformFee: feeBreakdown.platformFee.toString(),
-        contractorAmount: feeBreakdown.contractorAmount.toString(),
+    const transfer = await stripe.transfers.create(
+      {
+        amount: contractorAmountCents,
+        currency: 'gbp',
+        destination: stripeConnectAccountId,
+        description: `Payment for job: ${job.title}`,
+        metadata: {
+          jobId: job.id,
+          escrowTransactionId,
+          homeownerId: job.homeowner_id,
+          contractorId: job.contractor_id,
+          releaseReason,
+          reconciliationId,
+          platformFee: feeBreakdown.platformFee.toString(),
+          contractorAmount: feeBreakdown.contractorAmount.toString(),
+        },
       },
-    });
+      {
+        // Key on the STABLE escrow id — NOT reconciliationId, which is
+        // regenerated per request. If a transfer succeeds at Stripe but the
+        // response is lost, the route reverts escrow to 'held' and releases its
+        // app-level claim; a retry then passes the status='held' CAS and calls
+        // this again. Without this key that second call double-pays the
+        // contractor. With it, Stripe returns the original transfer. (An escrow
+        // releases exactly once, and the DB CAS serialises the manual vs
+        // auto-release paths, so the escrow id is the complete transfer identity.)
+        idempotencyKey: `escrow_release_${escrowTransactionId}`,
+      }
+    );
     return transfer;
   } catch (stripeError) {
     // Revert DB to 'held' status — no money moved

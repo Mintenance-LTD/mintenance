@@ -167,12 +167,17 @@ export class FeeCalculationService {
     // Calculate total fees
     const totalFees = this.roundToTwoDecimals(platformFee + stripeFee);
 
-    // Calculate contractor payout (amount after all fees)
-    const contractorAmount = this.roundToTwoDecimals(amount - totalFees);
+    // Contractor payout = amount minus the PLATFORM fee only.
+    // The platform bears the Stripe processing cost (pricing promise:
+    // "the prices shown are all you pay… a percentage platform fee only").
+    // Deducting stripeFee here too underpaid every contractor by the Stripe
+    // fee (~£1.70 on £100). `totalFees` below still reports both fees the
+    // transaction incurs, but only platformFee comes out of the contractor.
+    const contractorAmount = this.roundToTwoDecimals(amount - platformFee);
 
-    // Calculate net platform revenue (platform fee minus Stripe costs)
-    // Note: Stripe fee is typically charged on the full amount, not just platform fee
-    // But for accounting purposes, we track net revenue as platform fee minus our Stripe costs
+    // Net platform revenue = the platform fee we keep, minus the Stripe cost
+    // we absorb. (Now consistent with the payout above: the contractor no
+    // longer bears stripeFee, so it lands here on the platform's side.)
     const netPlatformRevenue = this.roundToTwoDecimals(platformFee - stripeFee);
 
     // Ensure contractor amount is not negative
