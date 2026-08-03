@@ -10,7 +10,9 @@ describe('FeeCalculationService', () => {
       expect(result.platformFee).toBe(12); // 12% of £100 (Basic tier)
       expect(result.stripeFee).toBe(1.7); // 1.5% + £0.20
       expect(result.totalFees).toBe(13.7);
-      expect(result.contractorAmount).toBe(86.3);
+      // Contractor bears the platform fee ONLY (platform absorbs Stripe):
+      // £100 - £12 platform = £88.
+      expect(result.contractorAmount).toBe(88);
     });
 
     it('enforces minimum platform fee of £0.50', () => {
@@ -122,7 +124,7 @@ describe('FeeCalculationService', () => {
     it('returns the contractor net amount', () => {
       const payout = FeeCalculationService.calculateContractorPayout(100);
 
-      expect(payout).toBe(86.3); // £100 - £12 platform - £1.70 stripe
+      expect(payout).toBe(88); // £100 - £12 platform (platform absorbs Stripe)
     });
   });
 
