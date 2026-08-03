@@ -14,6 +14,11 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import QueryProvider from './src/providers/QueryProvider';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
+import { ConfigErrorScreen } from './src/components/ConfigErrorScreen';
+import {
+  supabaseConfigError,
+  supabaseConfigErrorDetails,
+} from './src/config/supabase';
 import { ThemeProvider } from './src/design-system/theme';
 import { HapticService } from './src/utils/haptics';
 import { BackgroundSyncService } from './src/services/BackgroundSyncService';
@@ -295,26 +300,48 @@ export default function App(): React.JSX.Element {
     }
   }, [isReady]);
 
-  // Keep native splash screen visible while initializing
-  if (!isReady) {
-    return <View style={{ flex: 1 }} />;
-  }
-
   const stripePublishableKey = config.stripePublishableKey;
+  const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+
+  // 2026-08-03: configuration failures used to be thrown — supabase.ts threw
+  // at module load, the Stripe check below threw mid-render, and both sit
+  // ABOVE the ErrorBoundary in the tree we return. With the native splash
+  // pinned by preventAutoHideAsync() above, nothing ever reached
+  // hideAsync(), so a build missing its EAS environment variables froze on
+  // the teal splash with no explanation (the first Play internal build did
+  // exactly this). Collect the problems and render them instead. Checked
+  // BEFORE the isReady gate so a broken build reports straight away rather
+  // than sitting through the init watchdog first.
+  const configProblems: string[] = [];
+
+  if (supabaseConfigError) {
+    configProblems.push(
+      ...(supabaseConfigErrorDetails.length > 0
+        ? supabaseConfigErrorDetails
+        : [supabaseConfigError])
+    );
+  }
 
   // 2026-05-02 audit follow-up (98% readiness step 6): the previous
   // `stripePublishableKey || 'pk_test_placeholder'` fallback meant a
   // production build with a missing env var would silently ship with a
   // fake Stripe key — payments would fail at runtime in confusing ways
-  // (Stripe SDK accepts the format, then 401s on charge). Now we hard
-  // fail in production builds, and only fall back to the test
-  // placeholder in dev so local boots still work without a key.
-  const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
-
+  // (Stripe SDK accepts the format, then 401s on charge). Production still
+  // hard-fails; it now reports the reason instead of crashing. Dev still
+  // falls back to the test placeholder so local boots work without a key.
   if (!isDev && !stripePublishableKey) {
-    throw new Error(
-      'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is required for production builds'
+    configProblems.push(
+      'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is missing or empty'
     );
+  }
+
+  if (configProblems.length > 0) {
+    return <ConfigErrorScreen problems={configProblems} />;
+  }
+
+  // Keep native splash screen visible while initializing
+  if (!isReady) {
+    return <View style={{ flex: 1 }} />;
   }
 
   if (!stripePublishableKey) {

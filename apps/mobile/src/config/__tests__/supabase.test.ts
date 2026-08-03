@@ -320,12 +320,24 @@ describe('credential validation branches', () => {
 });
 
 // ===========================================================================
-// Production hard-fail path: invalid creds + production must throw.
+// Production hard-fail path: invalid creds must fail the app, but REPORT
+// rather than throw.
+//
+// 2026-08-03: these used to assert a module-load `throw`. That throw fired
+// while App.tsx was still resolving its import graph — before React rendered
+// and before ErrorBoundary mounted — so with SplashScreen.preventAutoHideAsync()
+// pinned in App.tsx nothing ever reached hideAsync() and a build missing its
+// EAS environment variables froze on the teal splash forever with no
+// diagnostics. The first Google Play internal build shipped exactly that.
+//
+// The contract is now: production still hard-fails (no real client, and the
+// app is blocked behind ConfigErrorScreen so the mock never serves data),
+// but the failure is exported as `supabaseConfigError` for App.tsx to render.
 // ===========================================================================
 
 describe('module init — production hard fail', () => {
-  it('rethrows when credentials are invalid in production', () => {
-    const { threw } = loadModule({
+  it('reports rather than throws when credentials are invalid in production', () => {
+    const { mod, threw } = loadModule({
       env: {
         EXPO_PUBLIC_SUPABASE_URL: '',
         EXPO_PUBLIC_SUPABASE_ANON_KEY: '',
@@ -334,20 +346,37 @@ describe('module init — production hard fail', () => {
       extra: undefined,
       dev: false,
     });
-    expect(threw).toBeInstanceOf(Error);
-    expect((threw as Error).message).toBe('Supabase configuration invalid');
+    // Module load must SUCCEED, or App.tsx never renders and the splash hangs.
+    expect(threw).toBeUndefined();
+    expect(mod.supabaseConfigError).toBe('Supabase configuration invalid');
     expect(loggerMock.error).toHaveBeenCalled();
-    // Must NOT silently downgrade to a mock client in production.
+    // Must NOT silently stand up a real client against bad credentials.
     expect(createClientMock).not.toHaveBeenCalled();
+    // App.tsx renders these verbatim — they must name the offending vars.
+    expect(mod.supabaseConfigErrorDetails).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('EXPO_PUBLIC_SUPABASE_URL'),
+        expect.stringContaining('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
+      ])
+    );
+    expect(mod.isSupabaseConfigured).toBe(false);
   });
 
-  it('rethrows when createClient throws in production', () => {
+  it('reports rather than throws when createClient throws in production', () => {
     createClientMock.mockImplementationOnce(() => {
       throw new Error('boom from createClient');
     });
-    const { threw } = loadModule({ env: { ...validEnv }, dev: false });
-    expect(threw).toBeInstanceOf(Error);
-    expect((threw as Error).message).toBe('boom from createClient');
+    const { mod, threw } = loadModule({ env: { ...validEnv }, dev: false });
+    expect(threw).toBeUndefined();
+    expect(mod.supabaseConfigError).toBe('boom from createClient');
+  });
+
+  it('leaves supabaseConfigError null when production credentials are valid', () => {
+    const { mod, threw } = loadModule({ env: { ...validEnv }, dev: false });
+    expect(threw).toBeUndefined();
+    expect(mod.supabaseConfigError).toBeNull();
+    expect(mod.supabaseConfigErrorDetails).toEqual([]);
+    expect(createClientMock).toHaveBeenCalled();
   });
 
   it('non-Error throw is stringified in the DEV warn fallback', () => {
