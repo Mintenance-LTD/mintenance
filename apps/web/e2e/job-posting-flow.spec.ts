@@ -1,113 +1,66 @@
 /**
  * Job Posting Flow E2E Tests
  *
- * Tests core homeowner journey:
- * - Navigate to job creation page
- * - Fill job details form
- * - Validate required fields
- * - Upload photos
+ * Core homeowner journey: reach /jobs/create, see the wizard, find its controls.
  *
- * NOTE: Test properties are automatically seeded in global-setup.ts
- * - Homeowner user will have 2 test properties available
+ * /jobs/create is protected, so each test mints a real homeowner session first.
+ * Without the E2E auth fixture the test skips with an actionable reason. The
+ * homeowner's two test properties are seeded by global-setup.ts.
+ *
+ * Previously these self-skipped on a login redirect and OR-ed their assertions
+ * together ("form section OR heading OR ..."), so they passed even on /login.
+ * Now the wizard-loaded assertion is hard (`[data-testid="job-create-form"]`),
+ * and only genuinely variable UI (multi-step vs single-page) stays as an OR.
  */
 
 import { test, expect } from './fixtures';
+import { establishSessionInContext, TEST_USERS } from './helpers/auth';
+
+const AUTH_UNAVAILABLE =
+  'E2E auth fixture unavailable — set E2E_TESTING=true + E2E_AUTH_SECRET on the ' +
+  'server and runner, and seed users (npm run seed:e2e-users).';
+
+/** Reach /jobs/create authenticated and assert the wizard mounted. */
+async function openJobWizard(page: import('@playwright/test').Page) {
+  await page.goto('/jobs/create');
+  await page.waitForLoadState('networkidle');
+  await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
+  await expect(page.locator('[data-testid="job-create-form"]')).toBeVisible({
+    timeout: 10000,
+  });
+}
 
 test.describe('Job Posting Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
+    test.skip(!authed, AUTH_UNAVAILABLE);
+  });
+
   test.describe('Job Creation Page Access', () => {
-    test('job creation page loads for authenticated users', async ({
+    test('job creation page loads for an authenticated homeowner', async ({
       page,
     }) => {
-      // Navigate to job creation page
       await page.goto('/jobs/create');
-
-      // Page should either:
-      // 1. Load job creation form (if authenticated)
-      // 2. Redirect to login (if not authenticated)
       await page.waitForLoadState('networkidle');
-
-      // Verify we're on either jobs/create or login
-      const currentUrl = page.url();
-      const isOnJobCreate = currentUrl.includes('/jobs/create');
-      const isOnLogin =
-        currentUrl.includes('/login') || currentUrl.includes('/auth');
-
-      expect(isOnJobCreate || isOnLogin).toBeTruthy();
+      // Auth is guaranteed, so it must stay on the wizard, not redirect to login.
+      await expect(page).toHaveURL(/\/jobs\/create/);
     });
   });
 
   test.describe('Job Creation Form - UI Elements', () => {
-    test('displays all required form sections', async ({ page }) => {
-      // Test properties are automatically seeded in global setup
-      await page.goto('/jobs/create');
-
-      // Wait for either login redirect or page content
-      const isLoginRedirect =
-        page.url().includes('login') || page.url().includes('auth');
-
-      if (isLoginRedirect) {
-        // skipped: runtime bail — not authenticated (this spec relies on pre-seeded storage state; redirected to login) (2026-07-02 triage)
-        test.skip();
-        return;
-      }
-
-      // Wait for form to be present using reliable data-testid
-      await page
-        .waitForSelector('[data-testid="job-create-form"]', {
-          state: 'visible',
-          timeout: 10000,
-        })
-        .catch(() => {});
-
-      // Check for Step 1 using data-testid
-      const hasStep1 = await page
-        .locator('[data-testid="step-1-details"]')
-        .isVisible()
-        .catch(() => false);
-      const hasMainHeading = await page
-        .getByText('What do you need done?')
-        .isVisible()
-        .catch(() => false);
-      const hasPropertySection = await page
-        .getByText(/Select your property/i)
-        .isVisible()
-        .catch(() => false);
-      const hasCategorySection = await page
-        .getByText(/What type of service/i)
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasStep1 || hasMainHeading || hasPropertySection || hasCategorySection
-      ).toBeTruthy();
+    test('displays the first step of the wizard', async ({ page }) => {
+      await openJobWizard(page);
+      await expect(page.getByText('What do you need done?')).toBeVisible();
     });
 
-    test('has photo upload functionality', async ({ page }) => {
-      await page.goto('/jobs/create');
-
-      // Wait for form to load
-      await page
-        .waitForSelector('[data-testid="job-create-form"]', { timeout: 10000 })
-        .catch(() => {});
-
-      if (page.url().includes('login') || page.url().includes('auth')) {
-        // skipped: runtime bail — not authenticated (this spec relies on pre-seeded storage state; redirected to login) (2026-07-02 triage)
-        test.skip();
-        return;
-      }
-
-      // Check if Step 2 (Photos) exists in step indicators (proves multi-step form has photo capability)
-      const hasStep2Indicator =
-        (await page
-          .getByText(/^2$/)
-          .isVisible()
-          .catch(() => false)) &&
-        (await page
-          .getByText('Photos')
-          .isVisible()
-          .catch(() => false));
-
-      // Check if photo upload elements are visible on current view
+    test('exposes photo upload capability', async ({ page }) => {
+      await openJobWizard(page);
+      // Multi-step (a Photos step in the progress bar) or single-page (the
+      // upload control inline) both satisfy this — but the wizard must be up.
+      const hasPhotosStep = await page
+        .getByText('Photos')
+        .isVisible()
+        .catch(() => false);
       const hasFileInput = await page
         .locator('input#photo-upload')
         .isVisible()
@@ -116,46 +69,15 @@ test.describe('Job Posting Flow', () => {
         .getByText(/Add photos of your project|Click to upload|drag and drop/i)
         .isVisible()
         .catch(() => false);
-
-      // Photo functionality exists if Step 2 indicator shows (multi-step) or upload visible (single-page)
-      expect(hasStep2Indicator || hasFileInput || hasUploadText).toBeTruthy();
+      expect(hasPhotosStep || hasFileInput || hasUploadText).toBeTruthy();
     });
 
-    // Removed: 'has budget input section'. Budget collection was deleted from
-    // the wizard on 2026-05-22 — step 3 is now Timeline only. The test asserted
-    // on `step-3-budget`, the heading "Set your budget and timeline" and the
-    // word "budget", none of which exist any more, so it was asserting the
-    // presence of a deliberately removed feature. Step 3's remaining content is
-    // covered by 'has urgency selection' below.
-
-    test('has urgency selection', async ({ page }) => {
-      await page.goto('/jobs/create');
-
-      // Wait for form to load
-      await page
-        .waitForSelector('[data-testid="job-create-form"]', { timeout: 10000 })
-        .catch(() => {});
-
-      if (page.url().includes('login') || page.url().includes('auth')) {
-        // skipped: runtime bail — not authenticated (this spec relies on pre-seeded storage state; redirected to login) (2026-07-02 triage)
-        test.skip();
-        return;
-      }
-
-      // Step 3's label is "Timeline" (STEPS in _components/types.ts); it was
-      // renamed from "Budget" when budget collection was removed. Only the
-      // current step is mounted, so on step 1 the progress indicator is the
-      // only evidence available — the urgency controls below are step-3 only.
-      const hasStep3Indicator =
-        (await page
-          .getByText(/^3$/)
-          .isVisible()
-          .catch(() => false)) &&
-        (await page
-          .getByText('Timeline')
-          .isVisible()
-          .catch(() => false));
-
+    test('exposes urgency / timeline selection', async ({ page }) => {
+      await openJobWizard(page);
+      const hasTimelineStep = await page
+        .getByText('Timeline')
+        .isVisible()
+        .catch(() => false);
       const hasUrgencyLabel = await page
         .getByText('When do you need this done?')
         .isVisible()
@@ -164,145 +86,81 @@ test.describe('Job Posting Flow', () => {
         .getByText(/Flexible|Soon|Urgent|Emergency/i)
         .isVisible()
         .catch(() => false);
-
-      // Urgency exists if Step 3 indicator shows (multi-step) or urgency elements visible (single-page)
       expect(
-        hasStep3Indicator || hasUrgencyLabel || hasUrgencyOption
+        hasTimelineStep || hasUrgencyLabel || hasUrgencyOption
       ).toBeTruthy();
     });
   });
 
   test.describe('Job Creation Form - Navigation', () => {
-    test('has submit button', async ({ page }) => {
-      await page.goto('/jobs/create');
-
-      // Wait for form to load
-      await page
-        .waitForSelector('[data-testid="job-create-form"]', { timeout: 10000 })
-        .catch(() => {});
-
-      if (page.url().includes('login') || page.url().includes('auth')) {
-        // skipped: runtime bail — not authenticated (this spec relies on pre-seeded storage state; redirected to login) (2026-07-02 triage)
-        test.skip();
-        return;
-      }
-
-      // Check for Next or Submit button using data-testid
+    test('has a next/submit control', async ({ page }) => {
+      await openJobWizard(page);
       const hasNextButton = await page
         .locator('[data-testid="next-button"]')
         .isVisible()
         .catch(() => false);
       const hasSubmitButton =
         (await page.locator('[data-testid="submit-button"]').count()) > 0;
-
-      // Look for any submit/navigation button as fallback
       const hasAnySubmitButton = await page
         .getByRole('button', { name: /post.*job|create.*job|submit|next/i })
         .isVisible()
         .catch(() => false);
-
       expect(
         hasNextButton || hasSubmitButton || hasAnySubmitButton
       ).toBeTruthy();
     });
 
     test('has back/cancel navigation', async ({ page }) => {
-      await page.goto('/jobs/create');
-
-      // Wait for form to load
-      await page
-        .waitForSelector('[data-testid="job-create-form"]', { timeout: 10000 })
-        .catch(() => {});
-
-      if (page.url().includes('login') || page.url().includes('auth')) {
-        // skipped: runtime bail — not authenticated (this spec relies on pre-seeded storage state; redirected to login) (2026-07-02 triage)
-        test.skip();
-        return;
-      }
-
-      // Check for Cancel or Back button using data-testid
+      await openJobWizard(page);
       const hasCancelButtonTestId = await page
         .locator('[data-testid="cancel-button"]')
         .isVisible()
         .catch(() => false);
       const hasBackButtonTestId =
         (await page.locator('[data-testid="back-button"]').count()) > 0;
-
-      // Fallback to text-based selectors
       const hasCancelButton = await page
         .getByRole('button', { name: /cancel/i })
         .isVisible()
         .catch(() => false);
-      const hasBackToJobsButton = await page
-        .getByRole('button', { name: /back to jobs/i })
+      const hasBackToJobs = await page
+        .getByText(/back to jobs/i)
         .isVisible()
         .catch(() => false);
-      const hasBackLink = await page
-        .getByText(/Back to Jobs/i)
-        .isVisible()
-        .catch(() => false);
-
       expect(
         hasCancelButtonTestId ||
           hasBackButtonTestId ||
           hasCancelButton ||
-          hasBackToJobsButton ||
-          hasBackLink
+          hasBackToJobs
       ).toBeTruthy();
-    });
-  });
-
-  test.describe('Job Creation Form - Multi-Step Flow', () => {
-    test('shows progress indicators if multi-step form', async ({ page }) => {
-      await page.goto('/jobs/create');
-
-      // Wait for page to load (specific element instead of networkidle)
-      await page
-        .waitForSelector('text=What do you need done?', { timeout: 10000 })
-        .catch(() => {});
-
-      if (page.url().includes('login') || page.url().includes('auth')) {
-        // skipped: runtime bail — not authenticated (this spec relies on pre-seeded storage state; redirected to login) (2026-07-02 triage)
-        test.skip();
-        return;
-      }
-
-      // Check if there are step indicators (not all forms will have this)
-      const hasSteps = await page
-        .getByText(/step \d|1.*2.*3|details.*photos.*budget/i)
-        .isVisible()
-        .catch(() => false);
-
-      // This is informational - either single page or multi-step is fine
-      console.log(
-        `Form is ${hasSteps ? 'multi-step' : 'single-page or no step indicators'}`
-      );
     });
   });
 });
 
 test.describe('Job Listing Page', () => {
-  test('job listings page loads', async ({ page }) => {
-    // Test properties are seeded, jobs may or may not exist yet
+  test.beforeEach(async ({ page }) => {
+    const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
+    test.skip(!authed, AUTH_UNAVAILABLE);
+  });
+
+  test('job listings page renders a concrete state', async ({ page }) => {
     await page.goto('/jobs');
+    await page.waitForLoadState('networkidle');
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
-    // Wait for body to be visible (page has rendered)
-    await expect(page.locator('body')).toBeVisible();
-
-    // Wait a moment for client-side content to load
-    await page.waitForTimeout(1000);
-
+    // Jobs heading, a table/cards list, or an explicit empty/CTA state — never
+    // a blank page (the old test only asserted `body` was visible).
     const hasJobsHeading = await page
       .getByRole('heading', { name: /job|project/i })
+      .first()
       .isVisible()
       .catch(() => false);
     const hasTableOrCards =
       (await page.locator('table, [class*="card"]').count()) > 0;
-    const hasNoJobsMessage = await page
+    const hasEmptyState = await page
       .getByText(/no.*job|no.*result|create.*job|post.*job/i)
+      .first()
       .isVisible()
       .catch(() => false);
-
-    expect(hasJobsHeading || hasTableOrCards || hasNoJobsMessage).toBeTruthy();
+    expect(hasJobsHeading || hasTableOrCards || hasEmptyState).toBeTruthy();
   });
 });

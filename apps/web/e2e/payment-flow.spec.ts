@@ -1,190 +1,146 @@
 /**
  * Payment Flow E2E Tests
  *
- * Tests critical revenue-generating user journey:
- * - Checkout page displays correctly
- * - Payment form validation
- * - Stripe integration (uses test mode)
+ * Tests the critical revenue-generating journey: the /checkout page renders,
+ * validates its inputs, and the return page handles session status.
  *
- * NOTE: These tests require Stripe test mode to be configured
+ * /checkout is a PROTECTED route, so each test mints a real homeowner session
+ * first (establishSessionInContext). Without the E2E auth fixture the endpoint
+ * is unreachable and the test skips with an actionable reason — previously
+ * these ran unauthenticated, landed on /login, and passed vacuously because the
+ * assertions OR-ed together "title | error | loading".
+ *
+ * The checkout header ("Complete your payment") renders whenever priceId is
+ * present, OUTSIDE the Stripe component + ErrorBoundary, so it is deterministic
+ * regardless of whether Stripe test keys are configured.
  */
 
 import { test, expect } from './fixtures';
+import { establishSessionInContext, TEST_USERS } from './helpers/auth';
+
+const AUTH_UNAVAILABLE =
+  'E2E auth fixture unavailable — set E2E_TESTING=true + E2E_AUTH_SECRET on the ' +
+  'server and runner, and seed users (npm run seed:e2e-users).';
 
 test.describe('Payment & Checkout Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
+    test.skip(!authed, AUTH_UNAVAILABLE);
+  });
+
   test.describe('Checkout Page', () => {
-    test('displays checkout page with required parameters', async ({
+    test('renders the payment UI when required params are present', async ({
       page,
     }) => {
       await page.goto(
-        `/checkout?priceId=price_test&jobId=job-test&bidId=bid-test`
+        '/checkout?priceId=price_test&jobId=job-test&bidId=bid-test'
       );
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(3000); // Wait for component to load/show error
 
-      // Check if page loaded with title
-      const pageTitle = await page
-        .getByText('Complete Your Payment')
-        .isVisible()
-        .catch(() => false);
-
-      // In test mode without Stripe keys, component shows error or loading
-      const hasErrorMessage = await page
-        .locator('[class*="alert"]')
-        .isVisible()
-        .catch(() => false);
-      const hasLoadingIndicator = await page
-        .getByText(/Loading|loading/i)
-        .isVisible()
-        .catch(() => false);
-
-      // Test passes if: page title, error message, or loading state visible
-      expect(pageTitle || hasErrorMessage || hasLoadingIndicator).toBeTruthy();
+      // The header renders for any present priceId (deterministic), and the
+      // missing-priceId error must NOT be shown.
+      await expect(page.getByText(/complete your payment/i)).toBeVisible();
+      await expect(page.getByText(/missing price id/i)).toHaveCount(0);
     });
 
-    test('shows error when priceId is missing', async ({ page }) => {
-      // Navigate without priceId
+    test('shows an error when priceId is missing', async ({ page }) => {
       await page.goto('/checkout?jobId=job-123&bidId=bid-456');
       await page.waitForLoadState('networkidle');
 
-      // Should show error - check for exact text from page
-      const hasMissingPriceError = await page
-        .getByText('Missing Price ID')
-        .isVisible()
-        .catch(() => false);
-      const hasProvideError = await page
-        .getByText('Please provide a Price ID')
-        .isVisible()
-        .catch(() => false);
-
-      expect(hasMissingPriceError || hasProvideError).toBeTruthy();
+      await expect(page.getByText(/missing price id/i)).toBeVisible();
+      // And it must NOT render the payment UI without a price.
+      await expect(page.getByText(/complete your payment/i)).toHaveCount(0);
     });
 
-    test('loads Stripe payment form or shows test mode message', async ({
-      page,
-    }) => {
-      await page.goto(
-        `/checkout?priceId=price_test&jobId=job-123&bidId=bid-456`
-      );
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(3000);
-
-      const hasCheckoutTitle = await page
-        .getByText('Complete Your Payment')
-        .isVisible()
-        .catch(() => false);
-      const hasErrorMessage = await page
-        .locator('[class*="alert"]')
-        .isVisible()
-        .catch(() => false);
-      const hasLoadingIndicator = await page
-        .getByText(/Loading|loading/i)
-        .isVisible()
-        .catch(() => false);
-
-      // Test passes if page is loading, shows checkout, or shows error
-      expect(
-        hasCheckoutTitle || hasErrorMessage || hasLoadingIndicator
-      ).toBeTruthy();
-    });
-  });
-
-  test.describe('Payment Form Validation', () => {
-    test('validates card number format when Stripe is configured', async ({
+    test('mounts the checkout component under the payment header', async ({
       page,
     }) => {
       await page.goto(
         '/checkout?priceId=price_test&jobId=job-123&bidId=bid-456'
       );
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(3000);
 
-      // Check if Stripe loaded (iframe present) or if we're in test mode (error shown)
-      const hasErrorMessage = await page
-        .locator('[class*="alert"]')
+      await expect(page.getByText(/complete your payment/i)).toBeVisible();
+      // The embedded checkout resolves to a concrete state — a Stripe iframe or
+      // a visible error alert — never a silently blank card.
+      const hasStripeFrame = await page
+        .locator('iframe[name^="__privateStripeFrame"], iframe[src*="stripe"]')
+        .first()
+        .isVisible({ timeout: 8000 })
+        .catch(() => false);
+      const hasAlert = await page
+        .locator('[class*="alert"], [role="alert"]')
+        .first()
         .isVisible()
         .catch(() => false);
+      expect(hasStripeFrame || hasAlert).toBeTruthy();
+    });
+  });
 
-      if (hasErrorMessage) {
-        // Test mode without Stripe keys - skip iframe testing but test passes
-        // (validates that page handles missing Stripe config gracefully)
-        expect(hasErrorMessage).toBeTruthy();
-      } else {
-        // Stripe is configured - try to test iframe card validation
-        const stripeFrame = page
-          .frameLocator('iframe[name^="__privateStripeFrame"]')
-          .first();
+  test.describe('Payment Form Validation', () => {
+    test('rejects an invalid card number when Stripe is configured', async ({
+      page,
+    }) => {
+      await page.goto(
+        '/checkout?priceId=price_test&jobId=job-123&bidId=bid-456'
+      );
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(/complete your payment/i)).toBeVisible();
 
-        // Try to locate card number field - use data attribute for Stripe Elements
-        const cardNumberField = stripeFrame.locator(
-          '[data-elements-stable-field-name="cardNumber"]'
-        );
+      const stripeFrame = page
+        .frameLocator('iframe[name^="__privateStripeFrame"]')
+        .first();
+      const cardNumberField = stripeFrame.locator(
+        '[data-elements-stable-field-name="cardNumber"]'
+      );
+      const stripeReady = await cardNumberField
+        .isVisible({ timeout: 8000 })
+        .catch(() => false);
 
-        // If field exists, test invalid card number validation
-        const fieldExists = await cardNumberField
-          .isVisible({ timeout: 5000 })
-          .catch(() => false);
-
-        if (fieldExists) {
-          // Fill with invalid card number (13 digits instead of 16)
-          await cardNumberField.fill('1234 5678 9012');
-
-          // Stripe should show validation error
-          const hasValidationError = await stripeFrame
-            .locator('text=/incomplete|invalid/i')
-            .isVisible({ timeout: 3000 })
-            .catch(() => false);
-          expect(hasValidationError).toBeTruthy();
-        } else {
-          // Stripe iframe not loaded - acceptable in test environment
-          expect(true).toBeTruthy();
-        }
+      // Stripe test keys aren't guaranteed in CI; when the iframe never mounts
+      // the page must still show a graceful config error rather than nothing.
+      if (!stripeReady) {
+        await expect(
+          page.locator('[class*="alert"], [role="alert"]').first()
+        ).toBeVisible();
+        return;
       }
+
+      await cardNumberField.fill('1234 5678 9012');
+      await expect(
+        stripeFrame.locator('text=/incomplete|invalid/i')
+      ).toBeVisible({ timeout: 3000 });
     });
   });
 
   test.describe('Payment Confirmation', () => {
-    test('payment confirmation page displays success', async ({ page }) => {
-      // Navigate to return page with successful payment intent
-      const testPaymentIntent = 'pi_test_success_123';
-
-      await page.goto(`/checkout/return?payment_intent=${testPaymentIntent}`);
-
-      // Verify success message or confirmation content
-      // This test will pass if the page loads without error
-      await expect(page.locator('body')).toBeVisible();
+    test('return page surfaces an error for an invalid session', async ({
+      page,
+    }) => {
+      // The return page reads ?session_id and calls /api/payments/session-status.
+      // An invalid session must resolve to the verification-error card, not a
+      // blank page (the old test only asserted `body` was visible).
+      await page.goto('/checkout/return?session_id=cs_test_invalid_123');
+      await expect(
+        page.getByText(/payment verification error|no session id/i)
+      ).toBeVisible({ timeout: 10000 });
     });
   });
 });
 
 test.describe('Payment Flow - User Journey', () => {
-  test('complete payment journey navigation', async ({ page }) => {
-    // This test verifies the full navigation flow
+  test.beforeEach(async ({ page }) => {
+    const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
+    test.skip(!authed, AUTH_UNAVAILABLE);
+  });
+
+  test('checkout navigation lands on the payment page', async ({ page }) => {
     await page.goto(
       '/checkout?priceId=price_test_123&jobId=job-test&bidId=bid-test'
     );
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000); // Wait for component to load
 
-    // Verify we're on checkout
     await expect(page).toHaveURL(/checkout/);
-
-    // Verify checkout content loaded
-    const hasCheckoutContent = await page
-      .getByText('Complete Your Payment')
-      .isVisible()
-      .catch(() => false);
-    const hasErrorMessage = await page
-      .locator('[class*="alert"]')
-      .isVisible()
-      .catch(() => false);
-    const hasLoadingIndicator = await page
-      .getByText(/Loading|loading/i)
-      .isVisible()
-      .catch(() => false);
-
-    expect(
-      hasCheckoutContent || hasErrorMessage || hasLoadingIndicator
-    ).toBeTruthy();
+    await expect(page.getByText(/complete your payment/i)).toBeVisible();
   });
 });

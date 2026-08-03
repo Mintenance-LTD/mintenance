@@ -27,62 +27,32 @@ import {
 } from './helpers/job-wizard';
 import { establishSessionInContext, TEST_USERS } from './helpers/auth';
 
+const AUTH_UNAVAILABLE =
+  'E2E auth fixture unavailable — set E2E_TESTING=true + E2E_AUTH_SECRET on the ' +
+  'server and runner, and seed users (npm run seed:e2e-users).';
+
 test.describe('Authenticated Job Posting Flow', () => {
-  // storageState alone is not enough here. It restores the app JWT fine — the
-  // page renders authenticated — but the Supabase half of the session does not
-  // survive the file round-trip, and /api/properties is RLS-scoped off that
-  // half, so it returns 200 with zero rows and the wizard shows "No properties
-  // found". Re-minting into this context reproduces the configuration that is
-  // measured working in global setup. See establishSessionInContext.
+  // Re-mint a real homeowner session into this context (storageState restores
+  // the app JWT but not the Supabase half; see establishSessionInContext). Skip
+  // with an actionable reason when the fixture is not configured, rather than
+  // letting a login redirect make the assertions below pass vacuously.
   test.beforeEach(async ({ page }) => {
-    await establishSessionInContext(page, TEST_USERS.homeowner);
+    const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
+    test.skip(!authed, AUTH_UNAVAILABLE);
   });
-  // Tests start already authenticated as homeowner
 
   test('homeowner can access job creation page', async ({ page }) => {
-    // Navigate to job creation
-    await page.goto('/jobs/create');
-    await page.waitForLoadState('networkidle');
-
-    // Should not redirect to login (we're authenticated)
-    await expect(page).not.toHaveURL(/login/);
-
-    // Wait for the loading spinner to disappear
-    await page
-      .waitForFunction(
-        () => {
-          const loadingText = document.body.textContent || '';
-          return !loadingText.includes('Loading...');
-        },
-        { timeout: 30000 }
-      )
-      .catch(() => {
-        // If loading doesn't finish, test will fail on assertions below
-      });
-
-    // Wait a bit more for React hydration
-    await page.waitForTimeout(3000);
-
-    // Look for ANY content that indicates the page loaded
-    const pageText = await page.textContent('body');
-    const hasContent =
-      pageText && pageText.length > 50 && !pageText.includes('Loading...');
-
-    // Alternatively, check if URL is still correct (not redirected)
-    const isOnCorrectPage = page.url().includes('/jobs/create');
-
-    // Test passes if page has content or we're still on the create page
-    expect(hasContent || isOnCorrectPage).toBeTruthy();
+    // openJobWizard navigates to /jobs/create and waits for the wizard to mount;
+    // it returns false on a login redirect or if the wizard never appears. Auth
+    // is guaranteed by beforeEach and properties are seeded, so this must open.
+    expect(await openJobWizard(page)).toBeTruthy();
+    await expect(page).toHaveURL(/\/jobs\/create/);
   });
 
   test('homeowner can create a basic job', async ({ page }) => {
     const testJob = createTestJob();
 
-    if (!(await openJobWizard(page))) {
-      // skipped: runtime bail — session not accepted, redirected to login
-      test.skip();
-      return;
-    }
+    expect(await openJobWizard(page)).toBeTruthy();
 
     await fillJobWizardToReview(page, {
       title: testJob.title,
@@ -117,14 +87,12 @@ test.describe('Authenticated Job Posting Flow', () => {
     const draftButton = page.getByRole('button', {
       name: /save.*draft|draft/i,
     });
-    const hasDraftButton = await draftButton.isVisible().catch(() => false);
-
-    if (!hasDraftButton) {
-      // skipped: runtime bail — save-as-draft feature not implemented on /jobs/create (2026-07-02 triage)
-      console.log('Draft functionality not found - feature not implemented');
-      test.skip();
-      return;
-    }
+    // Save-as-draft is an optional feature, not an auth gate — skip explicitly
+    // when the wizard variant doesn't offer it.
+    test.skip(
+      !(await draftButton.isVisible().catch(() => false)),
+      'Save-as-draft not present in this wizard variant'
+    );
 
     // If draft button exists, test the functionality
     const titleInput = page.getByLabel(/title/i);
@@ -144,34 +112,26 @@ test.describe('Authenticated Job Posting Flow', () => {
     // Navigate to jobs list - session is already authenticated via storageState
     await page.goto('/jobs', { waitUntil: 'networkidle' });
 
-    // Should not be redirected to login since we're pre-authenticated
-    await expect(page).not.toHaveURL(/login/);
+    // Should not be redirected to login since we're authenticated
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
-    // Wait for page to load
-    await page.waitForTimeout(3000);
-
-    // Verify page content loaded - look for any of these indicators
+    // The jobs page must render a concrete state — a jobs heading or an explicit
+    // empty/CTA state — not merely "body has some text" (true on /login too).
     const hasHeading = await page
       .getByRole('heading', { name: /your jobs|my jobs|jobs/i })
       .first()
       .isVisible()
       .catch(() => false);
-    const hasNavigation = await page
-      .getByRole('navigation')
+    const hasEmptyState = await page
+      .getByText(/no.*job|no.*result|create.*job|post.*job/i)
+      .first()
       .isVisible()
       .catch(() => false);
-    const pageContent = await page.textContent('body');
-    const hasContent = pageContent && pageContent.length > 100;
-
-    expect(hasHeading || hasNavigation || hasContent).toBeTruthy();
+    expect(hasHeading || hasEmptyState).toBeTruthy();
   });
 
   test('multi-step job creation flow works correctly', async ({ page }) => {
-    if (!(await openJobWizard(page))) {
-      // skipped: runtime bail — session not accepted, redirected to login
-      test.skip();
-      return;
-    }
+    expect(await openJobWizard(page)).toBeTruthy();
 
     const testJob = createTestJob();
 
@@ -204,40 +164,28 @@ test.describe('Authenticated Job Posting Flow', () => {
 });
 
 test.describe('Job Management', () => {
-  // storageState alone is not enough here. It restores the app JWT fine — the
-  // page renders authenticated — but the Supabase half of the session does not
-  // survive the file round-trip, and /api/properties is RLS-scoped off that
-  // half, so it returns 200 with zero rows and the wizard shows "No properties
-  // found". Re-minting into this context reproduces the configuration that is
-  // measured working in global setup. See establishSessionInContext.
   test.beforeEach(async ({ page }) => {
-    await establishSessionInContext(page, TEST_USERS.homeowner);
+    const authed = await establishSessionInContext(page, TEST_USERS.homeowner);
+    test.skip(!authed, AUTH_UNAVAILABLE);
   });
 
   test('homeowner can edit their own job', async ({ page }) => {
     // Navigate to jobs list
     await page.goto('/jobs');
     await page.waitForLoadState('networkidle');
-    await expect(page).not.toHaveURL(/login/);
-
-    // Wait for page to load
-    await page.waitForTimeout(3000);
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Find an "Edit" button or link
     const editButton = page
       .getByRole('link', { name: /edit/i })
       .or(page.getByRole('button', { name: /edit/i }))
       .first();
-    const hasEditButton = await editButton.isVisible().catch(() => false);
-
-    if (!hasEditButton) {
-      // skipped: runtime bail — no editable job in the e2e environment (no jobs, or edit CTA missing) (2026-07-02 triage)
-      console.log(
-        'No edit button found - either no jobs exist or feature not implemented'
-      );
-      test.skip();
-      return;
-    }
+    // The e2e seed creates no jobs, so there may be nothing to edit — a data
+    // gap, not a bug. When a job IS present the edit flow is asserted for real.
+    test.skip(
+      !(await editButton.isVisible().catch(() => false)),
+      'No seeded jobs to edit'
+    );
 
     // Test edit functionality
     await editButton.click();
@@ -259,42 +207,28 @@ test.describe('Job Management', () => {
     // Navigate to jobs list
     await page.goto('/jobs');
     await page.waitForLoadState('networkidle');
-    await expect(page).not.toHaveURL(/login/);
-
-    // Wait for page to load
-    await page.waitForTimeout(3000);
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Find a "Delete" button
     const deleteButton = page
       .getByRole('button', { name: /delete|remove/i })
       .first();
-    const hasDeleteButton = await deleteButton.isVisible().catch(() => false);
-
-    if (!hasDeleteButton) {
-      // skipped: runtime bail — no deletable job in the e2e environment (no jobs, bids present, or CTA missing) (2026-07-02 triage)
-      console.log(
-        'No delete button found - either no jobs exist, jobs have bids, or feature not implemented'
-      );
-      test.skip();
-      return;
-    }
+    // The e2e seed creates no jobs, so there may be nothing to delete.
+    test.skip(
+      !(await deleteButton.isVisible().catch(() => false)),
+      'No seeded jobs to delete'
+    );
 
     // Test delete functionality
     await deleteButton.click();
     await page.waitForTimeout(1000);
 
-    // Should see confirmation dialog
+    // A destructive action MUST surface a confirmation dialog — its absence is
+    // a real regression, so assert it rather than skipping.
     const confirmButton = page.getByRole('button', {
       name: /confirm|yes.*delete/i,
     });
-    const hasConfirmButton = await confirmButton.isVisible().catch(() => false);
-
-    if (!hasConfirmButton) {
-      // skipped: runtime bail — delete confirmation dialog did not appear (selector drift candidate) (2026-07-02 triage)
-      console.log('No confirmation dialog found');
-      test.skip();
-      return;
-    }
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
 
     await confirmButton.click();
     await waitForNetworkIdle(page);
