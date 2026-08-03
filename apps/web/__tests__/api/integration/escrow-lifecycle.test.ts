@@ -1595,16 +1595,17 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     expect(mocks.stripeTransfersCreate).toHaveBeenCalledTimes(1);
     expect(orderLog).toEqual(['cas-update', 'stripe-transfer', 'final-update']);
 
-    // Recovery trail: escrow_audit_log row with action='reconciliation_needed'
-    // carrying the transfer + reconciliation ids an operator needs.
+    // Recovery trail: escrow_audit_log row carrying the transfer +
+    // reconciliation ids an operator needs. Matched by release_reason (its
+    // distinctive marker) — action is 'released' (a CHECK-permitted value: the
+    // transfer DID succeed), NOT the old 'reconciliation_needed', which the
+    // escrow_audit_log.action CHECK rejects so the recovery insert was lost.
     const recon = auditInserts.find(
-      (r) => r.action === 'reconciliation_needed'
+      (r) => r.release_reason === 'transfer_succeeded_final_update_failed'
     );
     expect(recon).toBeDefined();
+    expect(recon!.action).toBe('released');
     expect(recon!.transfer_id).toBe(TRANSFER_ID);
-    expect(recon!.release_reason).toBe(
-      'transfer_succeeded_final_update_failed'
-    );
     expect(
       (recon!.metadata as Record<string, unknown>).reconciliation_id
     ).toBeTruthy();

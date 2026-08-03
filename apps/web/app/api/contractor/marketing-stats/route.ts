@@ -26,7 +26,9 @@ export const GET = withApiHandler(
       // Profile data
       supabase
         .from('profiles')
-        .select('rating, total_jobs_completed, company_name, skills, first_name, last_name')
+        .select(
+          'rating, total_jobs_completed, company_name, skills, first_name, last_name'
+        )
         .eq('id', userId)
         .single(),
 
@@ -60,13 +62,15 @@ export const GET = withApiHandler(
         .gte('created_at', sixMonthsISO)
         .limit(200),
 
-      // Escrow earnings (released) — cap at 500 rows; sum is all we need
+      // Escrow earnings — cap at 500 rows; sum is all we need.
       // Note: contractor is the payee in escrow_transactions; table has no contractor_id column.
+      // Terminal released escrows are stored as 'completed' (the release paths
+      // write 'completed', not 'released'); match both so earnings aren't £0.
       supabase
         .from('escrow_transactions')
         .select('amount, updated_at')
         .eq('payee_id', userId)
-        .eq('status', 'released')
+        .in('status', ['released', 'completed'])
         .limit(500),
 
       // Message threads where contractor is a participant (inquiries proxy)
@@ -96,14 +100,15 @@ export const GET = withApiHandler(
 
     // Calculate bid stats
     const totalBids = bids.length;
-    const acceptedBids = bids.filter(b => b.status === 'accepted').length;
-    const winRate = totalBids > 0 ? Math.round((acceptedBids / totalBids) * 100) : 0;
+    const acceptedBids = bids.filter((b) => b.status === 'accepted').length;
+    const winRate =
+      totalBids > 0 ? Math.round((acceptedBids / totalBids) * 100) : 0;
 
     // Calculate earnings
     const totalEarnings = earnings.reduce((sum, e) => sum + (e.amount || 0), 0);
 
     // Calculate completed jobs
-    const completedJobs = jobs.filter(j => j.status === 'completed').length;
+    const completedJobs = jobs.filter((j) => j.status === 'completed').length;
 
     // Monthly trend (last 6 months)
     const monthlyTrend = buildMonthlyTrend(bids, jobs);
@@ -116,7 +121,9 @@ export const GET = withApiHandler(
 
     return NextResponse.json({
       profile: {
-        name: [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Contractor',
+        name:
+          [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
+          'Contractor',
         companyName: profile?.company_name || null,
         rating: profile?.rating || 0,
         skills: profile?.skills || [],
@@ -135,7 +142,7 @@ export const GET = withApiHandler(
       monthlyTrend,
       categoryBreakdown,
       ratingDistribution,
-      recentReviews: reviews.map(r => ({
+      recentReviews: reviews.map((r) => ({
         id: r.id,
         rating: r.rating,
         comment: r.comment,
@@ -146,11 +153,27 @@ export const GET = withApiHandler(
   }
 );
 
-interface BidRow { id: string; status: string; amount: number; created_at: string }
-interface JobRow { id: string; category: string; status: string; completed_at: string | null; created_at: string }
+interface BidRow {
+  id: string;
+  status: string;
+  amount: number;
+  created_at: string;
+}
+interface JobRow {
+  id: string;
+  category: string;
+  status: string;
+  completed_at: string | null;
+  created_at: string;
+}
 
 function buildMonthlyTrend(bids: BidRow[], jobs: JobRow[]) {
-  const months: { month: string; bidsSubmitted: number; bidsWon: number; jobsCompleted: number }[] = [];
+  const months: {
+    month: string;
+    bidsSubmitted: number;
+    bidsWon: number;
+    jobsCompleted: number;
+  }[] = [];
   const now = new Date();
 
   for (let i = 5; i >= 0; i--) {
@@ -158,9 +181,11 @@ function buildMonthlyTrend(bids: BidRow[], jobs: JobRow[]) {
     const label = d.toLocaleDateString('en-GB', { month: 'short' });
     const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
-    const monthBids = bids.filter(b => b.created_at?.startsWith(yearMonth));
-    const monthBidsWon = monthBids.filter(b => b.status === 'accepted');
-    const monthJobsDone = jobs.filter(j => j.completed_at?.startsWith(yearMonth));
+    const monthBids = bids.filter((b) => b.created_at?.startsWith(yearMonth));
+    const monthBidsWon = monthBids.filter((b) => b.status === 'accepted');
+    const monthJobsDone = jobs.filter((j) =>
+      j.completed_at?.startsWith(yearMonth)
+    );
 
     months.push({
       month: label,

@@ -90,13 +90,14 @@ import { EscrowAutoReleaseService } from '../EscrowAutoReleaseService';
 
 // A self-returning, thenable Supabase query builder. Every chain method returns
 // the same object; awaiting it (at any depth) resolves to `terminal`. Covers
-// .select().eq().eq().in().lte().limit(), .update().eq(), and .in().
+// .select().eq().eq().or().lte().limit(), .update().eq(), and .in().
 function chain(terminal: unknown) {
   const p: Record<string, unknown> = {};
   for (const m of [
     'select',
     'eq',
     'in',
+    'or',
     'lte',
     'order',
     'limit',

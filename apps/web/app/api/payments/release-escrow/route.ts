@@ -430,13 +430,21 @@ export const POST = withApiHandler(
         // every transfer-succeeded-but-DB-failed event was silently
         // dropping the recovery trail. Re-targeted at the canonical
         // `escrow_audit_log` (the existing audit table for this
-        // surface) with action='reconciliation_needed' so operators
-        // can grep for stuck reconciliations and the recovery info
-        // (transfer_id + reconciliation_id) is preserved in metadata.
+        // surface); operators grep by release_reason
+        // ('transfer_succeeded_final_update_failed') and the recovery
+        // info (transfer_id + reconciliation_id) is preserved in metadata.
         try {
           await serverSupabase.from('escrow_audit_log').insert({
             escrow_transaction_id: escrowTransactionId,
-            action: 'reconciliation_needed',
+            // 'released' is the accurate CHECK-permitted action (the transfer
+            // succeeded, so funds WERE released to the contractor). The
+            // reconciliation nuance — that the escrow row didn't get its
+            // final status write — lives in release_reason + metadata below.
+            // NOTE: escrow_audit_log.action's CHECK only allows
+            // released/held/refunded/disputed/admin_override, so the previous
+            // 'reconciliation_needed' silently 23514'd and this entire
+            // recovery insert was lost — defeating its own purpose.
+            action: 'released',
             actor_id: user.id,
             actor_role: user.role,
             job_id: job.id,

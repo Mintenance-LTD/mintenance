@@ -14,12 +14,26 @@ export const GET = withApiHandler(
     const url = new URL(request.url);
     const range = url.searchParams.get('range') || '30d';
 
-    const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+    const daysMap: Record<string, number> = {
+      '7d': 7,
+      '30d': 30,
+      '90d': 90,
+      '1y': 365,
+    };
     const days = daysMap[range] || 30;
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const since = new Date(
+      Date.now() - days * 24 * 60 * 60 * 1000
+    ).toISOString();
 
     try {
-      const [profileRes, reviewsRes, reviewCountRes, bidsRes, jobsRes, earningsRes] = await Promise.all([
+      const [
+        profileRes,
+        reviewsRes,
+        reviewCountRes,
+        bidsRes,
+        jobsRes,
+        earningsRes,
+      ] = await Promise.all([
         serverSupabase
           .from('profiles')
           .select('rating, total_jobs_completed')
@@ -48,9 +62,12 @@ export const GET = withApiHandler(
           .limit(200),
         serverSupabase
           .from('escrow_transactions')
+          // Terminal released escrows are stored as 'completed' (the release
+          // paths write 'completed', not 'released'); match both so earnings
+          // aren't £0.
           .select('amount')
           .eq('payee_id', user.id)
-          .eq('status', 'released')
+          .in('status', ['released', 'completed'])
           .limit(500),
       ]);
 
@@ -62,20 +79,29 @@ export const GET = withApiHandler(
       const earnings = earningsRes.data || [];
 
       // Calculate metrics
-      const completedJobs = jobs.filter(j => j.status === 'completed').length;
-      const acceptedBids = bids.filter(b => b.status === 'accepted').length;
+      const completedJobs = jobs.filter((j) => j.status === 'completed').length;
+      const acceptedBids = bids.filter((b) => b.status === 'accepted').length;
       const winRate = bids.length > 0 ? acceptedBids / bids.length : 0;
-      const totalEarnings = earnings.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const totalEarnings = earnings.reduce(
+        (sum, e) => sum + Number(e.amount || 0),
+        0
+      );
 
       // Monthly trend (last 6 months)
       const monthlyTrend: { month: string; count: number }[] = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date();
         d.setMonth(d.getMonth() - i);
-        const month = d.toLocaleString('en-GB', { month: 'short', year: '2-digit' });
-        const count = jobs.filter(j => {
+        const month = d.toLocaleString('en-GB', {
+          month: 'short',
+          year: '2-digit',
+        });
+        const count = jobs.filter((j) => {
           const jd = new Date(j.created_at);
-          return jd.getMonth() === d.getMonth() && jd.getFullYear() === d.getFullYear();
+          return (
+            jd.getMonth() === d.getMonth() &&
+            jd.getFullYear() === d.getFullYear()
+          );
         }).length;
         monthlyTrend.push({ month, count });
       }
@@ -91,7 +117,13 @@ export const GET = withApiHandler(
         .sort((a, b) => b.count - a.count);
 
       // Rating distribution
-      const ratingDistribution: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+      const ratingDistribution: Record<string, number> = {
+        '1': 0,
+        '2': 0,
+        '3': 0,
+        '4': 0,
+        '5': 0,
+      };
       for (const r of reviews) {
         const key = String(r.rating);
         if (key in ratingDistribution) ratingDistribution[key]++;
@@ -106,7 +138,7 @@ export const GET = withApiHandler(
         monthlyTrend,
         categoryBreakdown,
         ratingDistribution,
-        recentReviews: reviews.map(r => ({
+        recentReviews: reviews.map((r) => ({
           id: r.id,
           rating: r.rating,
           comment: r.comment || '',
