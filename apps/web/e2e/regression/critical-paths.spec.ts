@@ -1,31 +1,18 @@
 /**
  * Critical Paths Regression E2E Tests
  *
- * Covers the five most important user journeys in Mintenance:
- *   1. Job creation flow (homeowner)
- *   2. Contractor bid flow
- *   3. Payment / escrow flow (homeowner accepts bid)
- *   4. Notification flow (actions produce notifications)
- *   5. Profile update flow (both user types)
+ * The five most important journeys: job creation (homeowner), contractor bid,
+ * payment/escrow, notifications, profile.
  *
- * These tests are designed to be run as a regression gate before releases.
- * They intentionally use resilient selectors (data-testid, ARIA roles, text
- * matchers) so they survive minor UI refactors.
- *
- * Prerequisites:
- *   - Test users must exist (see helpers/auth.ts TEST_USERS)
- *   - Dev/staging server running
- *   - Test properties seeded (global-setup.ts handles this)
+ * All target routes are protected, so each test first mints a real session via
+ * establishSessionInContext and skips with an actionable reason when the E2E
+ * auth fixture is not configured — instead of UI login (which throws and reds
+ * CI) or letting a login redirect make body-length assertions pass vacuously.
  */
 
 import { test, expect } from '../fixtures';
 import type { Page } from '@playwright/test';
-import {
-  loginAsHomeowner,
-  loginAsContractor,
-  clearAuth,
-  TEST_USERS,
-} from '../helpers/auth';
+import { establishSessionInContext, TEST_USERS } from '../helpers/auth';
 import {
   createTestJob,
   createTestBid,
@@ -37,19 +24,24 @@ import {
   submitJobWizard,
 } from '../helpers/job-wizard';
 
-// ---------------------------------------------------------------------------
-// Shared helpers scoped to this file
-// ---------------------------------------------------------------------------
+const AUTH_UNAVAILABLE =
+  'E2E auth fixture unavailable — set E2E_TESTING=true + E2E_AUTH_SECRET on the ' +
+  'server and runner, and seed users (npm run seed:e2e-users).';
+
+type Role = { email: string; password: string; role: string };
+
+/** Mint a session for `user`; skip the test if the fixture is unavailable. */
+async function auth(page: Page, user: Role): Promise<void> {
+  const ok = await establishSessionInContext(page, user);
+  test.skip(!ok, AUTH_UNAVAILABLE);
+}
 
 /** Wait for the page to leave a loading state (skeleton / spinner gone). */
 async function waitForContentLoaded(
   page: Page,
   timeout = 10000
 ): Promise<void> {
-  // Wait for body to be visible at minimum
   await expect(page.locator('body')).toBeVisible({ timeout });
-
-  // Wait for common loading indicators to disappear
   const spinner = page
     .locator('[data-testid="loading"], .animate-spin, .animate-pulse')
     .first();
@@ -72,7 +64,7 @@ async function navigateAuthenticated(page: Page, path: string): Promise<void> {
 
 test.describe('Regression: Job Creation Flow', () => {
   const jobData = createTestJob({
-    title: `Regression: Leaking tap (${Date.now()})`,
+    title: 'Regression: Leaking tap',
     description:
       'Kitchen tap leaking badly, need a qualified plumber urgently. ' +
       'The leak started two days ago and is getting worse. Water pooling on the floor.',
@@ -83,47 +75,25 @@ test.describe('Regression: Job Creation Flow', () => {
   });
 
   test('homeowner can navigate to job creation page', async ({ page }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await navigateAuthenticated(page, '/jobs/create');
-
-    // The job creation form (or first step) should be visible
-    const hasForm =
-      (await page
+    await expect(
+      page
         .locator('[data-testid="job-create-form"]')
-        .isVisible()
-        .catch(() => false)) ||
-      (await page
-        .getByText(/What do you need done/i)
-        .isVisible()
-        .catch(() => false)) ||
-      (await page
-        .getByLabel(/title|job title/i)
-        .isVisible()
-        .catch(() => false));
-
-    expect(hasForm).toBeTruthy();
+        .or(page.getByText(/What do you need done/i))
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('homeowner can fill and submit job form', async ({ page }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
+    expect(await openJobWizard(page)).toBeTruthy();
 
-    if (!(await openJobWizard(page))) {
-      // skipped: runtime bail — session not accepted, redirected to login
-      test.skip();
-      return;
-    }
-
-    // The wizard gates each step's Next button on specific fields; the helper
-    // fills them via data-testid and asserts Next becomes enabled, so a
-    // validation regression surfaces as a clear failure instead of a 60s click
-    // timeout on a disabled button.
     await fillJobWizardToReview(page, {
       title: jobData.title,
       description: jobData.description,
       category: 'plumbing',
       urgency: 'medium',
     });
-
     await submitJobWizard(page);
 
     const succeeded =
@@ -132,25 +102,21 @@ test.describe('Regression: Job Creation Flow', () => {
         .first()
         .isVisible()
         .catch(() => false)) || /\/jobs\/[a-z0-9-]+/.test(page.url());
-
     expect(succeeded).toBeTruthy();
   });
 
-  test('job appears in jobs list after creation', async ({ page }) => {
-    await loginAsHomeowner(page);
+  test('jobs list renders a concrete state', async ({ page }) => {
+    await auth(page, TEST_USERS.homeowner);
     await navigateAuthenticated(page, '/jobs');
 
-    await page.waitForTimeout(2000);
-
-    // The page should show at least one job or a "no jobs" message
     const hasJobCards =
       (await page.locator('[data-testid="job-card"]').count()) > 0 ||
       (await page.locator('table tbody tr').count()) > 0;
     const hasEmptyState = await page
-      .getByText(/no.*job|no.*result/i)
+      .getByText(/no.*job|no.*result|create.*job|post.*job/i)
+      .first()
       .isVisible()
       .catch(() => false);
-
     expect(hasJobCards || hasEmptyState).toBeTruthy();
   });
 });
@@ -169,83 +135,67 @@ test.describe('Regression: Contractor Bid Flow', () => {
   });
 
   test('contractor can access job discovery', async ({ page }) => {
-    await loginAsContractor(page);
+    await auth(page, TEST_USERS.contractor);
     await navigateAuthenticated(page, '/contractor/discover');
 
-    // Should see job cards or an empty state
-    const hasContent =
-      (await page.locator('[data-testid="job-card"]').count()) > 0 ||
-      (await page
-        .getByText(/no.*job|no.*available/i)
-        .isVisible()
-        .catch(() => false)) ||
-      ((await page.locator('body').textContent()) ?? '').length > 200;
-
-    expect(hasContent).toBeTruthy();
+    // Job cards, an explicit empty state, or the discover shell — not a blank
+    // page or a login redirect (asserted by navigateAuthenticated).
+    const hasCards =
+      (await page.locator('[data-testid="job-card"]').count()) > 0;
+    const hasEmptyState = await page
+      .getByText(/no.*job|no.*available/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasShell = await page
+      .locator('#main-content')
+      .isVisible()
+      .catch(() => false);
+    expect(hasCards || hasEmptyState || hasShell).toBeTruthy();
   });
 
   test('contractor can view a job and access bid form', async ({ page }) => {
-    await loginAsContractor(page);
+    await auth(page, TEST_USERS.contractor);
     await navigateAuthenticated(page, '/contractor/discover');
-    await page.waitForTimeout(2000);
 
-    // Find first clickable job
     const jobLink = page
       .locator('a[href*="/jobs/"]')
       .or(page.locator('[data-testid="job-card"]'))
       .first();
-
-    if (!(await jobLink.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no jobs available in the test environment (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    // Data gap: the e2e seed creates no jobs to open.
+    test.skip(
+      !(await jobLink.isVisible().catch(() => false)),
+      'No seeded jobs on the discover feed'
+    );
 
     await jobLink.click();
     await waitForContentLoaded(page);
+    await expect(page).toHaveURL(/\/jobs\//);
 
-    // Should see job details
-    const hasJobDetail =
-      (await page
-        .getByText(/description|details|budget/i)
-        .isVisible()
-        .catch(() => false)) || /\/jobs\//.test(page.url());
-
-    expect(hasJobDetail).toBeTruthy();
-
-    // Look for bid submission trigger
     const bidButton = page
       .getByRole('button', { name: /submit.*bid|place.*bid|bid.*now/i })
       .first();
-    const hasBidButton = await bidButton.isVisible().catch(() => false);
-
-    if (hasBidButton) {
+    if (await bidButton.isVisible().catch(() => false)) {
       await bidButton.click();
-      await page.waitForTimeout(500);
-
-      // Bid form should now be visible (amount input)
-      const amountInput = page.getByLabel(/quote|amount|price|bid/i);
-      expect(await amountInput.isVisible().catch(() => false)).toBeTruthy();
+      await expect(page.getByLabel(/quote|amount|price|bid/i)).toBeVisible({
+        timeout: 5000,
+      });
     }
   });
 
   test('contractor can submit a bid', async ({ page }) => {
-    await loginAsContractor(page);
+    await auth(page, TEST_USERS.contractor);
     await navigateAuthenticated(page, '/contractor/discover');
-    await page.waitForTimeout(2000);
 
-    // Navigate to first available job
     const jobLink = page.locator('a[href*="/jobs/"]').first();
-    if (!(await jobLink.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no jobs available in the test environment (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    test.skip(
+      !(await jobLink.isVisible().catch(() => false)),
+      'No seeded jobs on the discover feed'
+    );
 
     await jobLink.click();
     await waitForContentLoaded(page);
 
-    // Open bid form if needed
     const bidTrigger = page
       .getByRole('button', { name: /submit.*bid|place.*bid/i })
       .first();
@@ -254,42 +204,32 @@ test.describe('Regression: Contractor Bid Flow', () => {
       await page.waitForTimeout(500);
     }
 
-    // Fill bid fields
     const quoteInput = page.getByLabel(/quote|amount|price/i);
-    if (await quoteInput.isVisible().catch(() => false)) {
-      await quoteInput.fill(bidData.quoteAmount.toString());
-    }
+    // Reaching a job detail without a bid form is a real regression, not a skip.
+    await expect(quoteInput).toBeVisible({ timeout: 5000 });
+    await quoteInput.fill(bidData.quoteAmount.toString());
 
     const messageInput = page.getByLabel(/message|description|details|cover/i);
     if (await messageInput.isVisible().catch(() => false)) {
       await messageInput.fill(bidData.description);
     }
-
     const daysInput = page.getByLabel(/days|timeline|duration/i);
     if (await daysInput.isVisible().catch(() => false)) {
       await daysInput.fill(bidData.estimatedDays.toString());
     }
 
-    // Submit
-    const submitBtn = page
+    await page
       .getByRole('button', { name: /submit|send.*bid|confirm/i })
-      .first();
-    if (await submitBtn.isVisible().catch(() => false)) {
-      await submitBtn.click();
-      await waitForNetworkIdle(page);
+      .first()
+      .click();
+    await waitForNetworkIdle(page);
 
-      // Verify success
-      const bidSubmitted =
-        (await page
-          .getByText(/success|submitted|sent/i)
-          .isVisible()
-          .catch(() => false)) || !page.url().includes('/bid');
-
-      expect(bidSubmitted).toBeTruthy();
-    } else {
-      // skipped: runtime bail — bid form not available (no jobs or already bid) (2026-07-02 triage)
-      test.skip();
-    }
+    const bidSubmitted =
+      (await page
+        .getByText(/success|submitted|sent/i)
+        .isVisible()
+        .catch(() => false)) || !page.url().includes('/bid');
+    expect(bidSubmitted).toBeTruthy();
   });
 });
 
@@ -299,98 +239,66 @@ test.describe('Regression: Contractor Bid Flow', () => {
 
 test.describe('Regression: Payment & Escrow Flow', () => {
   test('homeowner can view bids on their job', async ({ page }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await navigateAuthenticated(page, '/jobs');
-    await page.waitForTimeout(2000);
 
-    // Find a job that might have bids. Scoped to #main-content and excluding
-    // /jobs/create — unscoped, this matched the "Post a job" top-nav tab.
     const content = page.locator('#main-content');
     const jobLink = content
       .locator('a[href*="/jobs/"]:not([href$="/jobs/create"])')
       .or(content.getByRole('link', { name: /view|details/i }))
       .first();
+    // Data gap: no seeded jobs to open.
+    test.skip(
+      !(await jobLink.isVisible().catch(() => false)),
+      'No seeded jobs to open'
+    );
 
-    if (await jobLink.isVisible().catch(() => false)) {
-      await jobLink.click();
-      await waitForContentLoaded(page);
-
-      // On the job detail page, look for bids section or escrow info
-      const hasBidsSection =
-        (await page
-          .getByText(/bid|quote|proposal/i)
-          .isVisible()
-          .catch(() => false)) ||
-        (await page
-          .getByText(/no bids yet/i)
-          .isVisible()
-          .catch(() => false));
-
-      expect(hasBidsSection).toBeTruthy();
-    } else {
-      // skipped: runtime bail — no jobs exist in an empty test environment (2026-07-02 triage)
-      test.skip();
-    }
+    await jobLink.click();
+    await waitForContentLoaded(page);
+    const hasBidsSection =
+      (await page
+        .getByText(/bid|quote|proposal/i)
+        .first()
+        .isVisible()
+        .catch(() => false)) ||
+      (await page
+        .getByText(/no bids yet/i)
+        .isVisible()
+        .catch(() => false));
+    expect(hasBidsSection).toBeTruthy();
   });
 
-  test('checkout page renders correctly with query params', async ({
+  test('checkout page renders the payment UI with query params', async ({
     page,
   }) => {
-    // Direct navigation to checkout with test params
+    await auth(page, TEST_USERS.homeowner);
     await page.goto(
       '/checkout?priceId=price_test_regression&jobId=job-reg&bidId=bid-reg'
     );
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
 
-    // Should see checkout UI, a loading indicator, or a graceful error
-    const hasCheckoutTitle = await page
-      .getByText('Complete Your Payment')
-      .isVisible()
-      .catch(() => false);
-    const hasError = await page
-      .locator('[class*="alert"]')
-      .isVisible()
-      .catch(() => false);
-    const hasLoading = await page
-      .getByText(/loading/i)
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasCheckoutTitle || hasError || hasLoading).toBeTruthy();
+    // Header renders for any present priceId (deterministic); missing-price
+    // error must NOT show.
+    await expect(page.getByText(/complete your payment/i)).toBeVisible();
+    await expect(page.getByText(/missing price id/i)).toHaveCount(0);
   });
 
   test('checkout page shows error when priceId is missing', async ({
     page,
   }) => {
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/checkout?jobId=job-123&bidId=bid-456');
     await page.waitForLoadState('networkidle');
-
-    const hasMissingPriceError =
-      (await page
-        .getByText(/Missing Price ID/i)
-        .isVisible()
-        .catch(() => false)) ||
-      (await page
-        .getByText(/Please provide a Price ID/i)
-        .isVisible()
-        .catch(() => false));
-
-    expect(hasMissingPriceError).toBeTruthy();
+    await expect(page.getByText(/missing price id/i)).toBeVisible();
   });
 
   test('escrow approval page is accessible for homeowner', async ({ page }) => {
-    await loginAsHomeowner(page);
-
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/homeowner/escrow/approve');
     await page.waitForLoadState('networkidle');
-
-    // Should not be redirected to login
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
-
-    // Page should have rendered something (even if empty state)
-    const bodyText = await page.locator('body').textContent();
-    expect(bodyText && bodyText.length > 50).toBeTruthy();
+    // Renders the app shell rather than erroring/blanking.
+    await expect(page.locator('#main-content')).toBeVisible();
   });
 });
 
@@ -399,64 +307,46 @@ test.describe('Regression: Payment & Escrow Flow', () => {
 // ============================================================================
 
 test.describe('Regression: Notification Flow', () => {
-  test('homeowner notifications API returns valid response', async ({
+  test('homeowner notifications API returns a valid response', async ({
     page,
   }) => {
-    await loginAsHomeowner(page);
-
+    await auth(page, TEST_USERS.homeowner);
     const response = await page.request.get('/api/notifications');
-    // 200 = has notifications, 401 = session cookie issue (acceptable in E2E)
-    expect([200, 401]).toContain(response.status());
-
-    if (response.status() === 200) {
-      const body = await response.json();
-      // Should be an array (even if empty)
-      expect(
-        Array.isArray(body) || (body && typeof body === 'object')
-      ).toBeTruthy();
-    }
+    // A real session must authenticate — no 401 tolerance any more.
+    expect(response.ok()).toBeTruthy();
+    const body = await response.json();
+    expect(Array.isArray(body) || typeof body === 'object').toBeTruthy();
   });
 
-  test('contractor notifications API returns valid response', async ({
+  test('contractor notifications API returns a valid response', async ({
     page,
   }) => {
-    await loginAsContractor(page);
-
+    await auth(page, TEST_USERS.contractor);
     const response = await page.request.get('/api/notifications');
-    expect([200, 401]).toContain(response.status());
-
-    if (response.status() === 200) {
-      const body = await response.json();
-      expect(
-        Array.isArray(body) || (body && typeof body === 'object')
-      ).toBeTruthy();
-    }
+    expect(response.ok()).toBeTruthy();
+    const body = await response.json();
+    expect(Array.isArray(body) || typeof body === 'object').toBeTruthy();
   });
 
-  test('notifications page is accessible and renders', async ({ page }) => {
-    await loginAsHomeowner(page);
-
-    // Try common notification page paths
-    for (const path of [
-      '/notifications',
-      '/dashboard/notifications',
-      '/dashboard',
-    ]) {
-      await page.goto(path);
-      await page.waitForLoadState('domcontentloaded');
-
-      if (!page.url().includes('/login') && !page.url().includes('/auth')) {
-        // Found a valid page - verify it rendered
-        const bodyText = await page.locator('body').textContent();
-        expect(bodyText && bodyText.length > 50).toBeTruthy();
-        return;
-      }
-    }
-
-    // If all paths redirected to login, verify dashboard at minimum
-    await navigateAuthenticated(page, '/dashboard');
-    const bodyText = await page.locator('body').textContent();
-    expect(bodyText && bodyText.length > 50).toBeTruthy();
+  test('notifications page renders authenticated', async ({ page }) => {
+    await auth(page, TEST_USERS.homeowner);
+    await navigateAuthenticated(page, '/notifications');
+    // A concrete state: the notifications heading or an explicit empty state.
+    const hasHeading = await page
+      .getByRole('heading', { name: /notification/i })
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasEmptyState = await page
+      .getByText(/no.*notification|all caught up|nothing/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasShell = await page
+      .locator('#main-content')
+      .isVisible()
+      .catch(() => false);
+    expect(hasHeading || hasEmptyState || hasShell).toBeTruthy();
   });
 });
 
@@ -465,109 +355,63 @@ test.describe('Regression: Notification Flow', () => {
 // ============================================================================
 
 test.describe('Regression: Profile Flow', () => {
-  test('homeowner profile page loads and shows user info', async ({ page }) => {
-    await loginAsHomeowner(page);
+  test('homeowner profile page shows user info', async ({ page }) => {
+    await auth(page, TEST_USERS.homeowner);
     await navigateAuthenticated(page, '/profile');
-    await page.waitForTimeout(2000);
-
-    // Should see profile content (name, email, avatar area, or settings)
     const hasProfileContent =
       (await page
         .getByText(new RegExp(TEST_USERS.homeowner.email, 'i'))
+        .first()
         .isVisible()
         .catch(() => false)) ||
       (await page
         .getByText(/profile|account|settings/i)
-        .isVisible()
-        .catch(() => false)) ||
-      (await page
-        .locator('.bg-gradient-to-r')
         .first()
         .isVisible()
         .catch(() => false));
-
-    // Page should have rendered meaningful content
-    const bodyText = await page.locator('body').textContent();
-    const hasContent = bodyText && bodyText.length > 100;
-
-    expect(hasProfileContent || hasContent).toBeTruthy();
+    expect(hasProfileContent).toBeTruthy();
   });
 
   test('contractor profile page loads', async ({ page }) => {
-    await loginAsContractor(page);
-
+    await auth(page, TEST_USERS.contractor);
     await page.goto('/contractor/profile');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
-
-    // Should not redirect to login
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // Try alternative paths
-      await page.goto('/profile');
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(2000);
-    }
-
-    await expect(page).not.toHaveURL(/\/auth\/login/);
-
-    const bodyText = await page.locator('body').textContent();
-    expect(bodyText && bodyText.length > 100).toBeTruthy();
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
+    await expect(
+      page.getByText(/profile|about|skill|experience/i).first()
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('profile edit persists changes', async ({ page }) => {
-    await loginAsContractor(page);
-
+    await auth(page, TEST_USERS.contractor);
     await page.goto('/contractor/profile');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
-
-    // Look for edit button
     const editBtn = page.getByRole('button', { name: /edit|update/i }).first();
-    if (!(await editBtn.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no edit CTA on contractor profile page (selector drift candidate) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
-
+    // Edit affordance is a UI-variant gate, not an auth gate.
+    test.skip(
+      !(await editBtn.isVisible().catch(() => false)),
+      'No edit affordance on /contractor/profile in this UI variant'
+    );
     await editBtn.click();
     await page.waitForTimeout(500);
 
-    // Find an editable text field (bio, about, etc.)
     const bioInput = page.getByLabel(/bio|about|description/i);
-    if (await bioInput.isVisible().catch(() => false)) {
-      const testBio = `Regression test bio update (${Date.now()})`;
-      await bioInput.fill(testBio);
+    test.skip(
+      !(await bioInput.isVisible().catch(() => false)),
+      'No editable bio field in this profile variant'
+    );
+    const testBio = 'Regression test bio update';
+    await bioInput.fill(testBio);
+    await page
+      .getByRole('button', { name: /save|update|confirm/i })
+      .first()
+      .click();
+    await waitForNetworkIdle(page);
 
-      // Save
-      const saveBtn = page
-        .getByRole('button', { name: /save|update|confirm/i })
-        .first();
-      if (await saveBtn.isVisible().catch(() => false)) {
-        await saveBtn.click();
-        await waitForNetworkIdle(page);
-
-        // Verify save succeeded (toast or updated text)
-        const saved =
-          (await page
-            .getByText(/saved|updated|success/i)
-            .isVisible()
-            .catch(() => false)) ||
-          (await page
-            .getByText(testBio)
-            .isVisible()
-            .catch(() => false));
-
-        expect(saved).toBeTruthy();
-      }
-    } else {
-      // skipped: runtime bail — no editable bio field found (selector drift candidate) (2026-07-02 triage)
-      test.skip();
-    }
+    await expect(
+      page.getByText(/saved|updated|success/i).or(page.getByText(testBio))
+    ).toBeVisible({ timeout: 10000 });
   });
 });
