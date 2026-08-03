@@ -226,7 +226,7 @@ module.exports = {
       // appVersionSource: 'local', so EAS does NOT auto-increment this —
       // reusing a versionCode is rejected by Play only at upload, i.e.
       // after a full build has already been spent.
-      versionCode: 21,
+      versionCode: 22,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
