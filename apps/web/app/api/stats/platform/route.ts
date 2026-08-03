@@ -46,13 +46,10 @@ export const GET = withApiHandler(
         .select('id', { count: 'exact', head: true })
         .eq('status', 'completed')
         .lte('updated_at', endOfLastMonth.toISOString()),
+      serverSupabase.from('jobs').select('budget').eq('status', 'completed'),
       serverSupabase
         .from('jobs')
-        .select('budget, total_amount')
-        .eq('status', 'completed'),
-      serverSupabase
-        .from('jobs')
-        .select('budget, total_amount')
+        .select('budget')
         .eq('status', 'completed')
         .lte('updated_at', endOfLastMonth.toISOString()),
       serverSupabase
@@ -70,7 +67,9 @@ export const GET = withApiHandler(
 
     // Get first bid/message timestamps for response time calculation
     const completedJobsForResponseTime = avgResponseTimeResponse.data || [];
-    const jobIds = completedJobsForResponseTime.slice(0, 500).map(job => job.id);
+    const jobIds = completedJobsForResponseTime
+      .slice(0, 500)
+      .map((job) => job.id);
 
     const { data: firstBids } = await serverSupabase
       .from('bids')
@@ -81,7 +80,7 @@ export const GET = withApiHandler(
     const firstBidMap = new Map<string, Date>();
     if (firstBids) {
       const bidsByJob = new Map<string, Date>();
-      firstBids.forEach(bid => {
+      firstBids.forEach((bid) => {
         if (!bidsByJob.has(bid.job_id)) {
           bidsByJob.set(bid.job_id, new Date(bid.created_at));
         }
@@ -98,7 +97,7 @@ export const GET = withApiHandler(
     const firstMessageMap = new Map<string, Date>();
     if (firstMessages) {
       const messagesByJob = new Map<string, Date>();
-      firstMessages.forEach(message => {
+      firstMessages.forEach((message) => {
         if (!messagesByJob.has(message.job_id)) {
           messagesByJob.set(message.job_id, new Date(message.created_at));
         }
@@ -108,7 +107,7 @@ export const GET = withApiHandler(
 
     // Calculate response times
     const responseTimes: number[] = [];
-    completedJobsForResponseTime.slice(0, 500).forEach(job => {
+    completedJobsForResponseTime.slice(0, 500).forEach((job) => {
       const jobCreatedAt = new Date(job.created_at).getTime();
       const firstBidTime = firstBidMap.get(job.id)?.getTime();
       const firstMessageTime = firstMessageMap.get(job.id)?.getTime();
@@ -119,7 +118,8 @@ export const GET = withApiHandler(
           firstMessageTime || Infinity
         );
         if (earliestResponse !== Infinity) {
-          const responseTimeHours = (earliestResponse - jobCreatedAt) / (1000 * 60 * 60);
+          const responseTimeHours =
+            (earliestResponse - jobCreatedAt) / (1000 * 60 * 60);
           if (responseTimeHours > 0 && responseTimeHours < 168) {
             responseTimes.push(responseTimeHours);
           }
@@ -129,49 +129,68 @@ export const GET = withApiHandler(
 
     // Calculate statistics
     const activeContractors = activeContractorsResponse.count || 0;
-    const activeContractorsLastMonth = activeContractorsLastMonthResponse.count || 0;
-    const contractorsGrowth = activeContractorsLastMonth > 0
-      ? Math.round(((activeContractors - activeContractorsLastMonth) / activeContractorsLastMonth) * 100)
-      : 0;
+    const activeContractorsLastMonth =
+      activeContractorsLastMonthResponse.count || 0;
+    const contractorsGrowth =
+      activeContractorsLastMonth > 0
+        ? Math.round(
+            ((activeContractors - activeContractorsLastMonth) /
+              activeContractorsLastMonth) *
+              100
+          )
+        : 0;
 
     const completedJobs = completedJobsResponse.count || 0;
     const completedJobsLastMonth = completedJobsLastMonthResponse.count || 0;
-    const jobsGrowth = completedJobsLastMonth > 0
-      ? Math.round(((completedJobs - completedJobsLastMonth) / completedJobsLastMonth) * 100)
-      : 0;
+    const jobsGrowth =
+      completedJobsLastMonth > 0
+        ? Math.round(
+            ((completedJobs - completedJobsLastMonth) /
+              completedJobsLastMonth) *
+              100
+          )
+        : 0;
 
     const jobsData = totalSavedResponse.data || [];
     const totalSaved = jobsData.reduce((sum, job) => {
+      // jobs.total_amount never existed (select-schema audit 2026-08-02);
+      // the budget-vs-actual branch could never fire, so the 10% heuristic
+      // was always this stat's real behavior. Keep it, honestly.
       const budget = parseFloat(job.budget?.toString() || '0');
-      const actual = parseFloat(job.total_amount?.toString() || '0');
-      if (actual > 0 && budget > actual) {
-        return sum + (budget - actual);
-      }
-      return sum + (budget * 0.1);
+      return sum + budget * 0.1;
     }, 0);
 
     const jobsDataLastMonth = totalSavedLastMonthResponse.data || [];
     const totalSavedLastMonth = jobsDataLastMonth.reduce((sum, job) => {
+      // jobs.total_amount never existed (select-schema audit 2026-08-02);
+      // the budget-vs-actual branch could never fire, so the 10% heuristic
+      // was always this stat's real behavior. Keep it, honestly.
       const budget = parseFloat(job.budget?.toString() || '0');
-      const actual = parseFloat(job.total_amount?.toString() || '0');
-      if (actual > 0 && budget > actual) {
-        return sum + (budget - actual);
-      }
-      return sum + (budget * 0.1);
+      return sum + budget * 0.1;
     }, 0);
 
-    const savedGrowth = totalSavedLastMonth > 0
-      ? Math.round(((totalSaved - totalSavedLastMonth) / totalSavedLastMonth) * 100)
-      : 0;
+    const savedGrowth =
+      totalSavedLastMonth > 0
+        ? Math.round(
+            ((totalSaved - totalSavedLastMonth) / totalSavedLastMonth) * 100
+          )
+        : 0;
 
-    const avgResponseTimeHours = responseTimes.length > 0
-      ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
-      : 2.4;
+    const avgResponseTimeHours =
+      responseTimes.length > 0
+        ? responseTimes.reduce((sum, time) => sum + time, 0) /
+          responseTimes.length
+        : 2.4;
 
     const avgResponseTimeLastMonth = avgResponseTimeHours * 1.15;
-    const responseTimeImprovement = avgResponseTimeLastMonth > 0
-      ? Math.round(((avgResponseTimeLastMonth - avgResponseTimeHours) / avgResponseTimeLastMonth) * 100)
-      : 15;
+    const responseTimeImprovement =
+      avgResponseTimeLastMonth > 0
+        ? Math.round(
+            ((avgResponseTimeLastMonth - avgResponseTimeHours) /
+              avgResponseTimeLastMonth) *
+              100
+          )
+        : 15;
 
     logger.info('Platform statistics fetched', {
       service: 'stats',
@@ -194,9 +213,10 @@ export const GET = withApiHandler(
       },
       {
         headers: {
-          'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+          'Cache-Control':
+            'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
         },
-      },
+      }
     );
   }
 );

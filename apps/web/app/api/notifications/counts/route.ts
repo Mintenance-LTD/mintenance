@@ -26,14 +26,13 @@ export const GET = withApiHandler({}, async (_request, { user }) => {
   // shape stable while removing the runtime DB error. The connections
   // count field is preserved (always 0) so any consumer still reading
   // it doesn't crash on `undefined`.
-  const [quoteRequestsResponse, notificationsResponse] = await Promise.all([
-    serverSupabase
-      .from('jobs')
-      .select('id', { count: 'exact' })
-      .eq('contractor_id', user.id)
-      .eq('status', 'open')
-      .eq('quoted', false),
-
+  // quoteRequests was counted with .eq('status','open').eq('quoted',false)
+  // — jobs has no `quoted` column and no 'open' status, so the query ALWAYS
+  // errored and the badge read 0. Pinned to an honest 0 (same treatment the
+  // route already gives `connections`) until quote-requests are a real,
+  // queryable concept (filter-schema audit 2026-08-02).
+  const quoteRequestsResponse = { count: 0 };
+  const [notificationsResponse] = await Promise.all([
     serverSupabase
       .from('notifications')
       .select('id', { count: 'exact' })

@@ -134,6 +134,21 @@ export function SelectedContractorCard({
       >
         {accepting ? 'Accepting…' : 'Accept & schedule →'}
       </button>
+      {/* 2026-07-31 audit P0: the homeowner is being asked to accept a bid
+          here with no way to inspect who they're hiring. Links to the
+          PUBLIC /contractors/[id] (portfolio, reviews, verification),
+          carrying bid context so that page can offer inline accept. */}
+      <Link
+        href={`/contractors/${bid.contractor.id}?returnTo=job&jobId=${jobId}&bidId=${bid.id}&bidAmount=${bid.amount}`}
+        className='btn btn-ghost btn-sm'
+        style={{
+          width: '100%',
+          justifyContent: 'center',
+          marginTop: 6,
+        }}
+      >
+        View {name.split(' ')[0]}&apos;s work
+      </Link>
       <Link
         href={`/messages?jobId=${jobId}`}
         className='btn btn-ghost btn-sm'

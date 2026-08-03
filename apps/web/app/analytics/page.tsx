@@ -191,7 +191,10 @@ export default function AnalyticsPage2025() {
         const { count: propertiesCount } = await supabase
           .from('properties')
           .select('*', { count: 'exact', head: true })
-          .eq('homeowner_id', user.id);
+          // properties are keyed by owner_id — homeowner_id doesn't exist,
+          // so this count always errored to null (filter-schema audit
+          // 2026-08-02).
+          .eq('owner_id', user.id);
 
         // Period-over-period deltas are dropped until a real
         // comparison query lands. Previous values (`+18%`, `+12%`,

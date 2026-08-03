@@ -8,7 +8,14 @@ export interface Job {
   location: string | Record<string, unknown>; // JSONB in DB, string in some UI contexts
   homeowner_id: string; // Database field (snake_case)
   contractor_id?: string; // Database field (snake_case)
-  status: 'draft' | 'posted' | 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  status:
+    | 'draft'
+    | 'posted'
+    | 'open'
+    | 'assigned'
+    | 'in_progress'
+    | 'completed'
+    | 'cancelled';
   budget?: number; // Legacy single budget field
   budget_min?: number; // DB: budget_min DECIMAL
   budget_max?: number; // DB: budget_max DECIMAL
@@ -29,6 +36,14 @@ export interface Job {
   updatedAt?: string; // Alias for updated_at
   // Additional relationships for display
   bids?: Bid[];
+  /** The property this job belongs to, when posted against one. */
+  property_id?: string;
+  /**
+   * Short display label for that property ("1 peveril road, Stafford"),
+   * built server-side in job-query-service. A multi-property account cannot
+   * tell which house a job is for without it.
+   */
+  propertyLabel?: string;
   // Geolocation fields (from geocoding or manual entry)
   latitude?: number;
   longitude?: number;
@@ -166,7 +181,12 @@ export interface ProjectUpdateNotification {
   id: string;
   timelineId: string;
   milestoneId?: string;
-  type: 'milestone_completed' | 'milestone_overdue' | 'timeline_updated' | 'payment_due' | 'inspection_needed';
+  type:
+    | 'milestone_completed'
+    | 'milestone_overdue'
+    | 'timeline_updated'
+    | 'payment_due'
+    | 'inspection_needed';
   title: string;
   message: string;
   recipients: string[];

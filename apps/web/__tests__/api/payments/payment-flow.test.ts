@@ -129,6 +129,9 @@ vi.mock('@/lib/rate-limit', () => ({
   checkRateLimit: mocks.checkRateLimit,
   RATE_LIMIT_CONFIGS: {
     payment: { interval: 3600000, uniqueTokenPerInterval: 10 },
+    // Reads get their own budget — the saved-cards GET used to share the
+    // mutation limit and locked users out after 10 screen-loads an hour.
+    paymentRead: { interval: 60000, uniqueTokenPerInterval: 30 },
     api: { interval: 900000, uniqueTokenPerInterval: 100 },
     auth: { interval: 900000, uniqueTokenPerInterval: 5 },
     search: { interval: 60000, uniqueTokenPerInterval: 30 },
@@ -767,24 +770,24 @@ describe('FeeCalculationService', () => {
       const result = FeeCalculationService.calculateFees(100);
 
       // Platform fee: 100 * 0.12 = 12.00
-      // Stripe fee: 1.70
-      // Total fees: 13.70
-      // Contractor gets: 100 - 13.70 = 86.30
+      // Stripe fee: 1.70 (absorbed by platform, NOT the contractor)
+      // Total fees reported: 13.70
+      // Contractor gets: 100 - 12.00 platform = 88.00
       expect(result.totalFees).toBe(13.7);
-      expect(result.contractorAmount).toBe(86.3);
+      expect(result.contractorAmount).toBe(88);
     });
 
     it('should correctly calculate contractor payout for 500 GBP', () => {
       const result = FeeCalculationService.calculateFees(500);
 
       // Platform fee: 500 * 0.12 = 60.00
-      // Stripe fee: 500 * 0.015 + 0.20 = 7.50 + 0.20 = 7.70
-      // Total fees: 67.70
-      // Contractor gets: 500 - 67.70 = 432.30
+      // Stripe fee: 500 * 0.015 + 0.20 = 7.70 (absorbed by platform)
+      // Total fees reported: 67.70
+      // Contractor gets: 500 - 60.00 platform = 440.00
       expect(result.platformFee).toBe(60.0);
       expect(result.stripeFee).toBe(7.7);
       expect(result.totalFees).toBe(67.7);
-      expect(result.contractorAmount).toBe(432.3);
+      expect(result.contractorAmount).toBe(440);
     });
 
     it('should floor contractor amount to zero when fees exceed payment', () => {
@@ -849,13 +852,13 @@ describe('FeeCalculationService', () => {
       const result = FeeCalculationService.calculateFeesInCents(10000);
 
       // Platform fee: 1200 (12.00 GBP)
-      // Stripe fee: 170 (1.70 GBP)
-      // Total fees: 1370 (13.70 GBP)
-      // Contractor: 8630 (86.30 GBP)
+      // Stripe fee: 170 (1.70 GBP, absorbed by platform)
+      // Total fees reported: 1370 (13.70 GBP)
+      // Contractor: 8800 (88.00 GBP = 10000 - 1200 platform)
       expect(result.platformFee).toBe(1200);
       expect(result.stripeFee).toBe(170);
       expect(result.totalFees).toBe(1370);
-      expect(result.contractorAmount).toBe(8630);
+      expect(result.contractorAmount).toBe(8800);
       expect(result.originalAmount).toBe(10000);
     });
   });
@@ -943,9 +946,9 @@ describe('FeeCalculationService', () => {
 
     it('should calculate contractor payout', () => {
       const payout = FeeCalculationService.calculateContractorPayout(200);
-      // Platform: 24.00, Stripe: 3.20, Total: 27.20
-      // Contractor: 200 - 27.20 = 172.80
-      expect(payout).toBe(172.8);
+      // Platform: 24.00 (Stripe 3.20 absorbed by platform)
+      // Contractor: 200 - 24.00 = 176.00
+      expect(payout).toBe(176);
     });
   });
 });

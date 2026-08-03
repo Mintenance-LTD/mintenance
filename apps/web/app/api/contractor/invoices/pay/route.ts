@@ -234,8 +234,10 @@ export const POST = withApiHandler(
         if (REUSABLE_STRIPE_STATUSES.has(existingIntent.status)) {
           const { data: existingEscrow } = await serverSupabase
             .from('escrow_transactions')
+            // escrow_transactions has no invoice_id column — the
+            // payment_intent_id is unique per escrow row and sufficient
+            // (filter-schema audit 2026-08-02).
             .select('id, status')
-            .eq('invoice_id', invoice.id)
             .eq('payment_intent_id', existingIntent.id)
             .maybeSingle();
           logger.info('Re-using existing pending invoice payment intent', {

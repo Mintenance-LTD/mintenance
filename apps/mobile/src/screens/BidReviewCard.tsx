@@ -50,9 +50,17 @@ function renderStars(rating: number) {
 interface Props {
   bid: Bid;
   quoteData?: QuoteData;
+  /**
+   * Job being reviewed. Forwarded to the contractor profile so its
+   * message CTA unlocks — ContractorProfileScreen gates `canMessage` on
+   * `source === 'bidReview' && !!jobId`, and the messaging thread is keyed
+   * on jobId. Optional so the card still renders if a future caller has no
+   * job context; the profile then falls back to its active-job check.
+   */
+  jobId?: string;
 }
 
-export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
+export const BidReviewCard: React.FC<Props> = ({ bid, quoteData, jobId }) => {
   // Type the navigation against the root stack so we can navigate to Modal/ContractorProfile
   // without traversing parent chains. React Navigation walks up the tree itself when the
   // target screen lives on an ancestor navigator.
@@ -76,23 +84,38 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
   // walks the tree but parent traversal is more deterministic.
   const openContractorProfile = React.useCallback(() => {
     if (!contractor?.id) return;
+    // 2026-07-31 audit P2-2: this used to pass only `contractorId`, so
+    // ContractorProfileScreen's `fromBidReview` check
+    // (`source === 'bidReview' && !!jobId`) was always false and the
+    // profile's Message CTA stayed hidden — exactly when a homeowner
+    // comparing bids most wants to ask the bidder a question. The job is
+    // still `posted` at this point, so the screen's other unlock
+    // (an active job) can't fire either. `bidId` rides along so the
+    // profile can offer inline accept/decline, matching web's
+    // /contractors/[id]?returnTo=job&jobId=…&bidId=… contract.
+    const profileParams = {
+      contractorId: contractor.id,
+      source: 'bidReview' as const,
+      jobId: jobId ?? bid.job_id,
+      bidId: bid.id,
+    };
     const parent = navigation.getParent?.() as
       | { navigate: (name: string, params?: unknown) => void }
       | undefined;
     if (parent) {
       parent.navigate('Modal', {
         screen: 'ContractorProfile',
-        params: { contractorId: contractor.id },
+        params: profileParams,
       });
     } else {
       // Fallback — same target via the closest navigator. Works in tests
       // where useNavigation returns a leaf navigator with no parent.
       navigation.navigate('Modal', {
         screen: 'ContractorProfile',
-        params: { contractorId: contractor.id },
+        params: profileParams,
       });
     }
-  }, [contractor?.id, navigation]);
+  }, [contractor?.id, navigation, jobId, bid.job_id, bid.id]);
 
   // Media-first hero: full-width image when the contractor has an
   // avatar URL (stretched as the hero background) or a teal gradient

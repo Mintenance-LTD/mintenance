@@ -57,6 +57,17 @@ type JobRow = {
   location?: string | null;
   latitude?: number | string | null;
   longitude?: number | string | null;
+  property_id?: string | null;
+  property?: {
+    id: string;
+    // NOTE: the live `properties` table has `address` — there is NO
+    // `address_line1` column. Selecting one broke the ENTIRE jobs query
+    // (PostgREST rejects the whole select), so every job list on web and
+    // mobile returned "Database operation failed" / 0 jobs. Verified
+    // against the live schema 2026-08-02.
+    address: string | null;
+    city: string | null;
+  } | null;
   created_at: string;
   updated_at: string;
   archived_at?: string | null;
@@ -92,6 +103,8 @@ const jobSelectFields = `
   created_at,
   updated_at,
   archived_at,
+  property_id,
+  property:properties!property_id(id,address,city),
   homeowner:profiles!homeowner_id(id,first_name,last_name,email,profile_image_url),
   contractor:profiles!contractor_id(id,first_name,last_name,email),
   bids(count)
@@ -116,6 +129,9 @@ const mapRowToJobSummary = (
   location?: string;
   bidCount?: number;
   archived_at?: string | null;
+  property_id?: string;
+  /** Short label for the job's property ("1 peveril road, Stafford"). */
+  propertyLabel?: string;
 } => ({
   id: row.id,
   title: row.title,
@@ -140,6 +156,11 @@ const mapRowToJobSummary = (
   location: row.location ?? undefined,
   bidCount: row.bids?.[0]?.count ?? 0,
   archived_at: row.archived_at ?? null,
+  property_id: row.property_id ?? undefined,
+  propertyLabel: row.property
+    ? [row.property.address, row.property.city].filter(Boolean).join(', ') ||
+      undefined
+    : undefined,
 });
 
 const mapRowToJobDetail = (row: JobRow): JobDetail => ({

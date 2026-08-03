@@ -88,6 +88,7 @@ const validation = validateCredentials(supabaseUrl, supabaseAnonKey);
 const credentialsValid = validation.valid;
 
 let supabase: SupabaseClient;
+let initError: string | null = null;
 
 try {
   if (__DEV__ && useMockFlag) {
@@ -132,15 +133,45 @@ try {
     logger.info('Supabase', `Client initialised (${supabaseUrl})`);
   }
 } catch (error) {
-  if (!__DEV__) {
-    throw error;
-  }
   const message = error instanceof Error ? error.message : String(error);
-  logger.warn('Supabase', `Falling back to mock client: ${message}`);
+
+  if (!__DEV__) {
+    // 2026-08-03: this used to `throw error` in production builds. That
+    // throw fires at MODULE LOAD, i.e. while App.tsx is still resolving its
+    // import graph — before React renders anything and before ErrorBoundary
+    // (which lives inside App's returned tree) can mount. Combined with
+    // App.tsx's SplashScreen.preventAutoHideAsync(), nothing ever reached
+    // hideAsync(), so a build with missing EAS env vars sat on the teal
+    // splash forever with no diagnostics on screen. Record the failure
+    // instead and hand the module graph a mock client so imports resolve;
+    // App.tsx reads `supabaseConfigError` and renders a readable
+    // configuration screen. Nothing else runs — the mock never serves data.
+    initError = message;
+    logger.error('Supabase', `Configuration failed: ${message}`);
+  } else {
+    logger.warn('Supabase', `Falling back to mock client: ${message}`);
+  }
+
   supabase = createMockSupabase() as unknown as SupabaseClient;
 }
 
 export const isSupabaseConfigured = credentialsValid && !useMockFlag;
+
+/**
+ * Non-null when the real client could not be constructed in a production
+ * build. App.tsx blocks the whole app behind ConfigErrorScreen when set —
+ * see the catch block above for why this is a value rather than a throw.
+ */
+export const supabaseConfigError = initError;
+
+/**
+ * The individual validation failures behind `supabaseConfigError`, for
+ * display. Never contains the anon key — only which variable is missing or
+ * malformed (the URL is a public endpoint, so it is safe to echo).
+ */
+export const supabaseConfigErrorDetails: readonly string[] = initError
+  ? validation.errors
+  : [];
 
 const testSupabaseConnection = async (): Promise<{
   success: boolean;

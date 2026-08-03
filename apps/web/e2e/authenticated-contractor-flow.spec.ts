@@ -13,32 +13,39 @@
  */
 
 import { test, expect } from './fixtures';
+import { establishSessionInContext, TEST_USERS } from './helpers/auth';
 import { createTestBid, waitForNetworkIdle } from './helpers/test-data';
 
+const AUTH_UNAVAILABLE =
+  'E2E auth fixture unavailable — set E2E_TESTING=true + E2E_AUTH_SECRET on the ' +
+  'server and runner, and seed users (npm run seed:e2e-users).';
+
+// Mint a real contractor session into this context before each test. When the
+// fixture is not configured (no E2E_AUTH_SECRET, or a server without
+// E2E_TESTING) the endpoint is unreachable and we skip with an actionable
+// reason — instead of the old pattern where a login redirect made every
+// assertion below silently pass. Once the fixture is live these run for real.
 test.describe('Authenticated Contractor Flow', () => {
-  test('contractor can access job discovery page', async ({ page }) => {
-    await page.goto('/contractor/discover');
-
-    // Should not redirect to login
-    await expect(page).not.toHaveURL(/\/auth\/login/);
-
-    // Should see discover page content
-    await expect(page.locator('body')).toBeVisible();
+  test.beforeEach(async ({ page }) => {
+    const authed = await establishSessionInContext(page, TEST_USERS.contractor);
+    test.skip(!authed, AUTH_UNAVAILABLE);
   });
 
-  // NOTE ON AUTH: the storage-state session written by global-setup.ts is a
-  // localStorage token copied verbatim into a single `sb-*-auth-token` cookie,
-  // which @supabase/ssr (used by handleSupabaseAuth in middleware/auth.ts)
-  // cannot decode — so protected routes redirect to /login and the tests below
-  // self-skip on that redirect. This is resolved by the E2E Supabase-cookie
-  // auth fixture (design tracked separately); once it lands the guards below
-  // stop firing and the tests run for real. Removed here: a redundant
-  // "contractor can view available jobs" case that only re-asserted what
-  // "contractor can access job discovery page" (above) already covers.
+  test('contractor can access job discovery page', async ({ page }) => {
+    await page.goto('/contractor/discover');
+    await page.waitForLoadState('networkidle');
+
+    // A real session must NOT be bounced to login, and the discover shell must
+    // render (previously this only asserted `body` was visible, which is true
+    // even on the login page).
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
+    await expect(page.locator('#main-content')).toBeVisible();
+  });
 
   test('contractor can view job details', async ({ page }) => {
     await page.goto('/contractor/discover');
     await page.waitForLoadState('networkidle');
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Find first job card or link
     const jobLink = page
@@ -46,21 +53,20 @@ test.describe('Authenticated Contractor Flow', () => {
       .first();
     const jobCard = page.locator('[data-testid="job-card"]').first();
 
-    if (await jobLink.isVisible().catch(() => false)) {
+    // Job discovery depends on seeded jobs, which the e2e seed does not create.
+    // Skip only for that data gap (explicit), but when a job IS present the
+    // navigation + details render are asserted for real.
+    const hasLink = await jobLink.isVisible().catch(() => false);
+    const hasCard = !hasLink && (await jobCard.isVisible().catch(() => false));
+    test.skip(!hasLink && !hasCard, 'No seeded jobs on the discover feed');
+
+    if (hasLink) {
       await jobLink.click();
-
-      // Should navigate to job details page
-      await expect(page).toHaveURL(/\/jobs\/|\/contractor\/jobs\//);
-
-      // Should see job details
-      await expect(page.getByText(/description|details|budget/i)).toBeVisible();
-    } else if (await jobCard.isVisible().catch(() => false)) {
-      await jobCard.click();
-      await expect(page).toHaveURL(/\/jobs\//);
     } else {
-      // skipped: runtime bail — no jobs seeded in the e2e environment (2026-07-02 triage)
-      test.skip();
+      await jobCard.click();
     }
+    await expect(page).toHaveURL(/\/jobs\/|\/contractor\/jobs\//);
+    await expect(page.getByText(/description|details|budget/i)).toBeVisible();
   });
 
   test('contractor can access bid submission form', async ({ page }) => {
@@ -76,42 +82,30 @@ test.describe('Authenticated Contractor Flow', () => {
     const firstJob = content.locator('[data-testid="job-card"]').first();
     const firstJobLink = content.getByRole('link').first();
 
-    if (await firstJob.isVisible().catch(() => false)) {
-      await firstJob.click();
-    } else if (await firstJobLink.isVisible().catch(() => false)) {
-      await firstJobLink.click();
-    } else {
-      // skipped: runtime bail — no job cards/links present in the e2e environment (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    const hasJob = await firstJob.isVisible().catch(() => false);
+    const hasJobLink =
+      !hasJob && (await firstJobLink.isVisible().catch(() => false));
+    // Data gap, not a bug: the e2e seed creates no jobs to bid on.
+    test.skip(!hasJob && !hasJobLink, 'No seeded jobs on the discover feed');
 
-    // Wait for job details page
+    if (hasJob) {
+      await firstJob.click();
+    } else {
+      await firstJobLink.click();
+    }
     await page.waitForLoadState('networkidle');
 
-    // Look for "Submit Bid" or "Place Bid" button
+    // From a job detail page the bid form must be reachable: either a
+    // Submit/Place Bid CTA that opens it, or the form already inline.
     const bidButton = page.getByRole('button', {
       name: /submit.*bid|place.*bid|bid.*now/i,
     });
-
     if (await bidButton.isVisible().catch(() => false)) {
       await bidButton.click();
-
-      // Should see bid form
-      await expect(page.getByLabel(/quote|amount|price/i)).toBeVisible({
-        timeout: 5000,
-      });
-    } else {
-      // May already be on bid form, or feature not implemented
-      const hasBidForm = await page
-        .getByLabel(/quote|amount/i)
-        .isVisible()
-        .catch(() => false);
-      if (!hasBidForm) {
-        // skipped: runtime bail — bid form not reachable (no jobs, or CTA renamed) (2026-07-02 triage)
-        test.skip();
-      }
     }
+    await expect(page.getByLabel(/quote|amount|price/i)).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('contractor can submit a bid', async ({ page }) => {
@@ -123,11 +117,11 @@ test.describe('Authenticated Contractor Flow', () => {
 
     // Find and click first job
     const firstJobLink = page.locator('a[href*="/jobs/"]').first();
-    if (!(await firstJobLink.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no job links in the e2e environment (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    // Data gap, not a bug: the e2e seed creates no jobs to bid on.
+    test.skip(
+      !(await firstJobLink.isVisible().catch(() => false)),
+      'No seeded jobs on the discover feed'
+    );
 
     await firstJobLink.click();
     await page.waitForLoadState('networkidle');
@@ -178,24 +172,16 @@ test.describe('Authenticated Contractor Flow', () => {
   test('contractor can view their submitted bids', async ({ page }) => {
     await page.goto('/contractor/dashboard');
     await page.waitForLoadState('networkidle');
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login
-      // (storage-state auth gap; resolved by the E2E auth fixture)
-      test.skip();
-      return;
-    }
-    const bodyText = await page.textContent('body');
-    expect(bodyText && bodyText.length > 100).toBeTruthy();
+    // Auth is guaranteed by beforeEach, so a login redirect here is a real
+    // failure (broken session handling), not a reason to skip.
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
+    await expect(page.locator('#main-content')).toBeVisible();
   });
 
   test('contractor can view their profile', async ({ page }) => {
     await page.goto('/contractor/profile');
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login
-      // (storage-state auth gap; resolved by the E2E auth fixture)
-      test.skip();
-      return;
-    }
+    await page.waitForLoadState('networkidle');
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
     await expect(
       // .first(): the profile page legitimately matches several elements
       // (nav link, headings, completion widget) — any one visible is enough.
@@ -205,92 +191,87 @@ test.describe('Authenticated Contractor Flow', () => {
 
   test('contractor can edit their profile', async ({ page }) => {
     await page.goto('/contractor/profile');
+    await page.waitForLoadState('networkidle');
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
-    // Look for edit button
     const editButton = page.getByRole('button', { name: /edit|update/i });
-    if (await editButton.isVisible().catch(() => false)) {
-      await editButton.click();
+    // The edit affordance is a UI-variant/feature gate, not an auth gate.
+    test.skip(
+      !(await editButton.isVisible().catch(() => false)),
+      'No edit affordance on /contractor/profile in this UI variant'
+    );
 
-      // Should see editable fields
-      const bioInput = page.getByLabel(/bio|about|description/i);
-      if (await bioInput.isVisible().catch(() => false)) {
-        await bioInput.fill('Updated bio for testing purposes');
-
-        // Save changes
-        const saveButton = page.getByRole('button', { name: /save|update/i });
-        await saveButton.click();
-
-        await waitForNetworkIdle(page);
-
-        // Should see success message
-        await expect(page.getByText(/saved|updated/i)).toBeVisible();
-      }
-    } else {
-      // skipped: runtime bail — edit CTA not present on /contractor/profile (2026-07-02 triage)
-      test.skip();
-    }
+    await editButton.click();
+    const bioInput = page.getByLabel(/bio|about|description/i);
+    await expect(bioInput).toBeVisible();
+    await bioInput.fill('Updated bio for testing purposes');
+    await page.getByRole('button', { name: /save|update/i }).click();
+    await waitForNetworkIdle(page);
+    await expect(page.getByText(/saved|updated/i)).toBeVisible();
   });
 });
 
 test.describe('Contractor Job Filtering', () => {
-  // BUG FIX (2026-07-18): these tests probed the filter/search UI without ever
-  // navigating to a page first, so the controls were never present and BOTH
-  // tests skipped unconditionally on every run (the acknowledged 2026-07-02
-  // triage note). Navigate to the discover page before each test so they
-  // actually exercise the real UI. They still self-skip on a login redirect
-  // until the E2E auth fixture lands (same pattern as the rest of the suite).
   test.beforeEach(async ({ page }) => {
+    const authed = await establishSessionInContext(page, TEST_USERS.contractor);
+    test.skip(!authed, AUTH_UNAVAILABLE);
     await page.goto('/contractor/discover');
     await page.waitForLoadState('networkidle');
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
   });
 
   test('contractor can filter jobs by category', async ({ page }) => {
-    // Look for category filter
     const categoryFilter = page.getByLabel(/category|type/i);
-    if (await categoryFilter.isVisible().catch(() => false)) {
-      // Select a category
-      await categoryFilter.selectOption('plumbing');
+    // The filter control is a UI-variant gate; skip explicitly when absent.
+    test.skip(
+      !(await categoryFilter.isVisible().catch(() => false)),
+      'No category filter control on the discover page in this UI variant'
+    );
 
-      await waitForNetworkIdle(page);
+    await categoryFilter.selectOption('plumbing');
+    await waitForNetworkIdle(page);
 
-      // Jobs should be filtered (implementation-specific verification)
-      const jobsPresent = await page
-        .getByText(/job|project/i)
-        .isVisible()
-        .catch(() => false);
-      const noResultsMessage = await page
-        .getByText(/no.*job|no.*result/i)
-        .isVisible()
-        .catch(() => false);
-
-      expect(jobsPresent || noResultsMessage).toBeTruthy();
-    } else {
-      // skipped: runtime bail — category filter control not present on the
-      // discover page (unauthenticated redirect, empty results, or UI variant)
-      test.skip();
-    }
+    // After filtering, the feed must resolve to a concrete state: matching
+    // jobs OR an explicit empty-state — never a blank page.
+    const jobsPresent = await page
+      .getByText(/job|project/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const noResultsMessage = await page
+      .getByText(/no.*job|no.*result|nothing/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    expect(jobsPresent || noResultsMessage).toBeTruthy();
   });
 
   test('contractor can search jobs by location', async ({ page }) => {
     const searchInput = page.getByPlaceholder(/search|location|postcode/i);
-    if (await searchInput.isVisible().catch(() => false)) {
-      await searchInput.fill('London');
+    test.skip(
+      !(await searchInput.isVisible().catch(() => false)),
+      'No location search control on the discover page in this UI variant'
+    );
 
-      // May need to click search button or wait for auto-search
-      const searchButton = page.getByRole('button', { name: /search/i });
-      if (await searchButton.isVisible().catch(() => false)) {
-        await searchButton.click();
-      }
-
-      await waitForNetworkIdle(page);
-
-      // Should see results or no results message
-      const hasResults = await page.locator('body').textContent();
-      expect(hasResults).toBeTruthy();
-    } else {
-      // skipped: runtime bail — location search control not present on the
-      // discover page (unauthenticated redirect, empty results, or UI variant)
-      test.skip();
+    await searchInput.fill('London');
+    const searchButton = page.getByRole('button', { name: /search/i });
+    if (await searchButton.isVisible().catch(() => false)) {
+      await searchButton.click();
     }
+    await waitForNetworkIdle(page);
+
+    // The search must resolve to results or an explicit empty-state — assert a
+    // concrete landmark rather than "body has any text" (true even on /login).
+    const jobsPresent = await page
+      .getByText(/job|project/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const noResultsMessage = await page
+      .getByText(/no.*job|no.*result|nothing/i)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    expect(jobsPresent || noResultsMessage).toBeTruthy();
   });
 });

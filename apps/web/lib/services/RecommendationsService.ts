@@ -93,10 +93,16 @@ export class RecommendationsService {
               // Properties query - handle error gracefully since table might not exist
               (async () => {
                 try {
+                  // select-schema audit 2026-08-02: the real column is
+                  // `year_built` (aliased back so downstream keeps its
+                  // built_year field), and properties are keyed by
+                  // owner_id — `user_id` does not exist on properties, so
+                  // this query ALWAYS errored and recommendations never
+                  // saw any property context.
                   return await serverSupabase
                     .from('properties')
-                    .select('id, property_type, built_year')
-                    .eq('user_id', userId)
+                    .select('id, property_type, built_year:year_built')
+                    .eq('owner_id', userId)
                     .limit(10);
                 } catch {
                   return { data: null, error: null };

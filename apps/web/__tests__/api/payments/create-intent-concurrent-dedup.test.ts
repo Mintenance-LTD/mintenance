@@ -154,6 +154,11 @@ const claimStore = new Map<
 
 const escrowInserts: Array<Record<string, unknown>> = [];
 
+// Controls the profiles mock: the stored stripe_customer_id returned by the
+// read, and a capture of any update the route writes back. Reset in beforeEach.
+let profileCustomerId: string | null = null;
+const profileUpdates: Array<Record<string, unknown>> = [];
+
 const JOB = {
   id: 'job-1',
   homeowner_id: 'homeowner-user-id',
@@ -243,6 +248,7 @@ function rpcMock(name: string, args: Record<string, unknown>) {
 function chainBuilder(overrides?: {
   singleData?: unknown;
   onInsert?: (row: Record<string, unknown>) => { data: unknown; error: null };
+  onUpdate?: (row: Record<string, unknown>) => void;
 }) {
   const state = { usedSingle: false };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -265,6 +271,12 @@ function chainBuilder(overrides?: {
     'range',
   ];
   for (const m of filterMethods) self[m] = () => self;
+  // .update({...}).eq(...) is awaited (no .single()); resolves like a filter
+  // chain. Used by the create-intent stale-customer self-heal.
+  self.update = (row: Record<string, unknown>) => {
+    overrides?.onUpdate?.(row);
+    return self;
+  };
   self.single = () => {
     state.usedSingle = true;
     return self;
@@ -321,7 +333,10 @@ function fromMock(tableName: string) {
         },
       });
     case 'profiles':
-      return chainBuilder({ singleData: { stripe_customer_id: null } });
+      return chainBuilder({
+        singleData: { stripe_customer_id: profileCustomerId },
+        onUpdate: (row) => profileUpdates.push(row),
+      });
     case 'payment_attempts':
     case 'user_devices':
     case 'payment_security_events':
@@ -374,6 +389,8 @@ describe('create-intent header-less duplicate protection', () => {
     vi.clearAllMocks();
     claimStore.clear();
     escrowInserts.length = 0;
+    profileCustomerId = null;
+    profileUpdates.length = 0;
 
     // Warm the route's dynamic imports so the mocked modules are already in
     // the module cache. Two CONCURRENT first-time dynamic imports of a
@@ -466,6 +483,71 @@ describe('create-intent header-less duplicate protection', () => {
       second.json(),
     ]);
     expect(secondBody.paymentIntentId).toBe(firstBody.paymentIntentId);
+  });
+
+  it('recovers when the stored stripe_customer_id is missing under the active key (test-mode customer + live key)', async () => {
+    // Homeowner has a customer id created under a DIFFERENT Stripe mode.
+    profileCustomerId = 'cus_UgWmNXSmX2Rnj5';
+
+    // First create (with customer) → Stripe rejects it as resource_missing on
+    // the customer param; second create (without customer) → succeeds.
+    mocks.stripePaymentIntentsCreate
+      .mockRejectedValueOnce(
+        Object.assign(new Error("No such customer: 'cus_UgWmNXSmX2Rnj5'"), {
+          type: 'StripeInvalidRequestError',
+          code: 'resource_missing',
+          param: 'customer',
+          statusCode: 400,
+        })
+      )
+      .mockResolvedValueOnce({
+        id: 'pi_recovered_1',
+        client_secret: 'pi_recovered_1_secret',
+      });
+
+    const res = await callRoute(makeHeaderlessRequest());
+
+    // The homeowner is NOT dead-ended — the charge is created on retry.
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.paymentIntentId).toBe('pi_recovered_1');
+
+    // Exactly two Stripe attempts: with-customer (failed) then without.
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledTimes(2);
+    const [firstParams, firstOpts] =
+      mocks.stripePaymentIntentsCreate.mock.calls[0];
+    const [secondParams, secondOpts] =
+      mocks.stripePaymentIntentsCreate.mock.calls[1];
+    expect(firstParams.customer).toBe('cus_UgWmNXSmX2Rnj5');
+    expect(secondParams.customer).toBeUndefined();
+
+    // Retry uses a DISTINCT idempotency key (params changed — Stripe rejects a
+    // reused key with different parameters).
+    expect(secondOpts.idempotencyKey).toBe(
+      `${firstOpts.idempotencyKey}_nocust`
+    );
+    expect(secondOpts.idempotencyKey).not.toBe(firstOpts.idempotencyKey);
+
+    // Self-heal: the stale customer id was cleared from the profile.
+    expect(profileUpdates).toContainEqual({ stripe_customer_id: null });
+  });
+
+  it('a non-customer Stripe error is NOT swallowed by the customer-recovery path', async () => {
+    profileCustomerId = 'cus_valid';
+    mocks.stripePaymentIntentsCreate.mockRejectedValueOnce(
+      Object.assign(new Error('Your card was declined'), {
+        type: 'StripeCardError',
+        code: 'card_declined',
+        statusCode: 402,
+      })
+    );
+
+    const res = await callRoute(makeHeaderlessRequest());
+
+    // Only one attempt — no bogus retry — and the error surfaces.
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledTimes(1);
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(profileUpdates).toHaveLength(0);
   });
 
   it('a client-supplied Idempotency-Key header still wins over the derived key', () => {

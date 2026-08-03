@@ -155,9 +155,19 @@ export const JobCard: React.FC<JobCardProps> = ({
           {item.title}
         </Text>
 
-        {/* Meta row: location + time */}
+        {/* Meta row: property + location + time. The property comes first —
+            on a multi-property account "Leaky Tap/Pipe" is ambiguous until
+            you know which house it is in. Falls back to location alone for
+            jobs posted without a property. */}
         <View style={styles.cardMeta}>
-          {locationStr ? (
+          {item.propertyLabel ? (
+            <View style={styles.metaItem}>
+              <Ionicons name='home-outline' size={13} color={me.ink2} />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {item.propertyLabel}
+              </Text>
+            </View>
+          ) : locationStr ? (
             <View style={styles.metaItem}>
               <Ionicons name='location-outline' size={13} color={me.ink2} />
               <Text style={styles.metaText}>{locationStr}</Text>

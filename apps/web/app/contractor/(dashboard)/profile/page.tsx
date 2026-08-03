@@ -58,7 +58,10 @@ export default async function ContractorProfilePage2025() {
         )
       `
       )
-      .eq('contractor_id', user.id)
+      // reviews key their subject as reviewee_id — contractor_id doesn't
+      // exist on reviews, so this query always errored and contractors
+      // NEVER saw their own reviews here (filter-schema audit 2026-08-02).
+      .eq('reviewee_id', user.id)
       .order('created_at', { ascending: false }),
     // photos column is no longer selected — `jobs.photos` is a stale
     // raw URL store on the row that diverged from the lifecycle photo
