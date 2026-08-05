@@ -537,6 +537,13 @@ const KNOWN_LARGE_FILES = new Set([
   // Stripe-transfer-with-fee-pulling escrow release flow is a
   // dedicated P2; not a blocker on closing the lost-recovery-trail bug.
   'apps/web/app/api/payments/release-escrow/route.ts', // 517 (was 499)
+  // Added 2026-08-05 (UK market readiness Task 2): pre-existing at 549 lines.
+  // The DOB-capture change swapped the always-undefined `date_of_birth` read
+  // for a decrypt of the new encrypted `date_of_birth_encrypted` column
+  // (~15 LOC net) so DBS checks can actually run. The provider-dispatch
+  // surface (dbs_online / gbgroup / ucheck / custom) is what makes this file
+  // long; splitting it is a dedicated task, not a blocker on unblocking DBS.
+  'apps/web/lib/services/verification/DBSCheckService.ts', // 549 lines
 ]);
 
 function countLines(filePath) {

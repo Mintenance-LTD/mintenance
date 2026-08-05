@@ -1,71 +1,22 @@
-import type { TaxClassification } from './types';
+// UK tax-identity client-side validation patterns. These mirror the server
+// schema in lib/services/tax/uk-tax.ts — the server remains the source of
+// truth; these only give fast inline feedback before the form is submitted.
 
-export const TAX_CLASSIFICATIONS: {
-  value: TaxClassification;
-  label: string;
-}[] = [
-  { value: '', label: 'Select classification...' },
-  { value: 'individual', label: 'Individual / Sole Proprietor' },
-  { value: 'llc_single', label: 'LLC - Single Member (disregarded entity)' },
-  { value: 'llc_c', label: 'LLC - C Corporation' },
-  { value: 'llc_s', label: 'LLC - S Corporation' },
-  { value: 'c_corp', label: 'C Corporation' },
-  { value: 's_corp', label: 'S Corporation' },
-  { value: 'partnership', label: 'Partnership' },
-  { value: 'trust', label: 'Trust / Estate' },
-];
+/** Unique Taxpayer Reference: exactly 10 digits. */
+export const UTR_REGEX = /^\d{10}$/;
 
-export const US_STATES: { value: string; label: string }[] = [
-  { value: '', label: 'Select state...' },
-  { value: 'AL', label: 'Alabama' },
-  { value: 'AK', label: 'Alaska' },
-  { value: 'AZ', label: 'Arizona' },
-  { value: 'AR', label: 'Arkansas' },
-  { value: 'CA', label: 'California' },
-  { value: 'CO', label: 'Colorado' },
-  { value: 'CT', label: 'Connecticut' },
-  { value: 'DE', label: 'Delaware' },
-  { value: 'FL', label: 'Florida' },
-  { value: 'GA', label: 'Georgia' },
-  { value: 'HI', label: 'Hawaii' },
-  { value: 'ID', label: 'Idaho' },
-  { value: 'IL', label: 'Illinois' },
-  { value: 'IN', label: 'Indiana' },
-  { value: 'IA', label: 'Iowa' },
-  { value: 'KS', label: 'Kansas' },
-  { value: 'KY', label: 'Kentucky' },
-  { value: 'LA', label: 'Louisiana' },
-  { value: 'ME', label: 'Maine' },
-  { value: 'MD', label: 'Maryland' },
-  { value: 'MA', label: 'Massachusetts' },
-  { value: 'MI', label: 'Michigan' },
-  { value: 'MN', label: 'Minnesota' },
-  { value: 'MS', label: 'Mississippi' },
-  { value: 'MO', label: 'Missouri' },
-  { value: 'MT', label: 'Montana' },
-  { value: 'NE', label: 'Nebraska' },
-  { value: 'NV', label: 'Nevada' },
-  { value: 'NH', label: 'New Hampshire' },
-  { value: 'NJ', label: 'New Jersey' },
-  { value: 'NM', label: 'New Mexico' },
-  { value: 'NY', label: 'New York' },
-  { value: 'NC', label: 'North Carolina' },
-  { value: 'ND', label: 'North Dakota' },
-  { value: 'OH', label: 'Ohio' },
-  { value: 'OK', label: 'Oklahoma' },
-  { value: 'OR', label: 'Oregon' },
-  { value: 'PA', label: 'Pennsylvania' },
-  { value: 'RI', label: 'Rhode Island' },
-  { value: 'SC', label: 'South Carolina' },
-  { value: 'SD', label: 'South Dakota' },
-  { value: 'TN', label: 'Tennessee' },
-  { value: 'TX', label: 'Texas' },
-  { value: 'UT', label: 'Utah' },
-  { value: 'VT', label: 'Vermont' },
-  { value: 'VA', label: 'Virginia' },
-  { value: 'WA', label: 'Washington' },
-  { value: 'WV', label: 'West Virginia' },
-  { value: 'WI', label: 'Wisconsin' },
-  { value: 'WY', label: 'Wyoming' },
-  { value: 'DC', label: 'District of Columbia' },
-];
+/**
+ * National Insurance number. Two prefix letters, six digits, one suffix A–D.
+ * Case-insensitive; spaces are stripped before matching.
+ */
+export const NINO_REGEX =
+  /^(?!BG|GB|NK|KN|TN|NT|ZZ)[ABCEGHJ-PRSTW-Z][ABCEGHJ-NPRSTW-Z]\d{6}[A-D]$/i;
+
+/** UK VAT number: 9 or 12 digits, optionally prefixed "GB". */
+export const VAT_NUMBER_REGEX = /^(GB)?(\d{9}|\d{12})$/i;
+
+/** Companies House number: 8 digits, or 2 letters + 6 digits. */
+export const COMPANY_NUMBER_REGEX = /^(\d{8}|[A-Z]{2}\d{6})$/i;
+
+/** UK postcode (loose, canonical format). */
+export const UK_POSTCODE_REGEX = /^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i;

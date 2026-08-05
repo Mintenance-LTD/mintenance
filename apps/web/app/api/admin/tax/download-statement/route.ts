@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { Form1099Service } from '@/lib/services/tax/Form1099Service';
+import { UKEarningsStatementService } from '@/lib/services/tax/UKEarningsStatementService';
 import { logger } from '@mintenance/shared';
 
 // ── GET Handler ─────────────────────────────────────────────────────
 
 /**
- * GET /api/admin/tax/download-1099?contractorId=...&year=...
+ * GET /api/admin/tax/download-statement?contractorId=...&year=...
  *
- * Fetch the generated 1099-NEC data for a specific contractor and tax year.
- * Returns the form data as a JSON response for download.
+ * Download a contractor's UK annual earnings statement (6 April – 5 April)
+ * for the given tax-year start year, as JSON.
  *
- * Requires admin role.
+ * Requires admin role + fresh MFA step-up — statements carry contractor
+ * earnings + identity (PII).
  */
-// Audit P1 (2026-05-10): downloads tax form 1099-NEC for any contractor
-// + year. PII (contractor name, TIN, payments). Stolen admin session
-// would let an attacker exfil tax docs without any forensic mark — gate
-// behind fresh MFA, same 15-min window the tax/generate-* mutations use.
 export const GET = withApiHandler(
   {
     roles: ['admin'],
@@ -43,7 +40,7 @@ export const GET = withApiHandler(
       );
     }
 
-    logger.info('Downloading 1099 data', {
+    logger.info('Downloading earnings statement', {
       service: 'admin-tax',
       adminUserId: user.id,
       contractorId,
@@ -51,21 +48,21 @@ export const GET = withApiHandler(
     });
 
     try {
-      const formData = await Form1099Service.generate1099Data(
+      const statement = await UKEarningsStatementService.getStatement(
         contractorId,
         year
       );
 
-      return new NextResponse(JSON.stringify(formData, null, 2), {
+      return new NextResponse(JSON.stringify(statement, null, 2), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="1099-NEC-${contractorId}-${year}.json"`,
+          'Content-Disposition': `attachment; filename="earnings-statement-${statement.taxYear}-${contractorId}.json"`,
         },
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error('Failed to download 1099 data', err, {
+      logger.error('Failed to download earnings statement', err, {
         service: 'admin-tax',
         adminUserId: user.id,
         contractorId,

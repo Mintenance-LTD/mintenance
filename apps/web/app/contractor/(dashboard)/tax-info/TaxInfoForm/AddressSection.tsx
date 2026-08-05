@@ -1,6 +1,5 @@
 import React from 'react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import { US_STATES } from './constants';
 import type { FormData, FormErrors } from './types';
 import { fadeIn } from './types';
 
@@ -35,7 +34,7 @@ export function AddressSection({
             htmlFor='addressLine1'
             className='block text-sm font-medium text-gray-700 mb-1'
           >
-            Street Address <span className='text-red-500'>*</span>
+            Address line 1 <span className='text-red-500'>*</span>
           </label>
           <input
             id='addressLine1'
@@ -43,7 +42,7 @@ export function AddressSection({
             value={formData.addressLine1}
             onChange={(e) => updateField('addressLine1', e.target.value)}
             className={inputClass('addressLine1')}
-            placeholder='123 Main Street'
+            placeholder='House number and street'
             aria-required='true'
             aria-invalid={!!errors.addressLine1}
             aria-describedby={
@@ -60,7 +59,7 @@ export function AddressSection({
             htmlFor='addressLine2'
             className='block text-sm font-medium text-gray-700 mb-1'
           >
-            Apt, Suite, Unit (optional)
+            Address line 2 (optional)
           </label>
           <input
             id='addressLine2'
@@ -68,19 +67,19 @@ export function AddressSection({
             value={formData.addressLine2}
             onChange={(e) => updateField('addressLine2', e.target.value)}
             className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
-            placeholder='Suite 100'
+            placeholder='Flat, building, etc.'
             autoComplete='address-line2'
           />
         </div>
 
-        {/* City / State / ZIP */}
+        {/* Town/City / County / Postcode */}
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
           <div id='field-city'>
             <label
               htmlFor='city'
               className='block text-sm font-medium text-gray-700 mb-1'
             >
-              City <span className='text-red-500'>*</span>
+              Town / City <span className='text-red-500'>*</span>
             </label>
             <input
               id='city'
@@ -88,7 +87,7 @@ export function AddressSection({
               value={formData.city}
               onChange={(e) => updateField('city', e.target.value)}
               className={inputClass('city')}
-              placeholder='City'
+              placeholder='Town or city'
               aria-required='true'
               aria-invalid={!!errors.city}
               aria-describedby={errors.city ? 'city-error' : undefined}
@@ -97,54 +96,47 @@ export function AddressSection({
             {fieldError('city')}
           </div>
 
-          <div id='field-state'>
+          <div>
             <label
-              htmlFor='state'
+              htmlFor='county'
               className='block text-sm font-medium text-gray-700 mb-1'
             >
-              State <span className='text-red-500'>*</span>
-            </label>
-            <select
-              id='state'
-              value={formData.state}
-              onChange={(e) => updateField('state', e.target.value)}
-              className={inputClass('state')}
-              aria-required='true'
-              aria-invalid={!!errors.state}
-              aria-describedby={errors.state ? 'state-error' : undefined}
-              autoComplete='address-level1'
-            >
-              {US_STATES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            {fieldError('state')}
-          </div>
-
-          <div id='field-zip'>
-            <label
-              htmlFor='zip'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              ZIP Code <span className='text-red-500'>*</span>
+              County (optional)
             </label>
             <input
-              id='zip'
+              id='county'
               type='text'
-              inputMode='numeric'
-              value={formData.zip}
-              onChange={(e) => updateField('zip', e.target.value)}
-              className={inputClass('zip')}
-              placeholder='12345'
-              maxLength={10}
+              value={formData.county}
+              onChange={(e) => updateField('county', e.target.value)}
+              className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+              placeholder='County'
+              autoComplete='address-level1'
+            />
+          </div>
+
+          <div id='field-postcode'>
+            <label
+              htmlFor='postcode'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Postcode <span className='text-red-500'>*</span>
+            </label>
+            <input
+              id='postcode'
+              type='text'
+              value={formData.postcode}
+              onChange={(e) =>
+                updateField('postcode', e.target.value.toUpperCase())
+              }
+              className={inputClass('postcode')}
+              placeholder='e.g. SW1A 1AA'
+              maxLength={8}
               aria-required='true'
-              aria-invalid={!!errors.zip}
-              aria-describedby={errors.zip ? 'zip-error' : undefined}
+              aria-invalid={!!errors.postcode}
+              aria-describedby={errors.postcode ? 'postcode-error' : undefined}
               autoComplete='postal-code'
             />
-            {fieldError('zip')}
+            {fieldError('postcode')}
           </div>
         </div>
       </div>
