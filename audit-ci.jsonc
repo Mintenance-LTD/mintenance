@@ -18,6 +18,19 @@
   // 0.81 / next — movable only by an expo 57 bump (SDK-54 is deliberately
   // pinned) or a next release. Do NOT add entries without recording why
   // the advisory is accepted.
+  //
+  // 2026-08-05 (main-red CI unblock): two advisories published after the
+  // 2026-07-27 pass surfaced. fast-uri GHSA-7p8r-x3mc-p8w7 was FIXED, not
+  // allowlisted — the single deduped root copy (via ajv ^3.0.0, prod path
+  // through @sentry/nextjs) was bumped 3.1.4 -> 3.1.5 via an `overrides`
+  // entry. brace-expansion GHSA-rgw5-rvv9-x895 is allowlisted below: it is
+  // the same package + same DoS class as the already-accepted
+  // GHSA-mh99-v99m-4gvg, and its blocking prod path is the 1.x/2.x copies
+  // nested under react-native 0.81 / @expo/cli — the same SDK-54-pinned
+  // tooling. rgw5 also moved the goalposts on the root copy (5.0.8 now
+  // vulnerable, 5.0.9 patched); forcing brace-expansion 5.0.9 globally
+  // would push it onto RN/Metro's pinned tree, so it stays allowlisted
+  // until the expo 57 bump clears the whole family.
   "high": true,
   "critical": true,
   "skip-dev": true,
@@ -35,6 +48,8 @@
     // --- Blocked on expo 57 / upstream pins (2026-07-27) ----------------
     "GHSA-6g55-p6wh-862q", // postcss ≤8.5.11 — nested under next (8.4.31) + @expo/metro-config (8.4.49); root copy is patched
     "GHSA-r28c-9q8g-f849", // postcss ≤8.5.17 — same nested copies
-    "GHSA-mh99-v99m-4gvg" // brace-expansion — 1.x copies nested under react-native/@expo/cli; root copy is patched (5.0.8)
+    "GHSA-mh99-v99m-4gvg", // brace-expansion — 1.x copies nested under react-native/@expo/cli; root copy is patched (5.0.8)
+    // --- 2026-08-05 (main-red CI unblock) -------------------------------
+    "GHSA-rgw5-rvv9-x895" // brace-expansion — sibling of mh99 (same DoS class); blocked on the same react-native 0.81 / @expo/cli 1.x/2.x nested copies; clears with the expo 57 bump
   ]
 }
