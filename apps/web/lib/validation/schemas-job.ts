@@ -3,6 +3,10 @@
  */
 import { z } from 'zod';
 import { sanitizeText } from '@/lib/sanitizer';
+import {
+  MAX_JOB_PAYMENT_GBP,
+  MAX_JOB_PAYMENT_GBP_LABEL,
+} from '@mintenance/api-contracts';
 
 // Job Schemas
 const baseJobSchema = z
@@ -25,7 +29,10 @@ const baseJobSchema = z
     budget: z
       .number()
       .positive('Budget must be positive')
-      .max(1000000, 'Budget exceeds maximum (£1,000,000)')
+      .max(
+        MAX_JOB_PAYMENT_GBP,
+        `Budget exceeds maximum (${MAX_JOB_PAYMENT_GBP_LABEL})`
+      )
       .optional(),
     location: z
       .object({

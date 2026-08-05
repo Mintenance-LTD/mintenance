@@ -1758,6 +1758,104 @@ describe('POST /api/payments/create-intent', () => {
       expect(response.status).toBe(400);
       expect(body.error).toContain('exceeds platform maximum');
     });
+
+    it('should fund a job at the maximum allowed budget (£100,000) end to end', async () => {
+      // TASK 1 (UK market readiness): the job-budget ceiling and the payment
+      // ceiling are now the SAME constant, MAX_JOB_PAYMENT_GBP (£100,000).
+      // A job posted at the maximum permitted budget MUST therefore be
+      // fundable — there must be no path where a job can be created at an
+      // amount it cannot be paid for. This drives the real create-intent
+      // route to a 200 at exactly the cap (one below the ABSOLUTE_MAX gate).
+      mocks.validateRequest.mockResolvedValue({
+        data: {
+          amount: 100000,
+          currency: 'gbp',
+          jobId: '550e8400-e29b-41d4-a716-446655440000',
+          contractorId: 'contractor-abc',
+        },
+      });
+
+      mocks.detectAnomalies.mockResolvedValue({
+        isAnomalous: false,
+        riskScore: 0.1,
+        reasons: [],
+        blockedReasons: [],
+      });
+
+      // Stripe PaymentIntent creation (via the timeout wrapper) succeeds.
+      mocks.stripeWithTimeout.mockResolvedValue({
+        id: 'pi_max_budget',
+        client_secret: 'pi_max_budget_secret',
+        status: 'requires_payment_method',
+      });
+
+      createSupabaseChain({
+        jobs: {
+          selectReturn: {
+            data: {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              homeowner_id: 'homeowner-user-id',
+              payer_user_id: null,
+              contractor_id: 'contractor-abc',
+              title: 'Full house rewire',
+              budget: 100000,
+              status: 'assigned',
+              is_rental_property: false,
+            },
+            error: null,
+          },
+        },
+        contracts: {
+          selectReturn: {
+            data: { id: 'contract-max-1', status: 'accepted', quote_id: null },
+            error: null,
+          },
+        },
+        // Server-authoritative amount is the accepted bid — exactly at the cap.
+        bids: {
+          selectReturn: {
+            data: {
+              id: 'bid-max-1',
+              amount: 100000,
+              status: 'accepted',
+              quote_id: null,
+            },
+            error: null,
+          },
+        },
+        // No blocking escrow and no existing escrow row (select → null), so the
+        // route inserts a fresh escrow transaction and returns its id.
+        escrow_transactions: {
+          selectReturn: { data: null, error: null },
+          insertReturn: {
+            data: {
+              id: 'escrow-max-1',
+              job_id: '550e8400-e29b-41d4-a716-446655440000',
+              payer_id: 'homeowner-user-id',
+              payee_id: 'contractor-abc',
+              amount: 100000,
+              status: 'pending',
+              payment_intent_id: 'pi_max_budget',
+            },
+            error: null,
+          },
+        },
+        profiles: {
+          selectReturn: { data: { stripe_customer_id: null }, error: null },
+        },
+      });
+
+      const request = createMockRequest(
+        'http://localhost:3000/api/payments/create-intent'
+      );
+      const response = await POST(request);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.paymentIntentId).toBe('pi_max_budget');
+      expect(body.escrowTransactionId).toBe('escrow-max-1');
+      expect(body.amount).toBe(100000);
+    });
   });
 
   describe('Anomaly Detection', () => {
