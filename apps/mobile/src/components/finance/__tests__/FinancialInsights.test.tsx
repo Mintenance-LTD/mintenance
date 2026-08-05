@@ -35,7 +35,7 @@ describe('FinancialInsights', () => {
     outstanding_invoices: 0,
     overdue_amount: 0,
     profit_trends: [],
-    tax_obligations: 0,
+    taxable_profit: 0,
     cash_flow_forecast: [],
   };
 

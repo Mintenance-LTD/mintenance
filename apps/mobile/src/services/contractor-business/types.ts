@@ -56,7 +56,13 @@ export interface FinancialSummary {
     amount: number;
     percentage: number;
   }[];
-  tax_obligations: number;
+  /**
+   * Taxable profit (income − expenses) for the current UK tax year. NOT the
+   * tax owed — Mintenance does not compute a tax liability (see
+   * FinancialReporter.calculateTaxableProfit). Displayed with a "not tax
+   * advice" disclaimer + HMRC link.
+   */
+  taxable_profit: number;
   cash_flow_forecast: {
     week: string;
     projected_income: number;
