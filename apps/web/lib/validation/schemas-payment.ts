@@ -2,6 +2,10 @@
  * Payment, Escrow & Subscription Validation Schemas
  */
 import { z } from 'zod';
+import {
+  MAX_JOB_PAYMENT_GBP,
+  MAX_JOB_PAYMENT_GBP_LABEL,
+} from '@mintenance/api-contracts';
 
 // Payment Schemas
 export const paymentIntentSchema = z
@@ -9,7 +13,10 @@ export const paymentIntentSchema = z
     amount: z
       .number()
       .positive('Amount must be positive')
-      .max(10000, 'Amount exceeds maximum (£10,000)')
+      .max(
+        MAX_JOB_PAYMENT_GBP,
+        `Amount exceeds maximum (${MAX_JOB_PAYMENT_GBP_LABEL})`
+      )
       .transform((val) => Math.round(val * 100) / 100),
     // GBP-only platform (CLAUDE.md MDC). The escrow_transactions.currency
     // column has a CHECK (currency='gbp') and the edge-fn currency CI guard

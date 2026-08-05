@@ -136,7 +136,7 @@ interface HandlerConfig {
    * Sprint 7 (3.1): step-up MFA gate. When set, the route requires a fresh
    * MFA verification proof (via /api/auth/mfa/step-up) within the given
    * number of minutes. Apply to sensitive admin mutations (escrow holds,
-   * settings, 1099 generation, etc.) so a long-lived session alone is not
+   * settings, tax-statement generation, etc.) so a long-lived session alone is not
    * enough to execute them. Missing / expired step-up returns 403 with
    * `requiresStepUp: true`; client should prompt for the code and retry.
    *

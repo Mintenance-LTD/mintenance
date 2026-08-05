@@ -453,7 +453,7 @@ describe('getFinancialSummary', () => {
         (t) => t.revenue === 0 && t.expenses === 0 && t.profit === 0
       )
     ).toBe(true);
-    expect(summary.tax_obligations).toBe(0);
+    expect(summary.taxable_profit).toBe(0);
     expect(summary.cash_flow_forecast).toHaveLength(8);
     expect(summary.escrow_in_flight).toBe(0);
     expect(summary.escrow_revenue).toBe(0);
@@ -599,10 +599,11 @@ describe('getFinancialSummary', () => {
     expect(summary.yearly_projection).toBe(1800);
   });
 
-  it('computes tax obligations at 20% of taxable profit (rounded)', async () => {
-    // calculateTaxObligations: income from paid invoices since tax-year start,
-    // minus expenses since tax-year start. 20% rounded.
-    // We isolate this by zeroing escrow and giving fixed invoice/expense rows.
+  it('reports taxable profit (income minus expenses since tax-year start)', async () => {
+    // calculateTaxableProfit: income from paid invoices since the UK tax-year
+    // start, minus expenses since then. We do NOT compute a tax figure — a
+    // single-rate multiplier is wrong for almost everyone (allowance, bands,
+    // NI, Scottish rates, other income). We isolate this by zeroing escrow.
     configureTables({
       invoices: {
         result: {
@@ -624,14 +625,14 @@ describe('getFinancialSummary', () => {
 
     const summary = await getFinancialSummary('contractor-1');
 
-    // PROBLEM: invoices query is shared across getMonthlyRevenue (12x),
-    // getProfitTrends (6x), calculateTaxObligations (1x), cashflow (1x).
-    // Tax uses ALL paid invoices since tax-year start as a single fetch:
-    // income = 1000, expenses = 100 => taxableProfit = 900 => 20% = 180.
-    expect(summary.tax_obligations).toBe(180);
+    // invoices query is shared across getMonthlyRevenue (12x),
+    // getProfitTrends (6x), calculateTaxableProfit (1x), cashflow (1x).
+    // Taxable profit uses ALL paid invoices since tax-year start:
+    // income = 1000, expenses = 100 => taxableProfit = 900 (no tax applied).
+    expect(summary.taxable_profit).toBe(900);
   });
 
-  it('clamps negative taxable profit to zero tax', async () => {
+  it('clamps negative taxable profit to zero', async () => {
     configureTables({
       invoices: {
         result: {
@@ -652,8 +653,8 @@ describe('getFinancialSummary', () => {
     });
 
     const summary = await getFinancialSummary('contractor-1');
-    // income 50 - expenses 5000 = -4950 -> Math.max(0, ...) = 0 -> tax 0
-    expect(summary.tax_obligations).toBe(0);
+    // income 50 - expenses 5000 = -4950 -> Math.max(0, ...) = 0
+    expect(summary.taxable_profit).toBe(0);
   });
 
   it('builds an 8-week cash-flow forecast with averaged income/expenses', async () => {
@@ -782,7 +783,7 @@ describe('getFinancialSummary', () => {
   });
 
   it('computes the tax-year start in the previous calendar year for Jan-Mar dates', async () => {
-    // Targets calculateTaxObligations cond-expr `now.getMonth() >= 3 ? ...`.
+    // Targets calculateTaxableProfit cond-expr `now.getMonth() >= 3 ? ...`.
     // Pin to February 2026 (month index 1 < 3) so taxYearStart falls in 2025.
     jest.setSystemTime(new Date('2026-02-15T12:00:00.000Z'));
 
@@ -806,7 +807,7 @@ describe('getFinancialSummary', () => {
     });
 
     const summary = await getFinancialSummary('contractor-1');
-    // taxableProfit = 500 - 100 = 400; 20% = 80
-    expect(summary.tax_obligations).toBe(80);
+    // taxableProfit = 500 - 100 = 400 (reported as-is; no tax applied)
+    expect(summary.taxable_profit).toBe(400);
   });
 });

@@ -14,6 +14,14 @@ interface ThreadListResponse {
 
 const API_BASE = '/api/messages';
 
+// A Realtime channel SUBSCRIBEs successfully even for an anonymous browser
+// session, but RLS on `messages` denies every row when auth.uid() is NULL — so
+// no INSERT event ever arrives and chat would silently freeze. If no event is
+// seen within this window after subscribing, we assume Realtime is inert for
+// this session and fall back to polling. (Web currently authenticates with a
+// custom JWT cookie and never establishes a Supabase session — see Task 6.)
+const REALTIME_WATCHDOG_MS = 8000;
+
 export class MessagingService {
   private static activeChannels = new Map<string, () => void>();
 
@@ -22,11 +30,7 @@ export class MessagingService {
     receiverId: string,
     messageText: string,
     senderId: string,
-    messageType:
-      | 'text'
-      | 'image'
-      | 'file'
-      | 'system' = 'text',
+    messageType: 'text' | 'image' | 'file' | 'system' = 'text',
     attachmentUrl?: string,
     callId?: string,
     callDuration?: number
@@ -47,22 +51,25 @@ export class MessagingService {
       // CSRF fetch failed — request will still be attempted
     }
 
-    const resp = await fetch(`${API_BASE}/threads/${encodeURIComponent(jobId)}/messages`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-      },
-      body: JSON.stringify({
-        content: messageText,
-        attachments: attachmentUrl ? [attachmentUrl] : undefined,
-        receiverId,
-        messageType,
-        callId,
-        callDuration,
-      }),
-    });
+    const resp = await fetch(
+      `${API_BASE}/threads/${encodeURIComponent(jobId)}/messages`,
+      {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        body: JSON.stringify({
+          content: messageText,
+          attachments: attachmentUrl ? [attachmentUrl] : undefined,
+          receiverId,
+          messageType,
+          callId,
+          callDuration,
+        }),
+      }
+    );
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => '');
@@ -105,12 +112,12 @@ export class MessagingService {
 
       const json = (await resp.json()) as ThreadMessagesResponse;
       const messages = json.messages ?? [];
-      
+
       logger.info('[MessagingService] getJobMessages success', {
         jobId,
         messageCount: messages.length,
       });
-      
+
       return messages;
     } catch (error) {
       logger.error('[MessagingService] getJobMessages exception', {
@@ -121,8 +128,12 @@ export class MessagingService {
     }
   }
 
-  static async getUserMessageThreads(_userId: string): Promise<MessageThread[]> {
-    const resp = await fetch(`${API_BASE}/threads`, { credentials: 'same-origin' });
+  static async getUserMessageThreads(
+    _userId: string
+  ): Promise<MessageThread[]> {
+    const resp = await fetch(`${API_BASE}/threads`, {
+      credentials: 'same-origin',
+    });
     if (!resp.ok) {
       return [];
     }
@@ -130,7 +141,10 @@ export class MessagingService {
     return json.threads ?? [];
   }
 
-  static async markMessagesAsRead(jobId: string, _userId: string): Promise<void> {
+  static async markMessagesAsRead(
+    jobId: string,
+    _userId: string
+  ): Promise<void> {
     try {
       await fetch(`${API_BASE}/threads/${encodeURIComponent(jobId)}/read`, {
         method: 'POST',
@@ -143,7 +157,9 @@ export class MessagingService {
 
   static async getUnreadMessageCount(_userId: string): Promise<number> {
     try {
-      const resp = await fetch(`${API_BASE}/unread-count`, { credentials: 'same-origin' });
+      const resp = await fetch(`${API_BASE}/unread-count`, {
+        credentials: 'same-origin',
+      });
       if (!resp.ok) return 0;
       const json = await resp.json().catch(() => ({}));
       return typeof json.count === 'number' ? json.count : 0;
@@ -162,12 +178,37 @@ export class MessagingService {
       return () => {};
     }
 
-    // Use Supabase Realtime if configured, fall back to polling
+    // Use Supabase Realtime if configured, fall back to polling.
     if (isSupabaseConfigured) {
-      // Subscribe to messages table on INSERT. We filter by table-level and
-      // resolve the job association client-side (Supabase realtime filter
-      // doesn't support cross-table joins).
+      // Scope the subscription to THIS job's messages with a server-side
+      // filter. Previously it subscribed to every INSERT on `messages`
+      // table-wide and resolved the job association client-side — so if RLS
+      // were ever loosened for the subscriber role, every browser would
+      // receive every message on the platform. RLS is the primary guard; this
+      // filter is defence in depth + a smaller event stream.
       const channelName = `messages:job=${jobId}`;
+      let fellBack = false;
+      let receivedEvent = false;
+      let watchdog: ReturnType<typeof setTimeout> | undefined;
+
+      const fallBackToPolling = (reason: string) => {
+        if (fellBack) return;
+        fellBack = true;
+        if (watchdog) clearTimeout(watchdog);
+        logger.warn(
+          '[MessagingService] Realtime not delivering, falling back to polling',
+          { jobId, reason }
+        );
+        try {
+          channel.unsubscribe();
+        } catch {
+          /* already torn down */
+        }
+        this.activeChannels.delete(jobId);
+        // _startPolling registers its own cleanup under activeChannels[jobId].
+        this._startPolling(jobId, onNewMessage, onError);
+      };
+
       const channel = supabase
         .channel(channelName)
         .on(
@@ -176,8 +217,15 @@ export class MessagingService {
             event: 'INSERT',
             schema: 'public',
             table: 'messages',
+            filter: `job_id=eq.${jobId}`,
           },
           (payload) => {
+            // A real event proves Realtime is delivering — cancel the watchdog.
+            receivedEvent = true;
+            if (watchdog) {
+              clearTimeout(watchdog);
+              watchdog = undefined;
+            }
             try {
               const row = payload.new as Record<string, unknown>;
               const msg: Message = {
@@ -186,7 +234,11 @@ export class MessagingService {
                 senderId: row.sender_id as string,
                 receiverId: (row.receiver_id as string) || '',
                 messageText: (row.content as string) || '',
-                messageType: ((row.message_type as string) || 'text') as 'text' | 'image' | 'file' | 'system',
+                messageType: ((row.message_type as string) || 'text') as
+                  | 'text'
+                  | 'image'
+                  | 'file'
+                  | 'system',
                 attachmentUrl: (row.attachment_url as string) || undefined,
                 read: Boolean(row.read),
                 createdAt: row.created_at as string,
@@ -198,17 +250,38 @@ export class MessagingService {
           }
         )
         .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR') {
-            logger.error('[MessagingService] Realtime channel error, falling back to polling', { jobId });
-            // Fall back to polling on channel error
-            channel.unsubscribe();
-            this.activeChannels.delete(jobId);
-            this._startPolling(jobId, onNewMessage, onError);
+          // Previously this only reacted to CHANNEL_ERROR — but a subscription
+          // that SUBSCRIBEs yet never delivers a row (the anon-RLS case, and
+          // the reason web chat was silently dead) never emitted CHANNEL_ERROR,
+          // so polling never started. Cover the terminal error states AND arm a
+          // watchdog on SUBSCRIBED that polls if no event arrives.
+          if (
+            status === 'CHANNEL_ERROR' ||
+            status === 'TIMED_OUT' ||
+            status === 'CLOSED'
+          ) {
+            fallBackToPolling(status);
+          } else if (status === 'SUBSCRIBED' && !receivedEvent && !watchdog) {
+            watchdog = setTimeout(() => {
+              if (!receivedEvent) {
+                fallBackToPolling('no realtime events after subscribe');
+              }
+            }, REALTIME_WATCHDOG_MS);
           }
         });
 
       const cleanup = () => {
-        channel.unsubscribe();
+        if (watchdog) clearTimeout(watchdog);
+        if (fellBack) {
+          // Polling now owns activeChannels[jobId]; delegate to its cleanup.
+          this.activeChannels.get(jobId)?.();
+          return;
+        }
+        try {
+          channel.unsubscribe();
+        } catch {
+          /* already torn down */
+        }
         this.activeChannels.delete(jobId);
       };
 

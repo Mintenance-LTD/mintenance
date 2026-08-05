@@ -294,7 +294,11 @@ describe('Quote CRUD', () => {
       },
     ];
 
-    it('computes subtotal, VAT @20% default, and total with no markup/discount', async () => {
+    it('charges NO VAT by default when the caller supplies no tax_rate', async () => {
+      // UK market readiness: createQuote no longer invents a 20% rate. The
+      // calling screen knows the contractor's VAT-registration status and
+      // passes the applicable rate; absent one, no VAT is charged so a
+      // non-registered contractor can never produce a VAT-bearing quote.
       api.post
         .mockResolvedValueOnce({ quote: { id: 'q-1' } } as never) // create
         .mockResolvedValueOnce({} as never); // analytics
@@ -306,7 +310,7 @@ describe('Quote CRUD', () => {
         line_items: baseLineItems,
       });
 
-      // subtotal = 2*100 + 1*50 = 250; no markup/discount; VAT 20% = 50; total = 300
+      // subtotal = 2*100 + 1*50 = 250; no markup/discount; no VAT; total = 250
       const payload = api.post.mock.calls[0][1] as {
         subtotal: number;
         taxRate: number;
@@ -315,9 +319,9 @@ describe('Quote CRUD', () => {
         lineItems: Array<{ subtotal: number }>;
       };
       expect(payload.subtotal).toBe(250);
-      expect(payload.taxRate).toBe(0.2);
-      expect(payload.taxAmount).toBeCloseTo(50, 5);
-      expect(payload.totalAmount).toBeCloseTo(300, 5);
+      expect(payload.taxRate).toBe(0);
+      expect(payload.taxAmount).toBeCloseTo(0, 5);
+      expect(payload.totalAmount).toBeCloseTo(250, 5);
       // per-line subtotals attached
       expect(payload.lineItems[0].subtotal).toBe(200);
       expect(payload.lineItems[1].subtotal).toBe(50);
@@ -334,6 +338,7 @@ describe('Quote CRUD', () => {
         project_title: 'Bathroom',
         markup_percentage: 10,
         discount_percentage: 5,
+        tax_rate: 0.2, // VAT-registered contractor at the standard rate
         line_items: baseLineItems,
       });
 

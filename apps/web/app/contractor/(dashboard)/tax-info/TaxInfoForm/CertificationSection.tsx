@@ -23,32 +23,26 @@ export function CertificationSection({
       variants={fadeIn}
       className='bg-white rounded-xl border border-gray-200 p-6 mb-6'
     >
-      <h2 className='text-xl font-semibold text-gray-900 mb-4'>
-        Certification
-      </h2>
+      <h2 className='text-xl font-semibold text-gray-900 mb-4'>Declaration</h2>
 
       <div className='bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4'>
         <p className='text-sm text-gray-700 leading-relaxed'>
-          Under penalties of perjury, I certify that:
+          By submitting this form I confirm that:
         </p>
         <ol className='list-decimal list-inside text-sm text-gray-700 mt-2 space-y-1'>
           <li>
-            The number shown on this form is my correct taxpayer identification
-            number (or I am waiting for a number to be issued to me).
+            The information provided above is true, accurate, and complete to
+            the best of my knowledge.
           </li>
           <li>
-            I am not subject to backup withholding because: (a) I am exempt from
-            backup withholding, or (b) I have not been notified by the Internal
-            Revenue Service (IRS) that I am subject to backup withholding as a
-            result of a failure to report all interest or dividends, or (c) the
-            IRS has notified me that I am no longer subject to backup
-            withholding.
+            The tax reference numbers supplied are my own and correctly identify
+            me for HMRC purposes.
           </li>
-          <li>I am a U.S. citizen or other U.S. person.</li>
           <li>
-            The FATCA code(s) entered on this form (if any) indicating that I am
-            exempt from FATCA reporting is correct.
+            I understand Mintenance uses this information for HMRC reporting and
+            to produce my annual earnings statements.
           </li>
+          <li>I will update these details promptly if any of them change.</li>
         </ol>
       </div>
 
@@ -73,8 +67,8 @@ export function CertificationSection({
           htmlFor='certificationAccepted'
           className='text-sm text-gray-700 cursor-pointer'
         >
-          I certify, under penalties of perjury, that the information provided
-          above is true, correct, and complete.
+          I confirm that the information provided above is true, correct, and
+          complete.
           <span className='text-red-500'> *</span>
         </label>
       </div>

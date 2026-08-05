@@ -50,8 +50,8 @@ export const EXPRESS_ACCOUNT_DEFAULTS = {
     bacs_debit_payments: { requested: true },
   },
   business_type: 'individual' as const,
-  // Stripe Tax capability — enables automated 1099/tax-document generation.
-  // Contractors will see their tax forms in their Express dashboard.
+  // UK earnings statements are produced by the platform (UKEarningsStatementService),
+  // not by Stripe; contractors download them from their Mintenance tax page.
   tos_acceptance: undefined, // Stripe-hosted onboarding collects this
 } as const;
 

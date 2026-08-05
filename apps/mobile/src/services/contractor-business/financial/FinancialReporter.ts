@@ -249,8 +249,18 @@ async function getProfitTrends(contractorId: string, months: number) {
   return trends;
 }
 
-async function calculateTaxObligations(contractorId: string): Promise<number> {
-  // Calculate estimated tax from current tax year income (Apr-Mar UK tax year)
+/**
+ * Taxable profit for the current UK tax year (6 Apr – 5 Apr): paid-invoice
+ * income minus logged expenses since the tax-year start, clamped at zero.
+ *
+ * We deliberately do NOT compute the tax owed. A single-rate multiplier (the
+ * old `taxableProfit * 0.2`) is wrong for almost everyone: it ignores the
+ * personal allowance (£12,570), higher/additional bands, Class 2/4 NI, Scottish
+ * vs rUK rates, and the contractor's other income, pensions, student loan, etc.
+ * Mintenance is not a tax adviser — we surface the profit figure (which we know
+ * for certain) and point the contractor to HMRC to work out what they owe.
+ */
+async function calculateTaxableProfit(contractorId: string): Promise<number> {
   const now = new Date();
   const taxYearStart = new Date(
     now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1,
@@ -270,10 +280,7 @@ async function calculateTaxObligations(contractorId: string): Promise<number> {
     (s, exp) => s + (exp.amount || 0),
     0
   );
-  const taxableProfit = Math.max(0, totalIncome - totalExpensesAmt);
-
-  // UK self-employed: ~20% basic rate estimate (simplified)
-  return Math.round(taxableProfit * 0.2);
+  return Math.max(0, totalIncome - totalExpensesAmt);
 }
 
 async function generateCashFlowForecast(contractorId: string, weeks: number) {
@@ -366,7 +373,7 @@ export async function getFinancialSummary(
       monthlyRevenue,
       invoicesSummary,
       profitTrends,
-      taxObligations,
+      taxableProfit,
       cashFlowForecast,
       escrowTotals,
       expenseCategories,
@@ -377,7 +384,7 @@ export async function getFinancialSummary(
       // queries per month, so following a 12-month selection would double
       // its cost for a series the finance dashboard doesn't even render.
       getProfitTrends(contractorId, 6),
-      calculateTaxObligations(contractorId),
+      calculateTaxableProfit(contractorId),
       generateCashFlowForecast(contractorId, 8),
       fetchContractorEscrow(contractorId),
       // 2026-07-20 fix: `total_expenses` / `expense_breakdown` were declared
@@ -419,7 +426,7 @@ export async function getFinancialSummary(
       total_owed: outstandingInvoices + escrowTotals.inFlight,
       overdue_amount: overdueAmount,
       profit_trends: profitTrends,
-      tax_obligations: taxObligations,
+      taxable_profit: taxableProfit,
       cash_flow_forecast: cashFlowForecast.map((f) => ({
         week: f.week,
         projected_income: f.projectedIncome,

@@ -9,6 +9,10 @@ import {
   BadRequestError,
 } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
+import {
+  MAX_JOB_PAYMENT_GBP,
+  MAX_JOB_PAYMENT_GBP_LABEL,
+} from '@mintenance/api-contracts';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
@@ -21,7 +25,10 @@ const processPaymentSchema = z
     amount: z
       .number()
       .positive('Amount must be positive')
-      .max(10000, 'Amount exceeds maximum (£10,000)'),
+      .max(
+        MAX_JOB_PAYMENT_GBP,
+        `Amount exceeds maximum (${MAX_JOB_PAYMENT_GBP_LABEL})`
+      ),
     paymentMethodId: z
       .string()
       .regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
