@@ -544,6 +544,14 @@ const KNOWN_LARGE_FILES = new Set([
   // surface (dbs_online / gbgroup / ucheck / custom) is what makes this file
   // long; splitting it is a dedicated task, not a blocker on unblocking DBS.
   'apps/web/lib/services/verification/DBSCheckService.ts', // 549 lines
+  // Added 2026-08-05 (UK market readiness Task 3, VAT): both pre-existing over
+  // the gate before the VAT-correctness change. CreateQuoteClient gained a
+  // registration-gated VAT rate selector (~40 LOC); the transaction detail
+  // page received a 3-line swap of the VAT fallback to the shared rate. Both
+  // warrant a split into smaller step components, but that is a dedicated UI
+  // refactor, not a blocker on removing the hardcoded 20% VAT.
+  'apps/web/app/contractor/(dashboard)/quotes/create/components/CreateQuoteClient.tsx', // 671 lines
+  'apps/web/app/payments/[transactionId]/page.tsx', // 630 lines
 ]);
 
 function countLines(filePath) {
