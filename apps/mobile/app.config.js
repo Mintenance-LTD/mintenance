@@ -226,7 +226,10 @@ module.exports = {
       // appVersionSource: 'local', so EAS does NOT auto-increment this —
       // reusing a versionCode is rejected by Play only at upload, i.e.
       // after a full build has already been spent.
-      versionCode: 22,
+      // Bumped 2026-08-06: 22 and 23 are both already consumed on Play (22
+      // rejected build 148c5786; 23 uploaded from chore/mobile-versioncode-23).
+      // 24 carries the mobile Delete Job feature to the store.
+      versionCode: 24,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
