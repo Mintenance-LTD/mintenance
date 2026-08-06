@@ -13,10 +13,13 @@
  *
  * Fixing the column names alone would have been WORSE than the bug: the
  * service posts to live criminal-record providers, and date of birth is
- * what identifies the individual. No table in the database has a DOB
- * column at all, so a "working" query would have submitted checks with
- * `date_of_birth: undefined` — risking a match against the wrong person.
- * The service now refuses, explicitly.
+ * what identifies the individual.
+ *
+ * 2026-08-05 (UK market readiness Task 2): DOB is now captured during UK
+ * tax onboarding and stored ENCRYPTED on `profiles.date_of_birth_encrypted`.
+ * The service selects that column and decrypts it. A contractor who has not
+ * completed tax onboarding still has no DOB on file, so the guard continues
+ * to refuse (explicitly) rather than submit an undefined DOB.
  */
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
@@ -89,12 +92,14 @@ describe('DBSCheckService.initiateCheck', () => {
     await DBSCheckService.initiateCheck('c-1', 'basic');
 
     const selected = selectSpy.mock.calls[0][0] as string;
-    // The four columns that broke the query.
+    // The columns that broke the query (none of these exist on profiles).
     expect(selected).not.toMatch(/address_line1/);
     expect(selected).not.toMatch(/address_line2/);
     expect(selected).not.toMatch(/postal_code/);
-    expect(selected).not.toMatch(/date_of_birth/);
-    // The real ones.
+    // DOB is now captured ENCRYPTED — the guard reads the real column, not a
+    // bare (non-existent) `date_of_birth`.
+    expect(selected).toMatch(/date_of_birth_encrypted/);
+    // The real address columns.
     expect(selected).toMatch(/\baddress\b/);
     expect(selected).toMatch(/\bpostcode\b/);
     expect(selected).toMatch(/\bcity\b/);

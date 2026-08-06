@@ -15,7 +15,7 @@
  * ("Save draft" / "Send · charge in app"), Mint Editorial palette,
  * serif `Total` headline.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -26,14 +26,25 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  computeVat,
+  defaultVatCodeForContractor,
+  vatRatePercent,
+  VAT_RATE_CODES,
+  UK_VAT_RATES,
+  type VatRateCode,
+} from '@mintenance/shared';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../config/supabase';
 import { useToast } from '../../components/ui/Toast';
 import { logger } from '../../utils/logger';
 import { styles } from './styles';
@@ -45,8 +56,6 @@ interface LineItem {
   description: string;
   amount: string; // string so the input can hold partial values like "10."
 }
-
-const VAT_RATE = 0.2;
 
 const parseAmount = (raw: string): number => {
   const n = Number(raw);
@@ -80,6 +89,7 @@ export const QuickQuoteScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const initialCustomer =
     route.params?.clientName && route.params?.clientPhone
       ? `${route.params.clientName} · ${route.params.clientPhone}`
@@ -92,14 +102,45 @@ export const QuickQuoteScreen: React.FC<Props> = ({ navigation, route }) => {
   ]);
   const [customer, setCustomer] = useState(initialCustomer);
 
+  // UK market readiness: VAT is gated on the contractor's registration.
+  // A non-registered contractor cannot charge VAT — they are locked to the
+  // `exempt` code (£0) with no rate control. We default to `exempt` until the
+  // tax profile loads so we never present a VAT charge before confirming
+  // registration. Missing row = not registered.
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [vatCode, setVatCode] = useState<VatRateCode>('exempt');
+
+  useEffect(() => {
+    const contractorId = user?.id;
+    if (!contractorId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('contractor_tax_profiles')
+          .select('vat_registered')
+          .eq('contractor_id', contractorId)
+          .maybeSingle();
+        if (cancelled) return;
+        const registered = !!data?.vat_registered;
+        setVatRegistered(registered);
+        setVatCode(defaultVatCodeForContractor(registered));
+      } catch (err) {
+        logger.warn('Failed to load VAT registration for quick quote', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const subtotal = useMemo(
     () => items.reduce((sum, it) => sum + parseAmount(it.amount), 0),
     [items]
   );
-  const vat = useMemo(
-    () => Math.round(subtotal * VAT_RATE * 100) / 100,
-    [subtotal]
-  );
+  const vat = useMemo(() => computeVat(subtotal, vatCode), [subtotal, vatCode]);
   const total = useMemo(
     () => Math.round((subtotal + vat) * 100) / 100,
     [subtotal, vat]
@@ -159,7 +200,7 @@ export const QuickQuoteScreen: React.FC<Props> = ({ navigation, route }) => {
         total: parseAmount(i.amount),
       }));
       const subtotalAmt = lineItems.reduce((s, l) => s + l.total, 0);
-      const vatAmt = Math.round(subtotalAmt * VAT_RATE * 100) / 100;
+      const vatAmt = computeVat(subtotalAmt, vatCode);
       const totalAmt = Math.round((subtotalAmt + vatAmt) * 100) / 100;
       return {
         title: validItems[0]?.description?.slice(0, 200) || 'Walk-up estimate',
@@ -167,13 +208,13 @@ export const QuickQuoteScreen: React.FC<Props> = ({ navigation, route }) => {
         clientPhone: phone,
         lineItems,
         subtotal: subtotalAmt,
-        taxRate: VAT_RATE * 100,
+        taxRate: vatRatePercent(vatCode),
         taxAmount: vatAmt,
         totalAmount: totalAmt,
         notes: status === 'send' ? 'Sent from on-site quick quote.' : undefined,
       };
     },
-    [items, customer, splitCustomer]
+    [items, customer, splitCustomer, vatCode]
   );
 
   const saveMutation = useMutation({
@@ -292,13 +333,52 @@ export const QuickQuoteScreen: React.FC<Props> = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
+          {/* VAT rate selector — only VAT-registered contractors may charge
+              VAT, so the control is hidden entirely otherwise (VAT stays £0). */}
+          {vatRegistered && (
+            <View style={vatSelectorStyles.wrap}>
+              <Text style={styles.sectionEyebrow}>VAT rate</Text>
+              <View style={vatSelectorStyles.chipRow}>
+                {VAT_RATE_CODES.map((code) => {
+                  const active = code === vatCode;
+                  return (
+                    <TouchableOpacity
+                      key={code}
+                      style={[
+                        vatSelectorStyles.chip,
+                        active && vatSelectorStyles.chipActive,
+                      ]}
+                      onPress={() => setVatCode(code)}
+                      accessibilityRole='button'
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={`VAT ${UK_VAT_RATES[code].label}`}
+                    >
+                      <Text
+                        style={[
+                          vatSelectorStyles.chipText,
+                          active && vatSelectorStyles.chipTextActive,
+                        ]}
+                      >
+                        {UK_VAT_RATES[code].label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           <View style={styles.totalsRow}>
             <View style={styles.totalCard}>
               <Text style={styles.totalLabel}>Subtotal</Text>
               <Text style={styles.totalValue}>{fmtGBP(subtotal)}</Text>
             </View>
             <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>+ VAT 20%</Text>
+              <Text style={styles.totalLabel}>
+                {vatRegistered
+                  ? `+ VAT ${vatRatePercent(vatCode)}%`
+                  : 'VAT (not registered)'}
+              </Text>
               <Text style={styles.totalValue}>{fmtGBP(vat)}</Text>
             </View>
             <View style={[styles.totalCard, styles.totalCardDark]}>
@@ -367,5 +447,22 @@ export const QuickQuoteScreen: React.FC<Props> = ({ navigation, route }) => {
     </View>
   );
 };
+
+// VAT rate selector — local styles (shared ./styles.ts covers the rest).
+const vatSelectorStyles = StyleSheet.create({
+  wrap: { marginBottom: 12 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: me.line,
+    backgroundColor: me.surface,
+  },
+  chipActive: { backgroundColor: me.ink, borderColor: me.ink },
+  chipText: { fontSize: 12, color: me.ink2 },
+  chipTextActive: { color: me.onBrand, fontWeight: '600' },
+});
 
 export default QuickQuoteScreen;

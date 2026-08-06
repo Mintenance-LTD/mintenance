@@ -23,7 +23,12 @@ export async function createQuote(
 
     const markup = (quoteData.markup_percentage || 0) / 100;
     const discount = (quoteData.discount_percentage || 0) / 100;
-    const taxRate = quoteData.tax_rate || 0.2;
+    // Do NOT invent a VAT rate here. The calling screen knows the
+    // contractor's VAT-registration status and passes the applicable rate;
+    // if none is supplied we charge no VAT (a non-registered contractor
+    // must never produce a VAT-bearing quote). `tax_rate` is a fraction
+    // where the standard UK rate is expressed as twenty hundredths.
+    const taxRate = quoteData.tax_rate ?? 0;
 
     const subtotalAfterMarkup = subtotal * (1 + markup);
     const discountAmount = subtotalAfterMarkup * discount;

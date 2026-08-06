@@ -18,6 +18,7 @@ import {
 } from '@/lib/stripe/stale-customer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+import { MAX_JOB_PAYMENT_GBP } from '@mintenance/api-contracts';
 
 export const POST = withApiHandler(
   {
@@ -281,7 +282,9 @@ export const POST = withApiHandler(
       }
 
       // Absolute hard cap to guard against a data-entry error on the bid.
-      const ABSOLUTE_MAX_PAYMENT = 100000; // £100,000 hard cap
+      // Shared constant — kept in lock-step with the job-budget + payment
+      // validation ceilings so a bid can never exceed a fundable amount.
+      const ABSOLUTE_MAX_PAYMENT = MAX_JOB_PAYMENT_GBP;
       if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
         logger.error('Accepted bid exceeds absolute platform maximum', {
           service: 'payments',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { FileText, Loader2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
@@ -9,15 +9,21 @@ import { getCsrfHeaders } from '@/lib/csrf-client';
 
 import type { FormData, FormErrors } from './TaxInfoForm/types';
 import { fadeIn } from './TaxInfoForm/types';
-import { isValidZip } from './TaxInfoForm/helpers';
+import {
+  isValidUtr,
+  isValidNino,
+  isValidVatNumber,
+  isValidCompanyNumber,
+  isValidPostcode,
+  isValidDateOfBirth,
+} from './TaxInfoForm/helpers';
 import {
   fieldErrorRenderer,
   inputClassRenderer,
 } from './TaxInfoForm/FieldHelpers';
 import { IdentitySection } from './TaxInfoForm/IdentitySection';
-import { TinSection } from './TaxInfoForm/TinSection';
+import { TaxIdentifiersSection } from './TaxInfoForm/TaxIdentifiersSection';
 import { AddressSection } from './TaxInfoForm/AddressSection';
-import { W9UploadSection } from './TaxInfoForm/W9UploadSection';
 import { CertificationSection } from './TaxInfoForm/CertificationSection';
 
 // ── Component ──────────────────────────────────────────────────────────
@@ -33,24 +39,24 @@ export function TaxInfoForm() {
   }, []);
   const [formData, setFormData] = useState<FormData>({
     legalName: '',
-    businessName: '',
-    taxClassification: '',
-    tinType: 'ssn',
-    tin: '',
+    tradingName: '',
+    dateOfBirth: '',
+    utr: '',
+    nino: '',
+    vatRegistered: false,
+    vatNumber: '',
+    companyNumber: '',
     addressLine1: '',
     addressLine2: '',
     city: '',
-    state: '',
-    zip: '',
+    county: '',
+    postcode: '',
     certificationAccepted: false,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [w9File, setW9File] = useState<File | null>(null);
-  const [tinFocused, setTinFocused] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Field update helper ──────────────────────────────────────────
 
@@ -74,46 +80,62 @@ export function TaxInfoForm() {
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.legalName.trim()) {
-      newErrors.legalName = 'Legal name is required.';
+    if (formData.legalName.trim().length < 2) {
+      newErrors.legalName = 'Legal name must be at least 2 characters.';
     }
 
-    if (!formData.taxClassification) {
-      newErrors.taxClassification = 'Tax classification is required.';
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = 'Date of birth is required.';
+    } else if (!isValidDateOfBirth(formData.dateOfBirth)) {
+      newErrors.dateOfBirth =
+        'Enter a valid date of birth (you must be 16 or older).';
     }
 
-    const tinDigits = formData.tin.replace(/\D/g, '');
-    if (!tinDigits) {
-      newErrors.tin = 'Taxpayer Identification Number is required.';
-    } else if (tinDigits.length !== 9) {
-      newErrors.tin = 'TIN must be exactly 9 digits.';
+    const utr = formData.utr.trim();
+    const nino = formData.nino.trim();
+    if (!utr && !nino) {
+      newErrors.utr = 'Provide a UTR or a National Insurance number.';
+    } else {
+      if (utr && !isValidUtr(utr)) {
+        newErrors.utr = 'UTR must be 10 digits.';
+      }
+      if (nino && !isValidNino(nino)) {
+        newErrors.nino = 'Enter a valid National Insurance number.';
+      }
+    }
+
+    if (
+      formData.companyNumber.trim() &&
+      !isValidCompanyNumber(formData.companyNumber)
+    ) {
+      newErrors.companyNumber = 'Enter a valid Companies House number.';
+    }
+
+    if (formData.vatRegistered) {
+      if (!formData.vatNumber.trim()) {
+        newErrors.vatNumber = 'A VAT number is required when VAT-registered.';
+      } else if (!isValidVatNumber(formData.vatNumber)) {
+        newErrors.vatNumber = 'Enter a valid UK VAT number.';
+      }
     }
 
     if (!formData.addressLine1.trim()) {
-      newErrors.addressLine1 = 'Street address is required.';
+      newErrors.addressLine1 = 'Address line 1 is required.';
     }
 
     if (!formData.city.trim()) {
-      newErrors.city = 'City is required.';
+      newErrors.city = 'Town or city is required.';
     }
 
-    if (!formData.state) {
-      newErrors.state = 'State is required.';
-    }
-
-    if (!formData.zip.trim()) {
-      newErrors.zip = 'ZIP code is required.';
-    } else if (!isValidZip(formData.zip.trim())) {
-      newErrors.zip = 'Enter a valid ZIP code (e.g. 12345 or 12345-6789).';
+    if (!formData.postcode.trim()) {
+      newErrors.postcode = 'Postcode is required.';
+    } else if (!isValidPostcode(formData.postcode)) {
+      newErrors.postcode = 'Enter a valid UK postcode (e.g. SW1A 1AA).';
     }
 
     if (!formData.certificationAccepted) {
       newErrors.certificationAccepted =
-        'You must certify that the information is correct.';
-    }
-
-    if (w9File && w9File.size > 10 * 1024 * 1024) {
-      newErrors.w9File = 'W-9 file must be under 10 MB.';
+        'You must confirm that the information is correct.';
     }
 
     setErrors(newErrors);
@@ -140,39 +162,52 @@ export function TaxInfoForm() {
     try {
       const csrfHeaders = await getCsrfHeaders();
 
-      const body = new FormData();
-      body.append('legalName', formData.legalName.trim());
-      if (formData.businessName.trim()) {
-        body.append('businessName', formData.businessName.trim());
-      }
-      body.append('taxClassification', formData.taxClassification);
-      body.append('tinType', formData.tinType);
-      body.append('tin', formData.tin.replace(/\D/g, ''));
-      body.append('addressLine1', formData.addressLine1.trim());
-      if (formData.addressLine2.trim()) {
-        body.append('addressLine2', formData.addressLine2.trim());
-      }
-      body.append('city', formData.city.trim());
-      body.append('state', formData.state);
-      body.append('zip', formData.zip.trim());
-      body.append('certificationAccepted', 'true');
+      const payload: Record<string, unknown> = {
+        legalName: formData.legalName.trim(),
+        dateOfBirth: formData.dateOfBirth,
+        vatRegistered: formData.vatRegistered,
+        addressLine1: formData.addressLine1.trim(),
+        city: formData.city.trim(),
+        postcode: formData.postcode.trim().toUpperCase(),
+        certification: true,
+      };
 
-      if (w9File) {
-        body.append('w9Document', w9File);
+      if (formData.tradingName.trim()) {
+        payload.tradingName = formData.tradingName.trim();
+      }
+      if (formData.utr.trim()) {
+        payload.utr = formData.utr.replace(/\s+/g, '');
+      }
+      if (formData.nino.trim()) {
+        payload.nino = formData.nino.trim();
+      }
+      if (formData.companyNumber.trim()) {
+        payload.companyNumber = formData.companyNumber.trim();
+      }
+      if (formData.vatRegistered && formData.vatNumber.trim()) {
+        payload.vatNumber = formData.vatNumber.trim();
+      }
+      if (formData.addressLine2.trim()) {
+        payload.addressLine2 = formData.addressLine2.trim();
+      }
+      if (formData.county.trim()) {
+        payload.county = formData.county.trim();
       }
 
       const res = await fetch('/api/contractor/tax-info', {
         method: 'POST',
-        headers: { ...csrfHeaders },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         credentials: 'include',
-        body,
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         const data = await res
           .json()
           .catch(() => ({ error: 'Submission failed' }));
-        throw new Error(data.error || 'Failed to submit tax information');
+        throw new Error(
+          data.error || data.message || 'Failed to submit tax information'
+        );
       }
 
       setSubmitted(true);
@@ -185,38 +220,6 @@ export function TaxInfoForm() {
       );
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  // ── File upload handler ──────────────────────────────────────────
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    if (file) {
-      const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
-      if (!allowed.includes(file.type)) {
-        toast.error('Please upload a PDF, JPG, or PNG file.');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('File must be under 10 MB.');
-        return;
-      }
-    }
-    setW9File(file);
-    if (errors.w9File) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next.w9File;
-        return next;
-      });
-    }
-  };
-
-  const removeFile = () => {
-    setW9File(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
   };
 
@@ -236,8 +239,8 @@ export function TaxInfoForm() {
             Tax Information Submitted
           </h1>
           <p className='text-gray-600 mb-6'>
-            Your W-9 tax information has been received and is being processed.
-            You will be notified if any additional information is needed.
+            Your tax information has been received. You will be notified if any
+            additional information is needed.
           </p>
           <button
             onClick={() => setSubmitted(false)}
@@ -282,11 +285,11 @@ export function TaxInfoForm() {
           </span>
           <div className='col' style={{ gap: 4 }}>
             <h1 id='tax-info-heading' className='t-h1'>
-              Tax information (W-9)
+              Tax information
             </h1>
             <p className='t-body'>
-              Provide your taxpayer information for 1099-NEC reporting. All
-              fields marked with * are required.
+              Provide your tax details for HMRC reporting. All fields marked
+              with * are required.
             </p>
           </div>
         </div>
@@ -307,11 +310,11 @@ export function TaxInfoForm() {
                   id='tax-info-heading'
                   className='text-3xl font-bold text-gray-900'
                 >
-                  Tax Information (W-9)
+                  Tax Information
                 </h1>
                 <p className='text-gray-600 mt-1'>
-                  Provide your taxpayer information for 1099-NEC reporting. All
-                  fields marked with * are required.
+                  Provide your tax details for HMRC reporting. All fields marked
+                  with * are required.
                 </p>
               </div>
             </div>
@@ -334,14 +337,12 @@ export function TaxInfoForm() {
             inputClass={inputClass}
           />
 
-          <TinSection
+          <TaxIdentifiersSection
             formData={formData}
             errors={errors}
             updateField={updateField}
             fieldError={fieldError}
             inputClass={inputClass}
-            tinFocused={tinFocused}
-            setTinFocused={setTinFocused}
           />
 
           <AddressSection
@@ -350,15 +351,6 @@ export function TaxInfoForm() {
             updateField={updateField}
             fieldError={fieldError}
             inputClass={inputClass}
-          />
-
-          <W9UploadSection
-            w9File={w9File}
-            errors={errors}
-            fileInputRef={fileInputRef}
-            handleFileChange={handleFileChange}
-            removeFile={removeFile}
-            fieldError={fieldError}
           />
 
           <CertificationSection
@@ -383,8 +375,8 @@ export function TaxInfoForm() {
           {/* Disclaimer */}
           <p className='mt-6 text-xs text-gray-500 text-center'>
             Your tax information is transmitted securely and encrypted at rest.
-            We use it solely for 1099-NEC tax reporting as required by the IRS.
-            For questions, contact{' '}
+            We use it solely for HMRC reporting and to produce your annual
+            earnings statements. For questions, contact{' '}
             <a
               href='mailto:support@mintenance.co.uk'
               className='text-teal-600 hover:underline'

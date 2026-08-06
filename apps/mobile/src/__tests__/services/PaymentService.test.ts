@@ -142,7 +142,7 @@ describe('PaymentService', () => {
           jobId: '11111111-1111-4111-8111-111111111101',
           contractorId: '22222222-2222-4222-8222-222222222201',
         })
-      ).rejects.toThrow('Amount exceeds maximum (£10,000)');
+      ).rejects.toThrow('Amount exceeds maximum (£100,000)');
     });
 
     it('passes decimal amounts through unchanged', async () => {

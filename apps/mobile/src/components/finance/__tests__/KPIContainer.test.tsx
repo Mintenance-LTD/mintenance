@@ -9,7 +9,7 @@ import type { FinancialSummary } from '../../../services/contractor-business';
  * KPIContainer Component Tests
  *
  * Tests the KPIContainer component functionality including:
- * - Rendering all 4 KPI cards (Total Revenue, Outstanding, Overdue, Tax Due)
+ * - Rendering all 4 KPI cards (Total Revenue, Outstanding, Overdue, Taxable Profit)
  * - Props passed to each KPICard (title, value, icon, color, change)
  * - formatCurrency function usage
  * - Revenue calculation from monthly_revenue array
@@ -38,7 +38,7 @@ describe('KPIContainer', () => {
       outstanding_invoices: 3500,
       overdue_amount: 1200,
       profit_trends: [],
-      tax_obligations: 850,
+      taxable_profit: 850,
       cash_flow_forecast: [],
     };
 
@@ -82,7 +82,7 @@ describe('KPIContainer', () => {
       expect(getByText('Total Revenue')).toBeTruthy();
       expect(getByText('Outstanding')).toBeTruthy();
       expect(getByText('Overdue')).toBeTruthy();
-      expect(getByText('Tax Due')).toBeTruthy();
+      expect(getByText('Taxable Profit')).toBeTruthy();
     });
   });
 
@@ -257,8 +257,8 @@ describe('KPIContainer', () => {
     });
   });
 
-  describe('Tax Obligations KPI Card', () => {
-    it('should display tax_obligations value', () => {
+  describe('Taxable Profit KPI Card', () => {
+    it('should display taxable_profit value', () => {
       render(
         <KPIContainer
           financialData={mockFinancialData}
@@ -270,7 +270,7 @@ describe('KPIContainer', () => {
       expect(mockFormatCurrency).toHaveBeenCalledWith(850);
     });
 
-    it('should display formatted tax due amount', () => {
+    it('should display formatted taxable profit amount', () => {
       const { getByText } = render(
         <KPIContainer
           financialData={mockFinancialData}
@@ -291,8 +291,8 @@ describe('KPIContainer', () => {
         />
       );
 
-      // Press the Tax Due card's TouchableOpacity directly (title.parent).
-      const taxCard = getByText('Tax Due').parent;
+      // Press the Taxable Profit card's TouchableOpacity directly (title.parent).
+      const taxCard = getByText('Taxable Profit').parent;
       expect(taxCard).toBeTruthy();
 
       if (taxCard) {
@@ -398,7 +398,7 @@ describe('KPIContainer', () => {
         outstanding_invoices: 0,
         overdue_amount: 0,
         profit_trends: [],
-        tax_obligations: 0,
+        taxable_profit: 0,
         cash_flow_forecast: [],
       };
 
@@ -551,7 +551,7 @@ describe('KPIContainer', () => {
       expect(getByText('Total Revenue')).toBeTruthy();
       expect(getByText('Outstanding')).toBeTruthy();
       expect(getByText('Overdue')).toBeTruthy();
-      expect(getByText('Tax Due')).toBeTruthy();
+      expect(getByText('Taxable Profit')).toBeTruthy();
 
       rerender(
         <KPIContainer
@@ -564,7 +564,7 @@ describe('KPIContainer', () => {
       expect(getByText('Total Revenue')).toBeTruthy();
       expect(getByText('Outstanding')).toBeTruthy();
       expect(getByText('Overdue')).toBeTruthy();
-      expect(getByText('Tax Due')).toBeTruthy();
+      expect(getByText('Taxable Profit')).toBeTruthy();
     });
   });
 
@@ -593,7 +593,7 @@ describe('KPIContainer', () => {
       expect(mockFormatCurrency).toHaveBeenNthCalledWith(1, 4500); // Total Revenue
       expect(mockFormatCurrency).toHaveBeenNthCalledWith(2, 3500); // Outstanding
       expect(mockFormatCurrency).toHaveBeenNthCalledWith(3, 1200); // Overdue
-      expect(mockFormatCurrency).toHaveBeenNthCalledWith(4, 850); // Tax Due
+      expect(mockFormatCurrency).toHaveBeenNthCalledWith(4, 850); // Taxable Profit
     });
   });
 });

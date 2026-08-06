@@ -1,54 +1,80 @@
-// Shared types for the admin tax dashboard
+// Shared types for the admin tax dashboard (UK earnings statements)
 
-export type Form1099Status = 'pending' | 'generated' | 'filed';
-export type W9Status = 'unverified' | 'submitted' | 'verified';
+export type StatementStatus = 'pending' | 'generated' | 'filed';
 
-export interface TaxSummary {
-  totalRequiring1099: number;
+export interface TaxStats {
+  totalContractors: number;
   totalGenerated: number;
   totalFiled: number;
+  totalIncompleteDetails: number;
   totalEarnings: number;
+  totalNetPaid: number;
 }
 
 export interface ContractorTaxRow {
   contractorId: string;
   contractorName: string;
   email: string;
-  tinLast4: string;
-  totalEarnings: number;
-  status: Form1099Status;
-  w9Status: W9Status;
+  taxYear: string; // e.g. "2025-26"
+  startYear: number;
+  grossEarnings: number;
+  platformFees: number;
+  stripeFees: number;
+  netPaid: number;
+  jobCount: number;
+  statementGenerated: boolean;
+  statementGeneratedAt: string | null;
+  statementFiled: boolean;
+  statementFiledAt: string | null;
+  taxDetailsComplete: boolean;
 }
 
-export interface UnverifiedW9Row {
+export interface IncompleteTaxDetailsRow {
   contractorId: string;
   contractorName: string;
   email: string;
-  submittedAt: string | null;
-  w9Status: W9Status;
+  taxDetailsComplete: boolean;
 }
 
 export interface AdminTaxData {
-  summaries: Array<{
-    id: string;
-    contractor_id: string;
-    tax_year: number;
-    total_earnings: number;
-    requires_1099: boolean;
-    form_1099_generated: boolean;
-    form_1099_generated_at: string | null;
-    form_1099_filed: boolean;
-    form_1099_filed_at: string | null;
-    contractor: { id: string; first_name: string | null; last_name: string | null; email: string } | null;
-    tax_profile: { w9_submitted_at: string | null; w9_verified: boolean } | null;
-  }>;
-  stats: TaxSummary;
+  summaries: ContractorTaxRow[];
+  stats: TaxStats;
 }
 
-export const CURRENT_YEAR = new Date().getFullYear();
-export const AVAILABLE_YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
+/** Derive the earnings-statement lifecycle status for a contractor row. */
+export function statementStatus(row: {
+  statementGenerated: boolean;
+  statementFiled: boolean;
+}): StatementStatus {
+  if (row.statementFiled) return 'filed';
+  if (row.statementGenerated) return 'generated';
+  return 'pending';
+}
 
-export const STATUS_OPTIONS: { value: 'all' | Form1099Status; label: string }[] = [
+/** UK tax-year START year for a date (the year begins 6 April). */
+export function ukTaxStartYear(date: Date = new Date()): number {
+  const y = date.getFullYear();
+  const m = date.getMonth(); // 0-based
+  const d = date.getDate();
+  if (m < 3 || (m === 3 && d < 6)) return y - 1;
+  return y;
+}
+
+/** Format a UK tax-year start year as its label, e.g. 2025 → "2025-26". */
+export function formatTaxYearLabel(startYear: number): string {
+  return `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
+}
+
+export const CURRENT_YEAR = ukTaxStartYear();
+export const AVAILABLE_YEARS = Array.from(
+  { length: 5 },
+  (_, i) => CURRENT_YEAR - i
+);
+
+export const STATUS_OPTIONS: {
+  value: 'all' | StatementStatus;
+  label: string;
+}[] = [
   { value: 'all', label: 'All' },
   { value: 'pending', label: 'Pending' },
   { value: 'generated', label: 'Generated' },

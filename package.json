@@ -138,6 +138,7 @@
     "@sentry/browser": "7.119.1",
     "@sentry/react": "7.119.1",
     "fast-xml-parser": "5.7.0",
+    "fast-uri": "3.1.5",
     "minimatch": "10.2.4",
     "adm-zip": "0.6.0",
     "sharp": "0.35.3",

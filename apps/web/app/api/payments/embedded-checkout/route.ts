@@ -15,6 +15,7 @@ import {
 } from '@/lib/services/payment/FeeCalculationService';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { MAX_JOB_PAYMENT_GBP } from '@mintenance/api-contracts';
 
 const bodySchema = z.object({
   priceId: z.string().min(1, 'Price ID is required'),
@@ -154,7 +155,7 @@ export const POST = withApiHandler(
         );
       }
 
-      const ABSOLUTE_MAX_PAYMENT = 100000; // £100,000 hard cap
+      const ABSOLUTE_MAX_PAYMENT = MAX_JOB_PAYMENT_GBP;
       if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
         return NextResponse.json(
           { error: 'Bid amount exceeds platform maximum.' },

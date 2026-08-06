@@ -44,7 +44,7 @@ describe('ChartSection', () => {
         { month: 'February', revenue: 6000, expenses: 3500, profit: 2500 },
         { month: 'March', revenue: 7000, expenses: 4000, profit: 3000 },
       ],
-      tax_obligations: 850,
+      taxable_profit: 850,
       cash_flow_forecast: [
         {
           week: '1',
@@ -480,7 +480,7 @@ describe('ChartSection', () => {
         outstanding_invoices: 0,
         overdue_amount: 0,
         profit_trends: [],
-        tax_obligations: 0,
+        taxable_profit: 0,
         cash_flow_forecast: [],
       };
 

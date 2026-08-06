@@ -9,15 +9,20 @@ import { getCsrfHeaders } from '@/lib/csrf-client';
 import type {
   AdminTaxData,
   ContractorTaxRow,
-  Form1099Status,
-  TaxSummary,
-  UnverifiedW9Row,
+  IncompleteTaxDetailsRow,
+  StatementStatus,
+  TaxStats,
 } from './_components/types';
-import { AVAILABLE_YEARS, CURRENT_YEAR } from './_components/types';
+import {
+  AVAILABLE_YEARS,
+  CURRENT_YEAR,
+  formatTaxYearLabel,
+  statementStatus,
+} from './_components/types';
 import { SummaryCards } from './_components/SummaryCards';
 import { FiltersBar } from './_components/FiltersBar';
 import { ContractorsTable } from './_components/ContractorsTable';
-import { UnverifiedW9Table } from './_components/UnverifiedW9Table';
+import { IncompleteTaxDetailsTable } from './_components/IncompleteTaxDetailsTable';
 import { TaxLoadingState, TaxErrorState } from './_components/TaxPageStates';
 
 async function fetchTaxData(year: number): Promise<AdminTaxData> {
@@ -30,7 +35,7 @@ async function fetchTaxData(year: number): Promise<AdminTaxData> {
 
 export default function AdminTaxDashboardPage() {
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
-  const [statusFilter, setStatusFilter] = useState<'all' | Form1099Status>(
+  const [statusFilter, setStatusFilter] = useState<'all' | StatementStatus>(
     'all'
   );
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,80 +51,35 @@ export default function AdminTaxDashboardPage() {
     retry: 2,
   });
 
-  const summary: TaxSummary = data?.stats ?? {
-    totalRequiring1099: 0,
+  const summary: TaxStats = data?.stats ?? {
+    totalContractors: 0,
     totalGenerated: 0,
     totalFiled: 0,
+    totalIncompleteDetails: 0,
     totalEarnings: 0,
+    totalNetPaid: 0,
   };
 
-  // Map API summaries to the ContractorTaxRow shape the table expects
-  // tax_profile is now nested under contractor (joined through profiles)
-  const contractors: ContractorTaxRow[] = (data?.summaries ?? []).map((s) => {
-    const c = Array.isArray(s.contractor) ? s.contractor[0] : s.contractor;
-    const tp = c?.tax_profile
-      ? Array.isArray(c.tax_profile)
-        ? c.tax_profile[0]
-        : c.tax_profile
-      : null;
-    return {
-      contractorId: s.contractor_id,
-      contractorName: c
-        ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim()
-        : 'Unknown',
-      email: c?.email ?? '',
-      tinLast4: '****',
-      totalEarnings: Number(s.total_earnings),
-      status: s.form_1099_filed
-        ? 'filed'
-        : s.form_1099_generated
-          ? 'generated'
-          : 'pending',
-      w9Status: tp?.w9_verified
-        ? 'verified'
-        : tp?.w9_submitted_at
-          ? 'submitted'
-          : 'unverified',
-    };
-  });
+  const contractors: ContractorTaxRow[] = data?.summaries ?? [];
 
-  const unverifiedW9s: UnverifiedW9Row[] = (data?.summaries ?? [])
-    .filter((s) => {
-      const c = Array.isArray(s.contractor) ? s.contractor[0] : s.contractor;
-      const tp = c?.tax_profile
-        ? Array.isArray(c.tax_profile)
-          ? c.tax_profile[0]
-          : c.tax_profile
-        : null;
-      return !tp?.w9_verified;
-    })
-    .map((s) => {
-      const c = Array.isArray(s.contractor) ? s.contractor[0] : s.contractor;
-      const tp = c?.tax_profile
-        ? Array.isArray(c.tax_profile)
-          ? c.tax_profile[0]
-          : c.tax_profile
-        : null;
-      return {
-        contractorId: s.contractor_id,
-        contractorName: c
-          ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim()
-          : 'Unknown',
-        email: c?.email ?? '',
-        submittedAt: tp?.w9_submitted_at ?? null,
-        w9Status: tp?.w9_submitted_at ? 'submitted' : 'unverified',
-      };
-    });
+  const incompleteRows: IncompleteTaxDetailsRow[] = contractors
+    .filter((c) => !c.taxDetailsComplete)
+    .map((c) => ({
+      contractorId: c.contractorId,
+      contractorName: c.contractorName,
+      email: c.email,
+      taxDetailsComplete: c.taxDetailsComplete,
+    }));
 
   const filteredContractors = useMemo(() => {
     return contractors.filter((c) => {
-      const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all' || statementStatus(c) === statusFilter;
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         !q ||
         c.contractorName.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.tinLast4.includes(q);
+        c.email.toLowerCase().includes(q);
       return matchesStatus && matchesSearch;
     });
   }, [contractors, statusFilter, searchQuery]);
@@ -129,7 +89,7 @@ export default function AdminTaxDashboardPage() {
       setGeneratingId(contractorId);
       try {
         const csrfHeaders = await getCsrfHeaders();
-        const res = await fetch('/api/admin/tax/generate-1099', {
+        const res = await fetch('/api/admin/tax/generate-statement', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           credentials: 'include',
@@ -144,13 +104,17 @@ export default function AdminTaxDashboardPage() {
           const body = await res
             .json()
             .catch(() => ({ error: 'Generation failed' }));
-          throw new Error(body.error || 'Failed to generate 1099');
+          throw new Error(
+            body.error || 'Failed to generate earnings statement'
+          );
         }
-        toast.success('1099-NEC generated successfully');
+        toast.success('Earnings statement generated successfully');
         refetch();
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Failed to generate 1099'
+          err instanceof Error
+            ? err.message
+            : 'Failed to generate earnings statement'
         );
       } finally {
         setGeneratingId(null);
@@ -176,7 +140,7 @@ export default function AdminTaxDashboardPage() {
             .catch(() => ({ error: 'Filing failed' }));
           throw new Error(body.error || 'Failed to mark as filed');
         }
-        toast.success('1099-NEC marked as filed');
+        toast.success('Earnings statement marked as filed');
         refetch();
       } catch (err) {
         toast.error(
@@ -203,10 +167,12 @@ export default function AdminTaxDashboardPage() {
         const body = await res
           .json()
           .catch(() => ({ error: 'Bulk generation failed' }));
-        throw new Error(body.error || 'Failed to generate all pending 1099s');
+        throw new Error(
+          body.error || 'Failed to generate all pending statements'
+        );
       }
       const result = await res.json();
-      toast.success(`Generated ${result.count ?? 0} 1099-NEC forms`);
+      toast.success(`Generated ${result.count ?? 0} earnings statements`);
       refetch();
     } catch (err) {
       toast.error(
@@ -224,11 +190,11 @@ export default function AdminTaxDashboardPage() {
     }
 
     const header =
-      'Contractor Name,Email,TIN Last 4,Total Earnings,1099 Status\n';
+      'Contractor Name,Email,Gross Earnings,Net Paid,Statement Status\n';
     const rows = filteredContractors
       .map(
         (c) =>
-          `"${c.contractorName}","${c.email}","${c.tinLast4}","${c.totalEarnings.toFixed(2)}","${c.status}"`
+          `"${c.contractorName}","${c.email}","${c.grossEarnings.toFixed(2)}","${c.netPaid.toFixed(2)}","${statementStatus(c)}"`
       )
       .join('\n');
 
@@ -236,7 +202,7 @@ export default function AdminTaxDashboardPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `1099-nec-report-${selectedYear}.csv`;
+    link.download = `earnings-statements-${selectedYear}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -244,10 +210,10 @@ export default function AdminTaxDashboardPage() {
     toast.success('CSV exported successfully');
   }, [filteredContractors, selectedYear]);
 
-  const handleDownload1099 = useCallback(
+  const handleDownloadStatement = useCallback(
     (contractorId: string) => {
       window.open(
-        `/api/admin/tax/download-1099?contractorId=${contractorId}&year=${selectedYear}`,
+        `/api/admin/tax/download-statement?contractorId=${contractorId}&year=${selectedYear}`,
         '_blank'
       );
     },
@@ -281,10 +247,10 @@ export default function AdminTaxDashboardPage() {
               </div>
               <div>
                 <h1 className='text-3xl sm:text-4xl font-bold'>
-                  1099-NEC Tax Management
+                  Earnings Statement Management
                 </h1>
                 <p className='text-slate-300 text-lg mt-1'>
-                  Generate and file 1099-NEC forms for contractors
+                  Generate and file contractor earnings statements for HMRC
                 </p>
               </div>
             </div>
@@ -303,7 +269,7 @@ export default function AdminTaxDashboardPage() {
               >
                 {AVAILABLE_YEARS.map((year) => (
                   <option key={year} value={year} className='text-gray-900'>
-                    {year}
+                    {formatTaxYearLabel(year)}
                   </option>
                 ))}
               </select>
@@ -340,10 +306,10 @@ export default function AdminTaxDashboardPage() {
           filingId={filingId}
           onGenerate={handleGenerate}
           onMarkFiled={handleMarkFiled}
-          onDownload1099={handleDownload1099}
+          onDownloadStatement={handleDownloadStatement}
         />
 
-        <UnverifiedW9Table rows={unverifiedW9s} />
+        <IncompleteTaxDetailsTable rows={incompleteRows} />
       </div>
     </div>
   );

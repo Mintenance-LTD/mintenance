@@ -3,30 +3,25 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Download,
   PoundSterling,
   ReceiptPoundSterling,
 } from 'lucide-react';
-import type { YearSummary, PaymentRecord } from './tax-helpers';
-import { get1099StatusBadge } from './tax-helpers';
+import type { YearSummary } from './tax-helpers';
+import { formatGBP } from './tax-helpers';
 
 interface EarningsSummaryTableProps {
   summaries: YearSummary[];
-  payments: Record<number, PaymentRecord[]>;
   expandedYear: number | null;
-  onToggleYear: (year: number) => void;
+  onToggleYear: (startYear: number) => void;
+  onDownload: (startYear: number) => void;
 }
-
-const currency = (n: number) =>
-  n.toLocaleString('en-GB', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 
 export function EarningsSummaryTable({
   summaries,
-  payments,
   expandedYear,
   onToggleYear,
+  onDownload,
 }: EarningsSummaryTableProps) {
   return (
     <div className='bg-white rounded-xl border border-gray-200'>
@@ -56,7 +51,7 @@ export function EarningsSummaryTable({
                   scope='col'
                   className='text-right py-3 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider'
                 >
-                  Total Earnings
+                  Gross Earnings
                 </th>
                 <th
                   scope='col'
@@ -68,25 +63,25 @@ export function EarningsSummaryTable({
                   scope='col'
                   className='text-right py-3 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider'
                 >
-                  Net Payments
+                  Net Paid
                 </th>
                 <th
                   scope='col'
                   className='text-center py-3 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider'
                 >
-                  Summary Status
+                  Jobs
                 </th>
                 <th
                   scope='col'
                   className='text-right py-3 px-6 text-xs font-semibold text-gray-600 uppercase tracking-wider'
                 >
-                  Details
+                  Actions
                 </th>
               </tr>
             </thead>
             <tbody className='divide-y divide-gray-100'>
               {summaries.map((summary) => (
-                <React.Fragment key={summary.year}>
+                <React.Fragment key={summary.startYear}>
                   <tr className='hover:bg-gray-50 transition-colors'>
                     <td className='py-4 px-6'>
                       <div className='flex items-center gap-2'>
@@ -95,117 +90,129 @@ export function EarningsSummaryTable({
                           aria-hidden='true'
                         />
                         <span className='text-sm font-semibold text-gray-900'>
-                          {summary.year}
+                          {summary.taxYear}
                         </span>
                       </div>
                     </td>
                     <td className='py-4 px-6 text-right'>
                       <span className='text-sm font-semibold text-gray-900'>
-                        £{currency(summary.totalEarnings)}
+                        {formatGBP(summary.grossEarnings)}
                       </span>
                     </td>
                     <td className='py-4 px-6 text-right'>
                       <span className='text-sm text-gray-600'>
-                        -£{currency(summary.platformFees)}
+                        -{formatGBP(summary.platformFees)}
                       </span>
                     </td>
                     <td className='py-4 px-6 text-right'>
                       <span className='text-sm font-semibold text-teal-700'>
-                        £{currency(summary.netPayments)}
+                        {formatGBP(summary.netPaid)}
                       </span>
                     </td>
                     <td className='py-4 px-6 text-center'>
-                      {get1099StatusBadge(summary.form1099Status)}
+                      <span className='text-sm text-gray-700'>
+                        {summary.jobCount}
+                      </span>
                     </td>
                     <td className='py-4 px-6 text-right'>
-                      <button
-                        onClick={() => onToggleYear(summary.year)}
-                        className='px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1 ml-auto'
-                        aria-expanded={expandedYear === summary.year}
-                        aria-controls={`payments-${summary.year}`}
-                        aria-label={`${expandedYear === summary.year ? 'Collapse' : 'Expand'} payment records for ${summary.year}`}
-                      >
-                        {expandedYear === summary.year ? (
-                          <ChevronDown
+                      <div className='flex items-center justify-end gap-2'>
+                        <button
+                          onClick={() => onToggleYear(summary.startYear)}
+                          className='px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1'
+                          aria-expanded={expandedYear === summary.startYear}
+                          aria-controls={`payments-${summary.startYear}`}
+                          aria-label={`${expandedYear === summary.startYear ? 'Collapse' : 'Expand'} payment records for ${summary.taxYear}`}
+                        >
+                          {expandedYear === summary.startYear ? (
+                            <ChevronDown
+                              className='w-3.5 h-3.5'
+                              aria-hidden='true'
+                            />
+                          ) : (
+                            <ChevronRight
+                              className='w-3.5 h-3.5'
+                              aria-hidden='true'
+                            />
+                          )}
+                          Payments
+                        </button>
+                        <button
+                          onClick={() => onDownload(summary.startYear)}
+                          className='px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors flex items-center gap-1'
+                          aria-label={`Download earnings statement for ${summary.taxYear}`}
+                        >
+                          <Download
                             className='w-3.5 h-3.5'
                             aria-hidden='true'
                           />
-                        ) : (
-                          <ChevronRight
-                            className='w-3.5 h-3.5'
-                            aria-hidden='true'
-                          />
-                        )}
-                        Payments
-                      </button>
+                          Statement
+                        </button>
+                      </div>
                     </td>
                   </tr>
 
-                  {expandedYear === summary.year && (
+                  {expandedYear === summary.startYear && (
                     <tr>
                       <td colSpan={6} className='p-0'>
                         <div
-                          id={`payments-${summary.year}`}
+                          id={`payments-${summary.startYear}`}
                           className='bg-gray-50 border-t border-gray-200'
                           role='region'
-                          aria-label={`Payment records for ${summary.year}`}
+                          aria-label={`Payment records for ${summary.taxYear}`}
                         >
-                          {(payments[summary.year] ?? []).length > 0 ? (
+                          {summary.payments.length > 0 ? (
                             <div className='px-6 py-4'>
                               <h3 className='text-sm font-semibold text-gray-700 mb-3'>
-                                Payment Records - {summary.year}
+                                Payment Records &mdash; {summary.taxYear}
                               </h3>
                               <div className='space-y-2'>
-                                {(payments[summary.year] ?? []).map(
-                                  (payment) => (
-                                    <div
-                                      key={payment.id}
-                                      className='bg-white rounded-lg border border-gray-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'
-                                    >
-                                      <div className='flex-1 min-w-0'>
-                                        <p className='text-sm font-medium text-gray-900 truncate'>
-                                          {payment.jobTitle}
-                                        </p>
-                                        <p className='text-xs text-gray-500'>
-                                          {new Date(
-                                            payment.date
-                                          ).toLocaleDateString('en-GB', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric',
-                                          })}{' '}
-                                          -- {payment.homeownerName}
-                                        </p>
+                                {summary.payments.map((payment) => (
+                                  <div
+                                    key={`${payment.jobId}-${payment.date}`}
+                                    className='bg-white rounded-lg border border-gray-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'
+                                  >
+                                    <div className='flex-1 min-w-0'>
+                                      <p className='text-sm font-medium text-gray-900 truncate'>
+                                        {payment.jobTitle}
+                                      </p>
+                                      <p className='text-xs text-gray-500'>
+                                        {new Date(
+                                          payment.date
+                                        ).toLocaleDateString('en-GB', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                        })}
+                                      </p>
+                                    </div>
+                                    <div className='flex items-center gap-4 text-sm'>
+                                      <div className='text-right'>
+                                        <span className='text-gray-500'>
+                                          Gross:
+                                        </span>{' '}
+                                        <span className='font-medium text-gray-900'>
+                                          {formatGBP(payment.gross)}
+                                        </span>
                                       </div>
-                                      <div className='flex items-center gap-4 text-sm'>
-                                        <div className='text-right'>
-                                          <span className='text-gray-500'>
-                                            Gross:
-                                          </span>{' '}
-                                          <span className='font-medium text-gray-900'>
-                                            £{payment.grossAmount.toFixed(2)}
-                                          </span>
-                                        </div>
-                                        <div className='text-right'>
-                                          <span className='text-gray-500'>
-                                            Fee:
-                                          </span>{' '}
-                                          <span className='text-gray-600'>
-                                            -£{payment.platformFee.toFixed(2)}
-                                          </span>
-                                        </div>
-                                        <div className='text-right'>
-                                          <span className='text-gray-500'>
-                                            Net:
-                                          </span>{' '}
-                                          <span className='font-semibold text-teal-700'>
-                                            £{payment.netAmount.toFixed(2)}
-                                          </span>
-                                        </div>
+                                      <div className='text-right'>
+                                        <span className='text-gray-500'>
+                                          Fee:
+                                        </span>{' '}
+                                        <span className='text-gray-600'>
+                                          -{formatGBP(payment.platformFee)}
+                                        </span>
+                                      </div>
+                                      <div className='text-right'>
+                                        <span className='text-gray-500'>
+                                          Net:
+                                        </span>{' '}
+                                        <span className='font-semibold text-teal-700'>
+                                          {formatGBP(payment.net)}
+                                        </span>
                                       </div>
                                     </div>
-                                  )
-                                )}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           ) : (
@@ -215,7 +222,7 @@ export function EarningsSummaryTable({
                                 aria-hidden='true'
                               />
                               <p className='text-sm text-gray-500'>
-                                No payment records for {summary.year}.
+                                No payment records for {summary.taxYear}.
                               </p>
                             </div>
                           )}

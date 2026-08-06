@@ -12,6 +12,14 @@ import { NotificationBanner } from '@/components/ui/NotificationBanner';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Badge } from '@/components/ui/Badge.unified';
 import { Plus, Trash2 } from 'lucide-react';
+import {
+  computeVat,
+  vatRatePercent,
+  defaultVatCodeForContractor,
+  VAT_RATE_CODES,
+  UK_VAT_RATES,
+  type VatRateCode,
+} from '@mintenance/shared';
 
 const StatusChip = Badge;
 
@@ -47,7 +55,10 @@ export function CreateQuoteClient() {
   ]);
   const [notes, setNotes] = useState('');
   const [validDays, setValidDays] = useState(30);
-  const [includeVat, setIncludeVat] = useState(true);
+  // VAT is defaulted from the contractor's registration status, NOT to ON.
+  // A non-registered contractor cannot charge VAT at all (locked to exempt).
+  const [vatRegistered, setVatRegistered] = useState<boolean | null>(null);
+  const [vatCode, setVatCode] = useState<VatRateCode>('exempt');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
@@ -73,11 +84,33 @@ export function CreateQuoteClient() {
     }
   }, [searchParams]);
 
+  // Load the contractor's VAT-registration status and default the VAT rate
+  // from it. Until known, assume not-registered (no VAT) — the safe default.
+  useEffect(() => {
+    let active = true;
+    fetch('/api/contractor/tax-info', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!active) return;
+        const registered = Boolean(body?.data?.vatRegistered);
+        setVatRegistered(registered);
+        setVatCode(defaultVatCodeForContractor(registered));
+      })
+      .catch(() => {
+        if (!active) return;
+        setVatRegistered(false);
+        setVatCode('exempt');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const subtotal = lineItems.reduce(
     (sum, item) => sum + item.quantity * item.unit_price,
     0
   );
-  const tax = includeVat ? subtotal * 0.2 : 0;
+  const tax = computeVat(subtotal, vatCode);
   const total = subtotal + tax;
 
   const basicDetailsComplete = Boolean(projectTitle.trim());
@@ -148,6 +181,12 @@ export function CreateQuoteClient() {
           notes,
           validDays,
           status,
+          // Persist the VAT rate USED (percent) + amount on the quote row so
+          // historic quotes are never recomputed from today's rate.
+          subtotal,
+          taxRate: vatRatePercent(vatCode),
+          taxAmount: tax,
+          totalAmount: total,
         }),
       });
 
@@ -506,38 +545,58 @@ export function CreateQuoteClient() {
               <span>{formatCurrency(subtotal)}</span>
             </div>
 
-            {/* VAT Toggle */}
+            {/* VAT — defaulted from registration status. A non-registered
+                contractor cannot charge VAT and sees no selector. */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                gap: theme.spacing[2],
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                }}
-              >
-                <input
-                  type='checkbox'
-                  id='include-vat'
-                  checked={includeVat}
-                  onChange={(e) => setIncludeVat(e.target.checked)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <label
-                  htmlFor='include-vat'
-                  style={{ cursor: 'pointer', color: theme.colors.textPrimary }}
-                >
-                  Include VAT (20%)
-                </label>
-              </div>
-              {includeVat && (
+              {vatRegistered ? (
+                <>
+                  <label
+                    htmlFor='vat-rate'
+                    style={{ color: theme.colors.textPrimary }}
+                  >
+                    VAT
+                  </label>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing[2],
+                    }}
+                  >
+                    <select
+                      id='vat-rate'
+                      value={vatCode}
+                      onChange={(e) =>
+                        setVatCode(e.target.value as VatRateCode)
+                      }
+                      style={{
+                        padding: theme.spacing[1],
+                        cursor: 'pointer',
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
+                      {VAT_RATE_CODES.map((code) => (
+                        <option key={code} value={code}>
+                          {UK_VAT_RATES[code].label}
+                        </option>
+                      ))}
+                    </select>
+                    <span style={{ color: theme.colors.textSecondary }}>
+                      {formatCurrency(tax)}
+                    </span>
+                  </div>
+                </>
+              ) : (
                 <span style={{ color: theme.colors.textSecondary }}>
-                  {formatCurrency(tax)}
+                  VAT not applied — you are not VAT-registered. Add a VAT number
+                  in your tax information to charge VAT.
                 </span>
               )}
             </div>

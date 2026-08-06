@@ -24,6 +24,7 @@ import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { computeVat } from '@mintenance/shared';
 
 // Animation variants
 const fadeIn = {
@@ -105,7 +106,9 @@ export default function TransactionDetailPage2025() {
         if (!response.ok) throw new Error('Failed to fetch');
 
         const { payments } = await response.json();
-        const found = payments.find((p: { id: string }) => p.id === transactionId);
+        const found = payments.find(
+          (p: { id: string }) => p.id === transactionId
+        );
 
         if (!found) {
           toast.error('Transaction not found');
@@ -126,7 +129,9 @@ export default function TransactionDetailPage2025() {
           jobTitle: found.job?.title || 'Service',
           contractor: {
             id: found.payee_id || 'unknown',
-            name: `${found.payee?.first_name || ''} ${found.payee?.last_name || ''}`.trim() || 'Contractor',
+            name:
+              `${found.payee?.first_name || ''} ${found.payee?.last_name || ''}`.trim() ||
+              'Contractor',
             email: found.payee?.email || 'Not available',
             phone: found.payee?.phone || '',
             company: found.payee?.company_name || '',
@@ -144,7 +149,8 @@ export default function TransactionDetailPage2025() {
           receipt: {
             url: `/receipts/${found.id}.pdf`,
           },
-          refundable: found.status === 'completed' || found.status === 'released',
+          refundable:
+            found.status === 'completed' || found.status === 'released',
           timeline: [
             {
               status: 'Payment initiated',
@@ -152,16 +158,23 @@ export default function TransactionDetailPage2025() {
               description: 'Payment request created',
             },
             {
-              status: found.status === 'completed' ? 'Payment completed' : 'Payment in progress',
+              status:
+                found.status === 'completed'
+                  ? 'Payment completed'
+                  : 'Payment in progress',
               date: found.updated_at || found.created_at,
               description: `Transaction ${found.status}`,
             },
           ],
           metadata: {
-            processingFee: found.platform_fee_stripe ?? found.amount * 0.015 + 0.20,
+            processingFee:
+              found.platform_fee_stripe ?? found.amount * 0.015 + 0.2,
             platformFee: found.platform_fee ?? found.amount * 0.05,
-            netAmount: found.contractor_amount ?? found.amount * 0.935 - 0.20,
-            taxAmount: found.vat_amount ?? (found.amount / 1.2) * 0.2,
+            netAmount: found.contractor_amount ?? found.amount * 0.935 - 0.2,
+            // Prefer the stored VAT; legacy rows without it were all at the
+            // UK standard rate (20% inclusive) — sourced from the shared rate.
+            taxAmount:
+              found.vat_amount ?? computeVat(found.amount / 1.2, 'standard'),
           },
         });
       } catch (error) {
@@ -176,19 +189,21 @@ export default function TransactionDetailPage2025() {
   }, [user, transactionId, router]);
 
   const [showRefundModal, setShowRefundModal] = useState(false);
-  const [refundAmount, setRefundAmount] = useState(transaction?.amount?.toString() || '0');
+  const [refundAmount, setRefundAmount] = useState(
+    transaction?.amount?.toString() || '0'
+  );
   const [refundReason, setRefundReason] = useState('');
 
   const getStatusIcon = (status: Transaction['status']) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-6 h-6 text-green-500" />;
+        return <CheckCircle className='w-6 h-6 text-green-500' />;
       case 'pending':
-        return <Clock className="w-6 h-6 text-yellow-500" />;
+        return <Clock className='w-6 h-6 text-yellow-500' />;
       case 'failed':
-        return <XCircle className="w-6 h-6 text-red-500" />;
+        return <XCircle className='w-6 h-6 text-red-500' />;
       case 'refunded':
-        return <RefreshCw className="w-6 h-6 text-blue-500" />;
+        return <RefreshCw className='w-6 h-6 text-blue-500' />;
     }
   };
 
@@ -227,16 +242,25 @@ export default function TransactionDetailPage2025() {
     }
 
     const parsedRefundAmount = parseFloat(refundAmount);
-    if (isNaN(parsedRefundAmount) || parsedRefundAmount <= 0 || parsedRefundAmount > transaction.amount) {
+    if (
+      isNaN(parsedRefundAmount) ||
+      parsedRefundAmount <= 0 ||
+      parsedRefundAmount > transaction.amount
+    ) {
       toast.error('Invalid refund amount');
       return;
     }
 
     try {
       // Fetch CSRF token
-      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
-      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
-      if (csrfToken) await new Promise(r => setTimeout(r, 50));
+      const csrfRes = await fetch('/api/csrf', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const { token: csrfToken } = csrfRes.ok
+        ? await csrfRes.json()
+        : { token: '' };
+      if (csrfToken) await new Promise((r) => setTimeout(r, 50));
 
       const response = await fetch('/api/payments/refund', {
         method: 'POST',
@@ -263,16 +287,18 @@ export default function TransactionDetailPage2025() {
       setRefundAmount(transaction.amount.toString());
       setRefundReason('');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to process refund');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to process refund'
+      );
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-gray-600">Loading transaction details...</p>
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='animate-spin w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full mx-auto mb-4' />
+          <p className='text-gray-600'>Loading transaction details...</p>
         </div>
       </div>
     );
@@ -284,336 +310,369 @@ export default function TransactionDetailPage2025() {
 
   return (
     <>
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <MotionDiv
-          initial="hidden"
-          animate="visible"
-          variants={fadeIn}
-          className="mb-6"
-        >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          {/* Header */}
+          <MotionDiv
+            initial='hidden'
+            animate='visible'
+            variants={fadeIn}
+            className='mb-6'
           >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Payments
-          </button>
-
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Receipt
-              </h1>
-              <p className="text-gray-600">Transaction ID: {transaction.id.substring(0, 8)}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleDownloadReceipt}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </button>
-            </div>
-          </div>
-        </MotionDiv>
-
-        {/* Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Receipt Card */}
-            <MotionDiv
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-8"
+            <button
+              onClick={() => router.back()}
+              className='flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors'
             >
-              <div className="flex items-start justify-between mb-6 pb-6 border-b border-gray-200">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                    £{transaction.amount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
-                  </h2>
-                  <p className="text-gray-600">{transaction.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(transaction.status)}
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-                      transaction.status
-                    )}`}
-                  >
-                    {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
-                  </span>
-                </div>
+              <ArrowLeft className='w-5 h-5' />
+              Back to Payments
+            </button>
+
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+              <div>
+                <h1 className='text-3xl font-bold text-gray-900 mb-2'>
+                  Receipt
+                </h1>
+                <p className='text-gray-600'>
+                  Transaction ID: {transaction.id.substring(0, 8)}
+                </p>
               </div>
 
-              {/* Job Details */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Details</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-5 h-5 text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Job</p>
-                      {transaction.jobId ? (
-                        <button
-                          onClick={() => router.push(`/jobs/${transaction.jobId}`)}
-                          className="font-medium text-teal-600 hover:text-teal-700"
-                        >
-                          {transaction.jobTitle}
-                        </button>
-                      ) : (
-                        <p className="font-medium text-gray-900">{transaction.jobTitle}</p>
-                      )}
-                    </div>
-                  </div>
+              <div className='flex flex-wrap gap-3'>
+                <button
+                  onClick={handleDownloadReceipt}
+                  className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
+                >
+                  <Download className='w-4 h-4' />
+                  Download
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
+                >
+                  <Printer className='w-4 h-4' />
+                  Print
+                </button>
+              </div>
+            </div>
+          </MotionDiv>
 
-                  <div className="flex items-start gap-3">
-                    <Calendar className="w-5 h-5 text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Date</p>
-                      <p className="font-medium text-gray-900">
-                        {new Date(transaction.date).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    </div>
+          {/* Content */}
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+            {/* Main Content */}
+            <div className='lg:col-span-2 space-y-6'>
+              {/* Receipt Card */}
+              <MotionDiv
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className='bg-white rounded-xl shadow-sm border border-gray-200 p-8'
+              >
+                <div className='flex items-start justify-between mb-6 pb-6 border-b border-gray-200'>
+                  <div>
+                    <h2 className='text-2xl font-bold text-gray-900 mb-1'>
+                      £
+                      {transaction.amount.toLocaleString('en-GB', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </h2>
+                    <p className='text-gray-600'>{transaction.description}</p>
                   </div>
-
-                  <div className="flex items-start gap-3">
-                    <CreditCard className="w-5 h-5 text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-600">Payment Method</p>
-                      <p className="font-medium text-gray-900">
-                        {transaction.paymentMethod.brand} •••• {transaction.paymentMethod.last4}
-                      </p>
-                    </div>
+                  <div className='flex items-center gap-2'>
+                    {getStatusIcon(transaction.status)}
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
+                        transaction.status
+                      )}`}
+                    >
+                      {transaction.status.charAt(0).toUpperCase() +
+                        transaction.status.slice(1)}
+                    </span>
                   </div>
+                </div>
 
-                  {transaction.invoice && (
-                    <div className="flex items-start gap-3">
-                      <FileText className="w-5 h-5 text-gray-400 mt-1" />
+                {/* Job Details */}
+                <div className='mb-6'>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                    Job Details
+                  </h3>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                    <div className='flex items-start gap-3'>
+                      <FileText className='w-5 h-5 text-gray-400 mt-1' />
                       <div>
-                        <p className="text-sm text-gray-600">Invoice</p>
-                        <button
-                          onClick={handleDownloadInvoice}
-                          className="font-medium text-teal-600 hover:text-teal-700"
-                        >
-                          {transaction.invoice.number}
-                        </button>
+                        <p className='text-sm text-gray-600'>Job</p>
+                        {transaction.jobId ? (
+                          <button
+                            onClick={() =>
+                              router.push(`/jobs/${transaction.jobId}`)
+                            }
+                            className='font-medium text-teal-600 hover:text-teal-700'
+                          >
+                            {transaction.jobTitle}
+                          </button>
+                        ) : (
+                          <p className='font-medium text-gray-900'>
+                            {transaction.jobTitle}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Pricing Breakdown */}
-              <div className="mt-6">
-                <PricingBreakdown
-                  items={[
-                    {
-                      id: '1',
-                      label: 'Service Cost',
-                      amount: transaction.amount / 1.2,
-                    },
-                    {
-                      id: '2',
-                      label: 'VAT (20%)',
-                      amount: transaction.metadata.taxAmount,
-                    },
-                    {
-                      id: '3',
-                      label: 'Platform Fee (5%)',
-                      amount: transaction.metadata.platformFee,
-                    },
-                    {
-                      id: '4',
-                      label: 'Processing Fee',
-                      amount: transaction.metadata.processingFee,
-                    },
-                  ]}
-                  subtotal={transaction.amount / 1.2}
-                  total={transaction.amount}
-                  currency="£"
-                />
-              </div>
-            </MotionDiv>
+                    <div className='flex items-start gap-3'>
+                      <Calendar className='w-5 h-5 text-gray-400 mt-1' />
+                      <div>
+                        <p className='text-sm text-gray-600'>Date</p>
+                        <p className='font-medium text-gray-900'>
+                          {new Date(transaction.date).toLocaleDateString(
+                            'en-GB',
+                            {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            }
+                          )}
+                        </p>
+                      </div>
+                    </div>
 
-          </div>
+                    <div className='flex items-start gap-3'>
+                      <CreditCard className='w-5 h-5 text-gray-400 mt-1' />
+                      <div>
+                        <p className='text-sm text-gray-600'>Payment Method</p>
+                        <p className='font-medium text-gray-900'>
+                          {transaction.paymentMethod.brand} ••••{' '}
+                          {transaction.paymentMethod.last4}
+                        </p>
+                      </div>
+                    </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Contractor Info */}
-            <MotionDiv
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Contractor Info</h3>
-
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Name</p>
-                  <p className="font-medium text-gray-900">{transaction.contractor.name || 'Not available'}</p>
+                    {transaction.invoice && (
+                      <div className='flex items-start gap-3'>
+                        <FileText className='w-5 h-5 text-gray-400 mt-1' />
+                        <div>
+                          <p className='text-sm text-gray-600'>Invoice</p>
+                          <button
+                            onClick={handleDownloadInvoice}
+                            className='font-medium text-teal-600 hover:text-teal-700'
+                          >
+                            {transaction.invoice.number}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {transaction.contractor.company && (
+                {/* Pricing Breakdown */}
+                <div className='mt-6'>
+                  <PricingBreakdown
+                    items={[
+                      {
+                        id: '1',
+                        label: 'Service Cost',
+                        amount: transaction.amount / 1.2,
+                      },
+                      {
+                        id: '2',
+                        label: 'VAT (20%)',
+                        amount: transaction.metadata.taxAmount,
+                      },
+                      {
+                        id: '3',
+                        label: 'Platform Fee (5%)',
+                        amount: transaction.metadata.platformFee,
+                      },
+                      {
+                        id: '4',
+                        label: 'Processing Fee',
+                        amount: transaction.metadata.processingFee,
+                      },
+                    ]}
+                    subtotal={transaction.amount / 1.2}
+                    total={transaction.amount}
+                    currency='£'
+                  />
+                </div>
+              </MotionDiv>
+            </div>
+
+            {/* Sidebar */}
+            <div className='space-y-6'>
+              {/* Contractor Info */}
+              <MotionDiv
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'
+              >
+                <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                  Contractor Info
+                </h3>
+
+                <div className='space-y-4'>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Company</p>
-                    <p className="font-medium text-gray-900 flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-gray-400" />
-                      {transaction.contractor.company}
+                    <p className='text-sm text-gray-600 mb-1'>Name</p>
+                    <p className='font-medium text-gray-900'>
+                      {transaction.contractor.name || 'Not available'}
                     </p>
                   </div>
-                )}
 
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Email</p>
-                  <a
-                    href={`mailto:${transaction.contractor.email}`}
-                    className="font-medium text-teal-600 hover:text-teal-700 flex items-center gap-2 break-all"
-                  >
-                    <Mail className="w-4 h-4 flex-shrink-0" />
-                    {transaction.contractor.email}
-                  </a>
-                </div>
+                  {transaction.contractor.company && (
+                    <div>
+                      <p className='text-sm text-gray-600 mb-1'>Company</p>
+                      <p className='font-medium text-gray-900 flex items-center gap-2'>
+                        <Building2 className='w-4 h-4 text-gray-400' />
+                        {transaction.contractor.company}
+                      </p>
+                    </div>
+                  )}
 
-                {transaction.contractor.phone && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Phone</p>
+                    <p className='text-sm text-gray-600 mb-1'>Email</p>
                     <a
-                      href={`tel:${transaction.contractor.phone}`}
-                      className="font-medium text-teal-600 hover:text-teal-700 flex items-center gap-2"
+                      href={`mailto:${transaction.contractor.email}`}
+                      className='font-medium text-teal-600 hover:text-teal-700 flex items-center gap-2 break-all'
                     >
-                      <Phone className="w-4 h-4" />
-                      {transaction.contractor.phone}
+                      <Mail className='w-4 h-4 flex-shrink-0' />
+                      {transaction.contractor.email}
                     </a>
                   </div>
-                )}
 
-                {transaction.contractor.id !== 'unknown' && (
+                  {transaction.contractor.phone && (
+                    <div>
+                      <p className='text-sm text-gray-600 mb-1'>Phone</p>
+                      <a
+                        href={`tel:${transaction.contractor.phone}`}
+                        className='font-medium text-teal-600 hover:text-teal-700 flex items-center gap-2'
+                      >
+                        <Phone className='w-4 h-4' />
+                        {transaction.contractor.phone}
+                      </a>
+                    </div>
+                  )}
+
+                  {transaction.contractor.id !== 'unknown' && (
+                    <button
+                      onClick={() =>
+                        router.push(`/contractors/${transaction.contractor.id}`)
+                      }
+                      className='w-full mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+                    >
+                      View Profile
+                    </button>
+                  )}
+                </div>
+              </MotionDiv>
+
+              {/* Actions */}
+              <MotionDiv
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'
+              >
+                <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                  Actions
+                </h3>
+
+                <div className='space-y-3'>
                   <button
-                    onClick={() => router.push(`/contractors/${transaction.contractor.id}`)}
-                    className="w-full mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    onClick={handleDownloadInvoice}
+                    className='w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2'
                   >
-                    View Profile
+                    <Download className='w-4 h-4' />
+                    Download Invoice
                   </button>
-                )}
-              </div>
-            </MotionDiv>
 
-            {/* Actions */}
-            <MotionDiv
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
-
-              <div className="space-y-3">
-                <button
-                  onClick={handleDownloadInvoice}
-                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Invoice
-                </button>
-
-                {transaction.refundable && transaction.status === 'completed' && (
-                  <button
-                    onClick={() => setShowRefundModal(true)}
-                    className="w-full px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Request Refund
-                  </button>
-                )}
-              </div>
-            </MotionDiv>
+                  {transaction.refundable &&
+                    transaction.status === 'completed' && (
+                      <button
+                        onClick={() => setShowRefundModal(true)}
+                        className='w-full px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2'
+                      >
+                        <RefreshCw className='w-4 h-4' />
+                        Request Refund
+                      </button>
+                    )}
+                </div>
+              </MotionDiv>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
       {/* Refund Modal */}
       {showRefundModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+            className='bg-white rounded-xl shadow-2xl max-w-md w-full p-6'
           >
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Request Refund</h3>
+            <h3 className='text-xl font-bold text-gray-900 mb-4'>
+              Request Refund
+            </h3>
 
-            <div className="space-y-4 mb-6">
+            <div className='space-y-4 mb-6'>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
                   Refund Amount
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">£</span>
+                <div className='relative'>
+                  <span className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-500'>
+                    £
+                  </span>
                   <input
-                    type="number"
+                    type='number'
                     value={refundAmount}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundAmount(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setRefundAmount(e.target.value)
+                    }
                     max={transaction.amount}
-                    step="0.01"
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    step='0.01'
+                    className='w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className='text-xs text-gray-500 mt-1'>
                   Maximum: £{transaction.amount.toFixed(2)}
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
                   Reason for Refund
                 </label>
                 <textarea
                   value={refundReason}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRefundReason(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setRefundReason(e.target.value)
+                  }
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-                  placeholder="Please provide a reason for the refund request..."
+                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none'
+                  placeholder='Please provide a reason for the refund request...'
                 />
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex gap-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                  <p className="text-sm text-yellow-800">
-                    Refunds typically take 5-10 business days to process and appear on your statement.
+              <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
+                <div className='flex gap-2'>
+                  <AlertCircle className='w-5 h-5 text-yellow-600 flex-shrink-0' />
+                  <p className='text-sm text-yellow-800'>
+                    Refunds typically take 5-10 business days to process and
+                    appear on your statement.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className='flex gap-3'>
               <button
                 onClick={() => setShowRefundModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                className='flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
               >
                 Cancel
               </button>
               <button
                 onClick={handleRefund}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className='flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
               >
                 Submit Refund
               </button>

@@ -18,8 +18,23 @@
 
 import { test, expect } from '../fixtures';
 import type { Page } from '@playwright/test';
-import { loginAsHomeowner, clearAuth } from '../helpers/auth';
-import { waitForNetworkIdle } from '../helpers/test-data';
+import {
+  establishSessionInContext,
+  clearAuth,
+  TEST_USERS,
+} from '../helpers/auth';
+
+const AUTH_UNAVAILABLE =
+  'E2E auth fixture unavailable — set E2E_TESTING=true + E2E_AUTH_SECRET on the ' +
+  'server and runner, and seed users (npm run seed:e2e-users).';
+
+type Role = { email: string; password: string; role: string };
+
+/** Mint a session for `user`; skip the test if the fixture is unavailable. */
+async function auth(page: Page, user: Role): Promise<void> {
+  const ok = await establishSessionInContext(page, user);
+  test.skip(!ok, AUTH_UNAVAILABLE);
+}
 
 // ---------------------------------------------------------------------------
 // Mobile viewport configuration
@@ -106,11 +121,12 @@ test.describe('Mobile: Navigation Menu', () => {
       .or(page.locator('[data-testid="hamburger-menu"]'))
       .first();
 
-    if (!(await hamburger.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no hamburger menu; app may use a different mobile nav pattern (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    // The landing nav may be a bottom tab bar rather than a hamburger — skip
+    // explicitly for that pattern (not an auth/breakage gate).
+    test.skip(
+      !(await hamburger.isVisible().catch(() => false)),
+      'No hamburger menu — app uses a different mobile nav pattern'
+    );
 
     await hamburger.click();
     await page.waitForTimeout(500); // Wait for animation
@@ -135,11 +151,12 @@ test.describe('Mobile: Navigation Menu', () => {
       .or(page.locator('button[aria-label*="menu" i]'))
       .first();
 
-    if (!(await hamburger.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no hamburger menu; app may use a different mobile nav pattern (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    // The landing nav may be a bottom tab bar rather than a hamburger — skip
+    // explicitly for that pattern (not an auth/breakage gate).
+    test.skip(
+      !(await hamburger.isVisible().catch(() => false)),
+      'No hamburger menu — app uses a different mobile nav pattern'
+    );
 
     // Open menu
     await hamburger.click();
@@ -173,17 +190,12 @@ test.describe('Mobile: Navigation Menu', () => {
 
 test.describe('Mobile: Job List', () => {
   test('jobs page renders job cards stacked vertically', async ({ page }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
 
     await page.goto('/jobs');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
-
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Cards should be full-width on mobile (no side-by-side layout).
     // Scoped to the content area and without the old `[class*="card"]` clause:
@@ -215,17 +227,12 @@ test.describe('Mobile: Job List', () => {
   test('jobs page is scrollable without horizontal overflow', async ({
     page,
   }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
 
     await page.goto('/jobs');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
-
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     await expectNoHorizontalOverflow(page);
 
@@ -269,17 +276,12 @@ test.describe('Mobile: Form Submission', () => {
   });
 
   test('job creation form renders correctly on mobile', async ({ page }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
 
     await page.goto('/jobs/create');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
-
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Form should be present
     const hasForm =
@@ -334,16 +336,11 @@ test.describe('Mobile: No Horizontal Overflow', () => {
   test('dashboard has no horizontal overflow (authenticated)', async ({
     page,
   }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/dashboard');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
-
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     await expectNoHorizontalOverflow(page);
   });
@@ -351,16 +348,11 @@ test.describe('Mobile: No Horizontal Overflow', () => {
   test('job creation page has no horizontal overflow (authenticated)', async ({
     page,
   }) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/jobs/create');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
-
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     await expectNoHorizontalOverflow(page);
   });
@@ -368,12 +360,14 @@ test.describe('Mobile: No Horizontal Overflow', () => {
   test('contractor discover page has no horizontal overflow', async ({
     page,
   }) => {
-    // This tests the contractor view at mobile
+    // Test the real contractor view at mobile (not the login page it used to
+    // fall back to).
+    await auth(page, TEST_USERS.contractor);
     await page.goto('/contractor/discover');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
-    // May redirect to login - that is fine, test the login page overflow instead
     await expectNoHorizontalOverflow(page);
   });
 });
@@ -426,52 +420,53 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
   }
 
   test('dashboard (shell drawer)', async ({ page }, testInfo) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/dashboard');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
-    if (!(await captureAndAssert(page, testInfo, 'dashboard'))) test.skip();
+    if (!(await captureAndAssert(page, testInfo, 'dashboard')))
+      test.skip(true, 'Authenticated page redirected before screenshot');
   });
 
   test('payments table', async ({ page }, testInfo) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/payments');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
-    if (!(await captureAndAssert(page, testInfo, 'payments'))) test.skip();
+    if (!(await captureAndAssert(page, testInfo, 'payments')))
+      test.skip(true, 'Authenticated page redirected before screenshot');
   });
 
   test('financials ledger', async ({ page }, testInfo) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/financials');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
-    if (!(await captureAndAssert(page, testInfo, 'financials'))) test.skip();
+    if (!(await captureAndAssert(page, testInfo, 'financials')))
+      test.skip(true, 'Authenticated page redirected before screenshot');
   });
 
   test('scheduling calendar', async ({ page }, testInfo) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/scheduling');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
-    if (!(await captureAndAssert(page, testInfo, 'scheduling'))) test.skip();
+    if (!(await captureAndAssert(page, testInfo, 'scheduling')))
+      test.skip(true, 'Authenticated page redirected before screenshot');
   });
 
   test('settings sections', async ({ page }, testInfo) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/settings');
     // skipped: runtime bail — captureAndAssert returned false (redirected to auth) (2026-07-02 triage)
-    if (!(await captureAndAssert(page, testInfo, 'settings'))) test.skip();
+    if (!(await captureAndAssert(page, testInfo, 'settings')))
+      test.skip(true, 'Authenticated page redirected before screenshot');
   });
 
   // Property detail (tabs / overview / stats / maintenance plan) needs a real
   // property id. The seed creates two; navigate to the list and open the first.
   test('property detail + tabs', async ({ page }, testInfo) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/properties');
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.waitForTimeout(1500);
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Scoped to #main-content: unscoped this matched the /properties/compliance
     // nav item, which is off-screen at the 375px mobile viewport.
@@ -480,11 +475,11 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
       .getByRole('link', { name: /open|view|manage/i })
       .or(content.locator('a[href*="/properties/"]'))
       .first();
-    if (!(await open.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no property link visible (seed data missing) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    // The seed creates two properties; if none are linked it's a data gap.
+    test.skip(
+      !(await open.isVisible().catch(() => false)),
+      'No property link visible (seed data missing)'
+    );
     await open.click();
     await page.waitForLoadState('networkidle').catch(() => {});
     await captureAndAssert(page, testInfo, 'property-overview');
@@ -511,25 +506,21 @@ test.describe('Mobile: Responsive-fix screenshots', () => {
 
   // Job detail (hero + body rails, compare-bids row) needs a real job id.
   test('job detail + compare bids', async ({ page }, testInfo) => {
-    await loginAsHomeowner(page);
+    await auth(page, TEST_USERS.homeowner);
     await page.goto('/jobs');
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.waitForTimeout(1500);
-    if (page.url().includes('/login') || page.url().includes('/auth')) {
-      // skipped: runtime bail — session not accepted, redirected to login (storage-state auth gap) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     const jobLink = page
       .locator('a[href*="/jobs/"]')
       .filter({ hasNot: page.locator('a[href*="/jobs/create"]') })
       .first();
-    if (!(await jobLink.isVisible().catch(() => false))) {
-      // skipped: runtime bail — no job link visible (seed data missing) (2026-07-02 triage)
-      test.skip();
-      return;
-    }
+    // The e2e seed creates no jobs — a data gap, not a bug.
+    test.skip(
+      !(await jobLink.isVisible().catch(() => false)),
+      'No job link visible (seed data missing)'
+    );
     await jobLink.click();
     await page.waitForLoadState('networkidle').catch(() => {});
     await captureAndAssert(page, testInfo, 'job-detail');

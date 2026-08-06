@@ -10,6 +10,19 @@ export {
   PROTECTED_PAYMENT_CONTRACTOR_EXPLAINER,
 } from './copy/payment-terms';
 
+// UK VAT — single source of truth for VAT rates + computation (web + mobile).
+export type { VatRateCode, VatRate } from './vat';
+export {
+  UK_VAT_RATES,
+  VAT_RATE_CODES,
+  DEFAULT_VAT_RATE_CODE,
+  vatRateFraction,
+  vatRatePercent,
+  computeVat,
+  defaultVatCodeForContractor,
+  isVatBearing,
+} from './vat';
+
 // Shared utilities and helpers
 export { logger } from './logger';
 export {

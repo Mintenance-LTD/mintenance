@@ -406,7 +406,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       const invalidAmounts = [
         { amount: -10, error: 'Amount must be greater than 0' },
         { amount: 0, error: 'Amount must be greater than 0' },
-        { amount: 10001, error: 'Amount exceeds maximum (£10,000)' },
+        { amount: 100001, error: 'Amount exceeds maximum (£100,000)' },
       ];
 
       for (const { amount, error } of invalidAmounts) {

@@ -99,7 +99,7 @@ global.__PAYMENT_TEST_CONSTANTS__ = {
     SMALL: 10,
     MEDIUM: 150,
     LARGE: 1000,
-    EXCEEDS_LIMIT: 10001,
+    EXCEEDS_LIMIT: 100001,
   },
   TEST_CARDS: {
     VALID: '4242424242424242',
@@ -130,7 +130,8 @@ global.__PAYMENT_PERFORMANCE__ = {
   markEnd: (label: string) => {
     const startTime = global.__PAYMENT_PERFORMANCE__[`${label}_start`];
     if (startTime) {
-      global.__PAYMENT_PERFORMANCE__[`${label}_duration`] = Date.now() - (startTime as number);
+      global.__PAYMENT_PERFORMANCE__[`${label}_duration`] =
+        Date.now() - (startTime as number);
     }
   },
   getDuration: (label: string): number => {
@@ -146,7 +147,7 @@ const originalConsole = { ...console };
 
 beforeEach(() => {
   // Reset performance markers
-  Object.keys(global.__PAYMENT_PERFORMANCE__).forEach(key => {
+  Object.keys(global.__PAYMENT_PERFORMANCE__).forEach((key) => {
     if (key.endsWith('_start') || key.endsWith('_duration')) {
       delete global.__PAYMENT_PERFORMANCE__[key];
     }
@@ -161,7 +162,7 @@ afterEach(() => {
 // Test utilities available globally
 global.__PAYMENT_TEST_UTILS__ = {
   waitForPaymentProcessing: (timeout = 5000) => {
-    return new Promise(resolve => setTimeout(resolve, timeout));
+    return new Promise((resolve) => setTimeout(resolve, timeout));
   },
 
   generateTestPaymentData: (overrides = {}) => ({
@@ -174,8 +175,12 @@ global.__PAYMENT_TEST_UTILS__ = {
   validatePaymentResponse: (response: unknown) => {
     expect(response).toBeDefined();
     expect(response).toHaveProperty('client_secret');
-    expect(typeof (response as Record<string, unknown>).client_secret).toBe('string');
-    expect((response as Record<string, unknown>).client_secret).toMatch(/^pi_test_/);
+    expect(typeof (response as Record<string, unknown>).client_secret).toBe(
+      'string'
+    );
+    expect((response as Record<string, unknown>).client_secret).toMatch(
+      /^pi_test_/
+    );
   },
 };
 

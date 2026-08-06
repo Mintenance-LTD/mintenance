@@ -6,6 +6,8 @@ import {
   initiateUCheckCheck,
   initiateCustomCheck,
 } from './dbsProviders';
+import { decryptDateOfBirth } from '@/lib/services/tax/uk-tax';
+import type { EncryptedField } from '@/lib/encryption/field-encryption';
 
 /**
  * UK DBS Check Levels
@@ -93,7 +95,7 @@ export class DBSCheckService {
       const { data: contractor, error: contractorError } = await serverSupabase
         .from('profiles')
         .select(
-          'id, first_name, last_name, email, phone, role, address, city, postcode, country'
+          'id, first_name, last_name, email, phone, role, address, city, postcode, country, date_of_birth_encrypted'
         )
         .eq('id', contractorId)
         .single();
@@ -119,19 +121,33 @@ export class DBSCheckService {
       // without it a provider either rejects the submission or, worse,
       // matches the WRONG PERSON's record to this contractor.
       //
-      // The platform does not collect date of birth: as of 2026-08-02 no
-      // `date_of_birth`/`dob` column exists on ANY table in the database.
-      // The previous code read `contractor.date_of_birth` from a column
-      // that never existed, so the value was always undefined and would
-      // have been posted as-is to a live provider had the query not
-      // failed first. Fail loudly and specifically instead — this needs
-      // DOB capture (schema + onboarding form + a submission path that
-      // treats it as required) before DBS can work at all.
-      const dateOfBirth = (contractor as { date_of_birth?: string | null })
-        .date_of_birth;
+      // DOB is captured during UK tax onboarding and stored ENCRYPTED on
+      // profiles.date_of_birth_encrypted (AES-256-GCM envelope). Decrypt it
+      // here (service-role read bypasses the client column-grant REVOKE).
+      // A contractor who has not completed tax onboarding has no DOB on
+      // file — fail loudly and specifically rather than post an undefined
+      // value to a live provider.
+      const dobEnvelope = (
+        contractor as { date_of_birth_encrypted?: EncryptedField | null }
+      ).date_of_birth_encrypted;
+      let dateOfBirth: string | null = null;
+      if (dobEnvelope) {
+        try {
+          dateOfBirth = decryptDateOfBirth(dobEnvelope);
+        } catch (decryptErr) {
+          logger.error(
+            'Failed to decrypt contractor date of birth',
+            decryptErr,
+            {
+              service: 'DBSCheckService',
+              contractorId,
+            }
+          );
+        }
+      }
       if (!dateOfBirth) {
         logger.error(
-          'DBS check blocked: date of birth is not captured by the platform',
+          'DBS check blocked: date of birth is not on file for this contractor',
           {
             service: 'DBSCheckService',
             contractorId,
@@ -141,7 +157,7 @@ export class DBSCheckService {
         return {
           success: false,
           error:
-            'DBS checks need a date of birth, which we do not collect yet. Please contact support.',
+            'DBS checks need your date of birth. Please complete your tax information first.',
         };
       }
 
