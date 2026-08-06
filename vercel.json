@@ -41,6 +41,7 @@
     { "path": "/api/cron/distillation-processor",       "schedule": "0 13 * * *"  },
     { "path": "/api/cron/expire-bids",                  "schedule": "0 14 * * *"  },
     { "path": "/api/cron/homeowner-approval-reminders", "schedule": "0 9 * * *"   },
+    { "path": "/api/cron/stale-job-reminders",          "schedule": "30 8 * * *"  },
     { "path": "/api/cron/admin-escrow-alerts",          "schedule": "0 8 * * *"   },
     { "path": "/api/cron/payment-reconciliation",       "schedule": "0 2 * * *"   },
     { "path": "/api/cron/auto-verify-contractors",      "schedule": "0 7 * * *"   },
