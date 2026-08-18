@@ -3,7 +3,7 @@
  *
  * The goal: even admins whose session is valid for 12h must re-verify MFA
  * before running sensitive operations (escrow hold/approve, settings
- * mutations, tax-1099 generation, etc.). This closes the window where a
+ * mutations, tax-statement generation, etc.). This closes the window where a
  * long-lived admin session, once compromised, could execute arbitrary
  * privileged actions without any fresh proof of presence.
  *

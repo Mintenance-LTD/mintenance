@@ -20,9 +20,11 @@ import { Banner } from '../../components/ui/Banner';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
+import { useQueryClient } from '@tanstack/react-query';
 import { JobCRUDService } from '../../services/JobCRUDService';
 import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
+import { queryKeys } from '../../lib/queryClient';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobEdit'>;
@@ -45,9 +47,11 @@ const PRIORITIES = ['low', 'medium', 'high'] as const;
 const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { jobId } = route.params;
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
@@ -155,6 +159,39 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const performDelete = async () => {
+    setDeleting(true);
+    setErrorMessage(null);
+    try {
+      await JobCRUDService.deleteJob(jobId);
+      // Drop the job from the cached list so it disappears immediately
+      // (JobsScreen reads queryKeys.jobs.list, which is under ['jobs']).
+      await queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      // Skip the unsaved-changes guard, then return to the list rather than
+      // goBack() — JobDetails sits directly below and would 404 on the
+      // now-deleted job.
+      allowExit();
+      navigation.navigate('JobsList');
+    } catch (error) {
+      logger.error('Failed to delete job', error);
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed to delete job.'
+      );
+      setDeleting(false);
+    }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete this job?',
+      'This permanently removes the job and any bids on it. This can’t be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: performDelete },
+      ]
+    );
   };
 
   if (loading) {
@@ -364,17 +401,40 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
                 variant='secondary'
                 title='Cancel'
                 onPress={() => navigation.goBack()}
+                disabled={saving || deleting}
                 style={{ flex: 1, borderRadius: 14, marginRight: 8 }}
               />
               <Button
                 variant='primary'
                 title={saving ? 'Saving...' : 'Save Changes'}
                 onPress={handleSave}
-                disabled={saving}
+                disabled={saving || deleting}
                 loading={saving}
                 style={{ flex: 1, borderRadius: 14, marginLeft: 8 }}
               />
             </View>
+
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDelete}
+              disabled={saving || deleting}
+              accessibilityRole='button'
+              accessibilityLabel='Delete job'
+              accessibilityState={{
+                disabled: saving || deleting,
+                busy: deleting,
+              }}
+              testID='job-edit-delete-button'
+            >
+              {deleting ? (
+                <ActivityIndicator size='small' color={me.errFg} />
+              ) : (
+                <>
+                  <Ionicons name='trash-outline' size={18} color={me.errFg} />
+                  <Text style={styles.deleteButtonText}>Delete Job</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
@@ -498,7 +558,28 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     marginTop: 24,
+    marginBottom: 12,
+  },
+  // Destructive-outline styling (not a solid red fill) — mirrors the web
+  // edit form's "Delete Job" button and keeps a rare, irreversible action
+  // visually distinct from the primary Save action directly above it.
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 52,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: me.errBg,
+    backgroundColor: me.surface,
     marginBottom: 40,
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: me.errFg,
   },
 });
 

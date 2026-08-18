@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Download } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
+import { computeVat } from '@mintenance/shared';
 
 interface Transaction {
   id: string;
@@ -15,6 +16,26 @@ interface Transaction {
   subtotal?: number;
   platformFee?: number;
   processingFee?: number;
+  /** VAT rate (percent) and amount the transaction was ISSUED at, if stored. */
+  taxRate?: number;
+  taxAmount?: number;
+}
+
+/**
+ * VAT to show on a receipt: prefer the amount/rate the transaction was issued
+ * at; fall back to the UK standard rate for legacy rows that predate stored
+ * VAT (all of which were charged at 20%).
+ */
+function receiptVat(
+  transaction: Transaction,
+  subtotal: number
+): {
+  rate: number;
+  amount: number;
+} {
+  const amount = transaction.taxAmount ?? computeVat(subtotal, 'standard');
+  const rate = transaction.taxRate ?? 20;
+  return { rate, amount };
 }
 
 interface PaymentsReceiptModalProps {
@@ -26,8 +47,11 @@ interface PaymentsReceiptModalProps {
 function downloadReceipt(transaction: Transaction, subtotal: number) {
   const platformFee = transaction.platformFee || transaction.amount * 0.05;
   const processingFee = transaction.processingFee || transaction.amount * 0.02;
+  const vat = receiptVat(transaction, subtotal);
   const date = new Date(transaction.created_at).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   });
 
   const html = `<!DOCTYPE html>
@@ -61,7 +85,7 @@ function downloadReceipt(transaction: Transaction, subtotal: number) {
     <thead><tr><th>Description</th><th>Amount</th></tr></thead>
     <tbody>
       <tr><td>Service Cost</td><td>&pound;${subtotal.toFixed(2)}</td></tr>
-      <tr><td>VAT (20%)</td><td>&pound;${(subtotal * 0.2).toFixed(2)}</td></tr>
+      <tr><td>VAT (${vat.rate}%)</td><td>&pound;${vat.amount.toFixed(2)}</td></tr>
       <tr><td>Platform Fee (5%)</td><td>&pound;${platformFee.toFixed(2)}</td></tr>
       <tr><td>Processing Fee (2%)</td><td>&pound;${processingFee.toFixed(2)}</td></tr>
       <tr class="total-row"><td>Total</td><td>&pound;${transaction.amount.toFixed(2)}</td></tr>
@@ -90,33 +114,40 @@ export function PaymentsReceiptModal({
   if (!transaction) return null;
 
   const subtotal = transaction.subtotal || transaction.amount / 1.2;
+  const vat = receiptVat(transaction, subtotal);
 
   return (
     <AnimatePresence>
       {isOpen && (
         <MotionDiv
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4'
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
           <MotionDiv
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
+            className='bg-white rounded-2xl shadow-2xl max-w-md w-full'
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 20 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">Payment Receipt</h2>
-              <p className="text-sm text-gray-600 mt-1">{transaction.job_title || 'Payment'}</p>
+            <div className='p-6 border-b border-gray-200'>
+              <h2 className='text-2xl font-bold text-gray-900'>
+                Payment Receipt
+              </h2>
+              <p className='text-sm text-gray-600 mt-1'>
+                {transaction.job_title || 'Payment'}
+              </p>
               {transaction.contractor_name && (
-                <p className="text-xs text-gray-500 mt-0.5">Contractor: {transaction.contractor_name}</p>
+                <p className='text-xs text-gray-500 mt-0.5'>
+                  Contractor: {transaction.contractor_name}
+                </p>
               )}
             </div>
 
-            <div className="p-6">
+            <div className='p-6'>
               <PricingBreakdown
                 items={[
                   {
@@ -126,37 +157,39 @@ export function PaymentsReceiptModal({
                   },
                   {
                     id: '2',
-                    label: 'VAT (20%)',
-                    amount: subtotal * 0.2,
+                    label: `VAT (${vat.rate}%)`,
+                    amount: vat.amount,
                   },
                   {
                     id: '3',
                     label: 'Platform Fee (5%)',
-                    amount: transaction.platformFee || transaction.amount * 0.05,
+                    amount:
+                      transaction.platformFee || transaction.amount * 0.05,
                   },
                   {
                     id: '4',
                     label: 'Processing Fee (2%)',
-                    amount: transaction.processingFee || transaction.amount * 0.02,
+                    amount:
+                      transaction.processingFee || transaction.amount * 0.02,
                   },
                 ]}
                 subtotal={subtotal}
                 total={transaction.amount}
-                currency={"\u00A3"}
+                currency={'\u00A3'}
               />
 
-              <div className="mt-6 flex gap-3">
+              <div className='mt-6 flex gap-3'>
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className='flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors'
                 >
                   Close
                 </button>
                 <button
                   onClick={() => downloadReceipt(transaction, subtotal)}
-                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                  className='flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2'
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className='w-4 h-4' />
                   Download
                 </button>
               </div>

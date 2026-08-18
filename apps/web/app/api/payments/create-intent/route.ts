@@ -12,8 +12,13 @@ import {
 import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { stripe } from '@/lib/stripe';
+import {
+  isMissingCustomerError,
+  clearStaleStripeCustomerId,
+} from '@/lib/stripe/stale-customer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+import { MAX_JOB_PAYMENT_GBP } from '@mintenance/api-contracts';
 
 export const POST = withApiHandler(
   {
@@ -277,7 +282,9 @@ export const POST = withApiHandler(
       }
 
       // Absolute hard cap to guard against a data-entry error on the bid.
-      const ABSOLUTE_MAX_PAYMENT = 100000; // £100,000 hard cap
+      // Shared constant — kept in lock-step with the job-budget + payment
+      // validation ceilings so a bid can never exceed a fundable amount.
+      const ABSOLUTE_MAX_PAYMENT = MAX_JOB_PAYMENT_GBP;
       if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
         logger.error('Accepted bid exceeds absolute platform maximum', {
           service: 'payments',
@@ -433,43 +440,83 @@ export const POST = withApiHandler(
 
       // Create Stripe PaymentIntent with timeout to prevent hanging requests.
       // Amount is derived server-side from the accepted bid, NOT the client payload.
-      const paymentIntent = await stripeWithTimeout(
-        () =>
-          stripe.paymentIntents.create(
-            {
-              amount: Math.round(authoritativeAmount * 100), // Convert to cents
-              currency: (currency || 'gbp').toLowerCase(),
-              ...(payerCustomerId ? { customer: payerCustomerId } : {}),
-              description:
-                metadata?.description || `Payment for job: ${job.title}`,
-              metadata: {
-                jobId,
-                homeownerId: job.homeowner_id,
-                payerId: user.id,
-                contractorId: job.contractor_id,
-                bidId: acceptedBid.id,
-                contractId: contract.id,
-                // The contractor_quotes row that produced the bid. Stays
-                // null on legacy bids without a quote; lets reconciliation
-                // tie a refunded escrow back to the original itemised
-                // breakdown without a join.
-                quoteId: contract.quote_id || acceptedBid.quote_id || '',
-                bidAmount: authoritativeAmount.toString(),
-                isRentalProperty: String(Boolean(job.is_rental_property)),
-                creditAppliedPence: String(creditAppliedPence),
+      // Customer is spread in per-attempt (see the resource_missing recovery
+      // below), so the shared base params exclude it.
+      const basePaymentIntentParams = {
+        amount: Math.round(authoritativeAmount * 100), // Convert to cents
+        currency: (currency || 'gbp').toLowerCase(),
+        description: metadata?.description || `Payment for job: ${job.title}`,
+        metadata: {
+          jobId,
+          homeownerId: job.homeowner_id,
+          payerId: user.id,
+          contractorId: job.contractor_id,
+          bidId: acceptedBid.id,
+          contractId: contract.id,
+          // The contractor_quotes row that produced the bid. Stays
+          // null on legacy bids without a quote; lets reconciliation
+          // tie a refunded escrow back to the original itemised
+          // breakdown without a join.
+          quoteId: contract.quote_id || acceptedBid.quote_id || '',
+          bidAmount: authoritativeAmount.toString(),
+          isRentalProperty: String(Boolean(job.is_rental_property)),
+          creditAppliedPence: String(creditAppliedPence),
+        },
+        // Enable automatic payment methods
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      };
+
+      // A stored stripe_customer_id can belong to a different Stripe mode
+      // or account than the currently-configured key — most commonly a
+      // customer created while the deploy ran a TEST key, now charged with
+      // a LIVE key ("No such customer: cus_…; a similar object exists in
+      // test mode, but a live mode key was used"). Stripe rejects the whole
+      // PaymentIntent with resource_missing on the `customer` param. Rather
+      // than dead-end the homeowner, drop the stale id, repair the profile,
+      // and retry the charge WITHOUT a customer (a one-off card payment
+      // doesn't need one; a genuinely saved card would already have been
+      // re-created under the active key).
+      let paymentIntent: Awaited<
+        ReturnType<typeof stripe.paymentIntents.create>
+      >;
+      try {
+        paymentIntent = await stripeWithTimeout(
+          () =>
+            stripe.paymentIntents.create(
+              {
+                ...basePaymentIntentParams,
+                ...(payerCustomerId ? { customer: payerCustomerId } : {}),
               },
-              // Enable automatic payment methods
-              automatic_payment_methods: {
-                enabled: true,
-              },
-            },
-            {
-              idempotencyKey: stripeIdempotencyKey,
-            }
-          ),
-        'create-payment-intent',
-        10000 // 10 second timeout
-      );
+              { idempotencyKey: stripeIdempotencyKey }
+            ),
+          'create-payment-intent',
+          10000 // 10 second timeout
+        );
+      } catch (err) {
+        if (!payerCustomerId || !isMissingCustomerError(err)) {
+          throw err;
+        }
+
+        // Self-heal so future save-card flows recreate the customer under
+        // the active key, then retry the charge without a customer.
+        await clearStaleStripeCustomerId(user.id, payerCustomerId, {
+          service: 'payments',
+          operation: 'create_payment_intent',
+        });
+
+        // New idempotency key: the params now differ from the failed
+        // attempt, and Stripe rejects a reused key with changed parameters.
+        paymentIntent = await stripeWithTimeout(
+          () =>
+            stripe.paymentIntents.create(basePaymentIntentParams, {
+              idempotencyKey: `${stripeIdempotencyKey}_nocust`,
+            }),
+          'create-payment-intent',
+          10000 // 10 second timeout
+        );
+      }
 
       // Check for existing escrow record to prevent duplicates
       // (e.g. user refreshes payment page, or idempotency cache expired)

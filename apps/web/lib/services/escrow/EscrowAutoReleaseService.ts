@@ -90,7 +90,12 @@ export class EscrowAutoReleaseService {
       )
       .eq('status', 'held')
       .eq('auto_release_enabled', true)
-      .in('admin_hold_status', ['none', 'admin_approved'])
+      // Must include NULL: admin_hold_status has no DEFAULT / is unset at escrow
+      // creation, so a positive `.in([...])` dropped every normal escrow (IN
+      // excludes NULL). The in-loop admin_hold/pending_review skip is the guard.
+      .or(
+        'admin_hold_status.is.null,admin_hold_status.in.(none,admin_approved)'
+      )
       .lte('auto_release_date', now.toISOString())
       .limit(ESCROW_BATCH_LIMIT);
 

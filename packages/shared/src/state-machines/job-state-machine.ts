@@ -3,7 +3,13 @@
  * Validates job status transitions to prevent invalid state changes
  */
 
-export type JobStatus = 'posted' | 'assigned' | 'in_progress' | 'completed' | 'disputed' | 'cancelled';
+export type JobStatus =
+  | 'posted'
+  | 'assigned'
+  | 'in_progress'
+  | 'completed'
+  | 'disputed'
+  | 'cancelled';
 
 /**
  * Defines valid state transitions for job statuses
@@ -66,7 +72,7 @@ export function validateStatusTransition(
     const validNextStatuses = getValidNextStatuses(currentStatus);
     throw new Error(
       `Invalid job status transition: cannot change from '${currentStatus}' to '${newStatus}'. ` +
-      `Valid transitions: ${validNextStatuses.length > 0 ? validNextStatuses.join(', ') : 'none (terminal state)'}`
+        `Valid transitions: ${validNextStatuses.length > 0 ? validNextStatuses.join(', ') : 'none (terminal state)'}`
     );
   }
 }
@@ -77,5 +83,7 @@ export function validateStatusTransition(
  * @returns true if status is terminal
  */
 export function isTerminalStatus(status: JobStatus): boolean {
-  return JOB_STATE_TRANSITIONS[status].length === 0;
+  // Optional chain so an unknown/invalid status returns false (not terminal)
+  // instead of throwing on `.length` of undefined — matches isTerminalEscrowStatus.
+  return JOB_STATE_TRANSITIONS[status]?.length === 0;
 }

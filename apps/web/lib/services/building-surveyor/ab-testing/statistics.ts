@@ -37,22 +37,30 @@ export function calculateStatisticalSignificance(
   controlN: number,
   treatmentN: number
 ): ABTestResult['statistical_significance'] {
-  // Simplified statistical test - would use proper test in production
   const controlMean = controlMetrics.f1_score;
   const treatmentMean = treatmentMetrics.f1_score;
 
-  // Assumed standard deviations (would calculate from actual data)
-  const controlStd = 0.05;
-  const treatmentStd = 0.05;
+  // The metric is a rate in [0,1] (f1/precision/recall) and only the mean +
+  // sample size are available here — not the per-sample data. Estimate the
+  // sampling variance as a proportion: var = p(1-p)/n (the Wald two-proportion
+  // model). The previous code hardcoded std = 0.05 regardless of the observed
+  // values or N, which made the standard error far too small — every trivial
+  // delta read as "significant" — so the z-score and every deploy decision
+  // derived from it were meaningless. This still isn't the raw-sample variance
+  // (that would need the per-image outcomes plumbed through), but it responds
+  // correctly to both the metric values and the sample sizes.
+  const clamp01 = (p: number) => Math.min(1, Math.max(0, p));
+  const pC = clamp01(controlMean);
+  const pT = clamp01(treatmentMean);
 
-  // Calculate standard error
-  const se = Math.sqrt(
-    (controlStd * controlStd) / controlN +
-      (treatmentStd * treatmentStd) / treatmentN
-  );
+  const varC = controlN > 0 ? (pC * (1 - pC)) / controlN : 0;
+  const varT = treatmentN > 0 ? (pT * (1 - pT)) / treatmentN : 0;
+
+  // Floor the SE so a degenerate 0/1 rate (zero variance) can't divide by zero.
+  const se = Math.max(Math.sqrt(varC + varT), 1e-6);
 
   // Calculate z-score
-  const z = (treatmentMean - controlMean) / (se || 0.001);
+  const z = (treatmentMean - controlMean) / se;
 
   // Calculate p-value (two-tailed)
   const pValue = 2 * (1 - normalCDF(Math.abs(z)));
@@ -62,13 +70,11 @@ export function calculateStatisticalSignificance(
   const diff = treatmentMean - controlMean;
   const ci: [number, number] = [diff - margin, diff + margin];
 
-  // Calculate effect size (Cohen's d)
-  const pooledStd = Math.sqrt(
-    ((controlN - 1) * controlStd * controlStd +
-      (treatmentN - 1) * treatmentStd * treatmentStd) /
-      (controlN + treatmentN - 2)
-  );
-  const effectSize = (treatmentMean - controlMean) / (pooledStd || 0.001);
+  // Standardized effect size using the pooled-proportion SD.
+  const total = controlN + treatmentN;
+  const pPool = total > 0 ? (controlN * pC + treatmentN * pT) / total : 0;
+  const pooledStd = Math.max(Math.sqrt(pPool * (1 - pPool)), 1e-6);
+  const effectSize = (treatmentMean - controlMean) / pooledStd;
 
   // Calculate statistical power (simplified)
   const power = 1 - normalCDF(Z_SCORE_95 - Math.abs(z));

@@ -1,5 +1,13 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import {
+  initiateDBSOnlineCheck,
+  initiateGBGroupCheck,
+  initiateUCheckCheck,
+  initiateCustomCheck,
+} from './dbsProviders';
+import { decryptDateOfBirth } from '@/lib/services/tax/uk-tax';
+import type { EncryptedField } from '@/lib/encryption/field-encryption';
 
 /**
  * UK DBS Check Levels
@@ -9,7 +17,13 @@ export type DBSCheckLevel = 'basic' | 'standard' | 'enhanced';
 /**
  * DBS Check Status
  */
-export type DBSCheckStatus = 'pending' | 'in_progress' | 'clear' | 'flagged' | 'expired' | 'rejected';
+export type DBSCheckStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'clear'
+  | 'flagged'
+  | 'expired'
+  | 'rejected';
 
 /**
  * UK DBS Provider Options
@@ -39,9 +53,22 @@ export interface DBSCheckResult {
  * DBS Check Pricing (UK 2025)
  */
 export const DBS_PRICING = {
-  basic: { price: 23, boost: 10, description: 'Unspent convictions and conditional cautions' },
-  standard: { price: 26, boost: 15, description: 'Spent and unspent convictions, cautions, reprimands, warnings' },
-  enhanced: { price: 50, boost: 25, description: 'Everything in Standard + local police information' },
+  basic: {
+    price: 23,
+    boost: 10,
+    description: 'Unspent convictions and conditional cautions',
+  },
+  standard: {
+    price: 26,
+    boost: 15,
+    description:
+      'Spent and unspent convictions, cautions, reprimands, warnings',
+  },
+  enhanced: {
+    price: 50,
+    boost: 25,
+    description: 'Everything in Standard + local police information',
+  },
 } as const;
 
 /**
@@ -59,9 +86,17 @@ export class DBSCheckService {
   ): Promise<{ success: boolean; checkId?: string; error?: string }> {
     try {
       // Verify contractor exists and is a contractor role
+      // Column names verified against the live `profiles` schema
+      // (2026-08-02). The previous list selected `date_of_birth`,
+      // `address_line1`, `address_line2` and `postal_code` — NONE of which
+      // exist on profiles — so PostgREST rejected the whole select and
+      // every DBS attempt died as a misleading "Contractor not found".
+      // The real columns are `address`, `city`, `postcode`, `country`.
       const { data: contractor, error: contractorError } = await serverSupabase
         .from('profiles')
-        .select('id, first_name, last_name, email, phone, role, date_of_birth, address_line1, address_line2, city, postal_code, country')
+        .select(
+          'id, first_name, last_name, email, phone, role, address, city, postcode, country, date_of_birth_encrypted'
+        )
         .eq('id', contractorId)
         .single();
 
@@ -75,7 +110,55 @@ export class DBSCheckService {
       }
 
       if (contractor.role !== 'contractor') {
-        return { success: false, error: 'DBS checks are only available for contractors' };
+        return {
+          success: false,
+          error: 'DBS checks are only available for contractors',
+        };
+      }
+
+      // A DBS check is a criminal-record search against a named
+      // individual. Date of birth is what disambiguates that person —
+      // without it a provider either rejects the submission or, worse,
+      // matches the WRONG PERSON's record to this contractor.
+      //
+      // DOB is captured during UK tax onboarding and stored ENCRYPTED on
+      // profiles.date_of_birth_encrypted (AES-256-GCM envelope). Decrypt it
+      // here (service-role read bypasses the client column-grant REVOKE).
+      // A contractor who has not completed tax onboarding has no DOB on
+      // file — fail loudly and specifically rather than post an undefined
+      // value to a live provider.
+      const dobEnvelope = (
+        contractor as { date_of_birth_encrypted?: EncryptedField | null }
+      ).date_of_birth_encrypted;
+      let dateOfBirth: string | null = null;
+      if (dobEnvelope) {
+        try {
+          dateOfBirth = decryptDateOfBirth(dobEnvelope);
+        } catch (decryptErr) {
+          logger.error(
+            'Failed to decrypt contractor date of birth',
+            decryptErr,
+            {
+              service: 'DBSCheckService',
+              contractorId,
+            }
+          );
+        }
+      }
+      if (!dateOfBirth) {
+        logger.error(
+          'DBS check blocked: date of birth is not on file for this contractor',
+          {
+            service: 'DBSCheckService',
+            contractorId,
+            provider,
+          }
+        );
+        return {
+          success: false,
+          error:
+            'DBS checks need your date of birth. Please complete your tax information first.',
+        };
       }
 
       // Check for existing active DBS check
@@ -90,12 +173,18 @@ export class DBSCheckService {
 
       if (existingCheck) {
         if (existingCheck.status === 'in_progress') {
-          return { success: false, error: 'A DBS check is already in progress' };
+          return {
+            success: false,
+            error: 'A DBS check is already in progress',
+          };
         }
         if (existingCheck.status === 'clear' && existingCheck.expiry_date) {
           const expiryDate = new Date(existingCheck.expiry_date);
           if (expiryDate > new Date()) {
-            return { success: false, error: 'An active DBS check already exists' };
+            return {
+              success: false,
+              error: 'An active DBS check already exists',
+            };
           }
         }
       }
@@ -135,16 +224,16 @@ export class DBSCheckService {
       try {
         switch (provider) {
           case 'dbs_online':
-            providerCheckId = await this.initiateDBSOnlineCheck(contractor, dbsType);
+            providerCheckId = await initiateDBSOnlineCheck(contractor, dbsType);
             break;
           case 'gbgroup':
-            providerCheckId = await this.initiateGBGroupCheck(contractor, dbsType);
+            providerCheckId = await initiateGBGroupCheck(contractor, dbsType);
             break;
           case 'ucheck':
-            providerCheckId = await this.initiateUCheckCheck(contractor, dbsType);
+            providerCheckId = await initiateUCheckCheck(contractor, dbsType);
             break;
           default:
-            providerCheckId = await this.initiateCustomCheck(contractor, dbsType);
+            providerCheckId = await initiateCustomCheck(contractor, dbsType);
         }
       } catch (providerError) {
         logger.error('DBS provider error', providerError, {
@@ -157,7 +246,10 @@ export class DBSCheckService {
           .from('contractor_dbs_checks')
           .update({ status: 'pending' })
           .eq('id', dbsCheck.id);
-        return { success: false, error: 'Failed to initiate check with provider' };
+        return {
+          success: false,
+          error: 'Failed to initiate check with provider',
+        };
       }
 
       // Update record with provider check ID
@@ -192,142 +284,6 @@ export class DBSCheckService {
   }
 
   /**
-   * DBS Online integration (UK provider)
-   * https://www.dbscheckonline.org.uk/
-   * Requires DBS_ONLINE_API_KEY environment variable
-   */
-  private static async initiateDBSOnlineCheck(
-    contractor: unknown,
-    dbsType: DBSCheckLevel
-  ): Promise<string> {
-    const apiKey = process.env.DBS_ONLINE_API_KEY;
-
-    if (!apiKey) {
-      throw new Error('DBS Online API key not configured. Set DBS_ONLINE_API_KEY environment variable.');
-    }
-
-    const c = contractor as Record<string, unknown>;
-    const response = await fetch('https://api.dbscheckonline.org.uk/v1/checks', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        first_name: c.first_name,
-        last_name: c.last_name,
-        email: c.email,
-        date_of_birth: c.date_of_birth,
-        address: {
-          line1: c.address_line1,
-          line2: c.address_line2,
-          city: c.city,
-          postcode: c.postal_code,
-        },
-        check_type: dbsType,
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`DBS Online API error (${response.status}): ${body}`);
-    }
-
-    const data = await response.json();
-    return data.check_id;
-  }
-
-  /**
-   * GB Group integration (UK provider)
-   * https://www.gbgplc.com/en/solutions/identity/criminal-record-checks/
-   * Requires GBGROUP_API_KEY environment variable
-   */
-  private static async initiateGBGroupCheck(
-    contractor: unknown,
-    dbsType: DBSCheckLevel
-  ): Promise<string> {
-    const apiKey = process.env.GBGROUP_API_KEY;
-
-    if (!apiKey) {
-      throw new Error('GB Group API key not configured. Set GBGROUP_API_KEY environment variable.');
-    }
-
-    const c = contractor as Record<string, unknown>;
-    const response = await fetch('https://api.gbgplc.com/v1/criminal-checks', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        first_name: c.first_name,
-        last_name: c.last_name,
-        email: c.email,
-        date_of_birth: c.date_of_birth,
-        check_type: dbsType,
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`GB Group API error (${response.status}): ${body}`);
-    }
-
-    const data = await response.json();
-    return data.check_id;
-  }
-
-  /**
-   * uCheck integration (UK provider)
-   * https://ucheck.co.uk/
-   * Requires UCHECK_API_KEY environment variable
-   */
-  private static async initiateUCheckCheck(
-    contractor: unknown,
-    dbsType: DBSCheckLevel
-  ): Promise<string> {
-    const apiKey = process.env.UCHECK_API_KEY;
-
-    if (!apiKey) {
-      throw new Error('uCheck API key not configured. Set UCHECK_API_KEY environment variable.');
-    }
-
-    const c = contractor as Record<string, unknown>;
-    const response = await fetch('https://api.ucheck.co.uk/v1/checks', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        first_name: c.first_name,
-        last_name: c.last_name,
-        email: c.email,
-        date_of_birth: c.date_of_birth,
-        check_type: dbsType,
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`uCheck API error (${response.status}): ${body}`);
-    }
-
-    const data = await response.json();
-    return data.check_id;
-  }
-
-  /**
-   * Custom/placeholder implementation
-   */
-  private static async initiateCustomCheck(
-    contractor: unknown,
-    dbsType: DBSCheckLevel
-  ): Promise<string> {
-    return `custom_${dbsType}_${Date.now()}`;
-  }
-
-  /**
    * Update DBS check status (called by webhook or manual admin action)
    */
   static async updateCheckStatus(
@@ -348,10 +304,12 @@ export class DBSCheckService {
       };
 
       if (status === 'clear' || status === 'flagged') {
-        if (data?.certificateNumber) updateData.certificate_number = data.certificateNumber;
+        if (data?.certificateNumber)
+          updateData.certificate_number = data.certificateNumber;
         if (data?.checkDate) updateData.check_date = data.checkDate;
         if (data?.issueDate) updateData.issue_date = data.issueDate;
-        if (data?.disclosureDetails) updateData.disclosure_details = data.disclosureDetails;
+        if (data?.disclosureDetails)
+          updateData.disclosure_details = data.disclosureDetails;
         if (data?.adminNotes) updateData.admin_notes = data.adminNotes;
         updateData.profile_boost_applied = status === 'clear';
       }
@@ -380,10 +338,14 @@ export class DBSCheckService {
 
         if (check) {
           await this.recalculateProfileBoost(check.contractor_id);
-          await this.logVerificationEvent(check.contractor_id, 'dbs_check_completed', {
-            status: 'clear',
-            check_id: checkId,
-          });
+          await this.logVerificationEvent(
+            check.contractor_id,
+            'dbs_check_completed',
+            {
+              status: 'clear',
+              check_id: checkId,
+            }
+          );
         }
       }
 
@@ -406,7 +368,9 @@ export class DBSCheckService {
   /**
    * Get DBS check status for a contractor
    */
-  static async getCheckStatus(contractorId: string): Promise<DBSCheckResult | null> {
+  static async getCheckStatus(
+    contractorId: string
+  ): Promise<DBSCheckResult | null> {
     try {
       const { data: check, error } = await serverSupabase
         .from('contractor_dbs_checks')
@@ -478,7 +442,9 @@ export class DBSCheckService {
   /**
    * Get contractors with expiring DBS checks (for reminder emails)
    */
-  static async getExpiringChecks(daysUntilExpiry: number = 30): Promise<DBSCheckResult[]> {
+  static async getExpiringChecks(
+    daysUntilExpiry: number = 30
+  ): Promise<DBSCheckResult[]> {
     try {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + daysUntilExpiry);
@@ -501,9 +467,15 @@ export class DBSCheckService {
         dbsType: check.dbs_type as DBSCheckLevel,
         status: check.status as DBSCheckStatus,
         certificateNumber: (check.certificate_number as string) || undefined,
-        checkDate: check.check_date ? new Date(check.check_date as string) : undefined,
-        issueDate: check.issue_date ? new Date(check.issue_date as string) : undefined,
-        expiryDate: check.expiry_date ? new Date(check.expiry_date as string) : undefined,
+        checkDate: check.check_date
+          ? new Date(check.check_date as string)
+          : undefined,
+        issueDate: check.issue_date
+          ? new Date(check.issue_date as string)
+          : undefined,
+        expiryDate: check.expiry_date
+          ? new Date(check.expiry_date as string)
+          : undefined,
         provider: check.provider as DBSProvider,
         providerCheckId: (check.provider_check_id as string) || undefined,
         boostPercentage: (check.boost_percentage as number) || 0,
@@ -531,15 +503,21 @@ export class DBSCheckService {
   /**
    * Recalculate profile boost for contractor
    */
-  private static async recalculateProfileBoost(contractorId: string): Promise<void> {
+  private static async recalculateProfileBoost(
+    contractorId: string
+  ): Promise<void> {
     try {
       await serverSupabase.rpc('calculate_contractor_profile_boost', {
         p_contractor_id: contractorId,
       });
 
-      await this.logVerificationEvent(contractorId, 'profile_boost_recalculated', {
-        trigger: 'dbs_check_completion',
-      });
+      await this.logVerificationEvent(
+        contractorId,
+        'profile_boost_recalculated',
+        {
+          trigger: 'dbs_check_completion',
+        }
+      );
     } catch (error) {
       logger.error('Error recalculating profile boost', error, {
         service: 'DBSCheckService',

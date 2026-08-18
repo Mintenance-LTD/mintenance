@@ -347,7 +347,11 @@ export const BidReviewScreen: React.FC = () => {
   };
 
   const renderBidCard = (bid: Bid) => (
-    <BidReviewCard bid={bid} quoteData={quoteMap[bid.contractor_id]} />
+    <BidReviewCard
+      bid={bid}
+      quoteData={quoteMap[bid.contractor_id]}
+      jobId={jobId}
+    />
   );
 
   if (loading) {

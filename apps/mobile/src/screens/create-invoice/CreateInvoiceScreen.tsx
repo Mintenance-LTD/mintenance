@@ -13,12 +13,21 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import {
+  computeVat,
+  defaultVatCodeForContractor,
+  vatRatePercent,
+  VAT_RATE_CODES,
+  UK_VAT_RATES,
+  type VatRateCode,
+} from '@mintenance/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
 import type { InvoiceLineItem } from '../../services/contractor-business/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
+import { supabase } from '../../config/supabase';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { logger } from '../../utils/logger';
@@ -83,6 +92,40 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
   // duplicating with another POST.
   const editingInvoiceId = route.params?.invoiceId ?? null;
   const [loadingExisting, setLoadingExisting] = useState(!!editingInvoiceId);
+
+  // UK market readiness: VAT is gated on the contractor's registration.
+  // A non-registered contractor cannot charge VAT — they are locked to the
+  // `exempt` code (£0) with no rate control. Default to `exempt` until the
+  // tax profile loads so we never imply a VAT charge before confirming
+  // registration. Missing row = not registered.
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [vatCode, setVatCode] = useState<VatRateCode>('exempt');
+
+  useEffect(() => {
+    const contractorId = user?.id;
+    if (!contractorId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('contractor_tax_profiles')
+          .select('vat_registered')
+          .eq('contractor_id', contractorId)
+          .maybeSingle();
+        if (cancelled) return;
+        const registered = !!data?.vat_registered;
+        setVatRegistered(registered);
+        setVatCode(defaultVatCodeForContractor(registered));
+      } catch (e) {
+        logger.warn('Failed to load VAT registration for invoice', {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!editingInvoiceId || !user?.id) return;
@@ -166,7 +209,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
     }, 0);
 
   const subtotal = calculateSubtotal();
-  const taxAmount = subtotal * 0.2; // 20% VAT
+  const taxAmount = computeVat(subtotal, vatCode);
   const total = subtotal + taxAmount;
 
   const formatDate = (date: Date) =>
@@ -237,7 +280,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         await FinancialManagementService.updateInvoice(editingInvoiceId, {
           clientName: clientName.trim(),
           lineItems: parsedItems,
-          taxRate: 20,
+          taxRate: vatRatePercent(vatCode),
           dueDate: dueDate.toISOString(),
           notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
         });
@@ -454,6 +497,38 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
           />
         </View>
 
+        {/* VAT rate selector — only VAT-registered contractors may charge
+            VAT, so the control is hidden otherwise (VAT stays £0). */}
+        {vatRegistered && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>VAT rate</Text>
+            <View style={styles.vatChipRow}>
+              {VAT_RATE_CODES.map((code) => {
+                const active = code === vatCode;
+                return (
+                  <TouchableOpacity
+                    key={code}
+                    style={[styles.vatChip, active && styles.vatChipActive]}
+                    onPress={() => setVatCode(code)}
+                    accessibilityRole='button'
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`VAT ${UK_VAT_RATES[code].label}`}
+                  >
+                    <Text
+                      style={[
+                        styles.vatChipText,
+                        active && styles.vatChipTextActive,
+                      ]}
+                    >
+                      {UK_VAT_RATES[code].label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Totals */}
         <View style={styles.totalsSection}>
           <View style={styles.totalRow}>
@@ -461,7 +536,11 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
             <Text style={styles.totalValue}>{formatCurrency(subtotal)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>VAT (20%)</Text>
+            <Text style={styles.totalLabel}>
+              {vatRegistered
+                ? `VAT (${vatRatePercent(vatCode)}%)`
+                : 'VAT (not registered)'}
+            </Text>
             <Text style={styles.totalValue}>{formatCurrency(taxAmount)}</Text>
           </View>
           <View style={[styles.totalRow, styles.totalRowFinal]}>
@@ -632,6 +711,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: me.ink,
   },
+  vatChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  vatChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: me.line,
+    backgroundColor: me.bg2,
+  },
+  vatChipActive: { backgroundColor: me.ink, borderColor: me.ink },
+  vatChipText: { fontSize: 12, color: me.ink2 },
+  vatChipTextActive: { color: me.onBrand, fontWeight: '600' },
   // Audit P1 #14 (2026-04-25): pre-fill-from-time-tracking hint banner.
   timeTrackingHint: {
     flexDirection: 'row',

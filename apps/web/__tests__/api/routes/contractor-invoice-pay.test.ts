@@ -373,13 +373,17 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
 
     expect(captured.paymentsInsert).toHaveLength(1);
     // FeeCalculationService UK model: platform 12% of £1000 = £120;
-    // Stripe estimate 1.5% + £0.20 = £15.20; net = 1000 - 120 - 15.20
+    // Stripe estimate 1.5% + £0.20 = £15.20 (still recorded on the row).
+    // Since commit 9992138 ("stop underpaying contractors"), net_amount is
+    // amount - platformFee ONLY — the platform absorbs the Stripe fee, so the
+    // contractor nets 1000 - 120 = 880 (matches the Stripe transfer, which is
+    // total minus the £120 application_fee_amount).
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({
         amount: 1000,
         platform_fee: 120,
         processing_fee: 15.2,
-        net_amount: 864.8,
+        net_amount: 880,
       })
     );
   });
@@ -397,7 +401,8 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
       expect.objectContaining({
         platform_fee: 80,
         processing_fee: 15.2,
-        net_amount: 904.8,
+        // net = 1000 - 80 (platform absorbs Stripe fee; see 9992138)
+        net_amount: 920,
       })
     );
   });
@@ -415,7 +420,8 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
       expect.objectContaining({
         platform_fee: 50,
         processing_fee: 15.2,
-        net_amount: 934.8,
+        // net = 1000 - 50 (platform absorbs Stripe fee; see 9992138)
+        net_amount: 950,
       })
     );
   });

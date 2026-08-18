@@ -66,14 +66,22 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
 
-  const hasUnsavedChanges = !!(
-    address1 ||
-    city ||
-    postcode ||
-    bedrooms ||
-    bathrooms
-  );
-  useUnsavedChanges(hasUnsavedChanges);
+  // Latched after a successful save so the form stops counting as dirty on
+  // every render that follows (allowExit below handles the synchronous exit
+  // itself — state alone would lose that race, because goBack() runs before
+  // React re-renders with the new value).
+  const [saved, setSaved] = useState(false);
+
+  const hasUnsavedChanges =
+    !saved && !!(address1 || city || postcode || bedrooms || bathrooms);
+  // allowExit() is the hook's own success-path bypass (added 2026-04-30 for
+  // precisely this), which this screen never adopted. Without it the
+  // beforeRemove guard fired on the way out of a SUCCESSFUL save — fields
+  // still populated — showing "Discard changes?" over a property that already
+  // existed. "Don't leave" then stranded the user on the still-filled form,
+  // where tapping Add Property again created the duplicate rows seen in
+  // production (two identical "1 peveril road").
+  const allowExit = useUnsavedChanges(hasUnsavedChanges);
 
   const createMutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
@@ -121,6 +129,11 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       });
     },
     onSuccess: () => {
+      // allowExit is a ref, so it takes effect synchronously — before the
+      // goBack below triggers the beforeRemove guard. setSaved covers any
+      // later render; it alone would be too late for this exit.
+      allowExit();
+      setSaved(true);
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
     },

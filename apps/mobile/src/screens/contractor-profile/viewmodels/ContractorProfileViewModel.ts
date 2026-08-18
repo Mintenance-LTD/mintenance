@@ -58,6 +58,17 @@ interface ContractorProfileState {
       unresolvedCount: number;
       avgResolutionHours?: number | null;
     };
+    /**
+     * Web parity (2026-07-31 audit P2-3). `responseTime`/`onTimeCompletion`/
+     * `repeatCustomers` come from /api/contractors/:id/metrics (computed
+     * from real jobs+bids); `yearsExperience` is platform tenure derived
+     * from created_at, matching web's transform-contractor.ts. All optional
+     * — the metrics call is best-effort and must never fail the profile.
+     */
+    responseTime?: string | null;
+    onTimeCompletion?: number | null;
+    repeatCustomers?: number | null;
+    yearsExperience?: number | null;
   };
   photos: string[];
   reviews: Review[];
@@ -101,6 +112,33 @@ interface ApiContractor {
     unresolved_count: number;
     avg_resolution_hours: number | null;
   };
+  created_at?: string;
+}
+
+/** Shape of GET /api/contractors/:id/metrics. */
+interface ApiMetrics {
+  responseTime?: string;
+  onTimeCompletion?: number;
+  repeatCustomers?: number;
+}
+
+/**
+ * Whole years since joining. Mirrors web's transform-contractor.ts so both
+ * platforms describe tenure identically (it is time on Mintenance, NOT
+ * self-declared trade experience).
+ */
+function yearsSince(createdAt?: string): number | null {
+  if (!createdAt) return null;
+  const joined = new Date(createdAt);
+  if (Number.isNaN(joined.getTime())) return null;
+  const now = new Date();
+  if (joined > now) return 0;
+  return Math.max(
+    0,
+    Math.floor(
+      (now.getTime() - joined.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+    )
+  );
 }
 
 const DEFAULT_CONTRACTOR: ContractorProfileState['contractor'] = {
@@ -169,6 +207,7 @@ export const useContractorProfileViewModel = (
               avgResolutionHours: data.dispute_history.avg_resolution_hours,
             }
           : undefined,
+        yearsExperience: yearsSince(data.created_at),
       });
 
       setPhotos(
@@ -176,6 +215,33 @@ export const useContractorProfileViewModel = (
           (url): url is string => typeof url === 'string' && url.length > 0
         )
       );
+
+      // Performance metrics — best-effort. Web fetches these alongside the
+      // profile (ContractorProfileClient.tsx) and mobile did not, so the
+      // performance panel had nothing to show. A failure here must never
+      // blank the profile: the panel degrades to "—" on its own.
+      try {
+        const { metrics } = await mobileApiClient.get<{ metrics?: ApiMetrics }>(
+          `/api/contractors/${contractorId}/metrics`
+        );
+        if (metrics) {
+          setContractor((prev) => ({
+            ...prev,
+            responseTime: metrics.responseTime ?? null,
+            onTimeCompletion: metrics.onTimeCompletion ?? null,
+            repeatCustomers: metrics.repeatCustomers ?? null,
+          }));
+        }
+      } catch (metricsError) {
+        logger.warn('Contractor metrics unavailable', {
+          service: 'ContractorProfileViewModel',
+          contractorId,
+          error:
+            metricsError instanceof Error
+              ? metricsError.message
+              : String(metricsError),
+        });
+      }
 
       // Fetch reviews
       try {

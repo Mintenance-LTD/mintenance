@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateRequest } from '@/lib/validation/validator';
-import { Form1099Service } from '@/lib/services/tax/Form1099Service';
+import { UKEarningsStatementService } from '@/lib/services/tax/UKEarningsStatementService';
 import { logger } from '@mintenance/shared';
 
 // ── Validation ──────────────────────────────────────────────────────
 
 const generateAllSchema = z
   .object({
+    // UK tax-year START year (2025 → 2025-26).
     year: z
       .number()
       .int()
@@ -22,14 +23,11 @@ const generateAllSchema = z
 /**
  * POST /api/admin/tax/generate-all
  *
- * Trigger 1099-NEC generation for ALL eligible contractors for the given
- * tax year. Eligible means the contractor requires a 1099 but one has not
- * yet been generated.
+ * Generate UK annual earnings statements for ALL contractors with earnings
+ * in the given tax year.
  *
- * Requires admin role + fresh MFA step-up (15-minute window). Same
- * rationale as /api/admin/tax/generate-1099 — produces tax-authority
- * records + contractor PII at scale. A stolen admin session must not
- * be sufficient to trigger a bulk generation.
+ * Requires admin role + fresh MFA step-up (15-minute window) — produces
+ * contractor earnings + identity at scale.
  */
 export const POST = withApiHandler(
   {
@@ -37,11 +35,11 @@ export const POST = withApiHandler(
     rateLimit: { maxRequests: 3, windowMs: 60_000 },
     requireMfaVerifiedWithinMinutes: 15,
     logActivity: {
-      actionType: 'tax_1099_generate_all',
+      actionType: 'tax_statement_generate_all',
       category: 'revenue',
       targetType: 'tax_filing',
       description:
-        'Triggered bulk 1099-NEC generation for all eligible contractors',
+        'Triggered bulk UK earnings statement generation for all earners',
     },
   },
   async (request, { user }) => {
@@ -52,32 +50,48 @@ export const POST = withApiHandler(
 
     const { year } = validation.data;
 
-    logger.info('Starting bulk 1099 generation', {
+    logger.info('Starting bulk earnings statement generation', {
       service: 'admin-tax',
       adminUserId: user.id,
       year,
     });
 
-    // Fetch all contractors who still need a 1099 for this year
-    const pending = await Form1099Service.getContractorsRequiring1099(year);
+    const earners = await UKEarningsStatementService.listEarners(year);
 
-    if (pending.length === 0) {
+    if (earners.length === 0) {
       return NextResponse.json({
         success: true,
-        message: `No contractors require 1099 generation for tax year ${year}`,
+        message: `No contractors have earnings for tax year ${year}`,
         count: 0,
       });
     }
 
-    const contractorIds = pending.map((s) => s.contractor_id);
+    let succeeded = 0;
+    let failed = 0;
+    for (const earner of earners) {
+      try {
+        const statement = await UKEarningsStatementService.getStatement(
+          earner.contractorId,
+          year
+        );
+        await UKEarningsStatementService.markGenerated(
+          earner.contractorId,
+          year,
+          statement.totals
+        );
+        succeeded += 1;
+      } catch (err) {
+        failed += 1;
+        logger.error('Failed to generate statement in bulk run', err, {
+          service: 'admin-tax',
+          adminUserId: user.id,
+          contractorId: earner.contractorId,
+          year,
+        });
+      }
+    }
 
-    // Generate 1099 data for each contractor (partial failures allowed)
-    const results = await Form1099Service.generateBatch(contractorIds, year);
-
-    const succeeded = results.filter((r) => r.success).length;
-    const failed = results.filter((r) => !r.success).length;
-
-    logger.info('Bulk 1099 generation complete', {
+    logger.info('Bulk earnings statement generation complete', {
       service: 'admin-tax',
       adminUserId: user.id,
       year,
@@ -87,10 +101,9 @@ export const POST = withApiHandler(
 
     return NextResponse.json({
       success: true,
-      message: `Generated 1099-NEC data for ${succeeded} contractor(s)${failed > 0 ? `, ${failed} failed` : ''}`,
+      message: `Generated earnings statements for ${succeeded} contractor(s)${failed > 0 ? `, ${failed} failed` : ''}`,
       count: succeeded,
       failed,
-      results,
     });
   }
 );

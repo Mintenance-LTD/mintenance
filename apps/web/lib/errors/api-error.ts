@@ -16,13 +16,13 @@ import { getCorsHeaders } from '@/lib/cors';
  */
 export interface ErrorResponse {
   error: {
-    code: string;           // Machine-readable error code (e.g., "UNAUTHORIZED", "VALIDATION_FAILED")
-    message: string;        // Human-readable error message
-    details?: unknown;      // Optional additional context (field errors, etc.)
-    field?: string;         // For validation errors - which field failed
+    code: string; // Machine-readable error code (e.g., "UNAUTHORIZED", "VALIDATION_FAILED")
+    message: string; // Human-readable error message
+    details?: unknown; // Optional additional context (field errors, etc.)
+    field?: string; // For validation errors - which field failed
   };
-  timestamp: string;        // ISO timestamp
-  requestId?: string;       // For tracing
+  timestamp: string; // ISO timestamp
+  requestId?: string; // For tracing
 }
 
 /**
@@ -137,7 +137,9 @@ export function handleAPIError(
   request?: NextRequest
 ): NextResponse {
   // Helper to get headers with CORS support
-  const getResponseHeaders = (baseHeaders: Record<string, string> = {}): Record<string, string> => {
+  const getResponseHeaders = (
+    baseHeaders: Record<string, string> = {}
+  ): Record<string, string> => {
     const corsHeaders = request ? getCorsHeaders(request) : {};
     return {
       ...baseHeaders,
@@ -155,16 +157,64 @@ export function handleAPIError(
       ...context,
     });
 
+    return NextResponse.json(error.toResponse(requestId), {
+      status: error.statusCode,
+      headers: getResponseHeaders({
+        'Content-Type': 'application/json',
+        ...(error instanceof RateLimitError &&
+        (error.details as { retryAfter?: number })?.retryAfter
+          ? {
+              'Retry-After': String(
+                (error.details as { retryAfter: number }).retryAfter
+              ),
+            }
+          : {}),
+      }),
+    });
+  }
+
+  // Payment-provider errors. Logged with their Stripe identifiers so the
+  // cause is findable, and answered with a payment-shaped message — these
+  // used to fall through to the database branch ("Database operation
+  // failed") or the generic one ("An unexpected error occurred"), both of
+  // which pointed debugging at the wrong subsystem entirely.
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    isStripeShapedError(error)
+  ) {
+    const e = error as {
+      type?: string;
+      rawType?: string;
+      code?: string;
+      statusCode?: number;
+      requestId?: string;
+      message?: string;
+    };
+    logger.error('Payment provider error', {
+      stripeType: e.type,
+      stripeRawType: e.rawType,
+      stripeCode: e.code,
+      stripeStatusCode: e.statusCode,
+      stripeRequestId: e.requestId,
+      message: e.message,
+      requestId,
+      ...context,
+    });
+
     return NextResponse.json(
-      error.toResponse(requestId),
       {
-        status: error.statusCode,
-        headers: getResponseHeaders({
-          'Content-Type': 'application/json',
-          ...(error instanceof RateLimitError && (error.details as { retryAfter?: number })?.retryAfter
-            ? { 'Retry-After': String((error.details as { retryAfter: number }).retryAfter) }
-            : {}),
-        }),
+        error: {
+          code: 'PAYMENT_PROVIDER_ERROR',
+          message:
+            'Payment service is temporarily unavailable. Your card was not charged.',
+        },
+        timestamp: new Date().toISOString(),
+        ...(requestId && { requestId }),
+      },
+      {
+        status: 502,
+        headers: getResponseHeaders({ 'Content-Type': 'application/json' }),
       }
     );
   }
@@ -213,7 +263,7 @@ export function handleAPIError(
     logger.error('Unexpected Error', {
       name: error.name,
       message: error.message,
-      stack: error.stack,  // Always log full stack internally
+      stack: error.stack, // Always log full stack internally
       requestId,
       ...context,
     });
@@ -223,10 +273,10 @@ export function handleAPIError(
       {
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred',  // Generic message always
+          message: 'An unexpected error occurred', // Generic message always
         },
         timestamp: new Date().toISOString(),
-        ...(requestId && { requestId }),  // Include request ID for support correlation
+        ...(requestId && { requestId }), // Include request ID for support correlation
       },
       {
         status: 500,
@@ -267,12 +317,30 @@ interface DatabaseError {
   details?: string;
 }
 
+/**
+ * Stripe errors also carry a string `code` (`resource_missing`,
+ * `card_declined`, …), so a bare "has a string code" check swallowed them
+ * into the database branch below and reported "Database operation failed"
+ * for what was actually a payment failure — sending anyone debugging it
+ * (including us, repeatedly) after the wrong subsystem. Identified by
+ * stripe-node's own markers: every StripeError has `type` beginning
+ * "Stripe" plus a `rawType` echoing the API error type.
+ */
+function isStripeShapedError(error: object): boolean {
+  const e = error as { type?: unknown; rawType?: unknown };
+  return (
+    typeof e.rawType === 'string' ||
+    (typeof e.type === 'string' && e.type.startsWith('Stripe'))
+  );
+}
+
 function isDatabaseError(error: unknown): error is DatabaseError {
   return (
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    typeof (error as { code?: unknown }).code === 'string'
+    typeof (error as { code?: unknown }).code === 'string' &&
+    !isStripeShapedError(error)
   );
 }
 

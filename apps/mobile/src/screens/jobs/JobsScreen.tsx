@@ -25,10 +25,13 @@ import { ScreenErrorBoundary } from '../../components/ScreenErrorBoundary';
 import { semanticBg } from '../../theme';
 import { me } from '../../design-system/mint-editorial';
 
-import type { SortMode, FilterStatus, JobStats } from './types';
+import type { SortMode, FilterStatus } from './types';
 import { JobCard } from './JobCard';
 import { JobsHeroHeader } from './JobsHeroHeader';
 import { JobsFilterTabs } from './JobsFilterTabs';
+import { JobsPropertyChips } from './JobsPropertyChips';
+import { useJobPropertyFilter } from './useJobPropertyFilter';
+import { useJobsListStats } from './useJobsListStats';
 import { JobsEmptyState } from './JobsEmptyState';
 
 const JobsScreen: React.FC = () => {
@@ -101,52 +104,6 @@ const JobsScreen: React.FC = () => {
     enabled: !!user,
   });
 
-  // -- Stats --
-  const stats: JobStats = useMemo(() => {
-    const now = Date.now();
-    let newToday = 0;
-    let totalBudget = 0;
-    let budgetCount = 0;
-    let activeCount = 0;
-    let totalBids = 0;
-    let completedCount = 0;
-    let postedCount = 0;
-
-    // Defensive coercion against server NUMERIC-as-string regressions
-    // (route fixed 2026-05-22; guards "AVG VALUE" KPI from `+=` on string).
-    const toNum = (v: unknown): number | null => {
-      if (v == null) return null;
-      const n = typeof v === 'number' ? v : Number(v);
-      return Number.isFinite(n) ? n : null;
-    };
-
-    allJobs.forEach((j) => {
-      const age =
-        (now - new Date(j.created_at || j.createdAt || now).getTime()) /
-        (1000 * 3600 * 24);
-      if (age < 1) newToday++;
-      const b = toNum(j.budget) ?? toNum(j.budget_min) ?? 0;
-      if (b > 0) {
-        totalBudget += b;
-        budgetCount++;
-      }
-      if (j.status === 'in_progress') activeCount++;
-      if (j.status === 'completed') completedCount++;
-      if (j.status === 'posted') postedCount++;
-      if (j.bids) totalBids += j.bids.length;
-    });
-
-    return {
-      total: allJobs.length,
-      newToday,
-      avgBudget: budgetCount > 0 ? Math.round(totalBudget / budgetCount) : 0,
-      activeCount,
-      totalBids,
-      completedCount,
-      postedCount,
-    };
-  }, [allJobs]);
-
   // -- Filter counts (homeowner) --
   // -- Contractor: fetch jobs with pending bids --
   const { data: bidPendingJobs = [] } = useQuery<Job[]>({
@@ -164,32 +121,22 @@ const JobsScreen: React.FC = () => {
     enabled: !!user && isContractor,
   });
 
-  const filterCounts = useMemo(() => {
-    const counts: Record<FilterStatus, number> = {
-      all: allJobs.length,
-      posted: 0,
-      assigned: 0,
-      in_progress: 0,
-      completed: 0,
-      bid: bidPendingJobs.length,
-      active: 0,
-    };
-    allJobs.forEach((j) => {
-      const s = j.status as FilterStatus;
-      if (s in counts) counts[s]++;
-      // "active" = assigned + in_progress for contractors
-      if (s === 'in_progress' || s === 'assigned') counts.active++;
-    });
-    return counts;
-  }, [allJobs, bidPendingJobs]);
+  const { stats, filterCounts } = useJobsListStats(allJobs, bidPendingJobs);
 
   // -- Sort & filter --
+  const { propertyFilter, setPropertyFilter, jobProperties, byProperty } =
+    useJobPropertyFilter(allJobs);
+
   const filteredJobs = useMemo(() => {
-    let data = [...allJobs];
+    // Property first, so the status tabs and search then narrow within the
+    // chosen house rather than fighting it.
+    let data = byProperty([...allJobs]);
 
     // Filter by status tab
     if (selectedFilter === 'bid' && isContractor) {
-      data = bidPendingJobs;
+      // byProperty again, not raw: assigning bidPendingJobs directly would
+      // silently drop the property filter on this one tab.
+      data = byProperty(bidPendingJobs);
     } else if (selectedFilter === 'active' && isContractor) {
       data = data.filter(
         (j) => j.status === 'in_progress' || j.status === 'assigned'
@@ -278,6 +225,7 @@ const JobsScreen: React.FC = () => {
     debouncedQuery,
     sortMode,
     isContractor,
+    byProperty,
   ]);
 
   const onRefresh = () => {
@@ -413,6 +361,12 @@ const JobsScreen: React.FC = () => {
         filterCounts={filterCounts}
         onSortModeChange={setSortMode}
         onFilterChange={setSelectedFilter}
+      />
+
+      <JobsPropertyChips
+        properties={jobProperties}
+        selected={propertyFilter}
+        onSelect={setPropertyFilter}
       />
 
       {/* Results count */}

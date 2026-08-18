@@ -51,9 +51,12 @@ export const GET = withApiHandler(
         .limit(50),
       supabase
         .from('escrow_transactions')
+        // Released escrows land in terminal status 'completed' (the release
+        // paths write 'completed', not 'released'); 'released' only appears on
+        // the admin refund-review path. Match both so earnings aren't £0.
         .select('amount')
         .eq('payee_id', user.id)
-        .eq('status', 'released')
+        .in('status', ['released', 'completed'])
         .gte('updated_at', todayISO)
         .limit(100),
     ]);

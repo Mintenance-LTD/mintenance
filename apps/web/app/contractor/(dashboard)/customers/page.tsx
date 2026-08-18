@@ -38,8 +38,11 @@ interface JobRow {
 }
 
 interface BidRow {
-  homeowner_id: string | null;
-  homeowner?: CustomerData | CustomerData[];
+  // bids has NO homeowner_id column (select-schema audit 2026-08-02) —
+  // the homeowner is reached through the bid's job.
+  job?:
+    | { homeowner?: CustomerData | CustomerData[] }
+    | Array<{ homeowner?: CustomerData | CustomerData[] }>;
 }
 
 interface MessageRow {
@@ -83,13 +86,15 @@ export default async function CustomersPage() {
         )
         .eq('contractor_id', user.id)
         .not('homeowner_id', 'is', null),
+      // bids has no homeowner_id — reach the homeowner via the bid's job.
+      // !inner drops bids whose job is missing; a null homeowner on the
+      // job is guarded at consumption.
       serverSupabase
         .from('bids')
         .select(
-          'homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)'
+          'job:jobs!inner(homeowner:profiles!homeowner_id (id, first_name, last_name, profile_image_url, email))'
         )
-        .eq('contractor_id', user.id)
-        .not('homeowner_id', 'is', null),
+        .eq('contractor_id', user.id),
       serverSupabase
         .from('messages')
         .select(
@@ -115,7 +120,8 @@ export default async function CustomersPage() {
   });
 
   ((bidsData.data || []) as BidRow[]).forEach((bid) => {
-    const homeowner = unwrap(bid.homeowner);
+    const job = unwrap(bid.job);
+    const homeowner = unwrap(job?.homeowner);
     if (homeowner?.id) customerMap.set(homeowner.id, homeowner);
   });
 

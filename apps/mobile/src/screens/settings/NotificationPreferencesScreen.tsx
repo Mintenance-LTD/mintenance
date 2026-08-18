@@ -36,6 +36,7 @@ import { me } from '../../design-system/mint-editorial';
 import { MintScreenBackBar } from '../../components/shared';
 import { logger } from '../../utils/logger';
 import { styles } from './notificationPreferencesStyles';
+import { HHMM, normaliseHHMM } from './quietHours';
 
 interface Prefs {
   push_enabled: boolean;
@@ -136,9 +137,6 @@ const GROUPS: readonly PurposeGroup[] = [
   },
 ];
 
-// HH:MM validator. Permissive — accepts "9:00" as well as "09:00".
-const HHMM = /^([0-1]?\d|2[0-3]):[0-5]\d$/;
-
 // 2026-05-27 audit-71 P1: the urgent banner below promises that
 // payment confirmations + escrow holds + contractor "I'm on the way"
 // always reach the user — but the same UI also rendered `payment`
@@ -234,6 +232,13 @@ export const NotificationPreferencesScreen: React.FC = () => {
       Alert.alert('Quiet hours', 'Use 24-hour time, e.g. 07:00');
       return;
     }
+    // Pad "9:00" -> "09:00" for the server's two-digit-hour contract, and
+    // echo the canonical form back into the fields so what the user sees
+    // is what was stored.
+    const quietStart = quietStartDraft ? normaliseHHMM(quietStartDraft) : '';
+    const quietEnd = quietEndDraft ? normaliseHHMM(quietEndDraft) : '';
+    if (quietStart !== quietStartDraft) setQuietStartDraft(quietStart);
+    if (quietEnd !== quietEndDraft) setQuietEndDraft(quietEnd);
     setSaving(true);
     try {
       // audit-71 P1: never persist always-on types in disabled_types.
@@ -246,14 +251,14 @@ export const NotificationPreferencesScreen: React.FC = () => {
         sms_enabled: prefs.sms_enabled,
         in_app_enabled: prefs.in_app_enabled,
         disabled_types: cleanedDisabled,
-        quiet_hours_start: quietStartDraft || null,
-        quiet_hours_end: quietEndDraft || null,
+        quiet_hours_start: quietStart || null,
+        quiet_hours_end: quietEnd || null,
         timezone: prefs.timezone || 'UTC',
       });
       setPrefs((p) => ({
         ...p,
-        quiet_hours_start: quietStartDraft || null,
-        quiet_hours_end: quietEndDraft || null,
+        quiet_hours_start: quietStart || null,
+        quiet_hours_end: quietEnd || null,
       }));
       Alert.alert('Saved', 'Notification preferences updated.');
     } catch (err) {

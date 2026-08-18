@@ -58,7 +58,11 @@ export class PayoutTierService {
       const { count: disputeCount } = await serverSupabase
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
-        .eq('contractor_id', contractorId)
+        // escrow rows key the contractor as payee_id — there is no
+        // contractor_id column, so this filter used to error and disputes
+        // always counted as 0, inflating tiers (filter-schema audit
+        // 2026-08-02).
+        .eq('payee_id', contractorId)
         .eq('status', 'disputed');
 
       const disputes = disputeCount || 0;
@@ -91,63 +95,29 @@ export class PayoutTierService {
   }
 
   /**
-   * Update contractor payout tier
+   * Recalculate the contractor's payout tier.
+   *
+   * 2026-08-02: this used to CACHE the result into
+   * profiles.payout_tier/payout_speed_hours — columns that never
+   * existed, so the write failed on every call (select-schema audit).
+   * The cache is dropped rather than migrated: the tier is fully
+   * derived from rating + completed jobs + disputes (two cheap indexed
+   * queries in calculateTier), and a cached copy in the MONEY path
+   * would go stale the moment a rating or dispute landed, with nothing
+   * wired to invalidate it. Derive-on-read is both simpler and the
+   * only behavior this service has ever actually had.
    */
   static async updateTier(contractorId: string): Promise<PayoutTier> {
-    try {
-      const tier = await this.calculateTier(contractorId);
-      const payoutHours = TIER_CRITERIA[tier].payoutHours;
-
-      const { error } = await serverSupabase
-        .from('profiles')
-        .update({
-          payout_tier: tier,
-          payout_speed_hours: payoutHours,
-        })
-        .eq('id', contractorId);
-
-      if (error) {
-        logger.error('Failed to update payout tier', {
-          service: 'PayoutTierService',
-          contractorId,
-          error: error.message,
-        });
-        return 'standard';
-      }
-
-      logger.info('Payout tier updated', {
-        service: 'PayoutTierService',
-        contractorId,
-        tier,
-        payoutHours,
-      });
-
-      return tier;
-    } catch (error) {
-      logger.error('Error updating payout tier', error, {
-        service: 'PayoutTierService',
-        contractorId,
-      });
-      return 'standard';
-    }
+    return this.calculateTier(contractorId);
   }
 
   /**
-   * Get payout speed for a contractor
+   * Get payout speed (hours until funds release) for a contractor.
+   * Derived from the live tier — see updateTier for why nothing is
+   * cached.
    */
   static async getPayoutSpeed(contractorId: string): Promise<number> {
     try {
-      const { data: contractor } = await serverSupabase
-        .from('profiles')
-        .select('payout_speed_hours, payout_tier')
-        .eq('id', contractorId)
-        .single();
-
-      if (contractor?.payout_speed_hours) {
-        return contractor.payout_speed_hours;
-      }
-
-      // Calculate if not set
       const tier = await this.calculateTier(contractorId);
       return TIER_CRITERIA[tier].payoutHours;
     } catch (error) {

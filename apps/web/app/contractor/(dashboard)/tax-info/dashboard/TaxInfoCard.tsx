@@ -1,32 +1,32 @@
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import type { TaxProfile } from './tax-helpers';
-import { getW9StatusDisplay } from './tax-helpers';
+import { getTaxDetailsDisplay } from './tax-helpers';
 
 interface TaxInfoCardProps {
   profile: TaxProfile | null | undefined;
 }
 
 export function TaxInfoCard({ profile }: TaxInfoCardProps) {
-  const w9Display = getW9StatusDisplay(profile?.w9Status);
+  const display = getTaxDetailsDisplay(profile);
 
   return (
     <div className='bg-white rounded-xl border border-gray-200 p-6'>
       <div className='flex items-start justify-between'>
         <div className='flex items-start gap-4'>
-          <div className='mt-0.5'>{w9Display.icon}</div>
+          <div className='mt-0.5'>{display.icon}</div>
           <div>
             <h2 className='text-xl font-semibold text-gray-900 mb-1'>
               Tax Information
             </h2>
             <div className='flex items-center gap-3 mb-2'>
               <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${w9Display.badgeClass}`}
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${display.badgeClass}`}
               >
-                {w9Display.label}
+                {display.label}
               </span>
             </div>
-            <p className='text-sm text-gray-600'>{w9Display.description}</p>
+            <p className='text-sm text-gray-600'>{display.description}</p>
 
             {profile && (
               <div className='mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm'>
@@ -36,53 +36,49 @@ export function TaxInfoCard({ profile }: TaxInfoCardProps) {
                     {profile.legalName}
                   </span>
                 </div>
-                {profile.businessName && (
+                {profile.tradingName && (
                   <div>
-                    <span className='text-gray-500'>Business:</span>{' '}
+                    <span className='text-gray-500'>Trading as:</span>{' '}
                     <span className='font-medium text-gray-900'>
-                      {profile.businessName}
+                      {profile.tradingName}
                     </span>
                   </div>
                 )}
                 <div>
-                  <span className='text-gray-500'>Tax ID:</span>{' '}
-                  <span className='font-mono font-medium text-gray-900'>
-                    ****{profile.tinLast4}
+                  <span className='text-gray-500'>Tax reference:</span>{' '}
+                  <span className='font-medium text-gray-900'>
+                    {profile.hasUtr
+                      ? 'UTR on file'
+                      : profile.hasNino
+                        ? 'NI number on file'
+                        : 'Not provided'}
                   </span>
                 </div>
                 <div>
-                  <span className='text-gray-500'>Classification:</span>{' '}
-                  <span className='font-medium text-gray-900 capitalize'>
-                    {profile.taxClassification.replace(/_/g, ' ')}
+                  <span className='text-gray-500'>VAT:</span>{' '}
+                  <span className='font-medium text-gray-900'>
+                    {profile.vatRegistered
+                      ? (profile.vatNumber ?? 'Registered')
+                      : 'Not registered'}
                   </span>
                 </div>
-                {profile.w9SubmittedAt && (
+                {profile.companyNumber && (
                   <div>
-                    <span className='text-gray-500'>Submitted:</span>{' '}
+                    <span className='text-gray-500'>Company number:</span>{' '}
                     <span className='font-medium text-gray-900'>
-                      {new Date(profile.w9SubmittedAt).toLocaleDateString(
-                        'en-GB',
-                        {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        }
-                      )}
+                      {profile.companyNumber}
                     </span>
                   </div>
                 )}
-                {profile.w9VerifiedAt && (
+                {profile.updatedAt && (
                   <div>
-                    <span className='text-gray-500'>Verified:</span>{' '}
+                    <span className='text-gray-500'>Last updated:</span>{' '}
                     <span className='font-medium text-gray-900'>
-                      {new Date(profile.w9VerifiedAt).toLocaleDateString(
-                        'en-GB',
-                        {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        }
-                      )}
+                      {new Date(profile.updatedAt).toLocaleDateString('en-GB', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
                     </span>
                   </div>
                 )}

@@ -11,15 +11,23 @@
 import { stripe } from '@/lib/stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import {
+  isMissingCustomerError,
+  clearStaleStripeCustomerId,
+} from '../stale-customer';
 import type { SetupIntentCreateResponse } from '../connect/types';
 
 /**
  * Get or create a Stripe customer for a user. Idempotent.
+ *
+ * `forceNew` skips the stored id — used by the recovery path when Stripe
+ * has told us the stored customer doesn't exist under the active key.
  */
 async function ensureStripeCustomer(
   userId: string,
   email: string,
-  name?: string
+  name?: string,
+  forceNew = false
 ): Promise<string> {
   const { data: profile, error } = await serverSupabase
     .from('profiles')
@@ -31,7 +39,9 @@ async function ensureStripeCustomer(
     throw new Error(`User profile not found: ${userId}`);
   }
 
-  if (profile.stripe_customer_id) return profile.stripe_customer_id;
+  if (!forceNew && profile.stripe_customer_id) {
+    return profile.stripe_customer_id;
+  }
 
   const customer = await stripe.customers.create({
     email,
@@ -65,23 +75,24 @@ export async function createSetupIntentForUser(
   email: string,
   name?: string
 ): Promise<SetupIntentCreateResponse> {
-  const customerId = await ensureStripeCustomer(userId, email, name);
+  let customerId = await ensureStripeCustomer(userId, email, name);
 
-  const setupIntent = await stripe.setupIntents.create({
-    customer: customerId,
-    // 2026-06-11: let Stripe present whatever payment methods the account
-    // actually has enabled (Cards always; Bacs Direct Debit where it's been
-    // activated) rather than a hardcoded ['card','bacs_debit']. The previous
-    // explicit list made the ENTIRE setup-intent 500 — blocking card entry
-    // too — on any account where bacs_debit isn't configured (e.g. a fresh
-    // test/sandbox account). Pairs with the mobile PaymentSheet
-    // (initPaymentSheet + presentPaymentSheet), which renders exactly the
-    // enabled methods. Mirrors the escrow PaymentIntent in
-    // app/api/payments/create-intent/route.ts, which already does this.
-    automatic_payment_methods: { enabled: true },
-    usage: 'off_session',
-    metadata: { mintenance_user_id: userId },
-  });
+  let setupIntent: Awaited<ReturnType<typeof stripe.setupIntents.create>>;
+  try {
+    setupIntent = await createIntent(customerId, userId);
+  } catch (error) {
+    // The stored customer doesn't exist under the active key (wrong Stripe
+    // mode/account — e.g. a test-mode id after a live-key promotion). Left
+    // unhandled this makes "Add New Card" fail forever for that user. Clear
+    // the dead id, provision a fresh customer, and retry once.
+    if (!isMissingCustomerError(error)) throw error;
+    await clearStaleStripeCustomerId(userId, customerId, {
+      service: 'stripe-elements',
+      operation: 'create_setup_intent',
+    });
+    customerId = await ensureStripeCustomer(userId, email, name, true);
+    setupIntent = await createIntent(customerId, userId);
+  }
 
   // Track for debugging/idempotency
   await serverSupabase.from('stripe_setup_intents').insert({
@@ -100,6 +111,24 @@ export async function createSetupIntentForUser(
     setupIntentId: setupIntent.id,
     customerId,
   };
+}
+
+function createIntent(customerId: string, userId: string) {
+  return stripe.setupIntents.create({
+    customer: customerId,
+    // 2026-06-11: let Stripe present whatever payment methods the account
+    // actually has enabled (Cards always; Bacs Direct Debit where it's been
+    // activated) rather than a hardcoded ['card','bacs_debit']. The previous
+    // explicit list made the ENTIRE setup-intent 500 — blocking card entry
+    // too — on any account where bacs_debit isn't configured (e.g. a fresh
+    // test/sandbox account). Pairs with the mobile PaymentSheet
+    // (initPaymentSheet + presentPaymentSheet), which renders exactly the
+    // enabled methods. Mirrors the escrow PaymentIntent in
+    // app/api/payments/create-intent/route.ts, which already does this.
+    automatic_payment_methods: { enabled: true },
+    usage: 'off_session',
+    metadata: { mintenance_user_id: userId },
+  });
 }
 
 /**

@@ -11,7 +11,6 @@ import {
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 
 import { fetchTaxProfile, fetchTaxSummaries } from './tax-helpers';
-import { get1099StatusBadge } from './tax-helpers';
 import { TaxInfoCard } from './TaxInfoCard';
 import { EarningsSummaryTable } from './EarningsSummaryTable';
 
@@ -32,9 +31,9 @@ export default function ContractorTaxDashboardPage() {
     gcTime: 10 * 60 * 1000,
   });
 
-  // Fetch year summaries and payments
+  // Fetch UK annual earnings summaries (one entry per tax year)
   const {
-    data: summaryData,
+    data: summaries,
     isLoading: summariesLoading,
     error: summariesError,
   } = useQuery({
@@ -44,20 +43,19 @@ export default function ContractorTaxDashboardPage() {
     gcTime: 10 * 60 * 1000,
   });
 
-  const summaries = summaryData?.summaries ?? [];
-  const payments = summaryData?.payments ?? {};
+  const yearSummaries = summaries ?? [];
   const isLoading = profileLoading || summariesLoading;
   const error = profileError || summariesError;
 
   // -- Handlers --------------------------------------------------------------
 
-  const toggleYear = useCallback((year: number) => {
-    setExpandedYear((prev) => (prev === year ? null : year));
+  const toggleYear = useCallback((startYear: number) => {
+    setExpandedYear((prev) => (prev === startYear ? null : startYear));
   }, []);
 
-  const handleDownload1099 = useCallback((year: number) => {
+  const handleDownloadStatement = useCallback((startYear: number) => {
     window.open(
-      `/api/contractor/tax-info/download-1099?year=${year}`,
+      `/api/contractor/tax-info/statement?year=${startYear}`,
       '_blank'
     );
   }, []);
@@ -158,72 +156,53 @@ export default function ContractorTaxDashboardPage() {
         <TaxInfoCard profile={profile} />
 
         <EarningsSummaryTable
-          summaries={summaries}
-          payments={payments}
+          summaries={yearSummaries}
           expandedYear={expandedYear}
           onToggleYear={toggleYear}
+          onDownload={handleDownloadStatement}
         />
 
-        {/* End-of-Year Earnings Summary Download Section */}
+        {/* End-of-Year Earnings Statement Download Section */}
         <div className='bg-white rounded-xl border border-gray-200'>
           <div className='px-6 py-4 border-b border-gray-200 flex items-center gap-3'>
             <FileText className='w-5 h-5 text-teal-600' aria-hidden='true' />
             <h2 className='text-xl font-semibold text-gray-900'>
-              End-of-Year Earnings Summaries
+              End-of-Year Earnings Statements
             </h2>
           </div>
 
-          {summaries.some(
-            (s) =>
-              s.form1099Status === 'generated' || s.form1099Status === 'filed'
-          ) ? (
+          {yearSummaries.length > 0 ? (
             <div className='p-6 space-y-3'>
-              {summaries
-                .filter(
-                  (s) =>
-                    s.form1099Status === 'generated' ||
-                    s.form1099Status === 'filed'
-                )
-                .map((summary) => (
-                  <div
-                    key={summary.year}
-                    className='flex items-center justify-between bg-gray-50 rounded-lg border border-gray-200 px-4 py-3'
-                  >
-                    <div className='flex items-center gap-3'>
-                      <FileText
-                        className='w-5 h-5 text-teal-600'
-                        aria-hidden='true'
-                      />
-                      <div>
-                        <p className='text-sm font-semibold text-gray-900'>
-                          Earnings summary — Tax Year {summary.year}
-                        </p>
-                        <p className='text-xs text-gray-500'>
-                          {summary.form1099GeneratedAt
-                            ? `Generated on ${new Date(
-                                summary.form1099GeneratedAt
-                              ).toLocaleDateString('en-GB', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })}`
-                            : 'Available for download'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className='flex items-center gap-3'>
-                      {get1099StatusBadge(summary.form1099Status)}
-                      <button
-                        onClick={() => handleDownload1099(summary.year)}
-                        className='px-3 py-1.5 text-sm font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors flex items-center gap-1.5'
-                        aria-label={`Download earnings summary for tax year ${summary.year}`}
-                      >
-                        <Download className='w-4 h-4' aria-hidden='true' />
-                        Download
-                      </button>
+              {yearSummaries.map((summary) => (
+                <div
+                  key={summary.startYear}
+                  className='flex items-center justify-between bg-gray-50 rounded-lg border border-gray-200 px-4 py-3'
+                >
+                  <div className='flex items-center gap-3'>
+                    <FileText
+                      className='w-5 h-5 text-teal-600'
+                      aria-hidden='true'
+                    />
+                    <div>
+                      <p className='text-sm font-semibold text-gray-900'>
+                        Earnings statement &mdash; Tax Year {summary.taxYear}
+                      </p>
+                      <p className='text-xs text-gray-500'>
+                        {summary.jobCount} job
+                        {summary.jobCount === 1 ? '' : 's'} in this tax year
+                      </p>
                     </div>
                   </div>
-                ))}
+                  <button
+                    onClick={() => handleDownloadStatement(summary.startYear)}
+                    className='px-3 py-1.5 text-sm font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors flex items-center gap-1.5'
+                    aria-label={`Download earnings statement for tax year ${summary.taxYear}`}
+                  >
+                    <Download className='w-4 h-4' aria-hidden='true' />
+                    Download
+                  </button>
+                </div>
+              ))}
             </div>
           ) : (
             <div className='text-center py-12 px-6'>
@@ -232,10 +211,10 @@ export default function ContractorTaxDashboardPage() {
                 aria-hidden='true'
               />
               <h3 className='text-lg font-medium text-gray-900 mb-1'>
-                No earnings summaries available yet
+                No earnings statements available yet
               </h3>
               <p className='text-sm text-gray-500'>
-                End-of-year earnings summaries will be available here to help
+                End-of-year earnings statements will be available here to help
                 you complete your HMRC Self Assessment tax return.
               </p>
             </div>
@@ -254,7 +233,7 @@ export default function ContractorTaxDashboardPage() {
               <p>
                 As a self-employed contractor in the UK, you are responsible for
                 reporting your earnings to HMRC via Self Assessment. Mintenance
-                provides earnings summaries to help with your tax return.
+                provides earnings statements to help with your tax return.
                 Consult an accountant for advice on your specific situation.
               </p>
             </div>

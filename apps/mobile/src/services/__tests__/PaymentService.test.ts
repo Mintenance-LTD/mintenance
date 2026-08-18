@@ -160,7 +160,7 @@ describe('PaymentService', () => {
           jobId: '11111111-1111-4111-8111-111111111123',
           contractorId: '22222222-2222-4222-8222-222222222123',
         })
-      ).rejects.toThrow('Amount exceeds maximum (£10,000)');
+      ).rejects.toThrow('Amount exceeds maximum (£100,000)');
     });
 
     it('should handle API error', async () => {

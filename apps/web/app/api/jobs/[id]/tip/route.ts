@@ -205,9 +205,29 @@ export const GET = withApiHandler(
   async (request: NextRequest, { user, params }) => {
     const jobId = params.id;
 
-    // Just hit the table — RLS gates the rows (homeowner sees their
-    // sends, contractor sees their receipts, admin sees all).
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    // 2026-08-05 IDOR fix: web authenticates with a custom JWT cookie, so
+    // there is no Supabase session and RLS never runs — this read executes
+    // through the service-role fallback. Gate on job participation
+    // explicitly (mirrors the POST path above and the job_tips RLS). A
+    // job's payer is always its homeowner and its payee always its
+    // contractor, so every tip on the job is between exactly these two
+    // parties — a participant check is equivalent to the per-row RLS.
+    const { data: job, error: jobError } = await userDb
+      .from('jobs')
+      .select('id, homeowner_id, contractor_id')
+      .eq('id', jobId)
+      .single();
+    if (jobError || !job) {
+      throw new NotFoundError('Job not found');
+    }
+    const isParticipant =
+      job.homeowner_id === user.id || job.contractor_id === user.id;
+    if (!isParticipant && user.role !== 'admin') {
+      throw new ForbiddenError('You do not have access to this job');
+    }
+
     const { data, error } = await userDb
       .from('job_tips')
       .select(
