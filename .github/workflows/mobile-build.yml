@@ -3,6 +3,7 @@ name: Mobile Build Pipeline (EAS)
 on:
   push:
     branches:
+      - Main
       - main
       - develop
     paths:
@@ -11,6 +12,7 @@ on:
       - '.github/workflows/mobile-build.yml'
   pull_request:
     branches:
+      - Main
       - main
       - develop
     paths:
@@ -83,7 +85,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "profile=${{ github.event.inputs.profile }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          elif [ "${{ github.ref }}" = "refs/heads/Main" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "profile=production" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
             echo "profile=staging" >> $GITHUB_OUTPUT
@@ -209,7 +211,8 @@ jobs:
       needs.pre-build-checks.outputs.should-build == 'true' &&
       (github.event.inputs.platform == 'ios' ||
        github.event.inputs.platform == 'all' ||
-       (github.event_name != 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+       (github.event_name != 'workflow_dispatch' &&
+        (github.ref == 'refs/heads/Main' || github.ref == 'refs/heads/main')))
 
     steps:
       - name: Checkout code
@@ -288,7 +291,7 @@ jobs:
     needs: [build-android, build-ios]
     if: |
       failure() &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+      (github.ref == 'refs/heads/Main' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
 
     steps:
       - name: Create issue on failure

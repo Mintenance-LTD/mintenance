@@ -23,7 +23,10 @@
  */
 
 import type { EscrowTransactionRow } from '@mintenance/types';
-import { paymentIntentRequestSchema } from '@mintenance/api-contracts';
+import {
+  MAX_JOB_PAYMENT_GBP,
+  paymentIntentRequestSchema,
+} from '@mintenance/api-contracts';
 import { buildCreateIntentBody } from '../payment/PaymentIntentService';
 
 // ---------------------------------------------------------------------------
@@ -113,9 +116,12 @@ describe('create-intent body vs shared api-contract', () => {
   });
 
   it('rejects amounts over the server validator cap with a readable error', () => {
-    expect(() => buildCreateIntentBody({ ...VALID, amount: 10_001 })).toThrow(
-      /amount/i
-    );
+    expect(() =>
+      buildCreateIntentBody({
+        ...VALID,
+        amount: MAX_JOB_PAYMENT_GBP + 0.01,
+      })
+    ).toThrow(/amount/i);
   });
 
   it('rejects a malformed job UUID before any network call', () => {

@@ -21,7 +21,7 @@ import type {
  *    400'd at the boundary), mobile stops COMPILING instead of failing in
  *    production.
  *  - RUNTIME: safeParse rejects invalid values (bad UUIDs, amount over the
- *    server's £10,000 validator cap) with a readable message BEFORE the
+ *    shared server validator cap) with a readable message BEFORE the
  *    network call, mirroring the server's validator exactly.
  *
  * `.passthrough()` keeps `paymentMethodId` — a compat key shipped mobile
