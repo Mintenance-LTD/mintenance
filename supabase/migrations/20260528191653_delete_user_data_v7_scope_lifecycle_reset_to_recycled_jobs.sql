@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260528191653_delete_user_data_v7_scope_lifecycle_reset_to_recycled_jobs.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260528191653_delete_user_data_v7_scope_lifecycle_reset_to_recycled_jobs.sql.
+-- The reproducible schema baseline is 20260805194939.

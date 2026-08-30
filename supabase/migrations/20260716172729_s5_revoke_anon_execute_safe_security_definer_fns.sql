@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260716172729_s5_revoke_anon_execute_safe_security_definer_fns.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260716172729_s5_revoke_anon_execute_safe_security_definer_fns.sql.
+-- The reproducible schema baseline is 20260805194939.

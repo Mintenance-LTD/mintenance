@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260521142212_compliance_room_aware_uniqueness.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260521142212_compliance_room_aware_uniqueness.sql.
+-- The reproducible schema baseline is 20260805194939.

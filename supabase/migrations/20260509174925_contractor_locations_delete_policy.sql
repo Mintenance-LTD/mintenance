@@ -1,13 +1,3 @@
--- AUDIT_PUNCH_LIST P2 #37 (D-P2-6) — `contractor_locations` had no
--- DELETE policy, so contractors couldn't wipe their own GPS trail
--- (privacy regression: SELECT/INSERT/UPDATE were scoped to the
--- contractor but DELETE returned a generic "policy violated" error
--- on the row owner). Adding the symmetric self-only policy.
---
--- Service-role bypasses RLS so admin tooling is unaffected.
-
-CREATE POLICY contractor_locations_delete
-  ON public.contractor_locations
-  FOR DELETE
-  TO authenticated
-  USING (contractor_id = auth.uid());
+-- Applied migration marker for 20260509174925_contractor_locations_delete_policy.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260509174925_contractor_locations_delete_policy.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260523105557_delete_user_data_dynamic_fk_clear.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260523105557_delete_user_data_dynamic_fk_clear.sql.
+-- The reproducible schema baseline is 20260805194939.

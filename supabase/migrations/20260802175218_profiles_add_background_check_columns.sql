@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260802175218_profiles_add_background_check_columns.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260802175218_profiles_add_background_check_columns.sql.
+-- The reproducible schema baseline is 20260805194939.

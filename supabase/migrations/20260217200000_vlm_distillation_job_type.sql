@@ -1,6 +1,3 @@
--- Teacher-Student VLM Distillation: Phase 3 - VLM distillation job type
--- Index for efficient VLM-specific job queries on knowledge_distillation_jobs.
-
-CREATE INDEX IF NOT EXISTS idx_distillation_jobs_vlm
-  ON knowledge_distillation_jobs (created_at DESC)
-  WHERE job_type = 'vlm_distillation';
+-- Applied migration marker for 20260217200000_vlm_distillation_job_type.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260217200000_vlm_distillation_job_type.sql.
+-- The reproducible schema baseline is 20260805194939.

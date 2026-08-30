@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260521140611_invoice_payments_user_id_rls.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260521140611_invoice_payments_user_id_rls.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260523120547_revoke_anon_writes_lifecycle_tables.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260523120547_revoke_anon_writes_lifecycle_tables.sql.
+-- The reproducible schema baseline is 20260805194939.

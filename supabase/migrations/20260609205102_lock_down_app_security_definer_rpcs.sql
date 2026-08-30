@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260609205102_lock_down_app_security_definer_rpcs.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260609205102_lock_down_app_security_definer_rpcs.sql.
+-- The reproducible schema baseline is 20260805194939.

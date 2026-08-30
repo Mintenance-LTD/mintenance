@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260524102843_bids_status_allow_withdrawn.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260524102843_bids_status_allow_withdrawn.sql.
+-- The reproducible schema baseline is 20260805194939.

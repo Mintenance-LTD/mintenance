@@ -1,0 +1,13 @@
+-- Fix P0 (audit 2026-06-09): the 2026-04-06/2026-05-08 column-level lockdown of
+-- public.profiles revoked table-level SELECT and re-granted a safe column list,
+-- but missed two columns the shipped mobile binary reads directly via the
+-- authenticated role. Every affected query fails wholesale with "permission
+-- denied for table profiles" (PostgREST rejects the whole select if any column
+-- is unauthorized), so the mobile onboarding gates fail silent and never show:
+--   - useBackgroundCheckGate / useIdentitySetupGate / useSelfieCaptureGate
+--     (verification_status, profile_photo_is_selfie)
+-- These two columns are non-sensitive (the related admin_verified / verified /
+-- background_check_status flags were already in the granted list). The stripe_*
+-- columns intentionally remain revoked; those mobile reads are being moved
+-- server-side instead.
+GRANT SELECT (verification_status, profile_photo_is_selfie) ON public.profiles TO authenticated;;

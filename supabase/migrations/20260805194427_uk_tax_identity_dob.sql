@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260805194427_uk_tax_identity_dob.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260805194427_uk_tax_identity_dob.sql.
+-- The reproducible schema baseline is 20260805194939.

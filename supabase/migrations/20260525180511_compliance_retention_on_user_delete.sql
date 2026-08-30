@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260525180511_compliance_retention_on_user_delete.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260525180511_compliance_retention_on_user_delete.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260802173605_profiles_add_mfa_enrollment_columns.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260802173605_profiles_add_mfa_enrollment_columns.sql.
+-- The reproducible schema baseline is 20260805194939.

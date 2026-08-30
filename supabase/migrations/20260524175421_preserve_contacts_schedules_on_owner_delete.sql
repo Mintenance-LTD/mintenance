@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260524175421_preserve_contacts_schedules_on_owner_delete.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260524175421_preserve_contacts_schedules_on_owner_delete.sql.
+-- The reproducible schema baseline is 20260805194939.

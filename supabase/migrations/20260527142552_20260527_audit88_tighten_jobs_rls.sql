@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260527142552_20260527_audit88_tighten_jobs_rls.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260527142552_20260527_audit88_tighten_jobs_rls.sql.
+-- The reproducible schema baseline is 20260805194939.

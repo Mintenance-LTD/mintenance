@@ -1,4 +1,3 @@
--- Add source tracking to sam3_pseudo_labels for SAM2 temporal data
--- This allows distinguishing between SAM3 segmentation pseudo-labels and
--- SAM2 temporal video analysis pseudo-labels in the training pipeline.
-ALTER TABLE sam3_pseudo_labels ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'sam3';
+-- Applied migration marker for 20260207000000_distillation_source_tracking.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260207000000_distillation_source_tracking.sql.
+-- The reproducible schema baseline is 20260805194939.

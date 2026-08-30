@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260521110807_property_contacts_recurring_schedules_retention.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260521110807_property_contacts_recurring_schedules_retention.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260523002150_delete_user_data_role_aware.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260523002150_delete_user_data_role_aware.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260716183242_perf_consolidate_multiple_permissive_policies.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260716183242_perf_consolidate_multiple_permissive_policies.sql.
+-- The reproducible schema baseline is 20260805194939.

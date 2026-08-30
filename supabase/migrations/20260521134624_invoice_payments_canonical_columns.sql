@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260521134624_invoice_payments_canonical_columns.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260521134624_invoice_payments_canonical_columns.sql.
+-- The reproducible schema baseline is 20260805194939.

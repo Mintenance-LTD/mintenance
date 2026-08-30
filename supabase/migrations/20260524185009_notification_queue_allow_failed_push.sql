@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260524185009_notification_queue_allow_failed_push.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260524185009_notification_queue_allow_failed_push.sql.
+-- The reproducible schema baseline is 20260805194939.

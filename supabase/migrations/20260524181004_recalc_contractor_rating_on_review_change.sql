@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260524181004_recalc_contractor_rating_on_review_change.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260524181004_recalc_contractor_rating_on_review_change.sql.
+-- The reproducible schema baseline is 20260805194939.

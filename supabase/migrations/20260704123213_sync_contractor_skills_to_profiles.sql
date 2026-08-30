@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260704123213_sync_contractor_skills_to_profiles.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260704123213_sync_contractor_skills_to_profiles.sql.
+-- The reproducible schema baseline is 20260805194939.

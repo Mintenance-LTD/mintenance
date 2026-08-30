@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260522230027_job_checklists.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260522230027_job_checklists.sql.
+-- The reproducible schema baseline is 20260805194939.

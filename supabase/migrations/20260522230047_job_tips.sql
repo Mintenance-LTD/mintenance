@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260522230047_job_tips.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260522230047_job_tips.sql.
+-- The reproducible schema baseline is 20260805194939.

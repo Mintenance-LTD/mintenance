@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260706212352_add_missing_fk_indexes.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260706212352_add_missing_fk_indexes.sql.
+-- The reproducible schema baseline is 20260805194939.

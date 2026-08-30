@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260525175544_escrow_currency_jobs_lifecycle_timestamps.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260525175544_escrow_currency_jobs_lifecycle_timestamps.sql.
+-- The reproducible schema baseline is 20260805194939.

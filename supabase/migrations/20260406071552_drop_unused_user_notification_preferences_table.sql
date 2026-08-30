@@ -1,7 +1,3 @@
--- 2026-05-21 drift-cleanup: recovered from supabase_migrations.schema_migrations.
-
--- The user_notification_preferences table was created in migration 20260215000001
--- but never consumed by any application code. All notification preferences
--- are read/written via the profiles.notification_preferences JSONB column.
--- The table has 0 rows. Dropping to eliminate schema confusion.
-DROP TABLE IF EXISTS public.user_notification_preferences;
+-- Applied migration marker for 20260406071552_drop_unused_user_notification_preferences_table.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260406071552_drop_unused_user_notification_preferences_table.sql.
+-- The reproducible schema baseline is 20260805194939.

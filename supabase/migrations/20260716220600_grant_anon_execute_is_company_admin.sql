@@ -1,7 +1,3 @@
--- The 2026-07-16 permissive-policy restructuring merged is_company_admin() into the
--- TO-public SELECT policy on company_team_members. Postgres checks function ACLs at
--- expression init (not evaluation), so the role-guarded CASE does not shield anon from
--- the EXECUTE check and anon reads errored. Same rationale as the earlier helper grants:
--- boolean membership check, probe surface already open to any free signup.
--- Applied live via Supabase MCP on 2026-07-16 (version 20260716220600).
-GRANT EXECUTE ON FUNCTION public.is_company_admin(uuid, uuid) TO anon;
+-- Applied migration marker for 20260716220600_grant_anon_execute_is_company_admin.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260716220600_grant_anon_execute_is_company_admin.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,5 +1,3 @@
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS cover_photo_url TEXT;
-
-COMMENT ON COLUMN public.profiles.cover_photo_url IS
-  'URL of the contractor profile hero/cover photo. Distinct from profile_image_url (avatar). Populated by /api/users/cover-photo POST.';
+-- Applied migration marker for 20260428213031_profiles_cover_photo_url.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260428213031_profiles_cover_photo_url.sql.
+-- The reproducible schema baseline is 20260805194939.

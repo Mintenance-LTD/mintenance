@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260716174342_perf_rls_wrap_auth_calls_in_select.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260716174342_perf_rls_wrap_auth_calls_in_select.sql.
+-- The reproducible schema baseline is 20260805194939.

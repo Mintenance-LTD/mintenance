@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260521142101_compliance_certificates_room_link.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260521142101_compliance_certificates_room_link.sql.
+-- The reproducible schema baseline is 20260805194939.

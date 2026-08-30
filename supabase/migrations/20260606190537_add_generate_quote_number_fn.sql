@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260606190537_add_generate_quote_number_fn.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260606190537_add_generate_quote_number_fn.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260606152403_create_quote_templates.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260606152403_create_quote_templates.sql.
+-- The reproducible schema baseline is 20260805194939.

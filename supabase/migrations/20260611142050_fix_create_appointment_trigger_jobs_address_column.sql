@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260611142050_fix_create_appointment_trigger_jobs_address_column.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260611142050_fix_create_appointment_trigger_jobs_address_column.sql.
+-- The reproducible schema baseline is 20260805194939.

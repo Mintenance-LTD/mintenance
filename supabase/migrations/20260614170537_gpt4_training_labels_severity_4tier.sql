@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260614170537_gpt4_training_labels_severity_4tier.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260614170537_gpt4_training_labels_severity_4tier.sql.
+-- The reproducible schema baseline is 20260805194939.

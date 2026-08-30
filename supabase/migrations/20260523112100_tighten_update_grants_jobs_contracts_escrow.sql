@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260523112100_tighten_update_grants_jobs_contracts_escrow.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260523112100_tighten_update_grants_jobs_contracts_escrow.sql.
+-- The reproducible schema baseline is 20260805194939.

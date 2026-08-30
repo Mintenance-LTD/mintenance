@@ -1,0 +1,1 @@
+ALTER TABLE public.jobs ALTER COLUMN budget DROP NOT NULL;;

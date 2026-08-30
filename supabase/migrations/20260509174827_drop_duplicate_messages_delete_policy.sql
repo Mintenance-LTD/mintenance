@@ -1,7 +1,3 @@
--- AUDIT_PUNCH_LIST P2 #36 (D-P2-4) — `messages` had two functionally
--- identical DELETE policies. Both check `auth.uid() = sender_id`.
--- Keeping the snake_case `messages_delete_own` (matches the rest of
--- the table's policy naming) and dropping the older human-named
--- variant.
-
-DROP POLICY IF EXISTS "Users can delete their sent messages" ON public.messages;
+-- Applied migration marker for 20260509174827_drop_duplicate_messages_delete_policy.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260509174827_drop_duplicate_messages_delete_policy.sql.
+-- The reproducible schema baseline is 20260805194939.

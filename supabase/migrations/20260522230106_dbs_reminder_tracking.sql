@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260522230106_dbs_reminder_tracking.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260522230106_dbs_reminder_tracking.sql.
+-- The reproducible schema baseline is 20260805194939.

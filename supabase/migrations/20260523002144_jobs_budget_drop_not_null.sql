@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260523002144_jobs_budget_drop_not_null.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260523002144_jobs_budget_drop_not_null.sql.
+-- The reproducible schema baseline is 20260805194939.

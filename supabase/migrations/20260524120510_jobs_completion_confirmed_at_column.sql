@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260524120510_jobs_completion_confirmed_at_column.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260524120510_jobs_completion_confirmed_at_column.sql.
+-- The reproducible schema baseline is 20260805194939.

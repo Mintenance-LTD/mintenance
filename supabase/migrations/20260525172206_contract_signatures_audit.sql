@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260525172206_contract_signatures_audit.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260525172206_contract_signatures_audit.sql.
+-- The reproducible schema baseline is 20260805194939.

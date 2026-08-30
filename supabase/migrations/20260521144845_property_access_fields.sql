@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260521144845_property_access_fields.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260521144845_property_access_fields.sql.
+-- The reproducible schema baseline is 20260805194939.

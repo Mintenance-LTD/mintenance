@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260704071513_retire_contractor_profiles.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260704071513_retire_contractor_profiles.sql.
+-- The reproducible schema baseline is 20260805194939.

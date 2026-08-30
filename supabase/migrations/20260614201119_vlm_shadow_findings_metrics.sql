@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260614201119_vlm_shadow_findings_metrics.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260614201119_vlm_shadow_findings_metrics.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260525131123_contractor_locations_realtime_publication.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260525131123_contractor_locations_realtime_publication.sql.
+-- The reproducible schema baseline is 20260805194939.

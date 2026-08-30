@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260716174016_perf_add_missing_foreign_key_indexes.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260716174016_perf_add_missing_foreign_key_indexes.sql.
+-- The reproducible schema baseline is 20260805194939.

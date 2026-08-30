@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260609201314_grant_profiles_verification_cols_to_authenticated.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260609201314_grant_profiles_verification_cols_to_authenticated.sql.
+-- The reproducible schema baseline is 20260805194939.

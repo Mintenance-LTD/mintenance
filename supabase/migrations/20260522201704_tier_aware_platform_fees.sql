@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260522201704_tier_aware_platform_fees.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260522201704_tier_aware_platform_fees.sql.
+-- The reproducible schema baseline is 20260805194939.

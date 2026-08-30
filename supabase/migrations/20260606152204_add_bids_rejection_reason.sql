@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260606152204_add_bids_rejection_reason.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260606152204_add_bids_rejection_reason.sql.
+-- The reproducible schema baseline is 20260805194939.

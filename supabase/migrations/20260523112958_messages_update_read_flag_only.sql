@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260523112958_messages_update_read_flag_only.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260523112958_messages_update_read_flag_only.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260528191711_webhook_idempotency_reclaim_failed.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260528191711_webhook_idempotency_reclaim_failed.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260525155928_profiles_tokens_revoked_at.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260525155928_profiles_tokens_revoked_at.sql.
+-- The reproducible schema baseline is 20260805194939.

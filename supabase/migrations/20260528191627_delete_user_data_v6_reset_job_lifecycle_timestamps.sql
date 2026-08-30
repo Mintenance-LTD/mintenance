@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260528191627_delete_user_data_v6_reset_job_lifecycle_timestamps.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260528191627_delete_user_data_v6_reset_job_lifecycle_timestamps.sql.
+-- The reproducible schema baseline is 20260805194939.

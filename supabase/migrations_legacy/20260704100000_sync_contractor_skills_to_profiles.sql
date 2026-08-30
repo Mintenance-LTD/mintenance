@@ -1,0 +1,1 @@
+-- content applied 2026-07-04 via MCP; recorded so supabase db push skips the identical repo file;

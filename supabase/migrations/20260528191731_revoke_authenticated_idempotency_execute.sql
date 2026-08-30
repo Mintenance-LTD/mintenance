@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260528191731_revoke_authenticated_idempotency_execute.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260528191731_revoke_authenticated_idempotency_execute.sql.
+-- The reproducible schema baseline is 20260805194939.

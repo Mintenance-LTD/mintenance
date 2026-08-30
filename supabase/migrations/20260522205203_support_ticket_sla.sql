@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260522205203_support_ticket_sla.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260522205203_support_ticket_sla.sql.
+-- The reproducible schema baseline is 20260805194939.

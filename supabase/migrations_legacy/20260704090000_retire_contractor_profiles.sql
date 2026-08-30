@@ -1,0 +1,1 @@
+-- content applied 2026-07-04 via MCP as version 20260704071513; recorded here so supabase db push skips the identical repo file;

@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260528193407_pin_search_path_updated_at_triggers.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260528193407_pin_search_path_updated_at_triggers.sql.
+-- The reproducible schema baseline is 20260805194939.

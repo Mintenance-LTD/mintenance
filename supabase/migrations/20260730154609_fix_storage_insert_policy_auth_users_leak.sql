@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260730154609_fix_storage_insert_policy_auth_users_leak.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260730154609_fix_storage_insert_policy_auth_users_leak.sql.
+-- The reproducible schema baseline is 20260805194939.

@@ -1,9 +1,3 @@
--- Migration: Fix American defaults in addresses table
--- Date: 2026-02-08
--- Changes default country from 'USA' to 'UK' for British-based platform
-
-BEGIN;
-
-ALTER TABLE public.addresses ALTER COLUMN country SET DEFAULT 'UK';
-
-COMMIT;
+-- Applied migration marker for 20260208005000_fix_addresses_uk_defaults.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260208005000_fix_addresses_uk_defaults.sql.
+-- The reproducible schema baseline is 20260805194939.

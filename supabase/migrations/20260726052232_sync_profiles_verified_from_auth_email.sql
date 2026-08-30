@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260726052232_sync_profiles_verified_from_auth_email.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260726052232_sync_profiles_verified_from_auth_email.sql.
+-- The reproducible schema baseline is 20260805194939.

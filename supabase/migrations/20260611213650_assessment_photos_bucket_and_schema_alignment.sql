@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260611213650_assessment_photos_bucket_and_schema_alignment.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260611213650_assessment_photos_bucket_and_schema_alignment.sql.
+-- The reproducible schema baseline is 20260805194939.

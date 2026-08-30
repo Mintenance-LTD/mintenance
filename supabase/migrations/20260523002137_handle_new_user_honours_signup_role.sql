@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260523002137_handle_new_user_honours_signup_role.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260523002137_handle_new_user_honours_signup_role.sql.
+-- The reproducible schema baseline is 20260805194939.

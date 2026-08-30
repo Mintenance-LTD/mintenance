@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260521163243_idempotency_atomic_ttl_sweep.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260521163243_idempotency_atomic_ttl_sweep.sql.
+-- The reproducible schema baseline is 20260805194939.

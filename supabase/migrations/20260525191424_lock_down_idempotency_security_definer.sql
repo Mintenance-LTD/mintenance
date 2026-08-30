@@ -1,0 +1,3 @@
+-- Applied migration marker for 20260525191424_lock_down_idempotency_security_definer.sql.
+-- Canonical historical SQL is preserved in ../migrations_legacy/20260525191424_lock_down_idempotency_security_definer.sql.
+-- The reproducible schema baseline is 20260805194939.
