@@ -189,6 +189,22 @@ export function resolveRateLimitCriticality(
   return undefined;
 }
 
+/**
+ * Build a stable limiter key without retaining query strings. Query values
+ * can contain secrets (for example unsubscribe tokens), and using the full
+ * URL also lets callers evade a route limit by changing the query string.
+ */
+export function buildRateLimitIdentifier(
+  ip: string,
+  requestUrl: string
+): string {
+  try {
+    return `${ip}:${new URL(requestUrl).pathname}`;
+  } catch {
+    return `${ip}:unknown`;
+  }
+}
+
 // ── Handler types ───────────────────────────────────────────────────
 
 type AuthUser = Pick<
@@ -277,7 +293,7 @@ export function withApiHandler(
         }
 
         const result = await rateLimiter.checkRateLimit({
-          identifier: `${ip}:${request.url}`,
+          identifier: buildRateLimitIdentifier(ip, request.url),
           windowMs,
           maxRequests,
           // Fail-closed class for degraded (Redis-down) production. Explicit

@@ -14,7 +14,10 @@
 
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { RedisRateLimiter } from '@/lib/rate-limiter';
-import { resolveRateLimitCriticality } from '@/lib/api/with-api-handler';
+import {
+  buildRateLimitIdentifier,
+  resolveRateLimitCriticality,
+} from '@/lib/api/with-api-handler';
 
 function freshLimiter(): RedisRateLimiter {
   // Empty Upstash env → constructor takes the in-memory fallback path.
@@ -170,5 +173,28 @@ describe('resolveRateLimitCriticality (withApiHandler defaults)', () => {
     expect(
       resolveRateLimitCriticality(undefined, '/api/jobs', 'POST')
     ).toBeUndefined();
+  });
+});
+
+describe('buildRateLimitIdentifier', () => {
+  it('uses only the pathname so query strings cannot evade the limit', () => {
+    const first = buildRateLimitIdentifier(
+      '203.0.113.4',
+      'https://example.com/api/email/unsubscribe?token=first-secret'
+    );
+    const second = buildRateLimitIdentifier(
+      '203.0.113.4',
+      'https://example.com/api/email/unsubscribe?token=second-secret'
+    );
+
+    expect(first).toBe('203.0.113.4:/api/email/unsubscribe');
+    expect(second).toBe(first);
+    expect(first).not.toContain('secret');
+  });
+
+  it('uses a stable fallback for malformed URLs', () => {
+    expect(buildRateLimitIdentifier('203.0.113.4', 'not a URL')).toBe(
+      '203.0.113.4:unknown'
+    );
   });
 });

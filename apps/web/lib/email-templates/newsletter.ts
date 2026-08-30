@@ -6,7 +6,7 @@
  */
 import { year, mintEmailShell } from './shared';
 
-export function newsletterWelcomeTemplate(email: string): {
+export function newsletterWelcomeTemplate(unsubscribeToken: string): {
   subject: string;
   html: string;
   text: string;
@@ -28,8 +28,8 @@ export function newsletterWelcomeTemplate(email: string): {
      <a href="${baseUrl}/try-mint-ai" class="cta">Try the photo-guidance tool →</a>
      <p style="margin-top:14px;font-size:13px"><a href="${baseUrl}/find-contractors" style="color:#0F4D3A;font-weight:600">Or browse local tradespeople</a></p>`,
     `<p>&copy; ${year()} Mintenance Ltd.</p>
-     <p><a href="${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}">Unsubscribe</a></p>`
+     <p><a href="${baseUrl}/api/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}">Unsubscribe</a></p>`
   );
-  const text = `You're on the Mintenance list.\n\nRoughly every two weeks: what's new, practical guides, UK trade-sector trends. Short, useful, never marketing-y.\n\nWhile you're here:\nTry the photo-guidance tool — ${baseUrl}/try-mint-ai\nBrowse contractors — ${baseUrl}/find-contractors\n\nUnsubscribe: ${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}\n\n© ${year()} Mintenance Ltd.`;
+  const text = `You're on the Mintenance list.\n\nRoughly every two weeks: what's new, practical guides, UK trade-sector trends. Short, useful, never marketing-y.\n\nWhile you're here:\nTry the photo-guidance tool — ${baseUrl}/try-mint-ai\nBrowse contractors — ${baseUrl}/find-contractors\n\nUnsubscribe: ${baseUrl}/api/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}\n\n© ${year()} Mintenance Ltd.`;
   return { subject, html, text };
 }

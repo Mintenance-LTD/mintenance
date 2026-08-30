@@ -434,9 +434,10 @@ export class EmailService {
 
   /** Send newsletter welcome/confirmation email */
   static async sendNewsletterWelcomeEmail(
-    subscriberEmail: string
+    subscriberEmail: string,
+    unsubscribeToken: string
   ): Promise<boolean> {
-    const { subject, html, text } = newsletterWelcomeTemplate(subscriberEmail);
+    const { subject, html, text } = newsletterWelcomeTemplate(unsubscribeToken);
     return this.sendEmail({ to: subscriberEmail, subject, html, text });
   }
 }

@@ -38,7 +38,7 @@ export const POST = withApiHandler(
       // Check if email already exists
       const { data: existing, error: checkError } = await serverSupabase
         .from('newsletter_subscriptions')
-        .select('id, email, is_active')
+        .select('id, email, is_active, unsubscribe_token')
         .eq('email', normalizedEmail)
         .eq('is_active', true)
         .maybeSingle();
@@ -57,7 +57,7 @@ export const POST = withApiHandler(
           email: normalizedEmail,
         });
         return NextResponse.json(
-          { message: 'You\'re already subscribed!', subscribed: true },
+          { message: "You're already subscribed!", subscribed: true },
           { status: 200 }
         );
       }
@@ -74,13 +74,15 @@ export const POST = withApiHandler(
       const { data: inserted, error: insertError } = await serverSupabase
         .from('newsletter_subscriptions')
         .insert(subscriptionData)
-        .select()
+        .select('id, unsubscribe_token')
         .single();
+
+      let unsubscribeToken = inserted?.unsubscribe_token;
 
       if (insertError) {
         if (insertError.code === '23505') {
           // Unique constraint violation - reactivate
-          const { error: updateError } = await serverSupabase
+          const { data: reactivated, error: updateError } = await serverSupabase
             .from('newsletter_subscriptions')
             .update({
               is_active: true,
@@ -88,7 +90,9 @@ export const POST = withApiHandler(
               unsubscribed_at: null,
               source: 'footer',
             })
-            .eq('email', normalizedEmail);
+            .eq('email', normalizedEmail)
+            .select('id, unsubscribe_token')
+            .single();
 
           if (updateError) {
             logger.error('Error reactivating newsletter subscription', {
@@ -98,6 +102,8 @@ export const POST = withApiHandler(
             });
             throw new Error('Failed to subscribe. Please try again later.');
           }
+
+          unsubscribeToken = reactivated.unsubscribe_token;
 
           logger.info('Newsletter subscription reactivated', {
             service: 'newsletter',
@@ -119,14 +125,26 @@ export const POST = withApiHandler(
         });
       }
 
-      // Send welcome email (fire-and-forget — don't block the response)
-      EmailService.sendNewsletterWelcomeEmail(normalizedEmail).catch((err) => {
-        logger.error('Failed to send newsletter welcome email', {
+      // Send welcome email only when the DB returned the token required by
+      // the one-click unsubscribe link. Never send an email with a broken or
+      // address-based unsubscribe URL.
+      if (unsubscribeToken) {
+        EmailService.sendNewsletterWelcomeEmail(
+          normalizedEmail,
+          unsubscribeToken
+        ).catch((err) => {
+          logger.error('Failed to send newsletter welcome email', {
+            service: 'newsletter',
+            error: err,
+            email: normalizedEmail,
+          });
+        });
+      } else {
+        logger.error('Newsletter subscription has no unsubscribe token', {
           service: 'newsletter',
-          error: err,
           email: normalizedEmail,
         });
-      });
+      }
 
       return NextResponse.json(
         { message: 'Successfully subscribed to newsletter', subscribed: true },
@@ -139,10 +157,11 @@ export const POST = withApiHandler(
         email: normalizedEmail,
       });
 
-      // Graceful degradation - return success even if DB fails
+      // Do not acknowledge a subscription that was never persisted. A false
+      // success makes the form look healthy while the user receives nothing.
       return NextResponse.json(
-        { message: 'Successfully subscribed to newsletter', subscribed: true },
-        { status: 200 }
+        { error: 'Unable to subscribe right now. Please try again later.' },
+        { status: 503 }
       );
     }
   }

@@ -9,6 +9,10 @@ import {
   paymentIntentSchema,
   passwordResetSchema,
 } from '../schemas';
+import {
+  MAX_JOB_PAYMENT_GBP,
+  MAX_JOB_PAYMENT_GBP_LABEL,
+} from '@mintenance/api-contracts';
 
 describe('loginSchema', () => {
   it('should validate valid login data', () => {
@@ -179,7 +183,7 @@ describe('registerSchema', () => {
 
 describe('paymentIntentSchema', () => {
   const validPayment = {
-    amount: 150.50,
+    amount: 150.5,
     currency: 'gbp' as const,
     jobId: '550e8400-e29b-41d4-a716-446655440000',
     contractorId: '550e8400-e29b-41d4-a716-446655440001',
@@ -215,17 +219,19 @@ describe('paymentIntentSchema', () => {
   it('should reject amount over maximum', () => {
     const data = {
       ...validPayment,
-      amount: 15000,
+      amount: MAX_JOB_PAYMENT_GBP + 0.01,
     };
 
     const result = paymentIntentSchema.safeParse(data);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toContain('10,000');
+      expect(result.error.issues[0].message).toContain(
+        MAX_JOB_PAYMENT_GBP_LABEL
+      );
     }
   });
 
-  it('should default currency to usd', () => {
+  it('should default currency to gbp', () => {
     const data = {
       ...validPayment,
       currency: undefined,

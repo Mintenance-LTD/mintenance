@@ -17,7 +17,7 @@
  * select strings are never executed against a real schema.
  *
  * Generated from the LIVE schema (project ukrjudtlvapiajkjbcrd) on
- * 2026-08-02 via the Supabase MCP. REGENERATE after any migration that
+ * 2026-08-30 via the linked Supabase schema. REGENERATE after any migration that
  * touches these tables:
  *
  *   SELECT table_name, string_agg(column_name, ',' ORDER BY column_name)
@@ -57,7 +57,7 @@ export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
     ','
   ),
   profiles:
-    'activated_at,address,admin_verified,avatar_url,background_check_completed_at,background_check_id,background_check_provider,background_check_result,background_check_status,bio,business_address,city,company_name,country,cover_photo_url,created_at,dbs_expiry,deleted_at,email,first_name,hourly_rate,id,insurance_expiry,insurance_expiry_date,intro_swiper_dismissed_at,is_available,is_visible_on_map,last_name,latitude,license_expiry,license_number,license_type,location,longitude,mfa_enabled,mfa_enrolled_at,mfa_method,notification_preferences,onboarding_completed,onboarding_completed_at,phone,phone_verified,phone_verified_at,portfolio_images,postcode,profile_image_url,profile_photo_is_selfie,rating,role,settings,skills,stripe_charges_enabled,stripe_connect_account_id,stripe_customer_id,stripe_details_submitted,stripe_onboarding_completed_at,stripe_payouts_enabled,stripe_requirements_pending,stripe_transfers_active,subscription_status,tokens_revoked_at,total_jobs_completed,totp_secret,totp_secret_needs_rotation,trial_ends_at,trial_started_at,updated_at,verification_status,verified,years_experience'.split(
+    'activated_at,address,admin_verified,avatar_url,background_check_completed_at,background_check_id,background_check_provider,background_check_result,background_check_status,bio,business_address,city,company_name,country,cover_photo_url,created_at,date_of_birth_encrypted,dbs_expiry,deleted_at,email,first_name,hourly_rate,id,insurance_expiry,insurance_expiry_date,intro_swiper_dismissed_at,is_available,is_visible_on_map,last_name,latitude,license_expiry,license_number,license_type,location,longitude,mfa_enabled,mfa_enrolled_at,mfa_method,notification_preferences,onboarding_completed,onboarding_completed_at,phone,phone_verified,phone_verified_at,portfolio_images,postcode,profile_image_url,profile_photo_is_selfie,rating,role,settings,skills,stripe_charges_enabled,stripe_connect_account_id,stripe_customer_id,stripe_details_submitted,stripe_onboarding_completed_at,stripe_payouts_enabled,stripe_requirements_pending,stripe_transfers_active,subscription_status,tokens_revoked_at,total_jobs_completed,totp_secret,totp_secret_needs_rotation,trial_ends_at,trial_started_at,updated_at,verification_status,verified,years_experience'.split(
       ','
     ),
   properties:
