@@ -15,7 +15,12 @@ interface ProcessorResult {
   processed: boolean;
   jobId: string | null;
   jobType: string | null;
-  status: 'no_pending_jobs' | 'completed' | 'failed' | 'already_running';
+  status:
+    | 'no_pending_jobs'
+    | 'completed'
+    | 'failed'
+    | 'already_running'
+    | 'submitted';
   durationMs?: number;
   error?: string;
 }
@@ -50,7 +55,9 @@ export class DistillationProcessorService {
     // 2. Fetch next pending job (oldest first)
     const { data: pendingJob, error: fetchError } = await serverSupabase
       .from('knowledge_distillation_jobs')
-      .select('id, job_type, config, model_version, base_model_version, retry_count')
+      .select(
+        'id, job_type, config, model_version, base_model_version, retry_count'
+      )
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
       .limit(1)
@@ -68,7 +75,10 @@ export class DistillationProcessorService {
     const startTime = Date.now();
 
     // 3. Mark job as running
-    await KnowledgeDistillationService.updateJobStatus(pendingJob.id, 'running');
+    await KnowledgeDistillationService.updateJobStatus(
+      pendingJob.id,
+      'running'
+    );
 
     logger.info('Starting distillation job', {
       service: 'DistillationProcessorService',
@@ -81,29 +91,36 @@ export class DistillationProcessorService {
       // 4. Execute training based on job type
       if (pendingJob.job_type === 'vlm_distillation') {
         const result = await KnowledgeDistillationService.trainStudentVLM({
+          existingJobId: pendingJob.id,
           triggeredBy: 'scheduled',
-          maxExamples: (pendingJob.config as Record<string, unknown>)?.maxExamples as number ?? 5000,
-          minQuality: (pendingJob.config as Record<string, unknown>)?.minQuality as 'high' | 'medium' ?? 'medium',
+          maxExamples:
+            ((pendingJob.config as Record<string, unknown>)
+              ?.maxExamples as number) ?? 5000,
+          minQuality:
+            ((pendingJob.config as Record<string, unknown>)?.minQuality as
+              | 'high'
+              | 'medium') ?? 'medium',
         });
 
         const durationMs = Date.now() - startTime;
 
-        if (result.success) {
-          await KnowledgeDistillationService.updateJobStatus(pendingJob.id, 'completed', {
-            metrics: result.metrics || {},
-            outputModelPath: result.modelVersion,
-          });
-        } else {
-          await KnowledgeDistillationService.updateJobStatus(pendingJob.id, 'failed', {
-            errorMessage: result.error || 'Unknown training error',
-          });
+        if (!result.success) {
+          await KnowledgeDistillationService.updateJobStatus(
+            pendingJob.id,
+            'failed',
+            {
+              errorMessage: result.error || 'Unknown training error',
+            }
+          );
         }
 
         return {
           processed: true,
           jobId: pendingJob.id,
           jobType: pendingJob.job_type,
-          status: result.success ? 'completed' : 'failed',
+          // Successful submission remains running until the signed worker
+          // callback finalizes the job and its reserved training examples.
+          status: result.success ? 'submitted' : 'failed',
           durationMs,
           error: result.error,
         };
@@ -113,9 +130,13 @@ export class DistillationProcessorService {
       // delegate to appropriate service based on job type
       const durationMs = Date.now() - startTime;
 
-      await KnowledgeDistillationService.updateJobStatus(pendingJob.id, 'completed', {
-        metrics: { processedAt: new Date().toISOString() },
-      });
+      await KnowledgeDistillationService.updateJobStatus(
+        pendingJob.id,
+        'completed',
+        {
+          metrics: { processedAt: new Date().toISOString() },
+        }
+      );
 
       return {
         processed: true,
@@ -126,7 +147,8 @@ export class DistillationProcessorService {
       };
     } catch (error) {
       const durationMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       logger.error('Distillation job failed', error, {
         service: 'DistillationProcessorService',
@@ -135,10 +157,14 @@ export class DistillationProcessorService {
       });
 
       // Mark as failed and increment retry count
-      await KnowledgeDistillationService.updateJobStatus(pendingJob.id, 'failed', {
-        errorMessage,
-        errorStack: error instanceof Error ? error.stack : undefined,
-      });
+      await KnowledgeDistillationService.updateJobStatus(
+        pendingJob.id,
+        'failed',
+        {
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+        }
+      );
 
       // Increment retry count
       await serverSupabase

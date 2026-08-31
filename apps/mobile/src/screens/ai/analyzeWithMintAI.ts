@@ -36,15 +36,19 @@ interface BuildingAssessmentResponse {
   damageAssessment?: {
     damageType?: string;
     severity?: 'early' | 'developing' | 'significant' | 'dangerous';
+    confidence?: number;
     description?: string;
   };
-  detections?: Array<{ label: string; confidence: number }>;
-  insuranceRisk?: { score?: number };
   contractorAdvice?: {
     recommendedTrades?: string[];
-    summary?: string;
+    repairNeeded?: string[];
+    estimatedCost?: { min?: number; max?: number; recommended?: number };
   };
-  homeownerExplanation?: string;
+  homeownerExplanation?: {
+    whatIsIt?: string;
+    whyItHappened?: string;
+    whatToDo?: string;
+  };
   ricsConditionRating?: 1 | 2 | 3;
   probableCause?: string;
   needsOnsiteInspection?: boolean;
@@ -67,30 +71,31 @@ const COST_BAND_BY_SEVERITY: Record<
  * screen already renders. Defensive defaults so the UI never crashes on
  * partial responses.
  */
-function toAnalysisResult(
+export function toAnalysisResult(
   mintResp: BuildingAssessmentResponse
 ): AnalysisResult {
   const damageType = mintResp.damageAssessment?.damageType ?? 'general_damage';
   const severity = mintResp.damageAssessment?.severity ?? 'early';
 
-  const maxDetectionConfidence =
-    mintResp.detections && mintResp.detections.length > 0
-      ? Math.max(...mintResp.detections.map((d) => d.confidence ?? 0))
-      : 0.5;
-
-  const [costMin, costMax] = COST_BAND_BY_SEVERITY[severity] ?? [0, 0];
+  const confidence = mintResp.damageAssessment?.confidence;
+  const [fallbackMin, fallbackMax] = COST_BAND_BY_SEVERITY[severity] ?? [0, 0];
+  const costMin = mintResp.contractorAdvice?.estimatedCost?.min ?? fallbackMin;
+  const costMax = mintResp.contractorAdvice?.estimatedCost?.max ?? fallbackMax;
 
   const recommendedActions: string[] = [];
-  if (mintResp.contractorAdvice?.summary) {
-    recommendedActions.push(mintResp.contractorAdvice.summary);
+  if (mintResp.contractorAdvice?.repairNeeded?.length) {
+    recommendedActions.push(...mintResp.contractorAdvice.repairNeeded);
   }
   if (mintResp.contractorAdvice?.recommendedTrades?.length) {
     recommendedActions.push(
       `Recommended trades: ${mintResp.contractorAdvice.recommendedTrades.join(', ')}`
     );
   }
-  if (mintResp.homeownerExplanation) {
-    recommendedActions.push(mintResp.homeownerExplanation);
+  if (mintResp.homeownerExplanation?.whatToDo) {
+    recommendedActions.push(mintResp.homeownerExplanation.whatToDo);
+  }
+  if (mintResp.homeownerExplanation?.whatIsIt) {
+    recommendedActions.push(mintResp.homeownerExplanation.whatIsIt);
   }
   if (recommendedActions.length === 0) {
     recommendedActions.push(
@@ -106,9 +111,7 @@ function toAnalysisResult(
     estimatedCostMax: costMax,
     recommendedActions,
     category: damageType,
-    confidence: Math.round(
-      Math.max(0, Math.min(1, maxDetectionConfidence)) * 100
-    ),
+    confidence: Math.round(Math.max(0, Math.min(100, confidence ?? 0))),
     ricsConditionRating: mintResp.ricsConditionRating,
     probableCause: mintResp.probableCause,
     needsOnsiteInspection: mintResp.needsOnsiteInspection,

@@ -2,13 +2,8 @@ import { logger } from '@mintenance/shared';
 import crypto from 'crypto';
 import { structureAssessment } from '../assessment-structurer';
 import { applyMemoryAdjustments } from '../memory-adjustments';
-import { formatSAM3EvidenceForFusion } from '../evidence-formatter';
 import { BayesianFusionService } from '../BayesianFusionService';
 import { mondrianConformalPrediction } from '../conformal-prediction';
-import {
-  computeOODScore,
-  computeDetectorDisagreement,
-} from '../detector-metrics';
 import {
   normalizeDamageCategory,
   getSafetyThreshold,
@@ -47,9 +42,7 @@ export async function postProcessAssessment(
 ): Promise<Phase1BuildingAssessment> {
   const {
     aiResponse,
-    roboflowDetections,
     visionAnalysis,
-    sam3Segmentation,
     sceneGraphFeatures,
     memoryAdjustments,
     imageQuality,
@@ -58,21 +51,31 @@ export async function postProcessAssessment(
 
   // Structure into Phase1BuildingAssessment (now includes material database enrichment)
   let assessment = await structureAssessment(aiResponse, {
-    roboflowDetections,
     visionAnalysis: visionAnalysis || undefined,
-    sam3Segmentation: sam3Segmentation ? sam3Segmentation : undefined,
     sceneGraphFeatures: (sceneGraphFeatures
       ? sceneGraphFeatures
       : undefined) as SceneGraphFeatures | undefined,
   });
+  const generatorMetadata = (
+    aiResponse as AiAssessmentPayload & {
+      __modelMetadata?: Phase1BuildingAssessment['modelMetadata'];
+    }
+  ).__modelMetadata;
+  if (generatorMetadata) {
+    assessment.modelMetadata = generatorMetadata;
+  }
+  if (assessment.evidence) {
+    delete assessment.evidence.roboflowDetections;
+    delete assessment.evidence.sam3Segmentation;
+  }
 
   // Apply memory adjustments
   assessment = applyMemoryAdjustments(assessment, memoryAdjustments);
 
-  // Bayesian Fusion
-  const sam3EvidenceFormatted = formatSAM3EvidenceForFusion(sam3Segmentation);
+  // Calibrate the generative model output with structural scene context only.
+  // YOLO/Roboflow and SAM evidence are deliberately excluded from all scoring.
   const bayesianFusionResult = BayesianFusionService.fuseEvidence({
-    sam3Evidence: sam3EvidenceFormatted,
+    sam3Evidence: null,
     gpt4Assessment: {
       severity: assessment.damageAssessment.severity,
       confidence: assessment.damageAssessment.confidence,
@@ -97,29 +100,27 @@ export async function postProcessAssessment(
     { propertyType, propertyAge, region, damageCategory }
   );
 
-  // Detector metrics
-  const detectorDisagreement = computeDetectorDisagreement(
-    roboflowDetections,
-    visionAnalysis,
-    assessment.damageAssessment.confidence
-  );
-  const oodScore = computeOODScore(roboflowDetections, bayesianFusionResult);
+  // Detector-derived metrics are neutral while the legacy detector stack is
+  // retired. They remain in the critic vector for schema compatibility only.
+  const detectorDisagreement = 0;
+  const oodScore = 0;
 
-  // P2: Escalate when evidence sources significantly conflict
-  const DISAGREEMENT_ESCALATION_THRESHOLD = 0.6;
+  // Escalate when the remaining model/context estimate is too uncertain.
   const HIGH_VARIANCE_THRESHOLD = 0.15;
   const evidenceConflict =
-    detectorDisagreement > DISAGREEMENT_ESCALATION_THRESHOLD ||
     bayesianFusionResult.variance > HIGH_VARIANCE_THRESHOLD;
 
   if (evidenceConflict) {
-    logger.warn('Evidence conflict detected — escalating for human review', {
-      service: 'BuildingSurveyorService',
-      detectorDisagreement,
-      fusionVariance: bayesianFusionResult.variance,
-      fusionMean: bayesianFusionResult.mean,
-      oodScore,
-    });
+    logger.warn(
+      'High model uncertainty detected — escalating for human review',
+      {
+        service: 'BuildingSurveyorService',
+        detectorDisagreement,
+        fusionVariance: bayesianFusionResult.variance,
+        fusionMean: bayesianFusionResult.mean,
+        oodScore,
+      }
+    );
   }
 
   // Context vector for Safe-LUCB Critic
@@ -191,10 +192,10 @@ export async function postProcessAssessment(
     }
   }
 
-  // P2: Force escalation when evidence sources conflict
+  // Force escalation when model/context uncertainty is high.
   if (evidenceConflict && finalDecision !== 'escalate') {
     finalDecision = 'escalate';
-    decisionReason = `Evidence conflict: detector disagreement ${detectorDisagreement.toFixed(2)}, fusion variance ${bayesianFusionResult.variance.toFixed(3)}`;
+    decisionReason = `High model uncertainty: variance ${bayesianFusionResult.variance.toFixed(3)}`;
   }
 
   // Attach decision result

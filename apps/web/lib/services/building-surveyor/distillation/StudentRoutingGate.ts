@@ -12,22 +12,29 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import type { AssessmentContext } from '../types';
 import type { StudentRoutingResult, StudentCalibrationEntry } from './types';
+import { MINT_AI_MODEL_ID } from '../../ai/mint-ai-constants';
 
 const MINT_AI_VLM_ENDPOINT = process.env.MINT_AI_VLM_ENDPOINT?.trim() || '';
 const VLM_ROUTING_MODE = process.env.VLM_ROUTING_MODE?.trim() || 'shadow_only';
-const MIN_ACCURACY = parseFloat(process.env.VLM_MIN_ACCURACY_FOR_ROUTING || '0.85');
-const MIN_SAFETY_RECALL = parseFloat(process.env.VLM_MIN_SAFETY_RECALL || '0.95');
+const MIN_ACCURACY = parseFloat(
+  process.env.VLM_MIN_ACCURACY_FOR_ROUTING || '0.85'
+);
+const MIN_SAFETY_RECALL = parseFloat(
+  process.env.VLM_MIN_SAFETY_RECALL || '0.95'
+);
 
 // Standard threshold for structurally/mechanically complex damage types.
 const MIN_PREDICTIONS_STANDARD = parseInt(
-  process.env.VLM_MIN_PREDICTIONS_FOR_ROUTING ?? '50', 10
+  process.env.VLM_MIN_PREDICTIONS_FOR_ROUTING ?? '50',
+  10
 );
 
 // Reduced threshold for visually unambiguous, non-safety cosmetic categories.
 // These are easier to classify and unlikely to cause harm if mis-routed.
 // Halves the cold-start barrier so the student can serve common low-risk jobs sooner.
 const MIN_PREDICTIONS_LOW_RISK = parseInt(
-  process.env.VLM_MIN_PREDICTIONS_LOW_RISK ?? '20', 10
+  process.env.VLM_MIN_PREDICTIONS_LOW_RISK ?? '20',
+  10
 );
 
 // Categories where cosmetic/aesthetic damage dominates — lower cold-start threshold applies.
@@ -59,20 +66,32 @@ export class StudentRoutingGate {
   ): Promise<StudentRoutingResult> {
     // Gate 1: VLM endpoint must be configured
     if (!MINT_AI_VLM_ENDPOINT) {
-      return { decision: 'teacher_only', reasoning: 'MINT_AI_VLM_ENDPOINT not set' };
+      return {
+        decision: 'teacher_only',
+        reasoning: 'MINT_AI_VLM_ENDPOINT not set',
+      };
     }
 
     // Gate 2: Routing mode check
     if (VLM_ROUTING_MODE === 'shadow_only') {
-      return { decision: 'shadow_compare', reasoning: 'VLM_ROUTING_MODE is shadow_only' };
+      return {
+        decision: 'shadow_compare',
+        reasoning: 'VLM_ROUTING_MODE is shadow_only',
+      };
     }
 
     if (VLM_ROUTING_MODE !== 'auto') {
-      return { decision: 'teacher_only', reasoning: `Unknown VLM_ROUTING_MODE: ${VLM_ROUTING_MODE}` };
+      return {
+        decision: 'teacher_only',
+        reasoning: `Unknown VLM_ROUTING_MODE: ${VLM_ROUTING_MODE}`,
+      };
     }
 
     // Gate 3: Hard overrides — high-stakes contexts always go to teacher
-    if (context?.propertyType === 'commercial' || context?.propertyType === 'industrial') {
+    if (
+      context?.propertyType === 'commercial' ||
+      context?.propertyType === 'industrial'
+    ) {
       return {
         decision: 'teacher_only',
         reasoning: `Property type ${context.propertyType} requires teacher`,
@@ -109,8 +128,16 @@ export class StudentRoutingGate {
     }
 
     // Gate 6: Accuracy + safety recall check
-    if (calibration.emaAccuracy >= MIN_ACCURACY && calibration.emaSafetyRecall >= MIN_SAFETY_RECALL) {
-      await this.logRoutingDecision(context?.assessmentId, 'student_only', category, calibration);
+    if (
+      calibration.emaAccuracy >= MIN_ACCURACY &&
+      calibration.emaSafetyRecall >= MIN_SAFETY_RECALL
+    ) {
+      await this.logRoutingDecision(
+        context?.assessmentId,
+        'student_only',
+        category,
+        calibration
+      );
       return {
         decision: 'student_only',
         reasoning: `Student calibrated: accuracy=${calibration.emaAccuracy.toFixed(2)}, safety=${calibration.emaSafetyRecall.toFixed(2)}`,
@@ -121,8 +148,13 @@ export class StudentRoutingGate {
     }
 
     // Moderate confidence — run shadow
-    if (calibration.emaAccuracy >= 0.70 && calibration.emaSafetyRecall >= 0.90) {
-      await this.logRoutingDecision(context?.assessmentId, 'shadow_compare', category, calibration);
+    if (calibration.emaAccuracy >= 0.7 && calibration.emaSafetyRecall >= 0.9) {
+      await this.logRoutingDecision(
+        context?.assessmentId,
+        'shadow_compare',
+        category,
+        calibration
+      );
       return {
         decision: 'shadow_compare',
         reasoning: `Student moderate: accuracy=${calibration.emaAccuracy.toFixed(2)}, safety=${calibration.emaSafetyRecall.toFixed(2)}`,
@@ -133,7 +165,12 @@ export class StudentRoutingGate {
     }
 
     // Below threshold — teacher only
-    await this.logRoutingDecision(context?.assessmentId, 'teacher_only', category, calibration);
+    await this.logRoutingDecision(
+      context?.assessmentId,
+      'teacher_only',
+      category,
+      calibration
+    );
     return {
       decision: 'teacher_only',
       reasoning: `Student below threshold: accuracy=${calibration.emaAccuracy.toFixed(2)}, safety=${calibration.emaSafetyRecall.toFixed(2)}`,
@@ -159,6 +196,7 @@ export class StudentRoutingGate {
       // First observation — insert
       await serverSupabase.from('vlm_student_calibration').insert({
         category,
+        model_version: MINT_AI_MODEL_ID,
         total_predictions: 1,
         correct_predictions: wasCorrect ? 1 : 0,
         accuracy: wasCorrect ? 1 : 0,
@@ -177,8 +215,10 @@ export class StudentRoutingGate {
     const newSafetyTotal = existing.safetyTotal + 1;
     const newSafetyCorrect = existing.safetyCorrect + safetyRecall;
 
-    const emaAccuracy = EMA_ALPHA * (wasCorrect ? 1 : 0) + (1 - EMA_ALPHA) * existing.emaAccuracy;
-    const emaSafetyRecall = EMA_ALPHA * safetyRecall + (1 - EMA_ALPHA) * existing.emaSafetyRecall;
+    const emaAccuracy =
+      EMA_ALPHA * (wasCorrect ? 1 : 0) + (1 - EMA_ALPHA) * existing.emaAccuracy;
+    const emaSafetyRecall =
+      EMA_ALPHA * safetyRecall + (1 - EMA_ALPHA) * existing.emaSafetyRecall;
 
     await serverSupabase
       .from('vlm_student_calibration')
@@ -193,7 +233,9 @@ export class StudentRoutingGate {
         ema_safety_recall: emaSafetyRecall,
         last_updated: new Date().toISOString(),
       })
-      .eq('category', category);
+      .eq('category', category)
+      .eq('model_version', MINT_AI_MODEL_ID)
+      .is('invalidated_at', null);
   }
 
   /**
@@ -203,6 +245,8 @@ export class StudentRoutingGate {
     const { data, error } = await serverSupabase
       .from('vlm_student_calibration')
       .select('*')
+      .eq('model_version', MINT_AI_MODEL_ID)
+      .is('invalidated_at', null)
       .order('total_predictions', { ascending: false });
 
     if (error || !data) return [];
@@ -232,6 +276,8 @@ export class StudentRoutingGate {
       .from('vlm_student_calibration')
       .select('*')
       .eq('category', category)
+      .eq('model_version', MINT_AI_MODEL_ID)
+      .is('invalidated_at', null)
       .single();
 
     if (error || !data) return null;
@@ -263,6 +309,7 @@ export class StudentRoutingGate {
         decision,
         reasoning: `accuracy=${calibration.emaAccuracy.toFixed(2)}, safety=${calibration.emaSafetyRecall.toFixed(2)}, n=${calibration.totalPredictions}`,
         category,
+        model_version: MINT_AI_MODEL_ID,
         student_accuracy: calibration.emaAccuracy,
         safety_recall: calibration.emaSafetyRecall,
       })

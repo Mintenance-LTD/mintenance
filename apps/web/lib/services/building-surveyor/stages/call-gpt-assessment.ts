@@ -3,7 +3,10 @@ import { CostControlService } from '../../ai/CostControlService';
 import { getGeneratorContent } from '../generator/AssessmentGenerator';
 import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
 import { CircuitBreaker } from '../utils/CircuitBreaker';
-import { AI_ASSESSMENT_SCHEMA, type AiAssessmentPayload } from '../validation-schemas';
+import {
+  AI_ASSESSMENT_SCHEMA,
+  type AiAssessmentPayload,
+} from '../validation-schemas';
 import { buildSystemPrompt, buildUserPrompt } from '../prompt-builder';
 import { buildEvidenceSummary } from '../evidence-processor';
 import type {
@@ -13,6 +16,7 @@ import type {
 } from '../types';
 
 const AGENT_NAME = 'building-surveyor';
+const PROMPT_VERSION = 'building-surveyor-v3';
 
 /** Use the same configurable model as the generator */
 const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-4o';
@@ -37,7 +41,10 @@ interface ChatMessage {
     | string
     | Array<
         | { type: 'text'; text: string }
-        | { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' | 'auto' } }
+        | {
+            type: 'image_url';
+            image_url: { url: string; detail: 'high' | 'low' | 'auto' };
+          }
       >;
 }
 
@@ -52,13 +59,24 @@ export async function callGptAssessment(
   visionAnalysis: VisionAnalysisSummary | null,
   hasMachineEvidence: boolean,
   context?: AssessmentContext,
-  damageTypesForPrompt?: string[],
+  damageTypesForPrompt?: string[]
 ): Promise<AiAssessmentPayload> {
   // Build prompts (pass property age for era-specific risk injection)
-  const systemPrompt = buildSystemPrompt(damageTypesForPrompt, context?.ageOfProperty ?? context?.propertyAge);
-  const evidenceSummary = buildEvidenceSummary(roboflowDetections, visionAnalysis);
-  const hasDetectionEvidence = roboflowDetections.length > 0 || !!visionAnalysis;
-  const userPrompt = buildUserPrompt(context, evidenceSummary, hasDetectionEvidence);
+  const systemPrompt = buildSystemPrompt(
+    damageTypesForPrompt,
+    context?.ageOfProperty ?? context?.propertyAge
+  );
+  const evidenceSummary = buildEvidenceSummary(
+    roboflowDetections,
+    visionAnalysis
+  );
+  const hasDetectionEvidence =
+    roboflowDetections.length > 0 || !!visionAnalysis;
+  const userPrompt = buildUserPrompt(
+    context,
+    evidenceSummary,
+    hasDetectionEvidence
+  );
 
   // Before/after comparison mode: when before photos are present, interleave them with
   // the after (current) photos so the model can reason about change over time.
@@ -112,7 +130,9 @@ export async function callGptAssessment(
 
   // P1: Circuit breaker check
   if (gptCircuitBreaker.isOpen()) {
-    throw new Error('GPT-4o circuit breaker is open — too many recent failures');
+    throw new Error(
+      'GPT-4o circuit breaker is open — too many recent failures'
+    );
   }
 
   // Budget check
@@ -130,10 +150,13 @@ export async function callGptAssessment(
   });
 
   if (!budgetCheck.allowed) {
-    logger.error('Building Surveyor request blocked due to budget constraints', {
-      reason: budgetCheck.reason,
-      dailyRemaining: budgetCheck.dailyBudgetRemaining,
-    });
+    logger.error(
+      'Building Surveyor request blocked due to budget constraints',
+      {
+        reason: budgetCheck.reason,
+        dailyRemaining: budgetCheck.dailyBudgetRemaining,
+      }
+    );
     throw new Error(`Budget exceeded: ${budgetCheck.reason}`);
   }
 
@@ -147,11 +170,13 @@ export async function callGptAssessment(
   let genResult;
   try {
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('AI assessment timed out after 90 seconds')), GPT_ASSESSMENT_TIMEOUT_MS),
+      setTimeout(
+        () => reject(new Error('AI assessment timed out after 90 seconds')),
+        GPT_ASSESSMENT_TIMEOUT_MS
+      )
     );
     genResult = await Promise.race([
       getGeneratorContent(messages, openaiApiKey, {
-        damageCategory: damageTypesForPrompt?.[0],
         propertyType: context?.propertyType,
         propertyAge: context?.ageOfProperty ?? context?.propertyAge,
       }),
@@ -172,11 +197,18 @@ export async function callGptAssessment(
       outputTokens: usage.completion_tokens,
     });
 
-    await CostControlService.recordUsage('building-surveyor', genResult.model, actualCost, {
-      tokens: usage.total_tokens,
-      job_id: (context as Record<string, unknown> | undefined)?.jobId as string | undefined,
-      success: true,
-    });
+    await CostControlService.recordUsage(
+      'building-surveyor',
+      genResult.model,
+      actualCost,
+      {
+        tokens: usage.total_tokens,
+        job_id: (context as Record<string, unknown> | undefined)?.jobId as
+          | string
+          | undefined,
+        success: true,
+      }
+    );
 
     logger.info('Building Surveyor API usage recorded', {
       model: genResult.model,
@@ -209,7 +241,22 @@ export async function callGptAssessment(
 
   // Validate schema
   try {
-    return AI_ASSESSMENT_SCHEMA.parse(aiResponseRaw);
+    const assessment = AI_ASSESSMENT_SCHEMA.parse(
+      aiResponseRaw
+    ) as AiAssessmentPayload & {
+      __modelMetadata?: import('../types').Phase1BuildingAssessment['modelMetadata'];
+    };
+    assessment.__modelMetadata = {
+      provider: genResult.provider,
+      model: genResult.model,
+      routingMode: genResult.routingMode,
+      promptVersion: PROMPT_VERSION,
+      latencyMs: gptDuration,
+      ...(genResult.fallbackReason
+        ? { fallbackReason: genResult.fallbackReason }
+        : {}),
+    };
+    return assessment;
   } catch (validationError) {
     logger.error('AI assessment response failed validation', validationError, {
       service: 'BuildingSurveyorService',

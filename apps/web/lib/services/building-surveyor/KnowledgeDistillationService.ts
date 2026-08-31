@@ -115,25 +115,40 @@ export class KnowledgeDistillationService {
         );
 
         const bbox = peakPoint.bounding_box;
-        const cx = ((bbox.x1 + bbox.x2) / 2) / 640;
-        const cy = ((bbox.y1 + bbox.y2) / 2) / 640;
+        const cx = (bbox.x1 + bbox.x2) / 2 / 640;
+        const cy = (bbox.y1 + bbox.y2) / 2 / 640;
         const w = (bbox.x2 - bbox.x1) / 640;
         const h = (bbox.y2 - bbox.y1) / 640;
         const yoloLabel =
-          '0 ' + cx.toFixed(6) + ' ' + cy.toFixed(6) + ' ' + w.toFixed(6) + ' ' + h.toFixed(6);
+          '0 ' +
+          cx.toFixed(6) +
+          ' ' +
+          cy.toFixed(6) +
+          ' ' +
+          w.toFixed(6) +
+          ' ' +
+          h.toFixed(6);
 
         const { error } = await serverSupabase
           .from('sam3_pseudo_labels')
           .insert({
-            image_url: 'sam2://assessment/' + assessmentId + '/frame/' + peakPoint.frame_number,
+            image_url:
+              'sam2://assessment/' +
+              assessmentId +
+              '/frame/' +
+              peakPoint.frame_number,
             image_hash: 'sam2-' + assessmentId + '-' + trajectory.track_id,
             damage_types_detected: [trajectory.damage_type],
-            segmentation_data: { [trajectory.damage_type]: {
-              masks: [],
-              boxes: [[bbox.x1, bbox.y1, bbox.x2 - bbox.x1, bbox.y2 - bbox.y1]],
-              scores: [peakPoint.confidence],
-              numInstances: 1,
-            }},
+            segmentation_data: {
+              [trajectory.damage_type]: {
+                masks: [],
+                boxes: [
+                  [bbox.x1, bbox.y1, bbox.x2 - bbox.x1, bbox.y2 - bbox.y1],
+                ],
+                scores: [peakPoint.confidence],
+                numInstances: 1,
+              },
+            },
             overall_confidence: peakPoint.confidence,
             min_confidence: trajectory.average_confidence,
             max_confidence: trajectory.max_confidence,
@@ -173,7 +188,9 @@ export class KnowledgeDistillationService {
 
   // ── Private helpers (kept inline — short, tightly coupled) ────────────
 
-  private static async storeGPT4Label(input: GPT4TrainingLabelInput): Promise<string> {
+  private static async storeGPT4Label(
+    input: GPT4TrainingLabelInput
+  ): Promise<string> {
     const { data, error } = await serverSupabase
       .from('gpt4_training_labels')
       .insert({
@@ -225,23 +242,39 @@ export class KnowledgeDistillationService {
   static async updateJobStatus(
     jobId: string,
     status: KnowledgeDistillationJobStatus,
-    updates?: { metrics?: Record<string, unknown>; outputModelPath?: string; errorMessage?: string; errorStack?: string }
+    updates?: {
+      metrics?: Record<string, unknown>;
+      outputModelPath?: string;
+      errorMessage?: string;
+      errorStack?: string;
+    }
   ) {
     return updateJobStatus(jobId, status, updates);
   }
 
-  static async markDataAsUsed(jobId: string, jobType: KnowledgeDistillationJobType, dataIds: string[]) {
+  static async markDataAsUsed(
+    jobId: string,
+    jobType: KnowledgeDistillationJobType,
+    dataIds: string[]
+  ) {
     return markDataAsUsed(jobId, jobType, dataIds);
   }
 
-  static async trainDamageClassifier(jobId?: string): Promise<TrainingJobResult> {
+  static async trainDamageClassifier(
+    jobId?: string
+  ): Promise<TrainingJobResult> {
     return trainDamageClassifier(jobId);
   }
 
   static async trainStudentVLM(options?: {
     maxExamples?: number;
     minQuality?: 'high' | 'medium';
-    triggeredBy?: 'scheduled' | 'manual' | 'accuracy_drop' | 'threshold_reached';
+    triggeredBy?:
+      | 'scheduled'
+      | 'manual'
+      | 'accuracy_drop'
+      | 'threshold_reached';
+    existingJobId?: string;
   }): Promise<TrainingJobResult> {
     return trainStudentVLM(options);
   }

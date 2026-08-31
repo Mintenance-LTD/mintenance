@@ -126,7 +126,7 @@ describe('UnifiedAIServiceMobile construction', () => {
     );
     expect(cfg.performance.cacheEnabled).toBe(true);
     expect(cfg.performance.maxRetries).toBe(3);
-    expect(cfg.features.enableSAM3).toBe(true);
+    expect(cfg.features.enableSAM3).toBe(false);
   });
 });
 

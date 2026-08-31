@@ -12,7 +12,7 @@ import { authorizeAssessmentAnchors } from './_anchor-authorization';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // AI assessment (GPT-4 Vision + Roboflow) can take up to 5 min
+export const maxDuration = 300; // Vision-language assessment can take up to 5 min
 
 // Environment configuration for A/B testing
 const AB_TEST_ENABLED = process.env.AB_TEST_ENABLED === 'true';

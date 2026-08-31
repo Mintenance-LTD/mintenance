@@ -10,6 +10,7 @@
 import { logger } from '@mintenance/shared';
 import { ExperienceBufferService } from './ExperienceBufferService';
 import type { VLMTrainingExample } from './types';
+import { resignAssessmentUrls } from '@/lib/api/assessment-storage';
 
 interface ExportOptions {
   minPriority?: number;
@@ -21,9 +22,7 @@ interface ExportOptions {
 interface QwenConversation {
   messages: Array<{
     role: 'system' | 'user' | 'assistant';
-    content:
-      | string
-      | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    content: string | Array<{ type: string; text?: string; image?: string }>;
   }>;
 }
 
@@ -59,7 +58,23 @@ export class TrainingDataExporter {
     const ids: string[] = [];
 
     for (const example of examples) {
-      const conversation = this.toQwenConversation(example);
+      const freshImageUrls = await resignAssessmentUrls(
+        example.imageUrls,
+        24 * 60 * 60
+      );
+      if (freshImageUrls.length !== example.imageUrls.length) {
+        logger.warn('Skipping VLM example with unavailable training image', {
+          service: 'TrainingDataExporter',
+          exampleId: example.id,
+          expectedImages: example.imageUrls.length,
+          availableImages: freshImageUrls.length,
+        });
+        continue;
+      }
+      const conversation = this.toQwenConversation({
+        ...example,
+        imageUrls: freshImageUrls,
+      });
       lines.push(JSON.stringify(conversation));
       ids.push(example.id);
     }
@@ -74,11 +89,19 @@ export class TrainingDataExporter {
   /**
    * Mark exported examples as used after a training round.
    */
-  static async markExported(
-    ids: string[],
+  static async reserveExport(ids: string[], jobId: string): Promise<void> {
+    await ExperienceBufferService.reserveForJob(ids, jobId);
+  }
+
+  static async releaseExport(jobId: string): Promise<void> {
+    await ExperienceBufferService.releaseReservation(jobId);
+  }
+
+  static async completeExport(
+    jobId: string,
     trainingRound: number
   ): Promise<void> {
-    await ExperienceBufferService.markUsed(ids, trainingRound);
+    await ExperienceBufferService.markJobCompleted(jobId, trainingRound);
   }
 
   /**
@@ -106,13 +129,13 @@ export class TrainingDataExporter {
     const userContent: Array<{
       type: string;
       text?: string;
-      image_url?: { url: string };
+      image?: string;
     }> = [{ type: 'text', text: example.userPrompt }];
 
     for (const url of example.imageUrls) {
       userContent.push({
-        type: 'image_url',
-        image_url: { url },
+        type: 'image',
+        image: url,
       });
     }
 

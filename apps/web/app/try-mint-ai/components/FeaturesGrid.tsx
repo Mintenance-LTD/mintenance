@@ -191,13 +191,13 @@ export function FeaturesGrid() {
                     fontWeight: 500,
                   }}
                 >
-                  3-Model
+                  Visual AI
                 </div>
                 <div
                   className='font-medium'
                   style={{ color: 'var(--me-ink-2)' }}
                 >
-                  AI Fusion Pipeline
+                  Building Assessment
                 </div>
               </div>
               <div className='pt-8 sm:pt-0'>
@@ -227,13 +227,13 @@ export function FeaturesGrid() {
                     fontWeight: 500,
                   }}
                 >
-                  &lt;5s
+                  Review
                 </div>
                 <div
                   className='font-medium'
                   style={{ color: 'var(--me-ink-2)' }}
                 >
-                  Average Analysis Time
+                  Human Oversight Available
                 </div>
               </div>
             </div>
@@ -275,12 +275,14 @@ export function FeaturesGrid() {
                   style={{ background: 'var(--me-warm)' }}
                 />
                 <div>
-                  <h4 className='font-semibold mb-1'>GPT-4 Vision</h4>
+                  <h4 className='font-semibold mb-1'>
+                    Vision-Language Analysis
+                  </h4>
                   <p
                     className='text-sm'
                     style={{ color: 'var(--me-brand-soft)' }}
                   >
-                    State-of-the-art image understanding and analysis
+                    Image understanding with explicit model attribution
                   </p>
                 </div>
               </div>
@@ -290,12 +292,12 @@ export function FeaturesGrid() {
                   style={{ background: 'var(--me-warm)' }}
                 />
                 <div>
-                  <h4 className='font-semibold mb-1'>Computer Vision</h4>
+                  <h4 className='font-semibold mb-1'>Safety-Aware Output</h4>
                   <p
                     className='text-sm'
                     style={{ color: 'var(--me-brand-soft)' }}
                   >
-                    Advanced pattern recognition and defect detection
+                    Structured hazards, urgency, confidence, and escalation
                   </p>
                 </div>
               </div>
@@ -305,12 +307,12 @@ export function FeaturesGrid() {
                   style={{ background: 'var(--me-warm)' }}
                 />
                 <div>
-                  <h4 className='font-semibold mb-1'>Machine Learning</h4>
+                  <h4 className='font-semibold mb-1'>Quality Feedback</h4>
                   <p
                     className='text-sm'
                     style={{ color: 'var(--me-brand-soft)' }}
                   >
-                    Backed by image-recognition models and UK property data
+                    Human-reviewed assessments improve future model evaluation
                   </p>
                 </div>
               </div>

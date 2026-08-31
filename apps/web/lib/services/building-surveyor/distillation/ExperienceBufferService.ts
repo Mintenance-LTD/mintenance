@@ -35,7 +35,9 @@ export class ExperienceBufferService {
   ): Promise<string | null> {
     try {
       const surpriseScore = this.computeSurpriseScore(comparison);
-      const categoryStats = await this.getCategoryCount(comparison.damageCategory);
+      const categoryStats = await this.getCategoryCount(
+        comparison.damageCategory
+      );
       const priorityScore = this.computePriorityScore(
         surpriseScore,
         comparison.teacherConfidence,
@@ -44,13 +46,14 @@ export class ExperienceBufferService {
       );
 
       // Determine teacher quality from confidence
-      const teacherQuality = comparison.teacherConfidence >= 80
-        ? 'high'
-        : comparison.teacherConfidence >= 60
-          ? 'medium'
-          : comparison.teacherConfidence >= 40
-            ? 'low'
-            : 'uncertain';
+      const teacherQuality =
+        comparison.teacherConfidence >= 80
+          ? 'high'
+          : comparison.teacherConfidence >= 60
+            ? 'medium'
+            : comparison.teacherConfidence >= 40
+              ? 'low'
+              : 'uncertain';
 
       const { data, error } = await serverSupabase
         .from('vlm_training_buffer')
@@ -110,14 +113,13 @@ export class ExperienceBufferService {
     targetPerCategory: number
   ): number {
     const teacherQualityScore = Math.min(teacherConfidence / 100, 1);
-    const categoryBalanceScore = categoryCount < targetPerCategory
-      ? 1 - (categoryCount / targetPerCategory)
-      : 0;
+    const categoryBalanceScore =
+      categoryCount < targetPerCategory
+        ? 1 - categoryCount / targetPerCategory
+        : 0;
 
     return (
-      surprise * 0.5 +
-      categoryBalanceScore * 0.3 +
-      teacherQualityScore * 0.2
+      surprise * 0.5 + categoryBalanceScore * 0.3 + teacherQualityScore * 0.2
     );
   }
 
@@ -132,6 +134,7 @@ export class ExperienceBufferService {
       .from('vlm_training_buffer')
       .select('*')
       .eq('used_in_training', false)
+      .is('reserved_by_job_id', null)
       .order('priority_score', { ascending: false })
       .limit(limit);
 
@@ -159,8 +162,10 @@ export class ExperienceBufferService {
       userPrompt: row.user_prompt,
       teacherResponse: row.teacher_response as Phase1BuildingAssessment,
       studentResponse: row.student_response as Phase1BuildingAssessment | null,
-      teacherReasoning: row.teacher_reasoning as string | null ?? null,
-      humanCorrectedResponse: row.human_corrected_response as Phase1BuildingAssessment | null ?? null,
+      teacherReasoning: (row.teacher_reasoning as string | null) ?? null,
+      humanCorrectedResponse:
+        (row.human_corrected_response as Phase1BuildingAssessment | null) ??
+        null,
       surpriseScore: row.surprise_score,
       priorityScore: row.priority_score,
       difficultyScore: row.difficulty_score,
@@ -176,23 +181,63 @@ export class ExperienceBufferService {
   }
 
   /**
-   * Mark examples as used after exporting for a training round.
+   * Reserve examples for one training job without marking them as consumed.
    */
-  static async markUsed(ids: string[], trainingRound: number): Promise<void> {
+  static async reserveForJob(ids: string[], jobId: string): Promise<void> {
+    const { data, error } = await serverSupabase
+      .from('vlm_training_buffer')
+      .update({
+        reserved_by_job_id: jobId,
+        reserved_at: new Date().toISOString(),
+      })
+      .in('id', ids)
+      .eq('used_in_training', false)
+      .is('reserved_by_job_id', null)
+      .select('id');
+
+    if (error) {
+      throw new Error(`Failed to reserve training examples: ${error.message}`);
+    }
+    if ((data?.length ?? 0) !== ids.length) {
+      await this.releaseReservation(jobId);
+      throw new Error(
+        `Training reservation race: reserved ${data?.length ?? 0}/${ids.length} examples`
+      );
+    }
+  }
+
+  static async releaseReservation(jobId: string): Promise<void> {
+    const { error } = await serverSupabase
+      .from('vlm_training_buffer')
+      .update({ reserved_by_job_id: null, reserved_at: null })
+      .eq('reserved_by_job_id', jobId)
+      .eq('used_in_training', false);
+
+    if (error) {
+      throw new Error(
+        `Failed to release training reservation: ${error.message}`
+      );
+    }
+  }
+
+  static async markJobCompleted(
+    jobId: string,
+    trainingRound: number
+  ): Promise<void> {
     const { error } = await serverSupabase
       .from('vlm_training_buffer')
       .update({
         used_in_training: true,
         training_round: trainingRound,
         marked_at: new Date().toISOString(),
+        reserved_by_job_id: null,
+        reserved_at: null,
       })
-      .in('id', ids);
+      .eq('reserved_by_job_id', jobId)
+      .eq('used_in_training', false);
 
     if (error) {
-      logger.warn('Failed to mark examples as used', {
-        service: 'ExperienceBufferService',
-        error: error.message,
-      });
+      throw new Error(`Failed to finalize training examples: ${error.message}`);
     }
   }
 
@@ -202,16 +247,26 @@ export class ExperienceBufferService {
   static async getBufferStats(): Promise<ExperienceBufferStats> {
     const { data, error } = await serverSupabase
       .from('vlm_training_buffer')
-      .select('damage_category, surprise_score, priority_score, used_in_training');
+      .select(
+        'damage_category, surprise_score, priority_score, used_in_training'
+      );
 
     if (error || !data || data.length === 0) {
-      return { total: 0, unused: 0, byCategory: {}, avgSurprise: 0, avgPriority: 0 };
+      return {
+        total: 0,
+        unused: 0,
+        byCategory: {},
+        avgSurprise: 0,
+        avgPriority: 0,
+      };
     }
 
     const total = data.length;
     const unused = data.filter((r) => !r.used_in_training).length;
-    const avgSurprise = data.reduce((s, r) => s + (r.surprise_score ?? 0), 0) / total;
-    const avgPriority = data.reduce((s, r) => s + (r.priority_score ?? 0), 0) / total;
+    const avgSurprise =
+      data.reduce((s, r) => s + (r.surprise_score ?? 0), 0) / total;
+    const avgPriority =
+      data.reduce((s, r) => s + (r.priority_score ?? 0), 0) / total;
 
     const byCategory: Record<string, number> = {};
     for (const row of data) {
@@ -233,7 +288,8 @@ export class ExperienceBufferService {
       .from('vlm_training_buffer')
       .select('*', { count: 'exact', head: true })
       .eq('damage_category', category)
-      .eq('used_in_training', false);
+      .eq('used_in_training', false)
+      .is('reserved_by_job_id', null);
 
     if (error) {
       return { count: 0, targetPerCategory: 50 };
@@ -243,19 +299,29 @@ export class ExperienceBufferService {
     const { count: totalCount } = await serverSupabase
       .from('vlm_training_buffer')
       .select('*', { count: 'exact', head: true })
-      .eq('used_in_training', false);
+      .eq('used_in_training', false)
+      .is('reserved_by_job_id', null);
 
-    const numCategories = Math.max(1, Object.keys(await this.getDistinctCategories()).length);
-    const targetPerCategory = Math.max(50, Math.ceil((totalCount ?? 0) / numCategories));
+    const numCategories = Math.max(
+      1,
+      Object.keys(await this.getDistinctCategories()).length
+    );
+    const targetPerCategory = Math.max(
+      50,
+      Math.ceil((totalCount ?? 0) / numCategories)
+    );
 
     return { count: count ?? 0, targetPerCategory };
   }
 
-  private static async getDistinctCategories(): Promise<Record<string, boolean>> {
+  private static async getDistinctCategories(): Promise<
+    Record<string, boolean>
+  > {
     const { data } = await serverSupabase
       .from('vlm_training_buffer')
       .select('damage_category')
-      .eq('used_in_training', false);
+      .eq('used_in_training', false)
+      .is('reserved_by_job_id', null);
 
     const cats: Record<string, boolean> = {};
     if (data) {

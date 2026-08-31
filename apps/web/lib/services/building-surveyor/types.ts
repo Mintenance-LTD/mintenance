@@ -290,6 +290,15 @@ export interface SAM3SegmentationData {
 }
 
 export interface Phase1BuildingAssessment {
+  /** Exact generator identity for auditability; never infer this from branding. */
+  modelMetadata?: {
+    provider: 'openai' | 'mint-ai';
+    model: string;
+    routingMode: 'teacher_only' | 'shadow_only' | 'auto' | 'student_only';
+    promptVersion: string;
+    latencyMs: number;
+    fallbackReason?: string;
+  };
   damageAssessment: DamageAssessment;
   safetyHazards: SafetyHazards;
   compliance: Compliance;

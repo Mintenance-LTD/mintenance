@@ -19,6 +19,10 @@ import {
   updateJobStatus,
   markDataAsUsed,
 } from './KnowledgeDistillationJobService';
+import {
+  MINT_AI_BASE_MODEL_HF,
+  MINT_AI_MODEL_ID,
+} from '../ai/mint-ai-constants';
 
 /**
  * Train damage classifier from GPT-4 labels.
@@ -191,6 +195,7 @@ export async function trainStudentVLM(options?: {
   maxExamples?: number;
   minQuality?: 'high' | 'medium';
   triggeredBy?: 'scheduled' | 'manual' | 'accuracy_drop' | 'threshold_reached';
+  existingJobId?: string;
 }): Promise<TrainingJobResult> {
   const { TrainingDataExporter } =
     await import('./distillation/TrainingDataExporter');
@@ -218,8 +223,8 @@ export async function trainStudentVLM(options?: {
     // (ie. the weights produced by this job). `baseModelVersion` identifies
     // the upstream HuggingFace model being fine-tuned — required for
     // Apache 2.0 attribution. See apps/web/lib/services/ai/mint-ai-constants.ts.
-    modelVersion: 'mint-ai-vlm-v1-' + Date.now(),
-    baseModelVersion: 'Qwen/Qwen2.5-VL-7B-Instruct',
+    modelVersion: MINT_AI_MODEL_ID + '-' + Date.now(),
+    baseModelVersion: MINT_AI_BASE_MODEL_HF,
     triggeredBy,
     notes:
       'Mint AI distillation: max ' +
@@ -228,7 +233,11 @@ export async function trainStudentVLM(options?: {
       minQuality,
   };
 
-  const jobId = await createTrainingJob(jobInput);
+  const existingJob = options?.existingJobId
+    ? await getJob(options.existingJobId)
+    : null;
+  const jobId = existingJob?.id ?? (await createTrainingJob(jobInput));
+  const modelVersion = existingJob?.modelVersion ?? jobInput.modelVersion;
   await updateJobStatus(jobId, 'running');
   const startTime = Date.now();
 
@@ -249,7 +258,7 @@ export async function trainStudentVLM(options?: {
       return {
         jobId,
         success: false,
-        modelVersion: jobInput.modelVersion,
+        modelVersion,
         metrics: {},
         durationSeconds: (Date.now() - startTime) / 1000,
         samplesUsed: exportResult.count,
@@ -257,6 +266,10 @@ export async function trainStudentVLM(options?: {
           'Insufficient training data: ' + exportResult.count + ' examples',
       };
     }
+
+    // Reserve rows before dispatch. They are only marked used after the worker
+    // reports a successful completed training run.
+    await TrainingDataExporter.reserveExport(exportResult.ids, jobId);
 
     // 3. Upload JSONL to Supabase Storage
     const storagePath = 'vlm-training/' + jobId + '/training_data.jsonl';
@@ -289,46 +302,51 @@ export async function trainStudentVLM(options?: {
       }
 
       if (!webhookValid) {
-        logger.warn(
-          'VLM_TRAINING_WEBHOOK_URL is not a valid HTTPS URL, skipping',
-          {
-            service: 'KnowledgeDistillationService',
-          }
+        throw new Error(
+          'VLM_TRAINING_WEBHOOK_URL must be a valid HTTPS URL in production'
         );
       } else {
-        await serverSupabase.storage
-          .from('training-data')
-          .createSignedUrl(storagePath, 3600);
+        const { data: signedTrainingData, error: signedUrlError } =
+          await serverSupabase.storage
+            .from('training-data')
+            .createSignedUrl(storagePath, 3600);
+        if (signedUrlError || !signedTrainingData?.signedUrl) {
+          throw new Error(
+            `Failed to sign training dataset: ${signedUrlError?.message || 'no URL returned'}`
+          );
+        }
 
         const webhookPayload = {
           jobId,
-          modelVersion: jobInput.modelVersion,
+          modelVersion,
           storagePath,
+          trainingDataUrl: signedTrainingData.signedUrl,
           samplesCount: exportResult.count,
           config: jobInput.config,
         };
 
-        // Compute HMAC-SHA256 signature for webhook auth.
-        // Must match Python: json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        const webhookSecret = process.env.MINTENANCE_WEBHOOK_SECRET || '';
-        let authSignature = '';
-        if (webhookSecret) {
-          const { createHmac } = await import('crypto');
-          const sorted = Object.fromEntries(
-            Object.entries(webhookPayload).sort(([a], [b]) =>
-              a < b ? -1 : a > b ? 1 : 0
-            )
+        // Sign the exact body bytes sent. The worker verifies this header
+        // with MINTENANCE_CALLBACK_SECRET and the raw request body. The callback
+        // route verifies this same secret, so dispatch and completion cannot drift.
+        const webhookSecret = process.env.MINTENANCE_CALLBACK_SECRET || '';
+        if (!webhookSecret) {
+          throw new Error(
+            'MINTENANCE_CALLBACK_SECRET is required to dispatch VLM training'
           );
-          const canonical = JSON.stringify(sorted);
-          authSignature = createHmac('sha256', webhookSecret)
-            .update(canonical)
-            .digest('hex');
         }
+        const { createHmac } = await import('crypto');
+        const webhookBody = JSON.stringify(webhookPayload);
+        const webhookSignature = createHmac('sha256', webhookSecret)
+          .update(webhookBody)
+          .digest('hex');
 
         const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...webhookPayload, authSignature }),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Mint-Signature': webhookSignature,
+          },
+          body: webhookBody,
         });
 
         if (!webhookResponse.ok) {
@@ -343,22 +361,23 @@ export async function trainStudentVLM(options?: {
           );
         }
       }
+    } else {
+      throw new Error(
+        'VLM_TRAINING_WEBHOOK_URL is not configured; training was not started'
+      );
     }
-
-    // 5. Mark buffer rows as used
-    await TrainingDataExporter.markExported(exportResult.ids, 1);
 
     const durationSeconds = (Date.now() - startTime) / 1000;
     const metrics = {
       samplesExported: exportResult.count,
       storagePath,
-      webhookNotified: !!webhookUrl,
+      webhookNotified: true,
     };
 
     // Keep status as 'running' when webhook was fired — the Modal callback will
     // update to 'completed' with real metrics once the GPU job finishes.
     // Previously this marked 'completed' prematurely before Modal finished.
-    await updateJobStatus(jobId, webhookUrl ? 'running' : 'completed', {
+    await updateJobStatus(jobId, 'running', {
       metrics,
       outputModelPath: storagePath,
     });
@@ -375,7 +394,7 @@ export async function trainStudentVLM(options?: {
     return {
       jobId,
       success: true,
-      modelVersion: jobInput.modelVersion,
+      modelVersion,
       metrics,
       outputModelPath: storagePath,
       durationSeconds: Math.round(durationSeconds),
@@ -383,6 +402,14 @@ export async function trainStudentVLM(options?: {
     };
   } catch (error) {
     const durationSeconds = (Date.now() - startTime) / 1000;
+    try {
+      await TrainingDataExporter.releaseExport(jobId);
+    } catch (releaseError) {
+      logger.error('Failed to release VLM training reservation', releaseError, {
+        service: 'KnowledgeDistillationService',
+        jobId,
+      });
+    }
     await updateJobStatus(jobId, 'failed', {
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -390,7 +417,7 @@ export async function trainStudentVLM(options?: {
     return {
       jobId,
       success: false,
-      modelVersion: jobInput.modelVersion,
+      modelVersion,
       metrics: {},
       durationSeconds: Math.round(durationSeconds),
       samplesUsed: 0,

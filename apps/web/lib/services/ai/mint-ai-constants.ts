@@ -21,6 +21,9 @@
 
 export const MINT_AI_MODEL_ID = 'mint-ai-vlm-v1';
 
+/** OpenAI-compatible model/module name exposed by the vLLM server. */
+export const MINT_AI_SERVED_MODEL = 'mint-ai-vlm';
+
 /** HuggingFace Hub identifier for the base model we fine-tune from. */
 export const MINT_AI_BASE_MODEL_HF = 'Qwen/Qwen2.5-VL-7B-Instruct';
 

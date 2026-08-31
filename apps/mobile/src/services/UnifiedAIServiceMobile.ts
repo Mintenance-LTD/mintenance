@@ -42,7 +42,7 @@ const mobileConfig: AIServiceConfig = {
     perRequest: 10,
   },
   features: {
-    enableSAM3: true,
+    enableSAM3: false,
     enableShadowMode: false, // Testing in production
     enableABTesting: true,
     enableContinuousLearning: true,
@@ -82,8 +82,8 @@ class UnifiedAIServiceMobile {
   }
 
   /**
-   * Assess building damage with full AI pipeline
-   * Same as web - uses GPT-4, Roboflow, Google Vision, SAM3, Bayesian Fusion
+   * Assess building damage through the same server-side visual assessment
+   * pipeline used by the web app.
    */
   async assessBuilding(
     images: string[],
