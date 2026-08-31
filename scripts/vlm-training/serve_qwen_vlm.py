@@ -7,7 +7,7 @@ Supports LoRA hot-swapping for zero-downtime adapter updates.
 
 Usage:
     python serve_qwen_vlm.py \
-        --model Qwen/Qwen2.5-VL-3B-Instruct \
+        --model Qwen/Qwen2.5-VL-7B-Instruct \
         --lora-adapter ./adapters/mint-vlm-v1/adapter \
         --port 8000
 

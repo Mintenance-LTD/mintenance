@@ -12,6 +12,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { StudentRoutingGate } from './StudentRoutingGate';
 import type { ShadowComparisonResult } from './types';
+import { MINT_AI_MODEL_ID } from '../../ai/mint-ai-constants';
 
 export class CalibrationFeedbackService {
   /**
@@ -53,20 +54,24 @@ export class CalibrationFeedbackService {
     safetyRecall: number
   ): Promise<void> {
     // Audit trail: log every human validation for traceability
-    await serverSupabase.from('vlm_routing_decisions').insert({
-      decision: wasCorrect ? 'student_only' : 'teacher_only',
-      reasoning: `human_validation: correct=${wasCorrect}, safetyRecall=${safetyRecall.toFixed(2)}, weight=3x`,
-      category,
-      student_accuracy: wasCorrect ? 1 : 0,
-      safety_recall: safetyRecall,
-    }).then(({ error }) => {
-      if (error) {
-        logger.debug('Failed to log human validation audit', {
-          service: 'CalibrationFeedbackService',
-          error: error.message,
-        });
-      }
-    });
+    await serverSupabase
+      .from('vlm_routing_decisions')
+      .insert({
+        decision: wasCorrect ? 'student_only' : 'teacher_only',
+        reasoning: `human_validation: correct=${wasCorrect}, safetyRecall=${safetyRecall.toFixed(2)}, weight=3x`,
+        category,
+        model_version: MINT_AI_MODEL_ID,
+        student_accuracy: wasCorrect ? 1 : 0,
+        safety_recall: safetyRecall,
+      })
+      .then(({ error }) => {
+        if (error) {
+          logger.debug('Failed to log human validation audit', {
+            service: 'CalibrationFeedbackService',
+            error: error.message,
+          });
+        }
+      });
 
     // Human validations carry 3x weight (call updateCalibration 3 times)
     // This makes human feedback converge faster in the EMA
@@ -95,7 +100,10 @@ export class CalibrationFeedbackService {
     // Fetch all shadow comparisons
     const { data, error } = await serverSupabase
       .from('vlm_shadow_comparisons')
-      .select('damage_category, damage_type_match, safety_recall, student_parse_success')
+      .select(
+        'damage_category, damage_type_match, safety_recall, student_parse_success'
+      )
+      .eq('student_model', MINT_AI_MODEL_ID)
       .order('created_at', { ascending: true });
 
     if (error || !data || data.length === 0) {
@@ -107,15 +115,25 @@ export class CalibrationFeedbackService {
 
     // Build calibration in-memory first (safe — no DB mutation until the end)
     const EMA_ALPHA = 0.05;
-    const calibrations = new Map<string, {
-      total: number; correct: number; accuracy: number;
-      safetyTotal: number; safetyCorrect: number; safetyRecall: number;
-      emaAccuracy: number; emaSafetyRecall: number;
-    }>();
+    const calibrations = new Map<
+      string,
+      {
+        total: number;
+        correct: number;
+        accuracy: number;
+        safetyTotal: number;
+        safetyCorrect: number;
+        safetyRecall: number;
+        emaAccuracy: number;
+        emaSafetyRecall: number;
+      }
+    >();
 
     for (const row of data) {
       const category = row.damage_category ?? 'unknown';
-      const wasCorrect = row.student_parse_success ? Boolean(row.damage_type_match) : false;
+      const wasCorrect = row.student_parse_success
+        ? Boolean(row.damage_type_match)
+        : false;
       const recall = row.student_parse_success ? (row.safety_recall ?? 0) : 0;
 
       const existing = calibrations.get(category);
@@ -137,17 +155,21 @@ export class CalibrationFeedbackService {
         existing.safetyTotal++;
         existing.safetyCorrect += recall;
         existing.safetyRecall = existing.safetyCorrect / existing.safetyTotal;
-        existing.emaAccuracy = EMA_ALPHA * (wasCorrect ? 1 : 0) + (1 - EMA_ALPHA) * existing.emaAccuracy;
-        existing.emaSafetyRecall = EMA_ALPHA * recall + (1 - EMA_ALPHA) * existing.emaSafetyRecall;
+        existing.emaAccuracy =
+          EMA_ALPHA * (wasCorrect ? 1 : 0) +
+          (1 - EMA_ALPHA) * existing.emaAccuracy;
+        existing.emaSafetyRecall =
+          EMA_ALPHA * recall + (1 - EMA_ALPHA) * existing.emaSafetyRecall;
       }
     }
 
     // Upsert all categories atomically (no delete needed — overwrites existing rows)
     for (const [category, cal] of calibrations) {
-      await serverSupabase
-        .from('vlm_student_calibration')
-        .upsert({
+      await serverSupabase.from('vlm_student_calibration').upsert(
+        {
           category,
+          model_version: MINT_AI_MODEL_ID,
+          invalidated_at: null,
           total_predictions: cal.total,
           correct_predictions: cal.correct,
           accuracy: cal.accuracy,
@@ -157,7 +179,9 @@ export class CalibrationFeedbackService {
           ema_accuracy: cal.emaAccuracy,
           ema_safety_recall: cal.emaSafetyRecall,
           last_updated: new Date().toISOString(),
-        }, { onConflict: 'category' });
+        },
+        { onConflict: 'category,model_version' }
+      );
     }
 
     logger.info('Calibration recalculation complete', {

@@ -1,63 +1,23 @@
 /**
  * Assessment generator: GPT-4o or Mint AI in-house VLM, routed by VLM_ROUTING_MODE.
- *
- * Modes (default: shadow_only — matches StudentRoutingGate):
- *   shadow_only  -> GPT-4o serves; student runs in background via
- *                   StudentShadowService (orchestration/training-capture.ts)
- *   teacher_only -> GPT-4o serves; no student call
- *   auto         -> StudentRoutingGate picks per-category (safety-gated)
- *   student_only -> Mint AI serves directly (explicit opt-in; GPT-4o fallback)
- *
- * USE_MINT_AI_VLM=true without an endpoint -> stub (GPT-4o, logged as stub).
+ * Defaults to shadow_only; direct student serving is safety-gated and always
+ * falls back to GPT-4o. USE_MINT_AI_VLM without an endpoint uses the GPT stub.
  */
 
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
 import { BuildingPathologyRAGService } from '../BuildingPathologyRAGService';
+import {
+  MINT_AI_MODEL_ID,
+  MINT_AI_SERVED_MODEL,
+} from '../../ai/mint-ai-constants';
+import { validateVlmEndpoint } from './validate-vlm-endpoint';
 
 const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
 const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
 
-/** Configurable OpenAI model — set OPENAI_MODEL env var to use a different model (e.g. gpt-4.1, gpt-4o-mini) */
 const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-4o';
-
-/** Block SSRF: only allow HTTPS URLs to non-internal hosts */
-function validateVlmEndpoint(raw: string): string {
-  if (!raw) return '';
-  try {
-    const url = new URL(raw);
-    if (url.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
-      logger.warn(
-        'MINT_AI_VLM_ENDPOINT must be HTTPS in production, ignoring',
-        { service: 'AssessmentGenerator' }
-      );
-      return '';
-    }
-    if (!['https:', 'http:'].includes(url.protocol)) {
-      return '';
-    }
-    const h = url.hostname;
-    // Block cloud metadata + reserved IPs (SSRF targets)
-    if (
-      h === '169.254.169.254' ||
-      h === 'metadata.google.internal' ||
-      h.endsWith('.internal') ||
-      h === '[::1]'
-    ) {
-      logger.warn('MINT_AI_VLM_ENDPOINT points to reserved address, ignoring', {
-        service: 'AssessmentGenerator',
-      });
-      return '';
-    }
-    return raw;
-  } catch {
-    logger.warn('MINT_AI_VLM_ENDPOINT is not a valid URL, ignoring', {
-      service: 'AssessmentGenerator',
-    });
-    return '';
-  }
-}
 
 const MINT_AI_VLM_ENDPOINT = validateVlmEndpoint(
   process.env.MINT_AI_VLM_ENDPOINT?.trim() || ''
@@ -76,22 +36,22 @@ export interface GeneratorMessage {
       >;
 }
 
-interface GeneratorResult {
+export interface GeneratorResult {
   content: string;
   model: string;
+  provider: 'openai' | 'mint-ai';
+  routingMode: 'teacher_only' | 'shadow_only' | 'auto' | 'student_only';
+  fallbackReason?: string;
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
   };
-  /** GPT-4o chain-of-thought reasoning extracted from JSON response. Used for CoT distillation. */
+  /** GPT reasoning extracted for distillation. */
   reasoning?: string | null;
 }
 
-/**
- * Call OpenAI vision model and return raw content + usage.
- * Model configurable via OPENAI_MODEL env var (default: gpt-4o).
- */
+/** Call the configured OpenAI vision model and return content plus usage. */
 async function callGPT4o(
   messages: GeneratorMessage[],
   apiKey: string
@@ -130,11 +90,7 @@ async function callGPT4o(
   };
   const rawContent = data.choices?.[0]?.message?.content ?? '{}';
 
-  // Extract and strip the reasoning field from the JSON payload.
-  // The system prompt asks GPT-4o to include a top-level "reasoning" key
-  // explaining its diagnostic process. We capture it for CoT distillation
-  // but remove it from the assessment payload so downstream code and the
-  // student VLM schema stay clean.
+  // Keep reasoning for distillation, but remove it from the assessment payload.
   let content = rawContent;
   let reasoning: string | null = null;
   try {
@@ -171,9 +127,27 @@ async function callGPT4o(
   return {
     content,
     model: OPENAI_MODEL,
+    provider: 'openai',
+    routingMode: getRoutingMode(),
     usage: data.usage,
     reasoning,
   };
+}
+
+function getRoutingMode(): GeneratorResult['routingMode'] {
+  const mode = process.env.VLM_ROUTING_MODE?.trim();
+  return mode === 'teacher_only' || mode === 'auto' || mode === 'student_only'
+    ? mode
+    : 'shadow_only';
+}
+
+async function teacherFallback(
+  messages: GeneratorMessage[],
+  apiKey: string,
+  reason: string
+): Promise<GeneratorResult> {
+  const result = await callGPT4o(messages, apiKey);
+  return { ...result, fallbackReason: reason };
 }
 
 /**
@@ -196,9 +170,7 @@ export async function callMintAiVLM(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // `mint-ai-served` is the LoRA module name configured in the Modal
-        // vLLM server (scripts/vlm-training/modal_serve.py). Must match.
-        model: 'mint-ai-served',
+        model: MINT_AI_SERVED_MODEL,
         messages,
         max_tokens: 1500,
         temperature: 0.2,
@@ -228,7 +200,9 @@ export async function callMintAiVLM(
   const content = data.choices?.[0]?.message?.content ?? '{}';
   return {
     content,
-    model: 'mint-ai-vlm',
+    model: MINT_AI_MODEL_ID,
+    provider: 'mint-ai',
+    routingMode: getRoutingMode(),
     usage: data.usage,
   };
 }
@@ -387,11 +361,32 @@ export async function getGeneratorContent(
                   safetyCheck.failReason || 'unknown',
                   parsed
                 );
-                return callGPT4o(enrichedMessages, apiKey);
+                return teacherFallback(
+                  enrichedMessages,
+                  apiKey,
+                  `student_safety_gate:${safetyCheck.failReason || 'unsafe'}`
+                );
               }
+            } else {
+              return teacherFallback(
+                enrichedMessages,
+                apiKey,
+                'student_safety_gate:missing_required_fields'
+              );
             }
-          } catch {
-            // Safety gate parse/check failure is non-fatal — serve student result
+          } catch (error) {
+            logger.warn(
+              'Student safety validation failed, falling back to GPT-4o',
+              {
+                service: 'AssessmentGenerator',
+                error: error instanceof Error ? error.message : String(error),
+              }
+            );
+            return teacherFallback(
+              enrichedMessages,
+              apiKey,
+              'student_safety_gate:validation_error'
+            );
           }
 
           return studentResult;
@@ -400,7 +395,11 @@ export async function getGeneratorContent(
             service: 'AssessmentGenerator',
             error: err instanceof Error ? err.message : String(err),
           });
-          return callGPT4o(enrichedMessages, apiKey);
+          return teacherFallback(
+            enrichedMessages,
+            apiKey,
+            'student_request_failed'
+          );
         }
       }
       // teacher_only or shadow_compare -> fall through to existing logic
@@ -418,13 +417,67 @@ export async function getGeneratorContent(
   const routingMode = process.env.VLM_ROUTING_MODE?.trim() || 'shadow_only';
   if (MINT_AI_VLM_ENDPOINT && routingMode === 'student_only') {
     try {
-      return await callMintAiVLM(enrichedMessages, apiKey);
+      const studentResult = await callMintAiVLM(enrichedMessages, apiKey);
+      try {
+        const { SafetyRecallGate } =
+          await import('../distillation/SafetyRecallGate');
+        const parsed = JSON.parse(studentResult.content);
+        if (
+          !parsed?.safetyHazards ||
+          !parsed?.damageAssessment ||
+          !parsed?.urgency
+        ) {
+          return teacherFallback(
+            enrichedMessages,
+            apiKey,
+            'student_safety_gate:missing_required_fields'
+          );
+        }
+        const category = String(
+          parsed.damageAssessment.damageType || 'unknown'
+        );
+        const safetyCheck = SafetyRecallGate.validateStudentSafety(
+          parsed,
+          category
+        );
+        if (!safetyCheck.safe) {
+          await SafetyRecallGate.recordSafetyViolation(
+            context?.assessmentId || 'unknown',
+            category,
+            safetyCheck.failReason || 'unknown',
+            parsed
+          );
+          return teacherFallback(
+            enrichedMessages,
+            apiKey,
+            `student_safety_gate:${safetyCheck.failReason || 'unsafe'}`
+          );
+        }
+      } catch (error) {
+        logger.warn(
+          'Student safety validation failed, falling back to GPT-4o',
+          {
+            service: 'AssessmentGenerator',
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
+        return teacherFallback(
+          enrichedMessages,
+          apiKey,
+          'student_safety_gate:validation_error'
+        );
+      }
+      return studentResult;
     } catch (err) {
       logger.warn('Mint AI VLM endpoint failed, falling back to GPT-4o', {
         service: 'AssessmentGenerator',
         error: err instanceof Error ? err.message : String(err),
       });
-      return callGPT4o(enrichedMessages, apiKey);
+      return teacherFallback(
+        enrichedMessages,
+        apiKey,
+        'student_request_failed'
+      );
     }
   }
   if (USE_MINT_AI_VLM && !MINT_AI_VLM_ENDPOINT) {

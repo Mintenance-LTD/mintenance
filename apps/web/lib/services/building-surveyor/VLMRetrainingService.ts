@@ -60,7 +60,8 @@ export class VLMRetrainingService {
 
     if (lastJob?.completed_at) {
       const daysSinceLastTraining =
-        (Date.now() - new Date(lastJob.completed_at).getTime()) / (1000 * 60 * 60 * 24);
+        (Date.now() - new Date(lastJob.completed_at).getTime()) /
+        (1000 * 60 * 60 * 24);
 
       if (daysSinceLastTraining < MIN_DAYS_BETWEEN_TRAINING) {
         return {
@@ -82,33 +83,13 @@ export class VLMRetrainingService {
       minQuality: 'medium',
     });
 
-    // 4. Recalibrate after successful training
-    let calibrationRecalculated = false;
-    if (result.success) {
-      try {
-        const { CalibrationFeedbackService } = await import(
-          './distillation/CalibrationFeedbackService'
-        );
-        await CalibrationFeedbackService.recalculateAll();
-        calibrationRecalculated = true;
-        logger.info('Calibration recalculated after VLM retraining', {
-          service: 'VLMRetrainingService',
-        });
-      } catch (calError) {
-        logger.warn('Calibration recalculation failed (non-blocking)', {
-          service: 'VLMRetrainingService',
-          error: calError instanceof Error ? calError.message : String(calError),
-        });
-      }
-    }
-
     return {
       retraining: true,
       jobId: result.jobId,
       samplesUsed: result.samplesUsed,
       modelVersion: result.modelVersion,
       durationSeconds: result.durationSeconds,
-      calibrationRecalculated,
+      calibrationRecalculated: false,
       error: result.error,
     };
   }

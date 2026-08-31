@@ -136,8 +136,10 @@ export function loadBuildingSurveyorConfig(): BuildingSurveyorConfig {
     // Memory & Learning
     useTitans: process.env.USE_TITANS === 'true',
 
-    // Hybrid Inference (default: false until models are trained)
-    useHybridInference: process.env.USE_HYBRID_INFERENCE === 'true',
+    // Legacy detector fusion is disabled until it has a versioned model and
+    // a held-out, human-reviewed evaluation set. Do not let a stale env var
+    // put YOLO/SAM evidence back into production assessments.
+    useHybridInference: false,
 
     // A/B Testing
     abTest: {

@@ -81,8 +81,12 @@ export async function validateAssessment(
     });
 
     try {
-      const validatedAssessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
-      await BuildingSurveyorService.learnFromValidation(assessmentId, validatedAssessment);
+      const validatedAssessment =
+        assessmentRecord.assessment_data as Phase1BuildingAssessment;
+      await BuildingSurveyorService.learnFromValidation(
+        assessmentId,
+        validatedAssessment
+      );
     } catch (learningError) {
       logger.warn('Failed to trigger learning from validation', {
         service: 'DataCollectionService',
@@ -107,10 +111,21 @@ export async function validateAssessment(
     }
 
     try {
-      const assessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
-      const category = assessment?.damageAssessment?.damageType?.toLowerCase() || 'unknown';
-      const { CalibrationFeedbackService } = await import('./distillation/CalibrationFeedbackService');
-      await CalibrationFeedbackService.updateFromHumanValidation(category, true, 1.0);
+      const assessment =
+        assessmentRecord.assessment_data as Phase1BuildingAssessment;
+      // Calibration describes the student model only. Teacher-generated rows
+      // (and legacy rows with no provenance) must never improve its score.
+      if (assessment?.modelMetadata?.provider === 'mint-ai') {
+        const category =
+          assessment.damageAssessment?.damageType?.toLowerCase() || 'unknown';
+        const { CalibrationFeedbackService } =
+          await import('./distillation/CalibrationFeedbackService');
+        await CalibrationFeedbackService.updateFromHumanValidation(
+          category,
+          true,
+          1.0
+        );
+      }
     } catch {
       // Non-fatal: VLM calibration update failure doesn't block validation
     }
@@ -186,7 +201,9 @@ export async function rejectAssessment(
         .eq('id', assessmentId)
         .single();
 
-      const assessment = assessmentData?.assessment_data as Phase1BuildingAssessment | undefined;
+      const assessment = assessmentData?.assessment_data as
+        | Phase1BuildingAssessment
+        | undefined;
       const damageType = assessment?.damageAssessment?.damageType || '';
       const criticalTypes = [
         'structural_failure',
@@ -195,7 +212,7 @@ export async function rejectAssessment(
         'asbestos',
         'mold_toxicity',
       ];
-      const hasSafetyViolation = criticalTypes.some(type =>
+      const hasSafetyViolation = criticalTypes.some((type) =>
         damageType.toLowerCase().includes(type)
       );
 
@@ -250,7 +267,8 @@ export async function recordFeedback(
     }
 
     const isCorrect = aiDecision === humanDecision;
-    const hasSafetyViolation = actualOutcome.hasCriticalHazard && aiDecision === 'automate';
+    const hasSafetyViolation =
+      actualOutcome.hasCriticalHazard && aiDecision === 'automate';
 
     const { data: assessment } = await serverSupabase
       .from('building_assessments')

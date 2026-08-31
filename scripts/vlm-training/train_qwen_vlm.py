@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Qwen2.5-VL-3B LoRA Fine-Tuning for Mintenance Building Damage Assessment.
+Qwen2.5-VL-7B LoRA Fine-Tuning for Mintenance Building Damage Assessment.
 
 Trains a LoRA adapter on teacher (GPT-4o) distillation data exported from
 TrainingDataExporter in Qwen2.5-VL conversation JSONL format.
@@ -15,7 +15,7 @@ Usage:
 
 Environment:
     Requires a GPU with >= 16 GB VRAM (4-bit QLoRA).
-    Install deps: pip install -r requirements.txt
+    Install deps: pip install -r requirements-vlm.in
 """
 
 import argparse
@@ -26,12 +26,12 @@ import time
 from pathlib import Path
 
 import torch
-from datasets import Dataset
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType
+from qwen_vl_utils import process_vision_info
 from transformers import (
-    AutoModelForCausalLM,
     AutoProcessor,
     BitsAndBytesConfig,
+    Qwen2_5_VLForConditionalGeneration,
     TrainingArguments,
     Trainer,
 )
@@ -56,64 +56,81 @@ def load_jsonl(path: str) -> list[dict]:
     return rows
 
 
-def build_dataset(rows: list[dict], processor) -> Dataset:
-    """Convert conversation rows into tokenized dataset."""
-    input_ids_list = []
-    attention_mask_list = []
-    labels_list = []
-
+def build_dataset(rows: list[dict]) -> list[dict]:
+    """Validate and retain multimodal conversations for lazy collation."""
+    examples = []
     for row in rows:
         messages = row.get("messages", [])
-        if len(messages) < 3:
+        if len(messages) < 3 or messages[-1].get("role") != "assistant":
             continue
-
-        # Build text from system + user messages (input) and assistant message (target)
-        system_msg = messages[0].get("content", "") if messages[0]["role"] == "system" else ""
-        user_content = messages[1].get("content", "") if messages[1]["role"] == "user" else ""
-        assistant_msg = messages[2].get("content", "") if messages[2]["role"] == "assistant" else ""
-
-        # Extract text from user content (may contain image references)
-        if isinstance(user_content, list):
-            user_text = " ".join(
-                part.get("text", "") for part in user_content if part.get("type") == "text"
+        image_count = sum(
+            1
+            for message in messages
+            for part in (message.get("content") if isinstance(message.get("content"), list) else [])
+            if part.get("type") in {"image", "image_url"}
+        )
+        if image_count == 0:
+            raise ValueError(
+                "Training example has no image. Refusing text-only VLM fine-tuning."
             )
-        else:
-            user_text = user_content
+        examples.append({"messages": messages})
 
-        # Format as chat template
-        prompt = f"<|im_start|>system\n{system_msg}<|im_end|>\n<|im_start|>user\n{user_text}<|im_end|>\n<|im_start|>assistant\n"
-        full_text = prompt + assistant_msg + "<|im_end|>"
+    if not examples:
+        raise ValueError("No valid multimodal training examples after validation")
+    return examples
 
-        tokenized = processor.tokenizer(
-            full_text,
+
+class QwenVLCollator:
+    """Build Qwen2.5-VL tensors and train only on assistant response tokens."""
+
+    def __init__(self, processor):
+        self.processor = processor
+
+    def __call__(self, examples: list[dict]) -> dict[str, torch.Tensor]:
+        conversations = [example["messages"] for example in examples]
+        prompts = [messages[:-1] for messages in conversations]
+
+        full_texts = [
+            self.processor.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=False
+            )
+            for messages in conversations
+        ]
+        prompt_texts = [
+            self.processor.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
+            for messages in prompts
+        ]
+
+        full_images, full_videos = process_vision_info(conversations)
+        prompt_images, prompt_videos = process_vision_info(prompts)
+        batch = self.processor(
+            text=full_texts,
+            images=full_images,
+            videos=full_videos,
+            padding=True,
             truncation=True,
-            max_length=2048,
-            padding="max_length",
+            max_length=4096,
+            return_tensors="pt",
+        )
+        prompt_batch = self.processor(
+            text=prompt_texts,
+            images=prompt_images,
+            videos=prompt_videos,
+            padding=True,
+            truncation=True,
+            max_length=4096,
             return_tensors="pt",
         )
 
-        input_ids = tokenized["input_ids"].squeeze(0)
-        attention_mask = tokenized["attention_mask"].squeeze(0)
-
-        # Labels: mask input tokens with -100, only train on assistant response
-        prompt_tokenized = processor.tokenizer(prompt, truncation=True, max_length=2048)
-        prompt_len = len(prompt_tokenized["input_ids"])
-
-        labels = input_ids.clone()
-        labels[:prompt_len] = -100  # mask prompt tokens
-
-        input_ids_list.append(input_ids)
-        attention_mask_list.append(attention_mask)
-        labels_list.append(labels)
-
-    if not input_ids_list:
-        raise ValueError("No valid training examples after processing")
-
-    return Dataset.from_dict({
-        "input_ids": torch.stack(input_ids_list),
-        "attention_mask": torch.stack(attention_mask_list),
-        "labels": torch.stack(labels_list),
-    })
+        labels = batch["input_ids"].clone()
+        prompt_lengths = prompt_batch["attention_mask"].sum(dim=1)
+        for index, prompt_length in enumerate(prompt_lengths.tolist()):
+            labels[index, :prompt_length] = -100
+        labels[batch["attention_mask"] == 0] = -100
+        batch["labels"] = labels
+        return batch
 
 
 def train(args: argparse.Namespace) -> dict:
@@ -129,13 +146,16 @@ def train(args: argparse.Namespace) -> dict:
         bnb_4bit_use_double_quant=True,
     )
 
-    model = AutoModelForCausalLM.from_pretrained(
+    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         args.model,
         quantization_config=bnb_config,
         device_map="auto",
         trust_remote_code=True,
     )
     processor = AutoProcessor.from_pretrained(args.model, trust_remote_code=True)
+    processor.tokenizer.padding_side = "right"
+    model.config.use_cache = False
+    model.gradient_checkpointing_enable()
 
     # Prepare for k-bit training
     model = prepare_model_for_kbit_training(model)
@@ -162,8 +182,8 @@ def train(args: argparse.Namespace) -> dict:
         val_rows = rows[split_idx:]
         rows = rows[:split_idx]
 
-    train_dataset = build_dataset(rows, processor)
-    val_dataset = build_dataset(val_rows, processor) if val_rows else None
+    train_dataset = build_dataset(rows)
+    val_dataset = build_dataset(val_rows) if val_rows else None
 
     print(f"Training samples: {len(train_dataset)}")
     if val_dataset:
@@ -196,6 +216,7 @@ def train(args: argparse.Namespace) -> dict:
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
+        data_collator=QwenVLCollator(processor),
     )
 
     # Train
@@ -205,7 +226,7 @@ def train(args: argparse.Namespace) -> dict:
     # Save adapter weights only (not full model)
     adapter_path = os.path.join(output_dir, "adapter")
     model.save_pretrained(adapter_path)
-    processor.tokenizer.save_pretrained(adapter_path)
+    processor.save_pretrained(adapter_path)
     print(f"Adapter saved to {adapter_path}")
 
     duration = time.time() - start

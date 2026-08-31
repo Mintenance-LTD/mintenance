@@ -21,6 +21,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+import { ExperienceBufferService } from '@/lib/services/building-surveyor/distillation/ExperienceBufferService';
 
 export const runtime = 'nodejs';
 
@@ -142,6 +143,7 @@ export const POST = withApiHandler(
         });
         // Don't fail the response — the callback was delivered successfully
       } else {
+        await ExperienceBufferService.markJobCompleted(jobId, 1);
         logger.info('Job marked completed in DB', {
           route: 'vlm-callback',
           jobId,
@@ -167,6 +169,7 @@ export const POST = withApiHandler(
           jobId,
         });
       } else {
+        await ExperienceBufferService.releaseReservation(jobId);
         logger.warn('Job marked failed in DB', {
           route: 'vlm-callback',
           jobId,

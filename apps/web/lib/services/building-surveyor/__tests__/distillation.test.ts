@@ -499,7 +499,7 @@ describe('TrainingDataExporter.toQwenConversation', () => {
     expect(systemContent).toContain('findings');
   });
 
-  it('user content includes text and image_url entries', () => {
+  it('user content includes text and Qwen-native image entries', () => {
     const conversation = TrainingDataExporter.toQwenConversation(example);
     const userContent = conversation.messages[1].content;
 
@@ -507,20 +507,20 @@ describe('TrainingDataExporter.toQwenConversation', () => {
     const items = userContent as Array<{
       type: string;
       text?: string;
-      image_url?: { url: string };
+      image?: string;
     }>;
 
     // First element: text prompt
     expect(items[0]).toEqual({ type: 'text', text: example.userPrompt });
 
-    // Subsequent elements: one image_url per image
+    // Subsequent elements: one Qwen image item per image
     expect(items[1]).toEqual({
-      type: 'image_url',
-      image_url: { url: 'https://storage.example.com/img1.jpg' },
+      type: 'image',
+      image: 'https://storage.example.com/img1.jpg',
     });
     expect(items[2]).toEqual({
-      type: 'image_url',
-      image_url: { url: 'https://storage.example.com/img2.jpg' },
+      type: 'image',
+      image: 'https://storage.example.com/img2.jpg',
     });
 
     expect(items).toHaveLength(3); // 1 text + 2 images
