@@ -533,13 +533,15 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </>
         )}
 
-        {(viewModel.aiAnalysis || viewModel.aiLoading) && (
+        {(viewModel.aiAnalysis || viewModel.aiLoading || viewModel.aiError) && (
           <>
             <View style={styles.divider} />
             <View style={styles.sectionPadded}>
               <AIAnalysisCard
                 aiAnalysis={viewModel.aiAnalysis}
                 aiLoading={viewModel.aiLoading}
+                aiError={viewModel.aiError}
+                onRetry={() => job && viewModel.loadAIAnalysis(job)}
               />
             </View>
           </>

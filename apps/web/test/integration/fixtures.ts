@@ -146,6 +146,7 @@ export async function createTestBid(opts: {
       job_id: opts.job_id,
       contractor_id: opts.contractor_id,
       amount: opts.amount ?? 200,
+      description: 'itest_bid_description',
       message: 'itest_bid',
       status: opts.status ?? 'pending',
       estimated_duration_days: 3,

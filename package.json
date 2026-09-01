@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "prepare": "npm rebuild esbuild sharp @sentry/cli onnxruntime-node protobufjs core-js fsevents msw detox 2>/dev/null || true",
+    "prepare": "node scripts/rebuild-native.mjs",
     "dev": "npm run dev:web",
     "dev:web": "npm run dev -w @mintenance/web",
     "dev:mobile": "npm run dev -w @mintenance/mobile",
@@ -30,6 +30,9 @@
     "test": "npm run test -w @mintenance/web && npm run test -w @mintenance/mobile",
     "test:web": "npm run test -w @mintenance/web",
     "test:mobile": "npm run test -w @mintenance/mobile",
+    "validate:phase2": "node scripts/validate-phase2.mjs",
+    "validate:mobile": "npm run type-check:mobile && npm run build:packages && npm run export:mobile",
+    "e2e:smoke": "playwright test --config=playwright.smoke.config.ts",
     "clean": "npm run clean -w @mintenance/web && npm run clean -w @mintenance/mobile",
     "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules",
     "reset": "npm run clean:all && npm install",

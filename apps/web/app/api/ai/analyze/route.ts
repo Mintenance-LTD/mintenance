@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { aiAnalyzeRequestSchema } from '@mintenance/api-contracts';
 import {
   UnifiedAIService,
   type AnalysisContext,
@@ -14,20 +14,6 @@ import { logger } from '@mintenance/shared';
 import { checkAIUserRateLimit, rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
-
-// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
-// replaces the manual `Array.isArray(images)` + `typeof context === 'object'`
-// checks. `images` is capped at 20 (matches the create-job photoUrls cap)
-// and each entry must be an http(s) URL.
-const aiAnalyzeSchema = z
-  .object({
-    images: z.array(z.string().url()).min(1).max(20),
-    // `context` carries arbitrary keys downstream (`type`, `propertyId`,
-    // `damageType`, etc.) that vary by analysis path — z.record so the
-    // schema stays open without losing type safety on the wrapper.
-    context: z.record(z.string(), z.unknown()),
-  })
-  .strict();
 
 export const POST = withApiHandler(
   { rateLimit: false },
@@ -93,7 +79,7 @@ export const POST = withApiHandler(
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
-    const parsed = aiAnalyzeSchema.safeParse(raw);
+    const parsed = aiAnalyzeRequestSchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },

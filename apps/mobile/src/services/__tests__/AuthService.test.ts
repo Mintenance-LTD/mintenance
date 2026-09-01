@@ -72,6 +72,18 @@ jest.mock('../../utils/serviceErrorHandler', () => ({
   },
 }));
 
+// AuthService performs a fail-open password-breach check before calling
+// Supabase. Keep this unit test focused on signup orchestration and prevent
+// the check from reaching the network in the test runner.
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    post: jest.fn().mockResolvedValue({
+      isBreached: false,
+      occurrences: null,
+    }),
+  },
+}));
+
 // NetworkDiagnosticsService mock removed — the module was deleted in the
 // bulk dead-code cleanup (commit 9f06a7ac) and AuthService no longer uses it.
 

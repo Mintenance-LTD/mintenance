@@ -9,7 +9,7 @@
  *
  * This test exercises:
  *  - payments RLS: payer, payee, admin, third-party, anon access boundaries
- *  - payments state machine: pending → processing → in_escrow → released
+ *  - payments state machine: pending → processing → completed
  *  - Write-side enforcement: non-service-role users cannot INSERT/UPDATE
  *  - FK integrity: payment can't reference non-existent job/user
  *
@@ -18,8 +18,8 @@
  *     payer_id = auth.uid() OR payee_id = auth.uid() OR (auth.uid() is admin)
  *   All INSERT/UPDATE/DELETE are service-role only.
  *
- * Status enum (from 003_payment_system.sql):
- *   pending, processing, in_escrow, released, completed, failed, refunded, disputed
+ * Status constraint (canonical schema): pending, processing, completed,
+ * failed, refunded, cancelled.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -56,7 +56,7 @@ describe('payments RLS + state machine (real DB)', () => {
     if (!available) {
       throw new Error(
         'INTEGRATION_TESTS=1 was set but Supabase is not reachable at ' +
-          'http://localhost:54321. Run `supabase start` first.',
+          'http://localhost:54321. Run `supabase start` first.'
       );
     }
 
@@ -76,15 +76,15 @@ describe('payments RLS + state machine (real DB)', () => {
 
     homeownerClient = await createAuthenticatedClient(
       homeowner.email,
-      homeowner.password,
+      homeowner.password
     );
     contractorClient = await createAuthenticatedClient(
       contractor.email,
-      contractor.password,
+      contractor.password
     );
     thirdPartyClient = await createAuthenticatedClient(
       thirdParty.email,
-      thirdParty.password,
+      thirdParty.password
     );
     adminClient = await createAuthenticatedClient(admin.email, admin.password);
   }, 30_000);
@@ -259,11 +259,11 @@ describe('payments RLS + state machine (real DB)', () => {
     expect(data?.status).toBe('processing');
   });
 
-  it('service role can transition processing → in_escrow', async () => {
+  it('service role can transition processing → completed', async () => {
     const admin = createServiceClient();
     const { error } = await admin
       .from('payments')
-      .update({ status: 'in_escrow' })
+      .update({ status: 'completed' })
       .eq('id', payment.id);
 
     expect(error).toBeNull();
@@ -273,26 +273,26 @@ describe('payments RLS + state machine (real DB)', () => {
       .select('status')
       .eq('id', payment.id)
       .single();
-    expect(data?.status).toBe('in_escrow');
+    expect(data?.status).toBe('completed');
   });
 
-  it('service role can transition in_escrow → released with timestamp', async () => {
+  it('service role can set processed_at on completion', async () => {
     const admin = createServiceClient();
     const releaseTime = new Date().toISOString();
     const { error } = await admin
       .from('payments')
-      .update({ status: 'released', escrow_released_at: releaseTime })
+      .update({ status: 'completed', processed_at: releaseTime })
       .eq('id', payment.id);
 
     expect(error).toBeNull();
 
     const { data } = await admin
       .from('payments')
-      .select('status, escrow_released_at')
+      .select('status, processed_at')
       .eq('id', payment.id)
       .single();
-    expect(data?.status).toBe('released');
-    expect(data?.escrow_released_at).not.toBeNull();
+    expect(data?.status).toBe('completed');
+    expect(data?.processed_at).not.toBeNull();
   });
 
   it('CHECK constraint rejects invalid status value', async () => {

@@ -44,6 +44,7 @@ interface JobDetailsAggregate {
 
 interface JobDetailsState {
   aiAnalysis: AIAnalysis | null;
+  aiError: string | null;
   aiLoading: boolean;
   job: Job | undefined;
   jobLoading: boolean;
@@ -71,6 +72,7 @@ interface JobDetailsViewModel extends JobDetailsState, JobDetailsActions {}
 export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   const { user } = useAuth();
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [contractStatus, setContractStatus] = useState<string | null>(null);
   const [contractHomeownerSigned, setContractHomeownerSigned] = useState(false);
@@ -91,11 +93,12 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   const loadAIAnalysis = useCallback(async (jobData: Job) => {
     try {
       setAiLoading(true);
+      setAiError(null);
       const analysis = await AIAnalysisService.analyzeJobPhotos(jobData);
       setAiAnalysis(analysis);
     } catch (error) {
       logger.error('Failed to load AI analysis:', error);
-      // Don't show error to user - AI analysis is optional
+      setAiError('AI analysis is temporarily unavailable. Please try again.');
     } finally {
       setAiLoading(false);
     }
@@ -190,12 +193,17 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
         // call to the web AI endpoint, so no direct DB access here.
         if (job.photos && job.photos.length > 0 && !cancelled) {
           try {
+            setAiError(null);
             const analysis = await AIAnalysisService.analyzeJobPhotos(job);
             if (!cancelled) {
               setAiAnalysis(analysis);
             }
           } catch {
-            // AI analysis is optional — silently fail if API is unavailable
+            if (!cancelled) {
+              setAiError(
+                'AI analysis is temporarily unavailable. Please try again.'
+              );
+            }
           }
         }
       } catch (error) {
@@ -219,6 +227,7 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   return {
     // State
     aiAnalysis,
+    aiError,
     aiLoading,
     job,
     jobLoading,
