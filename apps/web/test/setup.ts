@@ -315,8 +315,14 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
     result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
     result = result.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
 
-    // Remove dangerous executable URL schemes
-    result = result.replace(/(?:javascript|data|vbscript):/gi, '');
+    // Remove dangerous executable URL schemes (repeat until stable to avoid re-formation)
+    do {
+      previous = result;
+      result = result.replace(/(?:javascript|data|vbscript):/gi, '');
+    } while (result !== previous);
+
+    // Final hardening: neutralize HTML delimiters so residual/re-formed tags cannot survive
+    result = result.replace(/[<>]/g, '');
 
     // Handle allowed tags if specified
     if (config?.ALLOWED_TAGS && Array.isArray(config.ALLOWED_TAGS)) {
