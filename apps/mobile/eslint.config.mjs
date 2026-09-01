@@ -61,7 +61,11 @@ export default [
       'react/display-name': 'warn',
       'react/jsx-no-duplicate-props': 'warn',
       'react/no-children-prop': 'warn',
-      'import/no-unresolved': 'warn',
+      // eslint-plugin-import's resolver traverses workspace symlinks outside
+      // the permitted project root on managed runners and can throw EPERM,
+      // rather than reporting a lint finding. TypeScript remains the
+      // authoritative missing-import check and passes for this workspace.
+      'import/no-unresolved': 'off',
       'import/namespace': 'warn',
       'import/export': 'warn',
       'expo/no-dynamic-env-var': 'warn',

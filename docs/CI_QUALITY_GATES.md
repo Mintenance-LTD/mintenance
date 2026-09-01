@@ -42,6 +42,20 @@ Apply identical rules to `main`, `master`, and `develop`.
 
 ## Enforcement Model
 
+### Local Phase 2 Validation
+
+From a clean checkout using Node.js 20.19.4 and the root `package-lock.json`:
+
+```bash
+npm ci --ignore-scripts=false
+npm run validate:phase2
+```
+
+`validate:phase2` runs workspace TypeScript checks, web/mobile lint, web and mobile unit tests, the
+web production build with the documented 8 GB Node heap budget, Android Expo export, and the
+unauthenticated Playwright smoke test. The smoke test needs Chromium installed and the normal web
+runtime environment variables; authenticated E2E suites remain covered by `e2e-tests.yml`.
+
 ### Coverage Thresholds (Auto-Enforced)
 
 Both test runners fail the build if coverage drops below:

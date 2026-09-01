@@ -158,13 +158,16 @@ describe('actions', () => {
     expect(mockAnalyze).toHaveBeenCalled();
   });
 
-  it('loadAIAnalysis swallows errors', async () => {
+  it('exposes a safe retry message when AI analysis fails', async () => {
     mockAnalyze.mockRejectedValueOnce(new Error('ai down'));
     const { result } = renderHook(() => useJobDetailsViewModel('j1'));
     await act(async () => {
       await result.current.loadAIAnalysis({ id: 'j1' } as never);
     });
     expect(result.current.aiLoading).toBe(false);
+    expect(result.current.aiError).toBe(
+      'AI analysis is temporarily unavailable. Please try again.'
+    );
   });
 
   it('handleContractorAssigned and handleJobStatusUpdate refetch the job', async () => {

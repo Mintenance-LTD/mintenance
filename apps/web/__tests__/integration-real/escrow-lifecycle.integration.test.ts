@@ -160,22 +160,17 @@ describe('escrow_transactions lifecycle (real DB)', () => {
 
   it('amount precision is DECIMAL(10,2) — decimals preserved', async () => {
     const admin = createServiceClient();
-    const { data: created } = await admin
+    const { data: created, error: createError } = await admin
       .from('escrow_transactions')
-      .insert({
-        job_id: job.id,
-        payer_id: homeowner.id,
-        payee_id: contractor.id,
-        amount: 123.45,
-        status: 'held',
-      })
+      .update({ amount: 123.45 })
+      .eq('id', escrow.id)
       .select('id, amount')
       .single();
 
+    expect(createError).toBeNull();
     expect(Number(created?.amount)).toBe(123.45);
 
-    // Cleanup
-    await admin.from('escrow_transactions').delete().eq('id', created?.id);
+    expect(created?.id).toBe(escrow.id);
   });
 
   it('transition to awaiting_homeowner_approval is valid', async () => {

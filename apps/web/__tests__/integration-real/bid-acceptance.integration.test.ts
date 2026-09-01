@@ -44,7 +44,7 @@ describe('bid acceptance — DB invariants (real DB)', () => {
     if (!available) {
       throw new Error(
         'INTEGRATION_TESTS=1 was set but Supabase is not reachable at ' +
-          'http://localhost:54321. Run `supabase start` first.',
+          'http://localhost:54321. Run `supabase start` first.'
       );
     }
 
@@ -98,6 +98,7 @@ describe('bid acceptance — DB invariants (real DB)', () => {
       job_id: job.id,
       contractor_id: contractorA.id,
       amount: 250,
+      description: 'itest_duplicate_bid',
       status: 'pending',
     });
 
@@ -140,12 +141,13 @@ describe('bid acceptance — DB invariants (real DB)', () => {
       job_id: job.id,
       contractor_id: contractorB.id,
       amount: 200,
+      description: 'itest_second_accepted_bid',
       status: 'accepted',
     });
 
     expect(insertErr).not.toBeNull();
     expect(insertErr?.message.toLowerCase()).toMatch(
-      /duplicate|unique|idx_bids_one_accepted/,
+      /duplicate|unique|idx_bids_one_accepted/
     );
   });
 
@@ -222,6 +224,7 @@ describe('bid acceptance — DB invariants (real DB)', () => {
       job_id: fakeJobId,
       contractor_id: contractorA.id,
       amount: 100,
+      description: 'itest_invalid_fk_bid',
       status: 'pending',
     });
 
@@ -235,6 +238,7 @@ describe('bid acceptance — DB invariants (real DB)', () => {
       job_id: job.id,
       contractor_id: contractorA.id,
       amount: 100,
+      description: 'itest_invalid_status_bid',
       status: 'maybe_someday',
     });
 

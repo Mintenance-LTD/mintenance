@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@mintenance/design-tokens';
 import type { AIAnalysis } from '../../../services/AIAnalysisService';
 import { me } from '../../../design-system/mint-editorial';
 import {
@@ -89,6 +90,8 @@ interface BuildingAssessmentCardProps {
       })
     | null;
   aiLoading: boolean;
+  aiError?: string | null;
+  onRetry?: () => void;
   /**
    * Walkthrough keyframes in index order. Findings carry a sourceFrameIndex
    * into this, letting each one show the frame it was read from. Omitted for
@@ -100,6 +103,8 @@ interface BuildingAssessmentCardProps {
 export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
   aiAnalysis,
   aiLoading,
+  aiError,
+  onRetry,
   frameUrls,
 }) => {
   const [expanded, setExpanded] = useState(true);
@@ -111,7 +116,7 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
           <Ionicons
             name='sparkles'
             size={20}
-            color='#8B5CF6'
+            color={colors.statusInProgress}
             accessible={false}
           />
           <Text style={st.title} accessibilityRole='header'>
@@ -130,7 +135,34 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
     );
   }
 
-  if (!aiAnalysis) return null;
+  if (!aiAnalysis) {
+    if (!aiError) return null;
+    return (
+      <View style={st.container} accessibilityRole='alert'>
+        <View style={st.header}>
+          <Ionicons
+            name='sparkles'
+            size={20}
+            color={colors.statusInProgress}
+            accessible={false}
+          />
+          <Text style={st.title} accessibilityRole='header'>
+            Building Assessment
+          </Text>
+        </View>
+        <Text style={st.loadingText}>{aiError}</Text>
+        {onRetry && (
+          <TouchableOpacity
+            onPress={onRetry}
+            accessibilityRole='button'
+            accessibilityLabel='Retry AI analysis'
+          >
+            <Text style={st.retryText}>Try again</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
 
   const data = aiAnalysis.assessmentData as AssessmentData | undefined;
   const hasRichData = Boolean(data?.damageAssessment);
@@ -161,7 +193,7 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
         <Ionicons
           name='sparkles'
           size={20}
-          color='#8B5CF6'
+          color={colors.statusInProgress}
           accessible={false}
         />
         <Text style={st.title} accessibilityRole='header'>
@@ -335,6 +367,7 @@ const st = StyleSheet.create({
     gap: 8,
   },
   loadingText: { fontSize: 15, color: me.ink2 },
+  retryText: { marginTop: 12, fontSize: 15, color: me.ink, fontWeight: '600' },
   body: { marginTop: 4 },
   label: {
     fontSize: 12,

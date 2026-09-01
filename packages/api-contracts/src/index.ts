@@ -23,3 +23,4 @@ export * from './properties';
 export * from './invoices';
 export * from './messages';
 export * from './users';
+export * from './ai';
