@@ -10,20 +10,22 @@ project identified; LIVE = Supabase project `ukrjudtlvapiajkjbcrd`.
 **PARTIAL — CONTROLLED BETA GATE NOT PROVEN.** The local isolated stack has separate-user RLS
 evidence and the repository contains narrowly scoped jobs/payment hardening migrations. The required
 hosted staging run, real Stripe test-mode lifecycle, and independent production-user JWT execution
-are not available. No live schema or data was changed.
+are not available. The jobs SELECT policy was changed on LIVE after explicit authorization; no live
+data was changed.
 
 ## B. Jobs RLS
 
-Before: LIVE policy inventory re-confirmed PHASE3-001: the merged SELECT predicate includes
-`status <> 'draft'`, so any authenticated user can read any non-draft job. This exposes jobs to
+Before: LIVE policy inventory re-confirmed PHASE3-001: the merged SELECT predicate included
+`status <> 'draft'`, so any authenticated user could read any non-draft job. This exposed jobs to
 unrelated homeowners and contractors. LOCAL evidence covers separate-user
-job/property/message/document/tenant-report journeys, but does not change LIVE.
+job/property/message/document/tenant-report journeys.
 
-After: LOCAL migration `20260831224315_fix_jobs_select_rls_isolation.sql` now narrows private/draft
-reads to the homeowner, assigned contractor, or admin and limits marketplace discovery to
-authenticated contractors viewing unassigned `open`/`posted` jobs. This correction was made after
-the first assigned-job test exposed that a broad non-draft predicate would still leak assigned jobs.
-It has not been applied to LIVE or a hosted STAGING database.
+After: The corrected policy narrows private/draft reads to the homeowner, assigned contractor, or
+admin and limits marketplace discovery to authenticated contractors viewing unassigned
+`open`/`posted` jobs. This correction was made after the first assigned-job test exposed that a
+broad non-draft predicate would still leak assigned jobs. It was applied to LIVE through migration
+`20260901115208` (`phase3_5_fix_jobs_select_rls_isolation`) and verified by read-only policy
+inspection. Independent-user execution against LIVE remains unproven.
 
 Required identity matrix: HOMEOWNER_A, HOMEOWNER_B, CONTRACTOR_A, CONTRACTOR_B, and ADMIN_A. The
 local real-DB harness creates separate real Auth users and JWT-backed clients dynamically. Before
@@ -93,7 +95,7 @@ was disclosed. No automatic rotation was performed.
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | LOCAL       | Reviewed seven migrations after live head; retained only jobs RLS and payment-write hardening as this phase’s security candidates | Local hardening files present; pre-correction cross-user 1/4, jobs RLS 1/6, payment flow 1/16, quote/contract/compliance/tenant suites 3/15 passed; post-correction assigned-job rerun blocked by incomplete local rebuild |
 | STAGING     | No separate hosted staging project identified; `.env.staging` contains the placeholder host `your-staging-project.supabase.co`    | No migrations applied; gate remains open                                                                                                                                                                                   |
-| LIVE        | Read-only Supabase MCP checks only                                                                                                | Migration head remains `20260805194939`; counts are profiles 10, jobs 18, payments 0; no writes                                                                                                                            |
+| LIVE        | Supabase MCP applied only `phase3_5_fix_jobs_select_rls_isolation` after explicit authorization                                   | Migration `20260901115208` is recorded; corrected jobs SELECT policy verified; counts remain profiles 10, jobs 18, payments 0                                                                                              |
 
 The local head is `20260831231341`, seven migrations ahead of LIVE. The required shadow diff
 completed with only an unassociated local `pg_net` drop for review. Unrelated ML, schema,
@@ -101,7 +103,8 @@ bookkeeping, and platform migrations are not part of this controlled-beta promot
 
 ## H. Remaining P1 items
 
-- PHASE3-001: promote and verify jobs SELECT isolation after hosted staging proof.
+- PHASE3-001: jobs SELECT policy is promoted to LIVE; independent HOMEOWNER/CONTRACTOR JWT
+  verification remains outstanding.
 - PHASE3-002: promote and verify payment-write lockdown after hosted staging and server/Stripe
   proof.
 - PHASE3-007: replace/remove the non-production live Stripe secret and complete the
