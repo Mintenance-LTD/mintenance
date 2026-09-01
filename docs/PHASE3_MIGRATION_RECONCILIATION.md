@@ -6,8 +6,10 @@ Environment: **LOCAL ANALYSIS ONLY** — no live or staging schema was changed.
 ## State comparison
 
 - Live Supabase project: `ukrjudtlvapiajkjbcrd`
-- Live migration head verified through Supabase MCP:
+- Required Phase 3.6 baseline verified through the repository and prior read-only inspection:
   `20260805194939_uk_earnings_statement_bookkeeping`
+- Current LIVE migration head verified through Supabase MCP:
+  `20260901115208_phase3_5_fix_jobs_select_rls_isolation`
 - Local migration head: `20260831231341_harden_payments_write_rls`
 - Local migrations after the live head: 7
 
@@ -17,9 +19,10 @@ is an operator review plan, not an approval to apply anything to production.
 
 ## Post-audit live safety re-check
 
-A subsequent read-only Supabase MCP check confirmed that the live migration head remains
-`20260805194939_uk_earnings_statement_bookkeeping`. Representative live counts were `profiles=10`,
-`jobs=18`, and `payments=0`; no Phase 3 local test record was written to the live project.
+A subsequent read-only Supabase MCP check confirmed that the live migration head is now
+`20260901115208_phase3_5_fix_jobs_select_rls_isolation`, applied during the separately authorized
+Phase 3.5 jobs-policy promotion. Representative live counts were `profiles=10`, `jobs=18`, and
+`payments=0`; no Phase 3.6 test record was written to the live project.
 
 ## Reconciliation matrix
 
