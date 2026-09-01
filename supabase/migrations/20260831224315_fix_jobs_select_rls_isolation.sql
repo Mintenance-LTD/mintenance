@@ -12,7 +12,8 @@ using (
   or contractor_id = (select auth.uid())
   or public.is_admin((select auth.uid()))
   or (
-    status <> 'draft'
+    contractor_id is null
+    and status in ('open', 'posted')
     and exists (
       select 1
       from public.profiles

@@ -263,6 +263,68 @@ describe('cross-user data isolation (real DB)', () => {
     expect(
       contractorWrite.error === null && (contractorWrite.count ?? 0) > 0
     ).toBe(false);
+
+    // Phase 3.5 assigned-job gate: the assigned contractor keeps access, but
+    // a different contractor must not be able to read or mutate the job.
+    const service = createServiceClient();
+    const postedForAssignment = await service
+      .from('jobs')
+      .update({ status: 'posted' })
+      .eq('id', jobA.id);
+    expect(postedForAssignment.error).toBeNull();
+
+    const assigned = await service
+      .from('jobs')
+      .update({ contractor_id: contractorA.id, status: 'assigned' })
+      .eq('id', jobA.id);
+    expect(assigned.error).toBeNull();
+
+    const assignedContractorRead = await contractorAClient
+      .from('jobs')
+      .select('id, contractor_id, status')
+      .eq('id', jobA.id)
+      .single();
+    expect(assignedContractorRead.error).toBeNull();
+    expect(assignedContractorRead.data).toMatchObject({
+      id: jobA.id,
+      contractor_id: contractorA.id,
+      status: 'assigned',
+    });
+
+    const otherContractorRead = await contractorBClient
+      .from('jobs')
+      .select('id')
+      .eq('id', jobA.id)
+      .maybeSingle();
+    expect(otherContractorRead.data).toBeNull();
+
+    const assignedContractorWrite = await contractorAClient
+      .from('jobs')
+      .update({ title: 'itest_assigned_contractor_update' })
+      .eq('id', jobA.id)
+      .select('id', { count: 'exact', head: true });
+    expect(
+      assignedContractorWrite.error === null &&
+        (assignedContractorWrite.count ?? 0) > 0
+    ).toBe(true);
+
+    const otherContractorWrite = await contractorBClient
+      .from('jobs')
+      .update({ title: 'itest_other_contractor_hacked' })
+      .eq('id', jobA.id)
+      .select('id', { count: 'exact', head: true });
+    expect(
+      otherContractorWrite.error === null &&
+        (otherContractorWrite.count ?? 0) > 0
+    ).toBe(false);
+
+    const ownerAssignedRead = await homeownerAClient
+      .from('jobs')
+      .select('id, contractor_id, status')
+      .eq('id', jobA.id)
+      .single();
+    expect(ownerAssignedRead.error).toBeNull();
+    expect(ownerAssignedRead.data?.contractor_id).toBe(contractorA.id);
   });
 
   it('isolates messages and contractor documents across users', async () => {
