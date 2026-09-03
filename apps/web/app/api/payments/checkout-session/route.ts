@@ -1,10 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { POST as createIntent } from '@/app/api/payments/create-intent/route';
 
 const bodySchema = z.object({
   amount: z.number().int().positive(),
@@ -15,7 +21,8 @@ const bodySchema = z.object({
 
 /**
  * POST /api/payments/checkout-session
- * Create a checkout session via Supabase Edge Function
+ * Create a payment intent through the canonical payment flow.
+ * Kept as a response-compatible adapter for older clients.
  */
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 20 } },
@@ -31,7 +38,7 @@ export const POST = withApiHandler(
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: jobData, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, title, budget, homeowner_id, contractor_id')
+      .select('id, homeowner_id, contractor_id')
       .eq('id', jobId)
       .eq('homeowner_id', user.id) // Only fetch if user is homeowner
       .single();
@@ -48,7 +55,9 @@ export const POST = withApiHandler(
 
     const isAdmin = user.role === 'admin';
     if (!isAdmin && jobData.homeowner_id !== user.id) {
-      throw new ForbiddenError('Only the homeowner can initiate payment checkout');
+      throw new ForbiddenError(
+        'Only the homeowner can initiate payment checkout'
+      );
     }
 
     if (!jobData.contractor_id) {
@@ -63,27 +72,43 @@ export const POST = withApiHandler(
       throw new BadRequestError('Amount must be greater than zero');
     }
 
-    const metadata = {
-      jobId,
-      jobTitle: jobData.title ?? 'Untitled Job',
-      contractorId,
-      payerId: user.id,
-    };
-
-    const { data: paymentIntent, error: functionError } = await serverSupabase
-      .functions
-      .invoke('create-payment-intent', {
-        body: {
-          amount,
+    // Compatibility adapter for older clients. The former implementation
+    // invoked a `create-payment-intent` Supabase Edge Function that is not
+    // shipped in this repository and bypassed the canonical contract/bid,
+    // idempotency, Stripe and escrow state machine. `amount` is retained in
+    // minor units for the legacy wire contract, then converted to pounds for
+    // the canonical route (which treats the accepted bid as authoritative).
+    const canonicalRequest = new NextRequest(
+      new URL('/api/payments/create-intent', request.url),
+      {
+        method: 'POST',
+        headers: request.headers,
+        body: JSON.stringify({
+          amount: amount / 100,
           currency,
-          metadata,
           jobId,
           contractorId,
-        },
-      });
+        }),
+      }
+    );
+    const paymentResponse = await createIntent(canonicalRequest, {
+      params: Promise.resolve({}),
+    });
 
-    if (functionError) {
-      logger.error('Failed to create payment intent', functionError, {
+    if (!paymentResponse.ok) {
+      return paymentResponse;
+    }
+
+    const paymentIntent = (await paymentResponse.json()) as {
+      paymentIntentId?: string;
+      clientSecret?: string;
+      amount?: number;
+      currency?: string;
+      status?: string;
+    };
+
+    if (!paymentIntent.paymentIntentId || !paymentIntent.clientSecret) {
+      logger.error('Canonical payment intent response was incomplete', {
         service: 'payments',
         jobId,
         userId: user.id,
@@ -91,14 +116,10 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to create payment intent');
     }
 
-    if (!paymentIntent?.client_secret) {
-      throw new InternalServerError('Payment provider did not return a client secret');
-    }
-
     return NextResponse.json({
-      payment_intent_id: paymentIntent.id,
-      client_secret: paymentIntent.client_secret,
-      amount: paymentIntent.amount ?? amount,
+      payment_intent_id: paymentIntent.paymentIntentId,
+      client_secret: paymentIntent.clientSecret,
+      amount: paymentIntent.amount ?? amount / 100,
       currency: paymentIntent.currency ?? currency,
       status: paymentIntent.status,
     });
