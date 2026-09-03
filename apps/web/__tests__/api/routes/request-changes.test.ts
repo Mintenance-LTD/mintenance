@@ -240,13 +240,32 @@ function setupRequestChangesMocks(
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue(updateResult),
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: updateResult.error ? null : [{ id: 'job-1' }],
+                error: updateResult.error,
+              }),
+            }),
+          }),
         }),
       };
     }
     if (table === 'escrow_transactions') {
-      // .update({...}).eq('job_id', id).eq('status', 'held') — best-effort reset.
       return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'escrow-1', status: 'held' },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
+        // .update({...}).eq('job_id', id).eq('status', 'held') — best-effort reset.
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ error: null }),
