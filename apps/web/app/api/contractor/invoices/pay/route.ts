@@ -148,6 +148,12 @@ export const POST = withApiHandler(
       throw e;
     }
 
+    if (validatedData.paymentMethod !== 'card') {
+      throw new BadRequestError(
+        'Bank transfer invoice payments are not yet supported'
+      );
+    }
+
     const { data: invoice, error: invoiceError } = await serverSupabase
       .from('invoices')
       .select(
@@ -214,7 +220,6 @@ export const POST = withApiHandler(
     }
 
     return await releaseOnError(idempotencyKey, 'pay_invoice', async () => {
-      // Reuse a still-pending payment for this invoice/payer tuple.
       const { data: existingPayment } = await serverSupabase
         .from('payments')
         .select('id, status, stripe_payment_intent_id')

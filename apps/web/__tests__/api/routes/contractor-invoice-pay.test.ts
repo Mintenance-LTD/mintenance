@@ -369,6 +369,21 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     expect(res.status).toBe(401);
   });
 
+  it('rejects bank transfer until a non-card payment flow exists', async () => {
+    setupMocks();
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.POST(
+      createPostRequest({
+        invoiceId: INVOICE_ID,
+        paymentMethod: 'bank_transfer',
+      }),
+      segmentData()
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.stripePaymentIntentsCreate).not.toHaveBeenCalled();
+  });
+
   it('charges 12% application fee for a basic-tier contractor on a £1000 invoice', async () => {
     setupMocks({ planType: 'basic' });
 
