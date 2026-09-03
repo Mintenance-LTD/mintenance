@@ -131,6 +131,11 @@ export const POST = withApiHandler(
         contract.status !== CONTRACT_STATUS.PENDING_CONTRACTOR &&
         contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER
       ) {
+        if (contract.status === CONTRACT_STATUS.DRAFT) {
+          throw new BadRequestError(
+            'This contract is still in draft status and cannot be signed.'
+          );
+        }
         throw new BadRequestError(
           'This contract is no longer awaiting a signature.'
         );

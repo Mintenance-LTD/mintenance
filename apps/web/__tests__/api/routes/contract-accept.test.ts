@@ -69,6 +69,7 @@ vi.mock('@/lib/validation/uuid', () => ({
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     createNotification: mocks.createNotification,
+    markEmailSent: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -258,10 +259,14 @@ function setupContractMocks(
         }),
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: updateError ? null : updatedContract,
-                error: updateError,
+            eq: vi.fn().mockReturnValue({
+              is: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: updateError ? null : updatedContract,
+                    error: updateError,
+                  }),
+                }),
               }),
             }),
           }),
@@ -308,6 +313,13 @@ function setupContractMocks(
     if (table === 'appointments') {
       return {
         insert: vi.fn().mockResolvedValue({ error: null }),
+      };
+    }
+    if (table === 'contract_signatories') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
       };
     }
     return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
