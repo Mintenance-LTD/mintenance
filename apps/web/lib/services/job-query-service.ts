@@ -315,7 +315,13 @@ export class JobQueryService {
         .is('contractor_id', null)
         .is('archived_at', null);
     } else if (user.role === 'homeowner') {
-      query = query.eq('homeowner_id', user.id);
+      // A property-team manager/admin is represented as a homeowner at the
+      // platform role boundary. Jobs they are authorised to fund carry their
+      // identity in payer_user_id, so filtering only by homeowner_id would
+      // make those jobs disappear from their dashboard after creation.
+      query = query.or(
+        `homeowner_id.eq.${user.id},payer_user_id.eq.${user.id}`
+      );
 
       if (status?.length) {
         query = query.in('status', status);
@@ -555,11 +561,8 @@ export class JobQueryService {
             confidence: assessment.confidence || 0,
             urgency:
               (assessment.urgency as
-                | 'immediate'
-                | 'urgent'
-                | 'soon'
-                | 'planned'
-                | 'monitor') || 'monitor',
+                'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor') ||
+              'monitor',
             assessment_data: assessment.assessment_data,
             created_at: assessment.created_at,
           });
