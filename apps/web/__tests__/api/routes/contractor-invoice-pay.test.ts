@@ -454,6 +454,22 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
       expect.objectContaining({ platform_fee: 120 })
     );
   });
+
+  it('rejects an external return URL and uses the internal confirmation route', async () => {
+    setupMocks();
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.POST(
+      createPostRequest({
+        invoiceId: INVOICE_ID,
+        returnUrl: 'https://attacker.example/phishing',
+      }),
+      segmentData()
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.redirectUrl).toBe('/payments/payment-1/confirm');
+  });
 });
 
 function createStatusRequest(paymentIntentId: string): NextRequest {

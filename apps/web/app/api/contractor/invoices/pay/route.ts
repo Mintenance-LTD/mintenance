@@ -16,6 +16,7 @@ import {
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
+import { getSafeReturnUrl } from '@/lib/security/safe-return-url';
 
 // Payment initiation schema
 const initiatePaymentSchema = z.object({
@@ -193,22 +194,14 @@ export const POST = withApiHandler(
       throw new ForbiddenError('You are not authorized to pay this invoice');
     }
 
-    // 2026-05-23 audit-17 P1: the /payments/[id]/confirm page POSTs to
-    // this route on mount. The previous implementation unconditionally
-    // created a new PaymentIntent + escrow_transactions row + payments
-    // row every time, so each refresh / re-open / navigation churn left
-    // a trail of orphaned pending payments for the same invoice. Stripe
-    // bills $0.00 PaymentIntents but each one consumes API quota AND
-    // the duplicated rows make idempotent webhook handling much harder
-    // (e.g. webhook fires for one intent while another is still pending
-    // in the DB).
-    //
-    // Look up any existing pending payment for this (invoice, payer)
-    // tuple first. If the Stripe PaymentIntent is still in a pre-payment
-    // state (`requires_payment_method`, `requires_confirmation`,
-    // `requires_action`) we re-use it and the linked escrow row. The
-    // notification is also skipped on the reuse path so re-opens don't
-    // re-spam the contractor.
+    const safeReturnUrl = getSafeReturnUrl(
+      validatedData.returnUrl,
+      new URL(request.url).origin,
+      process.env.NEXT_PUBLIC_APP_URL
+    );
+
+    // Reuse a still-pending payment for this invoice/payer tuple to keep
+    // refreshes idempotent and avoid duplicate Stripe intents.
     const { data: existingPayment } = await serverSupabase
       .from('payments')
       .select('id, status, stripe_payment_intent_id')
@@ -267,8 +260,7 @@ export const POST = withApiHandler(
               amount: invoice.total_amount,
             },
             redirectUrl:
-              validatedData.returnUrl ||
-              `/payments/${existingPayment.id}/confirm`,
+              safeReturnUrl || `/payments/${existingPayment.id}/confirm`,
             reused: true,
           });
         }
@@ -395,8 +387,7 @@ export const POST = withApiHandler(
         amount: invoice.total_amount,
       },
       redirectUrl:
-        validatedData.returnUrl ||
-        `/payments/${payment?.id || paymentIntent.id}/confirm`,
+        safeReturnUrl || `/payments/${payment?.id || paymentIntent.id}/confirm`,
     });
   }
 );
@@ -415,9 +406,8 @@ export const GET = withApiHandler(
       throw new BadRequestError('Payment intent ID required');
     }
 
-    // Resolve and authorize the local record before contacting Stripe. The
-    // PaymentIntent ID is a bearer-like identifier supplied by the client,
-    // so it must never be enough to read or mutate another user's payment.
+    // Authorize the client-supplied PaymentIntent ID against the local record
+    // before reading or mutating payment state.
     const { data: payment } = await serverSupabase
       .from('payments')
       .select(
@@ -443,9 +433,7 @@ export const GET = withApiHandler(
       throw new ForbiddenError('You are not authorized to view this payment');
     }
 
-    // Fetch payment intent from Stripe only after local ownership has been
-    // established. This also avoids exposing Stripe status for an unrelated
-    // intent to an authenticated user.
+    // Contact Stripe only after local ownership has been established.
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     // Update local status if needed
