@@ -302,12 +302,20 @@ function setupRefundMocks(
         }),
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: escrowUpdateError
-                  ? null
-                  : { ...escrowResult.data, status: 'refunded' },
-                error: escrowUpdateError,
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: escrowUpdateError
+                    ? null
+                    : { ...escrowResult.data, status: 'refunded' },
+                  error: escrowUpdateError,
+                }),
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: escrowUpdateError
+                    ? null
+                    : { id: 'escrow-1' },
+                  error: escrowUpdateError,
+                }),
               }),
             }),
           }),
