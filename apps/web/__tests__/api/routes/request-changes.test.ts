@@ -432,6 +432,29 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     expect(body.message).toContain('reopened');
   });
 
+  it('should allow the designated payer to request changes', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupRequestChangesMocks({
+      jobData: {
+        ...completedJob,
+        payer_user_id: 'payer-1',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Please address the remaining leak' }
+    );
+    const res = await POST(req, segmentData('job-1'));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
+  });
+
   it('should create a notification for the contractor', async () => {
     setupRequestChangesMocks();
 

@@ -86,10 +86,10 @@ export const POST = withApiHandler(
     }
 
     return await releaseOnError(idempotencyKey, 'request_changes', async () => {
-      // 1. Fetch job and verify ownership
+      // 1. Fetch job and verify designated-payer access
       const { data: job, error } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, contractor_id, title, status')
+        .select('id, homeowner_id, payer_user_id, contractor_id, title, status')
         .eq('id', jobId)
         .single();
 
@@ -97,8 +97,13 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
-      if (job.homeowner_id !== user.id) {
-        throw new ForbiddenError('Only the homeowner can request changes');
+      const isDesignatedPayer =
+        job.payer_user_id === user.id ||
+        (!job.payer_user_id && job.homeowner_id === user.id);
+      if (!isDesignatedPayer) {
+        throw new ForbiddenError(
+          'Only the homeowner or designated payer can request changes'
+        );
       }
 
       if (job.status !== JOB_STATUS.COMPLETED) {
