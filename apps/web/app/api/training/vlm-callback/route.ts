@@ -141,9 +141,27 @@ export const POST = withApiHandler(
           route: 'vlm-callback',
           jobId,
         });
-        // Don't fail the response — the callback was delivered successfully
+        // Do not acknowledge the callback when the durable state transition
+        // failed. The worker can then retry instead of leaving the job stuck
+        // in `running` with no completion record.
+        return NextResponse.json(
+          { error: 'Failed to persist training completion' },
+          { status: 503 }
+        );
       } else {
-        await ExperienceBufferService.markJobCompleted(jobId, 1);
+        try {
+          await ExperienceBufferService.markJobCompleted(jobId, 1);
+        } catch (bookkeepingError) {
+          // The job state is already durable. Keep the callback idempotent and
+          // let a separate reconciliation pass repair this non-critical
+          // experience-buffer bookkeeping rather than asking the worker to
+          // repeat the completed transition.
+          logger.error(
+            'Failed to mark VLM job completion in experience buffer',
+            bookkeepingError,
+            { route: 'vlm-callback', jobId }
+          );
+        }
         logger.info('Job marked completed in DB', {
           route: 'vlm-callback',
           jobId,
@@ -168,8 +186,20 @@ export const POST = withApiHandler(
           route: 'vlm-callback',
           jobId,
         });
+        return NextResponse.json(
+          { error: 'Failed to persist training failure' },
+          { status: 503 }
+        );
       } else {
-        await ExperienceBufferService.releaseReservation(jobId);
+        try {
+          await ExperienceBufferService.releaseReservation(jobId);
+        } catch (bookkeepingError) {
+          logger.error(
+            'Failed to release VLM job reservation in experience buffer',
+            bookkeepingError,
+            { route: 'vlm-callback', jobId }
+          );
+        }
         logger.warn('Job marked failed in DB', {
           route: 'vlm-callback',
           jobId,
