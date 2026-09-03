@@ -15,7 +15,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
   ForbiddenError,
   NotFoundError,
-  BadRequestError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 
 // 2026-05-01 audit follow-up (check-api-contracts): optional rejection
@@ -107,10 +107,15 @@ export const POST = withApiHandler(
     if (reason) {
       updateData.rejection_reason = reason;
     }
-    const { error: rejectError } = await serverSupabase
+    // Compare-and-set the status validated above. A concurrent acceptance
+    // must win rather than being overwritten by this rejection.
+    const { data: rejectedBid, error: rejectError } = await serverSupabase
       .from('bids')
       .update(updateData)
-      .eq('id', bidId);
+      .eq('id', bidId)
+      .eq('status', bid.status)
+      .select('id')
+      .maybeSingle();
 
     if (rejectError) {
       logger.error('Failed to reject bid', rejectError, {
@@ -119,6 +124,12 @@ export const POST = withApiHandler(
         jobId,
       });
       throw rejectError;
+    }
+
+    if (!rejectedBid) {
+      throw new ConflictError(
+        'This bid changed while it was being rejected. Refresh and try again.'
+      );
     }
 
     logger.info('Bid rejected successfully', {

@@ -216,6 +216,29 @@ export async function verifyCompletionPhotos(
       };
     }
 
+    // Bind the two identifiers before doing any inference. This service uses
+    // the service-role client and is also callable outside an HTTP route, so
+    // route-level checks alone are not sufficient. Do not allow a result for
+    // one job to mutate another escrow, or mutate an escrow already released
+    // or in an irreversible payment operation.
+    const { data: escrow, error: escrowError } = await serverSupabase
+      .from('escrow_transactions')
+      .select('id, job_id, status')
+      .eq('id', escrowId)
+      .eq('job_id', jobId)
+      .in('status', ['held', 'awaiting_homeowner_approval'])
+      .maybeSingle();
+
+    if (escrowError || !escrow) {
+      logger.warn('Photo verification rejected for invalid escrow/job state', {
+        service: 'EscrowReleaseAgent',
+        escrowId,
+        jobId,
+        error: escrowError?.message,
+      });
+      return null;
+    }
+
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
       .select('id, title, description, category, status')
@@ -245,7 +268,9 @@ export async function verifyCompletionPhotos(
     }
 
     for (const photoUrl of photoUrls) {
-      await serverSupabase.from('escrow_photo_verification').insert({
+      const { error: verificationInsertError } = await serverSupabase
+        .from('escrow_photo_verification')
+        .insert({
         escrow_id: escrowId,
         job_id: jobId,
         photo_url: photoUrl,
@@ -257,17 +282,29 @@ export async function verifyCompletionPhotos(
         completion_indicators: completionIndicators,
         quality_score: qualityScore,
         verified_at: status === 'verified' ? new Date().toISOString() : null,
-      });
+        });
+      if (verificationInsertError) {
+        throw verificationInsertError;
+      }
     }
 
-    await serverSupabase
+    const { data: updatedEscrow, error: escrowUpdateError } =
+      await serverSupabase
       .from('escrow_transactions')
       .update({
         photo_verification_status: status,
         photo_verification_score: verificationScore,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', escrowId);
+      .eq('id', escrowId)
+      .eq('job_id', jobId)
+      .in('status', ['held', 'awaiting_homeowner_approval'])
+      .select('id')
+      .maybeSingle();
+
+    if (escrowUpdateError || !updatedEscrow) {
+      throw escrowUpdateError ?? new Error('Escrow state changed during photo verification');
+    }
 
     await AgentLogger.logDecision({
       agentName: 'escrow-release',

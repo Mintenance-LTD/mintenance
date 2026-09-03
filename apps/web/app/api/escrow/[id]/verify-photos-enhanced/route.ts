@@ -8,8 +8,8 @@ import { validateRequest } from '@/lib/validation/validator';
 import { validateURLs } from '@/lib/security/url-validation';
 import {
   NotFoundError,
-  InternalServerError,
   ForbiddenError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
@@ -114,14 +114,31 @@ export const POST = withApiHandler(
 
     const verified = allQualityPassed && allGeolocationVerified && allTimestampVerified && (comparisonResult?.matches ?? true);
 
-    await serverSupabase.from('escrow_transactions').update({
-      photo_quality_passed: allQualityPassed,
-      geolocation_verified: allGeolocationVerified,
-      timestamp_verified: allTimestampVerified,
-      before_after_comparison_score: comparisonResult?.comparisonScore || null,
-      photo_verification_status: verified ? 'verified' : 'manual_review',
-      updated_at: new Date().toISOString(),
-    }).eq('id', escrowId);
+    // Do not let a late verification request mutate or reopen a payment that
+    // is already being released, refunded, disputed, or completed. The
+    // status predicate is a compare-and-swap against the state read above.
+    const { data: updatedEscrow, error: verificationUpdateError } =
+      await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          photo_quality_passed: allQualityPassed,
+          geolocation_verified: allGeolocationVerified,
+          timestamp_verified: allTimestampVerified,
+          before_after_comparison_score:
+            comparisonResult?.comparisonScore || null,
+          photo_verification_status: verified ? 'verified' : 'manual_review',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', escrowId)
+        .in('status', ['held', 'awaiting_homeowner_approval'])
+        .select('id')
+        .maybeSingle();
+
+    if (verificationUpdateError || !updatedEscrow) {
+      throw new ConflictError(
+        'This escrow is no longer available for photo verification.'
+      );
+    }
 
     if (verified) {
       await HomeownerApprovalService.requestHomeownerApproval(escrowId, validatedAfterPhotoUrls);

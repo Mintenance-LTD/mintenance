@@ -131,8 +131,7 @@ jobs:
         timeout-minutes: 10
 
       - name: Run performance tests
-        run: |
-          npm run test:performance || echo "No performance tests configured"
+        run: node scripts/check-performance-budgets.js mobile
 
       - name: Check TypeScript performance
         run: |

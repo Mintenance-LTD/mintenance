@@ -37,37 +37,12 @@ export async function accumulateEarnings(params: {
   });
 
   if (error) {
-    // Fall back to plain update if the RPC doesn't exist yet (see migration notes)
-    logger.warn('credit_payout_balance RPC unavailable, using direct update', {
+    logger.error('Atomic payout credit RPC failed; refusing unsafe fallback', error, {
       service: 'payouts',
       contractorId: params.contractorId,
-      error: error.message,
+      jobId: params.jobId,
     });
-
-    const { data: existing } = await serverSupabase
-      .from('contractor_payout_balances')
-      .select('pending_amount_minor')
-      .eq('contractor_id', params.contractorId)
-      .eq('currency', currency)
-      .maybeSingle();
-
-    if (existing) {
-      await serverSupabase
-        .from('contractor_payout_balances')
-        .update({
-          pending_amount_minor:
-            existing.pending_amount_minor + params.amountMinor,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('contractor_id', params.contractorId)
-        .eq('currency', currency);
-    } else {
-      await serverSupabase.from('contractor_payout_balances').insert({
-        contractor_id: params.contractorId,
-        currency,
-        pending_amount_minor: params.amountMinor,
-      });
-    }
+    throw new Error('Unable to credit contractor payout balance atomically');
   }
 
   logger.info('Earnings accumulated to payout balance', {

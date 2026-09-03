@@ -95,7 +95,10 @@ export async function scheduleAutoReleaseForCompletion(
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrowRow.id)
-        .is('auto_release_date', null);
+        .eq('status', 'held')
+        .is('auto_release_date', null)
+        .select('id')
+        .maybeSingle();
       if (stampErr) {
         logger.error('Failed to stamp fallback auto_release_date', stampErr, {
           service: 'jobs',
@@ -159,6 +162,7 @@ async function stampApprovalClockAndVerification(
       updated_at: new Date().toISOString(),
     })
     .eq('id', escrowId)
+    .eq('status', 'held')
     .is('auto_approval_date', null);
   if (verifyStampErr) {
     logger.error(

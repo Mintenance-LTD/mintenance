@@ -321,9 +321,6 @@ const { stableMockDOMPurify } = vi.hoisted(() => {
       result = result.replace(/(?:javascript|data|vbscript):/gi, '');
     } while (result !== previous);
 
-    // Final hardening: neutralize HTML delimiters so residual/re-formed tags cannot survive
-    result = result.replace(/[<>]/g, '');
-
     // Handle allowed tags if specified
     if (config?.ALLOWED_TAGS && Array.isArray(config.ALLOWED_TAGS)) {
       const allowedTags = config.ALLOWED_TAGS.map((t: string) =>

@@ -139,7 +139,7 @@ export const POST = withApiHandler(
         try {
           await requireAdminFromDatabase(user.id);
           isAdminVerified = true;
-        } catch (error) {
+        } catch {
           logger.warn('Admin role verification failed for escrow release', {
             service: 'payments',
             userId: user.id,
@@ -367,6 +367,25 @@ export const POST = withApiHandler(
         );
       }
 
+      // Re-check the job after claiming escrow. A homeowner request for
+      // changes may have reopened the job just before this claim; do not
+      // send money for work that is no longer in the completed state.
+      const { data: currentJob, error: currentJobError } = await serverSupabase
+        .from('jobs')
+        .select('status')
+        .eq('id', job.id)
+        .single();
+      if (currentJobError || currentJob?.status !== JOB_STATUS.COMPLETED) {
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({ status: ESCROW_STATUS.HELD, updated_at: new Date().toISOString() })
+          .eq('id', escrowTransactionId)
+          .eq('status', ESCROW_STATUS.RELEASE_PENDING);
+        throw new ConflictError(
+          'The job is no longer completed. Payment release was cancelled.'
+        );
+      }
+
       // Step 2: Create Stripe transfer (DB already locked as release_pending)
       const transfer = await performStripeTransfer(
         contractorAmountCents,
@@ -413,11 +432,19 @@ export const POST = withApiHandler(
         .eq('status', ESCROW_STATUS.RELEASE_PENDING)
         .select();
 
-      if (updateError) {
-        // Transfer succeeded but final DB update failed — create reconciliation record
+      if (updateError || !updatedEscrow || updatedEscrow.length === 0) {
+        // Transfer succeeded but final DB finalization failed or affected no
+        // row — create reconciliation evidence and fail closed. An empty
+        // result is just as unsafe as an explicit error: Stripe has paid the
+        // contractor while the escrow can still be release_pending.
+        const finalizationError =
+          updateError ??
+          new Error(
+            'Escrow finalization updated no rows; status may still be release_pending'
+          );
         logger.error(
           'CRITICAL: Transfer succeeded but final DB update failed',
-          updateError,
+          finalizationError,
           {
             service: 'payments',
             transferId: transfer.id,
@@ -458,7 +485,7 @@ export const POST = withApiHandler(
               issue_type: 'transfer_succeeded_final_update_failed',
               status: 'pending_review',
               contractor_id: job.contractor_id,
-              update_error_message: updateError?.message,
+              update_error_message: finalizationError.message,
             },
           });
         } catch (reconciliationErr: unknown) {
@@ -478,18 +505,6 @@ export const POST = withApiHandler(
           job,
           escrowTransactionId,
           escrowTransaction.amount
-        );
-      }
-
-      if (!updatedEscrow || updatedEscrow.length === 0) {
-        logger.warn(
-          'Escrow final update returned empty - may already be completed',
-          {
-            service: 'payments',
-            userId: user.id,
-            escrowTransactionId,
-            transferId: transfer.id,
-          }
         );
       }
 

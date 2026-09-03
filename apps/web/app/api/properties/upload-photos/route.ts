@@ -2,20 +2,17 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { signJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
+import {
+  validateImageUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 import { ForbiddenError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const supabase = serverSupabase;
 
 // File upload security configuration
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = MAX_FILE_SIZES.profileImage;
 const MAX_FILES = 10; // Maximum 10 photos per property
 
 /**
@@ -87,38 +84,18 @@ export const POST = withApiHandler(
     for (let i = 0; i < photoFiles.length; i++) {
       const file = photoFiles[i];
       const category = categories[i] || 'other';
-      // Validate file type
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        uploadErrors.push(
-          `${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.`
-        );
+      // Validate the actual bytes, not the client-declared MIME type or
+      // filename extension.
+      const validation = await validateImageUpload(file, MAX_FILE_SIZE);
+      if (!validation.valid) {
+        uploadErrors.push(`${file.name}: ${validation.error || 'Invalid file'}`);
         continue;
       }
 
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        uploadErrors.push(`${file.name}: File too large. Maximum size is 5MB.`);
-        continue;
-      }
-
-      // Get file extension
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-      if (!ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        uploadErrors.push(`${file.name}: Invalid file extension.`);
-        continue;
-      }
-
-      // SECURITY: Sanitize filename to prevent path traversal attacks
-      // Remove any path separators, special characters, and ensure safe filename
-      const sanitizedBaseName = file.name
-        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
-        .replace(/\.\./g, '') // Remove path traversal attempts
-        .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
-        .substring(0, 100); // Limit filename length
-
-      // Generate safe filename with user ID and timestamp to prevent collisions
-      const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const fileName = `property-photos/${safeFileName}`;
+      // Use a server-generated key; never put user-controlled names in the
+      // storage path.
+      const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
+      const fileName = `property-photos/${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
       // Upload to Supabase Storage (using Job-storage bucket that exists)
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -126,6 +103,7 @@ export const POST = withApiHandler(
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
+          contentType: validation.detectedType,
         });
 
       if (uploadError) {

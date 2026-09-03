@@ -155,6 +155,28 @@ export async function calculateAutoReleaseDate(
     const { TrustScoreService } =
       await import('@/lib/services/contractor/TrustScoreService');
 
+    // Bind all caller-supplied identifiers to one active escrow before
+    // calculating or persisting payout timing. This service uses the
+    // service-role client and is called from both routes and cron logic.
+    const { data: escrowRow, error: escrowError } = await serverSupabase
+      .from('escrow_transactions')
+      .select('id, job_id, payee_id, status, amount')
+      .eq('id', escrowId)
+      .eq('job_id', jobId)
+      .in('status', ['held', 'awaiting_homeowner_approval'])
+      .maybeSingle();
+
+    if (escrowError || !escrowRow || escrowRow.payee_id !== contractorId) {
+      logger.warn('Auto-release scheduling rejected for invalid escrow binding', {
+        service: 'EscrowReleaseAgent',
+        escrowId,
+        jobId,
+        contractorId,
+        error: escrowError?.message,
+      });
+      return null;
+    }
+
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
       .select('id, category, budget, status, contractor_id')
@@ -172,11 +194,6 @@ export async function calculateAutoReleaseDate(
     // funded, so the actual funded amount is the authoritative
     // "job value" — fetch it from escrow_transactions and fall back
     // to budget only for legacy jobs.
-    const { data: escrowRow } = await serverSupabase
-      .from('escrow_transactions')
-      .select('amount')
-      .eq('id', escrowId)
-      .single();
     const jobValueForRule =
       (escrowRow?.amount && Number(escrowRow.amount) > 0
         ? Number(escrowRow.amount)
@@ -230,7 +247,7 @@ export async function calculateAutoReleaseDate(
     releaseDate.setDate(releaseDate.getDate() + holdPeriodDays);
 
     const trustScore = await TrustScoreService.getTrustScore(contractorId);
-    await serverSupabase
+    const { data: updatedEscrow, error: updateError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         auto_release_date: releaseDate.toISOString(),
@@ -238,7 +255,22 @@ export async function calculateAutoReleaseDate(
         trust_score: trustScore,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', escrowId);
+      .eq('id', escrowId)
+      .eq('job_id', jobId)
+      .eq('payee_id', contractorId)
+      .in('status', ['held', 'awaiting_homeowner_approval'])
+      .select('id')
+      .maybeSingle();
+
+    if (updateError || !updatedEscrow) {
+      logger.warn('Auto-release date was not persisted because escrow changed', {
+        service: 'EscrowReleaseAgent',
+        escrowId,
+        jobId,
+        error: updateError?.message,
+      });
+      return null;
+    }
 
     return releaseDate;
   } catch (error) {

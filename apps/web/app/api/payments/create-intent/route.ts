@@ -30,6 +30,10 @@ export const POST = withApiHandler(
     // post-claim step throws. Stays undefined when the throw happens
     // before the claim was made — guarded in the catch.
     let claimedIdempotencyKey: string | undefined;
+    let paymentJobId: string | undefined;
+    let creditAppliedPence = 0;
+    let escrowCreated = false;
+    let createdPaymentIntentId: string | undefined;
     try {
       // Validate and sanitize input using Zod schema
       const validation = await validateRequest(request, paymentIntentSchema);
@@ -40,6 +44,7 @@ export const POST = withApiHandler(
 
       const { amount, currency, jobId, contractorId, metadata } =
         validation.data;
+      paymentJobId = jobId;
 
       // Monitor transaction for anomalies (non-blocking: payment proceeds even if monitoring fails)
       try {
@@ -376,7 +381,6 @@ export const POST = withApiHandler(
       //
       // 2026-05-25 audit-45 P0: moved here from above the idempotency
       // claim so duplicate requests can't double-debit user_credits.
-      let creditAppliedPence = 0;
       try {
         const { NeighbourhoodReferralService } =
           await import('@/lib/services/referrals/NeighbourhoodReferralService');
@@ -517,6 +521,7 @@ export const POST = withApiHandler(
           10000 // 10 second timeout
         );
       }
+      createdPaymentIntentId = paymentIntent.id;
 
       // Check for existing escrow record to prevent duplicates
       // (e.g. user refreshes payment page, or idempotency cache expired)
@@ -596,11 +601,22 @@ export const POST = withApiHandler(
             }
           )
         );
+        if (creditAppliedPence > 0) {
+          const { NeighbourhoodReferralService } =
+            await import('@/lib/services/referrals/NeighbourhoodReferralService');
+          const restored = await NeighbourhoodReferralService.restoreCredit(
+            user.id,
+            creditAppliedPence,
+            jobId
+          );
+          if (restored) creditAppliedPence = 0;
+        }
         return NextResponse.json(
           { error: 'Failed to create escrow transaction' },
           { status: 500 }
         );
       }
+      escrowCreated = true;
 
       logger.info('Payment intent created successfully', {
         service: 'payments',
@@ -636,6 +652,49 @@ export const POST = withApiHandler(
 
       return NextResponse.json(responseData);
     } catch (error) {
+      if (creditAppliedPence > 0 && !escrowCreated && paymentJobId) {
+        try {
+          if (createdPaymentIntentId) {
+            await stripe.paymentIntents.cancel(createdPaymentIntentId).catch(
+              (cancelError) => {
+                logger.error(
+                  'PaymentIntent cancellation failed during payment rollback',
+                  cancelError,
+                  {
+                    service: 'payments',
+                    userId: user.id,
+                    jobId: paymentJobId,
+                    paymentIntentId: createdPaymentIntentId,
+                  }
+                );
+              }
+            );
+          }
+          const { NeighbourhoodReferralService } =
+            await import('@/lib/services/referrals/NeighbourhoodReferralService');
+          const restored = await NeighbourhoodReferralService.restoreCredit(
+            user.id,
+            creditAppliedPence,
+            paymentJobId
+          );
+          if (!restored) {
+            logger.error('Credit rollback requires reconciliation', null, {
+              service: 'payments',
+              userId: user.id,
+              jobId: paymentJobId,
+              creditAppliedPence,
+            });
+          }
+        } catch (rollbackError) {
+          logger.error('Credit rollback threw after payment failure', rollbackError, {
+            service: 'payments',
+            userId: user.id,
+            jobId: paymentJobId,
+            creditAppliedPence,
+          });
+        }
+      }
+
       // Release the pending idempotency claim so the user can retry
       // immediately rather than wait for the 60s stale-takeover window.
       // Only released if the claim was actually acquired in this request

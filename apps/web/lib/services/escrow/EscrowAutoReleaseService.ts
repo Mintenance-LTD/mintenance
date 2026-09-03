@@ -283,12 +283,30 @@ export class EscrowAutoReleaseService {
     if (process.env.ESCROW_USE_PAYOUT_ACCUMULATION === 'true') {
       const { accumulateEarnings } =
         await import('@/lib/stripe/connect/payouts');
-      await accumulateEarnings({
-        contractorId: escrow.payee_id,
-        amountMinor: contractorAmountCents,
-        currency: 'GBP',
-        jobId: job.id,
-      });
+      try {
+        await accumulateEarnings({
+          contractorId: escrow.payee_id,
+          amountMinor: contractorAmountCents,
+          currency: 'GBP',
+          jobId: job.id,
+        });
+      } catch (error) {
+        logger.error(
+          'Failed to accumulate escrow earnings; releasing claim for retry',
+          error,
+          {
+            service: 'EscrowAutoReleaseService',
+            escrowId: escrow.id,
+            jobId: job.id,
+          }
+        );
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({ status: 'held', updated_at: new Date().toISOString() })
+          .eq('id', escrow.id)
+          .eq('status', 'release_pending');
+        return false;
+      }
 
       // Still need to track platform fee + update escrow even though we
       // didn't transfer now. The fee-transfer is handled on actual payout.
@@ -316,7 +334,7 @@ export class EscrowAutoReleaseService {
         );
       }
 
-      const { error: accUpdateErr } = await serverSupabase
+      const { data: accumulatedRows, error: accUpdateErr } = await serverSupabase
         .from('escrow_transactions')
         .update({
           status: 'completed',
@@ -339,13 +357,18 @@ export class EscrowAutoReleaseService {
           },
         })
         .eq('id', escrow.id)
-        .eq('status', 'release_pending');
+        .eq('status', 'release_pending')
+        .select('id');
 
-      if (accUpdateErr) {
+      if (accUpdateErr || !accumulatedRows || accumulatedRows.length === 0) {
         logger.error('Failed to update escrow after accumulated release', {
           service: 'EscrowAutoReleaseService',
           escrowId: escrow.id,
-          error: accUpdateErr,
+          error:
+            accUpdateErr ??
+            new Error(
+              'Accumulated release updated no escrow rows; manual reconciliation required'
+            ),
         });
         return false;
       }
@@ -438,17 +461,23 @@ export class EscrowAutoReleaseService {
       },
     };
 
-    const { error: updateError } = await serverSupabase
+    const { data: updatedRows, error: updateError } = await serverSupabase
       .from('escrow_transactions')
       .update(updateData)
       .eq('id', escrow.id)
-      .eq('status', 'release_pending');
+      .eq('status', 'release_pending')
+      .select('id');
 
-    if (updateError) {
+    if (updateError || !updatedRows || updatedRows.length === 0) {
+      const finalizationError =
+        updateError ??
+        new Error(
+          'Auto-release finalization updated no escrow rows; status may still be release_pending'
+        );
       logger.error('Failed to update escrow after auto-release', {
         service: 'EscrowAutoReleaseService',
         escrowId: escrow.id,
-        error: updateError.message,
+        error: finalizationError.message,
       });
 
       // Attempt to reverse the transfer

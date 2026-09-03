@@ -9,7 +9,9 @@ import {
   releaseIdempotencyClaim,
 } from '@/lib/idempotency';
 import {
+  ConflictError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
   RateLimitError,
 } from '@/lib/errors/api-error';
@@ -87,6 +89,8 @@ export const POST = withApiHandler(
     // so the user can retry immediately rather than wait 60s for stale
     // takeover. (Note: checkIdempotency now THROWS on real contention, so
     // a `null` return from it would only mean "new request, proceed".)
+    let escrowClaimed = false;
+    let refundId: string | null = null;
     try {
       // Verify job ownership
       const { data: job, error: jobError } = await serverSupabase
@@ -303,6 +307,29 @@ export const POST = withApiHandler(
         );
       }
 
+      // Claim the held escrow before calling Stripe. The request idempotency
+      // key protects retries of one request, but cannot serialize different
+      // partial-refund amounts submitted concurrently.
+      const { data: refundClaim, error: refundClaimError } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            status: 'release_pending',
+            release_reason: 'refund_pending',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', escrowTransactionId)
+          .eq('status', 'held')
+          .select('id')
+          .maybeSingle();
+
+      if (refundClaimError || !refundClaim) {
+        throw new ConflictError(
+          'This escrow was modified by another request. Refresh and try again.'
+        );
+      }
+      escrowClaimed = true;
+
       // Create Stripe refund. Idempotency key keyed on escrow+amount+intent so
       // retries against the same protected operation don't issue a second refund.
       const refund = await stripe.refunds.create(
@@ -321,6 +348,7 @@ export const POST = withApiHandler(
           idempotencyKey: `refund_${escrowTransactionId}_${paymentIntentId}_${refundAmount}`,
         }
       );
+      refundId = refund.id;
 
       // Update escrow transaction with retry logic
       // CRITICAL: Stripe refund already succeeded, so DB must reflect this
@@ -336,6 +364,7 @@ export const POST = withApiHandler(
             updated_at: new Date().toISOString(),
           })
           .eq('id', escrowTransactionId)
+          .eq('status', 'release_pending')
           .select()
           .single();
 
@@ -420,6 +449,10 @@ export const POST = withApiHandler(
             { service: 'payments', escrowTransactionId, refundId: refund.id }
           );
         }
+
+        throw new InternalServerError(
+          'Refund succeeded but recording it failed. Support must reconcile this payment.'
+        );
       }
 
       // Update job status if needed
@@ -455,6 +488,20 @@ export const POST = withApiHandler(
 
       return NextResponse.json(responseData);
     } catch (err) {
+      if (escrowClaimed && !refundId) {
+        // Stripe did not create a refund, so release the payment claim and
+        // allow a safe retry. Never do this after Stripe has returned a refund.
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            status: 'held',
+            release_reason: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', escrowTransactionId)
+          .eq('status', 'release_pending');
+      }
+
       // Release the claim so the user can retry now instead of waiting
       // 60s for the stale-claim takeover. Swallow release failures — the
       // 60s backstop will still kick in.
