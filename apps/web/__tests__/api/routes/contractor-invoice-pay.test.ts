@@ -29,6 +29,10 @@ const mocks = vi.hoisted(() => ({
   stripePaymentIntentsRetrieve: vi.fn(),
   createNotification: vi.fn(),
   getEarlyAccessEntitlement: vi.fn(),
+  getDeterministicIdempotencyKeyFromRequest: vi.fn(),
+  checkIdempotency: vi.fn(),
+  storeIdempotencyResult: vi.fn(),
+  releaseOnError: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
@@ -84,6 +88,14 @@ vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     createNotification: mocks.createNotification,
   },
+}));
+
+vi.mock('@/lib/idempotency', () => ({
+  getDeterministicIdempotencyKeyFromRequest:
+    mocks.getDeterministicIdempotencyKeyFromRequest,
+  checkIdempotency: mocks.checkIdempotency,
+  storeIdempotencyResult: mocks.storeIdempotencyResult,
+  releaseOnError: mocks.releaseOnError,
 }));
 
 // Dynamically imported inside FeeCalculationService.resolveContractorTier
@@ -272,6 +284,14 @@ function setupMocks(options: SetupOptions = {}) {
   });
   mocks.createNotification.mockResolvedValue(undefined);
   mocks.getEarlyAccessEntitlement.mockResolvedValue({ eligible: false });
+  mocks.getDeterministicIdempotencyKeyFromRequest.mockReturnValue(
+    'pay_invoice:homeowner-1:11111111-1111-4111-8111-111111111111'
+  );
+  mocks.checkIdempotency.mockResolvedValue(null);
+  mocks.storeIdempotencyResult.mockResolvedValue(undefined);
+  mocks.releaseOnError.mockImplementation(
+    async (_key: string, _operation: string, fn: () => Promise<unknown>) => fn()
+  );
   mocks.stripePaymentIntentsCreate.mockImplementation(
     async (params: { amount: number; currency: string }) => ({
       id: 'pi_new_123',
@@ -386,6 +406,15 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
         net_amount: 880,
       })
     );
+    expect(captured.escrowInsert[0]).toEqual(
+      expect.objectContaining({
+        payment_type: 'final',
+        metadata: expect.objectContaining({ invoice_id: INVOICE_ID }),
+      })
+    );
+    expect(captured.escrowInsert[0]).not.toHaveProperty('invoice_id');
+    expect(captured.escrowInsert[0]).not.toHaveProperty('escrow_type');
+    expect(captured.escrowInsert[0]).not.toHaveProperty('release_conditions');
   });
 
   it('charges 8% application fee for a professional-tier contractor', async () => {
@@ -469,6 +498,29 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.redirectUrl).toBe('/payments/payment-1/confirm');
+  });
+
+  it('returns the completed idempotent result without creating another intent', async () => {
+    setupMocks();
+    const cachedResult = {
+      success: true,
+      paymentIntent: { id: 'pi_cached', amount: 100000, currency: 'gbp' },
+    };
+    mocks.checkIdempotency.mockResolvedValue({
+      isDuplicate: true,
+      cachedResult,
+      idempotencyKey: 'pay_invoice:cached',
+    });
+
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.POST(
+      createPostRequest({ invoiceId: INVOICE_ID }),
+      segmentData()
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(cachedResult);
+    expect(mocks.stripePaymentIntentsCreate).not.toHaveBeenCalled();
   });
 });
 
