@@ -127,10 +127,6 @@ async function createEscrowTransaction(
   return escrow;
 }
 
-/**
- * POST /api/contractor/invoices/pay
- * Initiate payment for invoice
- */
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
