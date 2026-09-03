@@ -93,7 +93,10 @@ export const updateInvoiceSchema = z
       .optional(),
     notes: z.string().max(2000, 'Notes too long').optional(),
     dueDate: z.string().optional(),
-    status: z.enum(['draft', 'sent', 'paid', 'cancelled']).optional(),
+    // `paid` is a server-owned state. It may only be set after Stripe
+    // confirms the corresponding payment intent (webhook/status
+    // reconciliation), never by a contractor-supplied PATCH body.
+    status: z.enum(['draft', 'sent', 'cancelled']).optional(),
     clientName: z
       .string()
       .min(1, 'Client name is required')

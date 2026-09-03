@@ -455,3 +455,82 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     );
   });
 });
+
+function createStatusRequest(paymentIntentId: string): NextRequest {
+  return new NextRequest(
+    new URL(
+      `http://localhost:3000/api/contractor/invoices/pay?payment_intent=${paymentIntentId}`
+    ),
+    {
+      method: 'GET',
+      headers: { 'x-forwarded-for': '127.0.0.1' },
+    }
+  );
+}
+
+describe('GET /api/contractor/invoices/pay — payment ownership', () => {
+  const paymentIntentId = 'pi_existing_123';
+  const paymentRow = {
+    id: 'payment-1',
+    payer_id: payerUser.id,
+    payee_id: 'contractor-1',
+    invoice_id: INVOICE_ID,
+    status: 'pending',
+    stripe_payment_intent_id: paymentIntentId,
+    invoice: {
+      invoice_number: 'INV-001',
+      title: 'Boiler replacement',
+      total_amount: 1000,
+    },
+  };
+
+  function setupStatusMocks(currentUser: typeof payerUser) {
+    mocks.getCurrentUserFromCookies.mockResolvedValue(currentUser);
+    mocks.rateLimiterCheckRateLimit.mockResolvedValue({
+      allowed: true,
+      remaining: 29,
+      resetTime: Date.now() + 60000,
+      retryAfter: 0,
+    });
+    mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'payments') {
+        return makeChain({ single: { data: paymentRow, error: null } });
+      }
+      return makeChain();
+    });
+    mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
+      id: paymentIntentId,
+      status: 'requires_action',
+      amount: 100000,
+      currency: 'gbp',
+    });
+  }
+
+  it('does not disclose another user payment or call Stripe', async () => {
+    setupStatusMocks({ ...payerUser, id: 'unrelated-user' });
+
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.GET(
+      createStatusRequest(paymentIntentId),
+      segmentData()
+    );
+
+    expect(response.status).toBe(403);
+    expect(mocks.stripePaymentIntentsRetrieve).not.toHaveBeenCalled();
+  });
+
+  it('allows the recorded payer to read and reconcile their payment', async () => {
+    setupStatusMocks(payerUser);
+
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.GET(
+      createStatusRequest(paymentIntentId),
+      segmentData()
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.stripePaymentIntentsRetrieve).toHaveBeenCalledWith(
+      paymentIntentId
+    );
+  });
+});

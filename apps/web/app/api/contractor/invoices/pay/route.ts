@@ -415,10 +415,9 @@ export const GET = withApiHandler(
       throw new BadRequestError('Payment intent ID required');
     }
 
-    // Fetch payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    // Fetch local payment record
+    // Resolve and authorize the local record before contacting Stripe. The
+    // PaymentIntent ID is a bearer-like identifier supplied by the client,
+    // so it must never be enough to read or mutate another user's payment.
     const { data: payment } = await serverSupabase
       .from('payments')
       .select(
@@ -433,6 +432,21 @@ export const GET = withApiHandler(
       )
       .eq('stripe_payment_intent_id', paymentIntentId)
       .single();
+
+    if (!payment) {
+      throw new NotFoundError('Payment');
+    }
+
+    const isPayer = payment.payer_id === user.id;
+    const isPayee = payment.payee_id === user.id;
+    if (!isPayer && !isPayee) {
+      throw new ForbiddenError('You are not authorized to view this payment');
+    }
+
+    // Fetch payment intent from Stripe only after local ownership has been
+    // established. This also avoids exposing Stripe status for an unrelated
+    // intent to an authenticated user.
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     // Update local status if needed
     if (payment && payment.status !== paymentIntent.status) {

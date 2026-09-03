@@ -401,18 +401,6 @@ export const PATCH = withApiHandler(
       updateData.sent_at = new Date().toISOString();
     }
 
-    // 2026-05-23 audit-24 P2: status→paid stamps paid_date / paid_amount
-    // server-side (mobile only PATCHes {status:'paid'}; schema rejects
-    // client-supplied paid_date/amount to stop backdating).
-    const isPaidTransition =
-      existingInvoice.status !== 'paid' && validatedPatchData.status === 'paid';
-    if (isPaidTransition) {
-      updateData.paid_date = new Date().toISOString();
-      updateData.paid_amount =
-        (updateData.total_amount as number | undefined) ??
-        existingInvoice.total_amount;
-    }
-
     // 2026-05-23 audit-24 P2: `reminder:true` PATCH re-fires
     // sendInvoiceEmail + invoice_received on an already-sent invoice
     // (the transition gate above wouldn't trigger). Flag isn't a DB
@@ -448,11 +436,9 @@ export const PATCH = withApiHandler(
 
     const message = isReminderRequest
       ? 'Reminder sent'
-      : isPaidTransition
-        ? 'Invoice marked as paid'
-        : isSendTransition
-          ? 'Invoice sent successfully'
-          : 'Invoice updated successfully';
+      : isSendTransition
+        ? 'Invoice sent successfully'
+        : 'Invoice updated successfully';
     return NextResponse.json({ success: true, invoice, message });
   }
 );
