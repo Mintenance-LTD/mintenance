@@ -191,7 +191,9 @@ export async function handleChargeFailed(
     }
 
     const homeownerId =
-      escrowTransaction?.payer_id || charge.metadata?.homeownerId;
+      escrowTransaction?.payer_id ||
+      charge.metadata?.payerId ||
+      charge.metadata?.homeownerId;
     if (homeownerId) {
       const reason = charge.failure_message || 'Your card was declined';
       await sendNotification(

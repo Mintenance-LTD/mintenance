@@ -353,7 +353,9 @@ export async function handlePaymentIntentFailed(
         .eq('id', jobId);
 
       const homeownerId =
-        escrowTransaction?.payer_id || paymentIntent.metadata?.homeownerId;
+        escrowTransaction?.payer_id ||
+        paymentIntent.metadata?.payerId ||
+        paymentIntent.metadata?.homeownerId;
       if (homeownerId) {
         await sendNotification(
           homeownerId,
@@ -454,7 +456,8 @@ export async function handlePaymentIntentRequiresAction(
   });
 
   try {
-    const homeownerId = paymentIntent.metadata?.homeownerId;
+    const homeownerId =
+      paymentIntent.metadata?.payerId || paymentIntent.metadata?.homeownerId;
     const jobId = paymentIntent.metadata?.jobId;
 
     if (homeownerId) {
