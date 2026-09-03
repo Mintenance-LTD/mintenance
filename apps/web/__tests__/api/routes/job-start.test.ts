@@ -69,6 +69,9 @@ vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
 // returns null (caller owns the claim → proceed); releaseOnError just runs
 // the wrapped fn; storeIdempotencyResult is a no-op.
 vi.mock('@/lib/idempotency', () => ({
+  getDeterministicIdempotencyKeyFromRequest: vi.fn(
+    () => 'idem-key-job-start'
+  ),
   getIdempotencyKeyFromRequest: vi.fn(() => 'idem-key-job-start'),
   checkIdempotency: vi.fn().mockResolvedValue(null),
   storeIdempotencyResult: vi.fn().mockResolvedValue(undefined),
@@ -253,7 +256,14 @@ function setupStartJobMocks(
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue(updateResult),
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: updateResult.error ? null : [{ id: 'job-1' }],
+                error: updateResult.error,
+              }),
+            }),
+          }),
         }),
       };
     }
