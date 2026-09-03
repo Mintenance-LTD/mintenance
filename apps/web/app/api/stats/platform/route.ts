@@ -11,8 +11,6 @@ export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 30 } },
   async () => {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
     // Fetch all statistics in parallel
@@ -21,10 +19,7 @@ export const GET = withApiHandler(
       activeContractorsLastMonthResponse,
       completedJobsResponse,
       completedJobsLastMonthResponse,
-      totalSavedResponse,
-      totalSavedLastMonthResponse,
       avgResponseTimeResponse,
-      avgResponseTimeLastMonthResponse,
     ] = await Promise.all([
       serverSupabase
         .from('profiles')
@@ -46,22 +41,10 @@ export const GET = withApiHandler(
         .select('id', { count: 'exact', head: true })
         .eq('status', 'completed')
         .lte('updated_at', endOfLastMonth.toISOString()),
-      serverSupabase.from('jobs').select('budget').eq('status', 'completed'),
-      serverSupabase
-        .from('jobs')
-        .select('budget')
-        .eq('status', 'completed')
-        .lte('updated_at', endOfLastMonth.toISOString()),
       serverSupabase
         .from('jobs')
         .select('id, created_at')
         .eq('status', 'completed')
-        .limit(1000),
-      serverSupabase
-        .from('jobs')
-        .select('id, created_at')
-        .eq('status', 'completed')
-        .lte('updated_at', endOfLastMonth.toISOString())
         .limit(1000),
     ]);
 
@@ -151,46 +134,17 @@ export const GET = withApiHandler(
           )
         : 0;
 
-    const jobsData = totalSavedResponse.data || [];
-    const totalSaved = jobsData.reduce((sum, job) => {
-      // jobs.total_amount never existed (select-schema audit 2026-08-02);
-      // the budget-vs-actual branch could never fire, so the 10% heuristic
-      // was always this stat's real behavior. Keep it, honestly.
-      const budget = parseFloat(job.budget?.toString() || '0');
-      return sum + budget * 0.1;
-    }, 0);
-
-    const jobsDataLastMonth = totalSavedLastMonthResponse.data || [];
-    const totalSavedLastMonth = jobsDataLastMonth.reduce((sum, job) => {
-      // jobs.total_amount never existed (select-schema audit 2026-08-02);
-      // the budget-vs-actual branch could never fire, so the 10% heuristic
-      // was always this stat's real behavior. Keep it, honestly.
-      const budget = parseFloat(job.budget?.toString() || '0');
-      return sum + budget * 0.1;
-    }, 0);
-
-    const savedGrowth =
-      totalSavedLastMonth > 0
-        ? Math.round(
-            ((totalSaved - totalSavedLastMonth) / totalSavedLastMonth) * 100
-          )
-        : 0;
-
+    // Do not manufacture savings or response-time claims when the source
+    // data is missing. A measured aggregate can be added later without
+    // changing the endpoint's explicit unavailable-state contract.
+    const totalSaved = null;
+    const savedGrowth = null;
     const avgResponseTimeHours =
       responseTimes.length > 0
         ? responseTimes.reduce((sum, time) => sum + time, 0) /
           responseTimes.length
-        : 2.4;
-
-    const avgResponseTimeLastMonth = avgResponseTimeHours * 1.15;
-    const responseTimeImprovement =
-      avgResponseTimeLastMonth > 0
-        ? Math.round(
-            ((avgResponseTimeLastMonth - avgResponseTimeHours) /
-              avgResponseTimeLastMonth) *
-              100
-          )
-        : 15;
+        : null;
+    const responseTimeImprovement = null;
 
     logger.info('Platform statistics fetched', {
       service: 'stats',
@@ -206,9 +160,12 @@ export const GET = withApiHandler(
         activeContractorsGrowth: contractorsGrowth,
         completedJobs,
         completedJobsGrowth: jobsGrowth,
-        totalSaved: Math.round(totalSaved),
-        totalSavedGrowth: savedGrowth,
-        avgResponseTimeHours: parseFloat(avgResponseTimeHours.toFixed(1)),
+      totalSaved,
+      totalSavedGrowth: savedGrowth,
+      avgResponseTimeHours:
+        avgResponseTimeHours === null
+          ? null
+          : parseFloat(avgResponseTimeHours.toFixed(1)),
         responseTimeImprovement,
       },
       {

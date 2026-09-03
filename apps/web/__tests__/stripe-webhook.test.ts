@@ -347,7 +347,7 @@ describe('Stripe Webhook Security', () => {
     });
   });
 
-  describe('Timestamp Validation', () => {
+  describe('Event delivery timing', () => {
     it('should accept webhook with recent timestamp', async () => {
       const recentTimestamp = Math.floor(Date.now() / 1000); // Now
       const mockEvent = createMockEvent({ created: recentTimestamp });
@@ -359,8 +359,7 @@ describe('Stripe Webhook Security', () => {
       expect(response.status).toBe(200);
     });
 
-    it('should reject webhook with old timestamp', async () => {
-      // Route uses 60-second tolerance, so 400 seconds ago should fail
+    it('should accept a delayed but correctly signed webhook event', async () => {
       const oldTimestamp = Math.floor(Date.now() / 1000) - 400;
       const mockEvent = createMockEvent({ created: oldTimestamp });
       mockConstructEvent.mockReturnValue(mockEvent);
@@ -368,13 +367,10 @@ describe('Stripe Webhook Security', () => {
       const request = makeRequest();
       const response = await POST(request);
 
-      expect(response.status).toBe(400);
-      expect(mockLoggerWarn).toHaveBeenCalledWith(
-        'Webhook event timestamp outside tolerance window',
-        expect.objectContaining({
-          service: 'stripe-webhook',
-          eventId: 'evt_test_123',
-        }),
+      expect(response.status).toBe(200);
+      expect(mockRpc).toHaveBeenCalledWith(
+        'check_webhook_idempotency',
+        expect.objectContaining({ p_event_id: 'evt_test_123' }),
       );
     });
   });

@@ -76,18 +76,27 @@ export const POST = withApiHandler(
       throw new BadRequestError('Job has no assigned contractor');
     }
 
-    // Use NEXT_PUBLIC_APP_URL for internal call — never forward cookies to prevent SSRF
+    // Use NEXT_PUBLIC_APP_URL for the internal call. Browser sessions are
+    // cookie-authenticated, so a same-origin call must carry the session
+    // cookie; forwarding only Authorization made this route fail for normal
+    // web users. Never forward cookies to a separately configured origin.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const appOrigin = new URL(appUrl).origin;
+    const internalAuthHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    const authorization = request.headers.get('authorization');
+    const cookie = request.headers.get('cookie');
+    if (authorization) {
+      internalAuthHeaders.Authorization = authorization;
+    } else if (cookie && appOrigin === request.nextUrl.origin) {
+      internalAuthHeaders.Cookie = cookie;
+    }
     const createIntentResponse = await fetch(
       `${appUrl}/api/payments/create-intent`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(request.headers.get('authorization')
-            ? { Authorization: request.headers.get('authorization') as string }
-            : {}),
-        },
+        headers: internalAuthHeaders,
         body: JSON.stringify({
           amount,
           currency: 'gbp',
@@ -148,13 +157,59 @@ export const POST = withApiHandler(
       );
     }
 
-    await serverSupabase
+    const { data: heldRows, error: escrowUpdateError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         status: 'held',
         updated_at: new Date().toISOString(),
       })
-      .eq('payment_intent_id', confirmedIntent.id);
+      .eq('payment_intent_id', confirmedIntent.id)
+      .eq('status', 'pending')
+      .select('id');
+
+    if (escrowUpdateError) {
+      logger.error('Payment succeeded but escrow could not be held', escrowUpdateError, {
+        service: 'payments',
+        jobId,
+        paymentIntentId: confirmedIntent.id,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Payment succeeded but could not be recorded. Support has been notified.',
+          paymentIntentId: confirmedIntent.id,
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!heldRows || heldRows.length === 0) {
+      // A Stripe webhook may have completed this transition first. Accept
+      // that state, but never report success for a missing or incompatible
+      // escrow row.
+      const { data: existingEscrow } = await serverSupabase
+        .from('escrow_transactions')
+        .select('id, status')
+        .eq('payment_intent_id', confirmedIntent.id)
+        .maybeSingle();
+
+      if (!existingEscrow || existingEscrow.status !== 'held') {
+        logger.error('Payment succeeded but escrow state is not held', {
+          service: 'payments',
+          jobId,
+          paymentIntentId: confirmedIntent.id,
+          escrowStatus: existingEscrow?.status ?? 'missing',
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Payment succeeded but could not be recorded. Support has been notified.',
+            paymentIntentId: confirmedIntent.id,
+          },
+          { status: 500 }
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   serverSupabase,
   createRequestScopedClient,
@@ -10,6 +10,7 @@ import {
   NotFoundError,
   BadRequestError,
   InternalServerError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -123,10 +124,15 @@ export const POST = withApiHandler(
         throw new ForbiddenError('Not authorized to sign this contract');
       }
 
-      // Block signing draft contracts — contractor must prepare details first
-      if (contract.status === CONTRACT_STATUS.DRAFT) {
+      // Only pending contracts may be signed. This also prevents a stale
+      // read from allowing a signature on a contract that was cancelled or
+      // rejected while this request was in flight.
+      if (
+        contract.status !== CONTRACT_STATUS.PENDING_CONTRACTOR &&
+        contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER
+      ) {
         throw new BadRequestError(
-          'Cannot sign a draft contract. The contractor must prepare the contract details first.'
+          'This contract is no longer awaiting a signature.'
         );
       }
 
@@ -177,10 +183,15 @@ export const POST = withApiHandler(
         }
       }
 
+      const signerTimestampColumn = isContractor
+        ? 'contractor_signed_at'
+        : 'homeowner_signed_at';
       const { data: updatedContract, error: updateError } = await serverSupabase
         .from('contracts')
         .update(updateData)
         .eq('id', contractId)
+        .eq('status', contract.status)
+        .is(signerTimestampColumn, null)
         .select(
           'id, job_id, contractor_id, homeowner_id, status, title, start_date, end_date, amount, contractor_signed_at, homeowner_signed_at, created_at, updated_at'
         )
@@ -193,6 +204,12 @@ export const POST = withApiHandler(
           userId: user.id,
         });
         throw new InternalServerError('Failed to sign contract');
+      }
+
+      if (!updatedContract) {
+        throw new ConflictError(
+          'This contract changed while you were signing it. Refresh and try again.'
+        );
       }
 
       // 2026-05-27 audit-P0-4: capture the immutable signature audit row

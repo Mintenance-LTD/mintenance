@@ -22,9 +22,10 @@ import {
   NotFoundError,
   BadRequestError,
   ForbiddenError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 import {
-  getIdempotencyKeyFromRequest,
+  getDeterministicIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
   releaseOnError,
@@ -42,7 +43,7 @@ export const POST = withApiHandler(
     //    email even though the status transition itself is already
     //    blocked (validateStatusTransition rejects in_progress→
     //    in_progress). AUDIT_PUNCH_LIST P2 #75.
-    const idempotencyKey = getIdempotencyKeyFromRequest(
+    const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
       request,
       'job_start',
       user.id,
@@ -135,14 +136,16 @@ export const POST = withApiHandler(
       //    COALESCE / WHERE started_at IS NULL guard that would
       //    surface a 0-row no-op as a silent success.
       const nowIso = new Date().toISOString();
-      const { error: updateError } = await serverSupabase
+      const { data: startedRows, error: updateError } = await serverSupabase
         .from('jobs')
         .update({
           status: 'in_progress',
           started_at: nowIso,
           updated_at: nowIso,
         })
-        .eq('id', jobId);
+        .eq('id', jobId)
+        .eq('status', job.status)
+        .select('id');
 
       if (updateError) {
         logger.error('Failed to update job status', {
@@ -151,6 +154,12 @@ export const POST = withApiHandler(
           error: updateError,
         });
         throw new Error('Failed to start job');
+      }
+
+      if (!startedRows || startedRows.length === 0) {
+        throw new ConflictError(
+          'This job changed while it was being started. Refresh and try again.'
+        );
       }
 
       // 6. Notify both parties (homeowner + contractor). Capture the

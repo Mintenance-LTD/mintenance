@@ -5,7 +5,12 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger, ESCROW_STATUS } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
-import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ConflictError,
+  InternalServerError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body so
@@ -117,16 +122,24 @@ export const POST = withApiHandler(
         }
 
         // Mark as release_pending first
-        const { error: pendingError } = await serverSupabase
+        const { data: pendingEscrow, error: pendingError } =
+          await serverSupabase
           .from('escrow_transactions')
           .update({
             status: ESCROW_STATUS.RELEASE_PENDING,
             release_reason: `admin_release: ${reason}`,
             updated_at: now,
           })
-          .eq('id', escrowId);
+          .eq('id', escrowId)
+          .in('status', [
+            ESCROW_STATUS.HELD,
+            ESCROW_STATUS.PENDING_REVIEW,
+            ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL,
+          ])
+          .select('id')
+          .maybeSingle();
 
-        if (pendingError) {
+        if (pendingError || !pendingEscrow) {
           logger.error(
             'Failed to mark escrow as release_pending',
             pendingError,
@@ -135,12 +148,15 @@ export const POST = withApiHandler(
               escrowId,
             }
           );
-          throw new BadRequestError('Failed to update escrow status');
+          throw new ConflictError(
+            'This escrow was modified by another request. Refresh and try again.'
+          );
         }
 
         // Create Stripe transfer. Idempotency key keyed on escrow+amount so
         // duplicate admin-release clicks don't issue a second transfer.
         const amountCents = Math.round(escrow.amount * 100);
+        let transferId: string | null = null;
         try {
           const transfer = await stripe.transfers.create(
             {
@@ -159,9 +175,11 @@ export const POST = withApiHandler(
               idempotencyKey: `admin_release_${escrowId}_${amountCents}`,
             }
           );
+          transferId = transfer.id;
 
           // Mark as released
-          await serverSupabase
+          const { data: releasedEscrow, error: releaseUpdateError } =
+            await serverSupabase
             .from('escrow_transactions')
             .update({
               status: ESCROW_STATUS.RELEASED,
@@ -169,7 +187,16 @@ export const POST = withApiHandler(
               released_at: now,
               updated_at: now,
             })
-            .eq('id', escrowId);
+            .eq('id', escrowId)
+            .eq('status', ESCROW_STATUS.RELEASE_PENDING)
+            .select('id')
+            .maybeSingle();
+
+          if (releaseUpdateError || !releasedEscrow) {
+            throw new Error(
+              'Stripe transfer succeeded but escrow finalization failed'
+            );
+          }
 
           // Notify both parties via NotificationService (handles DB + push + email)
           // 2026-05-21 Mint Editorial voice \u2014 amount-led title, explicit
@@ -208,14 +235,33 @@ export const POST = withApiHandler(
             transferId: transfer.id,
           });
         } catch (stripeError) {
-          // Revert to held on Stripe failure
+          if (transferId) {
+            // Never move an escrow back to a releasable state after Stripe has
+            // transferred funds. Leave it release_pending for reconciliation;
+            // otherwise a retry could create a second financial operation.
+            logger.error(
+              'Admin transfer succeeded but escrow finalization failed; reconciliation required',
+              stripeError as Error,
+              {
+                service: 'admin-refunds',
+                escrowId,
+                transferId,
+              }
+            );
+            throw new InternalServerError(
+              'Payment transfer succeeded but recording it failed. Support must reconcile this payment.'
+            );
+          }
+
+          // Revert only when Stripe did not create a transfer.
           await serverSupabase
             .from('escrow_transactions')
             .update({
-              status: ESCROW_STATUS.HELD,
+              status: escrow.status,
               updated_at: now,
             })
-            .eq('id', escrowId);
+            .eq('id', escrowId)
+            .eq('status', ESCROW_STATUS.RELEASE_PENDING);
 
           logger.error(
             'Stripe transfer failed during admin release',
@@ -257,6 +303,36 @@ export const POST = withApiHandler(
             : escrow.amount;
         const refundCents = Math.round(refundAmountValue * 100);
 
+        // Claim the escrow before calling Stripe. Idempotency keys only
+        // deduplicate the same amount; without this CAS two admins could
+        // issue different partial refunds concurrently against one payment.
+        const refundSourceStatus = escrow.status;
+        const { data: refundClaim, error: refundClaimError } =
+          await serverSupabase
+            .from('escrow_transactions')
+            .update({
+              status: ESCROW_STATUS.RELEASE_PENDING,
+              release_reason: `admin_refund_pending: ${reason}`,
+              updated_at: now,
+            })
+            .eq('id', escrowId)
+            .in('status', [
+              ESCROW_STATUS.HELD,
+              ESCROW_STATUS.PENDING_REVIEW,
+              ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL,
+            ])
+            .select('id')
+            .maybeSingle();
+
+        if (refundClaimError || !refundClaim) {
+          throw new ConflictError(
+            'This escrow was modified by another request. Refresh and try again.'
+          );
+        }
+
+        let refundId: string | null = null;
+        let refundFinalized = false;
+
         try {
           // 2026-05-13 reconciliation audit: aligned with
           // terminate-contractor — Stripe idempotency key prevents
@@ -281,14 +357,16 @@ export const POST = withApiHandler(
               idempotencyKey: `admin_refund_${escrowId}_${refundCents}`,
             }
           );
+          refundId = refund.id;
 
           const existingEscrowMetadata =
             typeof escrow.metadata === 'object' && escrow.metadata
               ? (escrow.metadata as Record<string, unknown>)
               : {};
 
-          // Update escrow status
-          await serverSupabase
+          // Update escrow status only if this request still owns the claim.
+          const { data: refundedEscrow, error: refundUpdateError } =
+            await serverSupabase
             .from('escrow_transactions')
             .update({
               status: ESCROW_STATUS.REFUNDED,
@@ -305,7 +383,17 @@ export const POST = withApiHandler(
               },
               updated_at: now,
             })
-            .eq('id', escrowId);
+            .eq('id', escrowId)
+            .eq('status', ESCROW_STATUS.RELEASE_PENDING)
+            .select('id')
+            .maybeSingle();
+
+          if (refundUpdateError || !refundedEscrow) {
+            throw new Error(
+              'Stripe refund succeeded but escrow finalization failed'
+            );
+          }
+          refundFinalized = true;
 
           // Notify both parties via NotificationService (in-app + push +
           // preference checks). The previous direct inserts used a
@@ -365,6 +453,36 @@ export const POST = withApiHandler(
             refundAmount: refundAmountValue,
           });
         } catch (stripeError) {
+          if (refundId && !refundFinalized) {
+            logger.error(
+              'Admin refund succeeded but escrow finalization failed; reconciliation required',
+              stripeError as Error,
+              { service: 'admin-refunds', escrowId, refundId }
+            );
+            throw new InternalServerError(
+              'Refund succeeded but recording it failed. Support must reconcile this payment.'
+            );
+          }
+
+          if (refundFinalized) {
+            // Stripe and escrow are consistent; a later audit failure must
+            // not be reported as a failed financial operation.
+            logger.error(
+              'Admin refund finalized but post-processing failed',
+              stripeError as Error,
+              { service: 'admin-refunds', escrowId, refundId }
+            );
+            return NextResponse.json({
+              success: true,
+              message:
+                refundAmountValue < escrow.amount
+                  ? `Partial refund of \u00a3${refundAmountValue.toFixed(2)} processed successfully`
+                  : 'Full refund processed successfully',
+              refundId,
+              refundAmount: refundAmountValue,
+            });
+          }
+
           logger.error(
             'Stripe refund failed during admin refund',
             stripeError as Error,
@@ -373,6 +491,19 @@ export const POST = withApiHandler(
               escrowId,
             }
           );
+
+          // Stripe did not create a refund, so release the claim and restore
+          // the exact pre-operation state for a safe retry.
+          await serverSupabase
+            .from('escrow_transactions')
+            .update({
+              status: refundSourceStatus,
+              release_reason: escrow.release_reason,
+              updated_at: now,
+            })
+            .eq('id', escrowId)
+            .eq('status', ESCROW_STATUS.RELEASE_PENDING);
+
           throw new BadRequestError(
             'Stripe refund failed. Please check the payment status in Stripe dashboard.'
           );
@@ -380,10 +511,10 @@ export const POST = withApiHandler(
       }
 
       case 'hold': {
-        // Can place hold on held, pending_review, or awaiting states
+        // A release_pending escrow is already in an irreversible payment
+        // operation and must not be overwritten by an admin hold.
         if (
           escrow.status !== ESCROW_STATUS.HELD &&
-          escrow.status !== ESCROW_STATUS.RELEASE_PENDING &&
           escrow.status !== ESCROW_STATUS.PENDING_REVIEW &&
           escrow.status !== ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL
         ) {
@@ -393,21 +524,30 @@ export const POST = withApiHandler(
         }
 
         // Update escrow with admin hold
-        const { error: holdError } = await serverSupabase
+        const { data: heldEscrow, error: holdError } = await serverSupabase
           .from('escrow_transactions')
           .update({
             status: ESCROW_STATUS.PENDING_REVIEW,
             release_reason: `admin_hold: ${reason}`,
             updated_at: now,
           })
-          .eq('id', escrowId);
+          .eq('id', escrowId)
+          .in('status', [
+            ESCROW_STATUS.HELD,
+            ESCROW_STATUS.PENDING_REVIEW,
+            ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL,
+          ])
+          .select('id')
+          .maybeSingle();
 
-        if (holdError) {
+        if (holdError || !heldEscrow) {
           logger.error('Failed to place admin hold on escrow', holdError, {
             service: 'admin-refunds',
             escrowId,
           });
-          throw new BadRequestError('Failed to place hold on escrow');
+          throw new ConflictError(
+            'This escrow was modified by another request. Refresh and try again.'
+          );
         }
 
         // Notify both parties through NotificationService — same

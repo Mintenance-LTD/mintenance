@@ -13,7 +13,10 @@ function getPurify(): typeof DOMPurify {
   // Client-side: Use browser's native window (most common case)
   // This path is taken when code runs in browser (e.g., exportUtils.ts)
   if (typeof window !== 'undefined') {
-    purify = DOMPurify;
+    // The ESM build exports a factory. Initialize it with the active browser
+    // window instead of storing the factory itself; otherwise sanitize() is
+    // not configured and safe markup is returned as plain tag text.
+    purify = DOMPurify(window);
     return purify;
   }
 

@@ -1409,13 +1409,14 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
       feeTransferId: 'fee-depth-1',
     });
 
-    // Homeowner already approved; job 'assigned' keeps the auto-release
-    // agent out of the way so the CAS/transfer/final sequence is isolated.
+    // Homeowner already approved; a completed job satisfies the release
+    // route's post-CAS invariant while keeping the auto-release agent out of
+    // the way so the CAS/transfer/final sequence is isolated.
     const escrow = {
       ...baseEscrowRow('held'),
       homeowner_approval: true,
       cooling_off_ends_at: null,
-      jobs: { ...baseJobRow, status: 'assigned' },
+      jobs: { ...baseJobRow, status: 'completed' },
     };
 
     let escrowCallCount = 0;
@@ -1508,6 +1509,14 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
       }
       if (table === 'jobs') {
         return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { status: 'completed' },
+                error: null,
+              }),
+            }),
+          }),
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({ error: null }),
           }),

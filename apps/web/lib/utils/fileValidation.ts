@@ -2,32 +2,6 @@ import { fileTypeFromBuffer } from 'file-type';
 import { logger } from '@mintenance/shared';
 
 /**
- * Magic number signatures for allowed file types
- * These are the actual byte signatures at the start of files
- */
-const MAGIC_NUMBERS = {
-  // Images
-  JPEG: [0xff, 0xd8, 0xff],
-  PNG: [0x89, 0x50, 0x4e, 0x47],
-  GIF: [0x47, 0x49, 0x46, 0x38],
-  WEBP: [0x52, 0x49, 0x46, 0x46], // RIFF (WebP container)
-  BMP: [0x42, 0x4d],
-  HEIC: [0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63], // ftyp heic
-
-  // Documents
-  PDF: [0x25, 0x50, 0x44, 0x46], // %PDF
-
-  // Video
-  MP4: [0x66, 0x74, 0x79, 0x70], // ftyp
-  MOV: [0x66, 0x74, 0x79, 0x70, 0x71, 0x74], // ftyp qt
-  AVI: [0x52, 0x49, 0x46, 0x46], // RIFF
-
-  // Archives
-  ZIP: [0x50, 0x4b, 0x03, 0x04],
-  RAR: [0x52, 0x61, 0x72, 0x21],
-};
-
-/**
  * Allowed MIME types for different upload contexts
  */
 const ALLOWED_MIME_TYPES = {
@@ -42,22 +16,18 @@ const ALLOWED_MIME_TYPES = {
     'image/heif',
   ],
   documents: ['application/pdf'],
-  videos: ['video/mp4', 'video/quicktime', 'video/avi', 'video/x-msvideo'],
+  videos: [
+    'video/mp4',
+    'video/webm',
+    'video/quicktime',
+    'video/avi',
+    'video/x-msvideo',
+  ],
   archives: [
     'application/zip',
     'application/x-zip-compressed',
     'application/x-rar-compressed',
   ],
-} as const;
-
-/**
- * Allowed file extensions for different contexts
- */
-const ALLOWED_EXTENSIONS = {
-  images: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif'],
-  documents: ['pdf'],
-  videos: ['mp4', 'mov', 'avi'],
-  archives: ['zip', 'rar'],
 } as const;
 
 /**
@@ -373,23 +343,9 @@ export async function validateImageUpload(
 }
 
 /**
- * Convenience function for document upload validation
- */
-async function validateDocumentUpload(
-  file: File | Buffer,
-  maxSize: number = MAX_FILE_SIZES.document
-): Promise<FileValidationResult> {
-  return validateFileUpload(file, {
-    allowedTypes: ['documents'],
-    maxSize,
-    requireExtensionMatch: true,
-  });
-}
-
-/**
  * Convenience function for video upload validation
  */
-async function validateVideoUpload(
+export async function validateVideoUpload(
   file: File | Buffer,
   maxSize: number = MAX_FILE_SIZES.video
 ): Promise<FileValidationResult> {

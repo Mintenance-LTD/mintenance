@@ -11,6 +11,7 @@ import {
 import { checkAutoApprovalEligibility } from './homeowner-approval/auto-approval';
 import { fetchAfterPhotoGate } from './homeowner-approval/photo-gate';
 import { logAuditEvent } from '@/lib/audit';
+import { ConflictError } from '@/lib/errors/api-error';
 
 const AUTO_APPROVAL_DAYS = 7;
 const REMINDER_DAYS = 3;
@@ -25,6 +26,7 @@ interface JobInfo {
 interface EscrowWithJob {
   id: string;
   job_id: string;
+  status?: string;
   homeowner_approval?: boolean;
   auto_approval_date?: string;
   jobs: JobInfo | JobInfo[];
@@ -59,6 +61,7 @@ export class HomeownerApprovalService {
           `
           id,
           job_id,
+          status,
           jobs!inner (
             id,
             homeowner_id
@@ -73,6 +76,16 @@ export class HomeownerApprovalService {
       }
 
       const typedEscrow = escrow as EscrowWithJob;
+      // Verification retries must not restart the homeowner's deadline or
+      // send duplicate approval requests once the workflow is already open.
+      if (typedEscrow.status === 'awaiting_homeowner_approval') {
+        return;
+      }
+      if (typedEscrow.status !== 'held') {
+        throw new ConflictError(
+          'Escrow is no longer available to request homeowner approval'
+        );
+      }
       const job = getJob(typedEscrow.jobs);
       const homeownerId = job?.homeowner_id;
 
@@ -85,7 +98,8 @@ export class HomeownerApprovalService {
       autoApprovalDate.setDate(autoApprovalDate.getDate() + AUTO_APPROVAL_DAYS);
 
       // Update escrow status
-      await serverSupabase
+      const { data: requestedEscrow, error: requestUpdateError } =
+        await serverSupabase
         .from('escrow_transactions')
         .update({
           status: 'awaiting_homeowner_approval',
@@ -93,7 +107,16 @@ export class HomeownerApprovalService {
           release_blocked_reason: 'Waiting for homeowner approval',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', escrowId);
+        .eq('id', escrowId)
+        .eq('status', 'held')
+        .select('id')
+        .maybeSingle();
+
+      if (requestUpdateError || !requestedEscrow) {
+        throw new ConflictError(
+          'Escrow was modified while requesting homeowner approval'
+        );
+      }
 
       // Log status change
       await EscrowStatusService.updateStatusLog(
@@ -174,35 +197,64 @@ export class HomeownerApprovalService {
         );
       }
 
-      // Record approval in history
-      await serverSupabase.from('homeowner_approval_history').insert({
-        escrow_transaction_id: escrowId,
-        homeowner_id: homeownerId,
-        action: 'approved',
-        comments: comments || null,
-        photos_reviewed: photoUrls,
-        created_at: new Date().toISOString(),
-      });
-
       // 48h cooling-off unless waived (homeowner's explicit waiver; null = waived).
       const coolingOffEndsAt = new Date();
       coolingOffEndsAt.setHours(coolingOffEndsAt.getHours() + 48);
       const waived = options.waiveCoolingOff === true;
       const coolingOffValue = waived ? null : coolingOffEndsAt.toISOString();
 
-      await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          homeowner_approval: true,
-          homeowner_approval_at: new Date().toISOString(),
-          cooling_off_ends_at: coolingOffValue,
-          auto_approval_date: null,
-          release_blocked_reason: waived
-            ? null
-            : 'Cooling-off period active (48 hours)',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowId);
+      // Claim the decision atomically. Approval must win only while the
+      // escrow is still awaiting a decision (or is a legacy held row). This
+      // prevents a retry or a concurrent reject/release from overwriting a
+      // terminal or in-flight payment state. Moving the row back to `held`
+      // is required because the release endpoint claims only held escrows.
+      const { data: approvedEscrow, error: approvalUpdateError } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            homeowner_approval: true,
+            homeowner_approval_at: new Date().toISOString(),
+            cooling_off_ends_at: coolingOffValue,
+            auto_approval_date: null,
+            release_blocked_reason: waived
+              ? null
+              : 'Cooling-off period active (48 hours)',
+            status: 'held',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', escrowId)
+          .in('status', ['awaiting_homeowner_approval', 'held'])
+          .or('homeowner_approval.eq.false,homeowner_approval.is.null')
+          .select('id')
+          .maybeSingle();
+
+      if (approvalUpdateError || !approvedEscrow) {
+        throw new ConflictError(
+          'This escrow has already been approved or is no longer awaiting homeowner approval.'
+        );
+      }
+
+      // Record approval in history after the state claim succeeds.
+      const { error: approvalHistoryError } = await serverSupabase
+        .from('homeowner_approval_history')
+        .insert({
+          escrow_transaction_id: escrowId,
+          homeowner_id: homeownerId,
+          action: 'approved',
+          comments: comments || null,
+          photos_reviewed: photoUrls,
+          created_at: new Date().toISOString(),
+        });
+
+      if (approvalHistoryError) {
+        logger.error('Approval state committed but history insert failed', {
+          service: 'HomeownerApprovalService',
+          escrowId,
+          homeownerId,
+          error: approvalHistoryError.message,
+        });
+        throw new Error('Approval history could not be recorded');
+      }
 
       await EscrowStatusService.updateStatusLog(
         escrowId,
@@ -300,26 +352,51 @@ export class HomeownerApprovalService {
 
       const photoUrls = (photos || []).map((p: PhotoMetadata) => p.photo_url);
 
-      // Record rejection in history
-      await serverSupabase.from('homeowner_approval_history').insert({
-        escrow_transaction_id: escrowId,
-        homeowner_id: homeownerId,
-        action: 'rejected',
-        comments: reason,
-        photos_reviewed: photoUrls,
-        created_at: new Date().toISOString(),
-      });
+      // Claim the rejection before writing history. The compare-and-swap
+      // prevents a concurrent approval, release, or prior rejection from
+      // changing the payment decision after this request was read.
+      const { data: rejectedEscrow, error: rejectionUpdateError } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            homeowner_approval: false,
+            admin_hold_status: 'pending_review',
+            release_blocked_reason: `Homeowner rejected: ${reason}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', escrowId)
+          .in('status', ['awaiting_homeowner_approval', 'held'])
+          .or('homeowner_approval.eq.false,homeowner_approval.is.null')
+          .select('id')
+          .maybeSingle();
 
-      // Update escrow - set status to admin review
-      await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          homeowner_approval: false,
-          admin_hold_status: 'pending_review',
-          release_blocked_reason: `Homeowner rejected: ${reason}`,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowId);
+      if (rejectionUpdateError || !rejectedEscrow) {
+        throw new ConflictError(
+          'This escrow has already been decided or is no longer awaiting homeowner approval.'
+        );
+      }
+
+      // Record rejection in history after the state claim succeeds.
+      const { error: rejectionHistoryError } = await serverSupabase
+        .from('homeowner_approval_history')
+        .insert({
+          escrow_transaction_id: escrowId,
+          homeowner_id: homeownerId,
+          action: 'rejected',
+          comments: reason,
+          photos_reviewed: photoUrls,
+          created_at: new Date().toISOString(),
+        });
+
+      if (rejectionHistoryError) {
+        logger.error('Rejection state committed but history insert failed', {
+          service: 'HomeownerApprovalService',
+          escrowId,
+          homeownerId,
+          error: rejectionHistoryError.message,
+        });
+        throw new Error('Rejection history could not be recorded');
+      }
 
       // Log status change
       await EscrowStatusService.updateStatusLog(

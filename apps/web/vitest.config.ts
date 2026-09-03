@@ -2,9 +2,21 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
+
+const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react(), tsconfigPaths()],
+  // Keep Vitest scoped to the web workspace. Auto-discovering every parent
+  // tsconfig in the monorepo makes startup depend on filesystem traversal and
+  // can resolve outside the repository in restricted/CI environments.
+  root: configDirectory,
+  plugins: [
+    react(),
+    tsconfigPaths({
+      projects: [path.resolve(configDirectory, 'tsconfig.json')],
+    }),
+  ],
   test: {
     // Test environment
     environment: 'happy-dom',
@@ -140,20 +152,20 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
-      '@mintenance/types': path.resolve(__dirname, '../../packages/types/src'),
-      '@mintenance/auth': path.resolve(__dirname, '../../packages/auth/src'),
+      '@': path.resolve(configDirectory, './'),
+      '@mintenance/types': path.resolve(configDirectory, '../../packages/types/src'),
+      '@mintenance/auth': path.resolve(configDirectory, '../../packages/auth/src'),
       // Must precede the '@mintenance/shared' entry below: that alias points
       // at the package's src/, but deep-link-paths.json deliberately lives at
       // the package ROOT so app.config.js (plain Node, build time) can require
       // it without a compiled dist/. Without this, the subpath resolves to a
       // non-existent src/deep-link-paths.json under vitest only.
       '@mintenance/shared/deep-link-paths.json': path.resolve(
-        __dirname,
+        configDirectory,
         '../../packages/shared/deep-link-paths.json'
       ),
       '@mintenance/shared': path.resolve(
-        __dirname,
+        configDirectory,
         '../../packages/shared/src'
       ),
     },

@@ -647,14 +647,17 @@ function createSupabaseChain(
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue(updateReturn),
+            maybeSingle: vi.fn().mockResolvedValue(updateReturn),
           }),
         }),
         select: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue(updateReturn),
+          maybeSingle: vi.fn().mockResolvedValue(updateReturn),
         }),
       }),
       select: vi.fn().mockReturnValue({
         single: vi.fn().mockResolvedValue(updateReturn),
+        maybeSingle: vi.fn().mockResolvedValue(updateReturn),
       }),
     });
 
@@ -1486,6 +1489,10 @@ describe('POST /api/payments/release-escrow', () => {
           },
         },
         jobs: {
+          selectReturn: {
+            data: { status: 'completed' },
+            error: null,
+          },
           updateReturn: { data: null, error: null },
         },
         escrow_reconciliation: {
@@ -2396,22 +2403,32 @@ describe('Refund DB Retry Logic', () => {
     let updateCallCount = 0;
     const mockUpdateChain = () => {
       updateCallCount++;
-      const shouldFail = updateCallCount <= 1; // First call fails
+      const isClaim = updateCallCount === 1;
+      const shouldFail = updateCallCount === 2; // First finalization attempt fails
+      const result = isClaim
+        ? {
+            data: { id: '660e8400-e29b-41d4-a716-446655440001' },
+            error: null,
+          }
+        : shouldFail
+          ? { data: null, error: { message: 'Temporary DB error' } }
+          : {
+              data: {
+                id: '660e8400-e29b-41d4-a716-446655440001',
+                status: 'refunded',
+              },
+              error: null,
+            };
+      const selectResult = {
+        single: vi.fn().mockResolvedValue(result),
+        maybeSingle: vi.fn().mockResolvedValue(result),
+      };
       return {
         eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue(
-              shouldFail
-                ? { data: null, error: { message: 'Temporary DB error' } }
-                : {
-                    data: {
-                      id: '660e8400-e29b-41d4-a716-446655440001',
-                      status: 'refunded',
-                    },
-                    error: null,
-                  }
-            ),
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue(selectResult),
           }),
+          select: vi.fn().mockReturnValue(selectResult),
         }),
       };
     };

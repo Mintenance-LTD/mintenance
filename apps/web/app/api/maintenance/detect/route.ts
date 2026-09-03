@@ -4,29 +4,10 @@
  */
 
 import { NextResponse } from 'next/server';
+import { fileTypeFromBuffer } from 'file-type';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
 import { maintenanceDetectSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-
-// Maintenance issue to contractor mapping
-const ISSUE_TO_CONTRACTOR: Record<string, string> = {
-  pipe_leak: 'plumber',
-  water_damage: 'water_restoration',
-  wall_crack: 'structural_engineer',
-  roof_damage: 'roofer',
-  electrical_fault: 'electrician',
-  mold_damp: 'mold_specialist',
-  fire_damage: 'restoration_contractor',
-  window_broken: 'glazier',
-  door_damaged: 'carpenter',
-  floor_damage: 'flooring_contractor',
-  ceiling_damage: 'ceiling_specialist',
-  foundation_crack: 'foundation_specialist',
-  hvac_issue: 'hvac_technician',
-  gutter_blocked: 'gutter_specialist',
-  general_damage: 'general_contractor',
-};
 
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
@@ -35,8 +16,35 @@ export const POST = withApiHandler(
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
 
-    if (!imageFile) {
+    if (!(imageFile instanceof File)) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    }
+
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+    const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    if (imageFile.size <= 0 || imageFile.size > MAX_IMAGE_BYTES) {
+      return NextResponse.json(
+        { error: 'Image must be between 1 byte and 10MB' },
+        { status: 413 }
+      );
+    }
+
+    if (!ALLOWED_IMAGE_TYPES.has(imageFile.type)) {
+      return NextResponse.json(
+        { error: 'Only JPEG, PNG and WebP images are supported' },
+        { status: 415 }
+      );
+    }
+
+    // Do not trust the browser-provided MIME type. Check the file signature
+    // before sending bytes to storage or any future inference service.
+    const imageBytes = Buffer.from(await imageFile.arrayBuffer());
+    const detectedType = await fileTypeFromBuffer(imageBytes);
+    if (!detectedType || !ALLOWED_IMAGE_TYPES.has(detectedType.mime)) {
+      return NextResponse.json(
+        { error: 'Uploaded file is not a supported image' },
+        { status: 415 }
+      );
     }
 
     // Validate and sanitize form text fields using Zod schema
@@ -58,10 +66,14 @@ export const POST = withApiHandler(
     const { description, urgency } = fieldValidation.data;
 
     // Upload image to Supabase Storage
-    const fileName = `${user.id}/${Date.now()}_${imageFile.name}`;
+    const extension = detectedType.ext === 'jpg' ? 'jpeg' : detectedType.ext;
+    const fileName = `${user.id}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await serverSupabase.storage
       .from('job-attachments')
-      .upload(fileName, imageFile);
+      .upload(fileName, imageBytes, {
+        contentType: detectedType.mime,
+        upsert: false,
+      });
 
     if (uploadError) {
       return NextResponse.json(
@@ -102,13 +114,14 @@ export const POST = withApiHandler(
       area: number;
     }> = [];
 
-    const primaryIssue = 'general_damage';
+    // Keep an explicit, non-diagnostic category for legacy database rows. It
+    // must never be presented as a model prediction or used to derive a cost,
+    // contractor speciality, severity, materials, or tools.
+    const primaryIssue = 'unclassified';
     const confidence = 0;
-    const severity = 'minor';
+    const severity = 'unknown';
 
-    // Get contractor type
-    const contractorType =
-      ISSUE_TO_CONTRACTOR[primaryIssue] || 'general_contractor';
+    const contractorType = null;
 
     // Generate assessment
     const assessment = {
@@ -119,27 +132,26 @@ export const POST = withApiHandler(
       contractor_type: contractorType,
       detections: detections || [],
       image_url: signedData.signedUrl,
-
-      // Estimates based on issue type and severity
-      estimated_cost: estimateCost(primaryIssue, severity),
-      estimated_hours: estimateHours(primaryIssue, severity),
-
-      // Materials and tools
-      materials_needed: getMaterials(primaryIssue),
-      tools_required: getTools(primaryIssue),
-
-      // Safety and urgency
-      safety_notes: getSafetyNotes(primaryIssue),
-      urgency_level: determineUrgency(primaryIssue, severity, urgency),
+      assessment_source: 'unavailable',
+      assessment_available: false,
+      estimated_cost: null,
+      estimated_hours: null,
+      materials_needed: [],
+      tools_required: [],
+      safety_notes: [
+        'No automated assessment is available. Seek qualified professional advice for safety-critical issues.',
+      ],
+      urgency_level: urgency,
 
       // AI insights
       ai_insights: {
         detection_count: detections?.length || 0,
-        primary_issue: primaryIssue,
+        primary_issue: null,
         secondary_issues: detections?.slice(1).map((d) => d.class) || [],
         confidence_level:
           confidence > 0.8 ? 'high' : confidence > 0.5 ? 'medium' : 'low',
-        recommended_action: getRecommendedAction(primaryIssue, severity),
+        recommended_action:
+          'Create a job with the original photo and description so a qualified contractor can assess it.',
       },
 
       processed_at: new Date().toISOString(),
@@ -174,196 +186,3 @@ export const POST = withApiHandler(
     });
   }
 );
-
-// Helper functions
-function estimateCost(issueType: string, severity: string) {
-  const baseCosts: Record<string, number> = {
-    pipe_leak: 200,
-    water_damage: 500,
-    wall_crack: 300,
-    roof_damage: 800,
-    electrical_fault: 250,
-    mold_damp: 400,
-    fire_damage: 2000,
-    window_broken: 150,
-    door_damaged: 200,
-    floor_damage: 600,
-    ceiling_damage: 400,
-    foundation_crack: 1500,
-    hvac_issue: 350,
-    gutter_blocked: 100,
-    general_damage: 200,
-  };
-
-  const severityMultiplier: Record<string, number> = {
-    minor: 0.5,
-    moderate: 1,
-    major: 2,
-    critical: 3,
-  };
-
-  const base = baseCosts[issueType] || 200;
-  const multiplier = severityMultiplier[severity] || 1;
-  const estimate = base * multiplier;
-
-  return {
-    min: Math.round(estimate * 0.8),
-    max: Math.round(estimate * 1.5),
-    average: Math.round(estimate),
-  };
-}
-
-function estimateHours(issueType: string, severity: string) {
-  const baseHours: Record<string, number> = {
-    pipe_leak: 2,
-    water_damage: 8,
-    wall_crack: 4,
-    roof_damage: 12,
-    electrical_fault: 3,
-    mold_damp: 6,
-    fire_damage: 48,
-    window_broken: 2,
-    door_damaged: 3,
-    floor_damage: 10,
-    ceiling_damage: 6,
-    foundation_crack: 24,
-    hvac_issue: 4,
-    gutter_blocked: 1,
-    general_damage: 4,
-  };
-
-  const severityMultiplier: Record<string, number> = {
-    minor: 0.5,
-    moderate: 1,
-    major: 1.5,
-    critical: 2,
-  };
-
-  const base = baseHours[issueType] || 4;
-  const multiplier = severityMultiplier[severity] || 1;
-
-  return Math.round(base * multiplier);
-}
-
-function getMaterials(issueType: string): string[] {
-  const materials: Record<string, string[]> = {
-    pipe_leak: ['Pipe sealant', 'Replacement fittings', 'PTFE tape'],
-    water_damage: [
-      'Dehumidifier',
-      'Anti-mold treatment',
-      'Replacement drywall',
-    ],
-    wall_crack: ['Crack filler', 'Mesh tape', 'Paint'],
-    roof_damage: ['Roof tiles', 'Roofing felt', 'Flashing'],
-    electrical_fault: ['Wire', 'Outlets', 'Circuit breakers'],
-    mold_damp: ['Anti-mold spray', 'Sealant', 'Ventilation'],
-    fire_damage: ['Cleaning supplies', 'Replacement materials', 'Paint'],
-    window_broken: ['Glass pane', 'Putty', 'Glazing points'],
-    door_damaged: ['Wood filler', 'Hinges', 'Lock set'],
-    floor_damage: ['Flooring material', 'Underlayment', 'Adhesive'],
-    ceiling_damage: ['Plasterboard', 'Joint compound', 'Paint'],
-    foundation_crack: ['Concrete', 'Waterproofing', 'Reinforcement'],
-    hvac_issue: ['Filters', 'Refrigerant', 'Replacement parts'],
-    gutter_blocked: ['Gutter guards', 'Sealant', 'Brackets'],
-    general_damage: ['Various materials as needed'],
-  };
-
-  return materials[issueType] || materials['general_damage'];
-}
-
-function getTools(issueType: string): string[] {
-  const tools: Record<string, string[]> = {
-    pipe_leak: ['Pipe wrench', 'Torch', 'Pipe cutter'],
-    water_damage: ['Moisture meter', 'Fans', 'Dehumidifier'],
-    wall_crack: ['Trowel', 'Scraper', 'Sandpaper'],
-    roof_damage: ['Ladder', 'Hammer', 'Roofing nailer'],
-    electrical_fault: ['Multimeter', 'Wire strippers', 'Screwdrivers'],
-    mold_damp: ['Respirator', 'Scrub brushes', 'Sprayer'],
-    fire_damage: [
-      'Safety equipment',
-      'Cleaning tools',
-      'Restoration equipment',
-    ],
-    window_broken: ['Glass cutter', 'Putty knife', 'Glazing tool'],
-    door_damaged: ['Drill', 'Saw', 'Chisel'],
-    floor_damage: ['Floor nailer', 'Saw', 'Level'],
-    ceiling_damage: ['Drywall lift', 'Taping knife', 'Sander'],
-    foundation_crack: ['Concrete mixer', 'Trowel', 'Injection gun'],
-    hvac_issue: ['Gauges', 'Vacuum pump', 'Thermometer'],
-    gutter_blocked: ['Ladder', 'Scoop', 'Hose'],
-    general_damage: ['Basic hand tools'],
-  };
-
-  return tools[issueType] || tools['general_damage'];
-}
-
-function getSafetyNotes(issueType: string): string[] {
-  const safety: Record<string, string[]> = {
-    electrical_fault: [
-      '⚠️ Turn off power at breaker',
-      'Use insulated tools',
-      'Test with multimeter first',
-    ],
-    mold_damp: [
-      '⚠️ Wear respirator',
-      'Use protective clothing',
-      'Ensure ventilation',
-    ],
-    roof_damage: [
-      '⚠️ Use safety harness',
-      'Check weather conditions',
-      'Secure ladder',
-    ],
-    fire_damage: [
-      '⚠️ Check structural integrity',
-      'Wear protective gear',
-      'Test air quality',
-    ],
-    foundation_crack: [
-      '⚠️ Monitor for movement',
-      'Shore if necessary',
-      'Check for gas leaks',
-    ],
-  };
-
-  return safety[issueType] || ['Follow standard safety procedures'];
-}
-
-function determineUrgency(
-  issueType: string,
-  severity: string,
-  userUrgency: string
-): string {
-  const highUrgencyIssues = [
-    'pipe_leak',
-    'electrical_fault',
-    'fire_damage',
-    'roof_damage',
-  ];
-
-  if (highUrgencyIssues.includes(issueType) || severity === 'critical') {
-    return 'high';
-  }
-
-  if (severity === 'major' || userUrgency === 'urgent') {
-    return 'medium';
-  }
-
-  return 'low';
-}
-
-function getRecommendedAction(issueType: string, severity: string): string {
-  if (severity === 'critical') {
-    return 'Immediate professional attention required. Consider emergency services if safety risk exists.';
-  }
-
-  if (severity === 'major') {
-    return 'Schedule professional repair within 24-48 hours to prevent further damage.';
-  }
-
-  if (severity === 'moderate') {
-    return 'Schedule repair within the week. Monitor for any worsening.';
-  }
-
-  return 'Can be scheduled at convenience. Monitor situation.';
-}

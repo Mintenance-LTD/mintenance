@@ -3,21 +3,22 @@
 import { useState, useCallback } from 'react';
 import { Upload, Camera, AlertCircle, CheckCircle, Loader2, Home, Wrench, Clock, PoundSterling } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import Image from 'next/image';
 
 interface Assessment {
   issue_type?: string;
   confidence?: number;
-  severity?: 'critical' | 'major' | 'moderate' | 'minor';
+  severity?: 'critical' | 'major' | 'moderate' | 'minor' | 'unknown';
   contractor_type?: string;
   estimated_cost?: {
     min: number;
     max: number;
-  };
-  estimated_hours?: number;
+  } | null;
+  estimated_hours?: number | null;
   materials_needed?: string[];
   tools_required?: string[];
   safety_notes?: string[];
+  assessment_available?: boolean;
+  assessment_source?: string;
 }
 
 export default function MaintenanceAIPage() {
@@ -79,7 +80,7 @@ export default function MaintenanceAIPage() {
       } else {
         setError(result.error || 'Detection failed');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to process image. Please try again.');
     } finally {
       setLoading(false);
@@ -211,13 +212,21 @@ export default function MaintenanceAIPage() {
         {/* Assessment Results */}
         {assessment && (
           <div className="space-y-6">
-            {/* Success Message */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+            {/* Assessment status */}
+            <div className={`${assessment.assessment_available === false ? 'bg-yellow-50 border-yellow-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4 flex items-start`}>
+              {assessment.assessment_available === false ? (
+                <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
+              ) : (
+                <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+              )}
               <div>
-                <p className="font-medium text-green-900">AI Analysis Complete!</p>
-                <p className="text-sm text-green-700 mt-1">
-                  We've identified the issue and can help you find the right contractor
+                <p className={`font-medium ${assessment.assessment_available === false ? 'text-yellow-900' : 'text-green-900'}`}>
+                  {assessment.assessment_available === false ? 'Automated assessment unavailable' : 'AI Analysis Complete!'}
+                </p>
+                <p className={`text-sm mt-1 ${assessment.assessment_available === false ? 'text-yellow-700' : 'text-green-700'}`}>
+                  {assessment.assessment_available === false
+                    ? 'The photo was uploaded safely. A qualified contractor should assess the issue before work or pricing is agreed.'
+                    : 'We\'ve identified the issue and can help you find the right contractor'}
                 </p>
               </div>
             </div>
@@ -229,8 +238,8 @@ export default function MaintenanceAIPage() {
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Issue Details */}
-                <div className="grid grid-cols-2 gap-6">
+                {/* Issue Details — only render model output when a model ran. */}
+                {assessment.assessment_available !== false && <div className="grid grid-cols-2 gap-6">
                   <div>
                     <p className="text-sm text-gray-500">Issue Type</p>
                     <p className="text-lg font-semibold text-gray-900 capitalize">
@@ -249,10 +258,9 @@ export default function MaintenanceAIPage() {
                       <span className="text-sm font-medium">{assessment.confidence}%</span>
                     </div>
                   </div>
-                </div>
+                </div>}
 
-                {/* Severity Badge */}
-                <div>
+                {assessment.assessment_available !== false && <div>
                   <p className="text-sm text-gray-500 mb-2">Severity Level</p>
                   <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium
                     ${assessment.severity === 'critical' ? 'bg-red-100 text-red-800' :
@@ -261,10 +269,9 @@ export default function MaintenanceAIPage() {
                       'bg-green-100 text-green-800'}`}>
                     {assessment.severity?.toUpperCase()}
                   </span>
-                </div>
+                </div>}
 
-                {/* Contractor Recommendation */}
-                <div className="bg-blue-50 rounded-lg p-4">
+                {assessment.assessment_available !== false && <div className="bg-blue-50 rounded-lg p-4">
                   <div className="flex items-center mb-2">
                     <Wrench className="w-5 h-5 text-blue-600 mr-2" />
                     <p className="font-medium text-blue-900">Recommended Contractor</p>
@@ -272,10 +279,9 @@ export default function MaintenanceAIPage() {
                   <p className="text-blue-700 capitalize">
                     {assessment.contractor_type?.replace('_', ' ')}
                   </p>
-                </div>
+                </div>}
 
-                {/* Estimates */}
-                <div className="grid grid-cols-2 gap-4">
+                {assessment.assessment_available !== false && <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center mb-2">
                       <PoundSterling className="w-4 h-4 text-gray-600 mr-1" />
@@ -294,10 +300,9 @@ export default function MaintenanceAIPage() {
                       {assessment.estimated_hours} hours
                     </p>
                   </div>
-                </div>
+                </div>}
 
-                {/* Materials & Tools */}
-                <div className="space-y-4">
+                {assessment.assessment_available !== false && <div className="space-y-4">
                   <div>
                     <p className="text-sm font-medium text-gray-700 mb-2">Materials Needed</p>
                     <div className="flex flex-wrap gap-2">
@@ -318,7 +323,7 @@ export default function MaintenanceAIPage() {
                       ))}
                     </div>
                   </div>
-                </div>
+                </div>}
 
                 {/* Safety Notes */}
                 {assessment.safety_notes && assessment.safety_notes.length > 0 && (
@@ -341,7 +346,7 @@ export default function MaintenanceAIPage() {
                     className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center"
                   >
                     <Home className="w-5 h-5 mr-2" />
-                    Create Job & Find Contractors
+                    {assessment.assessment_available === false ? 'Create Job & Find Contractors' : 'Create Job & Find Contractors'}
                   </button>
                   <button
                     onClick={() => {

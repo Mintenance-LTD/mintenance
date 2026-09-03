@@ -8,9 +8,12 @@ import {
   BadRequestError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import {
+  validateVideoUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_SIZE = MAX_FILE_SIZES.video;
 
 /**
  * POST /api/jobs/:id/photos/video
@@ -43,35 +46,25 @@ export const POST = withApiHandler(
       throw new BadRequestError('Video file is required');
     }
 
-    // Validate file
-    if (videoFile.size > MAX_FILE_SIZE) {
-      throw new BadRequestError('Video must be less than 100MB');
+    // Validate actual bytes, not the client-declared MIME type or filename.
+    const validation = await validateVideoUpload(videoFile, MAX_FILE_SIZE);
+    if (!validation.valid || !validation.detectedType) {
+      throw new BadRequestError(validation.error || 'Invalid video file');
     }
 
-    if (!ALLOWED_VIDEO_TYPES.includes(videoFile.type)) {
-      throw new BadRequestError(
-        'Invalid video type. Only MP4, WebM, and QuickTime are allowed.'
-      );
-    }
-
-    const fileExt = videoFile.name.split('.').pop()?.toLowerCase() || 'mp4';
-
-    // SECURITY: Sanitize filename to prevent path traversal attacks
-    // Remove any path separators, special characters, and ensure safe filename
-    const sanitizedBaseName = videoFile.name
-      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
-      .replace(/\.\./g, '') // Remove path traversal attempts
-      .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
-      .substring(0, 100); // Limit filename length
-
-    // Generate safe filename with user ID and timestamp to prevent collisions
-    const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    // Use a server-generated key; never put user-controlled names in storage.
+    const fileExt = validation.detectedType.split('/')[1] || 'mp4';
+    const safeFileName = `${user.id}-${crypto.randomUUID()}.${fileExt}`;
 
     // Upload to storage
     const fileName = `job-photos/${jobId}/video/${safeFileName}`;
     const { error: uploadError } = await serverSupabase.storage
       .from('Job-storage')
-      .upload(fileName, videoFile, { cacheControl: '3600', upsert: false });
+      .upload(fileName, videoFile, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: validation.detectedType,
+      });
 
     if (uploadError) {
       logger.error('Upload error', uploadError);
@@ -86,14 +79,28 @@ export const POST = withApiHandler(
     }
 
     // Save metadata
-    await serverSupabase.from('job_photos_metadata').insert({
+    const { error: metadataError } = await serverSupabase
+      .from('job_photos_metadata')
+      .insert({
       job_id: jobId,
       photo_url: videoUrl,
       photo_type: 'video',
       timestamp: new Date().toISOString(),
       verified: false,
       created_by: user.id,
-    });
+      });
+
+    if (metadataError) {
+      // Do not leave an untracked object in storage if the metadata write
+      // fails; callers must be able to retry safely.
+      await serverSupabase.storage.from('Job-storage').remove([fileName]);
+      logger.error('Failed to persist video metadata', metadataError, {
+        service: 'jobs.photos.video',
+        jobId,
+        userId: user.id,
+      });
+      throw new Error('Failed to record uploaded video');
+    }
 
     return NextResponse.json({
       success: true,

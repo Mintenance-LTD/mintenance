@@ -45,9 +45,37 @@ export const POST = withApiHandler(
         job.status as JobStatus,
         JOB_STATUS.COMPLETED as JobStatus
       );
-    } catch (err) {
+    } catch {
       throw new BadRequestError(
         `Job cannot be completed from '${job.status}' status. Job must be in progress (requires before photos uploaded and job started).`
+      );
+    }
+
+    // Completion is the point at which the homeowner is asked to approve
+    // the work. Require the evidence used by that approval before changing
+    // the job state; otherwise this endpoint can strand a job as completed
+    // while the homeowner's confirmation endpoint correctly refuses it.
+    const { count: afterPhotoCount, error: afterPhotoError } =
+      await serverSupabase
+        .from('job_photos_metadata')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', jobId)
+        .eq('photo_type', 'after')
+        .eq('verified', true);
+
+    if (afterPhotoError) {
+      logger.error('Failed to verify completion evidence', afterPhotoError, {
+        service: 'jobs',
+        jobId,
+      });
+      throw new BadRequestError(
+        'Could not verify completion photos. Please try again.'
+      );
+    }
+
+    if (!afterPhotoCount || afterPhotoCount === 0) {
+      throw new BadRequestError(
+        'At least one after photo must be uploaded before completing the job'
       );
     }
 

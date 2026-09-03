@@ -63,7 +63,6 @@ export class StripeWebhookService {
 
       const stripe = this.getStripeInstance();
       const event = this.constructEvent(stripe, body, signature, webhookSecret);
-      this.validateTimestamp(event);
 
       const idempotencyKey = this.buildIdempotencyKey(event);
       const { eventRecordId, isDuplicate } = await this.checkIdempotency(
@@ -177,28 +176,10 @@ export class StripeWebhookService {
     try {
       return stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
       logger.error('Webhook signature verification failed', err, {
         service: 'stripe-webhook',
       });
       throw new BadRequestError('Webhook signature verification failed');
-    }
-  }
-
-  private validateTimestamp(event: Stripe.Event): void {
-    const eventTimestamp = event.created;
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    const timestampTolerance = 300;
-
-    if (Math.abs(currentTimestamp - eventTimestamp) > timestampTolerance) {
-      logger.warn('Webhook event timestamp outside tolerance window', {
-        service: 'stripe-webhook',
-        eventId: event.id,
-        eventTimestamp,
-        currentTimestamp,
-        timeDifference: Math.abs(currentTimestamp - eventTimestamp),
-      });
-      throw new BadRequestError('Event timestamp outside acceptable range');
     }
   }
 

@@ -267,7 +267,8 @@ export async function evaluateAutoRelease(
         if (highRiskDisputes.length > 0) {
           const extendedDate = new Date();
           extendedDate.setDate(extendedDate.getDate() + 7);
-          await serverSupabase
+          const { data: riskHoldUpdate, error: riskHoldError } =
+            await serverSupabase
             .from('escrow_transactions')
             .update({
               auto_release_date: extendedDate.toISOString(),
@@ -275,7 +276,18 @@ export async function evaluateAutoRelease(
               risk_hold_reason: 'High dispute risk predicted',
               updated_at: new Date().toISOString(),
             })
-            .eq('id', escrowId);
+            .eq('id', escrowId)
+            .eq('job_id', job.id)
+            .eq('status', 'held')
+            .select('id')
+            .maybeSingle();
+          if (riskHoldError || !riskHoldUpdate) {
+            logger.warn(
+              'Auto-release risk hold was not applied because escrow state changed',
+              { service: 'escrow-evaluation', escrowId, jobId: job.id, error: riskHoldError }
+            );
+            return null;
+          }
           // Must be success:false so EscrowAutoReleaseService takes its
           // `delayed` branch (which keys on the word "delayed" in the message)
           // and continues WITHOUT releasing. Returning success:true here made

@@ -128,6 +128,7 @@ interface SupabaseScenario {
 }
 
 function configureSupabase(s: SupabaseScenario) {
+  let escrowUpdateCalls = 0;
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'profiles') {
       return {
@@ -140,13 +141,22 @@ function configureSupabase(s: SupabaseScenario) {
         chain({ data: s.eligible ?? [], error: s.eligibleError ?? null })
       ),
       update: vi.fn(() => {
-        // The CAS claim chains .select('id') and needs rows to proceed; the
-        // finalize + revert updates don't select and only surface `error`.
-        const c = chain(s.updateResult ?? { error: null });
-        c.select = vi.fn(() =>
-          chain(s.claimResult ?? { data: [{ id: 'escrow-1' }], error: null })
-        );
-        return c;
+        escrowUpdateCalls += 1;
+        // The first update is the CAS claim and must be modelled separately
+        // from later finalization/revert writes. Otherwise a configured
+        // finalization failure incorrectly prevents the Stripe transfer from
+        // ever being attempted.
+        const terminal =
+          escrowUpdateCalls === 1
+            ? (s.claimResult ?? {
+                data: [{ id: 'escrow-1' }],
+                error: null,
+              })
+            : (s.updateResult ?? {
+                data: [{ id: 'escrow-1' }],
+                error: null,
+              });
+        return chain(terminal);
       }),
     };
   });
@@ -505,7 +515,9 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
               error: isFinalize ? { message: 'db write failed' } : null,
             });
             c.select = vi.fn(() =>
-              chain({ data: [{ id: 'escrow-1' }], error: null })
+              isFinalize
+                ? chain({ data: null, error: { message: 'db write failed' } })
+                : chain({ data: [{ id: 'escrow-1' }], error: null })
             );
             return c;
           }),

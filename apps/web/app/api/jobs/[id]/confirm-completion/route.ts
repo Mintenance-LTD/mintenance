@@ -8,7 +8,7 @@ import {
   type EscrowStatusValue,
 } from '@mintenance/shared';
 import {
-  getIdempotencyKeyFromRequest,
+  getDeterministicIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
   releaseOnError,
@@ -17,6 +17,7 @@ import {
   ForbiddenError,
   NotFoundError,
   BadRequestError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
@@ -32,7 +33,7 @@ export const POST = withApiHandler(
     const jobId = params.id as string;
 
     // Idempotency check - prevent duplicate confirmations
-    const idempotencyKey = getIdempotencyKeyFromRequest(
+    const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
       request,
       'confirm_completion',
       user.id,
@@ -122,7 +123,8 @@ export const POST = withApiHandler(
           .from('job_photos_metadata')
           .select('id', { count: 'exact', head: true })
           .eq('job_id', jobId)
-          .eq('photo_type', 'after');
+          .eq('photo_type', 'after')
+          .eq('verified', true);
 
         if (!preCheckPhotoCount || preCheckPhotoCount === 0) {
           throw new BadRequestError(
@@ -181,14 +183,16 @@ export const POST = withApiHandler(
         // needs both. Now writes the new `completion_confirmed_at`
         // column (migration 20260524130000) and leaves `completed_at`
         // intact.
-        const { error: updateError } = await serverSupabase
+        const { data: confirmedRows, error: updateError } = await serverSupabase
           .from('jobs')
           .update({
             completion_confirmed_by_homeowner: true,
             completion_confirmed_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq('id', jobId);
+          .eq('id', jobId)
+          .eq('completion_confirmed_by_homeowner', false)
+          .select('id');
 
         if (updateError) {
           logger.error(
@@ -200,6 +204,12 @@ export const POST = withApiHandler(
             }
           );
           throw updateError;
+        }
+
+        if (!confirmedRows || confirmedRows.length === 0) {
+          throw new ConflictError(
+            'Completion was confirmed by another request. Refresh the job to see the latest status.'
+          );
         }
 
         // Notify contractor that homeowner confirmed completion.
@@ -297,7 +307,8 @@ export const POST = withApiHandler(
           .from('job_photos_metadata')
           .select('id', { count: 'exact', head: true })
           .eq('job_id', jobId)
-          .eq('photo_type', 'after');
+          .eq('photo_type', 'after')
+          .eq('verified', true);
 
         if (!afterPhotoCount || afterPhotoCount === 0) {
           throw new BadRequestError(

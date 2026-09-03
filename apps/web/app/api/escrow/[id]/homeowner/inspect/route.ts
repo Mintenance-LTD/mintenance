@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 
 /** Type for escrow with job relation (Supabase !inner join returns jobs as array) */
 interface EscrowHomeownerJob {
@@ -43,14 +47,23 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 20 } }, async (_r
     throw new ForbiddenError('Unauthorized');
   }
 
-  await serverSupabase
+  const { data: updatedEscrow, error: updateError } = await serverSupabase
     .from('escrow_transactions')
     .update({
       homeowner_inspection_completed: true,
       homeowner_inspection_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq('id', escrowId);
+    .eq('id', escrowId)
+    .in('status', ['held', 'awaiting_homeowner_approval'])
+    .select('id')
+    .maybeSingle();
+
+  if (updateError || !updatedEscrow) {
+    throw new ConflictError(
+      'This escrow is no longer available for homeowner inspection.'
+    );
+  }
 
   return NextResponse.json({ success: true, escrowId });
 });

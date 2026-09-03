@@ -15,6 +15,7 @@ import {
   NotFoundError,
   BadRequestError,
   ForbiddenError,
+  ConflictError,
 } from '@/lib/errors/api-error';
 import {
   getIdempotencyKeyFromRequest,
@@ -104,6 +105,30 @@ export const POST = withApiHandler(
         throw new BadRequestError('Can only request changes on completed jobs');
       }
 
+      // Do not reopen a job after escrow release has been claimed. The
+      // release worker may already be about to call Stripe, and rework must
+      // never coexist with an in-flight payout.
+      const { data: escrow, error: escrowError } = await serverSupabase
+        .from('escrow_transactions')
+        .select('id, status')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (escrowError) {
+        logger.error('Failed to verify escrow before rework request', escrowError, {
+          service: 'jobs',
+          jobId,
+        });
+        throw new BadRequestError('Could not verify payment state. Please try again.');
+      }
+      if (!escrow || escrow.status !== 'held') {
+        throw new ConflictError(
+          'Payment release is already in progress or complete. Changes cannot be requested at this stage.'
+        );
+      }
+
       // 2. Roll back job status to in_progress so contractor can re-do work.
       //
       // Audit P1 (2026-05-10): also reset `completion_confirmed_by_homeowner`.
@@ -127,7 +152,7 @@ export const POST = withApiHandler(
       // confusing audit state where the boolean and timestamp
       // disagree. Live `jobs` has all three columns (verified 2026-05-26
       // via information_schema).
-      const { error: updateError } = await serverSupabase
+      const { data: reopenedRows, error: updateError } = await serverSupabase
         .from('jobs')
         .update({
           status: JOB_STATUS.IN_PROGRESS,
@@ -136,7 +161,9 @@ export const POST = withApiHandler(
           completion_confirmed_at: null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', jobId);
+        .eq('id', jobId)
+        .eq('status', JOB_STATUS.COMPLETED)
+        .select('id');
 
       if (updateError) {
         logger.error('Failed to roll back job status', {
@@ -145,6 +172,12 @@ export const POST = withApiHandler(
           error: updateError.message,
         });
         throw new Error('Failed to process change request');
+      }
+
+      if (!reopenedRows || reopenedRows.length === 0) {
+        throw new ConflictError(
+          'This job changed while the change request was being submitted. Refresh and try again.'
+        );
       }
 
       // 2b. Reset escrow homeowner-approval + auto-release fields. Best-

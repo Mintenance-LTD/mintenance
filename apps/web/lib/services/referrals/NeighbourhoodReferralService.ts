@@ -230,37 +230,56 @@ export class NeighbourhoodReferralService {
     referenceId?: string | null
   ): Promise<number> {
     if (requestedPence <= 0) return 0;
-    const { data: row } = await serverSupabase
-      .from('user_credits')
-      .select('balance_pence')
-      .eq('user_id', userId)
-      .maybeSingle();
-    const balance = (row?.balance_pence as number | undefined) ?? 0;
-    const debit = Math.min(balance, requestedPence);
-    if (debit <= 0) return 0;
-
-    const { error } = await serverSupabase
-      .from('user_credits')
-      .update({
-        balance_pence: balance - debit,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId);
-    if (error) {
-      logger.error('Failed to debit credit', error, {
+    const { data: debit, error } = await serverSupabase.rpc(
+      'spend_user_credit',
+      {
+        p_user_id: userId,
+        p_requested_pence: requestedPence,
+        p_reason: reason,
+        p_reference_id: referenceId ?? null,
+      }
+    );
+    if (error || typeof debit !== 'number') {
+      logger.error('Failed to debit credit atomically', error, {
         service: 'referrals',
         userId,
-        debit,
+        requestedPence,
       });
       return 0;
     }
-    await serverSupabase.from('user_credit_ledger').insert({
-      user_id: userId,
-      delta_pence: -debit,
-      reason,
-      reference_id: referenceId ?? null,
-    });
     return debit;
+  }
+
+  /**
+   * Compensate a credit debit when the payment workflow fails after the
+   * balance was changed. This is intentionally a separate ledger entry so
+   * reconciliation can distinguish a rollback from a new reward.
+   */
+  static async restoreCredit(
+    userId: string,
+    amountPence: number,
+    referenceId?: string | null
+  ): Promise<boolean> {
+    if (!Number.isInteger(amountPence) || amountPence <= 0) return true;
+
+    const { data: restored, error } = await serverSupabase.rpc(
+      'restore_user_credit',
+      {
+        p_user_id: userId,
+        p_amount_pence: amountPence,
+        p_reference_id: referenceId ?? null,
+      }
+    );
+    if (error || restored !== true) {
+      logger.error('Failed to restore credit atomically', error, {
+        service: 'referrals',
+        userId,
+        amountPence,
+        referenceId,
+      });
+      return false;
+    }
+    return true;
   }
 
   static async getBalancePence(userId: string): Promise<number> {
