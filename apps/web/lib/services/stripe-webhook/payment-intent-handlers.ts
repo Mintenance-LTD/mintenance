@@ -178,17 +178,26 @@ export async function handlePaymentIntentSucceeded(
 
     // Backfill payer/payee IDs if missing (with UUID validation)
     if (!escrowTransaction.payer_id || !escrowTransaction.payee_id) {
-      const homeownerId = paymentIntent.metadata?.homeownerId;
+      // `payerId` is the actual funding account for delegated landlord /
+      // manager jobs. Keep `homeownerId` as the legacy fallback for older
+      // PaymentIntents that predate delegated-payer metadata.
+      const payerId =
+        paymentIntent.metadata?.payerId || paymentIntent.metadata?.homeownerId;
+      const payerMetadataKey = paymentIntent.metadata?.payerId
+        ? 'payerId'
+        : 'homeownerId';
       const contractorId = paymentIntent.metadata?.contractorId;
 
-      const validHomeowner = homeownerId && isValidUUID(homeownerId);
+      const validPayer = payerId && isValidUUID(payerId);
       const validContractor = contractorId && isValidUUID(contractorId);
 
-      if (!validHomeowner && homeownerId) {
-        logger.warn('Invalid homeownerId UUID in payment metadata', {
+      if (!validPayer && payerId) {
+        logger.warn(`Invalid ${payerMetadataKey} UUID in payment metadata`, {
           service: 'stripe-webhook',
           paymentIntentId: paymentIntent.id,
-          homeownerId,
+          ...(payerMetadataKey === 'payerId'
+            ? { payerId }
+            : { homeownerId: payerId }),
         });
       }
       if (!validContractor && contractorId) {
@@ -199,11 +208,11 @@ export async function handlePaymentIntentSucceeded(
         });
       }
 
-      if (validHomeowner && validContractor) {
+      if (validPayer && validContractor) {
         await serverSupabase
           .from('escrow_transactions')
           .update({
-            payer_id: homeownerId,
+            payer_id: payerId,
             payee_id: contractorId,
           })
           .eq('id', escrowTransaction.id);
@@ -211,7 +220,7 @@ export async function handlePaymentIntentSucceeded(
         logger.info('Backfilled payer_id and payee_id for escrow transaction', {
           service: 'stripe-webhook',
           escrowId: escrowTransaction.id,
-          homeownerId,
+          payerId,
           contractorId,
         });
       }

@@ -184,6 +184,35 @@ describe('handlePaymentIntentSucceeded', () => {
     );
   });
 
+  it('prefers delegated payer metadata over the homeowner metadata', async () => {
+    const delegatedPayerId = 'e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b';
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        payer_id: null,
+        payee_id: null,
+      },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    const pi = makePaymentIntent({
+      metadata: {
+        homeownerId: VALID_UUID,
+        payerId: delegatedPayerId,
+        contractorId: VALID_UUID_2,
+      },
+    });
+    await handlePaymentIntentSucceeded(pi, mockNotify);
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payer_id: delegatedPayerId,
+        payee_id: VALID_UUID_2,
+      })
+    );
+  });
+
   it('warns on invalid UUID in metadata', async () => {
     const chain = buildChain({
       singleData: {
