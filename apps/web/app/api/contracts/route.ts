@@ -61,7 +61,33 @@ export const GET = withApiHandler(
     if (user.role === 'contractor') {
       query = query.eq('contractor_id', user.id);
     } else if (user.role === 'homeowner') {
-      query = query.eq('homeowner_id', user.id);
+      // Property-team payers are platform homeowners but may not be the
+      // primary homeowner stored on the contract. Include only contracts
+      // linked to jobs whose server-assigned payer_user_id is this caller.
+      const { data: payerJobs, error: payerJobsError } = await serverSupabase
+        .from('jobs')
+        .select('id')
+        .eq('payer_user_id', user.id);
+
+      if (payerJobsError) {
+        logger.error('Error fetching payer-owned job ids', payerJobsError, {
+          service: 'contracts',
+          userId: user.id,
+        });
+        throw new ForbiddenError('Unable to load your contracts');
+      }
+
+      const payerJobIds = (payerJobs ?? [])
+        .map((job) => job.id)
+        .filter((id): id is string => typeof id === 'string');
+
+      if (payerJobIds.length > 0) {
+        query = query.or(
+          `homeowner_id.eq.${user.id},job_id.in.(${payerJobIds.join(',')})`
+        );
+      } else {
+        query = query.eq('homeowner_id', user.id);
+      }
     } else {
       throw new ForbiddenError('Invalid role');
     }
