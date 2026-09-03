@@ -85,12 +85,15 @@ export const POST = withApiHandler(
     if (jobId) {
       const { data: jobData, error: jobError } = await serverSupabase
         .from('jobs')
-        .select('id, title, homeowner_id, contractor_id, budget')
+        .select('id, title, homeowner_id, payer_user_id, contractor_id, budget')
         .eq('id', jobId)
-        .eq('homeowner_id', user.id)
         .single();
 
-      if (jobError || !jobData) {
+      if (
+        jobError ||
+        !jobData ||
+        (jobData.homeowner_id !== user.id && jobData.payer_user_id !== user.id)
+      ) {
         logger.warn('Job access denied or not found', {
           service: 'payments',
           jobId,
@@ -397,7 +400,7 @@ export const POST = withApiHandler(
       if (jobId && contractorStripeAccountId) {
         const { data: job } = await serverSupabase
           .from('jobs')
-          .select('homeowner_id, contractor_id')
+          .select('homeowner_id, payer_user_id, contractor_id')
           .eq('id', jobId)
           .single();
 
@@ -405,7 +408,7 @@ export const POST = withApiHandler(
           .from('escrow_transactions')
           .insert({
             job_id: jobId,
-            payer_id: job?.homeowner_id || user.id,
+            payer_id: job?.payer_user_id || job?.homeowner_id || user.id,
             payee_id: job?.contractor_id,
             amount: authoritativeAmount ?? 0,
             status: 'pending',
