@@ -354,7 +354,7 @@ describe('E2E_TESTING rate limit bypass', () => {
 
   it('EnhancedRateLimiter allows all requests when E2E_TESTING=true', async () => {
     process.env.E2E_TESTING = 'true';
-    process.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = 'test';
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.REDIS_REQUIRED;
 
@@ -372,7 +372,7 @@ describe('E2E_TESTING rate limit bypass', () => {
 
   it('RedisRateLimiter allows criticality-tagged requests when E2E_TESTING=true', async () => {
     process.env.E2E_TESTING = 'true';
-    process.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = 'test';
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -385,6 +385,23 @@ describe('E2E_TESTING rate limit bypass', () => {
       criticality: 'auth',
     });
     expect(result.allowed).toBe(true);
+  });
+
+  it('does not bypass limits when E2E_TESTING is misconfigured in production', async () => {
+    process.env.E2E_TESTING = 'true';
+    process.env.NODE_ENV = 'production';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.REDIS_REQUIRED;
+
+    const limiter = new EnhancedRateLimiter();
+    const request = createMockRequest('/api/auth/login');
+    const result = await limiter.checkLimit(request, {
+      identifier: 'prod-e2e-misconfiguration',
+      tier: 'anonymous',
+    });
+
+    expect(result.allowed).toBe(false);
   });
 
   it('RedisRateLimiter still fails closed for criticality routes without the flag', async () => {

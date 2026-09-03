@@ -104,7 +104,10 @@ export class RedisRateLimiter {
     // shared-budget cap of ~5/window) blocks a serial Playwright suite that
     // funnels every request through one IP. E2E_TESTING is never set in
     // production (enforced by the test-auth route contract).
-    if (process.env.E2E_TESTING === 'true') {
+    if (
+      process.env.E2E_TESTING === 'true' &&
+      process.env.NODE_ENV !== 'production'
+    ) {
       return {
         allowed: true,
         remaining: config.maxRequests,

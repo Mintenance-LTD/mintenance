@@ -101,7 +101,10 @@ export class EnhancedRateLimiter {
       // Playwright suite issues hundreds of requests from one IP, so real
       // per-IP limits (5 logins/15min) can never hold. E2E_TESTING is never
       // set in production (enforced by the test-auth route contract).
-      if (process.env.E2E_TESTING === 'true') {
+      if (
+        process.env.E2E_TESTING === 'true' &&
+        process.env.NODE_ENV !== 'production'
+      ) {
         return {
           allowed: true,
           limit: Number.MAX_SAFE_INTEGER,
