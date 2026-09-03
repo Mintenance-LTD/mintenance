@@ -75,6 +75,7 @@ export const POST = withApiHandler(
     // If jobId is provided, validate job ownership and set up marketplace payment
     let contractorStripeAccountId: string | null = null;
     let applicationFeeAmount: number | null = null;
+    let jobHomeownerId: string | null = null;
     // Server-authoritative amount for the marketplace path (audit C2). Stays
     // null for non-marketplace checkout. When set, it — NOT the client priceId
     // — is what gets charged and recorded in escrow.
@@ -105,6 +106,8 @@ export const POST = withApiHandler(
           { status: 404 }
         );
       }
+
+      jobHomeownerId = jobData.homeowner_id;
 
       // Validate contractor matches if provided
       if (contractorId && jobData.contractor_id !== contractorId) {
@@ -313,11 +316,15 @@ export const POST = withApiHandler(
       const metadata: Record<string, string> = {
         userId: user.id,
         userEmail: user.email || '',
+        payerId: user.id,
         paymentType: paymentType ?? 'final',
       };
 
       if (jobId) {
         metadata.jobId = jobId;
+        if (jobHomeownerId) {
+          metadata.homeownerId = jobHomeownerId;
+        }
       }
 
       if (bidId) {
