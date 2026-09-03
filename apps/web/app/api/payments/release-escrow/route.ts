@@ -105,6 +105,7 @@ export const POST = withApiHandler(
           id,
           title,
           homeowner_id,
+          payer_user_id,
           contractor_id,
           status
         )
@@ -151,7 +152,8 @@ export const POST = withApiHandler(
 
       const canRelease =
         isAdminVerified ||
-        (user.role === 'homeowner' && job.homeowner_id === user.id);
+        (user.role === 'homeowner' &&
+          (job.homeowner_id === user.id || job.payer_user_id === user.id));
 
       if (!canRelease) {
         logger.warn('Unauthorized escrow release attempt', {
@@ -159,6 +161,7 @@ export const POST = withApiHandler(
           userId: user.id,
           escrowTransactionId,
           homeownerId: job.homeowner_id,
+          payerUserId: job.payer_user_id,
           contractorId: job.contractor_id,
           userRole: user.role,
         });

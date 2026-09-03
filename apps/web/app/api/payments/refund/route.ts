@@ -28,7 +28,7 @@ import { getClientIp } from '@/lib/request-ip';
  *
  * 2026-05-09: added an explicit `roles` lock at the framework
  * boundary. The downstream code already restricts refunds to the
- * homeowner who paid (lines below), but the absent route-level lock
+ * designated payer (lines below), but the absent route-level lock
  * meant any authenticated role could enter the handler before being
  * rejected by the inner check — adds defense-in-depth and surfaces the
  * intent at the perimeter. Admin can hit the dedicated `/api/admin/refunds` endpoints.
@@ -92,10 +92,10 @@ export const POST = withApiHandler(
     let escrowClaimed = false;
     let refundId: string | null = null;
     try {
-      // Verify job ownership
+      // Verify job access
       const { data: job, error: jobError } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, contractor_id, status')
+        .select('id, homeowner_id, payer_user_id, contractor_id, status')
         .eq('id', jobId)
         .single();
 
@@ -105,9 +105,10 @@ export const POST = withApiHandler(
 
       // SECURITY: Enhanced refund authorization logic
       const isHomeowner = job.homeowner_id === user.id;
+      const isDesignatedPayer = job.payer_user_id === user.id;
       const isContractor = job.contractor_id === user.id;
 
-      if (!isHomeowner && !isContractor) {
+      if (!isHomeowner && !isDesignatedPayer && !isContractor) {
         throw new ForbiddenError('Unauthorized');
       }
 
@@ -130,7 +131,7 @@ export const POST = withApiHandler(
       }
 
       // SECURITY: Only allow refunds in specific scenarios
-      if (!isHomeowner) {
+      if (!isHomeowner && !isDesignatedPayer) {
         logger.warn('Non-homeowner attempted refund', {
           service: 'payments',
           userId: user.id,
@@ -138,7 +139,7 @@ export const POST = withApiHandler(
           jobId,
         });
         return NextResponse.json(
-          { error: 'Only the homeowner who paid can request a refund' },
+          { error: 'Only the designated payer can request a refund' },
           { status: 403 }
         );
       }
