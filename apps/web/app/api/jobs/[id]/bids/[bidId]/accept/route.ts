@@ -103,10 +103,10 @@ export const POST = withApiHandler(
         throw new ForbiddenError('Only homeowners can accept bids');
       }
 
-      // Verify the job belongs to this homeowner (user-scoped read)
+      // Verify the job belongs to this homeowner or designated payer
       const { data: job, error: jobError } = await userDb
         .from('jobs')
-        .select('homeowner_id, status')
+        .select('homeowner_id, payer_user_id, status')
         .eq('id', jobId)
         .single();
 
@@ -125,7 +125,10 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
-      if (job.homeowner_id !== user.id) {
+      const isDesignatedPayer =
+        job.payer_user_id === user.id ||
+        (!job.payer_user_id && job.homeowner_id === user.id);
+      if (!isDesignatedPayer) {
         throw new ForbiddenError('Not authorized to accept bids for this job');
       }
 
