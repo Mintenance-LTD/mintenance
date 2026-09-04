@@ -87,7 +87,10 @@ export const POST = withApiHandler(
       serverSupabase
         .from('jobs')
         .select('id', { count: 'exact', head: true })
-        .eq('homeowner_id', user.id)
+        // A designated payer is an active marketplace participant too. Do
+        // not allow account deletion while a job they are responsible for
+        // funding is still assigned or in progress.
+        .or(`homeowner_id.eq.${user.id},payer_user_id.eq.${user.id}`)
         .in('status', ['assigned', 'in_progress']),
       serverSupabase
         .from('jobs')
