@@ -151,18 +151,27 @@ export async function handleChargeRefunded(
 
     const jobId = escrowTransaction?.job_id || charge.metadata?.jobId;
     if (jobId && isFullRefund && escrowStateFinalized && !alreadyRefunded) {
-      await serverSupabase
+      const { error: jobUpdateError } = await serverSupabase
         .from('jobs')
         .update({
           payment_status: 'refunded',
           updated_at: new Date().toISOString(),
         })
         .eq('id', jobId);
+
+      if (jobUpdateError) {
+        logger.error('Failed to mark job payment as refunded', jobUpdateError, {
+          service: 'stripe-webhook',
+          paymentIntentId,
+          chargeId: charge.id,
+          jobId,
+        });
+        throw new Error('Failed to persist refunded job payment status');
+      }
     }
 
     // Record in refunds table
-    try {
-      await serverSupabase.from('refunds').upsert(
+    const { error: refundRecordError } = await serverSupabase.from('refunds').upsert(
         {
           charge_id: charge.id,
           payment_intent_id: paymentIntentId,
@@ -176,11 +185,13 @@ export async function handleChargeRefunded(
         },
         { onConflict: 'charge_id' }
       );
-    } catch (refundRecordError) {
+
+    if (refundRecordError) {
       logger.error('Failed to record refund', refundRecordError, {
         service: 'stripe-webhook',
         chargeId: charge.id,
       });
+      throw new Error('Failed to persist refund record');
     }
 
     // Notify both homeowner and contractor
@@ -265,7 +276,7 @@ export async function handleChargeFailed(
 
     let escrowTransaction: { payer_id: string | null } | null = null;
     if (existing) {
-      const { data: updated } = await serverSupabase
+      const { data: updated, error: escrowUpdateError } = await serverSupabase
         .from('escrow_transactions')
         .update({
           status: 'failed',
@@ -275,6 +286,16 @@ export async function handleChargeFailed(
         .in('status', PRE_MONEY_STATUSES)
         .select()
         .single();
+
+      if (escrowUpdateError) {
+        logger.error('Failed to mark failed charge escrow', escrowUpdateError, {
+          service: 'stripe-webhook',
+          chargeId: charge.id,
+          paymentIntentId,
+          escrowId: existing.id,
+        });
+        throw new Error('Failed to persist failed charge status');
+      }
       escrowTransaction = updated ?? existing;
     }
 
