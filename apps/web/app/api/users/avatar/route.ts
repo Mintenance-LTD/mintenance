@@ -8,7 +8,10 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { BadRequestError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
   validateImageUpload,
@@ -84,11 +87,22 @@ export const POST = withApiHandler(
 
     // Read the existing avatar URL BEFORE we overwrite the row so we
     // can clean up the old blob after the update succeeds.
-    const { data: previousProfile } = await serverSupabase
+    const { data: previousProfile, error: previousProfileError } =
+      await serverSupabase
       .from('profiles')
       .select('profile_image_url')
       .eq('id', user.id)
       .single();
+    if (previousProfileError) {
+      logger.error(
+        'Failed to read existing avatar before replacement',
+        previousProfileError,
+        { service: 'users.avatar', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to prepare avatar replacement. Please try again.'
+      );
+    }
     const previousAvatarUrl = previousProfile?.profile_image_url ?? null;
 
     // Derive the extension from the DETECTED type, never the client filename.
