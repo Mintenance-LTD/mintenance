@@ -222,6 +222,16 @@ export const POST = withApiHandler(
             userId: user.id,
           }
         );
+        const { error: cleanupError } = await serverSupabase.storage
+          .from('Job-storage')
+          .remove([fileName]);
+        if (cleanupError) {
+          logger.error('Failed to clean up unsigned job photo', cleanupError, {
+            service: 'jobs',
+            fileName,
+            userId: user.id,
+          });
+        }
         failedFiles.push(file.name);
       }
     }
