@@ -72,12 +72,27 @@ export const POST = withApiHandler(
       'completed',
     ];
 
+    // A payer has no homeowner/contractor role on the contract row, so the
+    // party-scoped contract query below cannot see contracts they fund.
+    // Fetch those accepted contracts through the linked job relationship.
+    const payerAcceptedContractsPromise =
+      user.role === 'homeowner'
+        ? serverSupabase
+            .from('contracts')
+            .select(
+              'id, jobs!inner(id, payer_user_id, escrow_transactions(status))'
+            )
+            .eq('jobs.payer_user_id', user.id)
+            .eq('status', 'accepted')
+        : Promise.resolve({ data: [] as unknown[] });
+
     const [
       { count: activeEscrowCount },
       { count: activeAsHomeownerCount },
       { count: activeAsContractorCount },
       { count: openDisputesCount },
       { data: acceptedContractsRows },
+      { data: payerAcceptedContractsRows },
     ] = await Promise.all([
       serverSupabase
         .from('escrow_transactions')
@@ -115,6 +130,7 @@ export const POST = withApiHandler(
         .select('id, jobs!inner(id, escrow_transactions(status))')
         .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
         .eq('status', 'accepted'),
+      payerAcceptedContractsPromise,
     ]);
 
     type AcceptedContractRow = {
@@ -126,9 +142,11 @@ export const POST = withApiHandler(
           }>
         | null;
     };
-    const signedUnfundedContractsCount = (
-      (acceptedContractsRows as AcceptedContractRow[] | null) ?? []
-    ).filter((row) => {
+    const acceptedContractRows = [
+      ...((acceptedContractsRows as AcceptedContractRow[] | null) ?? []),
+      ...((payerAcceptedContractsRows as AcceptedContractRow[] | null) ?? []),
+    ];
+    const signedUnfundedContractsCount = acceptedContractRows.filter((row) => {
       const job = Array.isArray(row.jobs) ? row.jobs[0] : row.jobs;
       const escrows = job?.escrow_transactions ?? [];
       // unfunded iff NONE of the escrow rows are in the funded-or-done set
