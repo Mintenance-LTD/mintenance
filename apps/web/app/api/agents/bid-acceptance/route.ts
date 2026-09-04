@@ -18,7 +18,11 @@ import {
   type JobStatus,
   type BidStatusValue,
 } from '@mintenance/shared';
-import { BadRequestError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ConflictError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import type { ActionTaken } from '@/lib/services/agents/types';
 
 const requestSchema = z.object({
@@ -170,28 +174,47 @@ export const POST = withApiHandler(
             'assigned' as JobStatus
           );
 
-          await serverSupabase
-            .from('bids')
-            .update({
-              status: BID_STATUS.ACCEPTED,
-              accepted_at: new Date().toISOString(),
-            })
-            .eq('id', context.bidId);
-          // SECURITY FIX: Target status must be 'assigned', not 'in_progress'.
-          // The job lifecycle requires contract signing + escrow before work can start.
-          await serverSupabase
-            .from('jobs')
-            .update({
-              status: 'assigned',
-              contractor_id: bid.contractor_id,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', context.jobId);
-          await serverSupabase
-            .from('bids')
-            .update({ status: BID_STATUS.REJECTED })
-            .eq('job_id', context.jobId)
-            .neq('id', context.bidId);
+          // Bid acceptance is a coupled bid + job state transition. Use the
+          // row-locking SECURITY DEFINER RPC so concurrent agent requests
+          // cannot create two winners or leave the job assigned to nobody.
+          // The function also rejects callers that do not own the job.
+          interface AcceptBidResult {
+            success: boolean;
+            error_message: string | null;
+            accepted_bid_id: string | null;
+            job_status: string | null;
+          }
+
+          const { data: rpcRaw, error: rpcError } =
+            await serverSupabase.rpc('accept_bid_atomic', {
+              p_bid_id: context.bidId,
+              p_job_id: context.jobId,
+              p_contractor_id: bid.contractor_id,
+              p_homeowner_id: user.id,
+            });
+
+          if (rpcError) {
+            logger.error('Atomic agent bid acceptance failed', rpcError, {
+              service: 'bid-acceptance-agent',
+              jobId: context.jobId,
+              bidId: context.bidId,
+            });
+            if (rpcError.code === '23505') {
+              throw new ConflictError('Bid has already been accepted for this job');
+            }
+            throw new InternalServerError('Failed to accept bid');
+          }
+
+          const rpcRow = Array.isArray(rpcRaw)
+            ? (rpcRaw[0] as AcceptBidResult | undefined)
+            : (rpcRaw as AcceptBidResult | null);
+          if (!rpcRow || !rpcRow.success) {
+            const message = rpcRow?.error_message?.toLowerCase() ?? '';
+            if (message.includes('already')) {
+              throw new ConflictError('Bid has already been accepted for this job');
+            }
+            throw new InternalServerError('Failed to accept bid');
+          }
           // 2026-05-21 Mint Editorial voice — match the call-site copy
           // in accept/_helpers.ts so both AI-agent and manual paths
           // produce the same notification.
