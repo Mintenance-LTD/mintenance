@@ -4,6 +4,7 @@ import { signJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 const supabase = serverSupabase;
 
@@ -33,7 +34,12 @@ const VALID_ROOM_TYPES = [
   'other',
 ] as const;
 
-async function verifyPropertyOwnership(propertyId: string, userId: string) {
+async function verifyPropertyAccess(
+  propertyId: string,
+  userId: string,
+  permission: 'view' | 'edit',
+  isAdmin: boolean
+) {
   const { data: property, error } = await supabase
     .from('properties')
     .select('id, owner_id')
@@ -43,8 +49,13 @@ async function verifyPropertyOwnership(propertyId: string, userId: string) {
   if (error || !property) {
     throw new NotFoundError('Property not found');
   }
-  if (property.owner_id !== userId) {
-    throw new ForbiddenError('You do not own this property');
+  const { authorized } = await PropertyTeamService.authorize(
+    userId,
+    propertyId,
+    permission
+  );
+  if (!authorized && !isAdmin) {
+    throw new ForbiddenError('You do not have access to this property');
   }
   return property;
 }
@@ -57,7 +68,12 @@ export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (_request, { user, params }) => {
     const propertyId = (await params).id as string;
-    await verifyPropertyOwnership(propertyId, user.id);
+    await verifyPropertyAccess(
+      propertyId,
+      user.id,
+      'view',
+      user.role === 'admin'
+    );
 
     const { data, error } = await supabase
       .from('property_room_photos')
@@ -96,7 +112,12 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'], rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     const propertyId = (await params).id as string;
-    await verifyPropertyOwnership(propertyId, user.id);
+    await verifyPropertyAccess(
+      propertyId,
+      user.id,
+      'edit',
+      user.role === 'admin'
+    );
 
     const formData = await request.formData();
     const photoFiles = formData.getAll('photos') as File[];
@@ -220,7 +241,12 @@ export const DELETE = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (request, { user, params }) => {
     const propertyId = (await params).id as string;
-    await verifyPropertyOwnership(propertyId, user.id);
+    await verifyPropertyAccess(
+      propertyId,
+      user.id,
+      'edit',
+      user.role === 'admin'
+    );
 
     const { searchParams } = new URL(request.url);
     const photoId = searchParams.get('photoId');
