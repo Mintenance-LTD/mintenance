@@ -24,23 +24,6 @@ import {
 // required before-photo gate (Start Job) and the after-photo completion
 // trigger. validateImageUpload (magic-number check above) already
 // accepts HEIC; the route-local allowlists are the only blocker.
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/heic',
-  'image/heif',
-];
-const ALLOWED_IMAGE_EXTENSIONS = [
-  'jpg',
-  'jpeg',
-  'png',
-  'webp',
-  'gif',
-  'heic',
-  'heif',
-];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 10;
 
@@ -143,7 +126,7 @@ export const POST = withApiHandler(
       if (geolocationStr) {
         try {
           geolocation = JSON.parse(geolocationStr);
-        } catch (e) {
+        } catch {
           logger.warn('Invalid geolocation format', { geolocationStr });
         }
       }
@@ -192,20 +175,17 @@ export const POST = withApiHandler(
           );
         }
 
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-          throw new BadRequestError('Invalid file type');
-        }
-
-        const fileExt = file.name.split('.').pop()?.toLowerCase();
-        if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-          throw new BadRequestError('Invalid file extension');
-        }
+        const fileExt = magicValidation.detectedType?.split('/')[1] || 'jpg';
 
         // Upload to storage
         const fileName = `job-photos/${jobId}/before/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const { error: uploadError } = await serverSupabase.storage
           .from('Job-storage')
-          .upload(fileName, file, { cacheControl: '3600', upsert: false });
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            contentType: magicValidation.detectedType,
+            upsert: false,
+          });
 
         if (uploadError) {
           logger.error('Upload error', uploadError);
@@ -217,6 +197,7 @@ export const POST = withApiHandler(
         // `public=false`. See apps/web/lib/api/job-storage.ts for context.
         const photoUrl = await signJobStoragePath(fileName);
         if (!photoUrl) {
+          await serverSupabase.storage.from('Job-storage').remove([fileName]);
           continue;
         }
 
@@ -242,7 +223,7 @@ export const POST = withApiHandler(
         }
 
         // Save metadata
-        await serverSupabase.from('job_photos_metadata').insert({
+        const { error: metadataError } = await serverSupabase.from('job_photos_metadata').insert({
           job_id: jobId,
           photo_url: photoUrl,
           photo_type: 'before',
@@ -253,6 +234,16 @@ export const POST = withApiHandler(
           quality_score: qualityResult.qualityScore,
           created_by: user.id,
         });
+
+        if (metadataError) {
+          await serverSupabase.storage.from('Job-storage').remove([fileName]);
+          logger.error('Failed to save before-photo metadata', metadataError, {
+            service: 'jobs',
+            jobId,
+            userId: user.id,
+          });
+          continue;
+        }
 
         uploadedPhotos.push({
           url: photoUrl,
