@@ -305,10 +305,14 @@ export const DELETE = withApiHandler(
       .remove([photo.storage_path]);
 
     if (storageError) {
-      logger.warn('Failed to delete room photo from storage', {
+      logger.error('Failed to delete room photo from storage', storageError, {
         service: 'room_photos',
         path: photo.storage_path,
       });
+      return NextResponse.json(
+        { error: 'Failed to delete photo from storage. Please try again.' },
+        { status: 502 }
+      );
     }
 
     // Delete from DB
