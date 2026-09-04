@@ -8,10 +8,8 @@
  * rolling 24-hour and 30-day cost cap per user by querying the existing
  * `ai_service_costs` table.
  *
- * Failure mode is fail-OPEN on read errors (transient DB issues should
- * not block legitimate users from running an assessment) but the warning
- * is logged so ops can monitor. The hard rate limit at the entry point
- * (5 req/min) provides the second layer of defence.
+ * Failure mode is fail-CLOSED on read errors. A budget check that cannot be
+ * trusted must not permit an unbounded number of expensive model calls.
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -64,13 +62,13 @@ export async function checkAICostBudget(
       .gte('timestamp', monthAgo);
 
     if (error) {
-      logger.warn('AI cost budget check failed — failing open', {
+      logger.error('AI cost budget check failed — failing closed', error, {
         service: 'ai-budget',
         userId,
         error: error.message,
       });
       return {
-        allowed: true,
+        allowed: false,
         reason: 'check_failed',
         spent: { day: 0, month: 0 },
         limits: { day: dailyLimit, month: monthlyLimit },
@@ -124,12 +122,12 @@ export async function checkAICostBudget(
       limits: { day: dailyLimit, month: monthlyLimit },
     };
   } catch (error) {
-    logger.error('Exception in AI cost budget check — failing open', error, {
+    logger.error('Exception in AI cost budget check — failing closed', error, {
       service: 'ai-budget',
       userId,
     });
     return {
-      allowed: true,
+      allowed: false,
       reason: 'check_failed',
       spent: { day: 0, month: 0 },
       limits: { day: dailyLimit, month: monthlyLimit },

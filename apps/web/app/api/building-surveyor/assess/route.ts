@@ -170,6 +170,12 @@ export const POST = withApiHandler(
     // for the last 24h / 30d sum and rejecting if over cap.
     const budget = await checkAICostBudget(user.id);
     if (!budget.allowed) {
+      if (budget.reason === 'check_failed') {
+        return NextResponse.json(
+          { error: 'AI usage budget is temporarily unavailable.' },
+          { status: 503 }
+        );
+      }
       deps.logger.warn('Building surveyor cost cap reached', {
         service: 'building-surveyor-api',
         userId: user.id,
