@@ -37,6 +37,7 @@ export interface DatabaseJobRow {
   description: string;
   location: string;
   homeowner_id: string;
+  payer_user_id: string | null;
   contractor_id: string | null;
   status: string;
   budget: number;
