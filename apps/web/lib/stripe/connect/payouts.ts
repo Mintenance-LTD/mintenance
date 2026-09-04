@@ -210,17 +210,29 @@ export async function processEligiblePayouts(): Promise<{
         }
       );
 
-      // Record the transfer
-      await serverSupabase.from('contractor_payout_transfers').insert({
-        contractor_id: balance.contractor_id,
-        stripe_transfer_id: transfer.id,
-        stripe_destination_account: profile.stripe_connect_account_id,
-        amount_minor: claimedAmount,
-        currency: balance.currency,
-        status: 'pending',
-      });
+      // Record the transfer idempotently. Stripe may have completed the
+      // transfer even when this database write failed; an upsert lets a
+      // retry reconcile the same transfer instead of treating the unique
+      // transfer ID as a new failure.
+      const { error: transferRecordError } = await serverSupabase
+        .from('contractor_payout_transfers')
+        .upsert(
+          {
+            contractor_id: balance.contractor_id,
+            stripe_transfer_id: transfer.id,
+            stripe_destination_account: profile.stripe_connect_account_id,
+            amount_minor: claimedAmount,
+            currency: balance.currency,
+            status: 'pending',
+          },
+          { onConflict: 'stripe_transfer_id', ignoreDuplicates: true }
+        );
 
-      await serverSupabase
+      if (transferRecordError) {
+        throw transferRecordError;
+      }
+
+      const { error: balanceUpdateError } = await serverSupabase
         .from('contractor_payout_balances')
         .update({
           last_payout_transfer_id: transfer.id,
@@ -228,6 +240,10 @@ export async function processEligiblePayouts(): Promise<{
         })
         .eq('contractor_id', balance.contractor_id)
         .eq('currency', balance.currency);
+
+      if (balanceUpdateError) {
+        throw balanceUpdateError;
+      }
 
       processed++;
     } catch (err) {
