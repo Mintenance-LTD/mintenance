@@ -7,6 +7,7 @@ import { logger } from '@mintenance/shared';
 import {
   ForbiddenError,
   NotFoundError,
+  InternalServerError,
 } from '@/lib/errors/api-error';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -45,7 +46,20 @@ export const POST = withApiHandler(
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (customerError || !customer) {
+    // PostgREST uses PGRST116 for a legitimate no-row result from `.single()`;
+    // only other errors indicate that the ownership check itself could not be
+    // trusted.
+    if (customerError && customerError.code !== 'PGRST116') {
+      logger.error('Failed to verify Stripe customer ownership', customerError, {
+        service: 'payments',
+        userId: user.id,
+      });
+      throw new InternalServerError(
+        'Could not verify the payment account. Please try again.'
+      );
+    }
+
+    if (customerError?.code === 'PGRST116' || !customer) {
       logger.warn('Payment method verification for unauthorized customer', {
         service: 'payments',
         userId: user.id,
