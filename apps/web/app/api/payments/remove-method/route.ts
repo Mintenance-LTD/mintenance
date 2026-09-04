@@ -54,22 +54,6 @@ export const DELETE = withApiHandler(
         .stripe_customer_id as string | null;
     }
 
-    // Fallback: search Stripe by email
-    if (!stripeCustomerId) {
-      const { data: profileData } = await serverSupabase
-        .from('profiles')
-        .select('email')
-        .eq('id', user.id)
-        .single();
-      if (profileData?.email) {
-        const existing = await stripe.customers.list({
-          email: profileData.email,
-          limit: 1,
-        });
-        stripeCustomerId = existing.data[0]?.id || null;
-      }
-    }
-
     if (!stripeCustomerId) {
       logger.warn('User has no Stripe customer record', {
         service: 'payments',
