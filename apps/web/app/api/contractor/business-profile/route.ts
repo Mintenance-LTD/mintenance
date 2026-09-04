@@ -393,6 +393,9 @@ export const PATCH = withApiHandler(
             mappedRegister: register,
           }
         );
+        throw new InternalServerError(
+          'Failed to submit verification request'
+        );
       }
     }
 
