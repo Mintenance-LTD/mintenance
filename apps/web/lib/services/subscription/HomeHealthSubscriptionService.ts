@@ -123,6 +123,28 @@ export class HomeHealthSubscriptionService {
       );
     }
 
+    // This service uses the service-role client for its writes, so RLS cannot
+    // be relied on to protect the property relationship. Verify ownership
+    // before creating any Stripe object or recurring schedule.
+    const { data: property, error: propertyError } = await serverSupabase
+      .from('properties')
+      .select('id')
+      .eq('id', input.propertyId)
+      .eq('owner_id', input.homeownerId)
+      .maybeSingle();
+
+    if (propertyError) {
+      logger.error('Home Health property ownership lookup failed', propertyError, {
+        homeownerId: input.homeownerId,
+        propertyId: input.propertyId,
+      });
+      throw new Error('Could not verify property ownership');
+    }
+
+    if (!property) {
+      throw new Error('Property not found or not owned by this homeowner');
+    }
+
     const stripe = getStripe();
     const customerId =
       await HomeownerSubscriptionService.getOrCreateStripeCustomer(
@@ -149,22 +171,46 @@ export class HomeHealthSubscriptionService {
       idempotencyKey: `home_health_subscription_${input.homeownerId}_${input.propertyId}`,
     });
 
-    // Mirror into homeowner_subscriptions.
-    await serverSupabase.from('homeowner_subscriptions').insert({
-      homeowner_id: input.homeownerId,
-      stripe_subscription_id: stripeSub.id,
-      stripe_customer_id: customerId,
-      stripe_price_id: plan.priceId,
-      plan_type: 'home_health',
-      plan_name: 'Home Health',
-      status: stripeSub.status,
-      amount: plan.monthlyAmount,
-      currency: plan.currency,
-      metadata: {
-        propertyId: input.propertyId,
-        source: 'home_health',
-      },
-    });
+    // Mirror into homeowner_subscriptions. Do not report a successful
+    // enrollment if the local source of truth could not be written.
+    const { error: subscriptionMirrorError } = await serverSupabase
+      .from('homeowner_subscriptions')
+      .insert({
+        homeowner_id: input.homeownerId,
+        stripe_subscription_id: stripeSub.id,
+        stripe_customer_id: customerId,
+        stripe_price_id: plan.priceId,
+        plan_type: 'home_health',
+        plan_name: 'Home Health',
+        status: stripeSub.status,
+        amount: plan.monthlyAmount,
+        currency: plan.currency,
+        metadata: {
+          propertyId: input.propertyId,
+          source: 'home_health',
+        },
+      });
+
+    if (subscriptionMirrorError) {
+      logger.error(
+        'Home Health Stripe subscription could not be mirrored locally',
+        subscriptionMirrorError,
+        {
+          homeownerId: input.homeownerId,
+          propertyId: input.propertyId,
+          stripeSubscriptionId: stripeSub.id,
+        }
+      );
+      try {
+        await stripe.subscriptions.cancel(stripeSub.id);
+      } catch (cleanupError) {
+        logger.error('Failed to cancel unmirrored Home Health subscription', cleanupError, {
+          homeownerId: input.homeownerId,
+          stripeSubscriptionId: stripeSub.id,
+        });
+      }
+      throw new Error('Failed to record Home Health subscription');
+    }
 
     // Auto-create the 3 recurring maintenance schedules on the
     // property. Existing recurring-job-creator cron picks these up.
