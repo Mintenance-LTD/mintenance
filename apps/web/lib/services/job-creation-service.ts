@@ -651,20 +651,25 @@ export class JobCreationService {
         .insert(attachments);
 
       if (error) {
-        logger.warn('Failed to save job attachments', {
+        logger.error('Failed to save job attachments', error, {
           service: 'jobs',
           userId,
           jobId,
-          error,
         });
+        throw new InternalServerError(
+          'Failed to save job photographs. Please try posting the job again.'
+        );
       }
     } catch (attachErr) {
-      logger.warn('Error saving job attachments', {
+      if (attachErr instanceof InternalServerError) throw attachErr;
+      logger.error('Error saving job attachments', attachErr, {
         service: 'jobs',
         userId,
         jobId,
-        error: attachErr,
       });
+      throw new InternalServerError(
+        'Failed to save job photographs. Please try posting the job again.'
+      );
     }
   }
 
