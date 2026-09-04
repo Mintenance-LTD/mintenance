@@ -3,6 +3,26 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateDocumentUpload } from '@/lib/utils/fileValidation';
+import { z } from 'zod';
+
+const DOCUMENT_CATEGORIES = [
+  'contracts',
+  'photos',
+  'certifications',
+  'insurance',
+  'receipts',
+  'templates',
+  'other',
+] as const;
+
+const documentMetadataSchema = z
+  .object({
+    id: z.string().uuid('Invalid document ID'),
+    starred: z.boolean().optional(),
+    tags: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+    category: z.enum(DOCUMENT_CATEGORIES).optional(),
+  })
+  .strict();
 
 /**
  * GET /api/contractor/documents
@@ -138,16 +158,7 @@ export const POST = withApiHandler(
     }
 
     // Validate category
-    const validCategories = [
-      'contracts',
-      'photos',
-      'certifications',
-      'insurance',
-      'receipts',
-      'templates',
-      'other',
-    ];
-    if (!validCategories.includes(category)) {
+    if (!DOCUMENT_CATEGORIES.includes(category as (typeof DOCUMENT_CATEGORIES)[number])) {
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
     }
 
@@ -272,6 +283,10 @@ export const DELETE = withApiHandler(
 
       if (storageError) {
         logger.error('Failed to delete document from storage', storageError);
+        return NextResponse.json(
+          { error: 'Failed to delete document' },
+          { status: 500 }
+        );
       }
     }
 
@@ -301,15 +316,14 @@ export const DELETE = withApiHandler(
 export const PATCH = withApiHandler(
   { roles: ['contractor'] },
   async (req, { user }) => {
-    const body = await req.json();
-    const { id, starred, tags, category } = body;
-
-    if (!id) {
+    const parsed = documentMetadataSchema.safeParse(await req.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Document ID required' },
+        { error: parsed.error.issues[0]?.message || 'Invalid document metadata' },
         { status: 400 }
       );
     }
+    const { id, starred, tags, category } = parsed.data;
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
