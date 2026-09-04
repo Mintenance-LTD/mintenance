@@ -83,10 +83,23 @@ export const POST = withApiHandler(
 
       const formData = await request.formData();
       // Accept both 'photos' (web) and 'photo' (mobile) field names
-      let photoFiles = formData.getAll('photos') as File[];
+      let photoFiles = formData
+        .getAll('photos')
+        .filter(
+          (value): value is File =>
+            typeof value === 'object' &&
+            value !== null &&
+            'size' in value &&
+            'arrayBuffer' in value
+        );
       if (photoFiles.length === 0) {
-        const singlePhoto = formData.get('photo') as File | null;
-        if (singlePhoto) {
+        const singlePhoto = formData.get('photo');
+        if (
+          typeof singlePhoto === 'object' &&
+          singlePhoto !== null &&
+          'size' in singlePhoto &&
+          'arrayBuffer' in singlePhoto
+        ) {
           photoFiles = [singlePhoto];
         }
       }
