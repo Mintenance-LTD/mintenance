@@ -64,12 +64,20 @@ export default async function JobDetailPage2025({
     redirect('/jobs');
   }
 
-  // Authorization: only the job owner or admins can view this page
-  if (user.role !== 'admin' && job.homeowner_id !== user.id) {
+  // Authorization: the homeowner, designated payer, or an admin can view
+  // this page. A landlord/agent payer is a first-class job participant: they
+  // can fund escrow and approve completion, so redirecting them here would
+  // break the payment-to-completion journey after successful authentication.
+  if (
+    user.role !== 'admin' &&
+    job.homeowner_id !== user.id &&
+    job.payer_user_id !== user.id
+  ) {
     logger.warn('JobDetailPage2025 - Unauthorized access attempt', {
       jobId: resolvedParams.id,
       userId: user.id,
       homeownerId: job.homeowner_id,
+      payerUserId: job.payer_user_id,
     });
     redirect('/jobs');
   }
