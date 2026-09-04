@@ -104,7 +104,7 @@ export async function handleAccountUpdated(
 export async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
   stripe: Stripe,
-  sendNotification: SendNotificationFn
+  _sendNotification: SendNotificationFn
 ): Promise<void> {
   logger.info('Checkout session completed webhook received', {
     service: 'stripe-webhook',
@@ -290,13 +290,26 @@ async function handleCheckoutMarketplacePayment(
       .single();
 
     if (job) {
-      await serverSupabase
+      const { error: participantUpdateError } = await serverSupabase
         .from('escrow_transactions')
         .update({
           payer_id: job.payer_user_id || job.homeowner_id,
           payee_id: job.contractor_id,
         })
         .eq('id', escrowTransaction.id);
+
+      if (participantUpdateError) {
+        logger.error(
+          'Failed to backfill checkout escrow participants',
+          participantUpdateError,
+          {
+            service: 'stripe-webhook',
+            escrowId: escrowTransaction.id,
+            sessionId: session.id,
+          }
+        );
+        throw new Error('Failed to persist checkout escrow participants');
+      }
 
       logger.info('Backfilled payer_id and payee_id for escrow from checkout', {
         service: 'stripe-webhook',
@@ -315,23 +328,42 @@ async function handleCheckoutMarketplacePayment(
     );
     const contractorAmount = totalAmount - platformFee;
 
-    await serverSupabase
+    const { error: feeUpdateError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         platform_fee: platformFee,
         contractor_payout: contractorAmount,
       })
       .eq('id', escrowTransaction.id);
+
+    if (feeUpdateError) {
+      logger.error('Failed to persist checkout platform fee', feeUpdateError, {
+        service: 'stripe-webhook',
+        escrowId: escrowTransaction.id,
+        sessionId: session.id,
+      });
+      throw new Error('Failed to persist checkout platform fee');
+    }
   }
 
   // Update job payment status
-  await serverSupabase
+  const { error: jobPaymentError } = await serverSupabase
     .from('jobs')
     .update({
       payment_status: 'paid',
       updated_at: new Date().toISOString(),
     })
     .eq('id', jobId);
+
+  if (jobPaymentError) {
+    logger.error('Failed to persist checkout job payment status', jobPaymentError, {
+      service: 'stripe-webhook',
+      jobId,
+      sessionId: session.id,
+      paymentIntentId,
+    });
+    throw new Error('Failed to persist checkout job payment status');
+  }
 
   logger.info('Escrow transaction updated from checkout session', {
     service: 'stripe-webhook',
