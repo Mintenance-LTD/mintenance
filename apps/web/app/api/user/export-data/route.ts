@@ -42,7 +42,12 @@ export const POST = withApiHandler({}, async (request, { user }) => {
   const { data: jobs } = await userDb
     .from('jobs')
     .select('*')
-    .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`);
+    // Designated payers are first-class participants in a job. Include them
+    // here so property managers and landlord payers receive the complete
+    // repair history in their portability export.
+    .or(
+      `homeowner_id.eq.${user.id},contractor_id.eq.${user.id},payer_user_id.eq.${user.id}`
+    );
 
   const { data: messages } = await userDb
     .from('messages')
