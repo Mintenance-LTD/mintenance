@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+import {
+  validateImageUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 
 /**
  * POST /api/contractor/upload-photos
@@ -28,22 +28,20 @@ export const POST = withApiHandler(
     }
 
     const uploadedUrls: string[] = [];
+    const uploadedPaths: string[] = [];
 
     for (const file of photoFiles) {
-      if (file.size > MAX_FILE_SIZE) {
-        logger.warn('File size exceeded', { service: 'contractor', userId: user.id, fileSize: file.size });
-        return NextResponse.json({ error: 'Each photo must be less than 5MB' }, { status: 400 });
-      }
-
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        logger.warn('Invalid file type uploaded', { service: 'contractor', userId: user.id, fileType: file.type });
-        return NextResponse.json({ error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed.' }, { status: 400 });
-      }
-
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
-      if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        logger.warn('Invalid file extension', { service: 'contractor', userId: user.id, fileExtension: fileExt });
-        return NextResponse.json({ error: 'Invalid file extension. Only jpg, jpeg, png, webp, and gif are allowed.' }, { status: 400 });
+      const validation = await validateImageUpload(file, MAX_FILE_SIZES.profileImage);
+      if (!validation.valid) {
+        logger.warn('Invalid portfolio image', {
+          service: 'contractor',
+          userId: user.id,
+          fileSize: file.size,
+          validationError: validation.error,
+        });
+        return NextResponse.json({
+          error: validation.error || 'Invalid image file',
+        }, { status: 400 });
       }
 
       // SECURITY: Sanitize filename to prevent path traversal attacks
@@ -53,12 +51,17 @@ export const POST = withApiHandler(
         .replace(/^\.+|\.+$/g, '')
         .substring(0, 100);
 
+      const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
       const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `portfolio/${safeFileName}`;
 
       const { error: uploadError } = await serverSupabase.storage
         .from('contractor-portfolio')
-        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          contentType: validation.detectedType,
+          upsert: false,
+        });
 
       if (uploadError) {
         logger.error('Upload error', uploadError, { service: 'contractor', userId: user.id, fileName: file.name, filePath });
@@ -67,6 +70,7 @@ export const POST = withApiHandler(
 
       const { data: { publicUrl } } = serverSupabase.storage.from('contractor-portfolio').getPublicUrl(filePath);
       uploadedUrls.push(publicUrl);
+      uploadedPaths.push(filePath);
     }
 
     if (uploadedUrls.length === 0) {
@@ -90,6 +94,16 @@ export const POST = withApiHandler(
       .single();
 
     if (error) {
+      const { error: cleanupError } = await serverSupabase.storage
+        .from('contractor-portfolio')
+        .remove(uploadedPaths);
+      if (cleanupError) {
+        logger.warn('Failed to clean up portfolio files after database failure', {
+          service: 'contractor',
+          userId: user.id,
+          cleanupError,
+        });
+      }
       logger.error('Database insert error', error, { service: 'contractor', userId: user.id });
       return NextResponse.json({ error: 'Failed to save photos to portfolio' }, { status: 500 });
     }
