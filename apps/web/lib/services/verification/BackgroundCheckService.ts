@@ -115,8 +115,9 @@ export class BackgroundCheckService {
             checkId = await this.initiateSterlingCheck(user);
             break;
           default:
-            // Custom/placeholder implementation
-            checkId = await this.initiateCustomCheck(user);
+            // Never report a synthetic ID as a real background check. A
+            // provider must have contacted an external screening service.
+            throw new Error('Background check provider is not configured');
         }
       } catch (providerError) {
         logger.error('Background check provider error', providerError, {
@@ -281,19 +282,6 @@ export class BackgroundCheckService {
 
     const data = await response.json();
     return data.id;
-  }
-
-  /**
-   * Custom/placeholder implementation
-   */
-  private static async initiateCustomCheck(user: {
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone?: string;
-  }): Promise<string> {
-    // For development/testing
-    return `custom_${Date.now()}`;
   }
 
   /**
