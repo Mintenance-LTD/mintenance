@@ -31,7 +31,12 @@ const querySchema = z.object({
  * `apps/web/app/api/payments/embedded-checkout/route.ts:127`.
  */
 export const GET = withApiHandler(
-  { roles: ['homeowner', 'contractor'], rateLimit: { maxRequests: 20 } },
+  // Admins are deliberately allowed through so the handler's verified
+  // admin bypass can support payment reconciliation and customer support.
+  {
+    roles: ['homeowner', 'contractor', 'admin'],
+    rateLimit: { maxRequests: 20 },
+  },
   async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse({
