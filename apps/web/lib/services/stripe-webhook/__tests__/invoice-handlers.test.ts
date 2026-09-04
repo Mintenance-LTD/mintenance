@@ -13,7 +13,7 @@ function buildChain(overrides?: {
   singleData?: unknown;
   singleError?: unknown;
 }) {
-  const chain: Record<string, any> = {};
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   for (const m of [
     'select',
     'insert',
