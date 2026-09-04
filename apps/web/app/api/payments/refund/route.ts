@@ -353,6 +353,9 @@ export const POST = withApiHandler(
 
       // Update escrow transaction with retry logic
       // CRITICAL: Stripe refund already succeeded, so DB must reflect this
+      // A partial refund leaves the escrow held so the remaining balance can
+      // be refunded later. Only a full refund is terminal.
+      const isFullRefund = refundAmount >= escrowAmountCents;
       let updatedEscrow: Record<string, unknown> | null = null;
       let updateError: Error | null = null;
 
@@ -360,8 +363,8 @@ export const POST = withApiHandler(
         const result = await serverSupabase
           .from('escrow_transactions')
           .update({
-            status: 'refunded',
-            refunded_at: new Date().toISOString(),
+            status: isFullRefund ? 'refunded' : 'held',
+            refunded_at: isFullRefund ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', escrowTransactionId)
