@@ -8,6 +8,7 @@ import {
   ForbiddenError,
   NotFoundError,
   BadRequestError,
+  InternalServerError,
 } from '@/lib/errors/api-error';
 
 export async function handleDelete(
@@ -61,12 +62,23 @@ export async function handleDelete(
   }
 
   // Block deletion if contract has been accepted by both parties
-  const { data: acceptedContract } = await userDb
+  const { data: acceptedContract, error: acceptedContractError } = await userDb
     .from('contracts')
     .select('id')
     .eq('job_id', id)
     .eq('status', 'accepted')
     .limit(1);
+
+  if (acceptedContractError) {
+    logger.error('Failed to check accepted contract before deletion', acceptedContractError, {
+      service: 'jobs',
+      userId: user.id,
+      jobId: id,
+    });
+    throw new InternalServerError(
+      'Unable to verify whether this job can be deleted'
+    );
+  }
 
   if (acceptedContract && acceptedContract.length > 0) {
     throw new BadRequestError(
@@ -76,12 +88,23 @@ export async function handleDelete(
 
   // Only allow deletion of posted jobs (jobs without assigned contractors or accepted bids)
   if (existing.status !== 'posted') {
-    const { data: acceptedBids } = await userDb
+    const { data: acceptedBids, error: acceptedBidsError } = await userDb
       .from('bids')
       .select('id')
       .eq('job_id', id)
       .eq('status', 'accepted')
       .limit(1);
+
+    if (acceptedBidsError) {
+      logger.error('Failed to check accepted bids before deletion', acceptedBidsError, {
+        service: 'jobs',
+        userId: user.id,
+        jobId: id,
+      });
+      throw new InternalServerError(
+        'Unable to verify whether this job can be deleted'
+      );
+    }
 
     if (acceptedBids && acceptedBids.length > 0) {
       throw new BadRequestError(
