@@ -9,7 +9,6 @@ import {
   UnifiedAIService,
   type AnalysisContext,
 } from '@/lib/services/ai/UnifiedAIService';
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkAIUserRateLimit, rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -128,15 +127,25 @@ export const POST = withApiHandler(
         return NextResponse.json(
           {
             error: 'AI services temporarily unavailable',
-            message: result.error.message,
+            message: 'Please try again later.',
           },
           { status: 503 }
         );
       }
+
+      // Provider errors can contain URLs, configuration details, database
+      // messages, or other implementation details. Keep those in the server
+      // logs and return a stable public response instead of reflecting the
+      // internal error to the caller.
+      logger.error('AI analysis failed', {
+        userId: user.id,
+        errorCode: result.error?.code,
+        service: result.service,
+      });
       return NextResponse.json(
         {
           error: 'Analysis failed',
-          message: result.error?.message || 'Unknown error',
+          message: 'Unable to analyse the images right now. Please try again.',
           fallbackUsed: result.fallbackUsed,
         },
         { status: 500 }
