@@ -162,6 +162,29 @@ describe('handlePaymentIntentSucceeded', () => {
     );
   });
 
+  it('reconciles invoice payment and invoice status from webhook metadata', async () => {
+    const pi = makePaymentIntent({ metadata: { invoice_id: VALID_UUID } });
+
+    await handlePaymentIntentSucceeded(pi, mockNotify);
+
+    expect(mockFrom).toHaveBeenCalledWith('payments');
+    expect(mockFrom).toHaveBeenCalledWith('invoices');
+    const chain = mockFrom.mock.results[0].value;
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'completed',
+        processed_at: expect.any(String),
+      })
+    );
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'paid',
+        paid_amount: 50,
+        paid_date: expect.any(String),
+      })
+    );
+  });
+
   it('backfills payer/payee when missing and metadata contains valid UUIDs', async () => {
     const chain = buildChain({
       singleData: {

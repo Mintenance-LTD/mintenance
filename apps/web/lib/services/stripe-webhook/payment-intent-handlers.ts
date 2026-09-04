@@ -18,6 +18,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID, type SendNotificationFn } from './webhook-helpers';
 import { handleTipPaymentSucceeded } from './tip-payment-handler';
+import { reconcileInvoicePayment } from './invoice-payment-reconciliation';
 
 /**
  * Out-of-order guard (audit 2026-07-27): payment_intent.payment_failed /
@@ -175,6 +176,8 @@ export async function handlePaymentIntentSucceeded(
       });
       return;
     }
+
+    await reconcileInvoicePayment(paymentIntent);
 
     // Backfill payer/payee IDs if missing (with UUID validation)
     if (!escrowTransaction.payer_id || !escrowTransaction.payee_id) {
