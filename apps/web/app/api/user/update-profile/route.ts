@@ -61,7 +61,14 @@ export const POST = withApiHandler(
 
 async function handleFormDataUpdate(request: Request, user: { id: string }) {
   const formData = await (request as Request).formData();
-  const profileImageFile = formData.get('profileImage') as File | null;
+  const rawProfileImage = formData.get('profileImage');
+  const profileImageFile =
+    typeof rawProfileImage === 'object' &&
+    rawProfileImage !== null &&
+    'size' in rawProfileImage &&
+    'arrayBuffer' in rawProfileImage
+      ? rawProfileImage
+      : null;
 
   let profileImageUrl = null;
   let uploadedImagePath: string | null = null;
@@ -125,13 +132,17 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   }
 
   // Get other form fields
-  const firstName = formData.get('firstName') as string;
-  const lastName = formData.get('lastName') as string;
-  const phone = formData.get('phone') as string;
-  const bio = formData.get('bio') as string;
-  const address = formData.get('address') as string;
-  const city = formData.get('city') as string;
-  const postcode = formData.get('postcode') as string;
+  const getString = (key: string): string | null => {
+    const value = formData.get(key);
+    return typeof value === 'string' ? value : null;
+  };
+  const firstName = getString('firstName');
+  const lastName = getString('lastName');
+  const phone = getString('phone');
+  const bio = getString('bio');
+  const address = getString('address');
+  const city = getString('city');
+  const postcode = getString('postcode');
 
   const updateData: UserProfileUpdateData = {};
   if (firstName) updateData.first_name = sanitizeText(firstName, 50);
