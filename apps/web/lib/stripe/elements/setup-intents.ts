@@ -149,7 +149,7 @@ export async function handleSetupIntentSucceeded(params: {
   userId: string;
 }): Promise<void> {
   // Update intent tracking row
-  await serverSupabase
+  const { error: trackingError } = await serverSupabase
     .from('stripe_setup_intents')
     .update({
       status: 'succeeded',
@@ -157,6 +157,15 @@ export async function handleSetupIntentSucceeded(params: {
       updated_at: new Date().toISOString(),
     })
     .eq('stripe_setup_intent_id', params.setupIntentId);
+
+  if (trackingError) {
+    logger.error('Failed to persist SetupIntent success', trackingError, {
+      service: 'stripe-elements',
+      setupIntentId: params.setupIntentId,
+      userId: params.userId,
+    });
+    throw new Error('Failed to persist SetupIntent success');
+  }
 
   // Fetch payment method details from Stripe
   const pm = await stripe.paymentMethods.retrieve(params.paymentMethodId);
@@ -178,7 +187,20 @@ export async function handleSetupIntentSucceeded(params: {
     row.brand = 'bacs_debit';
   }
 
-  await serverSupabase.from('payment_methods').insert(row);
+  const { error: paymentMethodError } = await serverSupabase
+    .from('payment_methods')
+    .insert(row);
+
+  if (paymentMethodError) {
+    logger.error('Failed to persist attached payment method', paymentMethodError, {
+      service: 'stripe-elements',
+      userId: params.userId,
+      paymentMethodId: pm.id,
+    });
+    // Throw so the webhook handler returns a non-2xx response and Stripe can
+    // retry instead of acknowledging a card that the app failed to record.
+    throw new Error('Failed to persist attached payment method');
+  }
 
   logger.info('Payment method attached', {
     service: 'stripe-elements',
