@@ -184,10 +184,13 @@ export const POST = withApiHandler(
     if (invoice.job_id) {
       const { data: job } = await serverSupabase
         .from('jobs')
-        .select('homeowner_id')
+        .select('homeowner_id, payer_user_id')
         .eq('id', invoice.job_id)
         .single();
-      if (job && job.homeowner_id === user.id) {
+      if (
+        job &&
+        (job.homeowner_id === user.id || job.payer_user_id === user.id)
+      ) {
         authorized = true;
       }
     }
