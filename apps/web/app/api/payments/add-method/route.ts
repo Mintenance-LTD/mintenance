@@ -71,11 +71,20 @@ export const POST = withApiHandler(
       stripeCustomerId = customer.id;
     }
 
-    // Best-effort save to DB (column may not exist)
-    await serverSupabase
+    // The customer link is required for future payment-method reads and
+    // off-session charges. Do not continue as if the operation succeeded if
+    // the service-role mirror write fails.
+    const { error: customerLinkError } = await serverSupabase
       .from('profiles')
       .update({ stripe_customer_id: stripeCustomerId })
       .eq('id', user.id);
+    if (customerLinkError) {
+      logger.error('Failed to persist Stripe customer link', customerLinkError, {
+        service: 'payments',
+        userId: user.id,
+      });
+      throw new Error('Failed to save payment account');
+    }
 
     // Attach payment method to customer
     let paymentMethod: Stripe.PaymentMethod;
@@ -106,11 +115,34 @@ export const POST = withApiHandler(
 
     // Set as default payment method if requested
     if (setAsDefault) {
-      await stripe.customers.update(stripeCustomerId, {
-        invoice_settings: {
-          default_payment_method: paymentMethodId,
-        },
-      });
+      try {
+        await stripe.customers.update(stripeCustomerId, {
+          invoice_settings: {
+            default_payment_method: paymentMethodId,
+          },
+        });
+      } catch (error) {
+        logger.error('Failed to set Stripe payment method as default', error, {
+          service: 'payments',
+          userId: user.id,
+          paymentMethodId,
+        });
+        if (error instanceof Stripe.errors.StripeError) {
+          const response = createPaymentErrorResponse(error, {
+            operation: 'set_default_payment_method',
+            userId: user.id,
+          });
+          return NextResponse.json(
+            {
+              error: response.error,
+              code: response.code,
+              retryable: response.retryable,
+            },
+            { status: response.status }
+          );
+        }
+        throw error;
+      }
     }
 
     logger.info('Payment method added successfully', {
