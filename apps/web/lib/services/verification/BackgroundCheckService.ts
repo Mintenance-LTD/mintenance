@@ -9,6 +9,8 @@ type BackgroundCheckStatus =
   | 'not_required';
 type BackgroundCheckProvider = 'checkr' | 'goodhire' | 'sterling' | 'custom';
 
+const BACKGROUND_CHECK_REQUEST_TIMEOUT_MS = 10_000;
+
 /**
  * Background check result data structure
  */
@@ -184,6 +186,7 @@ export class BackgroundCheckService {
         Authorization: `Basic ${Buffer.from(checkrApiKey + ':').toString('base64')}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(BACKGROUND_CHECK_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
         first_name: user.first_name,
         last_name: user.last_name,
@@ -198,6 +201,9 @@ export class BackgroundCheckService {
     }
 
     const data = await response.json();
+    if (!data || typeof data.id !== 'string' || data.id.length === 0) {
+      throw new Error('Checkr returned no check ID');
+    }
     return data.id;
   }
 
@@ -224,6 +230,7 @@ export class BackgroundCheckService {
         Authorization: `Bearer ${goodHireApiKey}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(BACKGROUND_CHECK_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
         first_name: user.first_name,
         last_name: user.last_name,
@@ -238,6 +245,9 @@ export class BackgroundCheckService {
     }
 
     const data = await response.json();
+    if (!data || typeof data.id !== 'string' || data.id.length === 0) {
+      throw new Error('GoodHire returned no check ID');
+    }
     return data.id;
   }
 
@@ -266,6 +276,7 @@ export class BackgroundCheckService {
           Authorization: `Bearer ${sterlingApiKey}`,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(BACKGROUND_CHECK_REQUEST_TIMEOUT_MS),
         body: JSON.stringify({
           first_name: user.first_name,
           last_name: user.last_name,
@@ -281,6 +292,9 @@ export class BackgroundCheckService {
     }
 
     const data = await response.json();
+    if (!data || typeof data.id !== 'string' || data.id.length === 0) {
+      throw new Error('Sterling returned no check ID');
+    }
     return data.id;
   }
 
