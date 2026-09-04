@@ -4,6 +4,8 @@ import { checkPublicRateLimit } from '@/lib/middleware/public-rate-limiter-redis
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
 
+const GEOCODING_REQUEST_TIMEOUT_MS = 8_000;
+
 /**
  * GET /api/geocode?address=...
  * Geocode an address to get latitude/longitude
@@ -82,7 +84,9 @@ export const GET = withApiHandler(
     const encodedAddress = encodeURIComponent(address);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
 
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(GEOCODING_REQUEST_TIMEOUT_MS),
+    });
     const data = await response.json();
 
     if (data.status === 'OK' && data.results && data.results.length > 0) {
