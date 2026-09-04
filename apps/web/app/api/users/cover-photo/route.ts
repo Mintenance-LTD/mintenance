@@ -55,7 +55,14 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 20 } },
   async (request, { user }) => {
     const formData = await request.formData();
-    const file = formData.get('cover') as File | null;
+    const rawFile = formData.get('cover');
+    const file =
+      typeof rawFile === 'object' &&
+      rawFile !== null &&
+      'size' in rawFile &&
+      'arrayBuffer' in rawFile
+        ? rawFile
+        : null;
 
     if (!file) {
       throw new BadRequestError('No file uploaded (expected `cover` field)');
@@ -152,11 +159,36 @@ export const POST = withApiHandler(
 export const DELETE = withApiHandler(
   { rateLimit: { maxRequests: 20 } },
   async (_request, { user }) => {
-    const { data: before } = await serverSupabase
+    const { data: before, error: fetchError } = await serverSupabase
       .from('profiles')
       .select('cover_photo_url')
       .eq('id', user.id)
       .maybeSingle();
+
+    if (fetchError) {
+      logger.error('Failed to read cover photo before deletion', fetchError, {
+        service: 'users.cover-photo',
+        userId: user.id,
+      });
+      throw fetchError;
+    }
+
+    if (before?.cover_photo_url && typeof before.cover_photo_url === 'string') {
+      const oldFile = before.cover_photo_url.split('/').pop();
+      if (oldFile) {
+        const { error: removeError } = await serverSupabase.storage
+          .from(BUCKET)
+          .remove([oldFile]);
+        if (removeError) {
+          logger.error('Failed to delete cover photo file', removeError, {
+            service: 'users.cover-photo',
+            userId: user.id,
+            oldFile,
+          });
+          throw removeError;
+        }
+      }
+    }
 
     const { error } = await serverSupabase
       .from('profiles')
@@ -172,13 +204,6 @@ export const DELETE = withApiHandler(
         userId: user.id,
       });
       throw error;
-    }
-
-    if (before?.cover_photo_url && typeof before.cover_photo_url === 'string') {
-      const oldFile = before.cover_photo_url.split('/').pop();
-      if (oldFile) {
-        await serverSupabase.storage.from(BUCKET).remove([oldFile]);
-      }
     }
 
     return NextResponse.json({ success: true });

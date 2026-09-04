@@ -53,7 +53,14 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     const formData = await request.formData();
-    const file = formData.get('avatar') as File;
+    const rawFile = formData.get('avatar');
+    const file =
+      typeof rawFile === 'object' &&
+      rawFile !== null &&
+      'size' in rawFile &&
+      'arrayBuffer' in rawFile
+        ? rawFile
+        : null;
 
     if (!file) {
       throw new BadRequestError('No file uploaded');
@@ -90,7 +97,11 @@ export const POST = withApiHandler(
 
     const { error: uploadError } = await serverSupabase.storage
       .from('avatars')
-      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        contentType: validation.detectedType,
+        upsert: false,
+      });
 
     if (uploadError) {
       logger.error('Failed to upload avatar:', uploadError);
@@ -174,6 +185,7 @@ export const DELETE = withApiHandler(
 
         if (deleteError) {
           logger.error('Failed to delete avatar file:', deleteError);
+          throw deleteError;
         }
       }
     }
