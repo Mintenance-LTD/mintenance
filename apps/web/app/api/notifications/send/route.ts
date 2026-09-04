@@ -185,6 +185,10 @@ export const POST = withApiHandler(
       data,
     } = parsed.data;
 
+    if (data && JSON.stringify(data).length > 8_192) {
+      throw new BadRequestError('Notification metadata is too large');
+    }
+
     // Authorization: caller must have a business relationship with
     // recipient. This is the security-critical check — any error here
     // MUST return 403, not 200 with an empty body, so the mobile client
