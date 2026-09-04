@@ -15,9 +15,20 @@ export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     const formData = await request.formData();
-    const title = formData.get('title') as string;
-    const category = formData.get('category') as string;
-    const photoFiles = formData.getAll('photos') as File[];
+    const rawTitle = formData.get('title');
+    const rawCategory = formData.get('category');
+    const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
+    const category =
+      typeof rawCategory === 'string' ? rawCategory.trim() : '';
+    const photoFiles = formData
+      .getAll('photos')
+      .filter(
+        (value): value is File =>
+          typeof value === 'object' &&
+          value !== null &&
+          'size' in value &&
+          'arrayBuffer' in value
+      );
 
     if (!title || !category) {
       return NextResponse.json({ error: 'Title and category are required' }, { status: 400 });
