@@ -14,7 +14,6 @@ import {
 interface UserProfileUpdateData {
   first_name?: string;
   last_name?: string;
-  email?: string;
   phone?: string | null;
   bio?: string | null;
   address?: string | null;
@@ -128,7 +127,6 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   // Get other form fields
   const firstName = formData.get('firstName') as string;
   const lastName = formData.get('lastName') as string;
-  const email = formData.get('email') as string;
   const phone = formData.get('phone') as string;
   const bio = formData.get('bio') as string;
   const address = formData.get('address') as string;
@@ -138,7 +136,6 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   const updateData: UserProfileUpdateData = {};
   if (firstName) updateData.first_name = sanitizeText(firstName, 50);
   if (lastName) updateData.last_name = sanitizeText(lastName, 50);
-  if (email) updateData.email = sanitizeText(email, 255);
   if (phone !== null && phone !== undefined)
     updateData.phone = phone ? sanitizeText(phone, 20) : null;
   if (bio !== null && bio !== undefined)
