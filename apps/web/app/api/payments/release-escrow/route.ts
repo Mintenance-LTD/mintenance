@@ -519,13 +519,35 @@ export const POST = withApiHandler(
 
       // Update job status to completed if release reason is job_completed
       if (releaseReason === 'job_completed') {
-        await serverSupabase
+        const { error: jobStatusUpdateError } = await serverSupabase
           .from('jobs')
           .update({
             status: JOB_STATUS.COMPLETED,
             updated_at: new Date().toISOString(),
           })
           .eq('id', job.id);
+
+        if (jobStatusUpdateError) {
+          // Escrow and Stripe are already finalized at this point, so this
+          // cannot be rolled back safely. Surface the divergence explicitly
+          // instead of returning success with a job that still appears open;
+          // operators can repair the lifecycle state using the escrow audit
+          // record and transfer id above.
+          logger.error(
+            'CRITICAL: Escrow released but job completion update failed',
+            jobStatusUpdateError,
+            {
+              service: 'payments',
+              escrowTransactionId,
+              jobId: job.id,
+              transferId: transfer.id,
+              reconciliationId,
+            }
+          );
+          throw new InternalServerError(
+            'Payment was released but the job status could not be updated. Our team has been notified.'
+          );
+        }
       }
 
       logger.info('Escrow released successfully', {
