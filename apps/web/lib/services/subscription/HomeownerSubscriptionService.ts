@@ -139,6 +139,8 @@ export class HomeownerSubscriptionService {
         planType,
         billingCycle,
       },
+    }, {
+      idempotencyKey: `subscription_${homeownerId}_${planType}_${billingCycle}`,
     });
 
     const clientSecret = getInvoiceClientSecret(subscription.latest_invoice);
