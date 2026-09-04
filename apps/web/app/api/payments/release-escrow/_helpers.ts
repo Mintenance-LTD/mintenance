@@ -86,7 +86,9 @@ export async function writeAdminBypassAuditLog(
   });
 
   try {
-    await serverSupabase.from('audit_logs').insert({
+    const { error: auditError } = await serverSupabase
+      .from('audit_logs')
+      .insert({
       user_id: adminUserId,
       action: 'ADMIN_ESCROW_BYPASS',
       resource_type: 'escrow_transaction',
@@ -97,12 +99,22 @@ export async function writeAdminBypassAuditLog(
         release_reason: releaseReason,
         justification: adminJustification ?? null,
       },
-    });
+      });
+
+    if (auditError) {
+      throw auditError;
+    }
   } catch (auditErr: unknown) {
     logger.error('Failed to write admin bypass audit log', auditErr, {
       service: 'payments',
       escrowTransactionId,
     });
+    // An admin bypass is an exceptional, irreversible financial action. Do
+    // not allow it to proceed without the audit record that makes the action
+    // accountable and recoverable for operations/compliance.
+    throw new InternalServerError(
+      'Unable to record the admin escrow audit. Release was not completed.'
+    );
   }
 }
 

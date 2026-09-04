@@ -148,6 +148,12 @@ export const POST = withApiHandler(
           });
           throw new ForbiddenError('Unauthorized to release this escrow');
         }
+
+        if (!adminJustification?.trim()) {
+          throw new BadRequestError(
+            'Admin justification is required for an escrow bypass release'
+          );
+        }
       }
 
       const canRelease =
