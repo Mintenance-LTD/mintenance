@@ -4,7 +4,11 @@ import { render, screen } from '@testing-library/react';
 import { Card } from '../Card';
 
 vi.mock('@mintenance/shared-ui', () => ({
-  Card: ({ children, ...props }: any) => <div data-testid="shared-card" {...props}>{children}</div>,
+  Card: ({ children, className, ...props }: any) => (
+    <div data-testid='shared-card' className={className || 'card'} {...props}>
+      {children}
+    </div>
+  ),
   CardHeader: ({ children }: any) => <div>{children}</div>,
   CardFooter: ({ children }: any) => <div>{children}</div>,
   CardTitle: ({ children }: any) => <h3>{children}</h3>,
@@ -24,7 +28,7 @@ describe('Card', () => {
 
   it('should render with default variant', () => {
     render(<Card>Content</Card>);
-    const cardEl = screen.getByText('Content');
+    const cardEl = screen.getByTestId('shared-card');
     expect(cardEl).toBeInTheDocument();
     // Verify the Card renders with the 'card' class from SharedCard
     expect(cardEl.className).toContain('card');

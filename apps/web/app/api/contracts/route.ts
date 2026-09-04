@@ -57,6 +57,17 @@ export const GET = withApiHandler(
       quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number, valid_until)
     `);
 
+    // Apply filters to the contracts query before the homeowner payer lookup
+    // below. Besides keeping the query construction easy to follow, this
+    // prevents static schema validation from attributing these contract
+    // filters to the nested jobs lookup.
+    if (jobId) {
+      query = query.eq('job_id', jobId);
+    }
+    if (status) {
+      query = query.eq('status', status);
+    }
+
     // Filter by role
     if (user.role === 'contractor') {
       query = query.eq('contractor_id', user.id);
@@ -90,14 +101,6 @@ export const GET = withApiHandler(
       }
     } else {
       throw new ForbiddenError('Invalid role');
-    }
-
-    // Additional filters
-    if (jobId) {
-      query = query.eq('job_id', jobId);
-    }
-    if (status) {
-      query = query.eq('status', status);
     }
 
     query = query.order('created_at', { ascending: false });
