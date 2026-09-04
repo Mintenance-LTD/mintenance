@@ -269,6 +269,18 @@ describe('Auth Library', () => {
       expect(payload?.sub).toBe(mockUser.id);
     });
 
+    it('should reject a valid JWT when revocation state cannot be read', async () => {
+      supabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: null,
+        error: new Error('profiles lookup unavailable'),
+      });
+
+      const token = await createToken(mockUser);
+      const payload = await verifyToken(token);
+
+      expect(payload).toBeNull();
+    });
+
     it('should return null for invalid token', async () => {
       const invalidToken = 'invalid.jwt.token';
       const payload = await verifyToken(invalidToken);

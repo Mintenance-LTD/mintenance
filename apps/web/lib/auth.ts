@@ -361,11 +361,15 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   // timestamp is in milliseconds, so compare in the same unit.
   try {
     if (payload.sub && payload.iat) {
-      const { data: profile } = await serverSupabase
+      const { data: profile, error: revocationLookupError } =
+        await serverSupabase
         .from('profiles')
         .select('tokens_revoked_at')
         .eq('id', payload.sub)
         .maybeSingle();
+      if (revocationLookupError) {
+        throw revocationLookupError;
+      }
       const revokedAt = profile?.tokens_revoked_at
         ? new Date(profile.tokens_revoked_at as string).getTime()
         : 0;
