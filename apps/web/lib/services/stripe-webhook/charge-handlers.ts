@@ -90,6 +90,7 @@ export async function handleChargeRefunded(
     const isFullRefund = refundAmount === escrowAmountCents;
     const alreadyRefunded = existingEscrow.status === 'refunded';
     const refundableStatuses = [
+      'pending',
       'held',
       'release_pending',
       'pending_review',

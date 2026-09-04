@@ -446,6 +446,26 @@ describe('handleChargeRefunded', () => {
     expect(mockFrom).not.toHaveBeenCalledWith('jobs');
   });
 
+  it('marks a pending escrow refunded so a late success cannot resurrect it', async () => {
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        status: 'pending',
+        payer_id: VALID_UUID,
+        payee_id: VALID_UUID_2,
+      },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleChargeRefunded(makeCharge(), mockNotify);
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'refunded' })
+    );
+  });
+
   it('returns early when charge has no payment_intent', async () => {
     const charge = makeCharge({ payment_intent: null as unknown as string });
     await handleChargeRefunded(charge, mockNotify);
