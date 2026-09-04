@@ -161,14 +161,18 @@ export class PaymentIntentService {
     contractorId?: string
   ): Promise<CreatePaymentIntentResponse> {
     try {
-      const { data: contract, error: contractError } = await supabase
-        .from('contracts')
-        .select('id, status')
-        .eq('job_id', jobId)
-        .eq('status', 'accepted')
-        .single();
+      // Use the API contract read rather than a direct Supabase query here.
+      // A designated payer is authorized by the server route but is not the
+      // contract's `homeowner_id`; a direct client query can therefore be
+      // filtered by contracts RLS before the payment request is reached.
+      const { contracts } = await apiRequest<{
+        contracts?: Array<{ status?: string }>;
+      }>(`/api/contracts?job_id=${encodeURIComponent(jobId)}`, {
+        method: 'GET',
+      });
+      const contract = contracts?.find((item) => item.status === 'accepted');
 
-      if (contractError || !contract) {
+      if (!contract) {
         throw new Error(
           'Contract must be signed by both parties before payment'
         );
