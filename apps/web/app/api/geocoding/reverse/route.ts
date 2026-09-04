@@ -5,6 +5,8 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { getClientIp } from '@/lib/request-ip';
 
+const GEOCODING_REQUEST_TIMEOUT_MS = 8_000;
+
 /**
  * GET /api/geocoding/reverse — proxy reverse geocoding to Nominatim.
  *
@@ -68,6 +70,7 @@ export const GET = withApiHandler(
         'User-Agent': 'Mintenance App (https://mintenance.app)',
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(GEOCODING_REQUEST_TIMEOUT_MS),
       next: { revalidate: 0 },
     });
 

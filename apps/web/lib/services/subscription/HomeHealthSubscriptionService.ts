@@ -14,7 +14,6 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { getInvoicePaymentClientSecret } from '@/lib/services/stripe-compat';
 import { HomeownerSubscriptionService } from './HomeownerSubscriptionService';
 // 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
 // Route through the single shared lazy proxy so the API version stays
@@ -146,6 +145,8 @@ export class HomeHealthSubscriptionService {
         propertyId: input.propertyId,
         source: 'home_health',
       },
+    }, {
+      idempotencyKey: `home_health_subscription_${input.homeownerId}_${input.propertyId}`,
     });
 
     // Mirror into homeowner_subscriptions.

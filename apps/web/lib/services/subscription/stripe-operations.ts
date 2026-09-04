@@ -89,6 +89,8 @@ export async function createStripeSubscription(
         planType,
         platform: 'mintenance',
       },
+    }, {
+      idempotencyKey: `subscription_${contractorId}_${planType}`,
     });
 
     return {

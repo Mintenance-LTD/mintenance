@@ -6,7 +6,10 @@ import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const initiateCheckSchema = z.object({
-  provider: z.enum(['checkr', 'goodhire', 'sterling', 'custom']).optional().default('checkr'),
+  provider: z
+    .enum(['checkr', 'goodhire', 'sterling'])
+    .optional()
+    .default('checkr'),
 });
 
 /**
@@ -22,7 +25,9 @@ export const POST = withApiHandler(
     const result = await BackgroundCheckService.initiateCheck(user.id, provider);
 
     if (!result.success) {
-      throw new BadRequestError(result.error || 'Failed to initiate background check');
+      throw new BadRequestError(
+        result.error || 'Failed to initiate background check'
+      );
     }
 
     return NextResponse.json({

@@ -6,6 +6,7 @@ import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 // `.strict()` rejects unknown body keys — verified clients (web settings
 // pages + mobile PaymentMethodService) send exactly { paymentMethodId }.
@@ -54,22 +55,6 @@ export const DELETE = withApiHandler(
         .stripe_customer_id as string | null;
     }
 
-    // Fallback: search Stripe by email
-    if (!stripeCustomerId) {
-      const { data: profileData } = await serverSupabase
-        .from('profiles')
-        .select('email')
-        .eq('id', user.id)
-        .single();
-      if (profileData?.email) {
-        const existing = await stripe.customers.list({
-          email: profileData.email,
-          limit: 1,
-        });
-        stripeCustomerId = existing.data[0]?.id || null;
-      }
-    }
-
     if (!stripeCustomerId) {
       logger.warn('User has no Stripe customer record', {
         service: 'payments',
@@ -103,9 +88,17 @@ export const DELETE = withApiHandler(
       await stripe.paymentMethods.detach(paymentMethodId);
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
+        const response = createPaymentErrorResponse(error, {
+          operation: 'remove_payment_method',
+          userId: user.id,
+        });
         return NextResponse.json(
-          { error: error.message, type: error.type },
-          { status: 400 }
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
         );
       }
       throw error;

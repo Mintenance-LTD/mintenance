@@ -57,20 +57,16 @@ export const POST = withApiHandler(
         .stripe_customer_id as string | null;
     }
 
-    // If not in DB, search Stripe by email to avoid creating duplicates
-    if (!stripeCustomerId) {
-      const existing = await stripe.customers.list({
-        email: userData.email,
-        limit: 1,
-      });
-      stripeCustomerId = existing.data[0]?.id || null;
-    }
-
-    // Create customer if not found anywhere
+    // If no customer is stored, create one for this user. Do not search by
+    // email: Stripe email matches are not an ownership proof and can bind a
+    // payment method to another user's customer when emails are shared or
+    // stale records exist.
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
         email: userData.email,
         metadata: { userId: user.id },
+      }, {
+        idempotencyKey: `stripe_customer_${user.id}`,
       });
       stripeCustomerId = customer.id;
     }

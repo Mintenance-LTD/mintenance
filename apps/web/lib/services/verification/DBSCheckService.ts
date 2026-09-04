@@ -4,7 +4,6 @@ import {
   initiateDBSOnlineCheck,
   initiateGBGroupCheck,
   initiateUCheckCheck,
-  initiateCustomCheck,
 } from './dbsProviders';
 import { decryptDateOfBirth } from '@/lib/services/tax/uk-tax';
 import type { EncryptedField } from '@/lib/encryption/field-encryption';
@@ -233,7 +232,9 @@ export class DBSCheckService {
             providerCheckId = await initiateUCheckCheck(contractor, dbsType);
             break;
           default:
-            providerCheckId = await initiateCustomCheck(contractor, dbsType);
+            // Never create a successful DBS record with a synthetic provider
+            // ID. A real provider call is required for a screening claim.
+            throw new Error('DBS provider is not configured');
         }
       } catch (providerError) {
         logger.error('DBS provider error', providerError, {
@@ -252,11 +253,29 @@ export class DBSCheckService {
         };
       }
 
-      // Update record with provider check ID
-      await serverSupabase
+      // A provider call without a durable ID cannot be reconciled by a
+      // webhook or poller. Treat persistence failure as initiation failure.
+      const { error: providerIdError } = await serverSupabase
         .from('contractor_dbs_checks')
         .update({ provider_check_id: providerCheckId })
         .eq('id', dbsCheck.id);
+
+      if (providerIdError) {
+        logger.error('Failed to persist DBS provider check ID', {
+          service: 'DBSCheckService',
+          contractorId,
+          provider,
+          error: providerIdError.message,
+        });
+        await serverSupabase
+          .from('contractor_dbs_checks')
+          .update({ status: 'pending', provider_check_id: null })
+          .eq('id', dbsCheck.id);
+        return {
+          success: false,
+          error: 'Failed to persist DBS check status',
+        };
+      }
 
       // Log verification event
       await this.logVerificationEvent(contractorId, 'dbs_check_initiated', {

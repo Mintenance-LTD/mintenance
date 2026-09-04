@@ -42,6 +42,11 @@ export async function ensureConnectAccount(
     metadata: {
       contractor_id: contractorId,
     },
+  }, {
+    // Account creation is not safe to retry without an idempotency key: two
+    // concurrent onboarding requests can otherwise create two Express
+    // accounts before either profile update wins.
+    idempotencyKey: `connect_account_${contractorId}`,
   });
 
   const { error: updateError } = await serverSupabase

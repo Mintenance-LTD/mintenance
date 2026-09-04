@@ -33,17 +33,11 @@ export const POST = withApiHandler(
         .stripe_customer_id as string | null;
 
       if (!stripeCustomerId) {
-        const existing = await stripe.customers.list({
-          email: profile.email,
-          limit: 1,
-        });
-        stripeCustomerId = existing.data[0]?.id || null;
-      }
-
-      if (!stripeCustomerId) {
         const customer = await stripe.customers.create({
           email: profile.email,
           metadata: { userId: user.id },
+        }, {
+          idempotencyKey: `stripe_customer_${user.id}`,
         });
         stripeCustomerId = customer.id;
       }
@@ -72,6 +66,8 @@ export const POST = withApiHandler(
         const fresh = await stripe.customers.create({
           email: profile.email,
           metadata: { userId: user.id },
+        }, {
+          idempotencyKey: `stripe_customer_recovery_${user.id}`,
         });
         stripeCustomerId = fresh.id;
         await serverSupabase

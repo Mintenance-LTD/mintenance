@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import {
   serverSupabase,
-  createRequestScopedClient,
 } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -84,7 +83,10 @@ export const POST = withApiHandler(
       throw new BadRequestError('Invalid input data');
     }
     const data = parsed.data;
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+    // contractor_skills and some onboarding tables have service_role-only
+    // INSERT policies. Use the server client, while retaining an explicit
+    // authenticated user.id predicate on every mutation below.
+    const userDb = serverSupabase;
 
     if (data.step === 'business') {
       const { error } = await userDb
@@ -156,7 +158,17 @@ export const POST = withApiHandler(
         profilePatch.license_number = data.license_number.trim();
       }
       if (Object.keys(profilePatch).length > 1) {
-        await userDb.from('profiles').update(profilePatch).eq('id', user.id);
+        const { error: profileError } = await userDb
+          .from('profiles')
+          .update(profilePatch)
+          .eq('id', user.id);
+        if (profileError) {
+          logger.error('Failed to save onboarding profile fields', profileError, {
+            service: 'contractor-onboarding',
+            userId: user.id,
+          });
+          throw new InternalServerError('Failed to save onboarding profile');
+        }
       }
 
       if (data.insurance_provider.trim()) {
