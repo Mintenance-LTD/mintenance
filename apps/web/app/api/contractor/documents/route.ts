@@ -136,11 +136,22 @@ export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (req, { user }) => {
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const category = (formData.get('category') as string) || 'other';
-    const jobId = formData.get('job_id') as string | null;
-    const tags = formData.get('tags') as string | null;
-    const verificationType = formData.get('verification_type') as string | null;
+    const rawFile = formData.get('file');
+    const file =
+      typeof rawFile === 'object' &&
+      rawFile !== null &&
+      'size' in rawFile &&
+      'arrayBuffer' in rawFile
+        ? rawFile
+        : null;
+    const getString = (key: string): string | null => {
+      const value = formData.get(key);
+      return typeof value === 'string' ? value : null;
+    };
+    const category = getString('category') || 'other';
+    const jobId = getString('job_id');
+    const tags = getString('tags');
+    const verificationType = getString('verification_type');
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
