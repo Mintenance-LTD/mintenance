@@ -10,7 +10,7 @@
  * Stripe refund success, escrow DB update with retry, job cancellation,
  * idempotency result storage.
  */
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -152,12 +152,10 @@ vi.mock('@/lib/errors/api-error', async () => {
     RateLimitError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
-        const { NextResponse } = require('next/server');
         return NextResponse.json(error.toResponse(), {
           status: error.statusCode,
         });
       }
-      const { NextResponse } = require('next/server');
       return NextResponse.json(
         {
           error: {
