@@ -181,34 +181,23 @@ async function updateContributorStats(contractorId: string): Promise<void> {
 }
 
 async function checkAndAwardRewards(contractorId: string): Promise<{ creditsEarned: number; milestone?: string; bonus?: number }> {
-  const { data: stats } = await serverSupabase
-    .from('contractor_contributions')
-    .select('images_contributed, credits_earned')
-    .eq('contractor_id', contractorId)
-    .single();
-
-  if (!stats) return { creditsEarned: 5 };
-
-  const response: { creditsEarned: number; milestone?: string; bonus?: number } = { creditsEarned: 5 };
-  const totalImages = stats.images_contributed;
-
-  if (totalImages === 10) { response.milestone = 'First 10 images!'; response.bonus = 10; }
-  else if (totalImages === 50) { response.milestone = 'Silver contributor!'; response.bonus = 50; }
-  else if (totalImages === 100) { response.milestone = '100 images - 3 months premium earned!'; response.bonus = 100; await grantPremiumSubscription(contractorId, 3); }
-  else if (totalImages === 200) { response.milestone = 'Gold contributor!'; response.bonus = 200; }
-  else if (totalImages === 500) { response.milestone = 'Expert contributor!'; response.bonus = 500; }
-
-  if (response.bonus) {
-    await serverSupabase.from('contractor_contributions').update({ credits_earned: stats.credits_earned + response.bonus, updated_at: new Date().toISOString() }).eq('contractor_id', contractorId);
+  const { data, error } = await serverSupabase.rpc(
+    'claim_contractor_contribution_milestone',
+    { p_contractor_id: contractorId }
+  );
+  if (error) {
+    throw error;
   }
 
-  return response;
-}
+  const reward = (Array.isArray(data) ? data[0] : data) as {
+    bonus?: number | string | null;
+    milestone?: string | null;
+  } | null;
+  const bonus = Number(reward?.bonus ?? 0);
 
-async function grantPremiumSubscription(contractorId: string, months: number): Promise<void> {
-  try {
-    await serverSupabase.from('contractor_contributions').update({ premium_months_earned: months, last_reward_date: new Date().toISOString() }).eq('contractor_id', contractorId);
-  } catch (error) {
-    logger.error('Failed to grant premium:', error, { service: 'api' });
-  }
+  return {
+    creditsEarned: 5,
+    ...(reward?.milestone ? { milestone: reward.milestone } : {}),
+    ...(bonus > 0 ? { bonus } : {}),
+  };
 }
