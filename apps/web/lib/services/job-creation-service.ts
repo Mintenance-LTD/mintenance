@@ -113,6 +113,7 @@ export class JobCreationService {
     await this.validatePhotoUrls(user.id, payload);
     await this.validatePropertyOwnership(user.id, payload);
     await this.resolvePayerFromEmail(user.id, payload);
+    await this.validatePreferredContractor(user.id, payload);
 
     const insertPayload = this.buildInsertPayload(user, payload);
 
@@ -367,6 +368,46 @@ export class JobCreationService {
     }
   }
 
+  /**
+   * The preferred-contractor field is a capability-bearing input: it causes
+   * a direct, higher-priority notification to be sent to the selected
+   * contractor.  Do not trust the client-side Hire Again deep-link to prove
+   * that relationship.  Only a completed job owned by this homeowner is
+   * evidence that the contractor was previously hired by them.
+   */
+  private async validatePreferredContractor(
+    userId: string,
+    payload: JobCreationPayload
+  ): Promise<void> {
+    if (!payload.preferred_contractor_id) return;
+
+    const { data: priorJob, error } = await serverSupabase
+      .from('jobs')
+      .select('id')
+      .eq('homeowner_id', userId)
+      .eq('contractor_id', payload.preferred_contractor_id)
+      .eq('status', 'completed')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('Failed to validate preferred contractor relationship', error, {
+        service: 'jobs',
+        userId,
+        preferredContractorId: payload.preferred_contractor_id,
+      });
+      throw new InternalServerError(
+        'Unable to validate the preferred contractor'
+      );
+    }
+
+    if (!priorJob) {
+      throw new ForbiddenError(
+        'You can only select a contractor you previously hired'
+      );
+    }
+  }
+
   private buildInsertPayload(
     user: Pick<User, 'id'>,
     payload: JobCreationPayload
@@ -542,7 +583,8 @@ export class JobCreationService {
         originalError: errorMessage,
       });
 
-      const { required_skills, ...payloadWithoutSkills } = insertPayload;
+      const payloadWithoutSkills = { ...insertPayload };
+      delete payloadWithoutSkills.required_skills;
       result = await serverSupabase
         .from('jobs')
         .insert(payloadWithoutSkills)
