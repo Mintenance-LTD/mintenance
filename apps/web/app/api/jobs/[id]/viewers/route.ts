@@ -13,7 +13,7 @@ export const GET = withApiHandler({}, async (_request, { user, params }) => {
   // Verify user owns the job
   const { data: job, error: jobError } = await serverSupabase
     .from('jobs')
-    .select('id, homeowner_id, contractor_id')
+    .select('id, homeowner_id, payer_user_id, contractor_id')
     .eq('id', jobId)
     .single();
 
@@ -21,13 +21,16 @@ export const GET = withApiHandler({}, async (_request, { user, params }) => {
     throw new NotFoundError('Job not found');
   }
 
-  if (job.homeowner_id !== user.id) {
-    throw new ForbiddenError('Only the job owner can view job viewers');
+  if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+    throw new ForbiddenError(
+      'Only the homeowner or designated payer can view job viewers'
+    );
   }
 
   const { data: views, error: viewsError } = await serverSupabase
     .from('job_views')
-    .select(`
+    .select(
+      `
       id,
       contractor_id,
       viewed_at,
@@ -40,7 +43,8 @@ export const GET = withApiHandler({}, async (_request, { user, params }) => {
         profile_image_url,
         location
       )
-    `)
+    `
+    )
     .eq('job_id', jobId)
     .order('viewed_at', { ascending: false });
 

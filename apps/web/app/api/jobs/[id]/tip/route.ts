@@ -68,14 +68,16 @@ export const POST = withApiHandler(
     const db = createRequestScopedClient(request) ?? serverSupabase;
     const { data: job, error: jobError } = await db
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
       .eq('id', jobId)
       .single();
     if (jobError || !job) {
       throw new NotFoundError('Job not found');
     }
-    if (job.homeowner_id !== user.id) {
-      throw new ForbiddenError('Only the homeowner can tip on this job');
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+      throw new ForbiddenError(
+        'Only the homeowner or designated payer can tip on this job'
+      );
     }
     if (job.status !== 'completed') {
       throw new BadRequestError('Tips can only be sent on completed jobs');
@@ -216,14 +218,16 @@ export const GET = withApiHandler(
     // parties — a participant check is equivalent to the per-row RLS.
     const { data: job, error: jobError } = await userDb
       .from('jobs')
-      .select('id, homeowner_id, contractor_id')
+      .select('id, homeowner_id, payer_user_id, contractor_id')
       .eq('id', jobId)
       .single();
     if (jobError || !job) {
       throw new NotFoundError('Job not found');
     }
     const isParticipant =
-      job.homeowner_id === user.id || job.contractor_id === user.id;
+      job.homeowner_id === user.id ||
+      job.payer_user_id === user.id ||
+      job.contractor_id === user.id;
     if (!isParticipant && user.role !== 'admin') {
       throw new ForbiddenError('You do not have access to this job');
     }
