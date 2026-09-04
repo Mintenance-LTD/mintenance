@@ -94,7 +94,11 @@ export const POST = withApiHandler(
     const skipped: number[] = [];
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i]!;
+      const file = files[i];
+      if (!file) {
+        skipped.push(i);
+        continue;
+      }
 
       if (file.size > MAX_PHOTO_BYTES) {
         logger.warn('Assessment photo skipped — over size cap', {
@@ -143,6 +147,15 @@ export const POST = withApiHandler(
 
       const signed = await signAssessmentPath(path);
       if (!signed) {
+        const { error: cleanupError } = await serverSupabase.storage
+          .from(BUCKET)
+          .remove([path]);
+        if (cleanupError) {
+          logger.error('Assessment photo cleanup failed after signing error', cleanupError, {
+            service: SERVICE,
+            index: i,
+          });
+        }
         skipped.push(i);
         continue;
       }
