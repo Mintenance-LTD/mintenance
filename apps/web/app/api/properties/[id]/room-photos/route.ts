@@ -12,6 +12,17 @@ const supabase = serverSupabase;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES_PER_UPLOAD = 10;
 
+async function removeUploadedObject(path: string, userId: string) {
+  const { error } = await supabase.storage.from('Job-storage').remove([path]);
+  if (error) {
+    logger.error('Failed to clean up orphaned room photo', error, {
+      service: 'room_photos',
+      userId,
+      path,
+    });
+  }
+}
+
 const VALID_ROOM_TYPES = [
   'kitchen',
   'bathroom',
@@ -193,7 +204,12 @@ export const POST = withApiHandler(
 
       // Phase 2 storage hardening: issue a signed URL instead of a public URL
       // so the photo stays reachable once `Job-storage` flips to private.
-      const photoUrl = (await signJobStoragePath(storagePath)) ?? '';
+      const photoUrl = await signJobStoragePath(storagePath);
+      if (!photoUrl) {
+        await removeUploadedObject(storagePath, user.id);
+        errors.push(`${file.name}: Failed to sign URL`);
+        continue;
+      }
 
       const { data: row, error: insertError } = await supabase
         .from('property_room_photos')
@@ -214,6 +230,7 @@ export const POST = withApiHandler(
         logger.error('Room photo insert error', insertError, {
           service: 'room_photos',
         });
+        await removeUploadedObject(storagePath, user.id);
         errors.push(`${file.name}: Failed to save metadata`);
         continue;
       }
