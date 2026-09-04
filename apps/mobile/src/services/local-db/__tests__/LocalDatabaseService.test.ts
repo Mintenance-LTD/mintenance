@@ -161,8 +161,8 @@ describe('init', () => {
       key: 'abc',
     });
 
-    // 6 CREATE TABLE + 12 CREATE INDEX = 18 execAsync calls.
-    expect(fakeDb.execAsync).toHaveBeenCalledTimes(18);
+    // 6 CREATE TABLE + 13 CREATE INDEX = 19 execAsync calls.
+    expect(fakeDb.execAsync).toHaveBeenCalledTimes(19);
 
     const sql = fakeDb.execAsync.mock.calls.map((c) => c[0] as string);
     expect(
