@@ -41,6 +41,8 @@ interface GeocodeResponse {
   formatted_address: string;
 }
 
+const GEOCODING_REQUEST_TIMEOUT_MS = 8_000;
+
 /**
  * POST /api/geocode-proxy
  *
@@ -110,42 +112,51 @@ export const POST = withApiHandler(
 
     // --- Attempt Google Maps if API key is available ---
     if (apiKey) {
-      let googleMapsUrl: string;
-      if (hasAddress) {
-        const encodedAddress = encodeURIComponent(body.address!.trim());
-        googleMapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
-      } else {
-        googleMapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${body.lat},${body.lng}&key=${apiKey}`;
+      try {
+        let googleMapsUrl: string;
+        if (hasAddress) {
+          const encodedAddress = encodeURIComponent(body.address!.trim());
+          googleMapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
+        } else {
+          googleMapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${body.lat},${body.lng}&key=${apiKey}`;
+        }
+
+        const response = await fetch(googleMapsUrl, {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(GEOCODING_REQUEST_TIMEOUT_MS),
+        });
+        const data = await response.json();
+        const duration = Date.now() - startTime;
+
+        if (data.status === 'OK' && data.results && data.results.length > 0) {
+          const result = data.results[0];
+          return NextResponse.json(
+            {
+              latitude: result.geometry.location.lat,
+              longitude: result.geometry.location.lng,
+              formatted_address: result.formatted_address,
+            } satisfies GeocodeResponse,
+            {
+              headers: {
+                'Cache-Control': 'private, max-age=86400',
+                'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+              },
+            }
+          );
+        }
+
+        logger.warn('Google Maps geocoding failed, trying Nominatim fallback', {
+          service: 'geocode-proxy',
+          status: data.status,
+          duration,
+        });
+      } catch (googleError) {
+        logger.warn('Google Maps geocoding unavailable, trying Nominatim fallback', {
+          service: 'geocode-proxy',
+          error: googleError instanceof Error ? googleError.message : 'unknown error',
+          duration: Date.now() - startTime,
+        });
       }
-
-      const response = await fetch(googleMapsUrl, {
-        headers: { Accept: 'application/json' },
-      });
-      const data = await response.json();
-      const duration = Date.now() - startTime;
-
-      if (data.status === 'OK' && data.results && data.results.length > 0) {
-        const result = data.results[0];
-        return NextResponse.json(
-          {
-            latitude: result.geometry.location.lat,
-            longitude: result.geometry.location.lng,
-            formatted_address: result.formatted_address,
-          } satisfies GeocodeResponse,
-          {
-            headers: {
-              'Cache-Control': 'private, max-age=86400',
-              'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            },
-          }
-        );
-      }
-
-      logger.warn('Google Maps geocoding failed, trying Nominatim fallback', {
-        service: 'geocode-proxy',
-        status: data.status,
-        duration,
-      });
     }
 
     // --- Fallback: Nominatim (OpenStreetMap) — free, no API key needed ---
@@ -163,6 +174,7 @@ export const POST = withApiHandler(
           'User-Agent': 'Mintenance/1.0 (property maintenance platform)',
           Accept: 'application/json',
         },
+        signal: AbortSignal.timeout(GEOCODING_REQUEST_TIMEOUT_MS),
       });
       const nomData = await nomResponse.json();
       const duration = Date.now() - startTime;
