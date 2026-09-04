@@ -391,7 +391,8 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     expect(res.status).toBe(200);
 
     expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 100000, currency: 'gbp' })
+      expect.objectContaining({ amount: 100000, currency: 'gbp' }),
+      { idempotencyKey: expect.stringMatching(/^invoice_payment_pay_invoice:/) }
     );
     const paymentIntentParams =
       mocks.stripePaymentIntentsCreate.mock.calls[0][0];

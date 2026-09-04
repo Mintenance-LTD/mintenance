@@ -19,65 +19,13 @@ import {
   storeIdempotencyResult,
   releaseOnError,
 } from '@/lib/idempotency';
+import { createInvoicePaymentIntent } from '@/lib/services/stripe-webhook/invoice-payment-intent';
 
 const initiatePaymentSchema = z.object({
   invoiceId: z.string().uuid('Invalid invoice ID'),
   paymentMethod: z.enum(['card', 'bank_transfer']).default('card'),
   returnUrl: z.string().url().optional(),
 });
-
-async function createPaymentIntent(
-  invoice: {
-    id: string;
-    contractor_id: string;
-    total_amount: number;
-    invoice_number: string;
-    title: string;
-    client_email: string;
-    job_id?: string;
-    status: string;
-  },
-  payerId: string
-) {
-  try {
-    const { data: contractor } = await serverSupabase
-      .from('profiles')
-      .select('stripe_connect_account_id, email, company_name')
-      .eq('id', invoice.contractor_id)
-      .single();
-
-    if (!contractor?.stripe_connect_account_id) {
-      throw new Error('Contractor has not set up payment processing');
-    }
-
-    const amountCents = Math.round(invoice.total_amount * 100);
-
-    // This must be a platform charge. Adding `transfer_data.destination` (or
-    // an application fee, which requires a connected-account charge) would
-    // transfer funds to the contractor as soon as the PaymentIntent
-    // succeeds. Invoice payments are recorded as held and released later by
-    // the escrow release path, which performs the one-and-only transfer.
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountCents,
-      currency: 'gbp',
-      description: `Invoice ${invoice.invoice_number}: ${invoice.title}`,
-      metadata: {
-        invoice_id: invoice.id,
-        invoice_number: invoice.invoice_number,
-        payer_id: payerId,
-        contractor_id: invoice.contractor_id,
-        job_id: invoice.job_id || '',
-      },
-      payment_method_types: ['card'],
-      receipt_email: invoice.client_email,
-    });
-
-    return paymentIntent;
-  } catch (error) {
-    logger.error('Error creating payment intent', error);
-    throw error;
-  }
-}
 
 async function createEscrowTransaction(
   invoice: {
@@ -305,7 +253,11 @@ export const POST = withApiHandler(
         { contractorTier }
       );
 
-      const paymentIntent = await createPaymentIntent(invoice, user.id);
+      const paymentIntent = await createInvoicePaymentIntent(
+        invoice,
+        user.id,
+        idempotencyKey
+      );
 
       const escrow = await createEscrowTransaction(
         invoice,
