@@ -5,6 +5,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NotFoundError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 import {
   isMissingCustomerError,
   clearStaleStripeCustomerId,
@@ -94,7 +95,18 @@ export const POST = withApiHandler(
         logger.error('Stripe setup intent error', error, {
           service: 'payments',
         });
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        const response = createPaymentErrorResponse(error, {
+          operation: 'create_setup_intent',
+          userId: user.id,
+        });
+        return NextResponse.json(
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
+        );
       }
       throw error;
     }

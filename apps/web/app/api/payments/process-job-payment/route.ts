@@ -15,6 +15,7 @@ import {
 } from '@mintenance/api-contracts';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 // Audit P2 (2026-05-10): `.strict()` ensures clients can't sneak
 // `userId`/`escrowId`/`status` overrides past the server-authoritative
@@ -131,7 +132,19 @@ export const POST = withApiHandler(
         logger.error('Stripe process payment error', error, {
           service: 'payments',
         });
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        const response = createPaymentErrorResponse(error, {
+          operation: 'process_job_payment',
+          userId: user.id,
+          jobId,
+        });
+        return NextResponse.json(
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
+        );
       }
       throw error;
     }
