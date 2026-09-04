@@ -173,7 +173,7 @@ export async function performStripeTransfer(
         reconciliationId,
       }
     );
-    await serverSupabase
+    const { error: revertError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         status: ESCROW_STATUS.HELD,
@@ -188,6 +188,18 @@ export async function performStripeTransfer(
       // release_pending row if necessary.
       .eq('id', escrowTransactionId)
       .eq('status', ESCROW_STATUS.RELEASE_PENDING);
+
+    if (revertError) {
+      logger.error(
+        'CRITICAL: Failed to revert escrow after Stripe transfer failure',
+        revertError,
+        {
+          service: 'payments',
+          escrowTransactionId,
+          reconciliationId,
+        }
+      );
+    }
 
     throw new InternalServerError(
       'Payment transfer failed. No funds were moved. Please try again.'
@@ -335,7 +347,9 @@ export async function writeEscrowAuditLog(params: {
   mfaUsed: boolean;
 }): Promise<void> {
   try {
-    await serverSupabase.from('escrow_audit_log').insert({
+    const { error: auditError } = await serverSupabase
+      .from('escrow_audit_log')
+      .insert({
       escrow_transaction_id: params.escrowTransactionId,
       action: 'released',
       actor_id: params.actorId,
@@ -355,7 +369,14 @@ export async function writeEscrowAuditLog(params: {
         homeownerId: params.job.homeowner_id,
       },
       created_at: new Date().toISOString(),
-    });
+      });
+
+    if (auditError) {
+      logger.error('Failed to write escrow audit log', auditError, {
+        service: 'payments',
+        escrowTransactionId: params.escrowTransactionId,
+      });
+    }
   } catch (auditError) {
     logger.error('Failed to write escrow audit log', auditError, {
       service: 'payments',
