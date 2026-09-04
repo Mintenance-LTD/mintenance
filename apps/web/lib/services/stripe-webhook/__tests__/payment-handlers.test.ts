@@ -396,6 +396,8 @@ describe('handleChargeRefunded', () => {
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
+        status: 'held',
         payer_id: VALID_UUID,
         payee_id: VALID_UUID_2,
       },
@@ -417,22 +419,31 @@ describe('handleChargeRefunded', () => {
   });
 
   it('notifies both payer and payee', async () => {
-    const charge = makeCharge({ amount_refunded: 10000 });
+    const charge = makeCharge({ amount_refunded: 2500 });
     await handleChargeRefunded(charge, mockNotify);
 
     expect(mockNotify).toHaveBeenCalledTimes(2);
     expect(mockNotify).toHaveBeenCalledWith(
       VALID_UUID,
       'Refund Processed',
-      expect.stringContaining('£100.00'),
+      expect.stringContaining('£25.00'),
       'refund_processed'
     );
     expect(mockNotify).toHaveBeenCalledWith(
       VALID_UUID_2,
       'Payment Refunded',
-      expect.stringContaining('£100.00'),
+      expect.stringContaining('£25.00'),
       'payment_refunded'
     );
+  });
+
+  it('does not close the escrow for a partial cumulative refund', async () => {
+    const charge = makeCharge({ amount_refunded: 2500 });
+    await handleChargeRefunded(charge, mockNotify);
+
+    const chain = mockFrom.mock.results[0].value;
+    expect(chain.update).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
   });
 
   it('returns early when charge has no payment_intent', async () => {
@@ -473,9 +484,7 @@ describe('handleChargeRefunded', () => {
 
   it('handles refund record failure gracefully', async () => {
     // First call returns escrow, but we need upsert to throw for refunds table
-    let callCount = 0;
     mockFrom.mockImplementation((table: string) => {
-      callCount++;
       if (table === 'refunds') {
         return {
           upsert: vi.fn().mockRejectedValue(new Error('Refund record failed')),
@@ -485,6 +494,8 @@ describe('handleChargeRefunded', () => {
         singleData: {
           id: ESCROW_ID,
           job_id: JOB_ID,
+          amount: 50,
+          status: 'held',
           payer_id: VALID_UUID,
           payee_id: VALID_UUID_2,
         },
