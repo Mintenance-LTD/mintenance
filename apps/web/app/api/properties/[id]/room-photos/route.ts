@@ -136,7 +136,15 @@ export const POST = withApiHandler(
     );
 
     const formData = await request.formData();
-    const photoFiles = formData.getAll('photos') as File[];
+    const photoFiles = formData
+      .getAll('photos')
+      .filter(
+        (value): value is File =>
+          typeof value === 'object' &&
+          value !== null &&
+          'size' in value &&
+          'arrayBuffer' in value
+      );
     const roomType = formData.get('room_type') as string;
 
     if (
@@ -220,7 +228,7 @@ export const POST = withApiHandler(
           photo_url: photoUrl,
           file_name: file.name,
           file_size: file.size,
-          mime_type: file.type,
+        mime_type: validation.detectedType,
           uploaded_by: user.id,
         })
         .select('id, photo_url, room_type')
