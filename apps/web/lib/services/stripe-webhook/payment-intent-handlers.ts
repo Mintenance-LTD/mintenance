@@ -110,7 +110,7 @@ export async function handlePaymentIntentSucceeded(
     // release. Look the row up first and bail on any post-held state.
     const { data: existing, error: lookupError } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, status')
+      .select('id, status, amount')
       .eq('payment_intent_id', paymentIntent.id)
       .maybeSingle();
 
@@ -126,6 +126,23 @@ export async function handlePaymentIntentSucceeded(
       logger.warn('No escrow transaction found for payment intent', {
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
+      });
+      return;
+    }
+
+    const escrowAmountCents = Math.round(Number(existing.amount) * 100);
+    if (
+      paymentIntent.currency.toLowerCase() !== 'gbp' ||
+      !Number.isFinite(escrowAmountCents) ||
+      paymentIntent.amount !== escrowAmountCents
+    ) {
+      logger.error('PaymentIntent does not match GBP escrow invariant', {
+        service: 'stripe-webhook',
+        paymentIntentId: paymentIntent.id,
+        escrowId: existing.id,
+        paymentCurrency: paymentIntent.currency,
+        paymentAmountCents: paymentIntent.amount,
+        escrowAmountCents,
       });
       return;
     }
