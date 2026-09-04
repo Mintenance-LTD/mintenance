@@ -442,16 +442,27 @@ export const POST = withApiHandler(
       }
 
       // Record payment attempt using the server-authoritative amount
-      await serverSupabase.from('payment_attempts').insert({
-        user_id: user.id,
-        amount: authoritativeAmount,
-        currency: currency || 'gbp',
-        status: 'pending',
-        ip_address: getClientIp(request),
-        user_agent: request.headers.get('user-agent') || null,
-        metadata: { jobId, contractorId, clientAmount: amount },
-        created_at: new Date().toISOString(),
-      });
+      const { error: paymentAttemptError } = await serverSupabase
+        .from('payment_attempts')
+        .insert({
+          user_id: user.id,
+          amount: authoritativeAmount,
+          currency: currency || 'gbp',
+          status: 'pending',
+          ip_address: getClientIp(request),
+          user_agent: request.headers.get('user-agent') || null,
+          metadata: { jobId, contractorId, clientAmount: amount },
+          created_at: new Date().toISOString(),
+        });
+
+      if (paymentAttemptError) {
+        logger.error('Failed to record payment attempt', paymentAttemptError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+        });
+        throw new Error('Failed to record payment attempt');
+      }
 
       // Deterministic idempotency key: same job + homeowner + contractor always
       // produces the same key. Including contractor_id (WBE-P1-2) prevents a
@@ -469,11 +480,20 @@ export const POST = withApiHandler(
       // every escrow funding via a saved card failed at confirm time.
       // Read via service-role (stripe_customer_id is grant-locked). Omit
       // when absent (first-time payer entering a fresh card still works).
-      const { data: payerProfile } = await serverSupabase
+      const { data: payerProfile, error: payerProfileError } = await serverSupabase
         .from('profiles')
         .select('stripe_customer_id')
         .eq('id', user.id)
         .single();
+
+      if (payerProfileError) {
+        logger.error('Failed to load payer Stripe customer', payerProfileError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+        });
+        throw new Error('Failed to load payer Stripe customer');
+      }
       const payerCustomerId = payerProfile?.stripe_customer_id ?? undefined;
 
       // Create Stripe PaymentIntent with timeout to prevent hanging requests.
@@ -559,14 +579,24 @@ export const POST = withApiHandler(
 
       // Check for existing escrow record to prevent duplicates
       // (e.g. user refreshes payment page, or idempotency cache expired)
-      const { data: existingEscrow } = await serverSupabase
+      const { data: existingEscrow, error: existingEscrowError } = await serverSupabase
         .from('escrow_transactions')
         .select(
           'id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at'
         )
         .eq('job_id', jobId)
         .eq('payment_intent_id', paymentIntent.id)
-        .single();
+        .maybeSingle();
+
+      if (existingEscrowError) {
+        logger.error('Failed to check for existing escrow transaction', existingEscrowError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          paymentIntentId: paymentIntent.id,
+        });
+        throw new Error('Failed to check for existing escrow transaction');
+      }
 
       let escrowTransaction = existingEscrow;
       let escrowError = null;
