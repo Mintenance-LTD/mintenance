@@ -179,8 +179,8 @@ describe('ContractorService', () => {
 
   describe('searchContractors (advanced filters)', () => {
     it('should search contractors by skills', async () => {
-      // Advanced search builds a query off `profiles`, filters by an
-      // `.in('id', ...)` for skills, then maps + filters in memory.
+      // Advanced search builds a query off `profiles`, filters the embedded
+      // `contractor_skills` relation, then maps + filters in memory.
       const mockSupabaseChain = {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
@@ -210,8 +210,8 @@ describe('ContractorService', () => {
 
       expect(result).toHaveLength(1);
       expect(mockSupabaseChain.in).toHaveBeenCalledWith(
-        'id',
-        expect.any(Array)
+        'contractor_skills.skill_name',
+        ['Plumbing']
       );
     });
 
