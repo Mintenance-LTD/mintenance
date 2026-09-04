@@ -214,6 +214,31 @@ export const POST = withApiHandler(
       );
     }
 
+    // The webhook normally records this field, but this endpoint is an
+    // intentional fallback for the valid race where Stripe confirmation
+    // reaches the client before the webhook. Keep the job-level payment
+    // state consistent with the escrow transition so dashboards and guards
+    // do not remain stuck on "unpaid".
+    const { error: jobPaymentError } = await serverSupabase
+      .from('jobs')
+      .update({
+        payment_status: 'paid',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+    if (jobPaymentError) {
+      logger.error(
+        'Failed to update job payment status after confirmation',
+        jobPaymentError,
+        {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          paymentIntentId,
+        }
+      );
+    }
+
     logger.info('Payment confirmed and escrow updated', {
       service: 'payments',
       userId: user.id,

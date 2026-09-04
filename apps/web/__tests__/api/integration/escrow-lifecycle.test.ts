@@ -511,6 +511,9 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
               }),
             }),
           }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
         };
       }
       if (table === 'escrow_transactions') {
@@ -598,6 +601,9 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
                 error: null,
               }),
             }),
+          }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         };
       }
