@@ -65,7 +65,9 @@ export class BackgroundCheckService {
       // Get user data
       const { data: user, error: userError } = await serverSupabase
         .from('profiles')
-        .select('id, first_name, last_name, email, phone, role')
+        .select(
+          'id, first_name, last_name, email, phone, role, background_check_status, background_check_id'
+        )
         .eq('id', userId)
         .single();
 
@@ -83,6 +85,16 @@ export class BackgroundCheckService {
           success: false,
           error: 'Background checks are only available for contractors',
         };
+      }
+
+      // A retry after a successful provider call must not create a second
+      // screening. Return the existing provider ID while it is in progress.
+      if (
+        user.background_check_status === 'in_progress' &&
+        typeof user.background_check_id === 'string' &&
+        user.background_check_id.length > 0
+      ) {
+        return { success: true, checkId: user.background_check_id };
       }
 
       // Update status to in_progress
@@ -138,13 +150,34 @@ export class BackgroundCheckService {
         };
       }
 
-      // Store check ID
-      await serverSupabase
+      // Store check ID. A provider call without a durable ID cannot be
+      // reconciled by webhook/polling, so fail closed and reset the status.
+      const { error: checkIdError } = await serverSupabase
         .from('profiles')
         .update({
           background_check_id: checkId,
         })
         .eq('id', userId);
+
+      if (checkIdError) {
+        logger.error('Failed to persist background check ID', {
+          service: 'BackgroundCheckService',
+          userId,
+          provider,
+          error: checkIdError.message,
+        });
+        await serverSupabase
+          .from('profiles')
+          .update({
+            background_check_status: 'pending',
+            background_check_id: null,
+          })
+          .eq('id', userId);
+        return {
+          success: false,
+          error: 'Failed to persist background check status',
+        };
+      }
 
       logger.info('Background check initiated', {
         service: 'BackgroundCheckService',
