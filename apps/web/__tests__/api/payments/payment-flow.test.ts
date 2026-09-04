@@ -665,13 +665,17 @@ function createSupabaseChain(
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue(selectReturn),
+              maybeSingle: vi.fn().mockResolvedValue(selectReturn),
             }),
             single: vi.fn().mockResolvedValue(selectReturn),
+            maybeSingle: vi.fn().mockResolvedValue(selectReturn),
           }),
           single: vi.fn().mockResolvedValue(selectReturn),
+          maybeSingle: vi.fn().mockResolvedValue(selectReturn),
           in: vi.fn().mockResolvedValue(selectReturn),
         }),
         single: vi.fn().mockResolvedValue(selectReturn),
+        maybeSingle: vi.fn().mockResolvedValue(selectReturn),
       }),
       insert: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -1252,6 +1256,10 @@ describe('POST /api/payments/refund', () => {
                 contractor_id: 'contractor-abc',
                 status,
               },
+              error: null,
+            },
+            updateReturn: {
+              data: { id: '550e8400-e29b-41d4-a716-446655440000' },
               error: null,
             },
           },
@@ -2488,7 +2496,14 @@ describe('Refund DB Retry Logic', () => {
             }),
           }),
           update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: '550e8400-e29b-41d4-a716-446655440000' },
+                  error: null,
+                }),
+              }),
+            }),
           }),
         };
       }

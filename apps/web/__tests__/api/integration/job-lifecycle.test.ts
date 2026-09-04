@@ -999,6 +999,24 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
           insert: vi.fn().mockResolvedValue({ error: null }),
         };
       }
+      if (table === 'contractor_insurance') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: null,
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
       if (table === 'message_threads') {
         return {
           select: vi.fn().mockReturnValue({

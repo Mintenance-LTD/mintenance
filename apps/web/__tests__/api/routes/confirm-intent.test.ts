@@ -221,6 +221,7 @@ function setupConfirmIntentMocks(
     id: 'pi_test123',
     status: overrides.paymentIntentStatus ?? 'succeeded',
     amount: 25000,
+    currency: 'gbp',
   });
 
   const jobResult = {
