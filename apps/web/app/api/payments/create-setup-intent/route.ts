@@ -67,7 +67,7 @@ export const POST = withApiHandler(
           email: profile.email,
           metadata: { userId: user.id },
         }, {
-          idempotencyKey: `stripe_customer_${user.id}`,
+          idempotencyKey: `stripe_customer_recovery_${user.id}`,
         });
         stripeCustomerId = fresh.id;
         await serverSupabase
