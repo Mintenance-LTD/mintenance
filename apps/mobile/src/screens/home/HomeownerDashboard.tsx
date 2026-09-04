@@ -29,7 +29,7 @@ import { JobService } from '../../services/JobService';
 import { BidService } from '../../services/BidService';
 import { NotificationService } from '../../services/NotificationService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
 import { logger } from '../../utils/logger';
 import { goToTab } from '../../navigation/hooks';
@@ -120,30 +120,24 @@ export const HomeownerDashboard: React.FC = () => {
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not signed in');
-      const today = new Date().toISOString().split('T')[0];
-      const { data: rows, error: err } = await supabase
-        .from('appointments')
-        .select(
-          'id, title, appointment_date, start_time, contractor:profiles!contractor_id(first_name, last_name)'
-        )
-        .eq('client_id', user.id)
-        .gte('appointment_date', today)
-        .order('appointment_date', { ascending: true })
-        .limit(10);
-      if (err) return [];
-      return (rows || []).map((r: Record<string, unknown>) => {
-        const contractor = r.contractor as {
-          first_name?: string;
-          last_name?: string;
-        } | null;
-        const name = contractor
-          ? `${contractor.first_name ?? ''} ${contractor.last_name ?? ''}`.trim()
-          : '';
+      const response = await mobileApiClient.get<{
+        appointments?: Array<{
+          id: string;
+          title?: string | null;
+          date?: string | null;
+          time?: string | null;
+          contractor?: { name?: string | null };
+        }>;
+      }>('/api/appointments?limit=10');
+      const rows = response.appointments ?? [];
+      return rows.map((r) => {
+        const contractor = r.contractor;
+        const name = contractor?.name?.trim() ?? '';
         return {
-          id: r.id as string,
-          title: (r.title as string) || '',
-          date: r.appointment_date as string,
-          time: (r.start_time as string) || '',
+          id: r.id,
+          title: r.title || '',
+          date: r.date || '',
+          time: r.time || '',
           contractor: name ? { name } : undefined,
         };
       });

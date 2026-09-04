@@ -90,7 +90,7 @@ export const GET = withApiHandler(
       const { data: ownedJobs } = await serverSupabase
         .from('jobs')
         .select('id')
-        .eq('homeowner_id', user.id);
+        .or(`homeowner_id.eq.${user.id},payer_user_id.eq.${user.id}`);
       const jobIds = (ownedJobs || []).map((j) => j.id as string);
       if (jobIds.length > 0) {
         // Use the in.() helper so the OR filter handles multiple IDs.
