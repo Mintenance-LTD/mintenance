@@ -2266,10 +2266,13 @@ describe('POST /api/payments/add-method', () => {
       expect(body.success).toBe(true);
 
       // Verify Stripe customer was created
-      expect(mocks.stripeCustomersCreate).toHaveBeenCalledWith({
-        email: 'homeowner@test.com',
-        metadata: { userId: 'homeowner-user-id' },
-      });
+      expect(mocks.stripeCustomersCreate).toHaveBeenCalledWith(
+        {
+          email: 'homeowner@test.com',
+          metadata: { userId: 'homeowner-user-id' },
+        },
+        { idempotencyKey: 'stripe_customer_homeowner-user-id' }
+      );
     });
   });
 });
