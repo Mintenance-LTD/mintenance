@@ -370,6 +370,13 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       if (revocationLookupError) {
         throw revocationLookupError;
       }
+      if (!profile) {
+        logger.warn('Token verification failed: profile no longer exists', {
+          service: 'auth',
+          userId: payload.sub,
+        });
+        return null;
+      }
       const revokedAt = profile?.tokens_revoked_at
         ? new Date(profile.tokens_revoked_at as string).getTime()
         : 0;
