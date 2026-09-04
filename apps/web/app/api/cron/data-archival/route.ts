@@ -1,5 +1,7 @@
 import { withCronHandler } from '@/lib/cron-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { InternalServerError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
 
 /**
  * Cron endpoint for data archival (Issue 58)
@@ -18,9 +20,12 @@ export const GET = withCronHandler(
     });
 
     if (error) {
-      throw new Error(
-        `Archival function not available: ${error.message}. Run the migration first.`
-      );
+      logger.error('Data archival RPC failed', error, {
+        service: 'data-archival',
+        monthsThreshold,
+        batchSize,
+      });
+      throw new InternalServerError('Data archival could not be completed');
     }
 
     return { result: data, processed: 1 };
