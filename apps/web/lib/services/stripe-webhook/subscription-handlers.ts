@@ -39,7 +39,16 @@ export async function handleSubscriptionUpdated(
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (userError || !user) {
+    if (userError) {
+      logger.error('Failed to load subscription customer profile', userError, {
+        service: 'stripe-webhook',
+        subscriptionId: subscription.id,
+        customerId,
+      });
+      throw new Error('Failed to load subscription customer profile');
+    }
+
+    if (!user) {
       logger.warn('User not found for subscription customer', {
         service: 'stripe-webhook',
         subscriptionId: subscription.id,
@@ -256,7 +265,16 @@ export async function handleSubscriptionDeleted(
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (userError || !user) {
+    if (userError) {
+      logger.error('Failed to load deleted subscription customer profile', userError, {
+        service: 'stripe-webhook',
+        subscriptionId: subscription.id,
+        customerId,
+      });
+      throw new Error('Failed to load deleted subscription customer profile');
+    }
+
+    if (!user) {
       logger.warn('User not found for subscription customer', {
         service: 'stripe-webhook',
         subscriptionId: subscription.id,

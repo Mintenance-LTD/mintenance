@@ -36,7 +36,16 @@ export async function handleInvoicePaymentSucceeded(
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (userError || !user) {
+    if (userError) {
+      logger.error('Failed to load invoice customer profile', userError, {
+        service: 'stripe-webhook',
+        invoiceId: invoice.id,
+        customerId,
+      });
+      throw new Error('Failed to load invoice customer profile');
+    }
+
+    if (!user) {
       logger.warn('User not found for invoice customer', {
         service: 'stripe-webhook',
         invoiceId: invoice.id,
@@ -149,7 +158,16 @@ export async function handleInvoicePaymentFailed(
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (userError || !user) {
+    if (userError) {
+      logger.error('Failed to load failed-invoice customer profile', userError, {
+        service: 'stripe-webhook',
+        invoiceId: invoice.id,
+        customerId,
+      });
+      throw new Error('Failed to load failed-invoice customer profile');
+    }
+
+    if (!user) {
       logger.warn('User not found for invoice customer', {
         service: 'stripe-webhook',
         invoiceId: invoice.id,
