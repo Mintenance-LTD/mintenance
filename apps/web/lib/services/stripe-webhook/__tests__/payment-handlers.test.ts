@@ -138,6 +138,7 @@ describe('handlePaymentIntentSucceeded', () => {
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
         payer_id: VALID_UUID,
         payee_id: VALID_UUID_2,
       },
@@ -190,6 +191,7 @@ describe('handlePaymentIntentSucceeded', () => {
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
         payer_id: null,
         payee_id: null,
       },
@@ -213,6 +215,7 @@ describe('handlePaymentIntentSucceeded', () => {
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
         payer_id: null,
         payee_id: null,
       },
@@ -241,6 +244,7 @@ describe('handlePaymentIntentSucceeded', () => {
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
         payer_id: null,
         payee_id: null,
       },
@@ -448,7 +452,12 @@ describe('handleChargeRefunded', () => {
     // TERMINAL_OR_RELEASING guard must ignore it — otherwise a refunded
     // escrow flips back to 'held' and becomes releasable a second time.
     const chain = buildChain({
-      singleData: { id: ESCROW_ID, job_id: JOB_ID, status: 'refunded' },
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        status: 'refunded',
+      },
     });
     mockFrom.mockReturnValue(chain);
 
