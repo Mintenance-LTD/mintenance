@@ -170,10 +170,15 @@ export async function handleSetupIntentSucceeded(params: {
   // Fetch payment method details from Stripe
   const pm = await stripe.paymentMethods.retrieve(params.paymentMethodId);
 
+  // `payment_methods.type` is an application-level enum (`card` or
+  // `bank_account`), while Stripe names UK Direct Debit as `bacs_debit`.
+  // Persisting the Stripe value verbatim violates the live CHECK constraint
+  // and makes an otherwise successful SetupIntent webhook fail permanently.
+  const localType = pm.type === 'bacs_debit' ? 'bank_account' : pm.type;
   const row: Record<string, unknown> = {
     user_id: params.userId,
     stripe_payment_method_id: pm.id,
-    type: pm.type,
+    type: localType,
     is_default: false,
   };
 
