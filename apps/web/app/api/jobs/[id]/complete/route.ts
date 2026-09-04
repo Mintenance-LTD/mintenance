@@ -24,7 +24,7 @@ export const POST = withApiHandler(
     // Get job details
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, contractor_id, homeowner_id, status, title')
+      .select('id, contractor_id, homeowner_id, payer_user_id, status, title')
       .eq('id', jobId)
       .single();
 
@@ -159,14 +159,21 @@ export const POST = withApiHandler(
     // and used a column (`data`) that no longer exists in production.
     // 2026-05-21 Mint Editorial voice — matches the after-photos
     // review nudge phrasing so push + in-app land consistently.
-    await NotificationService.createNotification({
-      userId: job.homeowner_id,
-      type: 'job_update',
-      title: 'How did your contractor do?',
-      message: `${job.title || 'Your job'} is done. Two taps to leave a review and release payment.`,
-      actionUrl: `/jobs/${jobId}`,
-      metadata: { jobId, event: 'job_completed' },
-    });
+    const customerIds = [
+      ...new Set([job.homeowner_id, job.payer_user_id].filter(Boolean)),
+    ];
+    await Promise.all(
+      customerIds.map((customerId) =>
+        NotificationService.createNotification({
+          userId: customerId,
+          type: 'job_update',
+          title: 'How did your contractor do?',
+          message: `${job.title || 'Your job'} is done. Two taps to leave a review and release payment.`,
+          actionUrl: `/jobs/${jobId}`,
+          metadata: { jobId, event: 'job_completed' },
+        })
+      )
+    );
 
     // R7 #8 neighbour referral: if the homeowner redeemed a referral
     // and this is their first completed job, credit £20 to both
