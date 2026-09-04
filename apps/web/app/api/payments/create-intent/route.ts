@@ -156,6 +156,23 @@ export const POST = withApiHandler(
         throw new BadRequestError('Job has no assigned contractor');
       }
 
+      // The contractor id in the request is client-controlled. Keep the
+      // accepted bid, Stripe metadata, and escrow payee tied to the current
+      // server-authoritative assignment; otherwise a reassigned job could
+      // select a stale accepted bid for the previous contractor.
+      if (contractorId !== job.contractor_id) {
+        logger.warn('Payment contractor does not match job assignment', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          requestedContractorId: contractorId,
+          assignedContractorId: job.contractor_id,
+        });
+        throw new BadRequestError(
+          'Payment contractor does not match the current job assignment'
+        );
+      }
+
       // Verify contract is signed by both parties before allowing payment.
       // 2026-05-13 audit: also pull the contract id so the escrow row can
       // carry it in metadata for later reconciliation / dispute analysis.
@@ -655,8 +672,9 @@ export const POST = withApiHandler(
       if (creditAppliedPence > 0 && !escrowCreated && paymentJobId) {
         try {
           if (createdPaymentIntentId) {
-            await stripe.paymentIntents.cancel(createdPaymentIntentId).catch(
-              (cancelError) => {
+            await stripe.paymentIntents
+              .cancel(createdPaymentIntentId)
+              .catch((cancelError) => {
                 logger.error(
                   'PaymentIntent cancellation failed during payment rollback',
                   cancelError,
@@ -667,8 +685,7 @@ export const POST = withApiHandler(
                     paymentIntentId: createdPaymentIntentId,
                   }
                 );
-              }
-            );
+              });
           }
           const { NeighbourhoodReferralService } =
             await import('@/lib/services/referrals/NeighbourhoodReferralService');
@@ -686,12 +703,16 @@ export const POST = withApiHandler(
             });
           }
         } catch (rollbackError) {
-          logger.error('Credit rollback threw after payment failure', rollbackError, {
-            service: 'payments',
-            userId: user.id,
-            jobId: paymentJobId,
-            creditAppliedPence,
-          });
+          logger.error(
+            'Credit rollback threw after payment failure',
+            rollbackError,
+            {
+              service: 'payments',
+              userId: user.id,
+              jobId: paymentJobId,
+              creditAppliedPence,
+            }
+          );
         }
       }
 
