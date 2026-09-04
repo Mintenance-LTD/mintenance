@@ -83,6 +83,22 @@ export const POST = withApiHandler(
         service: 'payments',
         userId: user.id,
       });
+
+      // Do not leave a newly-created Stripe customer orphaned when the local
+      // profile write fails. Only remove customers created in this request;
+      // an existing customer ID must never be deleted as a side effect of a
+      // failed mirror update.
+      if (!stripeData?.stripe_customer_id) {
+        try {
+          await stripe.customers.del(stripeCustomerId);
+        } catch (cleanupError) {
+          logger.error('Failed to clean up orphan Stripe customer', cleanupError, {
+            service: 'payments',
+            userId: user.id,
+            stripeCustomerId,
+          });
+        }
+      }
       throw new Error('Failed to save payment account');
     }
 
