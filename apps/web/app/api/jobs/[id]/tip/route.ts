@@ -97,13 +97,19 @@ export const POST = withApiHandler(
     // leaves the server — it only feeds the PaymentIntent transfer.
     const { data: contractor, error: contractorError } = await serverSupabase
       .from('profiles')
-      .select('id, stripe_connect_account_id, first_name, last_name')
+      .select(
+        'id, stripe_connect_account_id, stripe_payouts_enabled, stripe_transfers_active, first_name, last_name'
+      )
       .eq('id', job.contractor_id)
       .single();
     if (contractorError || !contractor) {
       throw new NotFoundError('Contractor profile not found');
     }
-    if (!contractor.stripe_connect_account_id) {
+    if (
+      !contractor.stripe_connect_account_id ||
+      contractor.stripe_payouts_enabled !== true ||
+      contractor.stripe_transfers_active !== true
+    ) {
       throw new BadRequestError(
         'Contractor has not set up payouts yet — tip cannot be sent until they do.'
       );
