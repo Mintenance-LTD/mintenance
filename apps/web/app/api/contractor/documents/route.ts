@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { validateDocumentUpload } from '@/lib/utils/fileValidation';
 
 /**
  * GET /api/contractor/documents
@@ -125,10 +126,13 @@ export const POST = withApiHandler(
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file size (max 20MB)
-    if (file.size > 20 * 1024 * 1024) {
+    // Validate the content signature, not the client-controlled MIME type or
+    // extension. The bucket is private, but both contractors and admins later
+    // download these files, so unknown bytes must not enter document storage.
+    const validation = await validateDocumentUpload(file);
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 20MB.' },
+        { error: validation.error || 'Unsupported or invalid document file.' },
         { status: 400 }
       );
     }
@@ -168,7 +172,7 @@ export const POST = withApiHandler(
     }
 
     // Extract file extension
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+    const ext = validation.detectedType?.split('/')[1] || 'bin';
     const safeFileName = `${user.id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
     // Upload to Supabase Storage
@@ -179,7 +183,7 @@ export const POST = withApiHandler(
       await serverSupabase.storage
         .from('contractor-documents')
         .upload(safeFileName, buffer, {
-          contentType: file.type,
+          contentType: validation.detectedType,
           upsert: false,
         });
 
