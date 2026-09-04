@@ -267,7 +267,7 @@ export class HomeHealthSubscriptionService {
       cancel_at_period_end: true,
     });
 
-    await serverSupabase
+    const { error: subscriptionUpdateError } = await serverSupabase
       .from('homeowner_subscriptions')
       .update({
         cancel_at_period_end: true,
@@ -277,7 +277,7 @@ export class HomeHealthSubscriptionService {
       .eq('homeowner_id', homeownerId);
 
     // Deactivate every Home Health schedule this homeowner set up.
-    await serverSupabase
+    const { error: scheduleUpdateError } = await serverSupabase
       .from('recurring_schedules')
       .update({ is_active: false })
       .eq('owner_id', homeownerId)
@@ -285,5 +285,17 @@ export class HomeHealthSubscriptionService {
         'task_type',
         HOME_HEALTH_TASKS.map((t) => t.task_type)
       );
+
+    if (subscriptionUpdateError || scheduleUpdateError) {
+      logger.error('Home Health cancellation mirror failed after Stripe update', {
+        homeownerId,
+        stripeSubscriptionId,
+        subscriptionUpdateError: subscriptionUpdateError?.message,
+        scheduleUpdateError: scheduleUpdateError?.message,
+      });
+      throw new Error(
+        'Home Health was cancelled in Stripe but local records could not be fully updated'
+      );
+    }
   }
 }
