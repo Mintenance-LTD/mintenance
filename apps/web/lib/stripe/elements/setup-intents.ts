@@ -47,6 +47,13 @@ async function ensureStripeCustomer(
     email,
     name,
     metadata: { mintenance_user_id: userId },
+  }, {
+    // Concurrent setup-intent requests must converge on one customer. Use a
+    // separate key for stale-customer recovery so it can create a replacement
+    // rather than replaying the original customer creation.
+    idempotencyKey: forceNew
+      ? `stripe_customer_recovery_${userId}`
+      : `stripe_customer_${userId}`,
   });
 
   const { error: updateError } = await serverSupabase
