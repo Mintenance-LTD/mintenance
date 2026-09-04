@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { authManager } from '@/lib/auth-manager';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { InternalServerError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
   { auth: false, csrf: true, rateLimit: { maxRequests: 5 } },
-  async (request) => {
+  async (_request) => {
     const cookieStore = await cookies();
     const authToken = cookieStore.get('__Host-mintenance-auth')?.value;
     const refreshToken = cookieStore.get('__Host-mintenance-refresh')?.value;
@@ -22,7 +23,7 @@ export const POST = withApiHandler(
       try {
         const payload = await verifyToken(authToken);
         userId = payload?.sub;
-      } catch (error) {
+      } catch {
         logger.warn('Could not decode access token on logout (continuing)', {
           service: 'auth',
         });
@@ -77,16 +78,23 @@ export const POST = withApiHandler(
     if (userId) {
       try {
         const { serverSupabase } = await import('@/lib/api/supabaseServer');
-        await serverSupabase
+        const { error: revokeError } = await serverSupabase
           .from('profiles')
           .update({ tokens_revoked_at: new Date().toISOString() })
           .eq('id', userId);
+        if (revokeError) {
+          logger.error(
+            'Failed to persist durable token revocation on logout',
+            revokeError,
+            { service: 'auth', userId }
+          );
+          throw new InternalServerError(
+            'Logout could not be completed securely. Please try again.'
+          );
+        }
       } catch (revokeErr) {
-        // Non-fatal: cookies are still cleared on the response; we
-        // just lose the durable backstop for this session. The blacklist
-        // + cookie deletion still apply.
         logger.warn(
-          'Failed to bump profiles.tokens_revoked_at on logout (non-fatal)',
+          'Failed to bump profiles.tokens_revoked_at on logout',
           {
             service: 'auth',
             userId,
@@ -95,6 +103,12 @@ export const POST = withApiHandler(
                 ? revokeErr.message
                 : String(revokeErr),
           }
+        );
+        if (revokeErr instanceof InternalServerError) {
+          throw revokeErr;
+        }
+        throw new InternalServerError(
+          'Logout could not be completed securely. Please try again.'
         );
       }
     }
