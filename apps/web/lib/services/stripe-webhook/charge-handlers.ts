@@ -55,10 +55,19 @@ export async function handleChargeRefunded(
       .eq('payment_intent_id', paymentIntentId)
       .maybeSingle();
 
-    if (escrowLookupError || !existingEscrow) {
+    if (escrowLookupError) {
       logger.error('Failed to load escrow for refunded payment', escrowLookupError, {
         service: 'stripe-webhook',
         paymentIntentId,
+      });
+      throw new Error('Failed to load escrow for refunded payment');
+    }
+
+    if (!existingEscrow) {
+      logger.error('No escrow found for refunded payment', undefined, {
+        service: 'stripe-webhook',
+        paymentIntentId,
+        chargeId: charge.id,
       });
       return;
     }
@@ -122,10 +131,10 @@ export async function handleChargeRefunded(
           escrowId: existingEscrow.id,
           currentStatus: existingEscrow.status,
         });
-        // Stripe has already moved the money. Continue to the refund ledger
-        // so reconciliation can find this case, but do not update the job or
-        // notify users as if the escrow transition was recorded.
-        escrowTransaction = existingEscrow;
+        // Stripe has already moved the money. Fail the webhook so Stripe
+        // retries the escrow transition instead of acknowledging a refund
+        // while the application still treats the escrow as payable.
+        throw new Error('Failed to persist refunded escrow status');
       } else {
         escrowStateFinalized = true;
         escrowTransaction = updatedEscrow;
