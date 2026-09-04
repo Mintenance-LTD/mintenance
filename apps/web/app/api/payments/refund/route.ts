@@ -28,7 +28,7 @@ import { getClientIp } from '@/lib/request-ip';
  *
  * 2026-05-09: added an explicit `roles` lock at the framework
  * boundary. The downstream code already restricts refunds to the
- * homeowner who paid (lines below), but the absent route-level lock
+ * designated payer (lines below), but the absent route-level lock
  * meant any authenticated role could enter the handler before being
  * rejected by the inner check — adds defense-in-depth and surfaces the
  * intent at the perimeter. Admin can hit the dedicated `/api/admin/refunds` endpoints.
@@ -92,10 +92,10 @@ export const POST = withApiHandler(
     let escrowClaimed = false;
     let refundId: string | null = null;
     try {
-      // Verify job ownership
+      // Verify job access
       const { data: job, error: jobError } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, contractor_id, status')
+        .select('id, homeowner_id, payer_user_id, contractor_id, status')
         .eq('id', jobId)
         .single();
 
@@ -105,9 +105,10 @@ export const POST = withApiHandler(
 
       // SECURITY: Enhanced refund authorization logic
       const isHomeowner = job.homeowner_id === user.id;
+      const isDesignatedPayer = job.payer_user_id === user.id;
       const isContractor = job.contractor_id === user.id;
 
-      if (!isHomeowner && !isContractor) {
+      if (!isHomeowner && !isDesignatedPayer && !isContractor) {
         throw new ForbiddenError('Unauthorized');
       }
 
@@ -130,7 +131,7 @@ export const POST = withApiHandler(
       }
 
       // SECURITY: Only allow refunds in specific scenarios
-      if (!isHomeowner) {
+      if (!isHomeowner && !isDesignatedPayer) {
         logger.warn('Non-homeowner attempted refund', {
           service: 'payments',
           userId: user.id,
@@ -138,7 +139,7 @@ export const POST = withApiHandler(
           jobId,
         });
         return NextResponse.json(
-          { error: 'Only the homeowner who paid can request a refund' },
+          { error: 'Only the designated payer can request a refund' },
           { status: 403 }
         );
       }
@@ -352,6 +353,9 @@ export const POST = withApiHandler(
 
       // Update escrow transaction with retry logic
       // CRITICAL: Stripe refund already succeeded, so DB must reflect this
+      // A partial refund leaves the escrow held so the remaining balance can
+      // be refunded later. Only a full refund is terminal.
+      const isFullRefund = refundAmount >= escrowAmountCents;
       let updatedEscrow: Record<string, unknown> | null = null;
       let updateError: Error | null = null;
 
@@ -359,8 +363,8 @@ export const POST = withApiHandler(
         const result = await serverSupabase
           .from('escrow_transactions')
           .update({
-            status: 'refunded',
-            refunded_at: new Date().toISOString(),
+            status: isFullRefund ? 'refunded' : 'held',
+            refunded_at: isFullRefund ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', escrowTransactionId)
@@ -419,29 +423,35 @@ export const POST = withApiHandler(
         // paying the contractor as well (double loss). So we leave the escrow
         // status untouched and only append an audit row for operators to find.
         try {
-          await serverSupabase.from('escrow_audit_log').insert({
-            escrow_transaction_id: escrowTransactionId,
-            // 'refunded' is the accurate CHECK-permitted action (the money was
-            // refunded at Stripe). The reconciliation nuance — that the escrow
-            // row didn't get its status flipped — lives in release_reason +
-            // metadata. NOTE: escrow_audit_log.action's CHECK only allows
-            // released/held/refunded/disputed/admin_override, so an out-of-set
-            // value like 'reconciliation_needed' silently 23514s.
-            action: 'refunded',
-            actor_id: user.id,
-            actor_role: user.role,
-            job_id: jobId,
-            amount: refundAmount / 100,
-            release_reason: 'refund_succeeded_db_update_failed',
-            is_admin_action: user.role === 'admin',
-            metadata: {
-              issue_type: 'refund_succeeded_db_update_failed',
-              status: 'pending_review',
-              refund_id: refund.id,
-              stripe_refund_status: refund.status,
-              update_error_message: updateError?.message,
-            },
-          });
+          const { error: reconciliationError } = await serverSupabase
+            .from('escrow_audit_log')
+            .insert({
+              escrow_transaction_id: escrowTransactionId,
+              // 'refunded' is the accurate CHECK-permitted action (the money was
+              // refunded at Stripe). The reconciliation nuance — that the escrow
+              // row didn't get its status flipped — lives in release_reason +
+              // metadata. NOTE: escrow_audit_log.action's CHECK only allows
+              // released/held/refunded/disputed/admin_override, so an out-of-set
+              // value like 'reconciliation_needed' silently 23514s.
+              action: 'refunded',
+              actor_id: user.id,
+              actor_role: user.role,
+              job_id: jobId,
+              amount: refundAmount / 100,
+              release_reason: 'refund_succeeded_db_update_failed',
+              is_admin_action: user.role === 'admin',
+              metadata: {
+                issue_type: 'refund_succeeded_db_update_failed',
+                status: 'pending_review',
+                refund_id: refund.id,
+                stripe_refund_status: refund.status,
+                update_error_message: updateError?.message,
+              },
+            });
+
+          if (reconciliationError) {
+            throw reconciliationError;
+          }
         } catch (reconciliationErr: unknown) {
           logger.error(
             'Failed to create refund reconciliation record',
@@ -455,11 +465,35 @@ export const POST = withApiHandler(
         );
       }
 
-      // Update job status if needed
-      await serverSupabase
+      // Update job status if needed. Stripe and escrow are already settled at
+      // this point, so a failed job update must not be reported as a clean
+      // success: it leaves the UI and downstream workflow inconsistent with
+      // the refunded payment and requires reconciliation.
+      const { data: cancelledJob, error: jobStatusError } = await serverSupabase
         .from('jobs')
         .update({ status: 'cancelled' })
-        .eq('id', jobId);
+        .eq('id', jobId)
+        .select('id')
+        .maybeSingle();
+
+      if (jobStatusError || !cancelledJob) {
+        const effectiveError =
+          jobStatusError ?? new Error('Job cancellation matched no rows');
+        logger.error(
+          'Refund succeeded but failed to cancel the associated job',
+          effectiveError,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            escrowTransactionId,
+            refundId: refund.id,
+          }
+        );
+        throw new InternalServerError(
+          'Refund succeeded but the job status could not be updated. Support must reconcile this payment.'
+        );
+      }
 
       logger.info('Refund processed successfully', {
         service: 'payments',
@@ -491,7 +525,7 @@ export const POST = withApiHandler(
       if (escrowClaimed && !refundId) {
         // Stripe did not create a refund, so release the payment claim and
         // allow a safe retry. Never do this after Stripe has returned a refund.
-        await serverSupabase
+        const { error: claimReleaseError } = await serverSupabase
           .from('escrow_transactions')
           .update({
             status: 'held',
@@ -500,6 +534,14 @@ export const POST = withApiHandler(
           })
           .eq('id', escrowTransactionId)
           .eq('status', 'release_pending');
+
+        if (claimReleaseError) {
+          logger.error(
+            'CRITICAL: Failed to release refund claim after Stripe failure',
+            claimReleaseError,
+            { service: 'payments', escrowTransactionId }
+          );
+        }
       }
 
       // Release the claim so the user can retry now instead of waiting

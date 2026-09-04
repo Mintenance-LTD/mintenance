@@ -17,7 +17,6 @@ import {
 import {
   BadRequestError,
   NotFoundError,
-  ForbiddenError,
   InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -135,8 +134,14 @@ export const GET = withApiHandler(
     const jobId = searchParams.get('jobId');
     const periodStart = searchParams.get('period_start');
     const periodEnd = searchParams.get('period_end');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const requestedLimit = Number.parseInt(searchParams.get('limit') || '50', 10);
+    const requestedOffset = Number.parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 50;
+    const offset = Number.isFinite(requestedOffset)
+      ? Math.min(Math.max(requestedOffset, 0), 100_000)
+      : 0;
 
     let query = userDb
       .from('invoices')
@@ -401,18 +406,6 @@ export const PATCH = withApiHandler(
       updateData.sent_at = new Date().toISOString();
     }
 
-    // 2026-05-23 audit-24 P2: status→paid stamps paid_date / paid_amount
-    // server-side (mobile only PATCHes {status:'paid'}; schema rejects
-    // client-supplied paid_date/amount to stop backdating).
-    const isPaidTransition =
-      existingInvoice.status !== 'paid' && validatedPatchData.status === 'paid';
-    if (isPaidTransition) {
-      updateData.paid_date = new Date().toISOString();
-      updateData.paid_amount =
-        (updateData.total_amount as number | undefined) ??
-        existingInvoice.total_amount;
-    }
-
     // 2026-05-23 audit-24 P2: `reminder:true` PATCH re-fires
     // sendInvoiceEmail + invoice_received on an already-sent invoice
     // (the transition gate above wouldn't trigger). Flag isn't a DB
@@ -448,11 +441,9 @@ export const PATCH = withApiHandler(
 
     const message = isReminderRequest
       ? 'Reminder sent'
-      : isPaidTransition
-        ? 'Invoice marked as paid'
-        : isSendTransition
-          ? 'Invoice sent successfully'
-          : 'Invoice updated successfully';
+      : isSendTransition
+        ? 'Invoice sent successfully'
+        : 'Invoice updated successfully';
     return NextResponse.json({ success: true, invoice, message });
   }
 );

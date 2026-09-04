@@ -67,9 +67,11 @@ export const GET = withApiHandler(
     // Verify user is a participant via the jobs table
     const { data: jobData, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id')
+      .select('id, homeowner_id, payer_user_id, contractor_id')
       .eq('id', jobId)
-      .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
+      .or(
+        `homeowner_id.eq.${user.id},payer_user_id.eq.${user.id},contractor_id.eq.${user.id}`
+      )
       .single();
 
     if (jobError || !jobData) {
@@ -195,7 +197,7 @@ export const POST = withApiHandler(
     // Verify job exists and user is participant
     const { data: jobData, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, title, homeowner_id, contractor_id')
+      .select('id, title, homeowner_id, payer_user_id, contractor_id')
       .eq('id', jobId)
       .single();
 
@@ -207,17 +209,29 @@ export const POST = withApiHandler(
       throw new NotFoundError('Thread not found');
     }
 
-    const isParticipant =
-      jobData.homeowner_id === user.id || jobData.contractor_id === user.id;
+    const participantIds = [
+      jobData.homeowner_id,
+      jobData.payer_user_id,
+      jobData.contractor_id,
+    ].filter((id): id is string => Boolean(id));
+    const isParticipant = participantIds.includes(user.id);
     if (!isParticipant) {
       throw new ForbiddenError('You are not a participant in this thread');
     }
 
     const receiverId =
       data.receiverId ??
-      (jobData.homeowner_id === user.id
+      (jobData.contractor_id &&
+      (jobData.homeowner_id === user.id || jobData.payer_user_id === user.id)
         ? jobData.contractor_id
         : jobData.homeowner_id);
+
+    if (
+      receiverId &&
+      (!participantIds.includes(receiverId) || receiverId === user.id)
+    ) {
+      throw new ForbiddenError('Messages may only be sent to job participants');
+    }
 
     const messageType = normalizeMessageType(data.messageType);
     const attachmentUrl = data.attachments?.[0];

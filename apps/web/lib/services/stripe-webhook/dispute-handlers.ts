@@ -28,7 +28,7 @@ export async function handleDisputeCreated(
         : dispute.payment_intent?.id;
 
     // Record dispute in disputes table
-    await serverSupabase.from('disputes').upsert(
+    const { error: disputeInsertError } = await serverSupabase.from('disputes').upsert(
       {
         stripe_dispute_id: dispute.id,
         charge_id: chargeId || null,
@@ -46,12 +46,20 @@ export async function handleDisputeCreated(
       { onConflict: 'stripe_dispute_id' }
     );
 
+    if (disputeInsertError) {
+      logger.error('Failed to record created dispute', disputeInsertError, {
+        service: 'stripe-webhook',
+        disputeId: dispute.id,
+      });
+      throw new Error('Failed to persist created dispute');
+    }
+
     // Freeze the related escrow transaction.
     // Sprint 5.6: also set release_blocked_reason and disable auto_release
     // so the ops dashboard shows a clear reason and the EscrowAutoReleaseService
     // cron skips this row even if status is later changed.
     if (paymentIntentId) {
-      const { data: escrow } = await serverSupabase
+      const { data: escrow, error: escrowError } = await serverSupabase
         .from('escrow_transactions')
         .update({
           status: 'disputed',
@@ -63,15 +71,33 @@ export async function handleDisputeCreated(
         .select('id, payer_id, payee_id, job_id')
         .single();
 
+      if (escrowError) {
+        logger.error('Failed to freeze escrow for dispute', escrowError, {
+          service: 'stripe-webhook',
+          disputeId: dispute.id,
+          paymentIntentId,
+        });
+        throw new Error('Failed to freeze escrow for dispute');
+      }
+
       if (escrow) {
         if (escrow.job_id) {
-          await serverSupabase
+          const { error: jobUpdateError } = await serverSupabase
             .from('jobs')
             .update({
               payment_status: 'disputed',
               updated_at: new Date().toISOString(),
             })
             .eq('id', escrow.job_id);
+
+          if (jobUpdateError) {
+            logger.error('Failed to mark job payment as disputed', jobUpdateError, {
+              service: 'stripe-webhook',
+              disputeId: dispute.id,
+              jobId: escrow.job_id,
+            });
+            throw new Error('Failed to persist disputed job payment status');
+          }
         }
 
         if (escrow.payer_id) {
@@ -95,10 +121,18 @@ export async function handleDisputeCreated(
     }
 
     // Notify all admins
-    const { data: admins } = await serverSupabase
+    const { data: admins, error: adminLookupError } = await serverSupabase
       .from('profiles')
       .select('id')
       .eq('role', 'admin');
+
+    if (adminLookupError) {
+      logger.error('Failed to load admins for dispute notification', adminLookupError, {
+        service: 'stripe-webhook',
+        disputeId: dispute.id,
+      });
+      throw new Error('Failed to load admins for dispute notification');
+    }
 
     if (admins) {
       const amountStr = `£${(dispute.amount / 100).toFixed(2)}`;
@@ -139,13 +173,21 @@ export async function handleDisputeUpdated(
   });
 
   try {
-    await serverSupabase
+    const { error: disputeUpdateError } = await serverSupabase
       .from('disputes')
       .update({
         status: dispute.status,
         updated_at: new Date().toISOString(),
       })
       .eq('stripe_dispute_id', dispute.id);
+
+    if (disputeUpdateError) {
+      logger.error('Failed to sync dispute status', disputeUpdateError, {
+        service: 'stripe-webhook',
+        disputeId: dispute.id,
+      });
+      throw new Error('Failed to persist dispute status');
+    }
 
     logger.info('Dispute status synced', {
       service: 'stripe-webhook',
@@ -174,7 +216,7 @@ export async function handleDisputeClosed(
   });
 
   try {
-    await serverSupabase
+    const { error: disputeCloseError } = await serverSupabase
       .from('disputes')
       .update({
         status: dispute.status,
@@ -182,6 +224,14 @@ export async function handleDisputeClosed(
         updated_at: new Date().toISOString(),
       })
       .eq('stripe_dispute_id', dispute.id);
+
+    if (disputeCloseError) {
+      logger.error('Failed to persist closed dispute status', disputeCloseError, {
+        service: 'stripe-webhook',
+        disputeId: dispute.id,
+      });
+      throw new Error('Failed to persist closed dispute status');
+    }
 
     const paymentIntentId =
       typeof dispute.payment_intent === 'string'
@@ -197,7 +247,7 @@ export async function handleDisputeClosed(
     // Sprint 5.6: clear release_blocked_reason and re-enable auto_release
     // when the dispute closes in our favour ('won' or 'warning_closed'); on
     // 'lost' the escrow is being refunded so blocking is moot.
-    const { data: escrow } = await serverSupabase
+    const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         status: newEscrowStatus,
@@ -209,14 +259,32 @@ export async function handleDisputeClosed(
       .select('id, payer_id, payee_id, job_id')
       .single();
 
+    if (escrowError) {
+      logger.error('Failed to resolve escrow for closed dispute', escrowError, {
+        service: 'stripe-webhook',
+        disputeId: dispute.id,
+        paymentIntentId,
+      });
+      throw new Error('Failed to resolve escrow for closed dispute');
+    }
+
     if (escrow?.job_id) {
-      await serverSupabase
+      const { error: jobUpdateError } = await serverSupabase
         .from('jobs')
         .update({
           payment_status: newPaymentStatus,
           updated_at: new Date().toISOString(),
         })
         .eq('id', escrow.job_id);
+
+      if (jobUpdateError) {
+        logger.error('Failed to sync closed dispute job payment status', jobUpdateError, {
+          service: 'stripe-webhook',
+          disputeId: dispute.id,
+          jobId: escrow.job_id,
+        });
+        throw new Error('Failed to persist closed dispute job payment status');
+      }
     }
 
     const outcomeMsg = isLost

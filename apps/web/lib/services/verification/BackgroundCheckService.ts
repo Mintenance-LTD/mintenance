@@ -9,6 +9,8 @@ type BackgroundCheckStatus =
   | 'not_required';
 type BackgroundCheckProvider = 'checkr' | 'goodhire' | 'sterling' | 'custom';
 
+const BACKGROUND_CHECK_REQUEST_TIMEOUT_MS = 10_000;
+
 /**
  * Background check result data structure
  */
@@ -63,7 +65,9 @@ export class BackgroundCheckService {
       // Get user data
       const { data: user, error: userError } = await serverSupabase
         .from('profiles')
-        .select('id, first_name, last_name, email, phone, role')
+        .select(
+          'id, first_name, last_name, email, phone, role, background_check_status, background_check_id'
+        )
         .eq('id', userId)
         .single();
 
@@ -81,6 +85,16 @@ export class BackgroundCheckService {
           success: false,
           error: 'Background checks are only available for contractors',
         };
+      }
+
+      // A retry after a successful provider call must not create a second
+      // screening. Return the existing provider ID while it is in progress.
+      if (
+        user.background_check_status === 'in_progress' &&
+        typeof user.background_check_id === 'string' &&
+        user.background_check_id.length > 0
+      ) {
+        return { success: true, checkId: user.background_check_id };
       }
 
       // Update status to in_progress
@@ -115,8 +129,9 @@ export class BackgroundCheckService {
             checkId = await this.initiateSterlingCheck(user);
             break;
           default:
-            // Custom/placeholder implementation
-            checkId = await this.initiateCustomCheck(user);
+            // Never report a synthetic ID as a real background check. A
+            // provider must have contacted an external screening service.
+            throw new Error('Background check provider is not configured');
         }
       } catch (providerError) {
         logger.error('Background check provider error', providerError, {
@@ -135,13 +150,34 @@ export class BackgroundCheckService {
         };
       }
 
-      // Store check ID
-      await serverSupabase
+      // Store check ID. A provider call without a durable ID cannot be
+      // reconciled by webhook/polling, so fail closed and reset the status.
+      const { error: checkIdError } = await serverSupabase
         .from('profiles')
         .update({
           background_check_id: checkId,
         })
         .eq('id', userId);
+
+      if (checkIdError) {
+        logger.error('Failed to persist background check ID', {
+          service: 'BackgroundCheckService',
+          userId,
+          provider,
+          error: checkIdError.message,
+        });
+        await serverSupabase
+          .from('profiles')
+          .update({
+            background_check_status: 'pending',
+            background_check_id: null,
+          })
+          .eq('id', userId);
+        return {
+          success: false,
+          error: 'Failed to persist background check status',
+        };
+      }
 
       logger.info('Background check initiated', {
         service: 'BackgroundCheckService',
@@ -183,6 +219,7 @@ export class BackgroundCheckService {
         Authorization: `Basic ${Buffer.from(checkrApiKey + ':').toString('base64')}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(BACKGROUND_CHECK_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
         first_name: user.first_name,
         last_name: user.last_name,
@@ -197,6 +234,9 @@ export class BackgroundCheckService {
     }
 
     const data = await response.json();
+    if (!data || typeof data.id !== 'string' || data.id.length === 0) {
+      throw new Error('Checkr returned no check ID');
+    }
     return data.id;
   }
 
@@ -223,6 +263,7 @@ export class BackgroundCheckService {
         Authorization: `Bearer ${goodHireApiKey}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(BACKGROUND_CHECK_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
         first_name: user.first_name,
         last_name: user.last_name,
@@ -237,6 +278,9 @@ export class BackgroundCheckService {
     }
 
     const data = await response.json();
+    if (!data || typeof data.id !== 'string' || data.id.length === 0) {
+      throw new Error('GoodHire returned no check ID');
+    }
     return data.id;
   }
 
@@ -265,6 +309,7 @@ export class BackgroundCheckService {
           Authorization: `Bearer ${sterlingApiKey}`,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(BACKGROUND_CHECK_REQUEST_TIMEOUT_MS),
         body: JSON.stringify({
           first_name: user.first_name,
           last_name: user.last_name,
@@ -280,20 +325,10 @@ export class BackgroundCheckService {
     }
 
     const data = await response.json();
+    if (!data || typeof data.id !== 'string' || data.id.length === 0) {
+      throw new Error('Sterling returned no check ID');
+    }
     return data.id;
-  }
-
-  /**
-   * Custom/placeholder implementation
-   */
-  private static async initiateCustomCheck(user: {
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone?: string;
-  }): Promise<string> {
-    // For development/testing
-    return `custom_${Date.now()}`;
   }
 
   /**

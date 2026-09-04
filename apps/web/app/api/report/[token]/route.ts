@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -18,6 +19,20 @@ const VALID_CATEGORIES = [
   'fire_safety',
   'general',
 ] as const;
+
+const reportSchema = z.object({
+  reporter_name: z.string().trim().min(2).max(200),
+  reporter_phone: z.string().trim().max(50).optional().nullable(),
+  reporter_email: z.string().trim().email().max(254).optional().nullable(),
+  reporter_unit: z.string().trim().max(120).optional().nullable(),
+  category: z.string().max(40).optional(),
+  description: z.string().trim().min(10).max(5000),
+  urgency: z.string().max(20).optional(),
+  // Keep photo references bounded and textual. The reporting form receives
+  // storage URLs, while the token endpoint must not accept arbitrarily large
+  // arrays or strings that can amplify database/storage work.
+  photos: z.array(z.string().max(2048)).max(5).optional().nullable(),
+});
 
 // POST /api/report/[token] - Submit anonymous maintenance report (public, no auth)
 export const POST = withApiHandler(
@@ -63,7 +78,19 @@ export const POST = withApiHandler(
       );
     }
 
-    const body = await req.json();
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const parsedBody = reportSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { error: 'Invalid report data' },
+        { status: 400 }
+      );
+    }
     const {
       reporter_name,
       reporter_phone,
@@ -73,34 +100,13 @@ export const POST = withApiHandler(
       description,
       urgency,
       photos,
-    } = body;
+    } = parsedBody.data;
 
-    // Validate required fields
-    if (
-      !reporter_name ||
-      typeof reporter_name !== 'string' ||
-      reporter_name.trim().length < 2
-    ) {
-      return NextResponse.json(
-        { error: 'A valid name is required' },
-        { status: 400 }
-      );
-    }
-
-    if (
-      !description ||
-      typeof description !== 'string' ||
-      description.trim().length < 10
-    ) {
-      return NextResponse.json(
-        { error: 'Please provide a description (at least 10 characters)' },
-        { status: 400 }
-      );
-    }
-
-    const safeCategory = VALID_CATEGORIES.includes(category)
-      ? category
-      : 'general';
+    const safeCategory: (typeof VALID_CATEGORIES)[number] =
+      category &&
+      VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
+        ? (category as (typeof VALID_CATEGORIES)[number])
+        : 'general';
     // 2026-05-23 audit: live anonymous_reports.urgency CHECK is
     // (low | medium | high | emergency). The previous allowlist
     // accepted 'urgent' — which then passed through to the insert
@@ -108,8 +114,9 @@ export const POST = withApiHandler(
     // 'emergency'; we still coerce a stray 'urgent' (older mobile
     // clients) into 'emergency' rather than dropping the report.
     const VALID_URGENCY = new Set(['low', 'medium', 'high', 'emergency']);
-    const safeUrgency = VALID_URGENCY.has(urgency)
-      ? urgency
+    const safeUrgency: 'low' | 'medium' | 'high' | 'emergency' =
+      VALID_URGENCY.has(urgency ?? '')
+      ? (urgency as 'low' | 'medium' | 'high' | 'emergency')
       : urgency === 'urgent'
         ? 'emergency'
         : 'medium';

@@ -106,10 +106,11 @@ vi.mock('@/lib/errors/api-error', async (importOriginal) => {
   return actual;
 });
 
-// The refresh route hardcodes __Host- prefixed cookie names
-const AUTH_COOKIE = '__Host-mintenance-auth';
-const REFRESH_COOKIE = '__Host-mintenance-refresh';
-const REMEMBER_COOKIE = '__Host-mintenance-remember';
+// Vitest runs with NODE_ENV=test, so the route uses the non-production names.
+// Production adds the __Host- prefix.
+const AUTH_COOKIE = 'mintenance-auth';
+const REFRESH_COOKIE = 'mintenance-refresh';
+const REMEMBER_COOKIE = 'mintenance-remember';
 
 describe('POST /api/auth/refresh', () => {
   beforeEach(() => {

@@ -10,7 +10,7 @@
  * Stripe refund success, escrow DB update with retry, job cancellation,
  * idempotency result storage.
  */
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -152,12 +152,10 @@ vi.mock('@/lib/errors/api-error', async () => {
     RateLimitError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
-        const { NextResponse } = require('next/server');
         return NextResponse.json(error.toResponse(), {
           status: error.statusCode,
         });
       }
-      const { NextResponse } = require('next/server');
       return NextResponse.json(
         {
           error: {
@@ -287,7 +285,14 @@ function setupRefundMocks(
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: null }),
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'job-1' },
+                error: null,
+              }),
+            }),
+          }),
         }),
       };
     }
@@ -302,12 +307,20 @@ function setupRefundMocks(
         }),
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: escrowUpdateError
-                  ? null
-                  : { ...escrowResult.data, status: 'refunded' },
-                error: escrowUpdateError,
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: escrowUpdateError
+                    ? null
+                    : { ...escrowResult.data, status: 'refunded' },
+                  error: escrowUpdateError,
+                }),
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: escrowUpdateError
+                    ? null
+                    : { id: 'escrow-1' },
+                  error: escrowUpdateError,
+                }),
               }),
             }),
           }),
@@ -470,6 +483,37 @@ describe('POST /api/payments/refund', () => {
     const res = await POST(req, segmentData());
     // Contractor is on the job (passes first ownership check) but not homeowner -> 403
     expect(res.status).toBe(403);
+  });
+
+  it('should allow the designated payer to request a refund', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupRefundMocks({
+      jobData: {
+        id: 'job-1',
+        homeowner_id: 'homeowner-1',
+        payer_user_id: 'payer-1',
+        contractor_id: 'contractor-1',
+        status: 'cancelled',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
+    const res = await POST(req, segmentData());
+
+    expect(res.status).toBe(200);
+    expect(mocks.stripeRefundsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ requestedBy: 'payer-1' }),
+      }),
+      expect.anything()
+    );
   });
 
   // ---- Non-refundable job status ----

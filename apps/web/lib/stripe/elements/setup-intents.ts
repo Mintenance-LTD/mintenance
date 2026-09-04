@@ -47,6 +47,13 @@ async function ensureStripeCustomer(
     email,
     name,
     metadata: { mintenance_user_id: userId },
+  }, {
+    // Concurrent setup-intent requests must converge on one customer. Use a
+    // separate key for stale-customer recovery so it can create a replacement
+    // rather than replaying the original customer creation.
+    idempotencyKey: forceNew
+      ? `stripe_customer_recovery_${userId}`
+      : `stripe_customer_${userId}`,
   });
 
   const { error: updateError } = await serverSupabase
@@ -142,7 +149,7 @@ export async function handleSetupIntentSucceeded(params: {
   userId: string;
 }): Promise<void> {
   // Update intent tracking row
-  await serverSupabase
+  const { error: trackingError } = await serverSupabase
     .from('stripe_setup_intents')
     .update({
       status: 'succeeded',
@@ -151,13 +158,27 @@ export async function handleSetupIntentSucceeded(params: {
     })
     .eq('stripe_setup_intent_id', params.setupIntentId);
 
+  if (trackingError) {
+    logger.error('Failed to persist SetupIntent success', trackingError, {
+      service: 'stripe-elements',
+      setupIntentId: params.setupIntentId,
+      userId: params.userId,
+    });
+    throw new Error('Failed to persist SetupIntent success');
+  }
+
   // Fetch payment method details from Stripe
   const pm = await stripe.paymentMethods.retrieve(params.paymentMethodId);
 
+  // `payment_methods.type` is an application-level enum (`card` or
+  // `bank_account`), while Stripe names UK Direct Debit as `bacs_debit`.
+  // Persisting the Stripe value verbatim violates the live CHECK constraint
+  // and makes an otherwise successful SetupIntent webhook fail permanently.
+  const localType = pm.type === 'bacs_debit' ? 'bank_account' : pm.type;
   const row: Record<string, unknown> = {
     user_id: params.userId,
     stripe_payment_method_id: pm.id,
-    type: pm.type,
+    type: localType,
     is_default: false,
   };
 
@@ -171,7 +192,20 @@ export async function handleSetupIntentSucceeded(params: {
     row.brand = 'bacs_debit';
   }
 
-  await serverSupabase.from('payment_methods').insert(row);
+  const { error: paymentMethodError } = await serverSupabase
+    .from('payment_methods')
+    .insert(row);
+
+  if (paymentMethodError) {
+    logger.error('Failed to persist attached payment method', paymentMethodError, {
+      service: 'stripe-elements',
+      userId: params.userId,
+      paymentMethodId: pm.id,
+    });
+    // Throw so the webhook handler returns a non-2xx response and Stripe can
+    // retry instead of acknowledging a card that the app failed to record.
+    throw new Error('Failed to persist attached payment method');
+  }
 
   logger.info('Payment method attached', {
     service: 'stripe-elements',

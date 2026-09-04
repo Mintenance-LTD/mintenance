@@ -55,12 +55,26 @@ export const POST = withApiHandler(
 
     // Parse form data
     const formData = await request.formData();
-    let photoFiles = formData.getAll('photos') as File[];
+    let photoFiles = formData
+      .getAll('photos')
+      .filter(
+        (value): value is File =>
+          typeof value === 'object' &&
+          value !== null &&
+          'size' in value &&
+          'arrayBuffer' in value
+      );
 
     // Backward compatibility: mobile clients may send as 'file' (singular)
     if (photoFiles.length === 0) {
-      const singleFile = formData.get('file') as File | null;
-      if (singleFile) {
+      const rawSingleFile = formData.get('file');
+      if (
+        typeof rawSingleFile === 'object' &&
+        rawSingleFile !== null &&
+        'size' in rawSingleFile &&
+        'arrayBuffer' in rawSingleFile
+      ) {
+        const singleFile = rawSingleFile;
         photoFiles = [singleFile];
       }
     }
@@ -78,7 +92,8 @@ export const POST = withApiHandler(
     // (which bypasses RLS), so without this check any authenticated user could
     // write files into any job's storage prefix. When a job_id is supplied it
     // must be a syntactically valid UUID (rejected before it can reach the DB)
-    // and the caller must be that job's homeowner or assigned contractor
+    // and the caller must be that job's homeowner, designated payer, or
+    // assigned contractor
     // (admins exempt). job_id is normally absent here — photos are uploaded
     // pre-creation and attached when the job is POSTed.
     let jobId: string | null = null;
@@ -92,7 +107,7 @@ export const POST = withApiHandler(
 
       const { data: jobRow, error: jobLookupError } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, contractor_id')
+        .select('id, homeowner_id, payer_user_id, contractor_id')
         .eq('id', rawJobId)
         .single();
 
@@ -107,7 +122,9 @@ export const POST = withApiHandler(
       }
 
       const isParticipant =
-        jobRow.homeowner_id === user.id || jobRow.contractor_id === user.id;
+        jobRow.homeowner_id === user.id ||
+        jobRow.payer_user_id === user.id ||
+        jobRow.contractor_id === user.id;
       if (!isParticipant && user.role !== 'admin') {
         throw new ForbiddenError('You do not have access to this job');
       }
@@ -219,6 +236,16 @@ export const POST = withApiHandler(
             userId: user.id,
           }
         );
+        const { error: cleanupError } = await serverSupabase.storage
+          .from('Job-storage')
+          .remove([fileName]);
+        if (cleanupError) {
+          logger.error('Failed to clean up unsigned job photo', cleanupError, {
+            service: 'jobs',
+            fileName,
+            userId: user.id,
+          });
+        }
         failedFiles.push(file.name);
       }
     }

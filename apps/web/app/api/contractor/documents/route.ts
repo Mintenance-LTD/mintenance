@@ -1,7 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { validateDocumentUpload } from '@/lib/utils/fileValidation';
+import { z } from 'zod';
+
+const DOCUMENT_CATEGORIES = [
+  'contracts',
+  'photos',
+  'certifications',
+  'insurance',
+  'receipts',
+  'templates',
+  'other',
+] as const;
+
+const documentMetadataSchema = z
+  .object({
+    id: z.string().uuid('Invalid document ID'),
+    starred: z.boolean().optional(),
+    tags: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+    category: z.enum(DOCUMENT_CATEGORIES).optional(),
+  })
+  .strict();
 
 /**
  * GET /api/contractor/documents
@@ -115,40 +136,65 @@ export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (req, { user }) => {
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const category = (formData.get('category') as string) || 'other';
-    const jobId = formData.get('job_id') as string | null;
-    const tags = formData.get('tags') as string | null;
-    const verificationType = formData.get('verification_type') as string | null;
+    const rawFile = formData.get('file');
+    const file =
+      typeof rawFile === 'object' &&
+      rawFile !== null &&
+      'size' in rawFile &&
+      'arrayBuffer' in rawFile
+        ? rawFile
+        : null;
+    const getString = (key: string): string | null => {
+      const value = formData.get(key);
+      return typeof value === 'string' ? value : null;
+    };
+    const category = getString('category') || 'other';
+    const jobId = getString('job_id');
+    const tags = getString('tags');
+    const verificationType = getString('verification_type');
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file size (max 20MB)
-    if (file.size > 20 * 1024 * 1024) {
+    // Validate the content signature, not the client-controlled MIME type or
+    // extension. The bucket is private, but both contractors and admins later
+    // download these files, so unknown bytes must not enter document storage.
+    const validation = await validateDocumentUpload(file);
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 20MB.' },
+        { error: validation.error || 'Unsupported or invalid document file.' },
         { status: 400 }
       );
     }
 
     // Validate category
-    const validCategories = [
-      'contracts',
-      'photos',
-      'certifications',
-      'insurance',
-      'receipts',
-      'templates',
-      'other',
-    ];
-    if (!validCategories.includes(category)) {
+    if (!DOCUMENT_CATEGORIES.includes(category as (typeof DOCUMENT_CATEGORIES)[number])) {
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
     }
 
+    // A service-role client is used for storage and persistence, so enforce
+    // the job relationship explicitly before accepting a job-linked file.
+    // Without this check, any contractor could attach a document to another
+    // contractor's job by submitting that job UUID.
+    if (jobId) {
+      const { data: ownedJob, error: jobLookupError } = await serverSupabase
+        .from('jobs')
+        .select('id')
+        .eq('id', jobId)
+        .eq('contractor_id', user.id)
+        .maybeSingle();
+
+      if (jobLookupError || !ownedJob) {
+        return NextResponse.json(
+          { error: 'Job not found or not assigned to this contractor' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Extract file extension
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+    const ext = validation.detectedType?.split('/')[1] || 'bin';
     const safeFileName = `${user.id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
     // Upload to Supabase Storage
@@ -159,7 +205,7 @@ export const POST = withApiHandler(
       await serverSupabase.storage
         .from('contractor-documents')
         .upload(safeFileName, buffer, {
-          contentType: file.type,
+          contentType: validation.detectedType,
           upsert: false,
         });
 
@@ -248,6 +294,10 @@ export const DELETE = withApiHandler(
 
       if (storageError) {
         logger.error('Failed to delete document from storage', storageError);
+        return NextResponse.json(
+          { error: 'Failed to delete document' },
+          { status: 500 }
+        );
       }
     }
 
@@ -277,15 +327,14 @@ export const DELETE = withApiHandler(
 export const PATCH = withApiHandler(
   { roles: ['contractor'] },
   async (req, { user }) => {
-    const body = await req.json();
-    const { id, starred, tags, category } = body;
-
-    if (!id) {
+    const parsed = documentMetadataSchema.safeParse(await req.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Document ID required' },
+        { error: parsed.error.issues[0]?.message || 'Invalid document metadata' },
         { status: 400 }
       );
     }
+    const { id, starred, tags, category } = parsed.data;
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),

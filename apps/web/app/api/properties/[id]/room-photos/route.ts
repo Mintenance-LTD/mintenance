@@ -4,18 +4,24 @@ import { signJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
+import { validateImageUpload } from '@/lib/utils/fileValidation';
 
 const supabase = serverSupabase;
 
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES_PER_UPLOAD = 10;
+
+async function removeUploadedObject(path: string, userId: string) {
+  const { error } = await supabase.storage.from('Job-storage').remove([path]);
+  if (error) {
+    logger.error('Failed to clean up orphaned room photo', error, {
+      service: 'room_photos',
+      userId,
+      path,
+    });
+  }
+}
 
 const VALID_ROOM_TYPES = [
   'kitchen',
@@ -33,7 +39,12 @@ const VALID_ROOM_TYPES = [
   'other',
 ] as const;
 
-async function verifyPropertyOwnership(propertyId: string, userId: string) {
+async function verifyPropertyAccess(
+  propertyId: string,
+  userId: string,
+  permission: 'view' | 'edit',
+  isAdmin: boolean
+) {
   const { data: property, error } = await supabase
     .from('properties')
     .select('id, owner_id')
@@ -43,8 +54,13 @@ async function verifyPropertyOwnership(propertyId: string, userId: string) {
   if (error || !property) {
     throw new NotFoundError('Property not found');
   }
-  if (property.owner_id !== userId) {
-    throw new ForbiddenError('You do not own this property');
+  const { authorized } = await PropertyTeamService.authorize(
+    userId,
+    propertyId,
+    permission
+  );
+  if (!authorized && !isAdmin) {
+    throw new ForbiddenError('You do not have access to this property');
   }
   return property;
 }
@@ -57,7 +73,12 @@ export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (_request, { user, params }) => {
     const propertyId = (await params).id as string;
-    await verifyPropertyOwnership(propertyId, user.id);
+    await verifyPropertyAccess(
+      propertyId,
+      user.id,
+      'view',
+      user.role === 'admin'
+    );
 
     const { data, error } = await supabase
       .from('property_room_photos')
@@ -77,14 +98,25 @@ export const GET = withApiHandler(
       );
     }
 
+    // Refresh from the persisted object path rather than returning an old
+    // signed URL. Room-photo rows retain `storage_path`, so this remains
+    // reliable after the original URL expires or the bucket is private.
+    const freshPhotos = await Promise.all(
+      (data || []).map(async (photo) => ({
+        ...photo,
+        photo_url:
+          (await signJobStoragePath(photo.storage_path)) ?? photo.photo_url,
+      }))
+    );
+
     // Group by room_type
     const grouped: Record<string, typeof data> = {};
-    for (const photo of data || []) {
+    for (const photo of freshPhotos) {
       if (!grouped[photo.room_type]) grouped[photo.room_type] = [];
       grouped[photo.room_type].push(photo);
     }
 
-    return NextResponse.json({ photos: data || [], grouped });
+    return NextResponse.json({ photos: freshPhotos, grouped });
   }
 );
 
@@ -96,10 +128,23 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'], rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     const propertyId = (await params).id as string;
-    await verifyPropertyOwnership(propertyId, user.id);
+    await verifyPropertyAccess(
+      propertyId,
+      user.id,
+      'edit',
+      user.role === 'admin'
+    );
 
     const formData = await request.formData();
-    const photoFiles = formData.getAll('photos') as File[];
+    const photoFiles = formData
+      .getAll('photos')
+      .filter(
+        (value): value is File =>
+          typeof value === 'object' &&
+          value !== null &&
+          'size' in value &&
+          'arrayBuffer' in value
+      );
     const roomType = formData.get('room_type') as string;
 
     if (
@@ -131,20 +176,15 @@ export const POST = withApiHandler(
     const errors: string[] = [];
 
     for (const file of photoFiles) {
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        errors.push(`${file.name}: Invalid file type`);
-        continue;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name}: File too large (max 5MB)`);
+      // Validate magic bytes and extension together; client-declared MIME
+      // types are forgeable and must not decide what gets stored.
+      const validation = await validateImageUpload(file, MAX_FILE_SIZE);
+      if (!validation.valid || !validation.detectedType) {
+        errors.push(`${file.name}: ${validation.error || 'Invalid image file'}`);
         continue;
       }
 
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-      if (!ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        errors.push(`${file.name}: Invalid extension`);
-        continue;
-      }
+      const fileExt = validation.detectedType.split('/')[1] || 'jpg';
 
       const sanitizedName = file.name
         .replace(/[^a-zA-Z0-9.-]/g, '_')
@@ -155,7 +195,11 @@ export const POST = withApiHandler(
 
       const { error: uploadError } = await supabase.storage
         .from('Job-storage')
-        .upload(storagePath, file, { cacheControl: '3600', upsert: false });
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: validation.detectedType,
+        });
 
       if (uploadError) {
         logger.error('Room photo upload error', uploadError, {
@@ -168,7 +212,12 @@ export const POST = withApiHandler(
 
       // Phase 2 storage hardening: issue a signed URL instead of a public URL
       // so the photo stays reachable once `Job-storage` flips to private.
-      const photoUrl = (await signJobStoragePath(storagePath)) ?? '';
+      const photoUrl = await signJobStoragePath(storagePath);
+      if (!photoUrl) {
+        await removeUploadedObject(storagePath, user.id);
+        errors.push(`${file.name}: Failed to sign URL`);
+        continue;
+      }
 
       const { data: row, error: insertError } = await supabase
         .from('property_room_photos')
@@ -179,7 +228,7 @@ export const POST = withApiHandler(
           photo_url: photoUrl,
           file_name: file.name,
           file_size: file.size,
-          mime_type: file.type,
+        mime_type: validation.detectedType,
           uploaded_by: user.id,
         })
         .select('id, photo_url, room_type')
@@ -189,6 +238,7 @@ export const POST = withApiHandler(
         logger.error('Room photo insert error', insertError, {
           service: 'room_photos',
         });
+        await removeUploadedObject(storagePath, user.id);
         errors.push(`${file.name}: Failed to save metadata`);
         continue;
       }
@@ -220,7 +270,12 @@ export const DELETE = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (request, { user, params }) => {
     const propertyId = (await params).id as string;
-    await verifyPropertyOwnership(propertyId, user.id);
+    await verifyPropertyAccess(
+      propertyId,
+      user.id,
+      'edit',
+      user.role === 'admin'
+    );
 
     const { searchParams } = new URL(request.url);
     const photoId = searchParams.get('photoId');
@@ -250,10 +305,14 @@ export const DELETE = withApiHandler(
       .remove([photo.storage_path]);
 
     if (storageError) {
-      logger.warn('Failed to delete room photo from storage', {
+      logger.error('Failed to delete room photo from storage', storageError, {
         service: 'room_photos',
         path: photo.storage_path,
       });
+      return NextResponse.json(
+        { error: 'Failed to delete photo from storage. Please try again.' },
+        { status: 502 }
+      );
     }
 
     // Delete from DB

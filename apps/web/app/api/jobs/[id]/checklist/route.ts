@@ -39,17 +39,18 @@ async function assertJobAccess(
   request: NextRequest,
   jobId: string,
   userId: string
-): Promise<'homeowner' | 'contractor'> {
+): Promise<'homeowner' | 'payer' | 'contractor'> {
   const db = createRequestScopedClient(request) ?? serverSupabase;
   const { data: job, error } = await db
     .from('jobs')
-    .select('id, homeowner_id, contractor_id')
+    .select('id, homeowner_id, payer_user_id, contractor_id')
     .eq('id', jobId)
     .single();
   if (error || !job) {
     throw new NotFoundError('Job not found');
   }
   if (job.homeowner_id === userId) return 'homeowner';
+  if (job.payer_user_id === userId) return 'payer';
   if (job.contractor_id === userId) return 'contractor';
   throw new ForbiddenError('Not a participant on this job');
 }
@@ -86,7 +87,7 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     const role = await assertJobAccess(request, params.id, user.id);
-    if (role !== 'homeowner') {
+    if (role !== 'homeowner' && role !== 'payer') {
       throw new ForbiddenError('Only the homeowner can add checklist items');
     }
 

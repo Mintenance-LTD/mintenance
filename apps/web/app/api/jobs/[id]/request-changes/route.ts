@@ -16,6 +16,7 @@ import {
   BadRequestError,
   ForbiddenError,
   ConflictError,
+  InternalServerError,
 } from '@/lib/errors/api-error';
 import {
   getIdempotencyKeyFromRequest,
@@ -86,10 +87,10 @@ export const POST = withApiHandler(
     }
 
     return await releaseOnError(idempotencyKey, 'request_changes', async () => {
-      // 1. Fetch job and verify ownership
+      // 1. Fetch job and verify designated-payer access
       const { data: job, error } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, contractor_id, title, status')
+        .select('id, homeowner_id, payer_user_id, contractor_id, title, status')
         .eq('id', jobId)
         .single();
 
@@ -97,8 +98,13 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
-      if (job.homeowner_id !== user.id) {
-        throw new ForbiddenError('Only the homeowner can request changes');
+      const isDesignatedPayer =
+        job.payer_user_id === user.id ||
+        (!job.payer_user_id && job.homeowner_id === user.id);
+      if (!isDesignatedPayer) {
+        throw new ForbiddenError(
+          'Only the homeowner or designated payer can request changes'
+        );
       }
 
       if (job.status !== JOB_STATUS.COMPLETED) {
@@ -129,7 +135,9 @@ export const POST = withApiHandler(
         );
       }
 
-      // 2. Roll back job status to in_progress so contractor can re-do work.
+      // 2. Reset escrow approval before reopening the job. If this mutation
+      // fails, leave the completed job untouched so an approved auto-release
+      // state cannot be hidden behind a rework state.
       //
       // Audit P1 (2026-05-10): also reset `completion_confirmed_by_homeowner`.
       // Without this, a homeowner who confirmed completion and later requested
@@ -142,16 +150,35 @@ export const POST = withApiHandler(
       // fields directly so we must reset those here too, otherwise the
       // cron would happily release funds during a rework cycle.
       //
-      // Note: This is a special business rule — homeowner requesting changes
-      // bypasses the normal terminal state restriction on 'completed' jobs.
-      // 2026-05-26 audit-52 P3: also clear completion_confirmed_at.
-      // confirm-completion stamps that timestamp when the homeowner
-      // approves; without clearing it on a rework cycle, the row keeps
-      // an "approved at 2026-05-25" marker while
-      // completion_confirmed_by_homeowner reverts to false, leaving a
-      // confusing audit state where the boolean and timestamp
-      // disagree. Live `jobs` has all three columns (verified 2026-05-26
-      // via information_schema).
+      // 2026-05-26 audit-52: also clear completion_confirmed_at so the
+      // boolean and timestamp do not disagree after a rework cycle.
+      const { data: resetRows, error: escrowResetErr } = await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          homeowner_approval: false,
+          homeowner_approval_at: null,
+          homeowner_inspection_completed: false,
+          homeowner_inspection_at: null,
+          auto_release_date: null,
+          release_reason: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', escrow.id)
+        .eq('status', 'held')
+        .select('id');
+      if (escrowResetErr || !resetRows || resetRows.length === 0) {
+        const effectiveError =
+          escrowResetErr ?? new Error('Escrow reset matched no rows');
+        logger.error('Failed to reset escrow approval fields on rework', effectiveError, {
+          service: 'jobs',
+          jobId,
+          escrowId: escrow.id,
+        });
+        throw new InternalServerError('Could not prepare payment for rework');
+      }
+
+      // 3. Reopen the job only after the escrow is no longer approved.
+      // Homeowner requesting changes bypasses the normal terminal-state rule.
       const { data: reopenedRows, error: updateError } = await serverSupabase
         .from('jobs')
         .update({
@@ -166,12 +193,12 @@ export const POST = withApiHandler(
         .select('id');
 
       if (updateError) {
-        logger.error('Failed to roll back job status', {
+        logger.error('Failed to roll back job status', updateError, {
           service: 'jobs',
           jobId,
-          error: updateError.message,
+          escrowId: escrow.id,
         });
-        throw new Error('Failed to process change request');
+        throw new InternalServerError('Failed to process change request');
       }
 
       if (!reopenedRows || reopenedRows.length === 0) {
@@ -180,33 +207,7 @@ export const POST = withApiHandler(
         );
       }
 
-      // 2b. Reset escrow homeowner-approval + auto-release fields. Best-
-      // effort: a failure here is non-fatal (the job is already back to
-      // in_progress and the cron's risk evaluator would normally re-defer
-      // a release on an in_progress job, but the defence-in-depth reset
-      // closes the race window).
-      const { error: escrowResetErr } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          homeowner_approval: false,
-          homeowner_approval_at: null,
-          homeowner_inspection_completed: false,
-          homeowner_inspection_at: null,
-          auto_release_date: null,
-          release_reason: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('job_id', jobId)
-        .eq('status', 'held');
-      if (escrowResetErr) {
-        logger.warn('Failed to reset escrow approval fields on rework', {
-          service: 'jobs',
-          jobId,
-          error: escrowResetErr.message,
-        });
-      }
-
-      // 3. Notify contractor.
+      // 4. Notify contractor.
       //
       // Audit P2 (2026-05-10): capture the notification id so we can flip
       // `email_sent = true` after the email provider accepts the message.

@@ -25,7 +25,7 @@ function buildChain(overrides?: {
   singleData?: unknown;
   singleError?: unknown;
 }) {
-  const chain: Record<string, any> = {};
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   for (const m of [
     'select',
     'insert',
@@ -138,6 +138,7 @@ describe('handlePaymentIntentSucceeded', () => {
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
         payer_id: VALID_UUID,
         payee_id: VALID_UUID_2,
       },
@@ -162,11 +163,35 @@ describe('handlePaymentIntentSucceeded', () => {
     );
   });
 
+  it('reconciles invoice payment and invoice status from webhook metadata', async () => {
+    const pi = makePaymentIntent({ metadata: { invoice_id: VALID_UUID } });
+
+    await handlePaymentIntentSucceeded(pi, mockNotify);
+
+    expect(mockFrom).toHaveBeenCalledWith('payments');
+    expect(mockFrom).toHaveBeenCalledWith('invoices');
+    const chain = mockFrom.mock.results[0].value;
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'completed',
+        processed_at: expect.any(String),
+      })
+    );
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'paid',
+        paid_amount: 50,
+        paid_date: expect.any(String),
+      })
+    );
+  });
+
   it('backfills payer/payee when missing and metadata contains valid UUIDs', async () => {
     const chain = buildChain({
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
         payer_id: null,
         payee_id: null,
       },
@@ -184,11 +209,42 @@ describe('handlePaymentIntentSucceeded', () => {
     );
   });
 
+  it('prefers delegated payer metadata over the homeowner metadata', async () => {
+    const delegatedPayerId = 'e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b';
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        payer_id: null,
+        payee_id: null,
+      },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    const pi = makePaymentIntent({
+      metadata: {
+        homeownerId: VALID_UUID,
+        payerId: delegatedPayerId,
+        contractorId: VALID_UUID_2,
+      },
+    });
+    await handlePaymentIntentSucceeded(pi, mockNotify);
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payer_id: delegatedPayerId,
+        payee_id: VALID_UUID_2,
+      })
+    );
+  });
+
   it('warns on invalid UUID in metadata', async () => {
     const chain = buildChain({
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
         payer_id: null,
         payee_id: null,
       },
@@ -275,8 +331,12 @@ describe('handlePaymentIntentFailed', () => {
 
   it('uses metadata jobId when escrow has no job_id', async () => {
     const chain = buildChain({
-      singleData: null,
-      singleError: { message: 'err' },
+      singleData: {
+        id: ESCROW_ID,
+        job_id: null,
+        payer_id: VALID_UUID,
+        status: 'pending',
+      },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -340,6 +400,8 @@ describe('handleChargeRefunded', () => {
       singleData: {
         id: ESCROW_ID,
         job_id: JOB_ID,
+        amount: 50,
+        status: 'held',
         payer_id: VALID_UUID,
         payee_id: VALID_UUID_2,
       },
@@ -361,21 +423,92 @@ describe('handleChargeRefunded', () => {
   });
 
   it('notifies both payer and payee', async () => {
-    const charge = makeCharge({ amount_refunded: 10000 });
+    const charge = makeCharge({ amount_refunded: 2500 });
     await handleChargeRefunded(charge, mockNotify);
 
     expect(mockNotify).toHaveBeenCalledTimes(2);
     expect(mockNotify).toHaveBeenCalledWith(
       VALID_UUID,
       'Refund Processed',
-      expect.stringContaining('£100.00'),
+      expect.stringContaining('£25.00'),
       'refund_processed'
     );
     expect(mockNotify).toHaveBeenCalledWith(
       VALID_UUID_2,
       'Payment Refunded',
-      expect.stringContaining('£100.00'),
+      expect.stringContaining('£25.00'),
       'payment_refunded'
+    );
+  });
+
+  it('does not close the escrow for a partial cumulative refund', async () => {
+    const charge = makeCharge({ amount_refunded: 2500 });
+    await handleChargeRefunded(charge, mockNotify);
+
+    const chain = mockFrom.mock.results[0].value;
+    expect(chain.update).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
+  });
+
+  it('marks a pending escrow refunded so a late success cannot resurrect it', async () => {
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        status: 'pending',
+        payer_id: VALID_UUID,
+        payee_id: VALID_UUID_2,
+      },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    await handleChargeRefunded(makeCharge(), mockNotify);
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'refunded' })
+    );
+  });
+
+  it('records the refund when escrow finalization fails for reconciliation', async () => {
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        status: 'held',
+        payer_id: VALID_UUID,
+        payee_id: VALID_UUID_2,
+      },
+    });
+    chain.maybeSingle
+      .mockResolvedValueOnce({
+        data: {
+          id: ESCROW_ID,
+          job_id: JOB_ID,
+          amount: 50,
+          status: 'held',
+          payer_id: VALID_UUID,
+          payee_id: VALID_UUID_2,
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: new Error('escrow update unavailable'),
+      });
+    mockFrom.mockReturnValue(chain);
+
+    await expect(
+      handleChargeRefunded(makeCharge(), mockNotify)
+    ).rejects.toThrow('Failed to persist refunded escrow status');
+
+    expect(mockFrom).not.toHaveBeenCalledWith('refunds');
+    expect(mockNotify).not.toHaveBeenCalled();
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      'Failed to finalize refunded payment status',
+      expect.any(Error),
+      expect.objectContaining({ escrowId: ESCROW_ID })
     );
   });
 
@@ -396,7 +529,12 @@ describe('handleChargeRefunded', () => {
     // TERMINAL_OR_RELEASING guard must ignore it — otherwise a refunded
     // escrow flips back to 'held' and becomes releasable a second time.
     const chain = buildChain({
-      singleData: { id: ESCROW_ID, job_id: JOB_ID, status: 'refunded' },
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        status: 'refunded',
+      },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -412,9 +550,7 @@ describe('handleChargeRefunded', () => {
 
   it('handles refund record failure gracefully', async () => {
     // First call returns escrow, but we need upsert to throw for refunds table
-    let callCount = 0;
     mockFrom.mockImplementation((table: string) => {
-      callCount++;
       if (table === 'refunds') {
         return {
           upsert: vi.fn().mockRejectedValue(new Error('Refund record failed')),
@@ -424,6 +560,8 @@ describe('handleChargeRefunded', () => {
         singleData: {
           id: ESCROW_ID,
           job_id: JOB_ID,
+          amount: 50,
+          status: 'held',
           payer_id: VALID_UUID,
           payee_id: VALID_UUID_2,
         },
@@ -432,15 +570,15 @@ describe('handleChargeRefunded', () => {
     });
 
     const charge = makeCharge();
-    // Should not throw
+    // Fail the webhook so Stripe retries after the refund record can be saved.
     await expect(
       handleChargeRefunded(charge, mockNotify)
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow('Refund record failed');
 
     expect(mockLoggerError).toHaveBeenCalledWith(
-      'Failed to record refund',
+      'Error in handleChargeRefunded',
       expect.any(Error),
-      expect.objectContaining({ chargeId: 'ch_test_123' })
+      { service: 'stripe-webhook' }
     );
   });
 });
@@ -551,7 +689,7 @@ describe('out-of-order event guards', () => {
     );
   });
 
-  it('guard lookup error → escrow untouched, metadata fallback still marks the job', async () => {
+  it('guard lookup error → escrow and job remain untouched', async () => {
     const chain = buildChain({ singleError: { message: 'lookup timeout' } });
     mockFrom.mockReturnValue(chain);
 
@@ -566,7 +704,8 @@ describe('out-of-order event guards', () => {
     expect(chain.update).not.toHaveBeenCalledWith(
       expect.objectContaining({ status: 'failed' })
     );
-    // …but the job-level payment_status fallback (metadata-driven) still runs.
-    expect(mockFrom).toHaveBeenCalledWith('jobs');
+    // The authoritative escrow state is unknown, so metadata must not drive
+    // a job mutation either.
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
   });
 });

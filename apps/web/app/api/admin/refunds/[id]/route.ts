@@ -109,11 +109,20 @@ export const POST = withApiHandler(
         }
 
         // Get contractor's Stripe Connect account
-        const { data: contractor } = await serverSupabase
+        const { data: contractor, error: contractorLookupError } = await serverSupabase
           .from('profiles')
           .select('stripe_connect_account_id')
           .eq('id', job.contractor_id)
           .single();
+
+        if (contractorLookupError) {
+          logger.error('Failed to load contractor Stripe account', contractorLookupError, {
+            service: 'admin-refunds',
+            escrowId,
+            contractorId: job.contractor_id,
+          });
+          throw new InternalServerError('Unable to verify contractor payment setup');
+        }
 
         if (!contractor?.stripe_connect_account_id) {
           throw new BadRequestError(
@@ -254,7 +263,7 @@ export const POST = withApiHandler(
           }
 
           // Revert only when Stripe did not create a transfer.
-          await serverSupabase
+          const { error: revertError } = await serverSupabase
             .from('escrow_transactions')
             .update({
               status: escrow.status,
@@ -262,6 +271,14 @@ export const POST = withApiHandler(
             })
             .eq('id', escrowId)
             .eq('status', ESCROW_STATUS.RELEASE_PENDING);
+
+          if (revertError) {
+            logger.error(
+              'CRITICAL: Failed to revert escrow after admin transfer failure',
+              revertError,
+              { service: 'admin-refunds', escrowId }
+            );
+          }
 
           logger.error(
             'Stripe transfer failed during admin release',
@@ -369,10 +386,15 @@ export const POST = withApiHandler(
             await serverSupabase
             .from('escrow_transactions')
             .update({
-              status: ESCROW_STATUS.REFUNDED,
+              // A partial refund does not exhaust the escrow. Keep it held
+              // so a later refund can safely use the remaining balance;
+              // only a full refund is terminal.
+              status:
+                refundAmountValue >= escrow.amount
+                  ? ESCROW_STATUS.REFUNDED
+                  : ESCROW_STATUS.HELD,
               release_reason: `admin_refund: ${reason}`,
-              refunded_at: now,
-              released_at: now,
+              refunded_at: refundAmountValue >= escrow.amount ? now : null,
               metadata: {
                 ...existingEscrowMetadata,
                 stripe_refund_id: refund.id,
@@ -604,13 +626,17 @@ async function writeAuditLog(
   metadata: Record<string, unknown>
 ): Promise<void> {
   try {
-    await serverSupabase.from('audit_logs').insert({
-      user_id: adminId,
-      action,
-      resource_type: 'escrow_transaction',
-      resource_id: escrowId,
-      metadata,
-    });
+    const { error: auditError } = await serverSupabase
+      .from('audit_logs')
+      .insert({
+        user_id: adminId,
+        action,
+        resource_type: 'escrow_transaction',
+        resource_id: escrowId,
+        metadata,
+      });
+
+    if (auditError) throw auditError;
   } catch (err) {
     logger.error(
       'Failed to write audit log for admin refund action',

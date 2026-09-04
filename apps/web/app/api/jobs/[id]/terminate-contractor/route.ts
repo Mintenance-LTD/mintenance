@@ -42,7 +42,7 @@ export const POST = withApiHandler(
     if ('headers' in validation) return validation;
     const { reason } = validation.data;
 
-    // Verify homeowner owns this job
+    // Verify the homeowner or designated payer owns this job.
     const job = await requireJobOwnership(
       jobId,
       user.id,
@@ -92,7 +92,7 @@ export const POST = withApiHandler(
     // safer than the previous "DB says refunded, money isn't moving"
     // posture.
     let escrowRefunded = false;
-    const { data: escrow } = await serverSupabase
+    const { data: escrow, error: escrowLookupError } = await serverSupabase
       .from('escrow_transactions')
       .select('id, status, amount, payment_intent_id, metadata')
       .eq('job_id', jobId)
@@ -101,7 +101,18 @@ export const POST = withApiHandler(
         ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL,
       ])
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    if (escrowLookupError) {
+      logger.error(
+        'Failed to load escrow during contractor termination',
+        escrowLookupError,
+        { service: 'jobs', jobId }
+      );
+      throw new BadRequestError(
+        'Unable to verify the job payment. Please try again.'
+      );
+    }
 
     if (escrow) {
       validateEscrowTransition(
@@ -231,15 +242,29 @@ export const POST = withApiHandler(
           jobId,
         }
       );
+      throw new BadRequestError(
+        'Failed to cancel the contract. Please retry so the job can be safely reopened.'
+      );
     }
 
     // Reject all active bids from the terminated contractor
-    await serverSupabase
+    const { error: bidError } = await serverSupabase
       .from('bids')
       .update({ status: 'rejected', updated_at: new Date().toISOString() })
       .eq('job_id', jobId)
       .eq('contractor_id', contractorId)
       .eq('status', 'accepted');
+
+    if (bidError) {
+      logger.error('Failed to reject accepted bid during termination', bidError, {
+        service: 'jobs',
+        jobId,
+        contractorId,
+      });
+      throw new BadRequestError(
+        'Failed to release the contractor assignment. Please retry.'
+      );
+    }
 
     // Reset job to posted status, clear contractor assignment
     const { error: updateError } = await serverSupabase

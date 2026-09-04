@@ -6,6 +6,8 @@ import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
+const GEOCODING_REQUEST_TIMEOUT_MS = 8_000;
+
 class GeocodingService {
   private apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
@@ -26,7 +28,16 @@ class GeocodingService {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${this.apiKey}`;
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(GEOCODING_REQUEST_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        logger.warn('Geocoding provider returned an HTTP error', {
+          service: 'geocoding',
+          status: response.status,
+        });
+        return null;
+      }
       const data = await response.json();
 
       if (data.status === 'OK' && data.results?.length) {

@@ -12,6 +12,8 @@
  */
 import type { DBSCheckLevel } from './DBSCheckService';
 
+const DBS_PROVIDER_REQUEST_TIMEOUT_MS = 10_000;
+
 /**
  * DBS Online integration (UK provider)
  * https://www.dbscheckonline.org.uk/
@@ -36,6 +38,7 @@ export async function initiateDBSOnlineCheck(
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
+    signal: AbortSignal.timeout(DBS_PROVIDER_REQUEST_TIMEOUT_MS),
     body: JSON.stringify({
       first_name: c.first_name,
       last_name: c.last_name,
@@ -59,6 +62,9 @@ export async function initiateDBSOnlineCheck(
   }
 
   const data = await response.json();
+  if (!data || typeof data.check_id !== 'string' || data.check_id.length === 0) {
+    throw new Error('DBS Online returned no check ID');
+  }
   return data.check_id;
 }
 
@@ -86,6 +92,7 @@ export async function initiateGBGroupCheck(
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
+    signal: AbortSignal.timeout(DBS_PROVIDER_REQUEST_TIMEOUT_MS),
     body: JSON.stringify({
       first_name: c.first_name,
       last_name: c.last_name,
@@ -101,6 +108,9 @@ export async function initiateGBGroupCheck(
   }
 
   const data = await response.json();
+  if (!data || typeof data.check_id !== 'string' || data.check_id.length === 0) {
+    throw new Error('GB Group returned no check ID');
+  }
   return data.check_id;
 }
 
@@ -128,6 +138,7 @@ export async function initiateUCheckCheck(
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
+    signal: AbortSignal.timeout(DBS_PROVIDER_REQUEST_TIMEOUT_MS),
     body: JSON.stringify({
       first_name: c.first_name,
       last_name: c.last_name,
@@ -143,15 +154,8 @@ export async function initiateUCheckCheck(
   }
 
   const data = await response.json();
+  if (!data || typeof data.check_id !== 'string' || data.check_id.length === 0) {
+    throw new Error('uCheck returned no check ID');
+  }
   return data.check_id;
-}
-
-/**
- * Custom/placeholder implementation
- */
-export async function initiateCustomCheck(
-  contractor: unknown,
-  dbsType: DBSCheckLevel
-): Promise<string> {
-  return `custom_${dbsType}_${Date.now()}`;
 }

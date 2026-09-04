@@ -131,7 +131,7 @@ export const POST = withApiHandler(
       // so the homeowner's funds never get DB-marked-refunded without
       // an actual Stripe refund.
       let escrowRefunded = false;
-      const { data: escrow } = await serverSupabase
+      const { data: escrow, error: escrowLookupError } = await serverSupabase
         .from('escrow_transactions')
         .select('id, status, amount, payment_intent_id, metadata')
         .eq('job_id', jobId)
@@ -140,7 +140,18 @@ export const POST = withApiHandler(
           ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL,
         ])
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (escrowLookupError) {
+        logger.error(
+          'Failed to load escrow during contractor withdrawal',
+          escrowLookupError,
+          { service: 'jobs', jobId }
+        );
+        throw new BadRequestError(
+          'Unable to verify the job payment. Please try again.'
+        );
+      }
 
       if (escrow) {
         validateEscrowTransition(
@@ -266,7 +277,9 @@ export const POST = withApiHandler(
           contractError,
           { service: 'jobs', jobId }
         );
-        // Non-fatal — contract cancel can be reconciled by admin later.
+        throw new BadRequestError(
+          'Failed to cancel the contract. Please retry so the job can be safely reopened.'
+        );
       }
 
       // ─── Mark the contractor's accepted bid as withdrawn ──────────

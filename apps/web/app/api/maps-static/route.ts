@@ -68,11 +68,40 @@ export const GET = withApiHandler(
       );
     }
 
+    if (center.length > 200 || (markers && markers.length > 2_000)) {
+      return NextResponse.json(
+        { error: 'Map location parameters are too long' },
+        { status: 400 }
+      );
+    }
+
     // Validate size (max 640x640 for free tier)
-    const [width, height] = size.split('x').map(Number);
-    if (!width || !height || width > 640 || height > 640) {
+    const sizeMatch = /^(\d{1,3})x(\d{1,3})$/.exec(size);
+    const width = sizeMatch ? Number(sizeMatch[1]) : 0;
+    const height = sizeMatch ? Number(sizeMatch[2]) : 0;
+    if (width < 1 || height < 1 || width > 640 || height > 640) {
       return NextResponse.json(
         { error: 'Invalid size. Maximum 640x640.' },
+        { status: 400 }
+      );
+    }
+
+    if (!Number.isInteger(zoom) || zoom < 0 || zoom > 21) {
+      return NextResponse.json(
+        { error: 'Invalid zoom. Must be between 0 and 21.' },
+        { status: 400 }
+      );
+    }
+
+    const allowedMapTypes = new Set<NonNullable<StaticMapParams['maptype']>>([
+      'roadmap',
+      'satellite',
+      'terrain',
+      'hybrid',
+    ]);
+    if (!allowedMapTypes.has(maptype as NonNullable<StaticMapParams['maptype']>)) {
+      return NextResponse.json(
+        { error: 'Invalid map type' },
         { status: 400 }
       );
     }

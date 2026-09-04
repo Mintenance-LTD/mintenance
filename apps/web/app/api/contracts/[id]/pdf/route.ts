@@ -47,11 +47,11 @@ export const GET = withApiHandler(
         quote_id, created_at, updated_at,
         contractor:profiles!contractor_id(first_name, last_name, company_name, insurance_expiry_date),
         homeowner:profiles!homeowner_id(first_name, last_name),
+        job:jobs!contracts_job_id_fkey(payer_user_id),
         quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number)
       `
       )
       .eq('id', contractId)
-      .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
       .single();
 
     // Distinguish a genuine "no row / no access" from a real query
@@ -78,6 +78,21 @@ export const GET = withApiHandler(
     }
 
     const c = contract as Record<string, unknown>;
+    const linkedJob = c.job as
+      | { payer_user_id?: string | null }
+      | Array<{ payer_user_id?: string | null }>
+      | null
+      | undefined;
+    const payerUserId = Array.isArray(linkedJob)
+      ? linkedJob[0]?.payer_user_id
+      : linkedJob?.payer_user_id;
+    const isAuthorized =
+      c.contractor_id === user.id ||
+      c.homeowner_id === user.id ||
+      payerUserId === user.id;
+    if (!isAuthorized) {
+      throw new NotFoundError('Contract not found or access denied');
+    }
 
     // 2026-05-21 drift fallback (mirrors /api/contracts GET): if this
     // contract was created before the bid-accept flow propagated
@@ -224,11 +239,9 @@ export const GET = withApiHandler(
 
     const termsRecord = (c.terms as Record<string, unknown> | null) ?? {};
     const insuranceProvider = termsRecord.insurance_provider as
-      | string
-      | undefined;
+      string | undefined;
     const insurancePolicyNumber = termsRecord.insurance_policy_number as
-      | string
-      | undefined;
+      string | undefined;
     if (insuranceProvider || insurancePolicyNumber) {
       doc.text(
         `Insurance: ${insuranceProvider || 'Yes'}${insurancePolicyNumber ? ` — ${insurancePolicyNumber}` : ''}`,
@@ -326,8 +339,7 @@ export const GET = withApiHandler(
       total?: number;
     }
     const quote = (Array.isArray(c.quote) ? c.quote[0] : c.quote) as
-      | (Record<string, unknown> & { line_items?: QuoteLineItem[] })
-      | null;
+      (Record<string, unknown> & { line_items?: QuoteLineItem[] }) | null;
     const quoteLineItems: QuoteLineItem[] = Array.isArray(quote?.line_items)
       ? quote!.line_items
       : [];

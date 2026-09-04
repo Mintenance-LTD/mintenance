@@ -64,6 +64,12 @@ export const POST = withApiHandler(
     // Per-user rolling AI cost cap — a walkthrough is N vision calls.
     const budget = await checkAICostBudget(user.id);
     if (!budget.allowed) {
+      if (budget.reason === 'check_failed') {
+        return NextResponse.json(
+          { error: 'AI usage budget is temporarily unavailable.' },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         {
           error:

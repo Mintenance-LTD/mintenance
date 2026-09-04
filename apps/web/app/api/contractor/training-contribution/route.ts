@@ -5,37 +5,59 @@
 
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { SAM3Service } from '@/lib/services/building-surveyor/SAM3Service';
 import crypto from 'crypto';
 import { logger } from '@mintenance/shared';
+import { JOB_CATEGORIES } from '@mintenance/api-contracts';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import {
+  validateImageUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 
 export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
-    const category = formData.get('category') as string;
+    const rawImage = formData.get('image');
+    const imageFile =
+      typeof rawImage === 'object' &&
+      rawImage !== null &&
+      'size' in rawImage &&
+      'arrayBuffer' in rawImage
+        ? rawImage
+        : null;
+    const rawCategory = formData.get('category');
+    const category = typeof rawCategory === 'string' ? rawCategory : null;
 
-    if (!imageFile || !category) {
+    if (
+      !imageFile ||
+      !category ||
+      !(JOB_CATEGORIES as readonly string[]).includes(category)
+    ) {
       return NextResponse.json({ error: 'Image and category are required' }, { status: 400 });
     }
 
-    if (!imageFile.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Invalid file type. Only images are accepted.' }, { status: 400 });
+    const validation = await validateImageUpload(
+      imageFile,
+      MAX_FILE_SIZES.jobPhoto
+    );
+    if (!validation.valid) {
+      return NextResponse.json({
+        error: validation.error || 'Invalid image file',
+      }, { status: 400 });
     }
 
-    if (imageFile.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Image size must be less than 10MB' }, { status: 400 });
-    }
-
-    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${imageFile.type.split('/')[1]}`;
+    const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
+    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
     const arrayBuffer = await imageFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const { error: uploadError } = await serverSupabase.storage
       .from('training-images')
-      .upload(fileName, buffer, { contentType: imageFile.type, upsert: false });
+      .upload(fileName, buffer, {
+        contentType: validation.detectedType,
+        upsert: false,
+      });
 
     if (uploadError) {
       logger.error('Upload error:', uploadError, { service: 'api' });
@@ -62,14 +84,18 @@ export const POST = withApiHandler(
         assessment_id: assessmentId,
         image_urls: [publicUrl],
         issue_type: category,
-        confidence: 100,
-        response_quality: 'high',
-        human_verified: true,
-        verified_by: user.id,
-        verified_at: new Date().toISOString(),
+        // This is an authenticated contractor submission, not an
+        // independently reviewed label. Keep it out of verified training
+        // sets until an authorised reviewer confirms it.
+        confidence: null,
+        response_quality: 'uncertain',
+        human_verified: false,
+        verified_by: null,
+        verified_at: null,
       });
 
     if (labelError) {
+      await serverSupabase.storage.from('training-images').remove([fileName]);
       logger.error('Label save error:', labelError, { service: 'api' });
       throw labelError;
     }
@@ -84,9 +110,9 @@ export const POST = withApiHandler(
         scores: segmentationData.scores,
         num_instances: segmentationData.num_instances,
         total_affected_area: segmentationData.areas?.[0] || 0,
-        human_verified: true,
-        verified_by: user.id,
-        verified_at: new Date().toISOString(),
+        human_verified: false,
+        verified_by: null,
+        verified_at: null,
       });
     }
 
@@ -124,6 +150,7 @@ async function processWithSAM3(imageUrl: string): Promise<unknown> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl, mode: 'everything', min_mask_region_area: 100 }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) throw new Error('SAM3 segmentation failed');
@@ -150,16 +177,16 @@ async function processWithSAM3(imageUrl: string): Promise<unknown> {
 
 async function updateContributorStats(contractorId: string): Promise<void> {
   try {
-    const { data: current } = await serverSupabase
-      .from('contractor_contributions')
-      .select('images_contributed, credits_earned')
-      .eq('contractor_id', contractorId)
-      .single();
-
-    if (!current) {
-      await serverSupabase.from('contractor_contributions').insert({ contractor_id: contractorId, images_contributed: 1, credits_earned: 5 });
-    } else {
-      await serverSupabase.from('contractor_contributions').update({ images_contributed: current.images_contributed + 1, credits_earned: current.credits_earned + 5, updated_at: new Date().toISOString() }).eq('contractor_id', contractorId);
+    const { error } = await serverSupabase.rpc(
+      'increment_contractor_contribution_stats',
+      {
+        p_contractor_id: contractorId,
+        p_images: 1,
+        p_credits: 5,
+      }
+    );
+    if (error) {
+      throw error;
     }
   } catch (error) {
     logger.error('Failed to update stats:', error, { service: 'api' });
@@ -167,34 +194,23 @@ async function updateContributorStats(contractorId: string): Promise<void> {
 }
 
 async function checkAndAwardRewards(contractorId: string): Promise<{ creditsEarned: number; milestone?: string; bonus?: number }> {
-  const { data: stats } = await serverSupabase
-    .from('contractor_contributions')
-    .select('images_contributed, credits_earned')
-    .eq('contractor_id', contractorId)
-    .single();
-
-  if (!stats) return { creditsEarned: 5 };
-
-  const response: { creditsEarned: number; milestone?: string; bonus?: number } = { creditsEarned: 5 };
-  const totalImages = stats.images_contributed;
-
-  if (totalImages === 10) { response.milestone = 'First 10 images!'; response.bonus = 10; }
-  else if (totalImages === 50) { response.milestone = 'Silver contributor!'; response.bonus = 50; }
-  else if (totalImages === 100) { response.milestone = '100 images - 3 months premium earned!'; response.bonus = 100; await grantPremiumSubscription(contractorId, 3); }
-  else if (totalImages === 200) { response.milestone = 'Gold contributor!'; response.bonus = 200; }
-  else if (totalImages === 500) { response.milestone = 'Expert contributor!'; response.bonus = 500; }
-
-  if (response.bonus) {
-    await serverSupabase.from('contractor_contributions').update({ credits_earned: stats.credits_earned + response.bonus, updated_at: new Date().toISOString() }).eq('contractor_id', contractorId);
+  const { data, error } = await serverSupabase.rpc(
+    'claim_contractor_contribution_milestone',
+    { p_contractor_id: contractorId }
+  );
+  if (error) {
+    throw error;
   }
 
-  return response;
-}
+  const reward = (Array.isArray(data) ? data[0] : data) as {
+    bonus?: number | string | null;
+    milestone?: string | null;
+  } | null;
+  const bonus = Number(reward?.bonus ?? 0);
 
-async function grantPremiumSubscription(contractorId: string, months: number): Promise<void> {
-  try {
-    await serverSupabase.from('contractor_contributions').update({ premium_months_earned: months, last_reward_date: new Date().toISOString() }).eq('contractor_id', contractorId);
-  } catch (error) {
-    logger.error('Failed to grant premium:', error, { service: 'api' });
-  }
+  return {
+    creditsEarned: 5,
+    ...(reward?.milestone ? { milestone: reward.milestone } : {}),
+    ...(bonus > 0 ? { bonus } : {}),
+  };
 }

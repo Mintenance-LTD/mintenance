@@ -26,8 +26,12 @@ interface JobCreationPayload {
   urgency?: string;
   latitude?: number;
   longitude?: number;
-  // R6 #19 landlord / tenancy fields
+  // R6 #19 landlord / tenancy fields. The payer identity is resolved
+  // server-side from an authorised property relationship; clients must
+  // never be able to nominate an arbitrary profile ID.
   is_rental_property?: boolean;
+  // Internal-only value populated by resolvePayerFromEmail after the
+  // relationship check. It must not be accepted from request payloads.
   payer_user_id?: string;
   tenancy_metadata?: Record<string, unknown>;
   // Silver-mode + future per-job flags. Persists to jobs.requirements
@@ -108,7 +112,8 @@ export class JobCreationService {
     this.enforcePhotoRequirement(user.id, payload);
     await this.validatePhotoUrls(user.id, payload);
     await this.validatePropertyOwnership(user.id, payload);
-    await this.resolvePayerFromEmail(payload);
+    await this.resolvePayerFromEmail(user.id, payload);
+    await this.validatePreferredContractor(user.id, payload);
 
     const insertPayload = this.buildInsertPayload(user, payload);
 
@@ -135,7 +140,12 @@ export class JobCreationService {
     const jobRow = await this.insertJob(user.id, insertPayload);
 
     await this.updateSeriousBuyerScore(user.id, jobRow.id, payload);
-    await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+    try {
+      await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+    } catch (attachmentError) {
+      await this.rollbackFailedJobCreation(user.id, jobRow.id);
+      throw attachmentError;
+    }
     await this.snapshotRoomScope(user.id, jobRow.id, payload);
 
     await this.notificationService.notifyNearbyContractors(
@@ -235,21 +245,44 @@ export class JobCreationService {
 
   /**
    * R6 #19: when the client passes tenancy_metadata.payer_email (landlord
-   * flow), resolve that email to a profiles.id and set payload.payer_user_id.
-   * If no matching profile exists, we leave payer_user_id NULL — the
-   * poster will still be allowed to fund escrow, and the metadata row
-   * records the intended payer email for an outreach flow.
+   * flow), resolve that email to a profiles.id only when the profile is
+   * already an accepted admin/manager on the selected property. A client
+   * supplied payer_user_id is never trusted. Without this relationship a
+   * homeowner could nominate an unrelated account as the person liable for
+   * payment and expose the job in that user's payer dashboard.
    */
   private async resolvePayerFromEmail(
+    userId: string,
     payload: JobCreationPayload
   ): Promise<void> {
-    if (payload.payer_user_id) return;
+    const clientPayerId = (
+      payload as JobCreationPayload & {
+        payer_user_id?: unknown;
+      }
+    ).payer_user_id;
+    if (clientPayerId !== undefined) {
+      throw new BadRequestError(
+        'payer_user_id is server-managed; provide the authorised payer email instead'
+      );
+    }
+
     const meta = payload.tenancy_metadata;
     const email =
       meta && typeof meta === 'object' && typeof meta.payer_email === 'string'
         ? meta.payer_email
         : null;
     if (!email) return;
+
+    if (!payload.property_id) {
+      throw new BadRequestError(
+        'A property is required when someone else is paying for the job'
+      );
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestError('Enter a valid payer email address');
+    }
 
     // Audit P2 (2026-04-23): the previous `.ilike('email', email...)`
     // was case-insensitive but interpreted `%`/`_` in the input as
@@ -259,14 +292,58 @@ export class JobCreationService {
     // entirely. Live DB scan (2026-04-25) confirmed 10/10 profiles
     // have lowercase emails, so case-insensitivity is no longer
     // required — emails are normalized at insert time elsewhere.
-    const { data: profile } = await serverSupabase
+    const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
       .select('id')
-      .eq('email', email.trim().toLowerCase())
+      .eq('email', normalizedEmail)
       .maybeSingle();
-    if (profile?.id) {
-      payload.payer_user_id = profile.id as string;
+
+    if (profileError) {
+      logger.error('Failed to resolve requested job payer', profileError, {
+        service: 'jobs',
+        userId,
+        propertyId: payload.property_id,
+      });
+      throw new InternalServerError('Unable to validate the requested payer');
     }
+
+    if (!profile?.id) {
+      throw new BadRequestError(
+        'The payer must already have an account linked to this property'
+      );
+    }
+
+    if (profile.id === userId) {
+      payload.payer_user_id = profile.id as string;
+      return;
+    }
+
+    const { data: teamMember, error: teamError } = await serverSupabase
+      .from('property_team_members')
+      .select('id')
+      .eq('property_id', payload.property_id)
+      .eq('user_id', profile.id)
+      .eq('status', 'accepted')
+      .in('role', ['admin', 'manager'])
+      .maybeSingle();
+
+    if (teamError) {
+      logger.error('Failed to validate job payer property access', teamError, {
+        service: 'jobs',
+        userId,
+        propertyId: payload.property_id,
+        payerProfileId: profile.id,
+      });
+      throw new InternalServerError('Unable to validate the requested payer');
+    }
+
+    if (!teamMember) {
+      throw new ForbiddenError(
+        'The payer must be an accepted property admin or manager'
+      );
+    }
+
+    payload.payer_user_id = profile.id as string;
   }
 
   private async validatePropertyOwnership(
@@ -293,6 +370,46 @@ export class JobCreationService {
         ownerId: property.owner_id,
       });
       throw new ForbiddenError('You do not own this property');
+    }
+  }
+
+  /**
+   * The preferred-contractor field is a capability-bearing input: it causes
+   * a direct, higher-priority notification to be sent to the selected
+   * contractor.  Do not trust the client-side Hire Again deep-link to prove
+   * that relationship.  Only a completed job owned by this homeowner is
+   * evidence that the contractor was previously hired by them.
+   */
+  private async validatePreferredContractor(
+    userId: string,
+    payload: JobCreationPayload
+  ): Promise<void> {
+    if (!payload.preferred_contractor_id) return;
+
+    const { data: priorJob, error } = await serverSupabase
+      .from('jobs')
+      .select('id')
+      .eq('homeowner_id', userId)
+      .eq('contractor_id', payload.preferred_contractor_id)
+      .eq('status', 'completed')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('Failed to validate preferred contractor relationship', error, {
+        service: 'jobs',
+        userId,
+        preferredContractorId: payload.preferred_contractor_id,
+      });
+      throw new InternalServerError(
+        'Unable to validate the preferred contractor'
+      );
+    }
+
+    if (!priorJob) {
+      throw new ForbiddenError(
+        'You can only select a contractor you previously hired'
+      );
     }
   }
 
@@ -471,7 +588,8 @@ export class JobCreationService {
         originalError: errorMessage,
       });
 
-      const { required_skills, ...payloadWithoutSkills } = insertPayload;
+      const payloadWithoutSkills = { ...insertPayload };
+      delete payloadWithoutSkills.required_skills;
       result = await serverSupabase
         .from('jobs')
         .insert(payloadWithoutSkills)
@@ -538,20 +656,53 @@ export class JobCreationService {
         .insert(attachments);
 
       if (error) {
-        logger.warn('Failed to save job attachments', {
+        logger.error('Failed to save job attachments', error, {
           service: 'jobs',
           userId,
           jobId,
-          error,
         });
+        throw new InternalServerError(
+          'Failed to save job photographs. Please try posting the job again.'
+        );
       }
     } catch (attachErr) {
-      logger.warn('Error saving job attachments', {
+      if (attachErr instanceof InternalServerError) throw attachErr;
+      logger.error('Error saving job attachments', attachErr, {
         service: 'jobs',
         userId,
         jobId,
-        error: attachErr,
       });
+      throw new InternalServerError(
+        'Failed to save job photographs. Please try posting the job again.'
+      );
+    }
+  }
+
+  /**
+   * Attachment persistence is part of the job-posting contract: a job that
+   * requires photos must not remain visible if its attachment rows cannot be
+   * written.  The job was inserted immediately before saveAttachments, so a
+   * narrowly scoped delete is safe here and prevents a failed request from
+   * leaving a duplicate photo-less job for the next retry.
+   */
+  private async rollbackFailedJobCreation(
+    userId: string,
+    jobId: string
+  ): Promise<void> {
+    const { data: deletedJob, error } = await serverSupabase
+      .from('jobs')
+      .delete()
+      .eq('id', jobId)
+      .eq('homeowner_id', userId)
+      .select('id')
+      .maybeSingle();
+
+    if (error || !deletedJob) {
+      logger.error(
+        'Failed to roll back job after attachment persistence failure',
+        error ?? new Error('job row was not deleted'),
+        { service: 'jobs', userId, jobId }
+      );
     }
   }
 

@@ -69,6 +69,7 @@ vi.mock('@/lib/validation/uuid', () => ({
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     createNotification: mocks.createNotification,
+    markEmailSent: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -229,6 +230,7 @@ function setupContractMocks(
   overrides: {
     contractData?: unknown;
     contractError?: unknown;
+    jobData?: unknown;
     updateResult?: unknown;
     updateError?: unknown;
   } = {}
@@ -248,20 +250,26 @@ function setupContractMocks(
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'contracts') {
+      const selectChain = {
+        single: vi.fn().mockResolvedValue(contractResult),
+        or: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue(contractResult),
+        }),
+      };
       return {
         select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            or: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue(contractResult),
-            }),
-          }),
+          eq: vi.fn().mockReturnValue(selectChain),
         }),
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: updateError ? null : updatedContract,
-                error: updateError,
+            eq: vi.fn().mockReturnValue({
+              is: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: updateError ? null : updatedContract,
+                    error: updateError,
+                  }),
+                }),
               }),
             }),
           }),
@@ -291,7 +299,7 @@ function setupContractMocks(
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: {
+              data: overrides.jobData ?? {
                 title: 'Fix sink',
                 location: '123 Main St',
                 address: '123 Main St',
@@ -308,6 +316,13 @@ function setupContractMocks(
     if (table === 'appointments') {
       return {
         insert: vi.fn().mockResolvedValue({ error: null }),
+      };
+    }
+    if (table === 'contract_signatories') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
       };
     }
     return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
@@ -497,6 +512,30 @@ describe('POST /api/contracts/[id]/accept', () => {
     expect(body.success).toBe(true);
     expect(body.message).toContain('Waiting for other party');
     expect(body.contract.status).toBe('pending_contractor');
+  });
+
+  it('should allow the designated payer to sign the homeowner side', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupContractMocks({
+      jobData: { payer_user_id: 'payer-1' },
+      updateResult: {
+        ...pendingContract,
+        homeowner_signed_at: new Date().toISOString(),
+        status: 'pending_contractor',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/contracts/contract-1/accept'
+    );
+    const res = await POST(req, segmentData('contract-1'));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
   });
 
   // ---- Both signed -> accepted ----

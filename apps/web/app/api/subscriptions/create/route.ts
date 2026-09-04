@@ -7,7 +7,7 @@ import {
 } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { logger } from '@mintenance/shared';
-import { BadRequestError } from '@/lib/errors/api-error';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { createSubscriptionSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -168,10 +168,17 @@ export const POST = withApiHandler(
                 ? cancelError.message
                 : String(cancelError),
           });
+          if (
+            (cancelError as { code?: string })?.code !== 'resource_missing'
+          ) {
+            throw new InternalServerError(
+              'Could not cancel your current subscription. Please try again.'
+            );
+          }
         }
 
         // Mark existing subscription as canceled
-        await serverSupabase
+        const { error: cancelUpdateError } = await serverSupabase
           .from('contractor_subscriptions')
           .update({
             status: 'canceled',
@@ -179,6 +186,20 @@ export const POST = withApiHandler(
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingSubscription.id);
+        if (cancelUpdateError) {
+          logger.error(
+            'Failed to persist canceled subscription before free-tier creation',
+            cancelUpdateError,
+            {
+              service: 'subscriptions',
+              subscriptionId: existingSubscription.id,
+              contractorId: user.id,
+            }
+          );
+          throw new InternalServerError(
+            'Could not update your subscription. Please try again.'
+          );
+        }
       }
 
       // Create free tier subscription
@@ -267,6 +288,13 @@ export const POST = withApiHandler(
                 service: 'subscriptions',
                 subscriptionId: existingSubscription.stripeSubscriptionId,
               });
+              if (
+                (cancelError as { code?: string })?.code !== 'resource_missing'
+              ) {
+                throw new InternalServerError(
+                  'Could not cancel the previous subscription. Please try again.'
+                );
+              }
             }
           }
 
@@ -286,6 +314,9 @@ export const POST = withApiHandler(
               subscriptionId: existingSubscription.id,
               error: updateError.message,
             });
+            throw new InternalServerError(
+              'Could not update the previous subscription. Please try again.'
+            );
           } else {
             logger.info('Marked old subscription as canceled in database', {
               service: 'subscriptions',
@@ -293,15 +324,16 @@ export const POST = withApiHandler(
             });
           }
         } catch (cancelError) {
-          logger.warn(
-            'Failed to cancel incomplete subscription, continuing anyway',
-            {
-              service: 'subscriptions',
-              error:
-                cancelError instanceof Error
-                  ? cancelError.message
-                  : String(cancelError),
-            }
+          logger.error('Failed to retire incomplete subscription', cancelError, {
+            service: 'subscriptions',
+            contractorId: user.id,
+            subscriptionId: existingSubscription.id,
+          });
+          if (cancelError instanceof InternalServerError) {
+            throw cancelError;
+          }
+          throw new InternalServerError(
+            'Could not retire the previous subscription. Please try again.'
           );
         }
 
@@ -404,6 +436,8 @@ export const POST = withApiHandler(
           userId: user.id,
           userRole: 'contractor',
         },
+      }, {
+        idempotencyKey: `stripe_customer_${user.id}`,
       });
 
       stripeCustomerId = customer.id;

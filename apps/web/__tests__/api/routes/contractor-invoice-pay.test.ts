@@ -3,7 +3,7 @@
  * Route: apps/web/app/api/contractor/invoices/pay/route.ts
  *
  * Covers: tier-aware platform fee on the Stripe PaymentIntent
- * (application_fee_amount) and on the payments-row bookkeeping
+ * (platform-charge/escrow-transfer separation) and on the payments-row bookkeeping
  * (platform_fee / processing_fee / net_amount). The route previously
  * hardcoded a 5% fee (missed in the 2026-05-23 tiered-pricing rollout);
  * these tests pin the FeeCalculationService-driven rates: free/basic 12%,
@@ -29,6 +29,10 @@ const mocks = vi.hoisted(() => ({
   stripePaymentIntentsRetrieve: vi.fn(),
   createNotification: vi.fn(),
   getEarlyAccessEntitlement: vi.fn(),
+  getDeterministicIdempotencyKeyFromRequest: vi.fn(),
+  checkIdempotency: vi.fn(),
+  storeIdempotencyResult: vi.fn(),
+  releaseOnError: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
@@ -84,6 +88,14 @@ vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     createNotification: mocks.createNotification,
   },
+}));
+
+vi.mock('@/lib/idempotency', () => ({
+  getDeterministicIdempotencyKeyFromRequest:
+    mocks.getDeterministicIdempotencyKeyFromRequest,
+  checkIdempotency: mocks.checkIdempotency,
+  storeIdempotencyResult: mocks.storeIdempotencyResult,
+  releaseOnError: mocks.releaseOnError,
 }));
 
 // Dynamically imported inside FeeCalculationService.resolveContractorTier
@@ -272,6 +284,14 @@ function setupMocks(options: SetupOptions = {}) {
   });
   mocks.createNotification.mockResolvedValue(undefined);
   mocks.getEarlyAccessEntitlement.mockResolvedValue({ eligible: false });
+  mocks.getDeterministicIdempotencyKeyFromRequest.mockReturnValue(
+    'pay_invoice:homeowner-1:11111111-1111-4111-8111-111111111111'
+  );
+  mocks.checkIdempotency.mockResolvedValue(null);
+  mocks.storeIdempotencyResult.mockResolvedValue(undefined);
+  mocks.releaseOnError.mockImplementation(
+    async (_key: string, _operation: string, fn: () => Promise<unknown>) => fn()
+  );
   mocks.stripePaymentIntentsCreate.mockImplementation(
     async (params: { amount: number; currency: string }) => ({
       id: 'pi_new_123',
@@ -349,20 +369,35 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     expect(res.status).toBe(401);
   });
 
-  it('charges 12% application fee for a basic-tier contractor on a £1000 invoice', async () => {
+  it('rejects bank transfer until a non-card payment flow exists', async () => {
+    setupMocks();
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.POST(
+      createPostRequest({
+        invoiceId: INVOICE_ID,
+        paymentMethod: 'bank_transfer',
+      }),
+      segmentData()
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.stripePaymentIntentsCreate).not.toHaveBeenCalled();
+  });
+
+  it('creates a platform charge for a basic-tier contractor on a £1000 invoice', async () => {
     setupMocks({ planType: 'basic' });
 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
     expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        amount: 100000,
-        currency: 'gbp',
-        application_fee_amount: 12000,
-        transfer_data: { destination: 'acct_test_123' },
-      })
+      expect.objectContaining({ amount: 100000, currency: 'gbp' }),
+      { idempotencyKey: expect.stringMatching(/^invoice_payment_pay_invoice:/) }
     );
+    const paymentIntentParams =
+      mocks.stripePaymentIntentsCreate.mock.calls[0][0];
+    expect(paymentIntentParams).not.toHaveProperty('application_fee_amount');
+    expect(paymentIntentParams).not.toHaveProperty('transfer_data');
   });
 
   it('books tier-aware platform_fee / processing_fee / net_amount on the payments row (basic, 12%)', async () => {
@@ -376,8 +411,8 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     // Stripe estimate 1.5% + £0.20 = £15.20 (still recorded on the row).
     // Since commit 9992138 ("stop underpaying contractors"), net_amount is
     // amount - platformFee ONLY — the platform absorbs the Stripe fee, so the
-    // contractor nets 1000 - 120 = 880 (matches the Stripe transfer, which is
-    // total minus the £120 application_fee_amount).
+    // contractor nets 1000 - 120 = 880 when escrow release creates the
+    // single transfer from the platform balance.
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({
         amount: 1000,
@@ -386,17 +421,24 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
         net_amount: 880,
       })
     );
+    expect(captured.escrowInsert[0]).toEqual(
+      expect.objectContaining({
+        payment_type: 'final',
+        metadata: expect.objectContaining({ invoice_id: INVOICE_ID }),
+      })
+    );
+    expect(captured.escrowInsert[0]).not.toHaveProperty('invoice_id');
+    expect(captured.escrowInsert[0]).not.toHaveProperty('escrow_type');
+    expect(captured.escrowInsert[0]).not.toHaveProperty('release_conditions');
   });
 
-  it('charges 8% application fee for a professional-tier contractor', async () => {
+  it('records the professional-tier fee for later escrow release', async () => {
     setupMocks({ planType: 'professional' });
 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 8000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({
         platform_fee: 80,
@@ -407,15 +449,13 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     );
   });
 
-  it('charges 5% application fee for an enterprise-tier contractor', async () => {
+  it('records the enterprise-tier fee for later escrow release', async () => {
     setupMocks({ planType: 'enterprise' });
 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 5000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({
         platform_fee: 50,
@@ -436,9 +476,7 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 5000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
   });
 
   it('defaults to the basic 12% rate when the contractor has no active subscription', async () => {
@@ -447,11 +485,127 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 12000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({ platform_fee: 120 })
+    );
+  });
+
+  it('rejects an external return URL and uses the internal confirmation route', async () => {
+    setupMocks();
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.POST(
+      createPostRequest({
+        invoiceId: INVOICE_ID,
+        returnUrl: 'https://attacker.example/phishing',
+      }),
+      segmentData()
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.redirectUrl).toBe('/payments/payment-1/confirm');
+  });
+
+  it('returns the completed idempotent result without creating another intent', async () => {
+    setupMocks();
+    const cachedResult = {
+      success: true,
+      paymentIntent: { id: 'pi_cached', amount: 100000, currency: 'gbp' },
+    };
+    mocks.checkIdempotency.mockResolvedValue({
+      isDuplicate: true,
+      cachedResult,
+      idempotencyKey: 'pay_invoice:cached',
+    });
+
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.POST(
+      createPostRequest({ invoiceId: INVOICE_ID }),
+      segmentData()
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(cachedResult);
+    expect(mocks.stripePaymentIntentsCreate).not.toHaveBeenCalled();
+  });
+});
+
+function createStatusRequest(paymentIntentId: string): NextRequest {
+  return new NextRequest(
+    new URL(
+      `http://localhost:3000/api/contractor/invoices/pay?payment_intent=${paymentIntentId}`
+    ),
+    {
+      method: 'GET',
+      headers: { 'x-forwarded-for': '127.0.0.1' },
+    }
+  );
+}
+
+describe('GET /api/contractor/invoices/pay — payment ownership', () => {
+  const paymentIntentId = 'pi_existing_123';
+  const paymentRow = {
+    id: 'payment-1',
+    payer_id: payerUser.id,
+    payee_id: 'contractor-1',
+    invoice_id: INVOICE_ID,
+    status: 'pending',
+    stripe_payment_intent_id: paymentIntentId,
+    invoice: {
+      invoice_number: 'INV-001',
+      title: 'Boiler replacement',
+      total_amount: 1000,
+    },
+  };
+
+  function setupStatusMocks(currentUser: typeof payerUser) {
+    mocks.getCurrentUserFromCookies.mockResolvedValue(currentUser);
+    mocks.rateLimiterCheckRateLimit.mockResolvedValue({
+      allowed: true,
+      remaining: 29,
+      resetTime: Date.now() + 60000,
+      retryAfter: 0,
+    });
+    mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'payments') {
+        return makeChain({ single: { data: paymentRow, error: null } });
+      }
+      return makeChain();
+    });
+    mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
+      id: paymentIntentId,
+      status: 'requires_action',
+      amount: 100000,
+      currency: 'gbp',
+    });
+  }
+
+  it('does not disclose another user payment or call Stripe', async () => {
+    setupStatusMocks({ ...payerUser, id: 'unrelated-user' });
+
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.GET(
+      createStatusRequest(paymentIntentId),
+      segmentData()
+    );
+
+    expect(response.status).toBe(403);
+    expect(mocks.stripePaymentIntentsRetrieve).not.toHaveBeenCalled();
+  });
+
+  it('allows the recorded payer to read and reconcile their payment', async () => {
+    setupStatusMocks(payerUser);
+
+    const mod = await import('@/app/api/contractor/invoices/pay/route');
+    const response = await mod.GET(
+      createStatusRequest(paymentIntentId),
+      segmentData()
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.stripePaymentIntentsRetrieve).toHaveBeenCalledWith(
+      paymentIntentId
     );
   });
 });

@@ -7,7 +7,10 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const initiateCheckSchema = z.object({
   dbsType: z.enum(['basic', 'standard', 'enhanced']),
-  provider: z.enum(['dbs_online', 'gbgroup', 'ucheck', 'custom']).optional().default('dbs_online'),
+  provider: z
+    .enum(['dbs_online', 'gbgroup', 'ucheck'])
+    .optional()
+    .default('dbs_online'),
 });
 
 /**

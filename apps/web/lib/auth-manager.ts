@@ -249,8 +249,12 @@ export class AuthManager {
         });
       let authError = initialAuthError;
 
-      // Handle confirmation email failures by auto-confirming via admin API
+      // A failed confirmation email does not prove control of the address.
+      // Auto-confirmation is allowed only outside production for local test
+      // environments; production must leave the user unverified and return
+      // the failure so the email provider/configuration can be repaired.
       if (
+        process.env.NODE_ENV !== 'production' &&
         authError &&
         authError.message === 'Error sending confirmation email' &&
         authData?.user

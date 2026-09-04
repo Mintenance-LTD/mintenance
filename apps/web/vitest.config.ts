@@ -1,6 +1,5 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,12 +10,7 @@ export default defineConfig({
   // tsconfig in the monorepo makes startup depend on filesystem traversal and
   // can resolve outside the repository in restricted/CI environments.
   root: configDirectory,
-  plugins: [
-    react(),
-    tsconfigPaths({
-      projects: [path.resolve(configDirectory, 'tsconfig.json')],
-    }),
-  ],
+  plugins: [react()],
   test: {
     // Test environment
     environment: 'happy-dom',
@@ -153,8 +147,30 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(configDirectory, './'),
-      '@mintenance/types': path.resolve(configDirectory, '../../packages/types/src'),
-      '@mintenance/auth': path.resolve(configDirectory, '../../packages/auth/src'),
+      '@mintenance/types': path.resolve(
+        configDirectory,
+        '../../packages/types/src'
+      ),
+      '@mintenance/auth': path.resolve(
+        configDirectory,
+        '../../packages/auth/src'
+      ),
+      '@mintenance/shared-ui': path.resolve(
+        configDirectory,
+        '../../packages/shared-ui/src'
+      ),
+      '@mintenance/design-tokens': path.resolve(
+        configDirectory,
+        '../../packages/design-tokens/src'
+      ),
+      '@mintenance/ai-core': path.resolve(
+        configDirectory,
+        '../../packages/ai-core/src'
+      ),
+      '@mintenance/api-contracts': path.resolve(
+        configDirectory,
+        '../../packages/api-contracts/src'
+      ),
       // Must precede the '@mintenance/shared' entry below: that alias points
       // at the package's src/, but deep-link-paths.json deliberately lives at
       // the package ROOT so app.config.js (plain Node, build time) can require

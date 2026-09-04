@@ -94,10 +94,17 @@ async function getAuthToken(): Promise<string | null> {
     if (sessionJson) {
       const persisted = JSON.parse(sessionJson);
       if (persisted?.access_token && persisted?.refresh_token) {
-        await supabase.auth.setSession({
+        const { error: restoreError } = await supabase.auth.setSession({
           access_token: persisted.access_token,
           refresh_token: persisted.refresh_token,
         });
+        if (restoreError) {
+          logger.warn(
+            '[AUTH] getAuthToken: SecureStore session restore failed',
+            restoreError
+          );
+          return null;
+        }
         logger.info('[AUTH] getAuthToken: restored from SecureStore');
         return persisted.access_token;
       }

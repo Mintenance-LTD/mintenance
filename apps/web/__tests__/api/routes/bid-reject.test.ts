@@ -70,8 +70,9 @@ vi.mock('@/lib/errors/api-error', async () => {
   class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
   class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
   class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class ConflictError extends APIError { constructor(m = 'Conflict') { super('CONFLICT', m, 409); } }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, ConflictError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
@@ -166,7 +167,16 @@ function setupRejectMocks(overrides: {
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: rejectError }),
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: rejectError ? null : { id: 'bid-1' },
+                  error: rejectError,
+                }),
+              }),
+            }),
+          }),
         }),
       };
     }

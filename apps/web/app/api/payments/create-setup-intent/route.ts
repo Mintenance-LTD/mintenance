@@ -5,6 +5,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NotFoundError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 import {
   isMissingCustomerError,
   clearStaleStripeCustomerId,
@@ -32,25 +33,28 @@ export const POST = withApiHandler(
         .stripe_customer_id as string | null;
 
       if (!stripeCustomerId) {
-        const existing = await stripe.customers.list({
-          email: profile.email,
-          limit: 1,
-        });
-        stripeCustomerId = existing.data[0]?.id || null;
-      }
-
-      if (!stripeCustomerId) {
         const customer = await stripe.customers.create({
           email: profile.email,
           metadata: { userId: user.id },
+        }, {
+          idempotencyKey: `stripe_customer_${user.id}`,
         });
         stripeCustomerId = customer.id;
       }
 
-      await serverSupabase
+      const { error: customerLinkError } = await serverSupabase
         .from('profiles')
         .update({ stripe_customer_id: stripeCustomerId })
         .eq('id', user.id);
+
+      if (customerLinkError) {
+        logger.error('Failed to persist Stripe customer link', customerLinkError, {
+          service: 'payments',
+          userId: user.id,
+          stripeCustomerId,
+        });
+        throw new Error('Failed to persist Stripe customer link');
+      }
 
       let setupIntent;
       try {
@@ -71,12 +75,27 @@ export const POST = withApiHandler(
         const fresh = await stripe.customers.create({
           email: profile.email,
           metadata: { userId: user.id },
+        }, {
+          idempotencyKey: `stripe_customer_recovery_${user.id}`,
         });
         stripeCustomerId = fresh.id;
-        await serverSupabase
+        const { error: recoveredCustomerLinkError } = await serverSupabase
           .from('profiles')
           .update({ stripe_customer_id: stripeCustomerId })
           .eq('id', user.id);
+
+        if (recoveredCustomerLinkError) {
+          logger.error(
+            'Failed to persist recovered Stripe customer link',
+            recoveredCustomerLinkError,
+            {
+              service: 'payments',
+              userId: user.id,
+              stripeCustomerId,
+            }
+          );
+          throw new Error('Failed to persist recovered Stripe customer link');
+        }
         setupIntent = await stripe.setupIntents.create({
           customer: stripeCustomerId,
           usage: 'off_session',
@@ -94,7 +113,18 @@ export const POST = withApiHandler(
         logger.error('Stripe setup intent error', error, {
           service: 'payments',
         });
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        const response = createPaymentErrorResponse(error, {
+          operation: 'create_setup_intent',
+          userId: user.id,
+        });
+        return NextResponse.json(
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
+        );
       }
       throw error;
     }

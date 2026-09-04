@@ -9,6 +9,7 @@ import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 interface JobOwnershipResult {
   id: string;
   homeowner_id: string;
+  payer_user_id: string | null;
   contractor_id: string | null;
   status: string;
   title: string | null;
@@ -26,7 +27,7 @@ export async function requireJobOwnership(
   role: 'homeowner' | 'contractor',
   additionalSelect?: string
 ): Promise<JobOwnershipResult & Record<string, unknown>> {
-  const selectFields = `id, homeowner_id, contractor_id, status, title${additionalSelect ? `, ${additionalSelect}` : ''}`;
+  const selectFields = `id, homeowner_id, payer_user_id, contractor_id, status, title${additionalSelect ? `, ${additionalSelect}` : ''}`;
 
   const { data, error } = await serverSupabase
     .from('jobs')
@@ -40,8 +41,11 @@ export async function requireJobOwnership(
 
   const job = data as unknown as JobOwnershipResult & Record<string, unknown>;
 
-  const ownerId = role === 'homeowner' ? job.homeowner_id : job.contractor_id;
-  if (ownerId !== userId) {
+  const isAuthorized =
+    role === 'homeowner'
+      ? job.homeowner_id === userId || job.payer_user_id === userId
+      : job.contractor_id === userId;
+  if (!isAuthorized) {
     throw new ForbiddenError(
       `Only the assigned ${role} can perform this action`
     );

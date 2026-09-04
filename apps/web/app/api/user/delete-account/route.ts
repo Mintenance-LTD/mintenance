@@ -72,12 +72,27 @@ export const POST = withApiHandler(
       'completed',
     ];
 
+    // A payer has no homeowner/contractor role on the contract row, so the
+    // party-scoped contract query below cannot see contracts they fund.
+    // Fetch those accepted contracts through the linked job relationship.
+    const payerAcceptedContractsPromise =
+      user.role === 'homeowner'
+        ? serverSupabase
+            .from('contracts')
+            .select(
+              'id, jobs!inner(id, payer_user_id, escrow_transactions(status))'
+            )
+            .eq('jobs.payer_user_id', user.id)
+            .eq('status', 'accepted')
+        : Promise.resolve({ data: [] as unknown[], error: null });
+
     const [
-      { count: activeEscrowCount },
-      { count: activeAsHomeownerCount },
-      { count: activeAsContractorCount },
-      { count: openDisputesCount },
-      { data: acceptedContractsRows },
+      { count: activeEscrowCount, error: activeEscrowError },
+      { count: activeAsHomeownerCount, error: activeHomeownerJobsError },
+      { count: activeAsContractorCount, error: activeContractorJobsError },
+      { count: openDisputesCount, error: openDisputesError },
+      { data: acceptedContractsRows, error: acceptedContractsError },
+      { data: payerAcceptedContractsRows, error: payerAcceptedContractsError },
     ] = await Promise.all([
       serverSupabase
         .from('escrow_transactions')
@@ -87,7 +102,10 @@ export const POST = withApiHandler(
       serverSupabase
         .from('jobs')
         .select('id', { count: 'exact', head: true })
-        .eq('homeowner_id', user.id)
+        // A designated payer is an active marketplace participant too. Do
+        // not allow account deletion while a job they are responsible for
+        // funding is still assigned or in progress.
+        .or(`homeowner_id.eq.${user.id},payer_user_id.eq.${user.id}`)
         .in('status', ['assigned', 'in_progress']),
       serverSupabase
         .from('jobs')
@@ -112,7 +130,27 @@ export const POST = withApiHandler(
         .select('id, jobs!inner(id, escrow_transactions(status))')
         .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
         .eq('status', 'accepted'),
+      payerAcceptedContractsPromise,
     ]);
+
+    const verificationErrors = [
+      activeEscrowError,
+      activeHomeownerJobsError,
+      activeContractorJobsError,
+      openDisputesError,
+      acceptedContractsError,
+      payerAcceptedContractsError,
+    ].filter(Boolean);
+    if (verificationErrors.length > 0) {
+      logger.error(
+        'Account deletion safety checks failed; refusing to delete account',
+        verificationErrors[0],
+        { service: 'user', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to verify account state. Please try again.'
+      );
+    }
 
     type AcceptedContractRow = {
       id: string;
@@ -123,9 +161,11 @@ export const POST = withApiHandler(
           }>
         | null;
     };
-    const signedUnfundedContractsCount = (
-      (acceptedContractsRows as AcceptedContractRow[] | null) ?? []
-    ).filter((row) => {
+    const acceptedContractRows = [
+      ...((acceptedContractsRows as AcceptedContractRow[] | null) ?? []),
+      ...((payerAcceptedContractsRows as AcceptedContractRow[] | null) ?? []),
+    ];
+    const signedUnfundedContractsCount = acceptedContractRows.filter((row) => {
       const job = Array.isArray(row.jobs) ? row.jobs[0] : row.jobs;
       const escrows = job?.escrow_transactions ?? [];
       // unfunded iff NONE of the escrow rows are in the funded-or-done set
@@ -230,6 +270,17 @@ export const POST = withApiHandler(
         .eq('homeowner_id', user.id),
     ]);
 
+    if (contractorSubsRes.error || homeownerSubsRes.error) {
+      logger.error(
+        'Subscription snapshot failed; refusing to delete account',
+        contractorSubsRes.error ?? homeownerSubsRes.error,
+        { service: 'user', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to verify subscription state. Please try again.'
+      );
+    }
+
     const subscriptionIds = [
       ...(contractorSubsRes.data ?? []),
       ...(homeownerSubsRes.data ?? []),
@@ -279,7 +330,7 @@ export const POST = withApiHandler(
         details: deleteError.details,
       });
       throw new InternalServerError(
-        `Account deletion failed inside the database (${deleteError.message}). Your data has not been removed and your subscription billing is unchanged — please contact support so we can clear any FK constraint blocking the deletion.`
+        'Account deletion could not be completed. Your data has not been removed and subscription billing is unchanged. Please contact support.'
       );
     }
 
@@ -344,13 +395,11 @@ export const POST = withApiHandler(
     // what happened. The data is already gone at this point; an
     // operator follow-up is needed to remove the orphan auth row.
     let authDeleteFailed = false;
-    let authDeleteErrMsg: string | undefined;
     try {
       const { error: authDeleteError } =
         await serverSupabase.auth.admin.deleteUser(user.id);
       if (authDeleteError) {
         authDeleteFailed = true;
-        authDeleteErrMsg = authDeleteError.message;
         logger.error(
           'Failed to delete auth.users row after data deletion',
           authDeleteError,
@@ -361,7 +410,6 @@ export const POST = withApiHandler(
       }
     } catch (error) {
       authDeleteFailed = true;
-      authDeleteErrMsg = error instanceof Error ? error.message : String(error);
       logger.error('auth.admin.deleteUser threw', error, { userId: user.id });
     }
 
@@ -386,9 +434,7 @@ export const POST = withApiHandler(
       // able to sign in. Surface the failure so they know — and so we
       // see it in monitoring instead of silently leaving orphan rows.
       throw new InternalServerError(
-        `Account data was deleted but the login credential could not be removed${
-          authDeleteErrMsg ? ` (${authDeleteErrMsg})` : ''
-        }. Please contact support — your data is gone but you may still be able to sign in until an operator clears the credential.`
+        'Account data was deleted but the login credential could not be removed. Please contact support.'
       );
     }
 
@@ -396,10 +442,10 @@ export const POST = withApiHandler(
     // reordered cancellation block surface here. Data is gone, auth
     // credential is gone — but if any Stripe sub failed to cancel,
     // billing continues until ops manually cancels via the dashboard.
-    // Return 500 with the sub ids so the user (and our logs) know.
+    // Return a support-safe 500; subscription ids remain server-side only.
     if (stripeFailures.length > 0) {
       throw new InternalServerError(
-        `Account data and credentials were deleted, but ${stripeFailures.length} Stripe subscription(s) could not be cancelled — billing may continue until support intervenes. Please contact support with these references: ${stripeFailures.map((f) => f.id).join(', ')}.`
+        'Account data and credentials were deleted, but subscription cancellation requires support. Please contact support.'
       );
     }
 

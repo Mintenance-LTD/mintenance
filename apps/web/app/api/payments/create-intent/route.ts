@@ -9,7 +9,11 @@ import {
   storeIdempotencyResult,
   releaseIdempotencyClaim,
 } from '@/lib/idempotency';
-import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { stripe } from '@/lib/stripe';
 import {
@@ -130,6 +134,19 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
+      // Job escrow, platform fees, and Connect payouts are GBP-denominated.
+      // Do not allow the client-provided currency to create a non-GBP
+      // PaymentIntent that would later be recorded as a GBP escrow.
+      if ((currency || 'gbp').toLowerCase() !== 'gbp') {
+        logger.warn('Job payment intent rejected non-GBP currency', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          currency,
+        });
+        throw new BadRequestError('Job payments must use GBP currency');
+      }
+
       const authorizedPayerId =
         (job.payer_user_id as string | null) || job.homeowner_id;
 
@@ -154,6 +171,23 @@ export const POST = withApiHandler(
           jobId,
         });
         throw new BadRequestError('Job has no assigned contractor');
+      }
+
+      // The contractor id in the request is client-controlled. Keep the
+      // accepted bid, Stripe metadata, and escrow payee tied to the current
+      // server-authoritative assignment; otherwise a reassigned job could
+      // select a stale accepted bid for the previous contractor.
+      if (contractorId !== job.contractor_id) {
+        logger.warn('Payment contractor does not match job assignment', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          requestedContractorId: contractorId,
+          assignedContractorId: job.contractor_id,
+        });
+        throw new BadRequestError(
+          'Payment contractor does not match the current job assignment'
+        );
       }
 
       // Verify contract is signed by both parties before allowing payment.
@@ -186,7 +220,7 @@ export const POST = withApiHandler(
       // accepted bid and use its amount as the single source of truth for
       // what goes to Stripe + escrow. The client-supplied amount is only
       // used to detect tampering (logged, warning, but not trusted).
-      const { data: acceptedBid } = await serverSupabase
+      const { data: acceptedBid, error: acceptedBidError } = await serverSupabase
         .from('bids')
         .select('id, amount, status, quote_id')
         .eq('job_id', jobId)
@@ -194,7 +228,23 @@ export const POST = withApiHandler(
         .eq('status', 'accepted')
         .single();
 
-      if (!acceptedBid || typeof acceptedBid.amount !== 'number') {
+      if (acceptedBidError) {
+        logger.error('Failed to load accepted bid before payment intent', acceptedBidError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          contractorId,
+        });
+        throw new InternalServerError(
+          'Could not verify the accepted bid. Payment was not attempted.'
+        );
+      }
+
+      // Postgres NUMERIC values may arrive from PostgREST as strings. Convert
+      // once at the trust boundary so a valid accepted bid is not rejected
+      // merely because the driver preserved its decimal representation.
+      const acceptedBidAmount = Number(acceptedBid?.amount);
+      if (!acceptedBid || !Number.isFinite(acceptedBidAmount)) {
         logger.warn('Payment intent attempted without accepted bid', {
           service: 'payments',
           userId: user.id,
@@ -206,7 +256,7 @@ export const POST = withApiHandler(
         );
       }
 
-      if (acceptedBid.amount <= 0) {
+      if (acceptedBidAmount <= 0) {
         logger.error(
           'Accepted bid has non-positive amount — data integrity issue',
           {
@@ -214,7 +264,7 @@ export const POST = withApiHandler(
             userId: user.id,
             jobId,
             contractorId,
-            bidAmount: acceptedBid.amount,
+            bidAmount: acceptedBidAmount,
           }
         );
         throw new BadRequestError('Accepted bid has an invalid amount.');
@@ -290,12 +340,12 @@ export const POST = withApiHandler(
       // Shared constant — kept in lock-step with the job-budget + payment
       // validation ceilings so a bid can never exceed a fundable amount.
       const ABSOLUTE_MAX_PAYMENT = MAX_JOB_PAYMENT_GBP;
-      if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
+      if (acceptedBidAmount > ABSOLUTE_MAX_PAYMENT) {
         logger.error('Accepted bid exceeds absolute platform maximum', {
           service: 'payments',
           userId: user.id,
           jobId,
-          bidAmount: acceptedBid.amount,
+          bidAmount: acceptedBidAmount,
           absoluteMax: ABSOLUTE_MAX_PAYMENT,
         });
         throw new BadRequestError('Bid amount exceeds platform maximum.');
@@ -303,7 +353,7 @@ export const POST = withApiHandler(
 
       // If the client supplied a different amount, record it for forensics
       // but use the server-authoritative amount from the accepted bid.
-      if (Math.round(amount * 100) !== Math.round(acceptedBid.amount * 100)) {
+      if (Math.round(amount * 100) !== Math.round(acceptedBidAmount * 100)) {
         logger.warn(
           'Client-supplied payment amount diverged from accepted bid; using server amount',
           {
@@ -311,13 +361,13 @@ export const POST = withApiHandler(
             userId: user.id,
             jobId,
             clientAmount: amount,
-            bidAmount: acceptedBid.amount,
+            bidAmount: acceptedBidAmount,
           }
         );
       }
 
       // From here on, this is THE amount — do not trust `amount` further.
-      let authoritativeAmount = acceptedBid.amount;
+      let authoritativeAmount = acceptedBidAmount;
 
       // 2026-05-25 audit-45 P0: idempotency check moved BEFORE the
       // referral credit spend. Previously the order was:
@@ -408,16 +458,27 @@ export const POST = withApiHandler(
       }
 
       // Record payment attempt using the server-authoritative amount
-      await serverSupabase.from('payment_attempts').insert({
-        user_id: user.id,
-        amount: authoritativeAmount,
-        currency: currency || 'gbp',
-        status: 'pending',
-        ip_address: getClientIp(request),
-        user_agent: request.headers.get('user-agent') || null,
-        metadata: { jobId, contractorId, clientAmount: amount },
-        created_at: new Date().toISOString(),
-      });
+      const { error: paymentAttemptError } = await serverSupabase
+        .from('payment_attempts')
+        .insert({
+          user_id: user.id,
+          amount: authoritativeAmount,
+          currency: currency || 'gbp',
+          status: 'pending',
+          ip_address: getClientIp(request),
+          user_agent: request.headers.get('user-agent') || null,
+          metadata: { jobId, contractorId, clientAmount: amount },
+          created_at: new Date().toISOString(),
+        });
+
+      if (paymentAttemptError) {
+        logger.error('Failed to record payment attempt', paymentAttemptError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+        });
+        throw new Error('Failed to record payment attempt');
+      }
 
       // Deterministic idempotency key: same job + homeowner + contractor always
       // produces the same key. Including contractor_id (WBE-P1-2) prevents a
@@ -435,11 +496,20 @@ export const POST = withApiHandler(
       // every escrow funding via a saved card failed at confirm time.
       // Read via service-role (stripe_customer_id is grant-locked). Omit
       // when absent (first-time payer entering a fresh card still works).
-      const { data: payerProfile } = await serverSupabase
+      const { data: payerProfile, error: payerProfileError } = await serverSupabase
         .from('profiles')
         .select('stripe_customer_id')
         .eq('id', user.id)
         .single();
+
+      if (payerProfileError) {
+        logger.error('Failed to load payer Stripe customer', payerProfileError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+        });
+        throw new Error('Failed to load payer Stripe customer');
+      }
       const payerCustomerId = payerProfile?.stripe_customer_id ?? undefined;
 
       // Create Stripe PaymentIntent with timeout to prevent hanging requests.
@@ -525,14 +595,24 @@ export const POST = withApiHandler(
 
       // Check for existing escrow record to prevent duplicates
       // (e.g. user refreshes payment page, or idempotency cache expired)
-      const { data: existingEscrow } = await serverSupabase
+      const { data: existingEscrow, error: existingEscrowError } = await serverSupabase
         .from('escrow_transactions')
         .select(
           'id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at'
         )
         .eq('job_id', jobId)
         .eq('payment_intent_id', paymentIntent.id)
-        .single();
+        .maybeSingle();
+
+      if (existingEscrowError) {
+        logger.error('Failed to check for existing escrow transaction', existingEscrowError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          paymentIntentId: paymentIntent.id,
+        });
+        throw new Error('Failed to check for existing escrow transaction');
+      }
 
       let escrowTransaction = existingEscrow;
       let escrowError = null;
@@ -655,8 +735,9 @@ export const POST = withApiHandler(
       if (creditAppliedPence > 0 && !escrowCreated && paymentJobId) {
         try {
           if (createdPaymentIntentId) {
-            await stripe.paymentIntents.cancel(createdPaymentIntentId).catch(
-              (cancelError) => {
+            await stripe.paymentIntents
+              .cancel(createdPaymentIntentId)
+              .catch((cancelError) => {
                 logger.error(
                   'PaymentIntent cancellation failed during payment rollback',
                   cancelError,
@@ -667,8 +748,7 @@ export const POST = withApiHandler(
                     paymentIntentId: createdPaymentIntentId,
                   }
                 );
-              }
-            );
+              });
           }
           const { NeighbourhoodReferralService } =
             await import('@/lib/services/referrals/NeighbourhoodReferralService');
@@ -686,12 +766,16 @@ export const POST = withApiHandler(
             });
           }
         } catch (rollbackError) {
-          logger.error('Credit rollback threw after payment failure', rollbackError, {
-            service: 'payments',
-            userId: user.id,
-            jobId: paymentJobId,
-            creditAppliedPence,
-          });
+          logger.error(
+            'Credit rollback threw after payment failure',
+            rollbackError,
+            {
+              service: 'payments',
+              userId: user.id,
+              jobId: paymentJobId,
+              creditAppliedPence,
+            }
+          );
         }
       }
 

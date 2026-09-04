@@ -12,7 +12,8 @@ export const GET = withApiHandler(
     // Fetch bid with quote_id
     const { data: bid, error: bidError } = await serverSupabase
       .from('bids')
-      .select(`
+      .select(
+        `
         id,
         job_id,
         contractor_id,
@@ -23,9 +24,11 @@ export const GET = withApiHandler(
         jobs (
           id,
           title,
-          homeowner_id
+          homeowner_id,
+          payer_user_id
         )
-      `)
+      `
+      )
       .eq('id', bidId)
       .single();
 
@@ -41,7 +44,8 @@ export const GET = withApiHandler(
     // Verify user has access to this bid
     const job = Array.isArray(bid.jobs) ? bid.jobs[0] : bid.jobs;
     const isContractor = user.id === bid.contractor_id;
-    const isHomeowner = user.id === job?.homeowner_id;
+    const isHomeowner =
+      user.id === job?.homeowner_id || user.id === job?.payer_user_id;
 
     if (!isContractor && !isHomeowner) {
       throw new ForbiddenError('Not authorized to view this quote');

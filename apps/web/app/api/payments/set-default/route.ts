@@ -6,6 +6,7 @@ import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 // `.strict()` rejects unknown body keys — verified clients (web settings
 // pages + mobile PaymentMethodService) send exactly { paymentMethodId }.
@@ -34,30 +35,21 @@ export const POST = withApiHandler(
 
     // Get user's Stripe customer ID (column may not exist in DB schema)
     let stripeCustomerId: string | null = null;
-    const { data: stripeData } = await serverSupabase
+    const { data: stripeData, error: stripeDataError } = await serverSupabase
       .from('profiles')
       .select('stripe_customer_id')
       .eq('id', user.id)
       .single();
+    if (stripeDataError) {
+      logger.error('Failed to read Stripe customer link', stripeDataError, {
+        service: 'payments',
+        userId: user.id,
+      });
+      throw new Error('Failed to load payment account');
+    }
     if (stripeData) {
       stripeCustomerId = (stripeData as Record<string, unknown>)
         .stripe_customer_id as string | null;
-    }
-
-    // Fallback: search Stripe by email
-    if (!stripeCustomerId) {
-      const { data: profileData } = await serverSupabase
-        .from('profiles')
-        .select('email')
-        .eq('id', user.id)
-        .single();
-      if (profileData?.email) {
-        const existing = await stripe.customers.list({
-          email: profileData.email,
-          limit: 1,
-        });
-        stripeCustomerId = existing.data[0]?.id || null;
-      }
     }
 
     if (!stripeCustomerId) {
@@ -85,9 +77,17 @@ export const POST = withApiHandler(
       });
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
+        const response = createPaymentErrorResponse(error, {
+          operation: 'set_default_payment_method',
+          userId: user.id,
+        });
         return NextResponse.json(
-          { error: error.message, type: error.type },
-          { status: 400 }
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
         );
       }
       throw error;

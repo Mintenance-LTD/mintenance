@@ -76,6 +76,7 @@ const mocks = vi.hoisted(() => ({
 
   // Idempotency
   getIdempotencyKeyFromRequest: vi.fn(),
+  getDeterministicIdempotencyKeyFromRequest: vi.fn(),
   checkIdempotency: vi.fn(),
   storeIdempotencyResult: vi.fn(),
   releaseIdempotencyClaim: vi.fn(),
@@ -203,7 +204,8 @@ vi.mock('@/lib/services/job-creation-service', () => ({
 
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
-    createNotification: mocks.createNotification,
+    createNotification: (...args: unknown[]) =>
+      mocks.createNotification(...args),
     markEmailSent: vi.fn().mockResolvedValue(undefined),
   },
 }));
@@ -214,6 +216,12 @@ vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
   // payment_required prompt fired at contract acceptance (2026-07-31);
   // a partial factory makes the route call undefined() → 500.
   notifyPaymentEvent: vi.fn(async () => undefined),
+}));
+
+vi.mock('@/lib/services/contracts/ContractSignatoriesService', () => ({
+  ContractSignatoriesService: {
+    areAllCosignersSigned: async () => true,
+  },
 }));
 
 vi.mock('@/lib/email-service', () => ({
@@ -239,6 +247,8 @@ vi.mock('@/lib/utils/fileValidation', () => ({
 }));
 
 vi.mock('@/lib/idempotency', () => ({
+  getDeterministicIdempotencyKeyFromRequest:
+    mocks.getDeterministicIdempotencyKeyFromRequest,
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
@@ -511,6 +521,7 @@ function setupInfrastructureMocks(user = homeownerUser) {
   });
   mocks.notifyJobConfirmed.mockResolvedValue(undefined);
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-1');
+  mocks.getDeterministicIdempotencyKeyFromRequest.mockReturnValue('idem-key-1');
   mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
   mocks.storeIdempotencyResult.mockResolvedValue(undefined);
   mocks.releaseIdempotencyClaim.mockResolvedValue(undefined);
@@ -988,6 +999,24 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
           insert: vi.fn().mockResolvedValue({ error: null }),
         };
       }
+      if (table === 'contractor_insurance') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: null,
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
       if (table === 'message_threads') {
         return {
           select: vi.fn().mockReturnValue({
@@ -1003,7 +1032,14 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
             }),
           }),
           update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockResolvedValue({
+                  data: [{ id: JOB_ID }],
+                  error: null,
+                }),
+              }),
+            }),
           }),
         };
       }
@@ -1064,6 +1100,21 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: CONTRACT_ID,
+                  job_id: JOB_ID,
+                  contractor_id: contractorUser.id,
+                  homeowner_id: homeownerUser.id,
+                  status: 'pending_contractor',
+                  title: 'Contract for Fix leaking tap',
+                  contractor_signed_at: null,
+                  homeowner_signed_at: null,
+                  start_date: null,
+                  end_date: null,
+                },
+                error: null,
+              }),
               or: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
@@ -1085,24 +1136,28 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
           }),
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: CONTRACT_ID,
-                    job_id: JOB_ID,
-                    contractor_id: contractorUser.id,
-                    homeowner_id: homeownerUser.id,
-                    status: 'pending_homeowner',
-                    title: 'Contract for Fix leaking tap',
-                    contractor_signed_at: new Date().toISOString(),
-                    homeowner_signed_at: null,
-                    start_date: null,
-                    end_date: null,
-                    amount: 150,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                  },
-                  error: null,
+              eq: vi.fn().mockReturnValue({
+                is: vi.fn().mockReturnValue({
+                  select: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        id: CONTRACT_ID,
+                        job_id: JOB_ID,
+                        contractor_id: contractorUser.id,
+                        homeowner_id: homeownerUser.id,
+                        status: 'pending_homeowner',
+                        title: 'Contract for Fix leaking tap',
+                        contractor_signed_at: new Date().toISOString(),
+                        homeowner_signed_at: null,
+                        start_date: null,
+                        end_date: null,
+                        amount: 150,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                      },
+                      error: null,
+                    }),
+                  }),
                 }),
               }),
             }),
@@ -1169,6 +1224,21 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: CONTRACT_ID,
+                  job_id: JOB_ID,
+                  contractor_id: contractorUser.id,
+                  homeowner_id: homeownerUser.id,
+                  status: 'pending_homeowner',
+                  title: 'Contract for Fix leaking tap',
+                  contractor_signed_at: '2026-03-10T10:00:00Z',
+                  homeowner_signed_at: null,
+                  start_date: null,
+                  end_date: null,
+                },
+                error: null,
+              }),
               or: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
@@ -1190,24 +1260,28 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
           }),
           update: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: {
-                    id: CONTRACT_ID,
-                    job_id: JOB_ID,
-                    contractor_id: contractorUser.id,
-                    homeowner_id: homeownerUser.id,
-                    status: 'accepted',
-                    title: 'Contract for Fix leaking tap',
-                    contractor_signed_at: '2026-03-10T10:00:00Z',
-                    homeowner_signed_at: new Date().toISOString(),
-                    start_date: null,
-                    end_date: null,
-                    amount: 150,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                  },
-                  error: null,
+              eq: vi.fn().mockReturnValue({
+                is: vi.fn().mockReturnValue({
+                  select: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({
+                      data: {
+                        id: CONTRACT_ID,
+                        job_id: JOB_ID,
+                        contractor_id: contractorUser.id,
+                        homeowner_id: homeownerUser.id,
+                        status: 'accepted',
+                        title: 'Contract for Fix leaking tap',
+                        contractor_signed_at: '2026-03-10T10:00:00Z',
+                        homeowner_signed_at: new Date().toISOString(),
+                        start_date: null,
+                        end_date: null,
+                        amount: 150,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                      },
+                      error: null,
+                    }),
+                  }),
                 }),
               }),
             }),
@@ -1470,7 +1544,14 @@ describe('Job Lifecycle - 7. Job started', () => {
             }),
           }),
           update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockResolvedValue({
+                  data: [{ id: JOB_ID }],
+                  error: null,
+                }),
+              }),
+            }),
           }),
         };
       }
@@ -1870,7 +1951,14 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
             }),
           }),
           update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockResolvedValue({
+                  data: [{ id: JOB_ID }],
+                  error: null,
+                }),
+              }),
+            }),
           }),
         };
       }
@@ -1923,9 +2011,11 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              eq: vi
-                .fn()
-                .mockResolvedValue({ count: 3, data: null, error: null }),
+              eq: vi.fn().mockReturnValue({
+                eq: vi
+                  .fn()
+                  .mockResolvedValue({ count: 3, data: null, error: null }),
+              }),
             }),
           }),
         };

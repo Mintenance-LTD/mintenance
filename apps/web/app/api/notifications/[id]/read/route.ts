@@ -31,7 +31,8 @@ export const POST = withApiHandler(
     const { error: updateError } = await userDb
       .from('notifications')
       .update({ read: true })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id);
 
     if (updateError) {
       logger.error('Error marking notification as read', updateError, {

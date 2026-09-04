@@ -15,6 +15,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
 import { normalisePropertyType } from '@/lib/properties/property-type';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -182,8 +183,26 @@ export const GET = withApiHandler(
       }
     }
 
+    // Refresh persisted Job-storage URLs for both owned and shared property
+    // rows. The upload endpoint returns signed URLs for compatibility, but
+    // those URLs eventually expire; the stored object path is re-signed only
+    // for this authorized response. External/CDN URLs pass through unchanged.
+    const propertiesWithFreshPhotos = await Promise.all(
+      result.map(async (property) => {
+        const storedPhotos = Array.isArray(property.photos)
+          ? property.photos.filter(
+              (photo): photo is string => typeof photo === 'string'
+            )
+          : [];
+        return {
+          ...property,
+          photos: await resignJobStorageUrls(storedPhotos),
+        };
+      })
+    );
+
     return NextResponse.json({
-      properties: result,
+      properties: propertiesWithFreshPhotos,
     });
   }
 );

@@ -42,6 +42,11 @@ export async function ensureConnectAccount(
     metadata: {
       contractor_id: contractorId,
     },
+  }, {
+    // Account creation is not safe to retry without an idempotency key: two
+    // concurrent onboarding requests can otherwise create two Express
+    // accounts before either profile update wins.
+    idempotencyKey: `connect_account_${contractorId}`,
   });
 
   const { error: updateError } = await serverSupabase
@@ -133,7 +138,7 @@ export async function syncAccountStatus(
     profile.stripe_onboarding_completed_at ??
     (detailsSubmitted ? new Date().toISOString() : null);
 
-  await serverSupabase
+  const { error: mirrorError } = await serverSupabase
     .from('profiles')
     .update({
       stripe_charges_enabled: chargesEnabled,
@@ -144,6 +149,19 @@ export async function syncAccountStatus(
       stripe_requirements_pending: requirementsPending,
     })
     .eq('id', contractorId);
+
+  // The cached flags gate payout readiness throughout the application. Do
+  // not return a fresh Stripe status as if synchronization succeeded when the
+  // service-role mirror write failed; callers would show a transient Stripe
+  // state while subsequent payout checks continued using stale profile data.
+  if (mirrorError) {
+    logger.error('Failed to mirror Stripe Connect account status', mirrorError, {
+      service: 'stripe-connect',
+      contractorId,
+      stripeAccountId: account.id,
+    });
+    throw new Error('Failed to synchronize Connect account status');
+  }
 
   return {
     accountId: account.id,

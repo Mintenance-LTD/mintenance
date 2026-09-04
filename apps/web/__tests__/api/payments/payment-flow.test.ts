@@ -1,6 +1,6 @@
 // @vitest-environment node
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * PAYMENT FLOW CRITICAL TEST SUITE
@@ -271,7 +271,7 @@ vi.mock('@/lib/errors/api-error', async () => {
     InternalServerError,
     ValidationError: BadRequestError,
     RateLimitError: class extends APIError {
-      constructor(retryAfter?: number) {
+      constructor(_retryAfter?: number) {
         super('RATE_LIMIT_EXCEEDED', 'Too many requests', 429);
       }
     },
@@ -282,12 +282,10 @@ vi.mock('@/lib/errors/api-error', async () => {
     },
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
-        const { NextResponse } = require('next/server');
         return NextResponse.json(error.toResponse(), {
           status: error.statusCode,
         });
       }
-      const { NextResponse } = require('next/server');
       return NextResponse.json(
         {
           error: {
@@ -667,13 +665,17 @@ function createSupabaseChain(
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue(selectReturn),
+              maybeSingle: vi.fn().mockResolvedValue(selectReturn),
             }),
             single: vi.fn().mockResolvedValue(selectReturn),
+            maybeSingle: vi.fn().mockResolvedValue(selectReturn),
           }),
           single: vi.fn().mockResolvedValue(selectReturn),
+          maybeSingle: vi.fn().mockResolvedValue(selectReturn),
           in: vi.fn().mockResolvedValue(selectReturn),
         }),
         single: vi.fn().mockResolvedValue(selectReturn),
+        maybeSingle: vi.fn().mockResolvedValue(selectReturn),
       }),
       insert: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -1256,6 +1258,10 @@ describe('POST /api/payments/refund', () => {
               },
               error: null,
             },
+            updateReturn: {
+              data: { id: '550e8400-e29b-41d4-a716-446655440000' },
+              error: null,
+            },
           },
           escrow_transactions: {
             selectReturn: {
@@ -1514,8 +1520,7 @@ describe('POST /api/payments/release-escrow', () => {
       const request = createMockRequest(
         'http://localhost:3000/api/payments/release-escrow'
       );
-      const response = await POST(request);
-      const body = await response.json();
+      await POST(request);
       // Should succeed or return a valid response (may depend on optimistic lock)
       // The route does many DB operations; we check it reaches the transfer step
       expect(mocks.stripeTransfersCreate).toHaveBeenCalled();
@@ -1699,6 +1704,48 @@ describe('POST /api/payments/create-intent', () => {
 
       // The ForbiddenError is caught and processed through createPaymentErrorResponse
       expect(response.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('should reject a contractor id that differs from the current job assignment', async () => {
+      mocks.validateRequest.mockResolvedValue({
+        data: {
+          amount: 500,
+          currency: 'gbp',
+          jobId: '550e8400-e29b-41d4-a716-446655440000',
+          contractorId: 'previous-contractor',
+        },
+      });
+
+      mocks.detectAnomalies.mockResolvedValue({
+        isAnomalous: false,
+        riskScore: 0.1,
+        reasons: [],
+        blockedReasons: [],
+      });
+
+      createSupabaseChain({
+        jobs: {
+          selectReturn: {
+            data: {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              homeowner_id: 'homeowner-user-id',
+              payer_user_id: null,
+              contractor_id: 'current-contractor',
+              title: 'Fix leak',
+              status: 'assigned',
+            },
+            error: null,
+          },
+        },
+      });
+
+      const response = await POST(
+        createMockRequest('http://localhost:3000/api/payments/create-intent')
+      );
+
+      expect(response.status).toBe(400);
+      expect(mocks.supabaseFrom).toHaveBeenCalledWith('jobs');
+      expect(mocks.supabaseFrom).not.toHaveBeenCalledWith('contracts');
     });
   });
 
@@ -1950,17 +1997,13 @@ describe('GET /api/payments/methods', () => {
 
   describe('Rate Limiting', () => {
     it('should return rate limit response when limit exceeded', async () => {
-      const mockRateLimitResponse = new Response(
-        JSON.stringify({ error: 'Too many requests' }),
-        { status: 429 }
-      );
       // The methods route uses checkRateLimit from @/lib/rate-limit
       // When success=false, it returns the response object
       mocks.checkRateLimit.mockResolvedValue({
         success: false,
         remaining: 0,
         resetTime: Date.now() + 3600000,
-        response: new (require('next/server').NextResponse)(
+        response: new NextResponse(
           JSON.stringify({ error: 'Too many requests' }),
           { status: 429 }
         ),
@@ -2224,10 +2267,13 @@ describe('POST /api/payments/add-method', () => {
       expect(body.success).toBe(true);
 
       // Verify Stripe customer was created
-      expect(mocks.stripeCustomersCreate).toHaveBeenCalledWith({
-        email: 'homeowner@test.com',
-        metadata: { userId: 'homeowner-user-id' },
-      });
+      expect(mocks.stripeCustomersCreate).toHaveBeenCalledWith(
+        {
+          email: 'homeowner@test.com',
+          metadata: { userId: 'homeowner-user-id' },
+        },
+        { idempotencyKey: 'stripe_customer_homeowner-user-id' }
+      );
     });
   });
 });
@@ -2450,7 +2496,14 @@ describe('Refund DB Retry Logic', () => {
             }),
           }),
           update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: '550e8400-e29b-41d4-a716-446655440000' },
+                  error: null,
+                }),
+              }),
+            }),
           }),
         };
       }

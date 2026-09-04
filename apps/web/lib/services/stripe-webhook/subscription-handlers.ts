@@ -39,7 +39,16 @@ export async function handleSubscriptionUpdated(
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (userError || !user) {
+    if (userError) {
+      logger.error('Failed to load subscription customer profile', userError, {
+        service: 'stripe-webhook',
+        subscriptionId: subscription.id,
+        customerId,
+      });
+      throw new Error('Failed to load subscription customer profile');
+    }
+
+    if (!user) {
       logger.warn('User not found for subscription customer', {
         service: 'stripe-webhook',
         subscriptionId: subscription.id,
@@ -94,6 +103,7 @@ export async function handleSubscriptionUpdated(
           userId: user.id,
         }
       );
+      throw new Error('Failed to persist profile subscription status');
     }
 
     // Update role-specific subscription table/profile
@@ -157,6 +167,7 @@ export async function handleSubscriptionUpdated(
               subscriptionId: subscription.id,
             }
           );
+          throw new Error('Failed to persist contractor subscription status');
         }
       }
     } else if (user.role === 'homeowner') {
@@ -185,6 +196,7 @@ export async function handleSubscriptionUpdated(
             homeownerStatus,
           }
         );
+        throw new Error('Failed to persist homeowner subscription status');
       }
     }
 
@@ -253,7 +265,16 @@ export async function handleSubscriptionDeleted(
       .eq('stripe_customer_id', customerId)
       .single();
 
-    if (userError || !user) {
+    if (userError) {
+      logger.error('Failed to load deleted subscription customer profile', userError, {
+        service: 'stripe-webhook',
+        subscriptionId: subscription.id,
+        customerId,
+      });
+      throw new Error('Failed to load deleted subscription customer profile');
+    }
+
+    if (!user) {
       logger.warn('User not found for subscription customer', {
         service: 'stripe-webhook',
         subscriptionId: subscription.id,
@@ -276,6 +297,7 @@ export async function handleSubscriptionDeleted(
         service: 'stripe-webhook',
         userId: user.id,
       });
+      throw new Error('Failed to persist profile subscription downgrade');
     }
 
     // Downgrade role-specific subscription states
@@ -307,6 +329,7 @@ export async function handleSubscriptionDeleted(
             subscriptionId: subscription.id,
           }
         );
+        throw new Error('Failed to persist contractor subscription downgrade');
       }
     } else if (user.role === 'homeowner') {
       const { error: homeownerError } = await serverSupabase
@@ -327,6 +350,7 @@ export async function handleSubscriptionDeleted(
             userId: user.id,
           }
         );
+        throw new Error('Failed to persist homeowner subscription downgrade');
       }
     }
 

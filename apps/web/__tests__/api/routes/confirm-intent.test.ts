@@ -47,7 +47,12 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 vi.mock('@mintenance/shared', () => ({
   logger: mocks.logger,
-  ESCROW_STATUS: { PENDING: 'pending', HELD: 'held', RELEASE_PENDING: 'release_pending', RELEASED: 'released' },
+  ESCROW_STATUS: {
+    PENDING: 'pending',
+    HELD: 'held',
+    RELEASE_PENDING: 'release_pending',
+    RELEASED: 'released',
+  },
   validateEscrowTransition: vi.fn(),
   BUSINESS_RULES: {},
   RATE_LIMITS: {},
@@ -65,7 +70,10 @@ vi.mock('stripe', () => {
     static errors = {
       StripeError: class StripeError extends Error {
         type: string;
-        constructor(msg: string) { super(msg); this.type = 'invalid_request_error'; }
+        constructor(msg: string) {
+          super(msg);
+          this.type = 'invalid_request_error';
+        }
       },
     };
   }
@@ -91,24 +99,65 @@ vi.mock('@/lib/email-service', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -118,7 +167,10 @@ vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function createPostRequest(url: string, body: Record<string, unknown>): NextRequest {
+function createPostRequest(
+  url: string,
+  body: Record<string, unknown>
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
     headers: {
@@ -144,42 +196,62 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(homeownerUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.createNotification.mockResolvedValue(undefined);
   mocks.sendPaymentConfirmationEmail.mockResolvedValue(true);
   mocks.sendPaymentReceivedEmail.mockResolvedValue(true);
 }
 
-function setupConfirmIntentMocks(overrides: {
-  paymentIntentStatus?: string;
-  jobData?: unknown;
-  jobError?: unknown;
-  escrowData?: unknown;
-  escrowError?: unknown;
-  escrowUpdateData?: unknown;
-  escrowUpdateError?: unknown;
-} = {}) {
+function setupConfirmIntentMocks(
+  overrides: {
+    paymentIntentStatus?: string;
+    jobData?: unknown;
+    jobError?: unknown;
+    escrowData?: unknown;
+    escrowError?: unknown;
+    escrowUpdateData?: unknown;
+    escrowUpdateError?: unknown;
+  } = {}
+) {
   mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
     id: 'pi_test123',
     status: overrides.paymentIntentStatus ?? 'succeeded',
     amount: 25000,
+    currency: 'gbp',
   });
 
   const jobResult = {
-    data: overrides.jobData ?? { id: validJobId, homeowner_id: 'homeowner-1', contractor_id: 'contractor-1', title: 'Fix tap' },
+    data: overrides.jobData ?? {
+      id: validJobId,
+      homeowner_id: 'homeowner-1',
+      contractor_id: 'contractor-1',
+      title: 'Fix tap',
+    },
     error: overrides.jobError ?? null,
   };
   const escrowResult = {
     data: overrides.escrowData ?? {
-      id: 'escrow-1', job_id: validJobId, amount: 25000, status: 'pending',
-      stripe_payment_intent_id: 'pi_test123', payment_intent_id: 'pi_test123',
-      version: 1, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+      id: 'escrow-1',
+      job_id: validJobId,
+      amount: 250,
+      status: 'pending',
+      stripe_payment_intent_id: 'pi_test123',
+      payment_intent_id: 'pi_test123',
+      version: 1,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
     },
     error: overrides.escrowError ?? null,
   };
   const escrowUpdateResult = {
-    data: overrides.escrowUpdateData ?? { ...escrowResult.data, status: 'held' },
+    data: overrides.escrowUpdateData ?? {
+      ...escrowResult.data,
+      status: 'held',
+    },
     error: overrides.escrowUpdateError ?? null,
   };
 
@@ -190,6 +262,9 @@ function setupConfirmIntentMocks(overrides: {
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue(jobResult),
           }),
+        }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
         }),
       };
     }
@@ -220,7 +295,11 @@ function setupConfirmIntentMocks(overrides: {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { first_name: 'Test', last_name: 'User', email: 'test@test.com' },
+              data: {
+                first_name: 'Test',
+                last_name: 'User',
+                email: 'test@test.com',
+              },
               error: null,
             }),
           }),
@@ -247,10 +326,13 @@ describe('POST /api/payments/confirm-intent', () => {
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     // No segmentData needed - this route has no [id] param
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(401);
@@ -262,16 +344,19 @@ describe('POST /api/payments/confirm-intent', () => {
     const { NextResponse } = await import('next/server');
     const validationResponse = NextResponse.json(
       { error: { code: 'BAD_REQUEST', message: 'Invalid payment intent ID' } },
-      { status: 400 },
+      { status: 400 }
     );
     mocks.validateRequest.mockResolvedValue(validationResponse);
 
     setupConfirmIntentMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'invalid',
-      jobId: 'not-a-uuid',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'invalid',
+        jobId: 'not-a-uuid',
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
   });
@@ -283,10 +368,13 @@ describe('POST /api/payments/confirm-intent', () => {
     });
     setupConfirmIntentMocks({ paymentIntentStatus: 'requires_payment_method' });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
 
@@ -299,12 +387,18 @@ describe('POST /api/payments/confirm-intent', () => {
     mocks.validateRequest.mockResolvedValue({
       data: { paymentIntentId: 'pi_test123', jobId: validJobId },
     });
-    setupConfirmIntentMocks({ jobData: null, jobError: { message: 'not found' } });
-
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
+    setupConfirmIntentMocks({
+      jobData: null,
+      jobError: { message: 'not found' },
     });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(404);
   });
@@ -323,10 +417,13 @@ describe('POST /api/payments/confirm-intent', () => {
     });
     setupConfirmIntentMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(403);
   });
@@ -336,12 +433,18 @@ describe('POST /api/payments/confirm-intent', () => {
     mocks.validateRequest.mockResolvedValue({
       data: { paymentIntentId: 'pi_test123', jobId: validJobId },
     });
-    setupConfirmIntentMocks({ escrowData: null, escrowError: { message: 'not found' } });
-
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
+    setupConfirmIntentMocks({
+      escrowData: null,
+      escrowError: { message: 'not found' },
     });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(404);
 
@@ -356,16 +459,24 @@ describe('POST /api/payments/confirm-intent', () => {
     });
     setupConfirmIntentMocks({
       escrowData: {
-        id: 'escrow-1', job_id: validJobId, amount: 25000, status: 'held',
-        payment_intent_id: 'pi_test123', version: 1,
-        created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-02T00:00:00Z',
+        id: 'escrow-1',
+        job_id: validJobId,
+        amount: 250,
+        status: 'held',
+        payment_intent_id: 'pi_test123',
+        version: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-02T00:00:00Z',
       },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(200);
 
@@ -381,17 +492,20 @@ describe('POST /api/payments/confirm-intent', () => {
     });
     setupConfirmIntentMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(200);
 
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.escrowTransactionId).toBe('escrow-1');
-    expect(body.amount).toBe(25000);
+    expect(body.amount).toBe(250);
   });
 
   // ---- Unexpected escrow state ----
@@ -401,16 +515,24 @@ describe('POST /api/payments/confirm-intent', () => {
     });
     setupConfirmIntentMocks({
       escrowData: {
-        id: 'escrow-1', job_id: validJobId, amount: 25000, status: 'failed',
-        payment_intent_id: 'pi_test123', version: 1,
-        created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-02T00:00:00Z',
+        id: 'escrow-1',
+        job_id: validJobId,
+        amount: 250,
+        status: 'failed',
+        payment_intent_id: 'pi_test123',
+        version: 1,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-02T00:00:00Z',
       },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
-      paymentIntentId: 'pi_test123',
-      jobId: validJobId,
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
     const res = await POST(req, { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
 

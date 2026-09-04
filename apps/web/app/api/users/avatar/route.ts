@@ -8,7 +8,10 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { BadRequestError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
   validateImageUpload,
@@ -53,7 +56,14 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     const formData = await request.formData();
-    const file = formData.get('avatar') as File;
+    const rawFile = formData.get('avatar');
+    const file =
+      typeof rawFile === 'object' &&
+      rawFile !== null &&
+      'size' in rawFile &&
+      'arrayBuffer' in rawFile
+        ? rawFile
+        : null;
 
     if (!file) {
       throw new BadRequestError('No file uploaded');
@@ -77,11 +87,22 @@ export const POST = withApiHandler(
 
     // Read the existing avatar URL BEFORE we overwrite the row so we
     // can clean up the old blob after the update succeeds.
-    const { data: previousProfile } = await serverSupabase
+    const { data: previousProfile, error: previousProfileError } =
+      await serverSupabase
       .from('profiles')
       .select('profile_image_url')
       .eq('id', user.id)
       .single();
+    if (previousProfileError) {
+      logger.error(
+        'Failed to read existing avatar before replacement',
+        previousProfileError,
+        { service: 'users.avatar', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to prepare avatar replacement. Please try again.'
+      );
+    }
     const previousAvatarUrl = previousProfile?.profile_image_url ?? null;
 
     // Derive the extension from the DETECTED type, never the client filename.
@@ -90,7 +111,11 @@ export const POST = withApiHandler(
 
     const { error: uploadError } = await serverSupabase.storage
       .from('avatars')
-      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        contentType: validation.detectedType,
+        upsert: false,
+      });
 
     if (uploadError) {
       logger.error('Failed to upload avatar:', uploadError);
@@ -174,6 +199,7 @@ export const DELETE = withApiHandler(
 
         if (deleteError) {
           logger.error('Failed to delete avatar file:', deleteError);
+          throw deleteError;
         }
       }
     }

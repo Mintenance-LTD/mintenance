@@ -42,6 +42,11 @@ const geist = Geist({
 // import { PerformanceDashboard } from '../components/PerformanceDashboard' // Temporarily disabled for testing
 
 export const metadata = {
+  // Keep absolute Open Graph/Twitter asset URLs stable in production. The
+  // localhost fallback is only for local builds where no public URL is set.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  ),
   title: 'Mintenance — Hire Local Tradespeople For Home Projects',
   description:
     'Connect with local tradespeople, compare quotes, and manage home maintenance projects with escrow-protected payments.',

@@ -31,6 +31,10 @@ export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 30 } },
   async (request) => {
     const { searchParams } = request.nextUrl;
+    const parseOptionalNumber = (name: string): number | undefined => {
+      const value = searchParams.get(name);
+      return value ? parseFloat(value) : undefined;
+    };
 
     // Parse query parameters
     const filters: MaterialQueryFilters = {
@@ -43,17 +47,13 @@ export const GET = withApiHandler(
             : undefined,
       supplier_id: searchParams.get('supplier_id') || undefined,
       search: searchParams.get('search') || undefined,
-      min_price: searchParams.get('min_price')
-        ? parseFloat(searchParams.get('min_price')!)
-        : undefined,
-      max_price: searchParams.get('max_price')
-        ? parseFloat(searchParams.get('max_price')!)
-        : undefined,
+      min_price: parseOptionalNumber('min_price'),
+      max_price: parseOptionalNumber('max_price'),
       limit: searchParams.get('limit')
-        ? parseInt(searchParams.get('limit')!)
+        ? parseInt(searchParams.get('limit') || '50', 10)
         : 50,
       offset: searchParams.get('offset')
-        ? parseInt(searchParams.get('offset')!)
+        ? parseInt(searchParams.get('offset') || '0', 10)
         : 0,
       sort_by:
         (searchParams.get('sort_by') as
@@ -120,7 +120,6 @@ export const GET = withApiHandler(
       return NextResponse.json(
         {
           error: 'Failed to fetch materials',
-          details: error instanceof Error ? error.message : 'Unknown error',
         },
         { status: 500 }
       );

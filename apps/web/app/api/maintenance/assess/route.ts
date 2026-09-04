@@ -8,13 +8,18 @@ import { MaintenanceAssessmentService, type MaintenanceAssessment } from '@/lib/
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Request validation schema
 const assessmentRequestSchema = z.object({
   images: z.array(z.string().url()).min(1).max(5),
-  description: z.string().optional(),
+  description: z.string().max(2000).optional(),
   jobId: z.string().uuid().optional(),
   useSAM3: z.boolean().default(true),
   useGPTFallback: z.boolean().default(true),
@@ -121,11 +126,19 @@ async function checkRateLimit(userId: string): Promise<boolean> {
   // Check recent assessments count
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-  const { count } = await serverSupabase
+  const { count, error } = await serverSupabase
     .from('maintenance_assessments')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .gte('created_at', oneHourAgo);
+
+  if (error) {
+    logger.error('Failed to verify maintenance assessment rate limit', error, {
+      service: 'maintenance-assess',
+      userId,
+    });
+    throw new InternalServerError('Unable to verify assessment rate limit');
+  }
 
   // Allow 20 assessments per hour
   return (count || 0) < 20;

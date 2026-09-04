@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   getIdempotencyKeyFromRequest: vi.fn(),
+  getDeterministicIdempotencyKeyFromRequest: vi.fn(),
   checkIdempotency: vi.fn(),
   storeIdempotencyResult: vi.fn(),
   notifyJobConfirmed: vi.fn(),
@@ -69,6 +70,8 @@ vi.mock('@mintenance/shared', () => ({
 vi.mock('@/lib/logger', () => ({ logger: mocks.logger }));
 
 vi.mock('@/lib/idempotency', () => ({
+  getDeterministicIdempotencyKeyFromRequest:
+    mocks.getDeterministicIdempotencyKeyFromRequest,
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
@@ -201,6 +204,9 @@ function setupDefaultMocks() {
     retryAfter: 0,
   });
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-123');
+  mocks.getDeterministicIdempotencyKeyFromRequest.mockReturnValue(
+    'idem-key-123'
+  );
   mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
   mocks.storeIdempotencyResult.mockResolvedValue(undefined);
   mocks.notifyJobConfirmed.mockResolvedValue(undefined);
@@ -240,7 +246,14 @@ function setupConfirmMocks(
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue(updateResult),
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: updateResult.error ? null : [{ id: 'job-1' }],
+                error: updateResult.error,
+              }),
+            }),
+          }),
         }),
       };
     }
@@ -290,7 +303,9 @@ function setupConfirmMocks(
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ count: 3, error: null }),
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ count: 3, error: null }),
+            }),
           }),
         }),
       };
@@ -456,6 +471,28 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
     expect(body.message).toContain('Payment is being processed');
   });
 
+  it('should allow the designated payer to confirm completion', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupConfirmMocks({
+      jobData: {
+        ...completedJob,
+        payer_user_id: 'payer-1',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
+    const res = await POST(req, segmentData('job-1'));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
+  });
+
   // ---- Stores idempotency result ----
   it('should store the idempotency result after success', async () => {
     setupConfirmMocks();
@@ -512,7 +549,16 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
             }),
             update: vi.fn().mockImplementation((payload) => {
               opts.jobUpdates?.push(payload as Record<string, unknown>);
-              return { eq: vi.fn().mockResolvedValue({ error: null }) };
+              return {
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    select: vi.fn().mockResolvedValue({
+                      data: [{ id: 'job-1' }],
+                      error: null,
+                    }),
+                  }),
+                }),
+              };
             }),
           };
         }
@@ -559,9 +605,11 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({
-                  count: opts.photoCount ?? 3,
-                  error: null,
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({
+                    count: opts.photoCount ?? 3,
+                    error: null,
+                  }),
                 }),
               }),
             }),

@@ -13,7 +13,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * GET /api/jobs/[id]/bids
- * List bids for a job. Only accessible by the job's homeowner.
+ * List bids for a job. Accessible by the primary homeowner or designated payer.
  */
 export const GET = withApiHandler(
   { csrf: false, rateLimit: { maxRequests: 30 } },
@@ -26,10 +26,10 @@ export const GET = withApiHandler(
     // Use RLS-enforced client for user-scoped reads; fall back to service role
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
 
-    // Verify job exists and belongs to this homeowner
+    // Verify job exists and belongs to this homeowner or designated payer
     const { data: job, error: jobError } = await userDb
       .from('jobs')
-      .select('id, homeowner_id')
+      .select('id, homeowner_id, payer_user_id')
       .eq('id', jobId)
       .single();
 
@@ -37,8 +37,14 @@ export const GET = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id && user.role !== 'admin') {
-      throw new ForbiddenError('Only the job owner can view bids');
+    if (
+      job.homeowner_id !== user.id &&
+      job.payer_user_id !== user.id &&
+      user.role !== 'admin'
+    ) {
+      throw new ForbiddenError(
+        'Only the homeowner or designated payer can view bids'
+      );
     }
 
     // Apply optional status filter from query params

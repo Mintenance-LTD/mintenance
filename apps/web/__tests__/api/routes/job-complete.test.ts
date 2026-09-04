@@ -215,6 +215,7 @@ function setupCompleteMocks(
     updateError?: unknown;
     notificationError?: unknown;
     escrowData?: unknown;
+    afterPhotoCount?: number;
   } = {}
 ) {
   const jobResult = {
@@ -228,6 +229,10 @@ function setupCompleteMocks(
     error: overrides.updateError ?? null,
   };
   const notificationResult = { error: overrides.notificationError ?? null };
+  const afterPhotoResult = {
+    count: overrides.afterPhotoCount ?? 1,
+    error: null,
+  };
   const escrowResult = {
     data: 'escrowData' in overrides ? overrides.escrowData : { id: 'escrow-1' },
     error: null,
@@ -253,6 +258,17 @@ function setupCompleteMocks(
     if (table === 'notifications') {
       return {
         insert: vi.fn().mockResolvedValue(notificationResult),
+      };
+    }
+    if (table === 'job_photos_metadata') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue(afterPhotoResult),
+            }),
+          }),
+        }),
       };
     }
     if (table === 'escrow_transactions') {

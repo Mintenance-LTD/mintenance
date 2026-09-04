@@ -105,6 +105,7 @@ export const POST = withApiHandler(
           id,
           title,
           homeowner_id,
+          payer_user_id,
           contractor_id,
           status
         )
@@ -147,11 +148,18 @@ export const POST = withApiHandler(
           });
           throw new ForbiddenError('Unauthorized to release this escrow');
         }
+
+        if (!adminJustification?.trim()) {
+          throw new BadRequestError(
+            'Admin justification is required for an escrow bypass release'
+          );
+        }
       }
 
       const canRelease =
         isAdminVerified ||
-        (user.role === 'homeowner' && job.homeowner_id === user.id);
+        (user.role === 'homeowner' &&
+          (job.homeowner_id === user.id || job.payer_user_id === user.id));
 
       if (!canRelease) {
         logger.warn('Unauthorized escrow release attempt', {
@@ -159,6 +167,7 @@ export const POST = withApiHandler(
           userId: user.id,
           escrowTransactionId,
           homeownerId: job.homeowner_id,
+          payerUserId: job.payer_user_id,
           contractorId: job.contractor_id,
           userRole: user.role,
         });
@@ -376,11 +385,23 @@ export const POST = withApiHandler(
         .eq('id', job.id)
         .single();
       if (currentJobError || currentJob?.status !== JOB_STATUS.COMPLETED) {
-        await serverSupabase
+        const { error: rollbackError } = await serverSupabase
           .from('escrow_transactions')
           .update({ status: ESCROW_STATUS.HELD, updated_at: new Date().toISOString() })
           .eq('id', escrowTransactionId)
           .eq('status', ESCROW_STATUS.RELEASE_PENDING);
+        if (rollbackError) {
+          logger.error(
+            'CRITICAL: Failed to roll escrow back after job state changed',
+            rollbackError,
+            {
+              service: 'payments',
+              escrowTransactionId,
+              jobId: job.id,
+              reconciliationId,
+            }
+          );
+        }
         throw new ConflictError(
           'The job is no longer completed. Payment release was cancelled.'
         );
@@ -461,7 +482,9 @@ export const POST = withApiHandler(
         // ('transfer_succeeded_final_update_failed') and the recovery
         // info (transfer_id + reconciliation_id) is preserved in metadata.
         try {
-          await serverSupabase.from('escrow_audit_log').insert({
+          const { error: reconciliationInsertError } = await serverSupabase
+            .from('escrow_audit_log')
+            .insert({
             escrow_transaction_id: escrowTransactionId,
             // 'released' is the accurate CHECK-permitted action (the transfer
             // succeeded, so funds WERE released to the contractor). The
@@ -487,10 +510,13 @@ export const POST = withApiHandler(
               contractor_id: job.contractor_id,
               update_error_message: finalizationError.message,
             },
-          });
+            });
+          if (reconciliationInsertError) {
+            throw reconciliationInsertError;
+          }
         } catch (reconciliationErr: unknown) {
           logger.error(
-            'Failed to create reconciliation record',
+            'CRITICAL: Failed to create reconciliation record after successful transfer',
             reconciliationErr as Error
           );
         }
@@ -510,13 +536,35 @@ export const POST = withApiHandler(
 
       // Update job status to completed if release reason is job_completed
       if (releaseReason === 'job_completed') {
-        await serverSupabase
+        const { error: jobStatusUpdateError } = await serverSupabase
           .from('jobs')
           .update({
             status: JOB_STATUS.COMPLETED,
             updated_at: new Date().toISOString(),
           })
           .eq('id', job.id);
+
+        if (jobStatusUpdateError) {
+          // Escrow and Stripe are already finalized at this point, so this
+          // cannot be rolled back safely. Surface the divergence explicitly
+          // instead of returning success with a job that still appears open;
+          // operators can repair the lifecycle state using the escrow audit
+          // record and transfer id above.
+          logger.error(
+            'CRITICAL: Escrow released but job completion update failed',
+            jobStatusUpdateError,
+            {
+              service: 'payments',
+              escrowTransactionId,
+              jobId: job.id,
+              transferId: transfer.id,
+              reconciliationId,
+            }
+          );
+          throw new InternalServerError(
+            'Payment was released but the job status could not be updated. Our team has been notified.'
+          );
+        }
       }
 
       logger.info('Escrow released successfully', {

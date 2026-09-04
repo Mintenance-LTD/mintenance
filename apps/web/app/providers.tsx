@@ -6,7 +6,6 @@ import { queryClient } from '@/lib/react-query-client';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog';
 import { useEffect, useState } from 'react';
-import { SentryInit } from './sentry-init';
 
 // Dynamically import ReactQueryDevtools to avoid hydration mismatch
 const ReactQueryDevtools = dynamic(
@@ -26,12 +25,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   // Always render the same structure to avoid hydration mismatch.
   // The providers are client components and will work correctly on both server and client.
-  // SentryInit is a no-render side-effect mount — see sentry-init.tsx for rationale.
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ConfirmDialogProvider>
-          <SentryInit />
           {children}
           {/*
           react-hot-toast portal. Mounted globally because 107+ files

@@ -133,6 +133,21 @@ export const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    version: 3,
+    name: 'jobs_designated_payer',
+    up: async (db) => {
+      const jobsInfo = await db.getAllAsync<{ name: string }>(
+        'PRAGMA table_info(jobs)'
+      );
+      if (!jobsInfo.some((column) => column.name === 'payer_user_id')) {
+        await db.execAsync('ALTER TABLE jobs ADD COLUMN payer_user_id TEXT');
+      }
+      await db.execAsync(
+        'CREATE INDEX IF NOT EXISTS idx_jobs_payer ON jobs(payer_user_id)'
+      );
+    },
+  },
 ];
 
 /**

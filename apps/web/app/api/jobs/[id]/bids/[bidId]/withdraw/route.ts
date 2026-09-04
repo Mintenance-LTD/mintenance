@@ -63,11 +63,19 @@ export const POST = withApiHandler(
     try {
       const { data: job } = await serverSupabase
         .from('jobs')
-        .select('homeowner_id, title')
+        .select('homeowner_id, payer_user_id, title')
         .eq('id', jobId)
         .single();
 
-      if (job?.homeowner_id) {
+      const customerIds = [
+        ...new Set(
+          [job?.homeowner_id, job?.payer_user_id].filter(
+            (id): id is string => typeof id === 'string'
+          )
+        ),
+      ];
+
+      if (customerIds.length > 0) {
         const { data: contractor } = await serverSupabase
           .from('profiles')
           .select('first_name, last_name, company_name')
@@ -81,13 +89,17 @@ export const POST = withApiHandler(
         const contractorName =
           contractor?.company_name || fullName || 'A contractor';
 
-        await NotificationService.createNotification({
-          userId: job.homeowner_id,
-          title: 'Bid Withdrawn',
-          message: `${contractorName} has withdrawn their bid for "${job.title || 'your job'}".`,
-          type: 'bid_withdrawn',
-          actionUrl: `/jobs/${jobId}`,
-        });
+        await Promise.all(
+          customerIds.map((userId) =>
+            NotificationService.createNotification({
+              userId,
+              title: 'Bid Withdrawn',
+              message: `${contractorName} has withdrawn their bid for "${job?.title || 'your job'}".`,
+              type: 'bid_withdrawn',
+              actionUrl: `/jobs/${jobId}`,
+            })
+          )
+        );
       }
     } catch (notificationError) {
       logger.error(

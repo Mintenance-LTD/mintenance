@@ -57,7 +57,9 @@ const {
   }),
   mockCreateRateLimitHeaders: vi.fn().mockReturnValue({}),
   mockHandlePreflightRequest: vi.fn(),
-  mockAddCorsHeaders: vi.fn().mockImplementation((response: unknown) => response),
+  mockAddCorsHeaders: vi
+    .fn()
+    .mockImplementation((response: unknown) => response),
   mockShouldSkipCors: vi.fn().mockReturnValue(false),
   mockLogSuspiciousActivity: vi.fn().mockResolvedValue(undefined),
   mockLoggerInfo: vi.fn(),
@@ -116,7 +118,8 @@ vi.mock('@/lib/security-monitor', () => ({
 }));
 
 // Import middleware AFTER mocks are set up
-import { middleware } from '../middleware';
+import { proxy } from '../proxy';
+const middleware = proxy;
 
 describe('Middleware Security', () => {
   beforeEach(() => {
@@ -161,10 +164,13 @@ describe('Middleware Security', () => {
         },
       });
 
-      const response = await middleware(request);
+      const response = await proxy(request);
 
       expect(response.status).toBe(200);
-      expect(mockVerifyJWT).toHaveBeenCalledWith('valid-jwt-token', 'test-jwt-secret');
+      expect(mockVerifyJWT).toHaveBeenCalledWith(
+        'valid-jwt-token',
+        'test-jwt-secret'
+      );
     });
 
     it('should redirect unauthenticated requests to login', async () => {
@@ -366,7 +372,9 @@ describe('Middleware Security', () => {
       // The middleware sets Content-Security-Policy and x-request-id
       // It does NOT set x-frame-options, x-content-type-options, or referrer-policy
       expect(response.headers.get('content-security-policy')).toBeTruthy();
-      expect(response.headers.get('content-security-policy')).toContain("default-src 'self'");
+      expect(response.headers.get('content-security-policy')).toContain(
+        "default-src 'self'"
+      );
     });
 
     it('should set CSP headers with nonce-based script-src', async () => {
@@ -452,11 +460,14 @@ describe('Middleware Security', () => {
         exp: Date.now() / 1000 + 3600,
       });
 
-      const request = new NextRequest('https://example.com/homeowner/dashboard', {
-        headers: {
-          cookie: 'mintenance-auth=valid-jwt-token',
-        },
-      });
+      const request = new NextRequest(
+        'https://example.com/homeowner/dashboard',
+        {
+          headers: {
+            cookie: 'mintenance-auth=valid-jwt-token',
+          },
+        }
+      );
 
       const response = await middleware(request);
 
@@ -474,11 +485,14 @@ describe('Middleware Security', () => {
       // Note: /contractor/dashboard matches the public contractor profile pattern
       // /^\/contractor\/[^\/]+$/ so it is treated as a public route.
       // Use a nested route that requires auth to test actual JWT validation.
-      const request = new NextRequest('https://example.com/contractor/dashboard/settings', {
-        headers: {
-          cookie: 'mintenance-auth=valid-jwt-token',
-        },
-      });
+      const request = new NextRequest(
+        'https://example.com/contractor/dashboard/settings',
+        {
+          headers: {
+            cookie: 'mintenance-auth=valid-jwt-token',
+          },
+        }
+      );
 
       const response = await middleware(request);
 
@@ -496,11 +510,14 @@ describe('Middleware Security', () => {
         exp: Date.now() / 1000 + 3600,
       });
 
-      const request = new NextRequest('https://example.com/homeowner/dashboard', {
-        headers: {
-          cookie: 'mintenance-auth=valid-jwt-token',
-        },
-      });
+      const request = new NextRequest(
+        'https://example.com/homeowner/dashboard',
+        {
+          headers: {
+            cookie: 'mintenance-auth=valid-jwt-token',
+          },
+        }
+      );
 
       const response = await middleware(request);
 

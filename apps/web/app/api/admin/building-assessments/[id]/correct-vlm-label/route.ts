@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 
 // Minimal schema matching Phase1BuildingAssessment shape — enough to validate
 // the corrected label without importing the full type at schema-validation time.
@@ -163,10 +164,14 @@ export const POST = withApiHandler(
       .eq('used_in_training', false);
 
     if (updateError) {
+      logger.error('Failed to update VLM training buffer', updateError, {
+        service: 'admin-building-assessments',
+        assessmentId: id,
+        adminUserId: user.id,
+      });
       return NextResponse.json(
         {
           error: 'Failed to update training buffer',
-          details: updateError.message,
         },
         { status: 500 }
       );

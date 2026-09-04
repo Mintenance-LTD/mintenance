@@ -281,6 +281,34 @@ describe('getAuthToken (via request auth header injection)', () => {
     );
   });
 
+  it('does not send a persisted token when Supabase rejects session restore', async () => {
+    mockSupabaseAuth.getSession.mockResolvedValue(sessionWith(null));
+    mockSupabaseAuth.getUser.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+    mockGetItemAsync.mockResolvedValue(
+      JSON.stringify({
+        access_token: 'rejected-token',
+        refresh_token: 'invalid-refresh',
+      })
+    );
+    mockSupabaseAuth.setSession.mockResolvedValue({
+      error: new Error('invalid refresh token'),
+    });
+    (global.fetch as jest.Mock).mockResolvedValue(
+      makeResponse({ jsonBody: {} })
+    );
+
+    await client.get('/me');
+
+    expect(lastFetchHeaders().Authorization).toBeUndefined();
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      '[AUTH] getAuthToken: SecureStore session restore failed',
+      expect.any(Error)
+    );
+  });
+
   it('ignores SecureStore payload missing refresh_token', async () => {
     mockSupabaseAuth.getSession.mockResolvedValue(sessionWith(null));
     mockSupabaseAuth.getUser.mockResolvedValue({

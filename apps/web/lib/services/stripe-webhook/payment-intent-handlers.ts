@@ -18,6 +18,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID, type SendNotificationFn } from './webhook-helpers';
 import { handleTipPaymentSucceeded } from './tip-payment-handler';
+import { reconcileInvoicePayment } from './invoice-payment-reconciliation';
 
 /**
  * Out-of-order guard (audit 2026-07-27): payment_intent.payment_failed /
@@ -49,6 +50,7 @@ export async function lookupEscrowForTerminalEvent(
 ): Promise<
   | { id: string; job_id: string | null; payer_id: string | null }
   | null
+  | 'error'
   | 'blocked'
 > {
   const { data: existing, error } = await serverSupabase
@@ -63,7 +65,10 @@ export async function lookupEscrowForTerminalEvent(
       paymentIntentId,
       event: eventLabel,
     });
-    return null;
+    // A lookup failure is distinct from a missing escrow. Callers must not
+    // fall back to metadata-driven mutations while the authoritative state
+    // is unknown.
+    return 'error';
   }
   if (!existing) return null;
   if (!PRE_MONEY_STATUSES.includes(existing.status)) {
@@ -109,7 +114,7 @@ export async function handlePaymentIntentSucceeded(
     // release. Look the row up first and bail on any post-held state.
     const { data: existing, error: lookupError } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, status')
+      .select('id, status, amount')
       .eq('payment_intent_id', paymentIntent.id)
       .maybeSingle();
 
@@ -125,6 +130,23 @@ export async function handlePaymentIntentSucceeded(
       logger.warn('No escrow transaction found for payment intent', {
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
+      });
+      return;
+    }
+
+    const escrowAmountCents = Math.round(Number(existing.amount) * 100);
+    if (
+      paymentIntent.currency.toLowerCase() !== 'gbp' ||
+      !Number.isFinite(escrowAmountCents) ||
+      paymentIntent.amount !== escrowAmountCents
+    ) {
+      logger.error('PaymentIntent does not match GBP escrow invariant', {
+        service: 'stripe-webhook',
+        paymentIntentId: paymentIntent.id,
+        escrowId: existing.id,
+        paymentCurrency: paymentIntent.currency,
+        paymentAmountCents: paymentIntent.amount,
+        escrowAmountCents,
       });
       return;
     }
@@ -165,7 +187,7 @@ export async function handlePaymentIntentSucceeded(
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
       });
-      return;
+      throw new Error('Failed to persist funded escrow transaction');
     }
 
     if (!escrowTransaction) {
@@ -173,22 +195,33 @@ export async function handlePaymentIntentSucceeded(
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
       });
-      return;
+      throw new Error('Escrow transaction missing for successful payment');
     }
+
+    await reconcileInvoicePayment(paymentIntent);
 
     // Backfill payer/payee IDs if missing (with UUID validation)
     if (!escrowTransaction.payer_id || !escrowTransaction.payee_id) {
-      const homeownerId = paymentIntent.metadata?.homeownerId;
+      // `payerId` is the actual funding account for delegated landlord /
+      // manager jobs. Keep `homeownerId` as the legacy fallback for older
+      // PaymentIntents that predate delegated-payer metadata.
+      const payerId =
+        paymentIntent.metadata?.payerId || paymentIntent.metadata?.homeownerId;
+      const payerMetadataKey = paymentIntent.metadata?.payerId
+        ? 'payerId'
+        : 'homeownerId';
       const contractorId = paymentIntent.metadata?.contractorId;
 
-      const validHomeowner = homeownerId && isValidUUID(homeownerId);
+      const validPayer = payerId && isValidUUID(payerId);
       const validContractor = contractorId && isValidUUID(contractorId);
 
-      if (!validHomeowner && homeownerId) {
-        logger.warn('Invalid homeownerId UUID in payment metadata', {
+      if (!validPayer && payerId) {
+        logger.warn(`Invalid ${payerMetadataKey} UUID in payment metadata`, {
           service: 'stripe-webhook',
           paymentIntentId: paymentIntent.id,
-          homeownerId,
+          ...(payerMetadataKey === 'payerId'
+            ? { payerId }
+            : { homeownerId: payerId }),
         });
       }
       if (!validContractor && contractorId) {
@@ -199,19 +232,32 @@ export async function handlePaymentIntentSucceeded(
         });
       }
 
-      if (validHomeowner && validContractor) {
-        await serverSupabase
+      if (validPayer && validContractor) {
+        const { error: participantUpdateError } = await serverSupabase
           .from('escrow_transactions')
           .update({
-            payer_id: homeownerId,
+            payer_id: payerId,
             payee_id: contractorId,
           })
           .eq('id', escrowTransaction.id);
 
+        if (participantUpdateError) {
+          logger.error(
+            'Failed to backfill escrow participants from payment metadata',
+            participantUpdateError,
+            {
+              service: 'stripe-webhook',
+              paymentIntentId: paymentIntent.id,
+              escrowId: escrowTransaction.id,
+            }
+          );
+          throw new Error('Failed to persist escrow participants');
+        }
+
         logger.info('Backfilled payer_id and payee_id for escrow transaction', {
           service: 'stripe-webhook',
           escrowId: escrowTransaction.id,
-          homeownerId,
+          payerId,
           contractorId,
         });
       }
@@ -235,6 +281,7 @@ export async function handlePaymentIntentSucceeded(
         service: 'stripe-webhook',
         jobId: escrowTransaction.job_id,
       });
+      throw new Error('Failed to persist job payment status');
     }
 
     // R6 #5 deferred: tell every stakeholder the job is funded. This is
@@ -299,7 +346,7 @@ export async function handlePaymentIntentFailed(
       paymentIntent.id,
       'payment_intent.payment_failed'
     );
-    if (existing === 'blocked') return;
+    if (existing === 'blocked' || existing === 'error') return;
 
     let escrowTransaction: {
       id: string;
@@ -344,7 +391,9 @@ export async function handlePaymentIntentFailed(
         .eq('id', jobId);
 
       const homeownerId =
-        escrowTransaction?.payer_id || paymentIntent.metadata?.homeownerId;
+        escrowTransaction?.payer_id ||
+        paymentIntent.metadata?.payerId ||
+        paymentIntent.metadata?.homeownerId;
       if (homeownerId) {
         await sendNotification(
           homeownerId,
@@ -385,7 +434,7 @@ export async function handlePaymentIntentCanceled(
       paymentIntent.id,
       'payment_intent.canceled'
     );
-    if (existing === 'blocked') return;
+    if (existing === 'blocked' || existing === 'error') return;
 
     let escrowTransaction: { id: string; job_id: string | null } | null = null;
     if (existing) {
@@ -445,7 +494,8 @@ export async function handlePaymentIntentRequiresAction(
   });
 
   try {
-    const homeownerId = paymentIntent.metadata?.homeownerId;
+    const homeownerId =
+      paymentIntent.metadata?.payerId || paymentIntent.metadata?.homeownerId;
     const jobId = paymentIntent.metadata?.jobId;
 
     if (homeownerId) {

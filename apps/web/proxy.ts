@@ -58,7 +58,7 @@ function persistDefaultThemeCookie(response: NextResponse): void {
   });
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // AUDIT FIX: Single isDevelopment declaration — was previously redefined 3 times
@@ -397,10 +397,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-  // Node.js runtime is required: @mintenance/auth re-exports
-  // password-security.ts which uses Node `crypto` + argon2; the Edge
-  // runtime cannot load `crypto` and was crashing every authenticated
-  // request in prod. Paired with `experimental.nodeMiddleware: true`
-  // in next.config.js — both must be set per Next 16 / Vercel docs.
-  runtime: 'nodejs',
 };

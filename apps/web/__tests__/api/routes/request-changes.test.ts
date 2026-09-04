@@ -7,7 +7,7 @@
  * job must be completed status, success path with rollback to in_progress,
  * notification + email to contractor, update failure.
  */
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -137,12 +137,10 @@ vi.mock('@/lib/errors/api-error', async () => {
     ServiceUnavailableError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
-        const { NextResponse } = require('next/server');
         return NextResponse.json(error.toResponse(), {
           status: error.statusCode,
         });
       }
-      const { NextResponse } = require('next/server');
       return NextResponse.json(
         {
           error: {
@@ -240,16 +238,41 @@ function setupRequestChangesMocks(
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue(updateResult),
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: updateResult.error ? null : [{ id: 'job-1' }],
+                error: updateResult.error,
+              }),
+            }),
+          }),
         }),
       };
     }
     if (table === 'escrow_transactions') {
-      // .update({...}).eq('job_id', id).eq('status', 'held') — best-effort reset.
       return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'escrow-1', status: 'held' },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
+        // .update({...}).eq('id', escrowId).eq('status', 'held').select('id')
+        // — escrow reset must affect the held row.
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: [{ id: 'escrow-1' }],
+                error: null,
+              }),
+            }),
           }),
         }),
       };
@@ -411,6 +434,29 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.message).toContain('reopened');
+  });
+
+  it('should allow the designated payer to request changes', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupRequestChangesMocks({
+      jobData: {
+        ...completedJob,
+        payer_user_id: 'payer-1',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Please address the remaining leak' }
+    );
+    const res = await POST(req, segmentData('job-1'));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
   });
 
   it('should create a notification for the contractor', async () => {

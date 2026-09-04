@@ -38,7 +38,14 @@ export const POST = withApiHandler(
 
     // Get form data
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const rawFile = formData.get('file');
+    const file =
+      typeof rawFile === 'object' &&
+      rawFile !== null &&
+      'size' in rawFile &&
+      'arrayBuffer' in rawFile
+        ? rawFile
+        : null;
 
     if (!file) {
       throw new BadRequestError('No file provided');
@@ -79,7 +86,7 @@ export const POST = withApiHandler(
       await serverSupabase.storage
         .from('job-attachments')
         .upload(fileName, buffer, {
-          contentType: file.type,
+          contentType: validation.metadata.mimeType,
           upsert: false,
         });
 
@@ -107,6 +114,16 @@ export const POST = withApiHandler(
         service: 'upload',
         userId: user.id,
       });
+      const { error: cleanupError } = await serverSupabase.storage
+        .from('job-attachments')
+        .remove([uploadData.path]);
+      if (cleanupError) {
+        logger.error('Failed to clean up unsigned upload', cleanupError, {
+          service: 'upload',
+          userId: user.id,
+          path: uploadData.path,
+        });
+      }
       return NextResponse.json(
         { error: 'File uploaded but could not generate access URL' },
         { status: 500 }

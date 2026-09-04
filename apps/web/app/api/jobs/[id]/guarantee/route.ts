@@ -51,6 +51,19 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
+      // Guarantee creation is a contractor-side action for the assigned job.
+      // This route uses the service-role client below, so the authorization
+      // must be enforced before any guarantee write; otherwise any
+      // authenticated user could create a guarantee against another job.
+      if (
+        user.role !== 'admin' &&
+        !(user.role === 'contractor' && job.contractor_id === user.id)
+      ) {
+        throw new ForbiddenError(
+          'Only the assigned contractor or an administrator can create a guarantee'
+        );
+      }
+
       if (!job.contractor_id) {
         throw new BadRequestError('Job must have an assigned contractor');
       }
@@ -114,7 +127,9 @@ export const POST = withApiHandler(
 
     if (action === 'claim') {
       if (user.role !== 'homeowner') {
-        throw new ForbiddenError('Only homeowners can submit guarantee claims');
+        throw new ForbiddenError(
+          'Only homeowners or designated payers can submit guarantee claims'
+        );
       }
 
       const validation = await validateRequest(request, submitClaimSchema);
@@ -122,12 +137,32 @@ export const POST = withApiHandler(
 
       const { reason, evidence } = validation.data;
 
+      // Verify the caller is the homeowner or designated payer for this job
+      // before querying the service-role guarantee record.
+      const { data: claimJob, error: claimJobError } = await serverSupabase
+        .from('jobs')
+        .select('id, homeowner_id, payer_user_id')
+        .eq('id', jobId)
+        .single();
+
+      if (claimJobError || !claimJob) {
+        throw new NotFoundError('Job not found');
+      }
+
+      if (
+        claimJob.homeowner_id !== user.id &&
+        claimJob.payer_user_id !== user.id
+      ) {
+        throw new ForbiddenError(
+          'Only the homeowner or designated payer can submit a guarantee claim'
+        );
+      }
+
       // Get guarantee
       const { data: guarantee, error: guaranteeError } = await serverSupabase
         .from('job_guarantees')
         .select('id, homeowner_id, status')
         .eq('job_id', jobId)
-        .eq('homeowner_id', user.id)
         .eq('status', 'active')
         .single();
 

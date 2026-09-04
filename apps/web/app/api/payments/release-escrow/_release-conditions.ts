@@ -10,7 +10,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
-import { ForbiddenError } from '@/lib/errors/api-error';
+import { ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Runs all release-condition checks for the non-admin path.
@@ -69,11 +69,21 @@ export async function checkReleaseConditions(
   // no way back. The auto-approval path already screened disputes itself in
   // checkAutoApprovalEligibility, so this is a no-op for that path and a real
   // guard for the waiver path.
-  const { count: disputeCount } = await serverSupabase
+  const { count: disputeCount, error: disputeQueryError } = await serverSupabase
     .from('disputes')
     .select('id', { count: 'exact', head: true })
     .eq('job_id', jobId)
     .in('status', ['open', 'pending']);
+  if (disputeQueryError) {
+    logger.error('Failed to verify active disputes before escrow release', disputeQueryError, {
+      service: 'payments',
+      escrowTransactionId,
+      jobId,
+    });
+    throw new InternalServerError(
+      'Could not verify dispute state. Payment release was not attempted.'
+    );
+  }
   if ((disputeCount || 0) > 0) {
     return {
       blocked: NextResponse.json(
@@ -153,11 +163,21 @@ export async function checkReleaseConditions(
       }
     } else {
       await HomeownerApprovalService.processAutoApproval(escrowTransactionId);
-      const { data: freshEscrow } = await serverSupabase
+      const { data: freshEscrow, error: freshEscrowError } = await serverSupabase
         .from('escrow_transactions')
         .select('homeowner_approval, cooling_off_ends_at')
         .eq('id', escrowTransactionId)
         .single();
+      if (freshEscrowError) {
+        logger.error('Failed to verify auto-approval state', freshEscrowError, {
+          service: 'payments',
+          escrowTransactionId,
+          jobId,
+        });
+        throw new InternalServerError(
+          'Could not verify completion approval. Payment release was not attempted.'
+        );
+      }
       if (!freshEscrow?.homeowner_approval) {
         return {
           blocked: NextResponse.json(

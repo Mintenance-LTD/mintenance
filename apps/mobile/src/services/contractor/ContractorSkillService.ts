@@ -131,10 +131,14 @@ export async function searchContractors(
     }
 
     const adv = params;
+    const contractorSkillsRelation =
+      adv.skills && adv.skills.length > 0
+        ? 'contractor_skills!inner(id, skill_name, created_at)'
+        : 'contractor_skills!contractor_id(id, skill_name, created_at)';
     let query = supabase
       .from('profiles')
       .select(
-        'id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at, contractor_skills!contractor_id(id, skill_name, created_at), reviews:reviews!reviewee_id(id, rating, comment, created_at)'
+        `id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at, ${contractorSkillsRelation}, reviews:reviews!reviewee_id(id, rating, comment, created_at)`
       )
       .eq('role', 'contractor')
       .eq('is_available', true);
@@ -149,8 +153,12 @@ export async function searchContractors(
       }
     }
     if (adv.minRating) query = query.gte('rating', adv.minRating);
-    if (adv.skills && adv.skills.length > 0)
-      query = query.in('id', ['mock-id-1']);
+    if (adv.skills && adv.skills.length > 0) {
+      // Filter against the real embedded relation. The in-memory filter
+      // below remains necessary because a PostgREST embedded filter does
+      // not trim the left-joined relation in the returned profile.
+      query = query.in('contractor_skills.skill_name', adv.skills);
+    }
 
     const { data: contractors, error } = await query;
     if (error) throw error;

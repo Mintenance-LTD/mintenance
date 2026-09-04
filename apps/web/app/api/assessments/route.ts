@@ -90,7 +90,7 @@ export const POST = withApiHandler(
     // assessment yields exactly one row.
     let existingVideoRowId: string | null = null;
     if (property_id) {
-      const { data: existingVideo } = await serverSupabase
+      const { data: existingVideo, error: existingVideoError } = await serverSupabase
         .from('building_assessments')
         .select('id')
         .eq('user_id', user.id)
@@ -100,6 +100,16 @@ export const POST = withApiHandler(
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (existingVideoError) {
+        logger.error('Video-walkthrough lookup failed', existingVideoError, {
+          service: 'assessments',
+          userId: user.id,
+          propertyId: property_id,
+        });
+        throw new InternalServerError(
+          'Unable to determine whether an existing assessment can be reused'
+        );
+      }
       if (existingVideo?.id) {
         existingVideoRowId = existingVideo.id;
       }

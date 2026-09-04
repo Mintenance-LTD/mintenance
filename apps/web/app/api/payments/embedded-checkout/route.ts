@@ -16,6 +16,13 @@ import {
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { MAX_JOB_PAYMENT_GBP } from '@mintenance/api-contracts';
+import {
+  checkIdempotency,
+  getDeterministicIdempotencyKeyFromRequest,
+  releaseIdempotencyClaim,
+  releaseOnError,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 const bodySchema = z.object({
   priceId: z.string().min(1, 'Price ID is required'),
@@ -68,6 +75,7 @@ export const POST = withApiHandler(
     // If jobId is provided, validate job ownership and set up marketplace payment
     let contractorStripeAccountId: string | null = null;
     let applicationFeeAmount: number | null = null;
+    let jobHomeownerId: string | null = null;
     // Server-authoritative amount for the marketplace path (audit C2). Stays
     // null for non-marketplace checkout. When set, it — NOT the client priceId
     // — is what gets charged and recorded in escrow.
@@ -76,14 +84,34 @@ export const POST = withApiHandler(
     let acceptedContractId: string | null = null;
 
     if (jobId) {
+      // Marketplace bid amounts and escrow records are denominated in GBP.
+      // The client still supplies a priceId for compatibility, but its
+      // currency must not control the authoritative marketplace charge.
+      if (currency.toLowerCase() !== 'gbp') {
+        logger.warn('Marketplace checkout rejected non-GBP price', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          priceId,
+          currency,
+        });
+        return NextResponse.json(
+          { error: 'Marketplace payments must use a GBP price.' },
+          { status: 400 }
+        );
+      }
+
       const { data: jobData, error: jobError } = await serverSupabase
         .from('jobs')
-        .select('id, title, homeowner_id, contractor_id, budget')
+        .select('id, title, homeowner_id, payer_user_id, contractor_id, budget')
         .eq('id', jobId)
-        .eq('homeowner_id', user.id)
         .single();
 
-      if (jobError || !jobData) {
+      if (
+        jobError ||
+        !jobData ||
+        (jobData.homeowner_id !== user.id && jobData.payer_user_id !== user.id)
+      ) {
         logger.warn('Job access denied or not found', {
           service: 'payments',
           jobId,
@@ -95,6 +123,8 @@ export const POST = withApiHandler(
           { status: 404 }
         );
       }
+
+      jobHomeownerId = jobData.homeowner_id;
 
       // Validate contractor matches if provided
       if (contractorId && jobData.contractor_id !== contractorId) {
@@ -260,162 +290,250 @@ export const POST = withApiHandler(
       }
     }
 
-    // Get the base URL for return URL
-    const baseUrl = getAppUrl();
-    const returnUrl = `${baseUrl}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
-
-    // Create metadata for tracking
-    const metadata: Record<string, string> = {
-      userId: user.id,
-      userEmail: user.email || '',
-      paymentType: paymentType ?? 'final',
-    };
-
-    if (jobId) {
-      metadata.jobId = jobId;
+    // Claim before creating the Stripe session. The earlier validation is
+    // intentionally outside the claim; it has no side effects. From this
+    // point onward, the claim covers both Stripe session creation and the
+    // marketplace escrow insert so concurrent double-clicks cannot create
+    // two checkout sessions or two escrow rows.
+    const checkoutOperation = 'create_embedded_checkout';
+    const checkoutResource = [
+      jobId || 'non-marketplace',
+      acceptedBidId || priceId,
+      acceptedContractId || '',
+      contractorId || '',
+      paymentType || 'final',
+      String(quantity ?? 1),
+    ].join(':');
+    const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
+      request,
+      checkoutOperation,
+      user.id,
+      checkoutResource
+    );
+    const idempotencyCheck = await checkIdempotency(
+      idempotencyKey,
+      checkoutOperation
+    );
+    if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
+      logger.info('Duplicate embedded checkout detected', {
+        service: 'payments',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
-    if (bidId) {
-      metadata.bidId = bidId;
-    }
+    return releaseOnError(idempotencyKey, checkoutOperation, async () => {
+      // Get the base URL for return URL
+      const baseUrl = getAppUrl();
+      const returnUrl = `${baseUrl}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
 
-    if (contractorId) {
-      metadata.contractorId = contractorId;
-    }
+      // Create metadata for tracking
+      const metadata: Record<string, string> = {
+        userId: user.id,
+        userEmail: user.email || '',
+        payerId: user.id,
+        paymentType: paymentType ?? 'final',
+      };
 
-    // Build payment intent data for marketplace payments
-    const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData =
-      {};
+      if (jobId) {
+        metadata.jobId = jobId;
+        if (jobHomeownerId) {
+          metadata.homeownerId = jobHomeownerId;
+        }
+      }
 
-    // Store contractor account ID in metadata for later escrow release
-    if (contractorStripeAccountId) {
-      metadata.isMarketplacePayment = 'true';
-      metadata.contractorStripeAccountId = contractorStripeAccountId;
-      metadata.platformFeeAmount = applicationFeeAmount
-        ? (applicationFeeAmount / 100).toString()
-        : '0';
+      if (bidId) {
+        metadata.bidId = bidId;
+      }
 
-      const totalAmount = authoritativeAmount ?? 0;
-      metadata.totalAmount = totalAmount.toString();
-      if (acceptedBidId) metadata.bidId = acceptedBidId;
-      if (acceptedContractId) metadata.contractId = acceptedContractId;
-    }
+      if (contractorId) {
+        metadata.contractorId = contractorId;
+      }
 
-    // Line items (audit C2): for a marketplace payment charge the
-    // server-authoritative accepted-bid amount via an inline price_data so the
-    // amount CHARGED cannot diverge from the amount recorded in escrow.
-    // Non-marketplace checkout keeps the client priceId.
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      authoritativeAmount !== null
-        ? [
-            {
-              price_data: {
-                currency: currency.toLowerCase(),
-                unit_amount: Math.round(authoritativeAmount * 100),
-                product_data: {
-                  name: `Escrow payment${jobId ? ` for job ${jobId}` : ''}`,
+      // Build payment intent data for marketplace payments
+      const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData =
+        {};
+
+      // Store contractor account ID in metadata for later escrow release
+      if (contractorStripeAccountId) {
+        metadata.isMarketplacePayment = 'true';
+        metadata.contractorStripeAccountId = contractorStripeAccountId;
+        metadata.platformFeeAmount = applicationFeeAmount
+          ? (applicationFeeAmount / 100).toString()
+          : '0';
+
+        const totalAmount = authoritativeAmount ?? 0;
+        metadata.totalAmount = totalAmount.toString();
+        if (acceptedBidId) metadata.bidId = acceptedBidId;
+        if (acceptedContractId) metadata.contractId = acceptedContractId;
+      }
+
+      // Line items (audit C2): for a marketplace payment charge the
+      // server-authoritative accepted-bid amount via an inline price_data so the
+      // amount CHARGED cannot diverge from the amount recorded in escrow.
+      // Non-marketplace checkout keeps the client priceId.
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+        authoritativeAmount !== null
+          ? [
+              {
+                price_data: {
+                  currency: currency.toLowerCase(),
+                  unit_amount: Math.round(authoritativeAmount * 100),
+                  product_data: {
+                    name: `Escrow payment${jobId ? ` for job ${jobId}` : ''}`,
+                  },
                 },
+                quantity: 1,
               },
-              quantity: 1,
-            },
-          ]
-        : [
-            {
-              price: priceId,
-              quantity,
-            },
-          ];
+            ]
+          : [
+              {
+                price: priceId,
+                quantity,
+              },
+            ];
 
-    // Create Checkout Session with embedded mode ('embedded' was renamed
-    // to 'embedded_page' in the 2025-09-30.clover API; same behaviour, and
-    // session.client_secret is still returned for Stripe.js initEmbeddedCheckout)
-    const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded_page',
-      line_items: lineItems,
-      mode: 'payment',
-      return_url: returnUrl,
-      metadata,
-      customer_email: user.email || undefined,
-      ...(Object.keys(paymentIntentData).length > 0 && {
-        payment_intent_data: paymentIntentData,
-      }),
-    });
+      // Create Checkout Session with embedded mode ('embedded' was renamed
+      // to 'embedded_page' in the 2025-09-30.clover API; same behaviour, and
+      // session.client_secret is still returned for Stripe.js initEmbeddedCheckout)
+      const session = await stripe.checkout.sessions.create(
+        {
+          ui_mode: 'embedded_page',
+          line_items: lineItems,
+          mode: 'payment',
+          return_url: returnUrl,
+          metadata,
+          customer_email: user.email || undefined,
+          ...(Object.keys(paymentIntentData).length > 0 && {
+            payment_intent_data: paymentIntentData,
+          }),
+        },
+        {
+          idempotencyKey: `checkout_session_${idempotencyKey}`.substring(
+            0,
+            255
+          ),
+        }
+      );
 
-    // If this is a marketplace payment, create escrow transaction record.
-    // amount is the server-authoritative accepted-bid amount (audit C2) —
-    // identical to what the Checkout Session charges via price_data above.
-    if (jobId && contractorStripeAccountId) {
-      const { data: job } = await serverSupabase
-        .from('jobs')
-        .select('homeowner_id, contractor_id')
-        .eq('id', jobId)
-        .single();
+      // If this is a marketplace payment, create escrow transaction record.
+      // amount is the server-authoritative accepted-bid amount (audit C2) —
+      // identical to what the Checkout Session charges via price_data above.
+      if (jobId && contractorStripeAccountId) {
+        const { data: job, error: jobError } = await serverSupabase
+          .from('jobs')
+          .select('homeowner_id, payer_user_id, contractor_id')
+          .eq('id', jobId)
+          .single();
 
-      const { error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .insert({
-          job_id: jobId,
-          payer_id: job?.homeowner_id || user.id,
-          payee_id: job?.contractor_id,
-          amount: authoritativeAmount ?? 0,
-          status: 'pending',
-          payment_type: paymentType,
-          stripe_checkout_session_id: session.id,
-          metadata: {
-            bid_id: acceptedBidId,
-            contract_id: acceptedContractId,
-            source: 'embedded-checkout',
-          },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-
-      if (escrowError) {
-        logger.error(
-          'Failed to create escrow transaction for checkout session — aborting checkout',
-          escrowError,
-          {
+        if (jobError || !job?.contractor_id) {
+          logger.error('Failed to load job before escrow creation', jobError, {
             service: 'payments',
             sessionId: session.id,
             jobId,
+          });
+          try {
+            await stripe.checkout.sessions.expire(session.id);
+          } catch (expireError) {
+            logger.error(
+              'Failed to expire checkout session after job lookup failure',
+              expireError,
+              {
+                service: 'payments',
+                sessionId: session.id,
+                jobId,
+              }
+            );
           }
-        );
-        // SECURITY: Fail loudly — a checkout without an escrow record creates an unrecoverable
-        // inconsistency where payment is charged but no escrow exists.
-        try {
-          await stripe.checkout.sessions.expire(session.id);
-        } catch (expireError) {
+          await releaseIdempotencyClaim(idempotencyKey, checkoutOperation);
+          return NextResponse.json(
+            { error: 'Payment setup failed. Please try again.' },
+            { status: 500 }
+          );
+        }
+
+        const { error: escrowError } = await serverSupabase
+          .from('escrow_transactions')
+          .insert({
+            job_id: jobId,
+            payer_id: job?.payer_user_id || job?.homeowner_id || user.id,
+            payee_id: job?.contractor_id,
+            amount: authoritativeAmount ?? 0,
+            status: 'pending',
+            payment_type: paymentType,
+            stripe_checkout_session_id: session.id,
+            metadata: {
+              bid_id: acceptedBidId,
+              contract_id: acceptedContractId,
+              source: 'embedded-checkout',
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (escrowError) {
           logger.error(
-            'Failed to expire checkout session after escrow failure',
-            expireError,
+            'Failed to create escrow transaction for checkout session — aborting checkout',
+            escrowError,
             {
               service: 'payments',
               sessionId: session.id,
+              jobId,
             }
           );
+          // SECURITY: Fail loudly — a checkout without an escrow record creates an unrecoverable
+          // inconsistency where payment is charged but no escrow exists.
+          try {
+            await stripe.checkout.sessions.expire(session.id);
+          } catch (expireError) {
+            logger.error(
+              'Failed to expire checkout session after escrow failure',
+              expireError,
+              {
+                service: 'payments',
+                sessionId: session.id,
+              }
+            );
+          }
+          await releaseIdempotencyClaim(idempotencyKey, checkoutOperation);
+          return NextResponse.json(
+            { error: 'Payment setup failed. Please try again.' },
+            { status: 500 }
+          );
         }
-        return NextResponse.json(
-          { error: 'Payment setup failed. Please try again.' },
-          { status: 500 }
-        );
       }
-    }
 
-    logger.info('Embedded checkout session created', {
-      service: 'payments',
-      sessionId: session.id,
-      userId: user.id,
-      jobId: jobId || undefined,
-      isMarketplacePayment: !!contractorStripeAccountId,
-      platformFeeAmount: applicationFeeAmount
-        ? applicationFeeAmount / 100
-        : undefined,
-    });
+      logger.info('Embedded checkout session created', {
+        service: 'payments',
+        sessionId: session.id,
+        userId: user.id,
+        jobId: jobId || undefined,
+        isMarketplacePayment: !!contractorStripeAccountId,
+        platformFeeAmount: applicationFeeAmount
+          ? applicationFeeAmount / 100
+          : undefined,
+      });
 
-    return NextResponse.json({
-      clientSecret: session.client_secret,
-      sessionId: session.id,
-      isMarketplacePayment: !!contractorStripeAccountId,
+      const responseData = {
+        clientSecret: session.client_secret,
+        sessionId: session.id,
+        isMarketplacePayment: !!contractorStripeAccountId,
+      };
+      await storeIdempotencyResult(
+        idempotencyKey,
+        checkoutOperation,
+        responseData,
+        user.id,
+        {
+          jobId: jobId || null,
+          sessionId: session.id,
+          isMarketplacePayment: !!contractorStripeAccountId,
+        }
+      );
+
+      return NextResponse.json(responseData);
     });
   }
 );

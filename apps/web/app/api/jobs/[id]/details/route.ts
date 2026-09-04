@@ -10,6 +10,7 @@
  *
  * Access mirrors GET /api/jobs/:id:
  *   - Homeowner who posted the job
+ *   - Designated payer for the job
  *   - Contractor currently assigned
  *   - Any contractor when the job is still `posted` and unassigned
  *     (so the bid flow keeps working)
@@ -24,6 +25,7 @@ import { logger } from '@mintenance/shared';
 interface JobAccessRow {
   id: string;
   homeowner_id: string | null;
+  payer_user_id: string | null;
   contractor_id: string | null;
   status: string | null;
 }
@@ -60,7 +62,7 @@ export const GET = withApiHandler(
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status')
       .eq('id', jobId)
       .single();
 
@@ -69,7 +71,8 @@ export const GET = withApiHandler(
     }
 
     const row = job as unknown as JobAccessRow;
-    const isHomeowner = row.homeowner_id === user.id;
+    const isHomeowner =
+      row.homeowner_id === user.id || row.payer_user_id === user.id;
     const isAssignedContractor = row.contractor_id === user.id;
     const isContractorViewingOpenJob =
       user.role === 'contractor' &&

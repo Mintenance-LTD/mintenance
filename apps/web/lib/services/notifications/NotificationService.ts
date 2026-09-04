@@ -341,6 +341,7 @@ export class NotificationService {
         .from('notifications')
         .select('type')
         .eq('id', notificationId)
+        .eq('user_id', userId)
         .single();
 
       if (!notification) return;

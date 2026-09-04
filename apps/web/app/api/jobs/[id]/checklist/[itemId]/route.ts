@@ -50,7 +50,12 @@ async function loadItemAndJob(
     position: number;
     completed_at: string | null;
   };
-  job: { id: string; homeowner_id: string; contractor_id: string | null };
+  job: {
+    id: string;
+    homeowner_id: string;
+    payer_user_id: string | null;
+    contractor_id: string | null;
+  };
 }> {
   const db = createRequestScopedClient(request) ?? serverSupabase;
   const { data: item, error: itemError } = await db
@@ -64,7 +69,7 @@ async function loadItemAndJob(
   }
   const { data: job, error: jobError } = await db
     .from('jobs')
-    .select('id, homeowner_id, contractor_id')
+    .select('id, homeowner_id, payer_user_id, contractor_id')
     .eq('id', jobId)
     .single();
   if (jobError || !job) {
@@ -83,8 +88,9 @@ export const PATCH = withApiHandler(
     const { job } = await loadItemAndJob(request, jobId, itemId);
 
     const isHomeowner = job.homeowner_id === user.id;
+    const isPayer = job.payer_user_id === user.id;
     const isContractor = job.contractor_id === user.id;
-    if (!isHomeowner && !isContractor) {
+    if (!isHomeowner && !isPayer && !isContractor) {
       throw new ForbiddenError('Not a participant on this job');
     }
 
@@ -95,7 +101,7 @@ export const PATCH = withApiHandler(
     const { label, position, completed } = validation.data;
 
     // Permission gate: contractor can ONLY toggle `completed`.
-    if (isContractor && !isHomeowner) {
+    if (isContractor && !isHomeowner && !isPayer) {
       if (label !== undefined || position !== undefined) {
         throw new ForbiddenError(
           'Contractor can only mark items complete or incomplete'
@@ -131,7 +137,8 @@ export const PATCH = withApiHandler(
         jobId,
         itemId,
         userId: user.id,
-        role: isHomeowner ? 'homeowner' : 'contractor',
+        role:
+          isContractor && !isHomeowner && !isPayer ? 'contractor' : 'customer',
       });
       throw error;
     }
@@ -149,7 +156,7 @@ export const DELETE = withApiHandler(
     };
     const { job } = await loadItemAndJob(request, jobId, itemId);
 
-    if (job.homeowner_id !== user.id) {
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       throw new ForbiddenError('Only the homeowner can delete checklist items');
     }
 

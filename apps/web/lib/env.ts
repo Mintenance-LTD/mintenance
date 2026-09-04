@@ -201,8 +201,8 @@ const envSchema = z.object({
 
   // Sentry error tracking (OPTIONAL — the SDK no-ops when unset).
   // Set NEXT_PUBLIC_SENTRY_DSN in Vercel to enable browser + server
-  // error capture via the instrumentation-client.ts + sentry.*.config.ts
-  // files at the apps/web root.
+  // error capture via instrumentation-client.ts and sentry.server.config.ts
+  // at the apps/web root.
   SENTRY_DSN: z
     .string()
     .url()
@@ -328,9 +328,7 @@ function validateEnv(): Env {
     if (isBuildTime) {
       return {
         NODE_ENV: (process.env.NODE_ENV || 'production') as
-          | 'production'
-          | 'development'
-          | 'test',
+          'production' | 'development' | 'test',
         JWT_SECRET:
           process.env.JWT_SECRET ||
           'Build_Phase_Placeholder_Secret_0123456789_ABCDEFGHIJ_klmnopqrstuvwxyz!@#',
@@ -569,9 +567,7 @@ function validateEnv(): Env {
         }
         return {
           NODE_ENV: (process.env.NODE_ENV || 'production') as
-            | 'production'
-            | 'development'
-            | 'test',
+            'production' | 'development' | 'test',
           JWT_SECRET:
             process.env.JWT_SECRET ||
             'Preview_Fallback_Secret_0123456789_ABCDEFGHIJ_klmnopqrstuvwxyz!@#',

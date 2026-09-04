@@ -361,11 +361,22 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   // timestamp is in milliseconds, so compare in the same unit.
   try {
     if (payload.sub && payload.iat) {
-      const { data: profile } = await serverSupabase
+      const { data: profile, error: revocationLookupError } =
+        await serverSupabase
         .from('profiles')
         .select('tokens_revoked_at')
         .eq('id', payload.sub)
         .maybeSingle();
+      if (revocationLookupError) {
+        throw revocationLookupError;
+      }
+      if (!profile) {
+        logger.warn('Token verification failed: profile no longer exists', {
+          service: 'auth',
+          userId: payload.sub,
+        });
+        return null;
+      }
       const revokedAt = profile?.tokens_revoked_at
         ? new Date(profile.tokens_revoked_at as string).getTime()
         : 0;
@@ -581,12 +592,30 @@ export async function getCurrentUserFromCookies(): Promise<Pick<
       return null;
     }
 
+    // The JWT role is a snapshot and must not outlive a database role change.
+    // Reconfirm it against the profile before exposing the session to route
+    // authorization; otherwise a downgraded admin/contractor keeps elevated
+    // access until the access token expires.
+    const { data: profile, error: profileError } = await serverSupabase
+      .from('profiles')
+      .select('role, first_name, last_name')
+      .eq('id', jwtPayload.sub)
+      .single();
+    if (profileError || !profile?.role || profile.role !== jwtPayload.role) {
+      logger.warn('Cookie session rejected because its role is stale', {
+        service: 'auth',
+        userId: jwtPayload.sub,
+        error: profileError?.message,
+      });
+      return null;
+    }
+
     return {
       id: jwtPayload.sub,
       email: jwtPayload.email,
-      role: jwtPayload.role as 'homeowner' | 'contractor' | 'admin',
-      first_name: jwtPayload.first_name || '',
-      last_name: jwtPayload.last_name || '',
+      role: profile.role as 'homeowner' | 'contractor' | 'admin',
+      first_name: profile.first_name || jwtPayload.first_name || '',
+      last_name: profile.last_name || jwtPayload.last_name || '',
     };
   } catch (error) {
     logger.error('Failed to get user from cookies', error);
@@ -661,14 +690,25 @@ export async function getCurrentUserFromBearerToken(
     // SECURITY: Read role from profiles table, NOT user_metadata (which is client-writable).
     // A malicious user could call supabase.auth.updateUser({ data: { role: 'admin' } })
     // to escalate privileges if we trusted user_metadata. See middleware.ts for same pattern.
-    const { data: profile } = await serverSupabase
+    const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
       .select('role, first_name, last_name')
       .eq('id', user.id)
       .single();
 
-    // Default to 'homeowner' if profile query fails -- never default to 'admin'
-    const role = profile?.role || 'homeowner';
+    // A missing or unreadable profile cannot establish the user's role.
+    // Defaulting to homeowner would let a contractor bearer token enter
+    // homeowner-only routes whenever the profile lookup is degraded.
+    if (profileError || !profile?.role) {
+      logger.warn('Bearer token rejected because profile role is unavailable', {
+        service: 'auth',
+        userId: user.id,
+        error: profileError?.message,
+      });
+      return null;
+    }
+
+    const role = profile.role;
     if (!['homeowner', 'contractor', 'admin'].includes(role)) {
       return null;
     }

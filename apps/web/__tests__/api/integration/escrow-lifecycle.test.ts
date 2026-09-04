@@ -492,6 +492,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       id: PAYMENT_INTENT_ID,
       status: 'succeeded',
       amount: 25000,
+      currency: 'gbp',
     });
 
     // validateRequest returns parsed data
@@ -510,6 +511,9 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
                 error: null,
               }),
             }),
+          }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         };
       }
@@ -578,11 +582,69 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
     expect(body.amount).toBe(250);
   });
 
+  it('rejects a succeeded PaymentIntent whose amount differs from escrow', async () => {
+    mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
+      id: PAYMENT_INTENT_ID,
+      status: 'succeeded',
+      amount: 24900,
+      currency: 'gbp',
+    });
+    mocks.validateRequest.mockResolvedValue({
+      data: { paymentIntentId: PAYMENT_INTENT_ID, jobId: JOB_ID },
+    });
+
+    const escrowUpdate = vi.fn();
+    mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'jobs') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: baseJobRow, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === 'escrow_transactions') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: baseEscrowRow('pending'),
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+          update: escrowUpdate,
+        };
+      }
+      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
+    });
+
+    const res = await confirmIntentPOST(
+      createPostRequest('http://localhost:3000/api/payments/confirm-intent', {
+        paymentIntentId: PAYMENT_INTENT_ID,
+        jobId: JOB_ID,
+      }),
+      noSegment()
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: 'Payment amount does not match the amount due',
+    });
+    expect(escrowUpdate).not.toHaveBeenCalled();
+  });
+
   it('should handle idempotent confirm when webhook already set escrow to "held"', async () => {
     mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
       id: PAYMENT_INTENT_ID,
       status: 'succeeded',
       amount: 25000,
+      currency: 'gbp',
     });
     mocks.validateRequest.mockResolvedValue({
       data: { paymentIntentId: PAYMENT_INTENT_ID, jobId: JOB_ID },
@@ -598,6 +660,9 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
                 error: null,
               }),
             }),
+          }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
           }),
         };
       }
@@ -654,6 +719,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       id: PAYMENT_INTENT_ID,
       status: 'succeeded',
       amount: 25000,
+      currency: 'gbp',
     });
     mocks.validateRequest.mockResolvedValue({
       data: { paymentIntentId: PAYMENT_INTENT_ID, jobId: JOB_ID },

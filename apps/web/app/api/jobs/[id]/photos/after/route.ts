@@ -24,23 +24,6 @@ import {
 // PhotoUploadService sends image/heic for .heic assets. Without this
 // the after-photo upload would 400 with "Invalid file type" and the
 // auto-completion trigger never fires.
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/heic',
-  'image/heif',
-];
-const ALLOWED_IMAGE_EXTENSIONS = [
-  'jpg',
-  'jpeg',
-  'png',
-  'webp',
-  'gif',
-  'heic',
-  'heif',
-];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 10;
 
@@ -108,10 +91,23 @@ export const POST = withApiHandler(
 
       const formData = await request.formData();
       // Accept both 'photos' (web) and 'photo' (mobile) field names
-      let photoFiles = formData.getAll('photos') as File[];
+      let photoFiles = formData
+        .getAll('photos')
+        .filter(
+          (value): value is File =>
+            typeof value === 'object' &&
+            value !== null &&
+            'size' in value &&
+            'arrayBuffer' in value
+        );
       if (photoFiles.length === 0) {
-        const singlePhoto = formData.get('photo') as File | null;
-        if (singlePhoto) {
+        const singlePhoto = formData.get('photo');
+        if (
+          typeof singlePhoto === 'object' &&
+          singlePhoto !== null &&
+          'size' in singlePhoto &&
+          'arrayBuffer' in singlePhoto
+        ) {
           photoFiles = [singlePhoto];
         }
       }
@@ -152,7 +148,7 @@ export const POST = withApiHandler(
       if (geolocationStr) {
         try {
           geolocation = JSON.parse(geolocationStr);
-        } catch (e) {
+        } catch {
           logger.warn('Invalid geolocation format', { geolocationStr });
         }
       }
@@ -208,21 +204,18 @@ export const POST = withApiHandler(
           );
         }
 
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-          throw new BadRequestError('Invalid file type');
-        }
-
-        const fileExt = file.name.split('.').pop()?.toLowerCase();
-        if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-          throw new BadRequestError('Invalid file extension');
-        }
+        const fileExt = magicValidation.detectedType?.split('/')[1] || 'jpg';
 
         // Upload to storage
         const fileName = `job-photos/${jobId}/after/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { data: uploadData, error: uploadError } =
+        const { error: uploadError } =
           await serverSupabase.storage
             .from('Job-storage')
-            .upload(fileName, file, { cacheControl: '3600', upsert: false });
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              contentType: magicValidation.detectedType,
+              upsert: false,
+            });
 
         if (uploadError) {
           logger.error('Upload error', uploadError);
@@ -234,6 +227,7 @@ export const POST = withApiHandler(
         // `public=false`. See apps/web/lib/api/job-storage.ts for context.
         const photoUrl = await signJobStoragePath(fileName);
         if (!photoUrl) {
+          await serverSupabase.storage.from('Job-storage').remove([fileName]);
           continue;
         }
 
@@ -259,7 +253,7 @@ export const POST = withApiHandler(
         }
 
         // Save metadata
-        await serverSupabase.from('job_photos_metadata').insert({
+        const { error: metadataError } = await serverSupabase.from('job_photos_metadata').insert({
           job_id: jobId,
           photo_url: photoUrl,
           photo_type: 'after',
@@ -271,6 +265,16 @@ export const POST = withApiHandler(
           angle_type: angleType,
           created_by: user.id,
         });
+
+        if (metadataError) {
+          await serverSupabase.storage.from('Job-storage').remove([fileName]);
+          logger.error('Failed to save after-photo metadata', metadataError, {
+            service: 'jobs',
+            jobId,
+            userId: user.id,
+          });
+          continue;
+        }
 
         uploadedPhotos.push({
           url: photoUrl,

@@ -98,7 +98,7 @@ export const POST = withApiHandler(
     // Fetch job and verify user is a party to it
     const { data: job, error } = await userDb
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
       .eq('id', jobId)
       .single();
 
@@ -110,7 +110,8 @@ export const POST = withApiHandler(
       throw new BadRequestError('Can only review completed jobs');
     }
 
-    const isHomeowner = job.homeowner_id === user.id;
+    const isHomeowner =
+      job.homeowner_id === user.id || job.payer_user_id === user.id;
     const isContractor = job.contractor_id === user.id;
 
     if (!isHomeowner && !isContractor) {

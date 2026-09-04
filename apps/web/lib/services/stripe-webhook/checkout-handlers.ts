@@ -26,7 +26,10 @@ export async function handleAccountUpdated(
       return;
     }
 
-    const isOnboarded = account.details_submitted && account.charges_enabled && account.payouts_enabled;
+    const isOnboarded =
+      account.details_submitted &&
+      account.charges_enabled &&
+      account.payouts_enabled;
     const requirementsPending = [
       ...(account.requirements?.currently_due ?? []),
       ...(account.requirements?.past_due ?? []),
@@ -49,11 +52,16 @@ export async function handleAccountUpdated(
       .eq('id', contractorId);
 
     if (userUpdateError) {
-      logger.error('Failed to update profiles.stripe_connect_account_id', userUpdateError, {
-        service: 'stripe-webhook',
-        accountId: account.id,
-        contractorId,
-      });
+      logger.error(
+        'Failed to update profiles.stripe_connect_account_id',
+        userUpdateError,
+        {
+          service: 'stripe-webhook',
+          accountId: account.id,
+          contractorId,
+        }
+      );
+      throw new Error('Failed to persist Stripe Connect profile status');
     }
 
     const { error: payoutUpdateError } = await serverSupabase
@@ -66,11 +74,16 @@ export async function handleAccountUpdated(
       .eq('contractor_id', contractorId);
 
     if (payoutUpdateError) {
-      logger.error('Failed to update contractor_payout_accounts', payoutUpdateError, {
-        service: 'stripe-webhook',
-        accountId: account.id,
-        contractorId,
-      });
+      logger.error(
+        'Failed to update contractor_payout_accounts',
+        payoutUpdateError,
+        {
+          service: 'stripe-webhook',
+          accountId: account.id,
+          contractorId,
+        }
+      );
+      throw new Error('Failed to persist Stripe Connect payout status');
     }
 
     logger.info('Stripe Connect account synced successfully', {
@@ -80,7 +93,9 @@ export async function handleAccountUpdated(
       isOnboarded,
     });
   } catch (error) {
-    logger.error('Error in handleAccountUpdated', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleAccountUpdated', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -91,7 +106,7 @@ export async function handleAccountUpdated(
 export async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,
   stripe: Stripe,
-  sendNotification: SendNotificationFn
+  _sendNotification: SendNotificationFn
 ): Promise<void> {
   logger.info('Checkout session completed webhook received', {
     service: 'stripe-webhook',
@@ -111,7 +126,8 @@ export async function handleCheckoutSessionCompleted(
     }
 
     // Payment mode — check if it's a marketplace payment
-    const isMarketplacePayment = session.metadata?.isMarketplacePayment === 'true';
+    const isMarketplacePayment =
+      session.metadata?.isMarketplacePayment === 'true';
     const jobId = session.metadata?.jobId;
 
     if (!isMarketplacePayment || !jobId) {
@@ -126,16 +142,21 @@ export async function handleCheckoutSessionCompleted(
     // Marketplace payment — update escrow
     await handleCheckoutMarketplacePayment(session, jobId, stripe);
   } catch (error) {
-    logger.error('Error in handleCheckoutSessionCompleted', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleCheckoutSessionCompleted', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
 
 /** Handle subscription checkout — record session */
-async function handleCheckoutSubscription(session: Stripe.Checkout.Session): Promise<void> {
-  const subscriptionId = typeof session.subscription === 'string'
-    ? session.subscription
-    : (session.subscription as Stripe.Subscription | null)?.id;
+async function handleCheckoutSubscription(
+  session: Stripe.Checkout.Session
+): Promise<void> {
+  const subscriptionId =
+    typeof session.subscription === 'string'
+      ? session.subscription
+      : (session.subscription as Stripe.Subscription | null)?.id;
 
   await recordCheckoutSession(session);
 
@@ -147,10 +168,14 @@ async function handleCheckoutSubscription(session: Stripe.Checkout.Session): Pro
 }
 
 /** Handle setup checkout — store payment method on user profile */
-async function handleCheckoutSetup(session: Stripe.Checkout.Session, stripe: Stripe): Promise<void> {
-  const setupIntentId = typeof session.setup_intent === 'string'
-    ? session.setup_intent
-    : (session.setup_intent as Stripe.SetupIntent | null)?.id;
+async function handleCheckoutSetup(
+  session: Stripe.Checkout.Session,
+  stripe: Stripe
+): Promise<void> {
+  const setupIntentId =
+    typeof session.setup_intent === 'string'
+      ? session.setup_intent
+      : (session.setup_intent as Stripe.SetupIntent | null)?.id;
 
   if (!setupIntentId) {
     logger.warn('Setup checkout session has no setup intent', {
@@ -162,23 +187,38 @@ async function handleCheckoutSetup(session: Stripe.Checkout.Session, stripe: Str
 
   try {
     const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
-    const paymentMethodId = typeof setupIntent.payment_method === 'string'
-      ? setupIntent.payment_method
-      : setupIntent.payment_method?.id;
+    const paymentMethodId =
+      typeof setupIntent.payment_method === 'string'
+        ? setupIntent.payment_method
+        : setupIntent.payment_method?.id;
 
     if (paymentMethodId && session.customer) {
-      const customerId = typeof session.customer === 'string'
-        ? session.customer
-        : session.customer?.id;
+      const customerId =
+        typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id;
 
       if (customerId) {
-        await serverSupabase
+        const { error: profileUpdateError } = await serverSupabase
           .from('profiles')
           .update({
             stripe_default_payment_method: paymentMethodId,
             updated_at: new Date().toISOString(),
           })
           .eq('stripe_customer_id', customerId);
+
+        if (profileUpdateError) {
+          logger.error(
+            'Failed to persist setup checkout payment method',
+            profileUpdateError,
+            {
+              service: 'stripe-webhook',
+              sessionId: session.id,
+              customerId,
+            }
+          );
+          throw new Error('Failed to persist setup checkout payment method');
+        }
       }
     }
 
@@ -194,6 +234,7 @@ async function handleCheckoutSetup(session: Stripe.Checkout.Session, stripe: Str
       service: 'stripe-webhook',
       sessionId: session.id,
     });
+    throw setupError;
   }
 }
 
@@ -203,9 +244,10 @@ async function handleCheckoutMarketplacePayment(
   jobId: string,
   stripe: Stripe
 ): Promise<void> {
-  const paymentIntentId = typeof session.payment_intent === 'string'
-    ? session.payment_intent
-    : session.payment_intent?.id;
+  const paymentIntentId =
+    typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : session.payment_intent?.id;
 
   if (!paymentIntentId) {
     logger.warn('Checkout session has no payment intent', {
@@ -216,9 +258,10 @@ async function handleCheckoutMarketplacePayment(
   }
 
   const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-  const chargeId = typeof paymentIntent.latest_charge === 'string'
-    ? paymentIntent.latest_charge
-    : paymentIntent.latest_charge?.id;
+  const chargeId =
+    typeof paymentIntent.latest_charge === 'string'
+      ? paymentIntent.latest_charge
+      : paymentIntent.latest_charge?.id;
 
   const { data: escrowTransaction, error: escrowError } = await serverSupabase
     .from('escrow_transactions')
@@ -234,11 +277,15 @@ async function handleCheckoutMarketplacePayment(
     .single();
 
   if (escrowError) {
-    logger.error('Failed to update escrow transaction from checkout session', escrowError, {
-      service: 'stripe-webhook',
-      sessionId: session.id,
-      paymentIntentId,
-    });
+    logger.error(
+      'Failed to update escrow transaction from checkout session',
+      escrowError,
+      {
+        service: 'stripe-webhook',
+        sessionId: session.id,
+        paymentIntentId,
+      }
+    );
     return;
   }
 
@@ -254,23 +301,36 @@ async function handleCheckoutMarketplacePayment(
   if (!escrowTransaction.payer_id || !escrowTransaction.payee_id) {
     const { data: job } = await serverSupabase
       .from('jobs')
-      .select('homeowner_id, contractor_id')
+      .select('homeowner_id, payer_user_id, contractor_id')
       .eq('id', escrowTransaction.job_id)
       .single();
 
     if (job) {
-      await serverSupabase
+      const { error: participantUpdateError } = await serverSupabase
         .from('escrow_transactions')
         .update({
-          payer_id: job.homeowner_id,
+          payer_id: job.payer_user_id || job.homeowner_id,
           payee_id: job.contractor_id,
         })
         .eq('id', escrowTransaction.id);
 
+      if (participantUpdateError) {
+        logger.error(
+          'Failed to backfill checkout escrow participants',
+          participantUpdateError,
+          {
+            service: 'stripe-webhook',
+            escrowId: escrowTransaction.id,
+            sessionId: session.id,
+          }
+        );
+        throw new Error('Failed to persist checkout escrow participants');
+      }
+
       logger.info('Backfilled payer_id and payee_id for escrow from checkout', {
         service: 'stripe-webhook',
         escrowId: escrowTransaction.id,
-        homeownerId: job.homeowner_id,
+        payerId: job.payer_user_id || job.homeowner_id,
         contractorId: job.contractor_id,
       });
     }
@@ -279,26 +339,47 @@ async function handleCheckoutMarketplacePayment(
   // Update platform fee and contractor payout if present
   if (session.metadata?.platformFeeAmount) {
     const platformFee = Math.round(Number(session.metadata.platformFeeAmount));
-    const totalAmount = Math.round(Number(session.metadata.totalAmount || escrowTransaction.amount));
+    const totalAmount = Math.round(
+      Number(session.metadata.totalAmount || escrowTransaction.amount)
+    );
     const contractorAmount = totalAmount - platformFee;
 
-    await serverSupabase
+    const { error: feeUpdateError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         platform_fee: platformFee,
         contractor_payout: contractorAmount,
       })
       .eq('id', escrowTransaction.id);
+
+    if (feeUpdateError) {
+      logger.error('Failed to persist checkout platform fee', feeUpdateError, {
+        service: 'stripe-webhook',
+        escrowId: escrowTransaction.id,
+        sessionId: session.id,
+      });
+      throw new Error('Failed to persist checkout platform fee');
+    }
   }
 
   // Update job payment status
-  await serverSupabase
+  const { error: jobPaymentError } = await serverSupabase
     .from('jobs')
     .update({
       payment_status: 'paid',
       updated_at: new Date().toISOString(),
     })
     .eq('id', jobId);
+
+  if (jobPaymentError) {
+    logger.error('Failed to persist checkout job payment status', jobPaymentError, {
+      service: 'stripe-webhook',
+      jobId,
+      sessionId: session.id,
+      paymentIntentId,
+    });
+    throw new Error('Failed to persist checkout job payment status');
+  }
 
   logger.info('Escrow transaction updated from checkout session', {
     service: 'stripe-webhook',
@@ -309,11 +390,14 @@ async function handleCheckoutMarketplacePayment(
 }
 
 /** Record checkout session for audit trail */
-async function recordCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
+async function recordCheckoutSession(
+  session: Stripe.Checkout.Session
+): Promise<void> {
   try {
-    const customerId = typeof session.customer === 'string'
-      ? session.customer
-      : session.customer?.id;
+    const customerId =
+      typeof session.customer === 'string'
+        ? session.customer
+        : session.customer?.id;
 
     let userId: string | null = null;
     if (customerId) {
@@ -325,17 +409,18 @@ async function recordCheckoutSession(session: Stripe.Checkout.Session): Promise<
       userId = user?.id || null;
     }
 
-    const paymentIntentId = typeof session.payment_intent === 'string'
-      ? session.payment_intent
-      : session.payment_intent?.id;
+    const paymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
 
-    const subscriptionId = typeof session.subscription === 'string'
-      ? session.subscription
-      : (session.subscription as Stripe.Subscription | null)?.id;
+    const subscriptionId =
+      typeof session.subscription === 'string'
+        ? session.subscription
+        : (session.subscription as Stripe.Subscription | null)?.id;
 
-    await serverSupabase
-      .from('checkout_sessions')
-      .upsert({
+    await serverSupabase.from('checkout_sessions').upsert(
+      {
         session_id: session.id,
         user_id: userId,
         mode: session.mode || 'payment',
@@ -346,7 +431,9 @@ async function recordCheckoutSession(session: Stripe.Checkout.Session): Promise<
         currency: session.currency || 'gbp',
         metadata: session.metadata || {},
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'session_id' });
+      },
+      { onConflict: 'session_id' }
+    );
   } catch (recordError) {
     logger.error('Failed to record checkout session', recordError, {
       service: 'stripe-webhook',

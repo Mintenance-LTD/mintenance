@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import {
-  serverSupabase,
-  createRequestScopedClient,
-} from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger, CONTRACT_STATUS } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
 import {
@@ -32,7 +29,6 @@ import {
 export const POST = withApiHandler(
   { roles: ['homeowner', 'contractor'] },
   async (request, { user, params }) => {
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const { id: contractId } = await params;
 
     // SECURITY: Validate UUID format before database query
@@ -99,14 +95,16 @@ export const POST = withApiHandler(
     }
 
     return await releaseOnError(idempotencyKey, 'contract_accept', async () => {
-      // SECURITY: Fix IDOR - check ownership in query, not after fetch (user-scoped read)
-      const { data: contract, error: contractError } = await userDb
+      // The contract has no payer_user_id column; the designated payer is
+      // stored on the linked job. Use the service client only with the
+      // explicit contract and job-party checks below, so a payer who is not
+      // the primary homeowner can still sign their authorised contract.
+      const { data: contract, error: contractError } = await serverSupabase
         .from('contracts')
         .select(
           'id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date'
         )
         .eq('id', contractId)
-        .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
         .single();
 
       if (contractError || !contract) {
@@ -114,11 +112,21 @@ export const POST = withApiHandler(
         throw new NotFoundError('Contract not found or access denied');
       }
 
-      // Verify user is authorized to sign
+      const { data: linkedJob } = await serverSupabase
+        .from('jobs')
+        .select('payer_user_id')
+        .eq('id', contract.job_id)
+        .single();
+
+      // Verify user is authorized to sign. A designated payer signs in the
+      // homeowner party's place; the contractor still must match the
+      // contract's contractor_id.
       const isContractor =
         user.role === 'contractor' && contract.contractor_id === user.id;
       const isHomeowner =
-        user.role === 'homeowner' && contract.homeowner_id === user.id;
+        user.role === 'homeowner' &&
+        (contract.homeowner_id === user.id ||
+          linkedJob?.payer_user_id === user.id);
 
       if (!isContractor && !isHomeowner) {
         throw new ForbiddenError('Not authorized to sign this contract');
@@ -131,6 +139,11 @@ export const POST = withApiHandler(
         contract.status !== CONTRACT_STATUS.PENDING_CONTRACTOR &&
         contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER
       ) {
+        if (contract.status === CONTRACT_STATUS.DRAFT) {
+          throw new BadRequestError(
+            'This contract is still in draft status and cannot be signed.'
+          );
+        }
         throw new BadRequestError(
           'This contract is no longer awaiting a signature.'
         );
