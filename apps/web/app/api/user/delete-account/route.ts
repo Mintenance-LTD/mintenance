@@ -270,6 +270,17 @@ export const POST = withApiHandler(
         .eq('homeowner_id', user.id),
     ]);
 
+    if (contractorSubsRes.error || homeownerSubsRes.error) {
+      logger.error(
+        'Subscription snapshot failed; refusing to delete account',
+        contractorSubsRes.error ?? homeownerSubsRes.error,
+        { service: 'user', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to verify subscription state. Please try again.'
+      );
+    }
+
     const subscriptionIds = [
       ...(contractorSubsRes.data ?? []),
       ...(homeownerSubsRes.data ?? []),
