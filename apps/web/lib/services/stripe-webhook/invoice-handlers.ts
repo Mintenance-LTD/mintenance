@@ -51,8 +51,9 @@ export async function handleInvoicePaymentSucceeded(
     const subscriptionId = getInvoiceSubscriptionId(invoice);
 
     // Record in invoice_payments table
-    try {
-      await serverSupabase.from('invoice_payments').upsert(
+    const { error: invoiceRecordError } = await serverSupabase
+      .from('invoice_payments')
+      .upsert(
         {
           invoice_id: invoice.id,
           user_id: user.id,
@@ -66,22 +67,33 @@ export async function handleInvoicePaymentSucceeded(
         },
         { onConflict: 'invoice_id' }
       );
-    } catch (recordError) {
-      logger.error('Failed to record invoice payment', recordError, {
+
+    if (invoiceRecordError) {
+      logger.error('Failed to record invoice payment', invoiceRecordError, {
         service: 'stripe-webhook',
         invoiceId: invoice.id,
       });
+      throw new Error('Failed to persist invoice payment');
     }
 
     // Reactivate subscription if it was past_due
     if (user.subscription_status === 'past_due') {
-      await serverSupabase
+      const { error: profileUpdateError } = await serverSupabase
         .from('profiles')
         .update({
           subscription_status: 'active',
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
+
+      if (profileUpdateError) {
+        logger.error('Failed to reactivate profile subscription', profileUpdateError, {
+          service: 'stripe-webhook',
+          userId: user.id,
+          invoiceId: invoice.id,
+        });
+        throw new Error('Failed to persist subscription reactivation');
+      }
 
       await sendNotification(
         user.id,
@@ -152,8 +164,9 @@ export async function handleInvoicePaymentFailed(
     const subscriptionId = getInvoiceSubscriptionId(invoice);
 
     // Record failed payment in invoice_payments
-    try {
-      await serverSupabase.from('invoice_payments').upsert(
+    const { error: failedInvoiceRecordError } = await serverSupabase
+      .from('invoice_payments')
+      .upsert(
         {
           invoice_id: invoice.id,
           user_id: user.id,
@@ -166,22 +179,34 @@ export async function handleInvoicePaymentFailed(
         },
         { onConflict: 'invoice_id' }
       );
-    } catch (recordError) {
-      logger.error('Failed to record invoice payment failure', recordError, {
+
+    if (failedInvoiceRecordError) {
+      logger.error('Failed to record invoice payment failure', failedInvoiceRecordError, {
         service: 'stripe-webhook',
         invoiceId: invoice.id,
       });
+      throw new Error('Failed to persist failed invoice payment');
     }
 
     // Update subscription status to past_due
     if (subscriptionId) {
-      await serverSupabase
+      const { error: profileUpdateError } = await serverSupabase
         .from('profiles')
         .update({
           subscription_status: 'past_due',
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
+
+      if (profileUpdateError) {
+        logger.error('Failed to mark profile subscription past_due', profileUpdateError, {
+          service: 'stripe-webhook',
+          userId: user.id,
+          invoiceId: invoice.id,
+          subscriptionId,
+        });
+        throw new Error('Failed to persist past_due subscription status');
+      }
 
       if (user.role === 'contractor') {
         // Mark the contractor_subscriptions row past_due so tier
@@ -207,6 +232,7 @@ export async function handleInvoicePaymentFailed(
               subscriptionId,
             }
           );
+          throw new Error('Failed to persist contractor past_due status');
         }
       }
     }
