@@ -5,7 +5,6 @@
 
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { SAM3Service } from '@/lib/services/building-surveyor/SAM3Service';
 import crypto from 'crypto';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -124,6 +123,7 @@ async function processWithSAM3(imageUrl: string): Promise<unknown> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl, mode: 'everything', min_mask_region_area: 100 }),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) throw new Error('SAM3 segmentation failed');
