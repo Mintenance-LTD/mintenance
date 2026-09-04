@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
+import { extractAssessmentPath } from '@/lib/api/assessment-storage';
 import {
   BadRequestError,
   ForbiddenError,
@@ -70,6 +71,24 @@ export const POST = withApiHandler(
     if (assessment.user_id !== user.id && user.role !== 'admin') {
       throw new ForbiddenError(
         'You do not have permission to attach images to this assessment'
+      );
+    }
+
+    // Do not let callers turn image_url into an arbitrary remote URL.  These
+    // rows are later re-signed/rendered as assessment evidence, so accepting
+    // another host or another assessment's object would break the private
+    // storage boundary and could feed untrusted content into AI processing.
+    const expectedPrefix = `assessments/${assessmentId}/`;
+    const imagePaths = parsed.data.urls.map((url) =>
+      extractAssessmentPath(url)
+    );
+    if (
+      imagePaths.some(
+        (path) => !path || !path.startsWith(expectedPrefix)
+      )
+    ) {
+      throw new BadRequestError(
+        'Image URLs must reference this assessment photo storage path'
       );
     }
 
