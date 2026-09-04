@@ -37,8 +37,7 @@ async function createPaymentIntent(
     job_id?: string;
     status: string;
   },
-  payerId: string,
-  platformFeeCents: number
+  payerId: string
 ) {
   try {
     const { data: contractor } = await serverSupabase
@@ -53,6 +52,11 @@ async function createPaymentIntent(
 
     const amountCents = Math.round(invoice.total_amount * 100);
 
+    // This must be a platform charge. Adding `transfer_data.destination` (or
+    // an application fee, which requires a connected-account charge) would
+    // transfer funds to the contractor as soon as the PaymentIntent
+    // succeeds. Invoice payments are recorded as held and released later by
+    // the escrow release path, which performs the one-and-only transfer.
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
       currency: 'gbp',
@@ -63,10 +67,6 @@ async function createPaymentIntent(
         payer_id: payerId,
         contractor_id: invoice.contractor_id,
         job_id: invoice.job_id || '',
-      },
-      application_fee_amount: platformFeeCents,
-      transfer_data: {
-        destination: contractor.stripe_connect_account_id,
       },
       payment_method_types: ['card'],
       receipt_email: invoice.client_email,
@@ -305,11 +305,7 @@ export const POST = withApiHandler(
         { contractorTier }
       );
 
-      const paymentIntent = await createPaymentIntent(
-        invoice,
-        user.id,
-        Math.round(feeBreakdown.platformFee * 100)
-      );
+      const paymentIntent = await createPaymentIntent(invoice, user.id);
 
       const escrow = await createEscrowTransaction(
         invoice,

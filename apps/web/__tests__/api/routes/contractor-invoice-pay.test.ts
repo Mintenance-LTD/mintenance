@@ -3,7 +3,7 @@
  * Route: apps/web/app/api/contractor/invoices/pay/route.ts
  *
  * Covers: tier-aware platform fee on the Stripe PaymentIntent
- * (application_fee_amount) and on the payments-row bookkeeping
+ * (platform-charge/escrow-transfer separation) and on the payments-row bookkeeping
  * (platform_fee / processing_fee / net_amount). The route previously
  * hardcoded a 5% fee (missed in the 2026-05-23 tiered-pricing rollout);
  * these tests pin the FeeCalculationService-driven rates: free/basic 12%,
@@ -384,20 +384,19 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     expect(mocks.stripePaymentIntentsCreate).not.toHaveBeenCalled();
   });
 
-  it('charges 12% application fee for a basic-tier contractor on a £1000 invoice', async () => {
+  it('creates a platform charge for a basic-tier contractor on a £1000 invoice', async () => {
     setupMocks({ planType: 'basic' });
 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
     expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        amount: 100000,
-        currency: 'gbp',
-        application_fee_amount: 12000,
-        transfer_data: { destination: 'acct_test_123' },
-      })
+      expect.objectContaining({ amount: 100000, currency: 'gbp' })
     );
+    const paymentIntentParams =
+      mocks.stripePaymentIntentsCreate.mock.calls[0][0];
+    expect(paymentIntentParams).not.toHaveProperty('application_fee_amount');
+    expect(paymentIntentParams).not.toHaveProperty('transfer_data');
   });
 
   it('books tier-aware platform_fee / processing_fee / net_amount on the payments row (basic, 12%)', async () => {
@@ -411,8 +410,8 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     // Stripe estimate 1.5% + £0.20 = £15.20 (still recorded on the row).
     // Since commit 9992138 ("stop underpaying contractors"), net_amount is
     // amount - platformFee ONLY — the platform absorbs the Stripe fee, so the
-    // contractor nets 1000 - 120 = 880 (matches the Stripe transfer, which is
-    // total minus the £120 application_fee_amount).
+    // contractor nets 1000 - 120 = 880 when escrow release creates the
+    // single transfer from the platform balance.
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({
         amount: 1000,
@@ -432,15 +431,13 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     expect(captured.escrowInsert[0]).not.toHaveProperty('release_conditions');
   });
 
-  it('charges 8% application fee for a professional-tier contractor', async () => {
+  it('records the professional-tier fee for later escrow release', async () => {
     setupMocks({ planType: 'professional' });
 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 8000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({
         platform_fee: 80,
@@ -451,15 +448,13 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     );
   });
 
-  it('charges 5% application fee for an enterprise-tier contractor', async () => {
+  it('records the enterprise-tier fee for later escrow release', async () => {
     setupMocks({ planType: 'enterprise' });
 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 5000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({
         platform_fee: 50,
@@ -480,9 +475,7 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 5000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
   });
 
   it('defaults to the basic 12% rate when the contractor has no active subscription', async () => {
@@ -491,9 +484,7 @@ describe('POST /api/contractor/invoices/pay — tier-aware platform fee', () => 
     const res = await postInvoicePayment();
     expect(res.status).toBe(200);
 
-    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ application_fee_amount: 12000 })
-    );
+    expect(mocks.stripePaymentIntentsCreate).toHaveBeenCalled();
     expect(captured.paymentsInsert[0]).toEqual(
       expect.objectContaining({ platform_fee: 120 })
     );
