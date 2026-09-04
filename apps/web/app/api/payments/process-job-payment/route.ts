@@ -232,6 +232,39 @@ export const POST = withApiHandler(
       }
     }
 
+    // Keep the job-level payment flag aligned with the escrow transition.
+    // The Stripe webhook normally performs this write, but this endpoint is
+    // also the synchronous fallback when the client receives confirmation
+    // first. Do not return success while the job still appears unpaid.
+    const { error: jobPaymentError } = await serverSupabase
+      .from('jobs')
+      .update({
+        payment_status: 'paid',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+
+    if (jobPaymentError) {
+      logger.error(
+        'Payment succeeded and escrow was held, but job payment status could not be updated',
+        jobPaymentError,
+        {
+          service: 'payments',
+          jobId,
+          paymentIntentId: confirmedIntent.id,
+        }
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Payment succeeded but could not be fully recorded. Support has been notified.',
+          paymentIntentId: confirmedIntent.id,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       paymentIntentId: confirmedIntent.id,
