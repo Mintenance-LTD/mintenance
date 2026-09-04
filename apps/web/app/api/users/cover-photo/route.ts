@@ -21,13 +21,10 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import {
+  validateImageUpload,
+} from '@/lib/utils/fileValidation';
 
-const VALID_MIME_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-] as const;
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB — covers are bigger than avatars
 const BUCKET = 'profile-images';
 
@@ -63,23 +60,29 @@ export const POST = withApiHandler(
     if (!file) {
       throw new BadRequestError('No file uploaded (expected `cover` field)');
     }
+    const validation = await validateImageUpload(file, MAX_BYTES);
+    const detectedType = validation.detectedType;
     if (
-      !VALID_MIME_TYPES.includes(file.type as (typeof VALID_MIME_TYPES)[number])
+      !validation.valid ||
+      !detectedType ||
+      !['image/jpeg', 'image/png', 'image/webp'].includes(detectedType)
     ) {
       throw new BadRequestError(
-        'Invalid file type. Only JPEG, PNG, and WebP are allowed.'
+        validation.error ||
+          'Invalid file type. Only JPEG, PNG, and WebP are allowed.'
       );
     }
-    if (file.size > MAX_BYTES) {
-      throw new BadRequestError('File too large. Maximum size is 10MB.');
-    }
 
-    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileExt = detectedType.split('/')[1] || 'jpg';
     const fileName = `cover-${user.id}-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await serverSupabase.storage
       .from(BUCKET)
-      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        contentType: detectedType,
+        upsert: false,
+      });
 
     if (uploadError) {
       logger.error('Cover photo upload failed', uploadError, {
