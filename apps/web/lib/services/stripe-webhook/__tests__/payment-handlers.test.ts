@@ -466,6 +466,48 @@ describe('handleChargeRefunded', () => {
     );
   });
 
+  it('records the refund when escrow finalization fails for reconciliation', async () => {
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        status: 'held',
+        payer_id: VALID_UUID,
+        payee_id: VALID_UUID_2,
+      },
+    });
+    chain.maybeSingle
+      .mockResolvedValueOnce({
+        data: {
+          id: ESCROW_ID,
+          job_id: JOB_ID,
+          amount: 50,
+          status: 'held',
+          payer_id: VALID_UUID,
+          payee_id: VALID_UUID_2,
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: new Error('escrow update unavailable'),
+      });
+    mockFrom.mockReturnValue(chain);
+
+    await expect(
+      handleChargeRefunded(makeCharge(), mockNotify)
+    ).resolves.toBeUndefined();
+
+    expect(mockFrom).toHaveBeenCalledWith('refunds');
+    expect(mockNotify).not.toHaveBeenCalled();
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      'Failed to finalize refunded payment status',
+      expect.any(Error),
+      expect.objectContaining({ escrowId: ESCROW_ID })
+    );
+  });
+
   it('returns early when charge has no payment_intent', async () => {
     const charge = makeCharge({ payment_intent: null as unknown as string });
     await handleChargeRefunded(charge, mockNotify);

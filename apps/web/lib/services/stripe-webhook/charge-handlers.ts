@@ -97,6 +97,7 @@ export async function handleChargeRefunded(
       'awaiting_homeowner_approval',
     ];
     let escrowTransaction = existingEscrow;
+    let escrowStateFinalized = alreadyRefunded;
 
     if (isFullRefund && !alreadyRefunded) {
       const { data: updatedEscrow, error: escrowError } =
@@ -121,9 +122,14 @@ export async function handleChargeRefunded(
           escrowId: existingEscrow.id,
           currentStatus: existingEscrow.status,
         });
-        return;
+        // Stripe has already moved the money. Continue to the refund ledger
+        // so reconciliation can find this case, but do not update the job or
+        // notify users as if the escrow transition was recorded.
+        escrowTransaction = existingEscrow;
+      } else {
+        escrowStateFinalized = true;
+        escrowTransaction = updatedEscrow;
       }
-      escrowTransaction = updatedEscrow;
     } else if (!isFullRefund) {
       logger.info('Partial refund recorded without closing escrow', {
         service: 'stripe-webhook',
@@ -144,7 +150,7 @@ export async function handleChargeRefunded(
     }
 
     const jobId = escrowTransaction?.job_id || charge.metadata?.jobId;
-    if (jobId && isFullRefund && !alreadyRefunded) {
+    if (jobId && isFullRefund && escrowStateFinalized && !alreadyRefunded) {
       await serverSupabase
         .from('jobs')
         .update({
@@ -178,13 +184,16 @@ export async function handleChargeRefunded(
     }
 
     // Notify both homeowner and contractor
-    if (escrowTransaction && !alreadyRefunded) {
+    const canNotify =
+      !alreadyRefunded && (!isFullRefund || escrowStateFinalized);
+    if (escrowTransaction && canNotify) {
       const amountStr = `£${(refundAmount / 100).toFixed(2)}`;
+      const refundLabel = isFullRefund ? 'refund' : 'partial refund';
       if (escrowTransaction.payer_id) {
         await sendNotification(
           escrowTransaction.payer_id,
           'Refund Processed',
-          `Your refund of ${amountStr} has been processed and will appear on your statement within 5-10 business days.`,
+          `Your ${refundLabel} of ${amountStr} has been processed and will appear on your statement within 5-10 business days.`,
           'refund_processed'
         );
       }
@@ -192,7 +201,7 @@ export async function handleChargeRefunded(
         await sendNotification(
           escrowTransaction.payee_id,
           'Payment Refunded',
-          `A payment of ${amountStr} for this job has been refunded to the homeowner.`,
+          `A ${refundLabel} of ${amountStr} for this job has been sent back to the homeowner.`,
           'payment_refunded'
         );
       }
@@ -203,6 +212,7 @@ export async function handleChargeRefunded(
       paymentIntentId,
       chargeId: charge.id,
       amountRefunded: refundAmount,
+      escrowStateFinalized,
     });
   } catch (error) {
     logger.error('Error in handleChargeRefunded', error, {
