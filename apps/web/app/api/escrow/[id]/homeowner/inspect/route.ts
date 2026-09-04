@@ -11,6 +11,7 @@ import {
 interface EscrowHomeownerJob {
   id: string;
   homeowner_id: string;
+  payer_user_id?: string | null;
 }
 
 interface EscrowWithHomeownerJob {
@@ -22,48 +23,56 @@ interface EscrowWithHomeownerJob {
  * POST /api/escrow/:id/homeowner/inspect
  * Mark inspection completed
  */
-export const POST = withApiHandler({ rateLimit: { maxRequests: 20 } }, async (_request, { user, params }) => {
-  const { id: escrowId } = params as { id: string };
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (_request, { user, params }) => {
+    const { id: escrowId } = params as { id: string };
 
-  const { data: escrow, error: escrowError } = await serverSupabase
-    .from('escrow_transactions')
-    .select(`
+    const { data: escrow, error: escrowError } = await serverSupabase
+      .from('escrow_transactions')
+      .select(
+        `
       id,
       jobs!inner (
         id,
-        homeowner_id
+        homeowner_id,
+        payer_user_id
       )
-    `)
-    .eq('id', escrowId)
-    .single();
+    `
+      )
+      .eq('id', escrowId)
+      .single();
 
-  if (escrowError || !escrow) {
-    throw new NotFoundError('Escrow not found');
+    if (escrowError || !escrow) {
+      throw new NotFoundError('Escrow not found');
+    }
+
+    const typedEscrow = escrow as unknown as EscrowWithHomeownerJob;
+    const job = Array.isArray(typedEscrow.jobs)
+      ? typedEscrow.jobs[0]
+      : typedEscrow.jobs;
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+      throw new ForbiddenError('Unauthorized');
+    }
+
+    const { data: updatedEscrow, error: updateError } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        homeowner_inspection_completed: true,
+        homeowner_inspection_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', escrowId)
+      .in('status', ['held', 'awaiting_homeowner_approval'])
+      .select('id')
+      .maybeSingle();
+
+    if (updateError || !updatedEscrow) {
+      throw new ConflictError(
+        'This escrow is no longer available for homeowner inspection.'
+      );
+    }
+
+    return NextResponse.json({ success: true, escrowId });
   }
-
-  const typedEscrow = escrow as unknown as EscrowWithHomeownerJob;
-  const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
-  if (job.homeowner_id !== user.id) {
-    throw new ForbiddenError('Unauthorized');
-  }
-
-  const { data: updatedEscrow, error: updateError } = await serverSupabase
-    .from('escrow_transactions')
-    .update({
-      homeowner_inspection_completed: true,
-      homeowner_inspection_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', escrowId)
-    .in('status', ['held', 'awaiting_homeowner_approval'])
-    .select('id')
-    .maybeSingle();
-
-  if (updateError || !updatedEscrow) {
-    throw new ConflictError(
-      'This escrow is no longer available for homeowner inspection.'
-    );
-  }
-
-  return NextResponse.json({ success: true, escrowId });
-});
+);
