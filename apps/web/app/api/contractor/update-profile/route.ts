@@ -6,6 +6,10 @@ import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import {
+  validateImageUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 
 // Type definition for profile update data
 interface ProfileUpdateData {
@@ -65,11 +69,6 @@ class GeocodingService {
     }
   }
 }
-
-// Profile image security configuration
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
  * Normalize phone number to UK format required by database constraint
@@ -222,23 +221,30 @@ export const POST = withApiHandler(
 
     // Handle profile photo upload if provided
     if (profileImageFile && profileImageFile.size > 0) {
-      if (!ALLOWED_IMAGE_TYPES.includes(profileImageFile.type)) {
-        throw new BadRequestError('Invalid image type. Only JPEG, PNG, and WebP images are allowed');
-      }
-      const fileExt = profileImageFile.name.split('.').pop()?.toLowerCase();
-      if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        throw new BadRequestError('Invalid file extension. Only jpg, jpeg, png, and webp are allowed');
-      }
-      if (profileImageFile.size > MAX_IMAGE_SIZE) {
-        throw new BadRequestError('Profile image must be less than 5MB');
+      // Validate the file contents, not the client-controlled MIME type or
+      // filename extension, before placing it in public profile storage.
+      const validation = await validateImageUpload(
+        profileImageFile,
+        MAX_FILE_SIZES.profileImage
+      );
+      if (!validation.valid) {
+        throw new BadRequestError(
+          validation.error ||
+            'Invalid image. Only JPEG, PNG, and WebP images are allowed'
+        );
       }
 
+      const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await serverSupabase.storage
         .from('profile-images')
-        .upload(filePath, profileImageFile, { cacheControl: '3600', upsert: true });
+        .upload(filePath, profileImageFile, {
+          cacheControl: '3600',
+          contentType: validation.detectedType,
+          upsert: true,
+        });
 
       if (uploadError) {
         logger.error('Upload error', uploadError, {
@@ -322,6 +328,26 @@ export const POST = withApiHandler(
       .single();
 
     if (error) {
+      if (profileImageUrl) {
+        const marker = '/profile-images/';
+        const markerIndex = profileImageUrl.indexOf(marker);
+        const uploadedPath = markerIndex >= 0
+          ? decodeURIComponent(profileImageUrl.slice(markerIndex + marker.length))
+          : null;
+
+        if (uploadedPath) {
+          const { error: cleanupError } = await serverSupabase.storage
+            .from('profile-images')
+            .remove([uploadedPath]);
+          if (cleanupError) {
+            logger.warn('Failed to clean up profile image after update failure', {
+              service: 'contractor',
+              userId: user.id,
+              cleanupError,
+            });
+          }
+        }
+      }
       logger.error('Update error', {
         service: 'contractor', userId: user.id,
         errorMessage: error.message, errorCode: error.code,
