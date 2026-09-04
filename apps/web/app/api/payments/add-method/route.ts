@@ -3,10 +3,11 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import { NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 // Audit P2 (2026-05-10): `.strict()` rejects unknown body keys.
 const addMethodSchema = z
@@ -91,7 +92,18 @@ export const POST = withApiHandler(
         logger.error('Stripe error adding payment method', error, {
           service: 'payments',
         });
-        throw new BadRequestError(error.message);
+        const response = createPaymentErrorResponse(error, {
+          operation: 'add_payment_method',
+          userId: user.id,
+        });
+        return NextResponse.json(
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
+        );
       }
       throw error;
     }

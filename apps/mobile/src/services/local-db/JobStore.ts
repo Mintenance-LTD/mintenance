@@ -9,6 +9,7 @@ function mapRowToJob(row: DatabaseJobRow): Job {
     description: row.description,
     location: row.location,
     homeowner_id: row.homeowner_id,
+    payer_user_id: row.payer_user_id ?? undefined,
     contractor_id: row.contractor_id ?? undefined,
     status: row.status as 'posted' | 'assigned' | 'in_progress' | 'completed',
     budget: row.budget,
@@ -32,9 +33,9 @@ export async function saveJob(
 ): Promise<void> {
   const query = `
     INSERT OR REPLACE INTO jobs
-    (id, title, description, location, homeowner_id, contractor_id, status, budget,
+    (id, title, description, location, homeowner_id, payer_user_id, contractor_id, status, budget,
      category, subcategory, priority, photos, created_at, updated_at, synced_at, is_dirty)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const location =
     typeof job.location === 'string'
@@ -50,12 +51,17 @@ export async function saveJob(
     job.contractor_id ??
     ((job as unknown as Record<string, unknown>).contractorId as string) ??
     null;
+  const payerUserId =
+    job.payer_user_id ??
+    ((job as unknown as Record<string, unknown>).payerUserId as string) ??
+    null;
   const params: (string | number | null)[] = [
     job.id,
     job.title || '',
     job.description || '',
     location,
     homeownerId,
+    payerUserId,
     contractorId,
     job.status,
     job.budget ?? null,
@@ -88,8 +94,8 @@ export async function getJobsByHomeowner(
   homeownerId: string
 ): Promise<Job[]> {
   const rows = await db.getAllAsync<DatabaseJobRow>(
-    'SELECT * FROM jobs WHERE homeowner_id = ? ORDER BY created_at DESC',
-    [homeownerId]
+    'SELECT * FROM jobs WHERE homeowner_id = ? OR payer_user_id = ? ORDER BY created_at DESC',
+    [homeownerId, homeownerId]
   );
   return rows.map((row) => mapRowToJob(row));
 }
@@ -102,8 +108,9 @@ export async function getJobsByStatus(
   let query = 'SELECT * FROM jobs WHERE status = ?';
   const params = [status];
   if (userId) {
-    query += ' AND (homeowner_id = ? OR contractor_id = ?)';
-    params.push(userId, userId);
+    query +=
+      ' AND (homeowner_id = ? OR payer_user_id = ? OR contractor_id = ?)';
+    params.push(userId, userId, userId);
   }
   query += ' ORDER BY created_at DESC';
   const rows = await db.getAllAsync<DatabaseJobRow>(query, params);

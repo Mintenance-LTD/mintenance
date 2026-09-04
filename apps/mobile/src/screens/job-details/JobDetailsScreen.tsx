@@ -118,8 +118,13 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     !!viewModel.job?.homeowner_id &&
     !!user?.id &&
     viewModel.job.homeowner_id === user.id;
+  const isDesignatedPayer =
+    !!viewModel.job?.payer_user_id &&
+    !!user?.id &&
+    viewModel.job.payer_user_id === user.id;
+  const canManageJob = isJobOwner || isDesignatedPayer;
   const { data: bidsData, refetch: refetchBids } = useJobBids(jobId, {
-    enabled: isJobOwner,
+    enabled: canManageJob,
   });
   // 2026-05-24 audit-26 P1: contractor-side parallel query. When a
   // contractor opens a job they don't own, /api/jobs/:id/bids 403s,
@@ -515,7 +520,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             })()
           : null}
 
-        {isOwner && bidsArray.length > 0 && (
+        {canManageJob && bidsArray.length > 0 && (
           <>
             <View style={styles.divider} />
             <JobBidsList bids={bidsArray} />
@@ -637,6 +642,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           jobId={job.id}
           jobTitle={job.title}
           isOwner={isOwner}
+          canApprove={canManageJob}
           status={job.status}
           isCompletionConfirmedByHomeowner={
             !!(job as CTAContext['job']).completion_confirmed_by_homeowner
@@ -682,6 +688,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       {getPriorityCTA({
         job: job as CTAContext['job'],
         isOwner,
+        isPayer: isDesignatedPayer,
         isContractor,
         userId: user?.id,
         budget,

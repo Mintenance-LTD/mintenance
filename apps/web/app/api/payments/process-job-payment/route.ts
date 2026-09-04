@@ -15,6 +15,7 @@ import {
 } from '@mintenance/api-contracts';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 // Audit P2 (2026-05-10): `.strict()` ensures clients can't sneak
 // `userId`/`escrowId`/`status` overrides past the server-authoritative
@@ -60,7 +61,7 @@ export const POST = withApiHandler(
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, title')
       .eq('id', jobId)
       .single();
 
@@ -68,8 +69,10 @@ export const POST = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
-      throw new ForbiddenError('Only the homeowner can pay for this job');
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+      throw new ForbiddenError(
+        'Only the homeowner or designated payer can pay for this job'
+      );
     }
 
     if (!job.contractor_id) {
@@ -129,7 +132,19 @@ export const POST = withApiHandler(
         logger.error('Stripe process payment error', error, {
           service: 'payments',
         });
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        const response = createPaymentErrorResponse(error, {
+          operation: 'process_job_payment',
+          userId: user.id,
+          jobId,
+        });
+        return NextResponse.json(
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
+        );
       }
       throw error;
     }
@@ -168,15 +183,20 @@ export const POST = withApiHandler(
       .select('id');
 
     if (escrowUpdateError) {
-      logger.error('Payment succeeded but escrow could not be held', escrowUpdateError, {
-        service: 'payments',
-        jobId,
-        paymentIntentId: confirmedIntent.id,
-      });
+      logger.error(
+        'Payment succeeded but escrow could not be held',
+        escrowUpdateError,
+        {
+          service: 'payments',
+          jobId,
+          paymentIntentId: confirmedIntent.id,
+        }
+      );
       return NextResponse.json(
         {
           success: false,
-          error: 'Payment succeeded but could not be recorded. Support has been notified.',
+          error:
+            'Payment succeeded but could not be recorded. Support has been notified.',
           paymentIntentId: confirmedIntent.id,
         },
         { status: 500 }
@@ -203,7 +223,8 @@ export const POST = withApiHandler(
         return NextResponse.json(
           {
             success: false,
-            error: 'Payment succeeded but could not be recorded. Support has been notified.',
+            error:
+              'Payment succeeded but could not be recorded. Support has been notified.',
             paymentIntentId: confirmedIntent.id,
           },
           { status: 500 }

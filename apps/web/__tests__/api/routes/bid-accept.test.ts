@@ -642,6 +642,31 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
     expect(body.message).toContain('accepted');
   });
 
+  it('should allow the designated payer to accept a bid', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupAcceptMocks({
+      jobData: {
+        homeowner_id: 'homeowner-1',
+        payer_user_id: 'payer-1',
+        status: 'posted',
+      },
+    });
+
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+      ),
+      segmentData('job-1', 'bid-1')
+    );
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
+  });
+
   // ---- Stores idempotency result ----
   it('should store the idempotency result after success', async () => {
     setupAcceptMocks();

@@ -31,7 +31,7 @@ export const PATCH = withApiHandler(
     // Fetch the trip
     const { data: trip, error: fetchError } = await serverSupabase
       .from('contractor_trips')
-      .select('*, job:jobs!job_id(homeowner_id, title)')
+      .select('*, job:jobs!job_id(homeowner_id, payer_user_id, title)')
       .eq('id', resolvedParams.id)
       .eq('contractor_id', user.id)
       .single();
@@ -122,21 +122,28 @@ export const PATCH = withApiHandler(
       : 'Your contractor';
 
     const homeownerId = trip.job?.homeowner_id;
+    const payerId = trip.job?.payer_user_id;
     const jobTitle = trip.job?.title;
 
-    // Notify homeowner on arrival — Mint Editorial voice (2026-05-21).
-    if (status === 'arrived' && homeownerId) {
-      await NotificationService.createNotification({
-        userId: homeownerId,
-        type: 'contractor_arrived',
-        title: `${contractorName} is here`,
-        message: jobTitle ? `On site for ${jobTitle}.` : `On site.`,
-        metadata: {
-          tripId: updatedTrip.id,
-          jobId: trip.job_id,
-          contractorId: user.id,
-        },
-      });
+    // Notify the people responsible for the job. A designated payer may be
+    // different from the property's primary homeowner.
+    if (status === 'arrived') {
+      const recipientIds = [...new Set([homeownerId, payerId].filter(Boolean))];
+      await Promise.all(
+        recipientIds.map((recipientId) =>
+          NotificationService.createNotification({
+            userId: recipientId,
+            type: 'contractor_arrived',
+            title: `${contractorName} is here`,
+            message: jobTitle ? `On site for ${jobTitle}.` : `On site.`,
+            metadata: {
+              tripId: updatedTrip.id,
+              jobId: trip.job_id,
+              contractorId: user.id,
+            },
+          })
+        )
+      );
     }
 
     // Notify admins on arrival
@@ -188,7 +195,7 @@ export const GET = withApiHandler(
     const { data: trip, error } = await serverSupabase
       .from('contractor_trips')
       .select(
-        '*, job:jobs!job_id(id, title, homeowner_id, latitude, longitude)'
+        '*, job:jobs!job_id(id, title, homeowner_id, payer_user_id, latitude, longitude)'
       )
       .eq('id', resolvedParams.id)
       .single();
@@ -197,7 +204,8 @@ export const GET = withApiHandler(
 
     // Allow contractor, homeowner (of the job), or admin
     const isContractor = trip.contractor_id === user.id;
-    const isHomeowner = trip.job?.homeowner_id === user.id;
+    const isHomeowner =
+      trip.job?.homeowner_id === user.id || trip.job?.payer_user_id === user.id;
     const isAdmin = user.role === 'admin';
 
     if (!isContractor && !isHomeowner && !isAdmin) {

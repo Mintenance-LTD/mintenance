@@ -78,7 +78,8 @@ export const POST = withApiHandler(
     // (which bypasses RLS), so without this check any authenticated user could
     // write files into any job's storage prefix. When a job_id is supplied it
     // must be a syntactically valid UUID (rejected before it can reach the DB)
-    // and the caller must be that job's homeowner or assigned contractor
+    // and the caller must be that job's homeowner, designated payer, or
+    // assigned contractor
     // (admins exempt). job_id is normally absent here — photos are uploaded
     // pre-creation and attached when the job is POSTed.
     let jobId: string | null = null;
@@ -92,7 +93,7 @@ export const POST = withApiHandler(
 
       const { data: jobRow, error: jobLookupError } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, contractor_id')
+        .select('id, homeowner_id, payer_user_id, contractor_id')
         .eq('id', rawJobId)
         .single();
 
@@ -107,7 +108,9 @@ export const POST = withApiHandler(
       }
 
       const isParticipant =
-        jobRow.homeowner_id === user.id || jobRow.contractor_id === user.id;
+        jobRow.homeowner_id === user.id ||
+        jobRow.payer_user_id === user.id ||
+        jobRow.contractor_id === user.id;
       if (!isParticipant && user.role !== 'admin') {
         throw new ForbiddenError('You do not have access to this job');
       }

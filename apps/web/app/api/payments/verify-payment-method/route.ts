@@ -4,7 +4,11 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
@@ -21,18 +25,23 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 20 } },
   async (request, { user }) => {
     // Validate and sanitize input using Zod schema
-    const validation = await validateRequest(request, verifyPaymentMethodSchema);
+    const validation = await validateRequest(
+      request,
+      verifyPaymentMethodSchema
+    );
     if ('headers' in validation) {
       return validation;
     }
 
     const { paymentMethodId, customerId } = validation.data;
 
-    // Verify the customer belongs to the authenticated user
+    // Verify the customer belongs to the authenticated user. The payment
+    // system stores this relationship on profiles; there is no
+    // `stripe_customers` table in the deployed schema.
     const { data: customer, error: customerError } = await serverSupabase
-      .from('stripe_customers')
+      .from('profiles')
       .select('stripe_customer_id')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .eq('stripe_customer_id', customerId)
       .single();
 
@@ -40,14 +49,15 @@ export const POST = withApiHandler(
       logger.warn('Payment method verification for unauthorized customer', {
         service: 'payments',
         userId: user.id,
-        customerId
+        customerId,
       });
       throw new ForbiddenError('Customer not found or unauthorized');
     }
 
     // Verify payment method belongs to the customer
     try {
-      const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+      const paymentMethod =
+        await stripe.paymentMethods.retrieve(paymentMethodId);
 
       if (paymentMethod.customer !== customerId) {
         logger.warn('Payment method does not belong to customer', {
@@ -55,7 +65,7 @@ export const POST = withApiHandler(
           userId: user.id,
           paymentMethodId,
           customerId,
-          actualCustomerId: paymentMethod.customer
+          actualCustomerId: paymentMethod.customer,
         });
         throw new ForbiddenError('Payment method does not belong to customer');
       }
@@ -64,7 +74,7 @@ export const POST = withApiHandler(
         service: 'payments',
         userId: user.id,
         paymentMethodId,
-        customerId
+        customerId,
       });
 
       return NextResponse.json({
@@ -76,16 +86,15 @@ export const POST = withApiHandler(
           brand: paymentMethod.card?.brand,
           expMonth: paymentMethod.card?.exp_month,
           expYear: paymentMethod.card?.exp_year,
-        }
+        },
       });
-
     } catch (stripeError) {
       if (stripeError instanceof Stripe.errors.StripeError) {
         logger.warn('Stripe error during payment method verification', {
           service: 'payments',
           userId: user.id,
           paymentMethodId,
-          error: stripeError.message
+          error: stripeError.message,
         });
 
         if (stripeError.code === 'resource_missing') {

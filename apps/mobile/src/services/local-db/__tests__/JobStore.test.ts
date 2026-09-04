@@ -42,6 +42,7 @@ function fullRow(overrides: Partial<DatabaseJobRow> = {}): DatabaseJobRow {
     description: 'Leaky',
     location: 'London',
     homeowner_id: 'ho-1',
+    payer_user_id: null,
     contractor_id: 'co-1',
     status: 'assigned',
     budget: 250,
@@ -79,6 +80,7 @@ describe('JobStore', () => {
         description: 'Leaky',
         location: 'London',
         homeowner_id: 'ho-1',
+        payer_user_id: undefined,
         contractor_id: 'co-1',
         status: 'assigned',
         budget: 250,
@@ -171,6 +173,7 @@ describe('JobStore', () => {
         'Leaky',
         'London',
         'ho-1',
+        null,
         'co-1',
         'assigned',
         250,
@@ -194,8 +197,8 @@ describe('JobStore', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await saveJob(asDb(db), baseJob() as any);
       const [, params] = db.runAsync.mock.calls[0];
-      expect(params[14]).toBe('2026-03-03T03:03:03.000Z');
-      expect(params[15]).toBe(0);
+      expect(params[15]).toBe('2026-03-03T03:03:03.000Z');
+      expect(params[16]).toBe(0);
     });
 
     it('saves with markDirty=true (synced_at null, is_dirty=1)', async () => {
@@ -203,8 +206,8 @@ describe('JobStore', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await saveJob(asDb(db), baseJob() as any, true);
       const [, params] = db.runAsync.mock.calls[0];
-      expect(params[14]).toBeNull(); // synced_at
-      expect(params[15]).toBe(1); // is_dirty
+      expect(params[15]).toBeNull(); // synced_at
+      expect(params[16]).toBe(1); // is_dirty
       expect(logger.debug).toHaveBeenCalledWith('Job saved to local database', {
         jobId: 'job-1',
         markDirty: true,
@@ -242,7 +245,7 @@ describe('JobStore', () => {
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[4]).toBe('ho-camel'); // homeownerId
-      expect(params[5]).toBe('co-camel'); // contractorId
+      expect(params[6]).toBe('co-camel'); // contractorId
     });
 
     it('uses null homeownerId/contractorId when neither casing present', async () => {
@@ -254,7 +257,7 @@ describe('JobStore', () => {
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[4]).toBeNull();
-      expect(params[5]).toBeNull();
+      expect(params[6]).toBeNull();
     });
 
     it('contractor_id null with no camel fallback resolves to null (?? chain)', async () => {
@@ -264,7 +267,7 @@ describe('JobStore', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
-      expect(params[5]).toBeNull();
+      expect(params[6]).toBeNull();
     });
 
     it('applies fallbacks for empty title/description, default priority, null budget/category/subcategory/photos', async () => {
@@ -290,11 +293,11 @@ describe('JobStore', () => {
       const [, params] = db.runAsync.mock.calls[0];
       expect(params[1]).toBe(''); // title || ''
       expect(params[2]).toBe(''); // description || ''
-      expect(params[7]).toBeNull(); // budget ?? null
-      expect(params[8]).toBeNull(); // category ?? null
-      expect(params[9]).toBeNull(); // subcategory ?? null
-      expect(params[10]).toBe('medium'); // priority ?? 'medium'
-      expect(params[11]).toBeNull(); // photos ? ... : null
+      expect(params[8]).toBeNull(); // budget ?? null
+      expect(params[9]).toBeNull(); // category ?? null
+      expect(params[10]).toBeNull(); // subcategory ?? null
+      expect(params[11]).toBe('medium'); // priority ?? 'medium'
+      expect(params[12]).toBeNull(); // photos ? ... : null
     });
 
     it('keeps budget=0 (only ?? coalesces null/undefined, not 0)', async () => {
@@ -304,7 +307,7 @@ describe('JobStore', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await saveJob(asDb(db), job as any, false);
       const [, params] = db.runAsync.mock.calls[0];
-      expect(params[7]).toBe(0);
+      expect(params[8]).toBe(0);
     });
   });
 
@@ -319,8 +322,8 @@ describe('JobStore', () => {
       const jobs = await getJobsByHomeowner(asDb(db), 'ho-1');
 
       expect(db.getAllAsync).toHaveBeenCalledWith(
-        'SELECT * FROM jobs WHERE homeowner_id = ? ORDER BY created_at DESC',
-        ['ho-1']
+        'SELECT * FROM jobs WHERE homeowner_id = ? OR payer_user_id = ? ORDER BY created_at DESC',
+        ['ho-1', 'ho-1']
       );
       expect(jobs).toHaveLength(2);
       expect(jobs[0].id).toBe('j1');
@@ -357,8 +360,8 @@ describe('JobStore', () => {
       await getJobsByStatus(asDb(db), 'assigned', 'user-9');
 
       expect(db.getAllAsync).toHaveBeenCalledWith(
-        'SELECT * FROM jobs WHERE status = ? AND (homeowner_id = ? OR contractor_id = ?) ORDER BY created_at DESC',
-        ['assigned', 'user-9', 'user-9']
+        'SELECT * FROM jobs WHERE status = ? AND (homeowner_id = ? OR payer_user_id = ? OR contractor_id = ?) ORDER BY created_at DESC',
+        ['assigned', 'user-9', 'user-9', 'user-9']
       );
     });
 

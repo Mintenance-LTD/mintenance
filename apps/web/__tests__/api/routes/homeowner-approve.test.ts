@@ -250,6 +250,33 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
     expect(mocks.approveCompletion).toHaveBeenCalledWith('escrow-1', 'homeowner-1', 'Looks great, well done!');
   });
 
+  it('allows the designated payer to approve the escrow', async () => {
+    const payerUser = {
+      ...homeownerUser,
+      id: 'payer-2',
+      email: 'payer@test.com',
+    };
+    mocks.getCurrentUserFromCookies.mockResolvedValue(payerUser);
+    setupEscrowMock({
+      escrowData: {
+        jobs: { homeowner_id: 'homeowner-1', payer_user_id: 'payer-2' },
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve',
+      {}
+    );
+    const res = await POST(req, segmentData('escrow-1'));
+
+    expect(res.status).toBe(200);
+    expect(mocks.approveCompletion).toHaveBeenCalledWith(
+      'escrow-1',
+      'payer-2',
+      undefined
+    );
+  });
+
   // ---- Approval service throws ----
   it('should return 500 when approval service fails', async () => {
     setupEscrowMock();

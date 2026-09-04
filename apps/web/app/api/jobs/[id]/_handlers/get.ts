@@ -40,7 +40,7 @@ export async function handleGet(
       // both fell through silently — a homeowner who'd already approved the
       // work saw "Review Work" again, and the auto-release timer-aware copy
       // never appeared.
-      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completion_confirmed_by_homeowner, created_at, updated_at'
+      'id, title, description, status, homeowner_id, payer_user_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completion_confirmed_by_homeowner, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -75,6 +75,7 @@ export async function handleGet(
   //      submit a bid.
   // Admins still come through the layout-level role gate.
   const isHomeowner = row.homeowner_id === user.id;
+  const isDesignatedPayer = row.payer_user_id === user.id;
   const isAssignedContractor = row.contractor_id === user.id;
   const isContractorViewingOpenJob =
     user.role === 'contractor' &&
@@ -82,6 +83,7 @@ export async function handleGet(
     (row.contractor_id === null || row.contractor_id === undefined);
   if (
     !isHomeowner &&
+    !isDesignatedPayer &&
     !isAssignedContractor &&
     !isContractorViewingOpenJob &&
     user.role !== 'admin'
@@ -93,6 +95,7 @@ export async function handleGet(
       jobId: id,
       jobStatus: row.status,
       homeownerId: row.homeowner_id,
+      payerUserId: row.payer_user_id,
       contractorId: row.contractor_id,
     });
     throw new ForbiddenError('You do not have permission to view this job');
@@ -223,9 +226,7 @@ export async function handleGet(
           canRevealKeySafeCode({
             status: row.status as string | null,
             scheduled_start_date: row.scheduled_start_date as
-              | string
-              | null
-              | undefined,
+              string | null | undefined,
           });
         propertyAccess = {
           access_mode: (p.access_mode as string | null) ?? null,
@@ -350,6 +351,7 @@ export async function handleGet(
     latitude: toNum(row.latitude),
     longitude: toNum(row.longitude),
     homeowner_id: row.homeowner_id,
+    payer_user_id: row.payer_user_id,
     contractor_id: row.contractor_id,
     // 2026-06-06 audit: poster profile for the mobile "Posted by" HostCard.
     homeowner,

@@ -156,6 +156,23 @@ export const POST = withApiHandler(
         throw new BadRequestError('Job has no assigned contractor');
       }
 
+      // The contractor id in the request is client-controlled. Keep the
+      // accepted bid, Stripe metadata, and escrow payee tied to the current
+      // server-authoritative assignment; otherwise a reassigned job could
+      // select a stale accepted bid for the previous contractor.
+      if (contractorId !== job.contractor_id) {
+        logger.warn('Payment contractor does not match job assignment', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          requestedContractorId: contractorId,
+          assignedContractorId: job.contractor_id,
+        });
+        throw new BadRequestError(
+          'Payment contractor does not match the current job assignment'
+        );
+      }
+
       // Verify contract is signed by both parties before allowing payment.
       // 2026-05-13 audit: also pull the contract id so the escrow row can
       // carry it in metadata for later reconciliation / dispute analysis.
@@ -194,7 +211,11 @@ export const POST = withApiHandler(
         .eq('status', 'accepted')
         .single();
 
-      if (!acceptedBid || typeof acceptedBid.amount !== 'number') {
+      // Postgres NUMERIC values may arrive from PostgREST as strings. Convert
+      // once at the trust boundary so a valid accepted bid is not rejected
+      // merely because the driver preserved its decimal representation.
+      const acceptedBidAmount = Number(acceptedBid?.amount);
+      if (!acceptedBid || !Number.isFinite(acceptedBidAmount)) {
         logger.warn('Payment intent attempted without accepted bid', {
           service: 'payments',
           userId: user.id,
@@ -206,7 +227,7 @@ export const POST = withApiHandler(
         );
       }
 
-      if (acceptedBid.amount <= 0) {
+      if (acceptedBidAmount <= 0) {
         logger.error(
           'Accepted bid has non-positive amount — data integrity issue',
           {
@@ -214,7 +235,7 @@ export const POST = withApiHandler(
             userId: user.id,
             jobId,
             contractorId,
-            bidAmount: acceptedBid.amount,
+            bidAmount: acceptedBidAmount,
           }
         );
         throw new BadRequestError('Accepted bid has an invalid amount.');
@@ -290,12 +311,12 @@ export const POST = withApiHandler(
       // Shared constant — kept in lock-step with the job-budget + payment
       // validation ceilings so a bid can never exceed a fundable amount.
       const ABSOLUTE_MAX_PAYMENT = MAX_JOB_PAYMENT_GBP;
-      if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
+      if (acceptedBidAmount > ABSOLUTE_MAX_PAYMENT) {
         logger.error('Accepted bid exceeds absolute platform maximum', {
           service: 'payments',
           userId: user.id,
           jobId,
-          bidAmount: acceptedBid.amount,
+          bidAmount: acceptedBidAmount,
           absoluteMax: ABSOLUTE_MAX_PAYMENT,
         });
         throw new BadRequestError('Bid amount exceeds platform maximum.');
@@ -303,7 +324,7 @@ export const POST = withApiHandler(
 
       // If the client supplied a different amount, record it for forensics
       // but use the server-authoritative amount from the accepted bid.
-      if (Math.round(amount * 100) !== Math.round(acceptedBid.amount * 100)) {
+      if (Math.round(amount * 100) !== Math.round(acceptedBidAmount * 100)) {
         logger.warn(
           'Client-supplied payment amount diverged from accepted bid; using server amount',
           {
@@ -311,13 +332,13 @@ export const POST = withApiHandler(
             userId: user.id,
             jobId,
             clientAmount: amount,
-            bidAmount: acceptedBid.amount,
+            bidAmount: acceptedBidAmount,
           }
         );
       }
 
       // From here on, this is THE amount — do not trust `amount` further.
-      let authoritativeAmount = acceptedBid.amount;
+      let authoritativeAmount = acceptedBidAmount;
 
       // 2026-05-25 audit-45 P0: idempotency check moved BEFORE the
       // referral credit spend. Previously the order was:
@@ -655,8 +676,9 @@ export const POST = withApiHandler(
       if (creditAppliedPence > 0 && !escrowCreated && paymentJobId) {
         try {
           if (createdPaymentIntentId) {
-            await stripe.paymentIntents.cancel(createdPaymentIntentId).catch(
-              (cancelError) => {
+            await stripe.paymentIntents
+              .cancel(createdPaymentIntentId)
+              .catch((cancelError) => {
                 logger.error(
                   'PaymentIntent cancellation failed during payment rollback',
                   cancelError,
@@ -667,8 +689,7 @@ export const POST = withApiHandler(
                     paymentIntentId: createdPaymentIntentId,
                   }
                 );
-              }
-            );
+              });
           }
           const { NeighbourhoodReferralService } =
             await import('@/lib/services/referrals/NeighbourhoodReferralService');
@@ -686,12 +707,16 @@ export const POST = withApiHandler(
             });
           }
         } catch (rollbackError) {
-          logger.error('Credit rollback threw after payment failure', rollbackError, {
-            service: 'payments',
-            userId: user.id,
-            jobId: paymentJobId,
-            creditAppliedPence,
-          });
+          logger.error(
+            'Credit rollback threw after payment failure',
+            rollbackError,
+            {
+              service: 'payments',
+              userId: user.id,
+              jobId: paymentJobId,
+              creditAppliedPence,
+            }
+          );
         }
       }
 

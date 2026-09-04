@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 
 /**
  * POST /api/messages/threads/:id/read
@@ -19,7 +23,7 @@ export const POST = withApiHandler(
     // Verify user is participant
     const { data: jobData, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('homeowner_id, contractor_id')
+      .select('homeowner_id, payer_user_id, contractor_id')
       .eq('id', jobId)
       .single();
 
@@ -27,7 +31,10 @@ export const POST = withApiHandler(
       throw new NotFoundError('Thread not found');
     }
 
-    const isParticipant = jobData.homeowner_id === user.id || jobData.contractor_id === user.id;
+    const isParticipant =
+      jobData.homeowner_id === user.id ||
+      jobData.payer_user_id === user.id ||
+      jobData.contractor_id === user.id;
     if (!isParticipant) {
       throw new ForbiddenError('You are not a participant in this thread');
     }

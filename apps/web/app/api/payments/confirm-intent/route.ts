@@ -14,6 +14,7 @@ import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 // Audit P2 (2026-05-10): `.strict()` blocks unknown body keys so a
 // rogue client can't smuggle e.g. `amount` / `escrowId` overrides
@@ -48,9 +49,19 @@ export const POST = withApiHandler(
       paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
+        const response = createPaymentErrorResponse(error, {
+          operation: 'confirm_payment_intent',
+          userId: user.id,
+          jobId,
+          paymentIntentId,
+        });
         return NextResponse.json(
-          { error: error.message, type: error.type },
-          { status: 400 }
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
         );
       }
       throw error;
@@ -131,6 +142,31 @@ export const POST = withApiHandler(
       );
     }
 
+    // The PaymentIntent and escrow are separate records. Verify their
+    // amounts before moving the escrow into the funded state; otherwise a
+    // valid-but-cheaper PaymentIntent could be attached to this job and
+    // recorded as fully paid.
+    const stripeAmountCents = paymentIntent.amount;
+    const escrowAmountCents = Math.round(Number(currentEscrow.amount) * 100);
+    if (
+      !Number.isFinite(stripeAmountCents) ||
+      !Number.isFinite(escrowAmountCents) ||
+      stripeAmountCents !== escrowAmountCents
+    ) {
+      logger.warn('Payment amount does not match escrow amount', {
+        service: 'payments',
+        userId: user.id,
+        paymentIntentId,
+        jobId,
+        stripeAmountCents,
+        escrowAmountCents,
+      });
+      return NextResponse.json(
+        { error: 'Payment amount does not match the amount due' },
+        { status: 400 }
+      );
+    }
+
     // FIX CRIT-5: Webhook is the source of truth for escrow status.
     // If webhook already updated escrow to 'held', just confirm that.
     // If not yet updated, update here as a fallback (webhook may arrive later).
@@ -200,6 +236,31 @@ export const POST = withApiHandler(
           error: `Payment cannot be confirmed. Current status: ${currentEscrow.status}`,
         },
         { status: 400 }
+      );
+    }
+
+    // The webhook normally records this field, but this endpoint is an
+    // intentional fallback for the valid race where Stripe confirmation
+    // reaches the client before the webhook. Keep the job-level payment
+    // state consistent with the escrow transition so dashboards and guards
+    // do not remain stuck on "unpaid".
+    const { error: jobPaymentError } = await serverSupabase
+      .from('jobs')
+      .update({
+        payment_status: 'paid',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+    if (jobPaymentError) {
+      logger.error(
+        'Failed to update job payment status after confirmation',
+        jobPaymentError,
+        {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          paymentIntentId,
+        }
       );
     }
 

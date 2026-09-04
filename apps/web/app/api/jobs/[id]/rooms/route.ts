@@ -44,7 +44,7 @@ export const GET = withApiHandler(
     // may see the room snapshot; admins pass too.
     const { data: job, error: jobError } = await userDb
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status')
       .eq('id', params.id)
       .single();
     if (jobError || !job) {
@@ -52,6 +52,7 @@ export const GET = withApiHandler(
     }
     const canView =
       job.homeowner_id === user.id ||
+      job.payer_user_id === user.id ||
       job.contractor_id === user.id ||
       job.status === 'posted' ||
       job.status === 'published' ||

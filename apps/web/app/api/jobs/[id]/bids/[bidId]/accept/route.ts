@@ -103,10 +103,10 @@ export const POST = withApiHandler(
         throw new ForbiddenError('Only homeowners can accept bids');
       }
 
-      // Verify the job belongs to this homeowner (user-scoped read)
+      // Verify the job belongs to this homeowner or designated payer
       const { data: job, error: jobError } = await userDb
         .from('jobs')
-        .select('homeowner_id, status')
+        .select('homeowner_id, payer_user_id, status')
         .eq('id', jobId)
         .single();
 
@@ -125,7 +125,10 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
-      if (job.homeowner_id !== user.id) {
+      const isDesignatedPayer =
+        job.payer_user_id === user.id ||
+        (!job.payer_user_id && job.homeowner_id === user.id);
+      if (!isDesignatedPayer) {
         throw new ForbiddenError('Not authorized to accept bids for this job');
       }
 
@@ -313,9 +316,7 @@ export const POST = withApiHandler(
         if (rpcError.code === '23505') {
           throw new ConflictError('Bid has already been accepted for this job');
         }
-        throw new InternalServerError(
-          `Failed to accept bid: ${rpcError.message}`
-        );
+        throw new InternalServerError('Failed to accept bid');
       }
 
       // RPC returns a setof row; grab the first
@@ -331,15 +332,24 @@ export const POST = withApiHandler(
         // The RPC detects concurrent acceptance and reports it via error_message;
         // treat it as a ConflictError so the client can retry cleanly.
         if (msg.toLowerCase().includes('already')) {
-          throw new ConflictError(msg);
+          throw new ConflictError('Bid has already been accepted for this job');
         }
         if (msg.toLowerCase().includes('not authorized')) {
-          throw new ForbiddenError(msg);
+          throw new ForbiddenError('You are not authorized to accept this bid');
         }
         if (msg.toLowerCase().includes('not found')) {
-          throw new NotFoundError(msg);
+          throw new NotFoundError('Bid not found or no longer pending');
         }
-        throw new InternalServerError(msg);
+        // RPC error text is database-controlled and may contain schema or
+        // provider details. Log the original response server-side, but never
+        // reflect it to the caller.
+        logger.error('accept_bid_atomic returned an unexpected failure', {
+          service: 'jobs',
+          bidId,
+          jobId,
+          errorMessage: msg,
+        });
+        throw new InternalServerError('Failed to accept bid');
       }
 
       // Fetch job title for notifications (after successful acceptance).

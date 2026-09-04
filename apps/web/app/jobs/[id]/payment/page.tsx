@@ -84,15 +84,20 @@ function JobPaymentPageContent() {
         return;
       }
 
-      const isHomeowner = currentUser.role === 'homeowner';
       const typedJobData = jobData as Job;
       const isJobOwner =
         typedJobData.homeownerId === currentUser.id ||
         typedJobData.homeowner_id === currentUser.id;
+      const isDesignatedPayer =
+        typedJobData.payer_user_id === currentUser.id ||
+        typedJobData.payerUserId === currentUser.id;
 
-      if (!isHomeowner || !isJobOwner) {
+      if (
+        currentUser.role !== 'homeowner' ||
+        (!isJobOwner && !isDesignatedPayer)
+      ) {
         setError(
-          'Only the job owner (homeowner) can make payments for this job'
+          'Only the job owner or designated payer can make payments for this job'
         );
         router.push(`/jobs/${jobId}`);
         return;

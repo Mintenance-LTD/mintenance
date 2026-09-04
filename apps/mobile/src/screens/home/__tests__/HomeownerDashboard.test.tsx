@@ -153,26 +153,13 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-// supabase mock — chainable thenable so the appointments queryFn body runs.
-// `supabaseResult` is what the awaited chain resolves to.
-let supabaseResult: { data: unknown; error: unknown } = {
-  data: [],
-  error: null,
-};
-const makeSupabaseChain = () => {
-  const chain: Record<string, unknown> = {};
-  const methods = ['select', 'eq', 'gte', 'order', 'limit'];
-  methods.forEach((m) => {
-    chain[m] = jest.fn(() => chain);
-  });
-  // make the chain awaitable
-  (chain as { then: unknown }).then = (
-    resolve: (v: { data: unknown; error: unknown }) => unknown
-  ) => Promise.resolve(supabaseResult).then(resolve);
-  return chain;
-};
-jest.mock('../../../config/supabase', () => ({
-  supabase: { from: jest.fn(() => makeSupabaseChain()) },
+// Appointments are fetched through the authenticated API so designated
+// payers receive the same job-linked appointments as homeowners.
+const mockAppointmentsGet = jest.fn();
+jest.mock('../../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: (...args: unknown[]) => mockAppointmentsGet(...args),
+  },
 }));
 
 // services — return resolved data so the real queryFn mapping logic runs.
@@ -417,7 +404,7 @@ describe('HomeownerDashboard', () => {
     jest.clearAllMocks();
     resetQueryState();
     mockExecuteQueryFns = false;
-    supabaseResult = { data: [], error: null };
+    mockAppointmentsGet.mockResolvedValue({ appointments: [] });
     mockGetUserJobs.mockResolvedValue([]);
     mockGetBidsByJobs.mockResolvedValue([]);
     mockGetUnreadCount.mockResolvedValue(0);
@@ -847,57 +834,56 @@ describe('HomeownerDashboard', () => {
     });
 
     it('appointments queryFn maps rows and resolves a contractor name', async () => {
-      supabaseResult = {
-        error: null,
-        data: [
+      mockAppointmentsGet.mockResolvedValue({
+        appointments: [
           {
             id: 'a1',
             title: 'Boiler service',
-            appointment_date: '2026-06-10',
-            start_time: '09:00',
-            contractor: { first_name: 'Jane', last_name: 'Doe' },
+            date: '2026-06-10',
+            time: '09:00',
+            contractor: { name: 'Jane Doe' },
           },
           {
             id: 'a2',
             title: null,
-            appointment_date: '2026-06-11',
-            start_time: null,
+            date: '2026-06-11',
+            time: null,
             contractor: null,
           },
         ],
-      };
+      });
       render(<HomeownerDashboard />);
       await Promise.resolve();
-      const { supabase } = require('../../../config/supabase');
-      expect(supabase.from).toHaveBeenCalledWith('appointments');
+      expect(mockAppointmentsGet).toHaveBeenCalledWith(
+        '/api/appointments?limit=10'
+      );
     });
 
-    it('appointments queryFn returns [] when supabase errors', async () => {
-      supabaseResult = { error: { message: 'db down' }, data: null };
+    it('appointments queryFn handles API errors', async () => {
+      mockAppointmentsGet.mockRejectedValue(new Error('db down'));
       expect(() => render(<HomeownerDashboard />)).not.toThrow();
       await Promise.resolve();
     });
 
     it('appointments queryFn tolerates null rows + partial contractor names', async () => {
-      // data:null with no error -> hits the `rows || []` alternate (line 134)
-      supabaseResult = { error: null, data: null };
+      // Missing envelope is treated as an empty appointment list.
+      mockAppointmentsGet.mockResolvedValue({ appointments: undefined });
       const { unmount } = render(<HomeownerDashboard />);
       await Promise.resolve();
       unmount();
 
-      // partial contractor -> exercises the `?? ''` alternates (line 140)
-      supabaseResult = {
-        error: null,
-        data: [
+      // Partial contractor display names remain safe.
+      mockAppointmentsGet.mockResolvedValue({
+        appointments: [
           {
             id: 'a3',
             title: 'X',
-            appointment_date: '2026-06-12',
-            start_time: '10:00',
-            contractor: { first_name: 'OnlyFirst' }, // last_name undefined
+            date: '2026-06-12',
+            time: '10:00',
+            contractor: { name: 'OnlyFirst' },
           },
         ],
-      };
+      });
       expect(() => render(<HomeownerDashboard />)).not.toThrow();
       await Promise.resolve();
     });

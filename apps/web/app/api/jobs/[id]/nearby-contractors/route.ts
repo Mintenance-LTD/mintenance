@@ -24,10 +24,10 @@ export const GET = withApiHandler(
     const lat = parseFloat(searchParams.get('lat') || '0');
     const lng = parseFloat(searchParams.get('lng') || '0');
 
-    // Verify user owns the job
+    // Verify user owns or is the designated payer for the job
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id')
+      .select('id, homeowner_id, payer_user_id')
       .eq('id', jobId)
       .single();
 
@@ -35,7 +35,7 @@ export const GET = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       throw new ForbiddenError(
         'Not authorized to view contractors for this job'
       );

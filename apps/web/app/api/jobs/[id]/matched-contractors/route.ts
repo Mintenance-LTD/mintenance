@@ -20,7 +20,7 @@ export const GET = withApiHandler(
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
       .select(
-        'id, title, description, category, location, latitude, longitude, budget, homeowner_id, status, priority'
+        'id, title, description, category, location, latitude, longitude, budget, homeowner_id, payer_user_id, status, priority'
       )
       .eq('id', jobId)
       .single();
@@ -29,8 +29,8 @@ export const GET = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    // Verify user owns the job
-    if (job.homeowner_id !== user.id) {
+    // Verify user owns or is the designated payer for the job
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       throw new ForbiddenError('Not authorized to view matches for this job');
     }
 

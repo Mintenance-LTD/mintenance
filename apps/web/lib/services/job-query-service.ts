@@ -44,6 +44,7 @@ type JobRow = {
   description?: string | null;
   status: string;
   homeowner_id: string;
+  payer_user_id?: string | null;
   contractor_id?: string | null;
   category?: string | null;
   // Postgres NUMERIC columns. supabase-js serialises NUMERIC as strings
@@ -92,6 +93,7 @@ const jobSelectFields = `
   description,
   status,
   homeowner_id,
+  payer_user_id,
   contractor_id,
   category,
   budget,
@@ -121,6 +123,7 @@ const mapRowToJobSummary = (
   created_at?: string;
   updated_at?: string;
   homeowner_id?: string;
+  payer_user_id?: string;
   contractor_id?: string;
   category?: string;
   budget?: number;
@@ -142,6 +145,7 @@ const mapRowToJobSummary = (
   created_at: row.created_at,
   updated_at: row.updated_at,
   homeowner_id: row.homeowner_id,
+  payer_user_id: row.payer_user_id ?? undefined,
   contractor_id: row.contractor_id ?? undefined,
   homeownerName: row.homeowner
     ? `${row.homeowner.first_name} ${row.homeowner.last_name}`
@@ -315,7 +319,13 @@ export class JobQueryService {
         .is('contractor_id', null)
         .is('archived_at', null);
     } else if (user.role === 'homeowner') {
-      query = query.eq('homeowner_id', user.id);
+      // A property-team manager/admin is represented as a homeowner at the
+      // platform role boundary. Jobs they are authorised to fund carry their
+      // identity in payer_user_id, so filtering only by homeowner_id would
+      // make those jobs disappear from their dashboard after creation.
+      query = query.or(
+        `homeowner_id.eq.${user.id},payer_user_id.eq.${user.id}`
+      );
 
       if (status?.length) {
         query = query.in('status', status);
@@ -555,11 +565,8 @@ export class JobQueryService {
             confidence: assessment.confidence || 0,
             urgency:
               (assessment.urgency as
-                | 'immediate'
-                | 'urgent'
-                | 'soon'
-                | 'planned'
-                | 'monitor') || 'monitor',
+                'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor') ||
+              'monitor',
             assessment_data: assessment.assessment_data,
             created_at: assessment.created_at,
           });

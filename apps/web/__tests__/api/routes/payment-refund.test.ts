@@ -480,6 +480,37 @@ describe('POST /api/payments/refund', () => {
     expect(res.status).toBe(403);
   });
 
+  it('should allow the designated payer to request a refund', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupRefundMocks({
+      jobData: {
+        id: 'job-1',
+        homeowner_id: 'homeowner-1',
+        payer_user_id: 'payer-1',
+        contractor_id: 'contractor-1',
+        status: 'cancelled',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
+    const res = await POST(req, segmentData());
+
+    expect(res.status).toBe(200);
+    expect(mocks.stripeRefundsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ requestedBy: 'payer-1' }),
+      }),
+      expect.anything()
+    );
+  });
+
   // ---- Non-refundable job status ----
   it('should return 400 when job status is not refundable (in_progress)', async () => {
     setupRefundMocks({

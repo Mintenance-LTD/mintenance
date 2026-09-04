@@ -162,6 +162,29 @@ describe('handlePaymentIntentSucceeded', () => {
     );
   });
 
+  it('reconciles invoice payment and invoice status from webhook metadata', async () => {
+    const pi = makePaymentIntent({ metadata: { invoice_id: VALID_UUID } });
+
+    await handlePaymentIntentSucceeded(pi, mockNotify);
+
+    expect(mockFrom).toHaveBeenCalledWith('payments');
+    expect(mockFrom).toHaveBeenCalledWith('invoices');
+    const chain = mockFrom.mock.results[0].value;
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'completed',
+        processed_at: expect.any(String),
+      })
+    );
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'paid',
+        paid_amount: 50,
+        paid_date: expect.any(String),
+      })
+    );
+  });
+
   it('backfills payer/payee when missing and metadata contains valid UUIDs', async () => {
     const chain = buildChain({
       singleData: {
@@ -181,6 +204,35 @@ describe('handlePaymentIntentSucceeded', () => {
     // Second update call should backfill payer_id and payee_id
     expect(chain.update).toHaveBeenCalledWith(
       expect.objectContaining({ payer_id: VALID_UUID, payee_id: VALID_UUID_2 })
+    );
+  });
+
+  it('prefers delegated payer metadata over the homeowner metadata', async () => {
+    const delegatedPayerId = 'e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b';
+    const chain = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        payer_id: null,
+        payee_id: null,
+      },
+    });
+    mockFrom.mockReturnValue(chain);
+
+    const pi = makePaymentIntent({
+      metadata: {
+        homeownerId: VALID_UUID,
+        payerId: delegatedPayerId,
+        contractorId: VALID_UUID_2,
+      },
+    });
+    await handlePaymentIntentSucceeded(pi, mockNotify);
+
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payer_id: delegatedPayerId,
+        payee_id: VALID_UUID_2,
+      })
     );
   });
 

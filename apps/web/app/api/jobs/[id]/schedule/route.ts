@@ -46,7 +46,7 @@ export const POST = withApiHandler(
     // Verify job exists and user has permission
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
       .eq('id', jobId)
       .single();
 
@@ -57,7 +57,8 @@ export const POST = withApiHandler(
     // Verify user is contractor or homeowner for this job
     const isAuthorized =
       (user.role === 'contractor' && job.contractor_id === user.id) ||
-      (user.role === 'homeowner' && job.homeowner_id === user.id);
+      (user.role === 'homeowner' &&
+        (job.homeowner_id === user.id || job.payer_user_id === user.id));
 
     if (!isAuthorized) {
       throw new ForbiddenError('Not authorized to schedule this job');
@@ -207,7 +208,7 @@ export const GET = withApiHandler(
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
       .select(
-        'id, homeowner_id, contractor_id, scheduled_start_date, scheduled_end_date, scheduled_duration_hours'
+        'id, homeowner_id, payer_user_id, contractor_id, scheduled_start_date, scheduled_end_date, scheduled_duration_hours'
       )
       .eq('id', jobId)
       .single();
@@ -219,7 +220,8 @@ export const GET = withApiHandler(
     // Verify user is contractor or homeowner for this job
     const isAuthorized =
       (user.role === 'contractor' && job.contractor_id === user.id) ||
-      (user.role === 'homeowner' && job.homeowner_id === user.id);
+      (user.role === 'homeowner' &&
+        (job.homeowner_id === user.id || job.payer_user_id === user.id));
 
     if (!isAuthorized) {
       throw new ForbiddenError('Not authorized to view this job schedule');

@@ -74,14 +74,13 @@ describe('PaymentService - Comprehensive', () => {
   });
 
   // The service was refactored (audit-19/audit-53): createPaymentIntent now
-  // (1) gates on a signed ('accepted') contract via supabase.from('contracts'),
+  // (1) gates on a signed ('accepted') contract via the API,
   // (2) requires a contractorId so the server can resolve payee_id, and
   // (3) routes through mobileApiClient.post (not global.fetch). It returns a
   // structured response and never throws — failures come back as { error }.
   const setAcceptedContract = () => {
-    (mockSupabase as any).__contractChain.single.mockResolvedValue({
-      data: { id: 'contract-1', status: 'accepted' },
-      error: null,
+    mobileApiClient.get.mockResolvedValue({
+      contracts: [{ id: 'contract-1', status: 'accepted' }],
     });
   };
 
@@ -123,9 +122,8 @@ describe('PaymentService - Comprehensive', () => {
     });
 
     it('returns an error when the contract is not signed', async () => {
-      (mockSupabase as any).__contractChain.single.mockResolvedValue({
-        data: null,
-        error: { message: 'No rows' },
+      mobileApiClient.get.mockResolvedValue({
+        contracts: [],
       });
 
       const result = await PaymentService.createPaymentIntent(

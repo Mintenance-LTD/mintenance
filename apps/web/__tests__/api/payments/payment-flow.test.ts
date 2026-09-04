@@ -1700,6 +1700,48 @@ describe('POST /api/payments/create-intent', () => {
       // The ForbiddenError is caught and processed through createPaymentErrorResponse
       expect(response.status).toBeGreaterThanOrEqual(400);
     });
+
+    it('should reject a contractor id that differs from the current job assignment', async () => {
+      mocks.validateRequest.mockResolvedValue({
+        data: {
+          amount: 500,
+          currency: 'gbp',
+          jobId: '550e8400-e29b-41d4-a716-446655440000',
+          contractorId: 'previous-contractor',
+        },
+      });
+
+      mocks.detectAnomalies.mockResolvedValue({
+        isAnomalous: false,
+        riskScore: 0.1,
+        reasons: [],
+        blockedReasons: [],
+      });
+
+      createSupabaseChain({
+        jobs: {
+          selectReturn: {
+            data: {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              homeowner_id: 'homeowner-user-id',
+              payer_user_id: null,
+              contractor_id: 'current-contractor',
+              title: 'Fix leak',
+              status: 'assigned',
+            },
+            error: null,
+          },
+        },
+      });
+
+      const response = await POST(
+        createMockRequest('http://localhost:3000/api/payments/create-intent')
+      );
+
+      expect(response.status).toBe(400);
+      expect(mocks.supabaseFrom).toHaveBeenCalledWith('jobs');
+      expect(mocks.supabaseFrom).not.toHaveBeenCalledWith('contracts');
+    });
   });
 
   describe('Payment Amount Validation', () => {

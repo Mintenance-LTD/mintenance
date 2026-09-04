@@ -42,7 +42,7 @@ export const POST = withApiHandler(
     if ('headers' in validation) return validation;
     const { reason } = validation.data;
 
-    // Verify homeowner owns this job
+    // Verify the homeowner or designated payer owns this job.
     const job = await requireJobOwnership(
       jobId,
       user.id,

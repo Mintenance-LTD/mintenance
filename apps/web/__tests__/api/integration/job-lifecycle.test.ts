@@ -1082,6 +1082,21 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: CONTRACT_ID,
+                  job_id: JOB_ID,
+                  contractor_id: contractorUser.id,
+                  homeowner_id: homeownerUser.id,
+                  status: 'pending_contractor',
+                  title: 'Contract for Fix leaking tap',
+                  contractor_signed_at: null,
+                  homeowner_signed_at: null,
+                  start_date: null,
+                  end_date: null,
+                },
+                error: null,
+              }),
               or: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
@@ -1181,7 +1196,6 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
     expect(body.success).toBe(true);
     expect(body.contract.status).toBe('pending_homeowner');
     expect(body.contract.contractor_signed_at).toBeTruthy();
-
   });
 
   it('should transition to "accepted" when homeowner signs after contractor', async () => {
@@ -1192,6 +1206,21 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: CONTRACT_ID,
+                  job_id: JOB_ID,
+                  contractor_id: contractorUser.id,
+                  homeowner_id: homeownerUser.id,
+                  status: 'pending_homeowner',
+                  title: 'Contract for Fix leaking tap',
+                  contractor_signed_at: '2026-03-10T10:00:00Z',
+                  homeowner_signed_at: null,
+                  start_date: null,
+                  end_date: null,
+                },
+                error: null,
+              }),
               or: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: {
@@ -1293,7 +1322,6 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
     expect(body.contract.status).toBe('accepted');
     expect(body.contract.homeowner_signed_at).toBeTruthy();
     expect(body.contract.contractor_signed_at).toBeTruthy();
-
 
     // Both parties should be notified of acceptance
     expect(mocks.createNotification).toHaveBeenCalled();

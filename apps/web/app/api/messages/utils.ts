@@ -13,10 +13,12 @@ export type SupabaseJobRow = {
   id: string;
   title: string | null;
   homeowner_id: string;
+  payer_user_id?: string | null;
   contractor_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   homeowner?: SupabasePerson | null;
+  payer?: SupabasePerson | null;
   contractor?: SupabasePerson | null;
 };
 
@@ -228,6 +230,21 @@ export const buildThreadParticipants = (
       id: job.contractor_id,
       name: finalContractorName,
       role: job.contractor?.role ?? 'contractor',
+    });
+  }
+
+  if (job.payer_user_id && job.payer_user_id !== job.homeowner_id) {
+    const payerName = formatDisplayName(job.payer, {
+      email: job.payer?.email ?? undefined,
+      company_name: job.payer?.company_name ?? undefined,
+    });
+    participants.push({
+      id: job.payer_user_id,
+      name:
+        payerName === 'Unknown User'
+          ? `Payer ${job.payer_user_id.slice(0, 8)}`
+          : payerName,
+      role: job.payer?.role ?? 'homeowner',
     });
   }
 

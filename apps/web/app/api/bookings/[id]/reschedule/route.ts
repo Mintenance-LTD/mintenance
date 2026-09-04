@@ -51,7 +51,7 @@ export const PATCH = withApiHandler(
     // Fetch job
     const { data: job, error } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
       .eq('id', jobId)
       .single();
 
@@ -66,7 +66,8 @@ export const PATCH = withApiHandler(
       );
     }
 
-    const isHomeowner = job.homeowner_id === user.id;
+    const isHomeowner =
+      job.homeowner_id === user.id || job.payer_user_id === user.id;
     const isContractor = job.contractor_id === user.id;
 
     if (!isHomeowner && !isContractor) {

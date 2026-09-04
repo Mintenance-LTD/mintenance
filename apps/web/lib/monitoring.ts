@@ -3,7 +3,8 @@ import { logger } from '@mintenance/shared';
 
 /**
  * Initialize Sentry for error tracking and performance monitoring.
- * Sentry client/server configs handle the actual init (sentry.client.config.ts / sentry.server.config.ts).
+ * Sentry client/server entrypoints handle the actual init
+ * (instrumentation-client.ts / sentry.server.config.ts).
  * This module provides helper functions for capturing events and setting user context.
  */
 function initSentry() {

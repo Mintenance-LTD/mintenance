@@ -15,7 +15,7 @@ export const POST = withApiHandler(
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, title, status')
+      .select('id, homeowner_id, payer_user_id, contractor_id, title, status')
       .eq('id', jobId)
       .single();
 
@@ -23,7 +23,7 @@ export const POST = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       throw new ForbiddenError(
         'Not authorized to request location for this job'
       );

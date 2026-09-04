@@ -65,7 +65,7 @@ export const POST = withApiHandler(
         const { data: job, error: jobError } = await serverSupabase
           .from('jobs')
           .select(
-            'id, homeowner_id, contractor_id, status, title, completion_confirmed_by_homeowner'
+            'id, homeowner_id, payer_user_id, contractor_id, status, title, completion_confirmed_by_homeowner'
           )
           .eq('id', jobId)
           .single();
@@ -78,9 +78,14 @@ export const POST = withApiHandler(
           throw new NotFoundError('Job not found');
         }
 
-        // Verify user is the homeowner
-        if (job.homeowner_id !== user.id) {
-          throw new ForbiddenError('Only the job owner can confirm completion');
+        // Verify user is the homeowner or designated payer
+        const isDesignatedPayer =
+          job.payer_user_id === user.id ||
+          (!job.payer_user_id && job.homeowner_id === user.id);
+        if (!isDesignatedPayer) {
+          throw new ForbiddenError(
+            'Only the job owner or designated payer can confirm completion'
+          );
         }
 
         // Verify job is in completed status

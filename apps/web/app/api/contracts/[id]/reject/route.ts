@@ -73,15 +73,29 @@ export const POST = withApiHandler(
     }
 
     return await releaseOnError(idempotencyKey, 'contract_reject', async () => {
-      // Fetch contract with ownership check
+      // The contract stores the primary homeowner, while delegated payment
+      // authority lives on the linked job. Fetch both and enforce the
+      // complete party check before returning or mutating anything.
       const { data: contract, error: contractError } = await serverSupabase
         .from('contracts')
         .select('id, job_id, contractor_id, homeowner_id, status, title')
         .eq('id', contractId)
-        .eq('homeowner_id', user.id)
         .single();
 
       if (contractError || !contract) {
+        throw new NotFoundError('Contract not found or access denied');
+      }
+
+      const { data: linkedJob } = await serverSupabase
+        .from('jobs')
+        .select('payer_user_id')
+        .eq('id', contract.job_id)
+        .single();
+
+      const isAuthorizedPayer =
+        contract.homeowner_id === user.id ||
+        linkedJob?.payer_user_id === user.id;
+      if (!isAuthorizedPayer) {
         throw new NotFoundError('Contract not found or access denied');
       }
 

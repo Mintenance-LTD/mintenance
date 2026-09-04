@@ -38,7 +38,7 @@ export const POST = withApiHandler(
     // Verify the job belongs to this homeowner (user-scoped read)
     const { data: job, error: jobError } = await userDb
       .from('jobs')
-      .select('homeowner_id')
+      .select('homeowner_id, payer_user_id')
       .eq('id', jobId)
       .single();
 
@@ -54,7 +54,7 @@ export const POST = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       throw new ForbiddenError('Not authorized to reject bids for this job');
     }
 

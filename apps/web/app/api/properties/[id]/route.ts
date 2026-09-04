@@ -15,6 +15,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
 import { normalisePropertyType } from '@/lib/properties/property-type';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
@@ -49,6 +50,21 @@ export const GET = withApiHandler(
       throw new NotFoundError('Property not found');
     }
 
+    // Property uploads are stored in Job-storage and may contain either a
+    // legacy public URL or an earlier signed URL. Refresh those URLs at read
+    // time so property history does not break when a signed URL expires or
+    // when the bucket is private. External/CDN URLs pass through unchanged.
+    const storedPhotos = Array.isArray((data as { photos?: unknown }).photos)
+      ? ((data as { photos: unknown[] }).photos.filter(
+          (photo): photo is string => typeof photo === 'string'
+        ) as string[])
+      : [];
+    const freshPhotos = await resignJobStorageUrls(storedPhotos);
+    const propertyData: Record<string, unknown> = {
+      ...(data as Record<string, unknown>),
+      photos: freshPhotos,
+    };
+
     // 2026-05-24 audit-37 P0: previously returned select('*') to any
     // role that satisfied 'view' — including the viewer team role.
     // That meant a viewer-role teammate could read key_safe_code
@@ -65,7 +81,7 @@ export const GET = withApiHandler(
     const isOwnerOrPlatformAdmin =
       propertyRole === 'owner' || user.role === 'admin';
     if (!isOwnerOrPlatformAdmin) {
-      const redacted = data as Record<string, unknown>;
+      const redacted = propertyData;
       // Always strip the code for non-owner/non-platform-admin
       // callers. Other access fields (access_mode, access_notes,
       // stopcock_location, etc.) are kept because managers need them
@@ -80,7 +96,7 @@ export const GET = withApiHandler(
     // The server still enforces every gate independently — this is a
     // UX hint, not the security boundary.
     const propertyWithRole = {
-      ...(data as Record<string, unknown>),
+      ...propertyData,
       _role: user.role === 'admin' ? 'platform_admin' : propertyRole,
     };
 

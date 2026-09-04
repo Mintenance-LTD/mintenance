@@ -8,6 +8,7 @@ interface JobQuickActionsProps {
   jobId: string;
   jobTitle: string;
   isOwner: boolean;
+  canApprove: boolean;
   status: string;
   isCompletionConfirmedByHomeowner: boolean;
   onTimelinePress: () => void;
@@ -27,6 +28,7 @@ interface JobQuickActionsProps {
  */
 export function JobQuickActions({
   isOwner,
+  canApprove,
   status,
   isCompletionConfirmedByHomeowner,
   onTimelinePress,
@@ -58,7 +60,7 @@ export function JobQuickActions({
         </TouchableOpacity>
       )}
 
-      {isOwner &&
+      {canApprove &&
         status === 'completed' &&
         !isCompletionConfirmedByHomeowner && (
           <TouchableOpacity

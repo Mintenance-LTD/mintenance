@@ -39,7 +39,7 @@ export const GET = withApiHandler(
         `id, job_id, contractor_id, status, amount, message, description,
          estimated_duration_days, proposed_start_date, warranty_months,
          materials_included, quote_id, created_at, updated_at,
-         job:job_id ( homeowner_id )`
+         job:job_id ( homeowner_id, payer_user_id )`
       )
       .eq('id', bidId)
       .eq('job_id', jobId)
@@ -53,13 +53,22 @@ export const GET = withApiHandler(
     // the relationship cardinality it may arrive as an object or a 1-element
     // array — normalize both.
     const jobRel = (bid as { job?: unknown }).job;
-    const homeownerId = Array.isArray(jobRel)
-      ? (jobRel[0] as { homeowner_id?: string } | undefined)?.homeowner_id
-      : (jobRel as { homeowner_id?: string } | null)?.homeowner_id;
+    const jobAccess = Array.isArray(jobRel)
+      ? (jobRel[0] as
+          { homeowner_id?: string; payer_user_id?: string } | undefined)
+      : (jobRel as { homeowner_id?: string; payer_user_id?: string } | null);
+    const homeownerId = jobAccess?.homeowner_id;
+    const payerUserId = jobAccess?.payer_user_id;
 
     const isOwnerContractor = bid.contractor_id === user.id;
     const isJobHomeowner = homeownerId != null && homeownerId === user.id;
-    if (user.role !== 'admin' && !isOwnerContractor && !isJobHomeowner) {
+    const isDesignatedPayer = payerUserId != null && payerUserId === user.id;
+    if (
+      user.role !== 'admin' &&
+      !isOwnerContractor &&
+      !isJobHomeowner &&
+      !isDesignatedPayer
+    ) {
       throw new ForbiddenError('You do not have access to this bid');
     }
 

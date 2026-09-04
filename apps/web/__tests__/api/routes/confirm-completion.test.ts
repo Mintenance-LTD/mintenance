@@ -471,6 +471,28 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
     expect(body.message).toContain('Payment is being processed');
   });
 
+  it('should allow the designated payer to confirm completion', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'payer-1',
+      email: 'payer@test.com',
+    });
+    setupConfirmMocks({
+      jobData: {
+        ...completedJob,
+        payer_user_id: 'payer-1',
+      },
+    });
+
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/confirm-completion'
+    );
+    const res = await POST(req, segmentData('job-1'));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
+  });
+
   // ---- Stores idempotency result ----
   it('should store the idempotency result after success', async () => {
     setupConfirmMocks();

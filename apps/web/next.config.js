@@ -131,12 +131,9 @@ const nextConfig = {
     // 2026-05-02 audit follow-up (98% readiness step 8): the prior
     // `nodeMiddleware: true` flag was rejected as invalid by Next.js's
     // schema validator on this version. Per the 2026-02 platform note,
-    // middleware is now Node-by-default (Fluid Compute under the hood)
-    // — the flag has been promoted out of `experimental`. The
-    // middleware.ts file already exports `config = { runtime: 'nodejs' }`
-    // which is the supported way to opt in going forward; the flag here
-    // is no longer needed. Removing it eliminates the schema warning
-    // that ran on every build.
+    // Proxy is now Node-by-default (Fluid Compute under the hood) and does
+    // not accept a runtime override in its route configuration. The former
+    // middleware runtime flag is intentionally absent.
     // Optimize imports for faster builds and smaller bundles
     optimizePackageImports: [
       '@mintenance/shared',
@@ -547,21 +544,6 @@ const nextConfig = {
 
     return [
       { source: '/:path*', headers: baseHeaders },
-      // Only apply immutable caching in production - in dev, files change constantly
-      // and a corrupted/truncated cached chunk will break hydration permanently
-      ...(!isDev
-        ? [
-            {
-              source: '/_next/static/:path*',
-              headers: [
-                {
-                  key: 'Cache-Control',
-                  value: 'public, max-age=31536000, immutable',
-                },
-              ],
-            },
-          ]
-        : []),
       {
         source: '/images/:path*',
         headers: [

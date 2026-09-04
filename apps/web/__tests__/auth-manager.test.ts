@@ -24,6 +24,9 @@ const mocks = vi.hoisted(() => ({
       getSession: vi.fn(),
       updateUser: vi.fn(),
       resetPasswordForEmail: vi.fn(),
+      admin: {
+        updateUserById: vi.fn(),
+      },
     },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -58,7 +61,9 @@ const mocks = vi.hoisted(() => ({
   revokeAllTokens: vi.fn(),
   createToken: vi.fn(),
   DatabaseManager: {
-    isValidEmail: vi.fn((email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)),
+    isValidEmail: vi.fn((email: string) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ),
     isValidPassword: vi.fn(() => ({ valid: true, message: '' })),
     getUserById: vi.fn(),
     authenticateUser: vi.fn(),
@@ -129,10 +134,13 @@ describe('Auth Manager', () => {
     });
     mocks.createAuthCookieHeaders.mockReturnValue(new Headers());
     mocks.clearAuthCookie.mockResolvedValue(undefined);
-    mocks.DatabaseManager.isValidEmail.mockImplementation(
-      (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    mocks.DatabaseManager.isValidEmail.mockImplementation((email: string) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     );
-    mocks.DatabaseManager.isValidPassword.mockReturnValue({ valid: true, message: '' });
+    mocks.DatabaseManager.isValidPassword.mockReturnValue({
+      valid: true,
+      message: '',
+    });
     mocks.config.isProduction.mockReturnValue(false);
 
     const mod = await import('@/lib/auth-manager');
@@ -336,7 +344,11 @@ describe('Auth Manager', () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             maybeSingle: vi.fn(() => ({
-              data: { id: 'existing-user', email: 'existing@example.com', role: 'homeowner' },
+              data: {
+                id: 'existing-user',
+                email: 'existing@example.com',
+                role: 'homeowner',
+              },
               error: null,
             })),
             single: vi.fn(() => ({ data: null, error: null })),
@@ -354,6 +366,40 @@ describe('Auth Manager', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
+    });
+
+    it('must not auto-confirm an account in production when email delivery fails', async () => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      try {
+        mocks.serverSupabase.auth.signUp.mockResolvedValue({
+          data: {
+            user: {
+              id: 'user-email-failure',
+              email: 'delivery-failure@example.com',
+              user_metadata: {},
+              email_confirmed_at: null,
+            },
+          },
+          error: { message: 'Error sending confirmation email' },
+        });
+
+        const result = await authManager.register({
+          email: 'delivery-failure@example.com',
+          password: 'SecurePassword123!',
+          first_name: 'Delivery',
+          last_name: 'Failure',
+          role: 'homeowner',
+        });
+
+        expect(result.success).toBe(false);
+        expect(
+          mocks.serverSupabase.auth.admin.updateUserById
+        ).not.toHaveBeenCalled();
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
     });
   });
 
