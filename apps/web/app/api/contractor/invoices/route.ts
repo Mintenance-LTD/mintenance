@@ -17,7 +17,6 @@ import {
 import {
   BadRequestError,
   NotFoundError,
-  ForbiddenError,
   InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -135,8 +134,14 @@ export const GET = withApiHandler(
     const jobId = searchParams.get('jobId');
     const periodStart = searchParams.get('period_start');
     const periodEnd = searchParams.get('period_end');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const requestedLimit = Number.parseInt(searchParams.get('limit') || '50', 10);
+    const requestedOffset = Number.parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 50;
+    const offset = Number.isFinite(requestedOffset)
+      ? Math.min(Math.max(requestedOffset, 0), 100_000)
+      : 0;
 
     let query = userDb
       .from('invoices')
