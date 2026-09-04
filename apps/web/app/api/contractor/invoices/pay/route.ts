@@ -41,6 +41,25 @@ async function createEscrowTransaction(
   payerId: string,
   paymentIntentId: string
 ) {
+  // Stripe PaymentIntent creation is idempotent, so a retry after a later
+  // database failure can return the same intent. Reuse its escrow row too;
+  // otherwise the unique active-escrow constraint turns a recoverable retry
+  // into a permanently stuck invoice payment.
+  const { data: existingEscrow, error: lookupError } = await serverSupabase
+    .from('escrow_transactions')
+    .select('*')
+    .eq('payment_intent_id', paymentIntentId)
+    .maybeSingle();
+
+  if (lookupError) {
+    logger.error('Error looking up existing invoice escrow transaction', lookupError);
+    throw lookupError;
+  }
+
+  if (existingEscrow) {
+    return existingEscrow;
+  }
+
   const escrowData = {
     job_id: invoice.job_id,
     payer_id: payerId,
