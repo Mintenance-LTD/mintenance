@@ -35,6 +35,7 @@ export const GET = withApiHandler(
   // admin bypass can support payment reconciliation and customer support.
   {
     roles: ['homeowner', 'contractor', 'admin'],
+    requireDbAdmin: true,
     rateLimit: { maxRequests: 20 },
   },
   async (request, { user }) => {
