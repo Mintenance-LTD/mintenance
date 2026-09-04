@@ -1,9 +1,5 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import {
-  getInvoicePaymentClientSecret,
-  getSubscriptionPeriod,
-} from '@/lib/services/stripe-compat';
 // 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
 // Route through the single shared lazy proxy so the API version stays
 // pinned in one place (lib/stripe.ts → the SDK's own pinned version).
@@ -67,6 +63,8 @@ export class HomeownerSubscriptionService {
         userId: homeownerId,
         userRole: 'homeowner',
       },
+    }, {
+      idempotencyKey: `stripe_customer_${homeownerId}`,
     });
 
     await serverSupabase

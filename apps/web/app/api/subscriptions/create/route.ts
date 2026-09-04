@@ -262,7 +262,7 @@ export const POST = withApiHandler(
               await stripe.subscriptions.cancel(
                 existingSubscription.stripeSubscriptionId
               );
-            } catch (cancelError) {
+            } catch {
               logger.warn('Subscription may already be canceled in Stripe', {
                 service: 'subscriptions',
                 subscriptionId: existingSubscription.stripeSubscriptionId,
@@ -404,6 +404,8 @@ export const POST = withApiHandler(
           userId: user.id,
           userRole: 'contractor',
         },
+      }, {
+        idempotencyKey: `stripe_customer_${user.id}`,
       });
 
       stripeCustomerId = customer.id;
