@@ -93,14 +93,25 @@ export const GET = withApiHandler(
       );
     }
 
+    // Refresh from the persisted object path rather than returning an old
+    // signed URL. Room-photo rows retain `storage_path`, so this remains
+    // reliable after the original URL expires or the bucket is private.
+    const freshPhotos = await Promise.all(
+      (data || []).map(async (photo) => ({
+        ...photo,
+        photo_url:
+          (await signJobStoragePath(photo.storage_path)) ?? photo.photo_url,
+      }))
+    );
+
     // Group by room_type
     const grouped: Record<string, typeof data> = {};
-    for (const photo of data || []) {
+    for (const photo of freshPhotos) {
       if (!grouped[photo.room_type]) grouped[photo.room_type] = [];
       grouped[photo.room_type].push(photo);
     }
 
-    return NextResponse.json({ photos: data || [], grouped });
+    return NextResponse.json({ photos: freshPhotos, grouped });
   }
 );
 
