@@ -7,12 +7,16 @@ import { cookies } from 'next/headers';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError } from '@/lib/errors/api-error';
 
+const COOKIE_PREFIX = process.env.NODE_ENV === 'production' ? '__Host-' : '';
+const AUTH_COOKIE = `${COOKIE_PREFIX}mintenance-auth`;
+const REFRESH_COOKIE = `${COOKIE_PREFIX}mintenance-refresh`;
+
 export const POST = withApiHandler(
   { auth: false, csrf: true, rateLimit: { maxRequests: 5 } },
   async (_request) => {
     const cookieStore = await cookies();
-    const authToken = cookieStore.get('__Host-mintenance-auth')?.value;
-    const refreshToken = cookieStore.get('__Host-mintenance-refresh')?.value;
+    const authToken = cookieStore.get(AUTH_COOKIE)?.value;
+    const refreshToken = cookieStore.get(REFRESH_COOKIE)?.value;
 
     // Best-effort extract userId from current access token so we can revoke
     // every refresh token for this user in the database. If the access token
