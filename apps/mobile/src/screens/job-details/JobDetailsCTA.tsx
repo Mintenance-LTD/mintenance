@@ -23,6 +23,8 @@ export interface CTAContext {
     completion_confirmed_by_homeowner?: boolean;
   };
   isOwner: boolean;
+  /** A server-authorized payer may manage the transaction without owning the property. */
+  isPayer?: boolean;
   isContractor: boolean;
   userId: string | undefined;
   budget: number;
@@ -58,6 +60,7 @@ export interface CTAContext {
 export function getPriorityCTA({
   job,
   isOwner,
+  isPayer = false,
   isContractor,
   userId,
   budget,
@@ -69,6 +72,7 @@ export function getPriorityCTA({
   beforePhotoCount,
   bidsArray,
 }: CTAContext): React.ReactElement | null {
+  const canManageJob = isOwner || isPayer;
   const isAssignedContractor = isContractor && job.contractor_id === userId;
 
   if (isContractor && job.status === 'posted') {
@@ -317,7 +321,7 @@ export function getPriorityCTA({
     );
   }
 
-  if (isOwner && job.status === 'posted' && bidsArray.length > 0) {
+  if (canManageJob && job.status === 'posted' && bidsArray.length > 0) {
     return (
       <StickyBottomCTA
         buttonText={`View ${bidsArray.length} Bid${bidsArray.length !== 1 ? 's' : ''}`}
@@ -328,7 +332,7 @@ export function getPriorityCTA({
   }
 
   if (
-    isOwner &&
+    canManageJob &&
     job.status === 'assigned' &&
     (contractStatus === 'draft' || contractStatus === 'pending_contractor')
   ) {
@@ -343,7 +347,7 @@ export function getPriorityCTA({
   }
 
   if (
-    isOwner &&
+    canManageJob &&
     job.status === 'assigned' &&
     contractStatus &&
     contractStatus !== 'accepted' &&
@@ -365,7 +369,7 @@ export function getPriorityCTA({
   // briefly see "Pay Now" again and could re-trigger create-intent,
   // risking a duplicate charge.
   if (
-    isOwner &&
+    canManageJob &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
     !isEscrowFunded(escrowStatus)
@@ -421,7 +425,7 @@ export function getPriorityCTA({
   }
 
   if (
-    isOwner &&
+    canManageJob &&
     job.status === 'completed' &&
     !job.completion_confirmed_by_homeowner
   ) {
@@ -435,7 +439,7 @@ export function getPriorityCTA({
   }
 
   if (
-    isOwner &&
+    canManageJob &&
     job.status === 'completed' &&
     job.completion_confirmed_by_homeowner &&
     !hasReviewed
