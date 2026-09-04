@@ -665,14 +665,25 @@ export async function getCurrentUserFromBearerToken(
     // SECURITY: Read role from profiles table, NOT user_metadata (which is client-writable).
     // A malicious user could call supabase.auth.updateUser({ data: { role: 'admin' } })
     // to escalate privileges if we trusted user_metadata. See middleware.ts for same pattern.
-    const { data: profile } = await serverSupabase
+    const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
       .select('role, first_name, last_name')
       .eq('id', user.id)
       .single();
 
-    // Default to 'homeowner' if profile query fails -- never default to 'admin'
-    const role = profile?.role || 'homeowner';
+    // A missing or unreadable profile cannot establish the user's role.
+    // Defaulting to homeowner would let a contractor bearer token enter
+    // homeowner-only routes whenever the profile lookup is degraded.
+    if (profileError || !profile?.role) {
+      logger.warn('Bearer token rejected because profile role is unavailable', {
+        service: 'auth',
+        userId: user.id,
+        error: profileError?.message,
+      });
+      return null;
+    }
+
+    const role = profile.role;
     if (!['homeowner', 'contractor', 'admin'].includes(role)) {
       return null;
     }
