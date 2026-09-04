@@ -142,6 +142,31 @@ export const POST = withApiHandler(
       );
     }
 
+    // The PaymentIntent and escrow are separate records. Verify their
+    // amounts before moving the escrow into the funded state; otherwise a
+    // valid-but-cheaper PaymentIntent could be attached to this job and
+    // recorded as fully paid.
+    const stripeAmountCents = paymentIntent.amount;
+    const escrowAmountCents = Math.round(Number(currentEscrow.amount) * 100);
+    if (
+      !Number.isFinite(stripeAmountCents) ||
+      !Number.isFinite(escrowAmountCents) ||
+      stripeAmountCents !== escrowAmountCents
+    ) {
+      logger.warn('Payment amount does not match escrow amount', {
+        service: 'payments',
+        userId: user.id,
+        paymentIntentId,
+        jobId,
+        stripeAmountCents,
+        escrowAmountCents,
+      });
+      return NextResponse.json(
+        { error: 'Payment amount does not match the amount due' },
+        { status: 400 }
+      );
+    }
+
     // FIX CRIT-5: Webhook is the source of truth for escrow status.
     // If webhook already updated escrow to 'held', just confirm that.
     // If not yet updated, update here as a fallback (webhook may arrive later).
