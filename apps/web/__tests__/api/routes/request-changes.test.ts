@@ -7,7 +7,7 @@
  * job must be completed status, success path with rollback to in_progress,
  * notification + email to contractor, update failure.
  */
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -137,12 +137,10 @@ vi.mock('@/lib/errors/api-error', async () => {
     ServiceUnavailableError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
-        const { NextResponse } = require('next/server');
         return NextResponse.json(error.toResponse(), {
           status: error.statusCode,
         });
       }
-      const { NextResponse } = require('next/server');
       return NextResponse.json(
         {
           error: {
@@ -265,10 +263,16 @@ function setupRequestChangesMocks(
             }),
           }),
         }),
-        // .update({...}).eq('job_id', id).eq('status', 'held') — best-effort reset.
+        // .update({...}).eq('id', escrowId).eq('status', 'held').select('id')
+        // — escrow reset must affect the held row.
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({
+                data: [{ id: 'escrow-1' }],
+                error: null,
+              }),
+            }),
           }),
         }),
       };
