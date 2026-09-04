@@ -5,6 +5,10 @@ import { logger } from '@mintenance/shared';
 import { AutomationPreferencesService } from '@/lib/services/agents/AutomationPreferencesService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { updateProfileSchema } from '@/lib/validation/schemas';
+import {
+  validateImageUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 
 // Type definition for user profile update data
 interface UserProfileUpdateData {
@@ -18,16 +22,6 @@ interface UserProfileUpdateData {
   postcode?: string | null;
   profile_image_url?: string | null;
 }
-
-// Profile image security configuration
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
  * POST /api/user/update-profile
@@ -71,6 +65,7 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   const profileImageFile = formData.get('profileImage') as File | null;
 
   let profileImageUrl = null;
+  let uploadedImagePath: string | null = null;
   // Audit step 6 (2026-04-29): if a new image is being uploaded we
   // need the previous URL captured BEFORE the row update so the
   // orphan blob can be removed afterwards. Read it once up front
@@ -88,41 +83,27 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   }
 
   if (profileImageFile && profileImageFile.size > 0) {
-    if (!ALLOWED_IMAGE_TYPES.includes(profileImageFile.type)) {
+    const validation = await validateImageUpload(
+      profileImageFile,
+      MAX_FILE_SIZES.profileImage
+    );
+    if (!validation.valid) {
       return NextResponse.json(
-        {
-          error:
-            'Invalid image type. Only JPEG, PNG, and WebP images are allowed.',
-        },
+        { error: validation.error || 'Invalid profile image' },
         { status: 400 }
       );
     }
 
-    const fileExt = profileImageFile.name.split('.').pop()?.toLowerCase();
-    if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-      return NextResponse.json(
-        {
-          error:
-            'Invalid file extension. Only jpg, jpeg, png, and webp are allowed.',
-        },
-        { status: 400 }
-      );
-    }
-
-    if (profileImageFile.size > MAX_IMAGE_SIZE) {
-      return NextResponse.json(
-        { error: 'Profile image must be less than 5MB' },
-        { status: 400 }
-      );
-    }
-
+    const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
     const filePath = `avatars/${fileName}`;
+    uploadedImagePath = filePath;
 
     const { error: uploadError } = await serverSupabase.storage
       .from('profile-images')
       .upload(filePath, profileImageFile, {
         cacheControl: '3600',
+        contentType: validation.detectedType,
         upsert: true,
       });
 
@@ -184,6 +165,18 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
     .eq('id', user.id);
 
   if (updateError) {
+    if (uploadedImagePath) {
+      const { error: cleanupError } = await serverSupabase.storage
+        .from('profile-images')
+        .remove([uploadedImagePath]);
+      if (cleanupError) {
+        logger.warn('Failed to clean up profile image after update failure', {
+          service: 'user',
+          userId: user.id,
+          cleanupError,
+        });
+      }
+    }
     // Log full DB error server-side for triage; NEVER surface it to the
     // client. Supabase error messages include column names + constraint
     // names that help an attacker fingerprint the schema.
