@@ -15,6 +15,7 @@ interface JobWithPhotos {
   id: string;
   title: string;
   homeowner_id: string;
+  payer_user_id?: string | null;
   before_photos?: PhotoMetadata[];
   after_photos?: PhotoMetadata[];
 }
@@ -47,6 +48,7 @@ export const GET = withApiHandler(
           id,
           title,
           homeowner_id,
+          payer_user_id,
           before_photos:job_photos_metadata!jobs_photos_metadata_job_id_fkey (
             photo_url,
             angle_type,
@@ -66,7 +68,14 @@ export const GET = withApiHandler(
 
     const typedEscrow = escrow as unknown as EscrowRecord;
     const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
-    if (!job || (job.homeowner_id !== user.id && user.role !== 'admin')) throw new ForbiddenError('Unauthorized');
+    if (
+      !job ||
+      (job.homeowner_id !== user.id &&
+        job.payer_user_id !== user.id &&
+        user.role !== 'admin')
+    ) {
+      throw new ForbiddenError('Unauthorized');
+    }
 
     const beforePhotos = (job.before_photos || []).filter((p: PhotoMetadata) => p.photo_type === 'before');
     const afterPhotos = (job.after_photos || []).filter((p: PhotoMetadata) => p.photo_type === 'after');

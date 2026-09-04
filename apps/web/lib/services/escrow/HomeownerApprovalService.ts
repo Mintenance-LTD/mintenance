@@ -20,6 +20,7 @@ const REMINDER_DAYS = 3;
 interface JobInfo {
   id: string;
   homeowner_id: string;
+  payer_user_id?: string | null;
   contractor_id?: string;
 }
 
@@ -64,7 +65,8 @@ export class HomeownerApprovalService {
           status,
           jobs!inner (
             id,
-            homeowner_id
+            homeowner_id,
+            payer_user_id
           )
         `
         )
@@ -161,7 +163,8 @@ export class HomeownerApprovalService {
           homeowner_approval,
           jobs!inner (
             id,
-            homeowner_id
+          homeowner_id,
+          payer_user_id
           )
         `
         )
@@ -174,7 +177,10 @@ export class HomeownerApprovalService {
 
       const typedEscrow = escrow as EscrowWithJob;
       const job = getJob(typedEscrow.jobs);
-      if (!job || job.homeowner_id !== homeownerId) {
+      if (
+        !job ||
+        (job.homeowner_id !== homeownerId && job.payer_user_id !== homeownerId)
+      ) {
         throw new Error('Unauthorized: Not the homeowner for this escrow');
       }
 
@@ -322,6 +328,7 @@ export class HomeownerApprovalService {
           jobs!inner (
             id,
             homeowner_id,
+            payer_user_id,
             contractor_id
           )
         `
@@ -339,7 +346,10 @@ export class HomeownerApprovalService {
       const job = getJob(typedEscrow.jobs) as
         | (JobInfo & { contractor_id: string })
         | undefined;
-      if (job?.homeowner_id !== homeownerId) {
+      if (
+        job?.homeowner_id !== homeownerId &&
+        job?.payer_user_id !== homeownerId
+      ) {
         throw new Error('Unauthorized: Not the homeowner for this escrow');
       }
 

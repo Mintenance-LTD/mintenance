@@ -22,7 +22,7 @@ export const POST = withApiHandler(
     // Verify ownership BEFORE approval
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select('jobs!inner(homeowner_id)')
+      .select('jobs!inner(homeowner_id, payer_user_id)')
       .eq('id', escrowId)
       .single();
 
@@ -36,9 +36,15 @@ export const POST = withApiHandler(
       throw new NotFoundError('Escrow not found');
     }
 
-    const jobs = escrow.jobs as unknown as { homeowner_id: string } | { homeowner_id: string }[];
+    const jobs = escrow.jobs as unknown as {
+      homeowner_id: string;
+      payer_user_id?: string | null;
+    } | {
+      homeowner_id: string;
+      payer_user_id?: string | null;
+    }[];
     const job = Array.isArray(jobs) ? jobs[0] : jobs;
-    if (job.homeowner_id !== user.id) {
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       logger.warn('Unauthorized escrow approval attempt', {
         service: 'homeowner-approve',
         userId: user.id,
