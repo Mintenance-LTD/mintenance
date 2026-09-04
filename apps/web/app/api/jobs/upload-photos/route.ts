@@ -55,12 +55,26 @@ export const POST = withApiHandler(
 
     // Parse form data
     const formData = await request.formData();
-    let photoFiles = formData.getAll('photos') as File[];
+    let photoFiles = formData
+      .getAll('photos')
+      .filter(
+        (value): value is File =>
+          typeof value === 'object' &&
+          value !== null &&
+          'size' in value &&
+          'arrayBuffer' in value
+      );
 
     // Backward compatibility: mobile clients may send as 'file' (singular)
     if (photoFiles.length === 0) {
-      const singleFile = formData.get('file') as File | null;
-      if (singleFile) {
+      const rawSingleFile = formData.get('file');
+      if (
+        typeof rawSingleFile === 'object' &&
+        rawSingleFile !== null &&
+        'size' in rawSingleFile &&
+        'arrayBuffer' in rawSingleFile
+      ) {
+        const singleFile = rawSingleFile;
         photoFiles = [singleFile];
       }
     }

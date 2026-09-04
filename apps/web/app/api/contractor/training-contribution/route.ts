@@ -18,7 +18,14 @@ export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
+    const rawImage = formData.get('image');
+    const imageFile =
+      typeof rawImage === 'object' &&
+      rawImage !== null &&
+      'size' in rawImage &&
+      'arrayBuffer' in rawImage
+        ? rawImage
+        : null;
     const rawCategory = formData.get('category');
     const category = typeof rawCategory === 'string' ? rawCategory : null;
 
