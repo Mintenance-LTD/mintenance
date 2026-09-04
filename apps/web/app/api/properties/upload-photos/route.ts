@@ -71,7 +71,15 @@ export const POST = withApiHandler(
 
     // Parse form data
     const formData = await request.formData();
-    const photoFiles = formData.getAll('photos') as File[];
+    const photoFiles = formData
+      .getAll('photos')
+      .filter(
+        (value): value is File =>
+          typeof value === 'object' &&
+          value !== null &&
+          'size' in value &&
+          'arrayBuffer' in value
+      );
     const categories = formData.getAll('categories') as string[];
 
     if (!photoFiles || photoFiles.length === 0) {
