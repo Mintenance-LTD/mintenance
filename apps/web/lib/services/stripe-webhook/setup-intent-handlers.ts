@@ -67,7 +67,7 @@ export async function handleSetupIntentWebhookFailed(
     lastError: setupIntent.last_setup_error?.message,
   });
 
-  await serverSupabase
+  const { error: trackingError } = await serverSupabase
     .from('stripe_setup_intents')
     .update({
       status: 'canceled',
@@ -75,6 +75,14 @@ export async function handleSetupIntentWebhookFailed(
       updated_at: new Date().toISOString(),
     })
     .eq('stripe_setup_intent_id', setupIntent.id);
+
+  if (trackingError) {
+    logger.error('Failed to persist SetupIntent failure', trackingError, {
+      service: 'stripe-webhook',
+      setupIntentId: setupIntent.id,
+    });
+    throw new Error('Failed to persist SetupIntent failure');
+  }
 }
 
 /**
@@ -85,10 +93,18 @@ export async function handlePaymentMethodDetached(
   paymentMethod: Stripe.PaymentMethod,
   _sendNotification: SendNotificationFn,
 ): Promise<void> {
-  await serverSupabase
+  const { error: deleteError } = await serverSupabase
     .from('payment_methods')
     .delete()
     .eq('stripe_payment_method_id', paymentMethod.id);
+
+  if (deleteError) {
+    logger.error('Failed to remove detached payment method from DB', deleteError, {
+      service: 'stripe-webhook',
+      paymentMethodId: paymentMethod.id,
+    });
+    throw new Error('Failed to remove detached payment method');
+  }
 
   logger.info('Payment method detached + removed from DB', {
     service: 'stripe-webhook',

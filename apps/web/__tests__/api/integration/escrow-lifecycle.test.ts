@@ -492,6 +492,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       id: PAYMENT_INTENT_ID,
       status: 'succeeded',
       amount: 25000,
+      currency: 'gbp',
     });
 
     // validateRequest returns parsed data
@@ -586,6 +587,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       id: PAYMENT_INTENT_ID,
       status: 'succeeded',
       amount: 24900,
+      currency: 'gbp',
     });
     mocks.validateRequest.mockResolvedValue({
       data: { paymentIntentId: PAYMENT_INTENT_ID, jobId: JOB_ID },
@@ -642,6 +644,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       id: PAYMENT_INTENT_ID,
       status: 'succeeded',
       amount: 25000,
+      currency: 'gbp',
     });
     mocks.validateRequest.mockResolvedValue({
       data: { paymentIntentId: PAYMENT_INTENT_ID, jobId: JOB_ID },
@@ -716,6 +719,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
       id: PAYMENT_INTENT_ID,
       status: 'succeeded',
       amount: 25000,
+      currency: 'gbp',
     });
     mocks.validateRequest.mockResolvedValue({
       data: { paymentIntentId: PAYMENT_INTENT_ID, jobId: JOB_ID },

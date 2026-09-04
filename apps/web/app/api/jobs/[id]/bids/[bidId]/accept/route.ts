@@ -106,7 +106,7 @@ export const POST = withApiHandler(
       // Verify the job belongs to this homeowner or designated payer
       const { data: job, error: jobError } = await userDb
         .from('jobs')
-        .select('homeowner_id, payer_user_id, status')
+        .select('homeowner_id, payer_user_id, contractor_id, status')
         .eq('id', jobId)
         .single();
 
@@ -264,17 +264,28 @@ export const POST = withApiHandler(
         }
       }
 
-      // Validate bid status transition (must be pending -> accepted)
-      validateBidTransition(
-        bid.status as BidStatusValue,
-        BID_STATUS.ACCEPTED as BidStatusValue
-      );
+      // A prior request may have committed the atomic acceptance but failed
+      // during the follow-up contract creation. Allow the same authorized
+      // homeowner to retry that post-acceptance work without re-running the
+      // state transition or creating a second winner.
+      const acceptanceAlreadyApplied =
+        bid.status === BID_STATUS.ACCEPTED &&
+        job.status === JOB_STATUS.ASSIGNED &&
+        job.contractor_id === bid.contractor_id;
 
-      // Validate job status transition (must be posted -> assigned)
-      validateStatusTransition(
-        job.status as JobStatus,
-        JOB_STATUS.ASSIGNED as JobStatus
-      );
+      if (!acceptanceAlreadyApplied) {
+        // Validate bid status transition (must be pending -> accepted)
+        validateBidTransition(
+          bid.status as BidStatusValue,
+          BID_STATUS.ACCEPTED as BidStatusValue
+        );
+
+        // Validate job status transition (must be posted -> assigned)
+        validateStatusTransition(
+          job.status as JobStatus,
+          JOB_STATUS.ASSIGNED as JobStatus
+        );
+      }
 
       // Sprint 7 fix (2.1): atomic bid acceptance.
       //
@@ -297,15 +308,14 @@ export const POST = withApiHandler(
         job_status: string | null;
       }
 
-      const { data: rpcRaw, error: rpcError } = await serverSupabase.rpc(
-        'accept_bid_atomic',
-        {
-          p_bid_id: bidId,
-          p_job_id: jobId,
-          p_contractor_id: bid.contractor_id,
-          p_homeowner_id: user.id,
-        }
-      );
+      const { data: rpcRaw, error: rpcError } = acceptanceAlreadyApplied
+        ? { data: null, error: null }
+        : await serverSupabase.rpc('accept_bid_atomic', {
+            p_bid_id: bidId,
+            p_job_id: jobId,
+            p_contractor_id: bid.contractor_id,
+            p_homeowner_id: user.id,
+          });
 
       if (rpcError) {
         logger.error(
@@ -319,15 +329,23 @@ export const POST = withApiHandler(
         throw new InternalServerError('Failed to accept bid');
       }
 
+      if (acceptanceAlreadyApplied) {
+        logger.info('Resuming post-acceptance bid workflow', {
+          service: 'jobs',
+          bidId,
+          jobId,
+        });
+      }
+
       // RPC returns a setof row; grab the first
       const rpcRow = Array.isArray(rpcRaw)
         ? (rpcRaw[0] as AcceptBidResult | undefined)
         : (rpcRaw as AcceptBidResult | null);
-      if (!rpcRow) {
+      if (!acceptanceAlreadyApplied && !rpcRow) {
         throw new InternalServerError('accept_bid_atomic returned no rows');
       }
 
-      if (!rpcRow.success) {
+      if (!acceptanceAlreadyApplied && rpcRow && !rpcRow.success) {
         const msg = rpcRow.error_message ?? 'Unknown bid acceptance error';
         // The RPC detects concurrent acceptance and reports it via error_message;
         // treat it as a ConflictError so the client can retry cleanly.
@@ -466,10 +484,12 @@ export const POST = withApiHandler(
             contractorId: bid.contractor_id,
           });
         } else {
-          await serverSupabase
-            .from('message_threads')
-            .update({ last_message_at: new Date().toISOString() })
-            .eq('id', threadId!);
+          if (threadId) {
+            await serverSupabase
+              .from('message_threads')
+              .update({ last_message_at: new Date().toISOString() })
+              .eq('id', threadId);
+          }
 
           logger.info('Welcome message created', {
             service: 'jobs',
@@ -655,6 +675,9 @@ export const POST = withApiHandler(
               jobId,
               contractorId: bid.contractor_id,
             });
+            throw new InternalServerError(
+              'Bid accepted, but the contract could not be created. Please retry.'
+            );
           } else {
             logger.info('Draft contract created', {
               service: 'jobs',
@@ -688,6 +711,9 @@ export const POST = withApiHandler(
             service: 'jobs',
             jobId,
           }
+        );
+        throw new InternalServerError(
+          'Bid accepted, but the contract could not be created. Please retry.'
         );
       }
 

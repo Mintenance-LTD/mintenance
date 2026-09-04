@@ -10,7 +10,11 @@ import {
 } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
-import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -278,6 +282,14 @@ export const POST = withApiHandler(
           jobId,
           paymentIntentId,
         }
+      );
+      // Stripe and escrow are already successful; do not pretend the full
+      // application state was persisted. Returning an error prevents the
+      // client from advancing as if payment bookkeeping completed and lets
+      // the webhook/reconciliation path repair the job-level flag without
+      // attempting to charge the customer again.
+      throw new InternalServerError(
+        'Payment was confirmed but job payment status could not be updated. Our team has been notified.'
       );
     }
 

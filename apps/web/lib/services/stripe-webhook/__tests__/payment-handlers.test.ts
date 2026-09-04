@@ -25,7 +25,7 @@ function buildChain(overrides?: {
   singleData?: unknown;
   singleError?: unknown;
 }) {
-  const chain: Record<string, any> = {};
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   for (const m of [
     'select',
     'insert',
@@ -501,9 +501,9 @@ describe('handleChargeRefunded', () => {
 
     await expect(
       handleChargeRefunded(makeCharge(), mockNotify)
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow('Failed to persist refunded escrow status');
 
-    expect(mockFrom).toHaveBeenCalledWith('refunds');
+    expect(mockFrom).not.toHaveBeenCalledWith('refunds');
     expect(mockNotify).not.toHaveBeenCalled();
     expect(mockLoggerError).toHaveBeenCalledWith(
       'Failed to finalize refunded payment status',
@@ -570,15 +570,15 @@ describe('handleChargeRefunded', () => {
     });
 
     const charge = makeCharge();
-    // Should not throw
+    // Fail the webhook so Stripe retries after the refund record can be saved.
     await expect(
       handleChargeRefunded(charge, mockNotify)
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow('Refund record failed');
 
     expect(mockLoggerError).toHaveBeenCalledWith(
-      'Failed to record refund',
+      'Error in handleChargeRefunded',
       expect.any(Error),
-      expect.objectContaining({ chargeId: 'ch_test_123' })
+      { service: 'stripe-webhook' }
     );
   });
 });

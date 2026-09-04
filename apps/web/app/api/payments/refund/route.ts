@@ -423,29 +423,35 @@ export const POST = withApiHandler(
         // paying the contractor as well (double loss). So we leave the escrow
         // status untouched and only append an audit row for operators to find.
         try {
-          await serverSupabase.from('escrow_audit_log').insert({
-            escrow_transaction_id: escrowTransactionId,
-            // 'refunded' is the accurate CHECK-permitted action (the money was
-            // refunded at Stripe). The reconciliation nuance — that the escrow
-            // row didn't get its status flipped — lives in release_reason +
-            // metadata. NOTE: escrow_audit_log.action's CHECK only allows
-            // released/held/refunded/disputed/admin_override, so an out-of-set
-            // value like 'reconciliation_needed' silently 23514s.
-            action: 'refunded',
-            actor_id: user.id,
-            actor_role: user.role,
-            job_id: jobId,
-            amount: refundAmount / 100,
-            release_reason: 'refund_succeeded_db_update_failed',
-            is_admin_action: user.role === 'admin',
-            metadata: {
-              issue_type: 'refund_succeeded_db_update_failed',
-              status: 'pending_review',
-              refund_id: refund.id,
-              stripe_refund_status: refund.status,
-              update_error_message: updateError?.message,
-            },
-          });
+          const { error: reconciliationError } = await serverSupabase
+            .from('escrow_audit_log')
+            .insert({
+              escrow_transaction_id: escrowTransactionId,
+              // 'refunded' is the accurate CHECK-permitted action (the money was
+              // refunded at Stripe). The reconciliation nuance — that the escrow
+              // row didn't get its status flipped — lives in release_reason +
+              // metadata. NOTE: escrow_audit_log.action's CHECK only allows
+              // released/held/refunded/disputed/admin_override, so an out-of-set
+              // value like 'reconciliation_needed' silently 23514s.
+              action: 'refunded',
+              actor_id: user.id,
+              actor_role: user.role,
+              job_id: jobId,
+              amount: refundAmount / 100,
+              release_reason: 'refund_succeeded_db_update_failed',
+              is_admin_action: user.role === 'admin',
+              metadata: {
+                issue_type: 'refund_succeeded_db_update_failed',
+                status: 'pending_review',
+                refund_id: refund.id,
+                stripe_refund_status: refund.status,
+                update_error_message: updateError?.message,
+              },
+            });
+
+          if (reconciliationError) {
+            throw reconciliationError;
+          }
         } catch (reconciliationErr: unknown) {
           logger.error(
             'Failed to create refund reconciliation record',
@@ -519,7 +525,7 @@ export const POST = withApiHandler(
       if (escrowClaimed && !refundId) {
         // Stripe did not create a refund, so release the payment claim and
         // allow a safe retry. Never do this after Stripe has returned a refund.
-        await serverSupabase
+        const { error: claimReleaseError } = await serverSupabase
           .from('escrow_transactions')
           .update({
             status: 'held',
@@ -528,6 +534,14 @@ export const POST = withApiHandler(
           })
           .eq('id', escrowTransactionId)
           .eq('status', 'release_pending');
+
+        if (claimReleaseError) {
+          logger.error(
+            'CRITICAL: Failed to release refund claim after Stripe failure',
+            claimReleaseError,
+            { service: 'payments', escrowTransactionId }
+          );
+        }
       }
 
       // Release the claim so the user can retry now instead of waiting

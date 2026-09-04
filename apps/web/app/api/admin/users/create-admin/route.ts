@@ -57,11 +57,20 @@ export const POST = withApiHandler(
     }
 
     // Check if user already exists
-    const { data: existing } = await serverSupabase
+    const { data: existing, error: existingLookupError } = await serverSupabase
       .from('profiles')
       .select('id, role')
       .eq('email', email)
       .maybeSingle();
+
+    if (existingLookupError) {
+      logger.error('Failed to check for an existing admin account', {
+        service: 'admin',
+        email,
+        error: existingLookupError.message,
+      });
+      throw new InternalServerError('Could not verify whether the account exists');
+    }
 
     if (existing) {
       throw new ConflictError('An account with this email already exists');
@@ -105,7 +114,31 @@ export const POST = withApiHandler(
         email,
         error: profileError.message,
       });
-      // Non-fatal: user exists in Auth, profile will be updated on first login
+      // Do not leave an Auth account carrying admin metadata without the
+      // authoritative database role and audit trail. Compensate the invite;
+      // if cleanup also fails, the critical log gives operations the exact
+      // user id to disable manually.
+      try {
+        const { error: deleteError } =
+          await serverSupabase.auth.admin.deleteUser(authData.user.id);
+        if (deleteError) {
+          logger.error('Failed to clean up partially provisioned admin user', {
+            service: 'admin',
+            userId: authData.user.id,
+            error: deleteError.message,
+          });
+        }
+      } catch (cleanupError) {
+        logger.error('Failed to clean up partially provisioned admin user', {
+          service: 'admin',
+          userId: authData.user.id,
+          error:
+            cleanupError instanceof Error
+              ? cleanupError.message
+              : String(cleanupError),
+        });
+      }
+      throw new InternalServerError('Failed to provision admin account');
     }
 
     await AdminActivityLogger.logFromRequest(

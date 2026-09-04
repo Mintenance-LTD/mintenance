@@ -207,11 +207,28 @@ export const POST = withApiHandler(
       // A Stripe webhook may have completed this transition first. Accept
       // that state, but never report success for a missing or incompatible
       // escrow row.
-      const { data: existingEscrow } = await serverSupabase
+      const { data: existingEscrow, error: existingEscrowError } = await serverSupabase
         .from('escrow_transactions')
         .select('id, status')
         .eq('payment_intent_id', confirmedIntent.id)
         .maybeSingle();
+
+      if (existingEscrowError) {
+        logger.error('Failed to verify escrow after payment confirmation', existingEscrowError, {
+          service: 'payments',
+          jobId,
+          paymentIntentId: confirmedIntent.id,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Payment succeeded but its recorded state could not be verified. Support has been notified.',
+            paymentIntentId: confirmedIntent.id,
+          },
+          { status: 500 }
+        );
+      }
 
       if (!existingEscrow || existingEscrow.status !== 'held') {
         logger.error('Payment succeeded but escrow state is not held', {
@@ -230,6 +247,39 @@ export const POST = withApiHandler(
           { status: 500 }
         );
       }
+    }
+
+    // Keep the job-level payment flag aligned with the escrow transition.
+    // The Stripe webhook normally performs this write, but this endpoint is
+    // also the synchronous fallback when the client receives confirmation
+    // first. Do not return success while the job still appears unpaid.
+    const { error: jobPaymentError } = await serverSupabase
+      .from('jobs')
+      .update({
+        payment_status: 'paid',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+
+    if (jobPaymentError) {
+      logger.error(
+        'Payment succeeded and escrow was held, but job payment status could not be updated',
+        jobPaymentError,
+        {
+          service: 'payments',
+          jobId,
+          paymentIntentId: confirmedIntent.id,
+        }
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Payment succeeded but could not be fully recorded. Support has been notified.',
+          paymentIntentId: confirmedIntent.id,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

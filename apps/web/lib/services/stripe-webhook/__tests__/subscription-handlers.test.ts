@@ -13,7 +13,7 @@ function buildChain(overrides?: {
   singleData?: unknown;
   singleError?: unknown;
 }) {
-  const chain: Record<string, any> = {};
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   for (const m of [
     'select',
     'insert',
@@ -338,17 +338,20 @@ describe('handleSubscriptionUpdated', () => {
     expect(mockFrom).not.toHaveBeenCalledWith('profiles');
   });
 
-  it('returns early when user not found', async () => {
+  it('fails so Stripe retries when the customer profile lookup errors', async () => {
     const chain = buildChain({
       singleData: null,
       singleError: { message: 'not found' },
     });
     mockFrom.mockReturnValue(chain);
 
-    await handleSubscriptionUpdated(makeSub(), mockNotify);
+    await expect(
+      handleSubscriptionUpdated(makeSub(), mockNotify)
+    ).rejects.toThrow('Failed to load subscription customer profile');
 
-    expect(mockLoggerWarn).toHaveBeenCalledWith(
-      'User not found for subscription customer',
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      'Failed to load subscription customer profile',
+      expect.any(Object),
       expect.objectContaining({ customerId: 'cus_test_123' })
     );
   });

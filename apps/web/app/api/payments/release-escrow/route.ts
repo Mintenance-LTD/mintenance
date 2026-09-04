@@ -385,11 +385,23 @@ export const POST = withApiHandler(
         .eq('id', job.id)
         .single();
       if (currentJobError || currentJob?.status !== JOB_STATUS.COMPLETED) {
-        await serverSupabase
+        const { error: rollbackError } = await serverSupabase
           .from('escrow_transactions')
           .update({ status: ESCROW_STATUS.HELD, updated_at: new Date().toISOString() })
           .eq('id', escrowTransactionId)
           .eq('status', ESCROW_STATUS.RELEASE_PENDING);
+        if (rollbackError) {
+          logger.error(
+            'CRITICAL: Failed to roll escrow back after job state changed',
+            rollbackError,
+            {
+              service: 'payments',
+              escrowTransactionId,
+              jobId: job.id,
+              reconciliationId,
+            }
+          );
+        }
         throw new ConflictError(
           'The job is no longer completed. Payment release was cancelled.'
         );
@@ -470,7 +482,9 @@ export const POST = withApiHandler(
         // ('transfer_succeeded_final_update_failed') and the recovery
         // info (transfer_id + reconciliation_id) is preserved in metadata.
         try {
-          await serverSupabase.from('escrow_audit_log').insert({
+          const { error: reconciliationInsertError } = await serverSupabase
+            .from('escrow_audit_log')
+            .insert({
             escrow_transaction_id: escrowTransactionId,
             // 'released' is the accurate CHECK-permitted action (the transfer
             // succeeded, so funds WERE released to the contractor). The
@@ -496,10 +510,13 @@ export const POST = withApiHandler(
               contractor_id: job.contractor_id,
               update_error_message: finalizationError.message,
             },
-          });
+            });
+          if (reconciliationInsertError) {
+            throw reconciliationInsertError;
+          }
         } catch (reconciliationErr: unknown) {
           logger.error(
-            'Failed to create reconciliation record',
+            'CRITICAL: Failed to create reconciliation record after successful transfer',
             reconciliationErr as Error
           );
         }

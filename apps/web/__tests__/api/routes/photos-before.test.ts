@@ -425,6 +425,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
   // ---- Invalid MIME type ----
   it('should return 400 for disallowed file type', async () => {
     setupJobMock();
+    mocks.validateImageUpload.mockResolvedValue({
+      valid: false,
+      error: 'Invalid file type',
+    });
 
     const file = createMockFile('doc.pdf', 1024, 'application/pdf');
     const req = createFormDataRequest(
@@ -441,6 +445,10 @@ describe('POST /api/jobs/[id]/photos/before', () => {
   // ---- Invalid file extension ----
   it('should return 400 for disallowed file extension', async () => {
     setupJobMock();
+    mocks.validateImageUpload.mockResolvedValue({
+      valid: false,
+      error: 'Invalid file extension',
+    });
 
     const file = createMockFile('image.bmp', 1024, 'image/jpeg');
     const req = createFormDataRequest(

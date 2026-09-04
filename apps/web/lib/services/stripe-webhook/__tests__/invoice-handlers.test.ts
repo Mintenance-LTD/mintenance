@@ -13,7 +13,7 @@ function buildChain(overrides?: {
   singleData?: unknown;
   singleError?: unknown;
 }) {
-  const chain: Record<string, any> = {};
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
   for (const m of [
     'select',
     'insert',
@@ -148,17 +148,20 @@ describe('handleInvoicePaymentSucceeded', () => {
     );
   });
 
-  it('returns early when user not found', async () => {
+  it('fails so Stripe retries when the customer profile lookup errors', async () => {
     const chain = buildChain({
       singleData: null,
       singleError: { message: 'not found' },
     });
     mockFrom.mockReturnValue(chain);
 
-    await handleInvoicePaymentSucceeded(makeInvoice(), mockNotify);
+    await expect(
+      handleInvoicePaymentSucceeded(makeInvoice(), mockNotify)
+    ).rejects.toThrow('Failed to load invoice customer profile');
 
-    expect(mockLoggerWarn).toHaveBeenCalledWith(
-      'User not found for invoice customer',
+    expect(mockLoggerError).toHaveBeenCalledWith(
+      'Failed to load invoice customer profile',
+      expect.any(Object),
       expect.objectContaining({ customerId: 'cus_test_123' })
     );
   });

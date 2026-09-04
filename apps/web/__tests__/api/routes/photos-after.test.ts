@@ -467,6 +467,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
   // ---- Invalid file type ----
   it('should return 400 for invalid file type', async () => {
     setupPhotoMocks();
+    mocks.validateImageUpload.mockResolvedValue({
+      valid: false,
+      error: 'Invalid file type',
+    });
 
     const formData = new FormData();
     formData.append(
