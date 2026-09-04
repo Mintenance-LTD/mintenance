@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
@@ -13,7 +16,7 @@ export const GET = withApiHandler(
 
     const { data: job, error: jobError } = await userDb
       .from('jobs')
-      .select('id, homeowner_id, contractor_id')
+      .select('id, homeowner_id, payer_user_id, contractor_id')
       .eq('id', jobId)
       .single();
 
@@ -22,13 +25,22 @@ export const GET = withApiHandler(
     }
 
     // Allow homeowner, assigned contractor, or admin
-    if (job.homeowner_id !== user.id && job.contractor_id !== user.id && user.role !== 'admin') {
-      throw new ForbiddenError('You do not have permission to access escrow details for this job');
+    if (
+      job.homeowner_id !== user.id &&
+      job.payer_user_id !== user.id &&
+      job.contractor_id !== user.id &&
+      user.role !== 'admin'
+    ) {
+      throw new ForbiddenError(
+        'You do not have permission to access escrow details for this job'
+      );
     }
 
     const { data: escrow, error: escrowError } = await userDb
       .from('escrow_transactions')
-      .select('id, job_id, status, amount, payment_intent_id, created_at, updated_at')
+      .select(
+        'id, job_id, status, amount, payment_intent_id, created_at, updated_at'
+      )
       .eq('job_id', jobId)
       .order('created_at', { ascending: false })
       .limit(1)

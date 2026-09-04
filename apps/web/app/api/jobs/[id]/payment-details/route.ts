@@ -17,7 +17,9 @@ export const GET = withApiHandler(
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, title, budget, homeowner_id, contractor_id, status')
+      .select(
+        'id, title, budget, homeowner_id, payer_user_id, contractor_id, status'
+      )
       .eq('id', jobId)
       .single();
 
@@ -30,14 +32,15 @@ export const GET = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       logger.warn('[SECURITY] Unauthorized payment details access attempt', {
         jobId,
         userId: user.id,
         homeownerId: job.homeowner_id,
+        payerUserId: job.payer_user_id,
       });
       throw new ForbiddenError(
-        'Only the job homeowner can view payment details'
+        'Only the homeowner or designated payer can view payment details'
       );
     }
 
