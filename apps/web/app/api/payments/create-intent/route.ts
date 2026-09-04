@@ -9,7 +9,11 @@ import {
   storeIdempotencyResult,
   releaseIdempotencyClaim,
 } from '@/lib/idempotency';
-import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { stripe } from '@/lib/stripe';
 import {
@@ -216,13 +220,25 @@ export const POST = withApiHandler(
       // accepted bid and use its amount as the single source of truth for
       // what goes to Stripe + escrow. The client-supplied amount is only
       // used to detect tampering (logged, warning, but not trusted).
-      const { data: acceptedBid } = await serverSupabase
+      const { data: acceptedBid, error: acceptedBidError } = await serverSupabase
         .from('bids')
         .select('id, amount, status, quote_id')
         .eq('job_id', jobId)
         .eq('contractor_id', contractorId)
         .eq('status', 'accepted')
         .single();
+
+      if (acceptedBidError) {
+        logger.error('Failed to load accepted bid before payment intent', acceptedBidError, {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          contractorId,
+        });
+        throw new InternalServerError(
+          'Could not verify the accepted bid. Payment was not attempted.'
+        );
+      }
 
       // Postgres NUMERIC values may arrive from PostgREST as strings. Convert
       // once at the trust boundary so a valid accepted bid is not rejected
