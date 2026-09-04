@@ -158,6 +158,24 @@ export const PATCH = withApiHandler(
     }
 
     const d = parsed.data;
+    let previousVerificationStatus: string | null = null;
+    if (d.submitVerification) {
+      const { data: currentProfile, error: currentProfileError } =
+        await serverSupabase
+          .from('profiles')
+          .select('verification_status')
+          .eq('id', user.id)
+          .maybeSingle();
+      if (currentProfileError) {
+        logger.error(
+          'business-profile verification status lookup failed',
+          currentProfileError,
+          { service: 'contractor.business-profile', userId: user.id }
+        );
+        throw new InternalServerError('Failed to submit verification request');
+      }
+      previousVerificationStatus = currentProfile?.verification_status ?? null;
+    }
     const profileUpdate: Record<string, unknown> = {};
     if (d.companyName !== undefined)
       profileUpdate.company_name = d.companyName.length ? d.companyName : null;
@@ -393,6 +411,18 @@ export const PATCH = withApiHandler(
             mappedRegister: register,
           }
         );
+        const { error: rollbackError } = await serverSupabase
+          .from('profiles')
+          .update({ verification_status: previousVerificationStatus })
+          .eq('id', user.id)
+          .eq('verification_status', 'pending');
+        if (rollbackError) {
+          logger.error(
+            'business-profile verification status rollback failed',
+            rollbackError,
+            { service: 'contractor.business-profile', userId: user.id }
+          );
+        }
         throw new InternalServerError(
           'Failed to submit verification request'
         );
