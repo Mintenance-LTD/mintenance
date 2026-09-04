@@ -14,6 +14,7 @@ import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 // Audit P2 (2026-05-10): `.strict()` blocks unknown body keys so a
 // rogue client can't smuggle e.g. `amount` / `escrowId` overrides
@@ -48,9 +49,19 @@ export const POST = withApiHandler(
       paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
+        const response = createPaymentErrorResponse(error, {
+          operation: 'confirm_payment_intent',
+          userId: user.id,
+          jobId,
+          paymentIntentId,
+        });
         return NextResponse.json(
-          { error: error.message, type: error.type },
-          { status: 400 }
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
         );
       }
       throw error;
