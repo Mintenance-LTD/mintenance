@@ -300,7 +300,7 @@ export const POST = withApiHandler(
         details: deleteError.details,
       });
       throw new InternalServerError(
-        `Account deletion failed inside the database (${deleteError.message}). Your data has not been removed and your subscription billing is unchanged — please contact support so we can clear any FK constraint blocking the deletion.`
+        'Account deletion could not be completed. Your data has not been removed and subscription billing is unchanged. Please contact support.'
       );
     }
 
@@ -365,13 +365,11 @@ export const POST = withApiHandler(
     // what happened. The data is already gone at this point; an
     // operator follow-up is needed to remove the orphan auth row.
     let authDeleteFailed = false;
-    let authDeleteErrMsg: string | undefined;
     try {
       const { error: authDeleteError } =
         await serverSupabase.auth.admin.deleteUser(user.id);
       if (authDeleteError) {
         authDeleteFailed = true;
-        authDeleteErrMsg = authDeleteError.message;
         logger.error(
           'Failed to delete auth.users row after data deletion',
           authDeleteError,
@@ -382,7 +380,6 @@ export const POST = withApiHandler(
       }
     } catch (error) {
       authDeleteFailed = true;
-      authDeleteErrMsg = error instanceof Error ? error.message : String(error);
       logger.error('auth.admin.deleteUser threw', error, { userId: user.id });
     }
 
@@ -407,9 +404,7 @@ export const POST = withApiHandler(
       // able to sign in. Surface the failure so they know — and so we
       // see it in monitoring instead of silently leaving orphan rows.
       throw new InternalServerError(
-        `Account data was deleted but the login credential could not be removed${
-          authDeleteErrMsg ? ` (${authDeleteErrMsg})` : ''
-        }. Please contact support — your data is gone but you may still be able to sign in until an operator clears the credential.`
+        'Account data was deleted but the login credential could not be removed. Please contact support.'
       );
     }
 
@@ -417,10 +412,10 @@ export const POST = withApiHandler(
     // reordered cancellation block surface here. Data is gone, auth
     // credential is gone — but if any Stripe sub failed to cancel,
     // billing continues until ops manually cancels via the dashboard.
-    // Return 500 with the sub ids so the user (and our logs) know.
+    // Return a support-safe 500; subscription ids remain server-side only.
     if (stripeFailures.length > 0) {
       throw new InternalServerError(
-        `Account data and credentials were deleted, but ${stripeFailures.length} Stripe subscription(s) could not be cancelled — billing may continue until support intervenes. Please contact support with these references: ${stripeFailures.map((f) => f.id).join(', ')}.`
+        'Account data and credentials were deleted, but subscription cancellation requires support. Please contact support.'
       );
     }
 
