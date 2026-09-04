@@ -164,16 +164,16 @@ async function processWithSAM3(imageUrl: string): Promise<unknown> {
 
 async function updateContributorStats(contractorId: string): Promise<void> {
   try {
-    const { data: current } = await serverSupabase
-      .from('contractor_contributions')
-      .select('images_contributed, credits_earned')
-      .eq('contractor_id', contractorId)
-      .single();
-
-    if (!current) {
-      await serverSupabase.from('contractor_contributions').insert({ contractor_id: contractorId, images_contributed: 1, credits_earned: 5 });
-    } else {
-      await serverSupabase.from('contractor_contributions').update({ images_contributed: current.images_contributed + 1, credits_earned: current.credits_earned + 5, updated_at: new Date().toISOString() }).eq('contractor_id', contractorId);
+    const { error } = await serverSupabase.rpc(
+      'increment_contractor_contribution_stats',
+      {
+        p_contractor_id: contractorId,
+        p_images: 1,
+        p_credits: 5,
+      }
+    );
+    if (error) {
+      throw error;
     }
   } catch (error) {
     logger.error('Failed to update stats:', error, { service: 'api' });
