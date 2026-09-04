@@ -287,7 +287,14 @@ function setupRefundMocks(
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: null }),
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'job-1' },
+                error: null,
+              }),
+            }),
+          }),
         }),
       };
     }

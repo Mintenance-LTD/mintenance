@@ -463,15 +463,19 @@ export const POST = withApiHandler(
       // this point, so a failed job update must not be reported as a clean
       // success: it leaves the UI and downstream workflow inconsistent with
       // the refunded payment and requires reconciliation.
-      const { error: jobStatusError } = await serverSupabase
+      const { data: cancelledJob, error: jobStatusError } = await serverSupabase
         .from('jobs')
         .update({ status: 'cancelled' })
-        .eq('id', jobId);
+        .eq('id', jobId)
+        .select('id')
+        .maybeSingle();
 
-      if (jobStatusError) {
+      if (jobStatusError || !cancelledJob) {
+        const effectiveError =
+          jobStatusError ?? new Error('Job cancellation matched no rows');
         logger.error(
           'Refund succeeded but failed to cancel the associated job',
-          jobStatusError,
+          effectiveError,
           {
             service: 'payments',
             userId: user.id,
