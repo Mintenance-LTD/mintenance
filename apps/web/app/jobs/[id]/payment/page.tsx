@@ -84,15 +84,28 @@ function JobPaymentPageContent() {
         return;
       }
 
-      const isHomeowner = currentUser.role === 'homeowner';
       const typedJobData = jobData as Job;
+      // The API returns the server-managed payer field, but the legacy
+      // shared Job type does not model it yet. Read both database and UI
+      // aliases so a landlord/agent payer is not rejected by this client
+      // gate after the server has already authorised them.
+      const jobWithPayer = typedJobData as Job & {
+        payer_user_id?: string | null;
+        payerUserId?: string | null;
+      };
       const isJobOwner =
         typedJobData.homeownerId === currentUser.id ||
         typedJobData.homeowner_id === currentUser.id;
+      const isDesignatedPayer =
+        jobWithPayer.payer_user_id === currentUser.id ||
+        jobWithPayer.payerUserId === currentUser.id;
 
-      if (!isHomeowner || !isJobOwner) {
+      if (
+        currentUser.role !== 'homeowner' ||
+        (!isJobOwner && !isDesignatedPayer)
+      ) {
         setError(
-          'Only the job owner (homeowner) can make payments for this job'
+          'Only the job owner or designated payer can make payments for this job'
         );
         router.push(`/jobs/${jobId}`);
         return;
