@@ -170,7 +170,12 @@ export async function performStripeTransfer(
         release_reason: null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', escrowTransactionId);
+      // Do not overwrite a concurrent dispute/refund/terminal transition.
+      // If another handler has moved the row, leaving it in that state is
+      // safer than reopening it as releasable; operators can reconcile a
+      // release_pending row if necessary.
+      .eq('id', escrowTransactionId)
+      .eq('status', ESCROW_STATUS.RELEASE_PENDING);
 
     throw new InternalServerError(
       'Payment transfer failed. No funds were moved. Please try again.'
@@ -190,7 +195,7 @@ export async function getChargeId(
     return typeof paymentIntent.latest_charge === 'string'
       ? paymentIntent.latest_charge
       : paymentIntent.latest_charge?.id;
-  } catch (error) {
+  } catch {
     logger.warn('Failed to retrieve payment intent for fee tracking', {
       service: 'payments',
       paymentIntentId,
