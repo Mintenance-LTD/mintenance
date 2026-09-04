@@ -207,11 +207,28 @@ export const POST = withApiHandler(
       // A Stripe webhook may have completed this transition first. Accept
       // that state, but never report success for a missing or incompatible
       // escrow row.
-      const { data: existingEscrow } = await serverSupabase
+      const { data: existingEscrow, error: existingEscrowError } = await serverSupabase
         .from('escrow_transactions')
         .select('id, status')
         .eq('payment_intent_id', confirmedIntent.id)
         .maybeSingle();
+
+      if (existingEscrowError) {
+        logger.error('Failed to verify escrow after payment confirmation', existingEscrowError, {
+          service: 'payments',
+          jobId,
+          paymentIntentId: confirmedIntent.id,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Payment succeeded but its recorded state could not be verified. Support has been notified.',
+            paymentIntentId: confirmedIntent.id,
+          },
+          { status: 500 }
+        );
+      }
 
       if (!existingEscrow || existingEscrow.status !== 'held') {
         logger.error('Payment succeeded but escrow state is not held', {
