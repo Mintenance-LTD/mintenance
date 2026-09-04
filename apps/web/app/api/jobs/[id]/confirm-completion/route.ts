@@ -18,6 +18,7 @@ import {
   NotFoundError,
   BadRequestError,
   ConflictError,
+  InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
@@ -188,12 +189,13 @@ export const POST = withApiHandler(
         // needs both. Now writes the new `completion_confirmed_at`
         // column (migration 20260524130000) and leaves `completed_at`
         // intact.
+        const confirmationTimestamp = new Date().toISOString();
         const { data: confirmedRows, error: updateError } = await serverSupabase
           .from('jobs')
           .update({
             completion_confirmed_by_homeowner: true,
-            completion_confirmed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            completion_confirmed_at: confirmationTimestamp,
+            updated_at: confirmationTimestamp,
           })
           .eq('id', jobId)
           .eq('completion_confirmed_by_homeowner', false)
@@ -387,17 +389,17 @@ export const POST = withApiHandler(
                   escrowId: preEscrow.id,
                 }
               );
-              // Don't fail the request, but log the issue. Next cron
-              // pass picks it up via the existing auto_release_date
-              // field if it was previously set by the complete-job hook.
-            } else {
-              logger.info('Escrow marked for next auto-release cron run', {
-                service: 'jobs',
-                jobId,
-                escrowId: preEscrow.id,
-                amount: preEscrow.amount,
-              });
+              throw new InternalServerError(
+                'Payment could not be prepared for release'
+              );
             }
+
+            logger.info('Escrow marked for next auto-release cron run', {
+              service: 'jobs',
+              jobId,
+              escrowId: preEscrow.id,
+              amount: preEscrow.amount,
+            });
           } catch (escrowError) {
             logger.error(
               'Unexpected error handling escrow release',
@@ -407,7 +409,30 @@ export const POST = withApiHandler(
                 jobId,
               }
             );
-            // Don't fail the request
+            const { error: rollbackError } = await serverSupabase
+              .from('jobs')
+              .update({
+                completion_confirmed_by_homeowner: false,
+                completion_confirmed_at: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', jobId)
+              .eq('completion_confirmed_by_homeowner', true)
+              .eq('completion_confirmed_at', confirmationTimestamp);
+
+            if (rollbackError) {
+              logger.error(
+                'Failed to roll back job confirmation after escrow failure',
+                rollbackError,
+                { service: 'jobs', jobId, escrowId: preEscrow.id }
+              );
+            }
+            if (escrowError instanceof InternalServerError) {
+              throw escrowError;
+            }
+            throw new InternalServerError(
+              'Payment could not be prepared for release'
+            );
           }
         } else {
           logger.info(
