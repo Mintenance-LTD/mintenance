@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
@@ -23,11 +23,14 @@ const manageSkillsSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request, { user }) => {
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
-
     const validation = await validateRequest(request, manageSkillsSchema);
     if (validation instanceof NextResponse) return validation;
     const { skills } = validation.data;
+
+    // The active contractor_skills INSERT policy is service_role-only. Use
+    // the server client for both operations, but keep every mutation scoped
+    // to the authenticated contractor ID; never trust a client-supplied ID.
+    const userDb = serverSupabase;
 
     // Delete all existing skills
     const { error: deleteError } = await userDb
