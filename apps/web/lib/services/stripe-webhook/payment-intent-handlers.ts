@@ -187,7 +187,7 @@ export async function handlePaymentIntentSucceeded(
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
       });
-      return;
+      throw new Error('Failed to persist funded escrow transaction');
     }
 
     if (!escrowTransaction) {
@@ -195,7 +195,7 @@ export async function handlePaymentIntentSucceeded(
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
       });
-      return;
+      throw new Error('Escrow transaction missing for successful payment');
     }
 
     await reconcileInvoicePayment(paymentIntent);
@@ -233,13 +233,26 @@ export async function handlePaymentIntentSucceeded(
       }
 
       if (validPayer && validContractor) {
-        await serverSupabase
+        const { error: participantUpdateError } = await serverSupabase
           .from('escrow_transactions')
           .update({
             payer_id: payerId,
             payee_id: contractorId,
           })
           .eq('id', escrowTransaction.id);
+
+        if (participantUpdateError) {
+          logger.error(
+            'Failed to backfill escrow participants from payment metadata',
+            participantUpdateError,
+            {
+              service: 'stripe-webhook',
+              paymentIntentId: paymentIntent.id,
+              escrowId: escrowTransaction.id,
+            }
+          );
+          throw new Error('Failed to persist escrow participants');
+        }
 
         logger.info('Backfilled payer_id and payee_id for escrow transaction', {
           service: 'stripe-webhook',
@@ -268,6 +281,7 @@ export async function handlePaymentIntentSucceeded(
         service: 'stripe-webhook',
         jobId: escrowTransaction.job_id,
       });
+      throw new Error('Failed to persist job payment status');
     }
 
     // R6 #5 deferred: tell every stakeholder the job is funded. This is
