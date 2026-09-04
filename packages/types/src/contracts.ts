@@ -39,11 +39,7 @@ export interface Contract {
 
 // Dispute interface matching DB: public.disputes
 export type DisputeStatus =
-  | 'open'
-  | 'under_review'
-  | 'resolved'
-  | 'escalated'
-  | 'closed';
+  'open' | 'under_review' | 'resolved' | 'escalated' | 'closed';
 
 export interface Dispute {
   id: string;
@@ -121,6 +117,10 @@ export interface JobDetail extends JobSummary {
   location?: { lat: number; lng: number } | string;
   attachments?: string[];
   timeline?: TimelineEvent[];
+  /** Database ownership fields returned by the canonical job detail API. */
+  homeowner_id?: string;
+  payer_user_id?: string | null;
+  contractor_id?: string | null;
 }
 
 interface Message {
@@ -144,11 +144,7 @@ interface Payment {
   amount: number;
   currency: string;
   status:
-    | 'requires_payment'
-    | 'processing'
-    | 'succeeded'
-    | 'failed'
-    | 'refunded';
+    'requires_payment' | 'processing' | 'succeeded' | 'failed' | 'refunded';
   createdAt: string;
 }
 

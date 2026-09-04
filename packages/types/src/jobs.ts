@@ -7,6 +7,8 @@ export interface Job {
   description: string;
   location: string | Record<string, unknown>; // JSONB in DB, string in some UI contexts
   homeowner_id: string; // Database field (snake_case)
+  /** Server-managed landlord/agent payer for tenancy jobs. */
+  payer_user_id?: string | null;
   contractor_id?: string; // Database field (snake_case)
   status:
     | 'draft'
@@ -31,6 +33,7 @@ export interface Job {
   postcode?: string;
   // Computed/alias fields for UI layer (camelCase)
   homeownerId?: string; // Alias for homeowner_id
+  payerUserId?: string | null; // Alias for payer_user_id
   contractorId?: string; // Alias for contractor_id
   createdAt?: string; // Alias for created_at
   updatedAt?: string; // Alias for updated_at

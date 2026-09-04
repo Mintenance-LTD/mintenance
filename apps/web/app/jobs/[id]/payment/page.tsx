@@ -85,20 +85,12 @@ function JobPaymentPageContent() {
       }
 
       const typedJobData = jobData as Job;
-      // The API returns the server-managed payer field, but the legacy
-      // shared Job type does not model it yet. Read both database and UI
-      // aliases so a landlord/agent payer is not rejected by this client
-      // gate after the server has already authorised them.
-      const jobWithPayer = typedJobData as Job & {
-        payer_user_id?: string | null;
-        payerUserId?: string | null;
-      };
       const isJobOwner =
         typedJobData.homeownerId === currentUser.id ||
         typedJobData.homeowner_id === currentUser.id;
       const isDesignatedPayer =
-        jobWithPayer.payer_user_id === currentUser.id ||
-        jobWithPayer.payerUserId === currentUser.id;
+        typedJobData.payer_user_id === currentUser.id ||
+        typedJobData.payerUserId === currentUser.id;
 
       if (
         currentUser.role !== 'homeowner' ||
