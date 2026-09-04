@@ -282,7 +282,17 @@ export const performanceMonitor = new PerformanceMonitor();
 
 // Auto-track memory usage every 30 seconds in development
 if (__DEV__) {
-  setInterval(() => {
+  const memoryMonitoringInterval = setInterval(() => {
     performanceMonitor.recordMemoryUsage();
   }, 30000);
+
+  // Do not keep Node-based tooling (tests, scripts, bundlers) alive solely
+  // because the development-only monitor is scheduled. React Native timer
+  // handles do not expose `unref`, so this remains a no-op on device.
+  const unref = (
+    memoryMonitoringInterval as ReturnType<typeof setInterval> & {
+      unref?: () => void;
+    }
+  ).unref;
+  unref?.call(memoryMonitoringInterval);
 }
