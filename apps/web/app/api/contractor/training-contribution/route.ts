@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import crypto from 'crypto';
 import { logger } from '@mintenance/shared';
+import { JOB_CATEGORIES } from '@mintenance/api-contracts';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
   validateImageUpload,
@@ -18,9 +19,14 @@ export const POST = withApiHandler(
   async (request, { user }) => {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
-    const category = formData.get('category') as string;
+    const rawCategory = formData.get('category');
+    const category = typeof rawCategory === 'string' ? rawCategory : null;
 
-    if (!imageFile || !category) {
+    if (
+      !imageFile ||
+      !category ||
+      !(JOB_CATEGORIES as readonly string[]).includes(category)
+    ) {
       return NextResponse.json({ error: 'Image and category are required' }, { status: 400 });
     }
 
