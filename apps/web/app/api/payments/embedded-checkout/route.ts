@@ -422,11 +422,37 @@ export const POST = withApiHandler(
       // amount is the server-authoritative accepted-bid amount (audit C2) —
       // identical to what the Checkout Session charges via price_data above.
       if (jobId && contractorStripeAccountId) {
-        const { data: job } = await serverSupabase
+        const { data: job, error: jobError } = await serverSupabase
           .from('jobs')
           .select('homeowner_id, payer_user_id, contractor_id')
           .eq('id', jobId)
           .single();
+
+        if (jobError || !job?.contractor_id) {
+          logger.error('Failed to load job before escrow creation', jobError, {
+            service: 'payments',
+            sessionId: session.id,
+            jobId,
+          });
+          try {
+            await stripe.checkout.sessions.expire(session.id);
+          } catch (expireError) {
+            logger.error(
+              'Failed to expire checkout session after job lookup failure',
+              expireError,
+              {
+                service: 'payments',
+                sessionId: session.id,
+                jobId,
+              }
+            );
+          }
+          await releaseIdempotencyClaim(idempotencyKey, checkoutOperation);
+          return NextResponse.json(
+            { error: 'Payment setup failed. Please try again.' },
+            { status: 500 }
+          );
+        }
 
         const { error: escrowError } = await serverSupabase
           .from('escrow_transactions')
