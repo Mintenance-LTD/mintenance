@@ -61,6 +61,7 @@ export async function handleAccountUpdated(
           contractorId,
         }
       );
+      throw new Error('Failed to persist Stripe Connect profile status');
     }
 
     const { error: payoutUpdateError } = await serverSupabase
@@ -82,6 +83,7 @@ export async function handleAccountUpdated(
           contractorId,
         }
       );
+      throw new Error('Failed to persist Stripe Connect payout status');
     }
 
     logger.info('Stripe Connect account synced successfully', {
@@ -197,13 +199,26 @@ async function handleCheckoutSetup(
           : session.customer?.id;
 
       if (customerId) {
-        await serverSupabase
+        const { error: profileUpdateError } = await serverSupabase
           .from('profiles')
           .update({
             stripe_default_payment_method: paymentMethodId,
             updated_at: new Date().toISOString(),
           })
           .eq('stripe_customer_id', customerId);
+
+        if (profileUpdateError) {
+          logger.error(
+            'Failed to persist setup checkout payment method',
+            profileUpdateError,
+            {
+              service: 'stripe-webhook',
+              sessionId: session.id,
+              customerId,
+            }
+          );
+          throw new Error('Failed to persist setup checkout payment method');
+        }
       }
     }
 
@@ -219,6 +234,7 @@ async function handleCheckoutSetup(
       service: 'stripe-webhook',
       sessionId: session.id,
     });
+    throw setupError;
   }
 }
 
