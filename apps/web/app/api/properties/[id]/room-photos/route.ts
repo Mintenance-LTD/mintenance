@@ -5,16 +5,10 @@ import { logger } from '@mintenance/shared';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
+import { validateImageUpload } from '@/lib/utils/fileValidation';
 
 const supabase = serverSupabase;
 
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_FILES_PER_UPLOAD = 10;
 
@@ -163,20 +157,15 @@ export const POST = withApiHandler(
     const errors: string[] = [];
 
     for (const file of photoFiles) {
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        errors.push(`${file.name}: Invalid file type`);
-        continue;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name}: File too large (max 5MB)`);
+      // Validate magic bytes and extension together; client-declared MIME
+      // types are forgeable and must not decide what gets stored.
+      const validation = await validateImageUpload(file, MAX_FILE_SIZE);
+      if (!validation.valid || !validation.detectedType) {
+        errors.push(`${file.name}: ${validation.error || 'Invalid image file'}`);
         continue;
       }
 
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-      if (!ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        errors.push(`${file.name}: Invalid extension`);
-        continue;
-      }
+      const fileExt = validation.detectedType.split('/')[1] || 'jpg';
 
       const sanitizedName = file.name
         .replace(/[^a-zA-Z0-9.-]/g, '_')
@@ -187,7 +176,11 @@ export const POST = withApiHandler(
 
       const { error: uploadError } = await supabase.storage
         .from('Job-storage')
-        .upload(storagePath, file, { cacheControl: '3600', upsert: false });
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: validation.detectedType,
+        });
 
       if (uploadError) {
         logger.error('Room photo upload error', uploadError, {

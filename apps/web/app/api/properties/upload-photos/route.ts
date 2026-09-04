@@ -112,7 +112,7 @@ export const POST = withApiHandler(
           userId: user.id,
           fileName: file.name,
         });
-        uploadErrors.push(`${file.name}: ${uploadError.message}`);
+        uploadErrors.push(`${file.name}: Upload failed`);
         continue;
       }
 
