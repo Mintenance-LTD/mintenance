@@ -261,7 +261,7 @@ export async function handleChargeFailed(
       paymentIntentId,
       'charge.failed'
     );
-    if (existing === 'blocked') return;
+    if (existing === 'blocked' || existing === 'error') return;
 
     let escrowTransaction: { payer_id: string | null } | null = null;
     if (existing) {

@@ -331,8 +331,12 @@ describe('handlePaymentIntentFailed', () => {
 
   it('uses metadata jobId when escrow has no job_id', async () => {
     const chain = buildChain({
-      singleData: null,
-      singleError: { message: 'err' },
+      singleData: {
+        id: ESCROW_ID,
+        job_id: null,
+        payer_id: VALID_UUID,
+        status: 'pending',
+      },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -685,7 +689,7 @@ describe('out-of-order event guards', () => {
     );
   });
 
-  it('guard lookup error → escrow untouched, metadata fallback still marks the job', async () => {
+  it('guard lookup error → escrow and job remain untouched', async () => {
     const chain = buildChain({ singleError: { message: 'lookup timeout' } });
     mockFrom.mockReturnValue(chain);
 
@@ -700,7 +704,8 @@ describe('out-of-order event guards', () => {
     expect(chain.update).not.toHaveBeenCalledWith(
       expect.objectContaining({ status: 'failed' })
     );
-    // …but the job-level payment_status fallback (metadata-driven) still runs.
-    expect(mockFrom).toHaveBeenCalledWith('jobs');
+    // The authoritative escrow state is unknown, so metadata must not drive
+    // a job mutation either.
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
   });
 });
