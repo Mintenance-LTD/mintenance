@@ -8,6 +8,10 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import crypto from 'crypto';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import {
+  validateImageUpload,
+  MAX_FILE_SIZES,
+} from '@/lib/utils/fileValidation';
 
 export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
@@ -20,21 +24,27 @@ export const POST = withApiHandler(
       return NextResponse.json({ error: 'Image and category are required' }, { status: 400 });
     }
 
-    if (!imageFile.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Invalid file type. Only images are accepted.' }, { status: 400 });
+    const validation = await validateImageUpload(
+      imageFile,
+      MAX_FILE_SIZES.jobPhoto
+    );
+    if (!validation.valid) {
+      return NextResponse.json({
+        error: validation.error || 'Invalid image file',
+      }, { status: 400 });
     }
 
-    if (imageFile.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Image size must be less than 10MB' }, { status: 400 });
-    }
-
-    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${imageFile.type.split('/')[1]}`;
+    const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
+    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
     const arrayBuffer = await imageFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const { error: uploadError } = await serverSupabase.storage
       .from('training-images')
-      .upload(fileName, buffer, { contentType: imageFile.type, upsert: false });
+      .upload(fileName, buffer, {
+        contentType: validation.detectedType,
+        upsert: false,
+      });
 
     if (uploadError) {
       logger.error('Upload error:', uploadError, { service: 'api' });
@@ -61,14 +71,18 @@ export const POST = withApiHandler(
         assessment_id: assessmentId,
         image_urls: [publicUrl],
         issue_type: category,
-        confidence: 100,
-        response_quality: 'high',
-        human_verified: true,
-        verified_by: user.id,
-        verified_at: new Date().toISOString(),
+        // This is an authenticated contractor submission, not an
+        // independently reviewed label. Keep it out of verified training
+        // sets until an authorised reviewer confirms it.
+        confidence: null,
+        response_quality: 'uncertain',
+        human_verified: false,
+        verified_by: null,
+        verified_at: null,
       });
 
     if (labelError) {
+      await serverSupabase.storage.from('training-images').remove([fileName]);
       logger.error('Label save error:', labelError, { service: 'api' });
       throw labelError;
     }
@@ -83,9 +97,9 @@ export const POST = withApiHandler(
         scores: segmentationData.scores,
         num_instances: segmentationData.num_instances,
         total_affected_area: segmentationData.areas?.[0] || 0,
-        human_verified: true,
-        verified_by: user.id,
-        verified_at: new Date().toISOString(),
+        human_verified: false,
+        verified_by: null,
+        verified_at: null,
       });
     }
 
