@@ -31,7 +31,10 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { BadRequestError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
   validateImageUpload,
@@ -44,7 +47,14 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 10 } },
   async (request, { user }) => {
     const formData = await request.formData();
-    const file = formData.get('selfie') as File | null;
+    const rawFile = formData.get('selfie');
+    const file =
+      typeof rawFile === 'object' &&
+      rawFile !== null &&
+      'size' in rawFile &&
+      'arrayBuffer' in rawFile
+        ? rawFile
+        : null;
 
     if (!file) {
       throw new BadRequestError('No file uploaded');
@@ -64,11 +74,22 @@ export const POST = withApiHandler(
 
     // Read the existing photo BEFORE overwriting so the old blob can be
     // cleaned up after a successful update.
-    const { data: previousProfile } = await serverSupabase
+    const { data: previousProfile, error: previousProfileError } =
+      await serverSupabase
       .from('profiles')
       .select('profile_image_url')
       .eq('id', user.id)
       .single();
+    if (previousProfileError) {
+      logger.error(
+        'Failed to read existing profile before selfie replacement',
+        previousProfileError,
+        { service: 'users.selfie', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to prepare selfie replacement. Please try again.'
+      );
+    }
     const previousUrl = previousProfile?.profile_image_url ?? null;
 
     // Extension from the DETECTED type, never the client filename.
@@ -77,7 +98,11 @@ export const POST = withApiHandler(
 
     const { error: uploadError } = await serverSupabase.storage
       .from(BUCKET)
-      .upload(filePath, file, { cacheControl: '3600', upsert: false });
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        contentType: validation.detectedType,
+        upsert: false,
+      });
 
     if (uploadError) {
       logger.error('Failed to upload selfie', uploadError, {
