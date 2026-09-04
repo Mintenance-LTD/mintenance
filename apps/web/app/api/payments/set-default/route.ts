@@ -35,11 +35,18 @@ export const POST = withApiHandler(
 
     // Get user's Stripe customer ID (column may not exist in DB schema)
     let stripeCustomerId: string | null = null;
-    const { data: stripeData } = await serverSupabase
+    const { data: stripeData, error: stripeDataError } = await serverSupabase
       .from('profiles')
       .select('stripe_customer_id')
       .eq('id', user.id)
       .single();
+    if (stripeDataError) {
+      logger.error('Failed to read Stripe customer link', stripeDataError, {
+        service: 'payments',
+        userId: user.id,
+      });
+      throw new Error('Failed to load payment account');
+    }
     if (stripeData) {
       stripeCustomerId = (stripeData as Record<string, unknown>)
         .stripe_customer_id as string | null;
