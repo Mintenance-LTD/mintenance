@@ -15,6 +15,17 @@ const supabase = serverSupabase;
 const MAX_FILE_SIZE = MAX_FILE_SIZES.profileImage;
 const MAX_FILES = 10; // Maximum 10 photos per property
 
+async function removeUploadedObject(path: string, userId: string) {
+  const { error } = await supabase.storage.from('Job-storage').remove([path]);
+  if (error) {
+    logger.error('Failed to clean up orphaned property photo', error, {
+      service: 'property_photos',
+      userId,
+      path,
+    });
+  }
+}
+
 /**
  * POST /api/properties/upload-photos
  *
@@ -60,7 +71,15 @@ export const POST = withApiHandler(
 
     // Parse form data
     const formData = await request.formData();
-    const photoFiles = formData.getAll('photos') as File[];
+    const photoFiles = formData
+      .getAll('photos')
+      .filter(
+        (value): value is File =>
+          typeof value === 'object' &&
+          value !== null &&
+          'size' in value &&
+          'arrayBuffer' in value
+      );
     const categories = formData.getAll('categories') as string[];
 
     if (!photoFiles || photoFiles.length === 0) {
@@ -112,7 +131,7 @@ export const POST = withApiHandler(
           userId: user.id,
           fileName: file.name,
         });
-        uploadErrors.push(`${file.name}: ${uploadError.message}`);
+        uploadErrors.push(`${file.name}: Upload failed`);
         continue;
       }
 
@@ -123,6 +142,7 @@ export const POST = withApiHandler(
       if (signedUrl) {
         uploadedPhotos.push({ url: signedUrl, category });
       } else {
+        await removeUploadedObject(fileName, user.id);
         uploadErrors.push(`${file.name}: Failed to sign URL`);
       }
 

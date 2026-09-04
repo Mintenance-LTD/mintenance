@@ -1,6 +1,7 @@
 import { withCronHandler } from '@/lib/cron-handler';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { ServiceUnavailableError } from '@/lib/errors/api-error';
 
 /**
  * Cron: PII data cleanup (P1-13 production readiness)
@@ -13,6 +14,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
  */
 export const GET = withCronHandler('pii-cleanup', async () => {
   const results: Record<string, number | string> = {};
+  const failures: string[] = [];
 
   // 1. Delete old login attempts (PII: IP address, user agent)
   const thirtyDaysAgo = new Date(
@@ -24,6 +26,7 @@ export const GET = withCronHandler('pii-cleanup', async () => {
     .lt('created_at', thirtyDaysAgo);
 
   if (loginErr) {
+    failures.push('login_attempts');
     logger.warn('Failed to clean login_attempts', {
       service: 'pii-cleanup',
       error: loginErr.message,
@@ -43,6 +46,7 @@ export const GET = withCronHandler('pii-cleanup', async () => {
     .not('ip_address', 'is', null);
 
   if (anonErr) {
+    failures.push('security_events');
     logger.warn('Failed to anonymize security_events IPs', {
       service: 'pii-cleanup',
       error: anonErr.message,
@@ -57,6 +61,7 @@ export const GET = withCronHandler('pii-cleanup', async () => {
     .lt('expires_at', thirtyDaysAgo);
 
   if (tokenErr) {
+    failures.push('refresh_tokens');
     logger.warn('Failed to clean refresh_tokens', {
       service: 'pii-cleanup',
       error: tokenErr.message,
@@ -71,12 +76,25 @@ export const GET = withCronHandler('pii-cleanup', async () => {
     .lt('expires_at', sevenDaysAgo);
 
   if (resetErr) {
+    failures.push('password_reset_tokens');
     logger.warn('Failed to clean password_reset_tokens', {
       service: 'pii-cleanup',
       error: resetErr.message,
     });
   }
   results.reset_tokens_deleted = resetCount ?? 0;
+
+  if (failures.length > 0) {
+    // A successful response tells the scheduler not to retry. Report a
+    // failure whenever any retention category could not be processed, so
+    // personal data is not silently retained until the next calendar run.
+    logger.error('PII cleanup incomplete; retry required', undefined, {
+      service: 'pii-cleanup',
+      failures,
+      results,
+    });
+    throw new ServiceUnavailableError('PII cleanup');
+  }
 
   logger.info('PII cleanup completed', { service: 'pii-cleanup', results });
 

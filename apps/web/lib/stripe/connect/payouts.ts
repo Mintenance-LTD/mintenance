@@ -188,6 +188,13 @@ export async function processEligiblePayouts(): Promise<{
       continue;
     }
 
+    // Keep this distinct from the surrounding catch: once Stripe accepts a
+    // transfer, restoring the claimed balance on a later database error can
+    // cause a second payout on the next weekly run. The transfer record and
+    // balance mirror then require reconciliation, but the money must not be
+    // automatically re-credited.
+    let transferCreated = false;
+
     try {
       // Deterministic per-contractor-per-week idempotency key (audit C1):
       // a retry of this run returns the same transfer rather than issuing a
@@ -209,18 +216,31 @@ export async function processEligiblePayouts(): Promise<{
           idempotencyKey: `weekly-payout-${balance.contractor_id}-${balance.currency}-${weekBucket}`,
         }
       );
+      transferCreated = true;
 
-      // Record the transfer
-      await serverSupabase.from('contractor_payout_transfers').insert({
-        contractor_id: balance.contractor_id,
-        stripe_transfer_id: transfer.id,
-        stripe_destination_account: profile.stripe_connect_account_id,
-        amount_minor: claimedAmount,
-        currency: balance.currency,
-        status: 'pending',
-      });
+      // Record the transfer idempotently. Stripe may have completed the
+      // transfer even when this database write failed; an upsert lets a
+      // retry reconcile the same transfer instead of treating the unique
+      // transfer ID as a new failure.
+      const { error: transferRecordError } = await serverSupabase
+        .from('contractor_payout_transfers')
+        .upsert(
+          {
+            contractor_id: balance.contractor_id,
+            stripe_transfer_id: transfer.id,
+            stripe_destination_account: profile.stripe_connect_account_id,
+            amount_minor: claimedAmount,
+            currency: balance.currency,
+            status: 'pending',
+          },
+          { onConflict: 'stripe_transfer_id', ignoreDuplicates: true }
+        );
 
-      await serverSupabase
+      if (transferRecordError) {
+        throw transferRecordError;
+      }
+
+      const { error: balanceUpdateError } = await serverSupabase
         .from('contractor_payout_balances')
         .update({
           last_payout_transfer_id: transfer.id,
@@ -229,11 +249,31 @@ export async function processEligiblePayouts(): Promise<{
         .eq('contractor_id', balance.contractor_id)
         .eq('currency', balance.currency);
 
+      if (balanceUpdateError) {
+        throw balanceUpdateError;
+      }
+
       processed++;
     } catch (err) {
-      // Transfer failed AFTER we claimed (zeroed) the balance. Compensate:
-      // add the claimed amount back and revert the lifetime bump so next
-      // week's run retries this payout rather than silently dropping it.
+      // Only compensate when no Stripe transfer was accepted. If Stripe
+      // already created the transfer, re-crediting here would make the next
+      // weekly run pay the same earnings again after a DB persistence error.
+      if (transferCreated) {
+        logger.error(
+          'Payout transfer was created but accounting persistence failed; refusing to re-credit automatically',
+          err,
+          {
+            service: 'payouts',
+            contractorId: balance.contractor_id,
+            claimedAmount,
+          }
+        );
+        failed++;
+        continue;
+      }
+
+      // Transfer was not accepted. Compensate the claim so the next run can
+      // retry this payout rather than silently dropping it.
       logger.error(
         'Stripe transfer failed — restoring claimed balance for retry',
         err,
@@ -249,7 +289,7 @@ export async function processEligiblePayouts(): Promise<{
         .eq('contractor_id', balance.contractor_id)
         .eq('currency', balance.currency)
         .maybeSingle();
-      await serverSupabase
+      const { error: restoreError } = await serverSupabase
         .from('contractor_payout_balances')
         .update({
           pending_amount_minor:
@@ -263,6 +303,17 @@ export async function processEligiblePayouts(): Promise<{
         })
         .eq('contractor_id', balance.contractor_id)
         .eq('currency', balance.currency);
+      if (restoreError) {
+        logger.error(
+          'Failed to restore payout balance after transfer rejection',
+          restoreError,
+          {
+            service: 'payouts',
+            contractorId: balance.contractor_id,
+            claimedAmount,
+          }
+        );
+      }
       failed++;
     }
   }

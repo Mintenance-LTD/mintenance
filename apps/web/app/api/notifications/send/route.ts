@@ -42,10 +42,26 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
 const sendSchema = z
   .object({
     recipientId: z.string().uuid(),
-    type: z.string().min(1).max(64),
+    // This endpoint is for client-initiated conversation/call signals only.
+    // Financial, verification, and administrative notification types must be
+    // emitted by trusted server workflows so a participant cannot impersonate
+    // a payment or security event.
+    type: z.enum([
+      'system',
+      'message',
+      'message_received',
+      'job_update',
+      'meeting_scheduled',
+    ]),
     title: z.string().min(1).max(200),
     body: z.string().min(1).max(1000),
-    actionUrl: z.string().max(500).optional(),
+    actionUrl: z
+      .string()
+      .max(500)
+      .refine((value) => value.startsWith('/') && !value.startsWith('//'), {
+        message: 'actionUrl must be a relative application path',
+      })
+      .optional(),
     data: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
@@ -168,6 +184,10 @@ export const POST = withApiHandler(
       actionUrl,
       data,
     } = parsed.data;
+
+    if (data && JSON.stringify(data).length > 8_192) {
+      throw new BadRequestError('Notification metadata is too large');
+    }
 
     // Authorization: caller must have a business relationship with
     // recipient. This is the security-critical check — any error here

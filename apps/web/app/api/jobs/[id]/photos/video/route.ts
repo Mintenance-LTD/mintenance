@@ -40,7 +40,14 @@ export const POST = withApiHandler(
     }
 
     const formData = await request.formData();
-    const videoFile = formData.get('video') as File | null;
+    const rawVideoFile = formData.get('video');
+    const videoFile =
+      typeof rawVideoFile === 'object' &&
+      rawVideoFile !== null &&
+      'size' in rawVideoFile &&
+      'arrayBuffer' in rawVideoFile
+        ? rawVideoFile
+        : null;
 
     if (!videoFile) {
       throw new BadRequestError('Video file is required');
@@ -75,6 +82,7 @@ export const POST = withApiHandler(
     // so the video stays reachable once `Job-storage` flips to `public=false`.
     const videoUrl = await signJobStoragePath(fileName);
     if (!videoUrl) {
+      await serverSupabase.storage.from('Job-storage').remove([fileName]);
       throw new Error('Failed to get video URL');
     }
 

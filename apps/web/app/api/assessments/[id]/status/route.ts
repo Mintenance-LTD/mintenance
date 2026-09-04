@@ -189,6 +189,17 @@ export const PATCH = withApiHandler(
 
     const update: Record<string, unknown> = {};
     const data = parsed.data;
+    // The owner/mobile flow may persist AI output and mark it for review, but
+    // it must not self-approve a survey result. Terminal validation states
+    // are reserved for the admin moderation endpoint.
+    if (
+      data.validation_status === 'completed' ||
+      data.validation_status === 'validated'
+    ) {
+      throw new ForbiddenError(
+        'Only an administrator can mark an assessment as validated'
+      );
+    }
     if (data.validation_status !== undefined)
       update.validation_status = data.validation_status;
     if (data.damage_type !== undefined) update.damage_type = data.damage_type;

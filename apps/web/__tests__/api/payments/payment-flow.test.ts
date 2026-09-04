@@ -980,7 +980,7 @@ describe('POST /api/payments/refund', () => {
       const request = createMockRequest(
         'http://localhost:3000/api/payments/refund'
       );
-      await POST(request);
+      const response = await POST(request);
       const body = await response.json();
 
       // Route throws UnauthorizedError which is caught and returned as payment error response

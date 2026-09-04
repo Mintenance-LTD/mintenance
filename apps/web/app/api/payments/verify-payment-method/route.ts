@@ -7,10 +7,10 @@ import { logger } from '@mintenance/shared';
 import {
   ForbiddenError,
   NotFoundError,
-  BadRequestError,
 } from '@/lib/errors/api-error';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { createPaymentErrorResponse } from '@/lib/errors/payment-errors';
 
 const verifyPaymentMethodSchema = z.object({
   paymentMethodId: z.string().min(1, 'Payment method ID is required'),
@@ -90,18 +90,22 @@ export const POST = withApiHandler(
       });
     } catch (stripeError) {
       if (stripeError instanceof Stripe.errors.StripeError) {
-        logger.warn('Stripe error during payment method verification', {
-          service: 'payments',
-          userId: user.id,
-          paymentMethodId,
-          error: stripeError.message,
-        });
-
         if (stripeError.code === 'resource_missing') {
           throw new NotFoundError('Payment method not found');
         }
 
-        throw new BadRequestError(stripeError.message);
+        const response = createPaymentErrorResponse(stripeError, {
+          operation: 'verify_payment_method',
+          userId: user.id,
+        });
+        return NextResponse.json(
+          {
+            error: response.error,
+            code: response.code,
+            retryable: response.retryable,
+          },
+          { status: response.status }
+        );
       }
 
       throw stripeError;

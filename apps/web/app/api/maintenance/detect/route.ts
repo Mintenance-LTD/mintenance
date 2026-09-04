@@ -8,13 +8,21 @@ import { fileTypeFromBuffer } from 'file-type';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { maintenanceDetectSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { InternalServerError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     // Get image from form data
     const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
+    const rawImage = formData.get('image');
+    const imageFile =
+      typeof rawImage === 'object' &&
+      rawImage !== null &&
+      'size' in rawImage &&
+      'arrayBuffer' in rawImage
+        ? rawImage
+        : null;
 
     if (!(imageFile instanceof File)) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -49,8 +57,14 @@ export const POST = withApiHandler(
 
     // Validate and sanitize form text fields using Zod schema
     const fieldValidation = maintenanceDetectSchema.safeParse({
-      description: (formData.get('description') as string) || '',
-      urgency: (formData.get('urgency') as string) || 'normal',
+      description:
+        typeof formData.get('description') === 'string'
+          ? formData.get('description')
+          : '',
+      urgency:
+        typeof formData.get('urgency') === 'string'
+          ? formData.get('urgency')
+          : 'normal',
     });
 
     if (!fieldValidation.success) {
@@ -89,6 +103,7 @@ export const POST = withApiHandler(
         .createSignedUrl(fileName, 5 * 60);
 
     if (signedError || !signedData) {
+      await serverSupabase.storage.from('job-attachments').remove([fileName]);
       return NextResponse.json(
         { error: 'Failed to generate image access URL' },
         { status: 500 }
@@ -158,7 +173,7 @@ export const POST = withApiHandler(
     };
 
     // Save assessment to database
-    await serverSupabase
+    const { error: assessmentInsertError } = await serverSupabase
       .from('ai_assessments')
       .insert({
         user_id: user.id,
@@ -172,6 +187,13 @@ export const POST = withApiHandler(
       })
       .select()
       .single();
+
+    if (assessmentInsertError) {
+      await serverSupabase.storage.from('job-attachments').remove([fileName]);
+      throw new InternalServerError(
+        'Failed to save the maintenance assessment. Please try again.'
+      );
+    }
 
     // Sprint 7 (1.4): the mock detection is gone — we no longer fabricate
     // confidence. Client is expected to run YOLO against `image_url` and

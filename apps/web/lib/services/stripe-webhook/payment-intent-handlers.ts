@@ -50,6 +50,7 @@ export async function lookupEscrowForTerminalEvent(
 ): Promise<
   | { id: string; job_id: string | null; payer_id: string | null }
   | null
+  | 'error'
   | 'blocked'
 > {
   const { data: existing, error } = await serverSupabase
@@ -64,7 +65,10 @@ export async function lookupEscrowForTerminalEvent(
       paymentIntentId,
       event: eventLabel,
     });
-    return null;
+    // A lookup failure is distinct from a missing escrow. Callers must not
+    // fall back to metadata-driven mutations while the authoritative state
+    // is unknown.
+    return 'error';
   }
   if (!existing) return null;
   if (!PRE_MONEY_STATUSES.includes(existing.status)) {
@@ -110,7 +114,7 @@ export async function handlePaymentIntentSucceeded(
     // release. Look the row up first and bail on any post-held state.
     const { data: existing, error: lookupError } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, status')
+      .select('id, status, amount')
       .eq('payment_intent_id', paymentIntent.id)
       .maybeSingle();
 
@@ -126,6 +130,23 @@ export async function handlePaymentIntentSucceeded(
       logger.warn('No escrow transaction found for payment intent', {
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
+      });
+      return;
+    }
+
+    const escrowAmountCents = Math.round(Number(existing.amount) * 100);
+    if (
+      paymentIntent.currency.toLowerCase() !== 'gbp' ||
+      !Number.isFinite(escrowAmountCents) ||
+      paymentIntent.amount !== escrowAmountCents
+    ) {
+      logger.error('PaymentIntent does not match GBP escrow invariant', {
+        service: 'stripe-webhook',
+        paymentIntentId: paymentIntent.id,
+        escrowId: existing.id,
+        paymentCurrency: paymentIntent.currency,
+        paymentAmountCents: paymentIntent.amount,
+        escrowAmountCents,
       });
       return;
     }
@@ -311,7 +332,7 @@ export async function handlePaymentIntentFailed(
       paymentIntent.id,
       'payment_intent.payment_failed'
     );
-    if (existing === 'blocked') return;
+    if (existing === 'blocked' || existing === 'error') return;
 
     let escrowTransaction: {
       id: string;
@@ -399,7 +420,7 @@ export async function handlePaymentIntentCanceled(
       paymentIntent.id,
       'payment_intent.canceled'
     );
-    if (existing === 'blocked') return;
+    if (existing === 'blocked' || existing === 'error') return;
 
     let escrowTransaction: { id: string; job_id: string | null } | null = null;
     if (existing) {

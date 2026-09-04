@@ -86,7 +86,9 @@ export async function writeAdminBypassAuditLog(
   });
 
   try {
-    await serverSupabase.from('audit_logs').insert({
+    const { error: auditError } = await serverSupabase
+      .from('audit_logs')
+      .insert({
       user_id: adminUserId,
       action: 'ADMIN_ESCROW_BYPASS',
       resource_type: 'escrow_transaction',
@@ -97,12 +99,22 @@ export async function writeAdminBypassAuditLog(
         release_reason: releaseReason,
         justification: adminJustification ?? null,
       },
-    });
+      });
+
+    if (auditError) {
+      throw auditError;
+    }
   } catch (auditErr: unknown) {
     logger.error('Failed to write admin bypass audit log', auditErr, {
       service: 'payments',
       escrowTransactionId,
     });
+    // An admin bypass is an exceptional, irreversible financial action. Do
+    // not allow it to proceed without the audit record that makes the action
+    // accountable and recoverable for operations/compliance.
+    throw new InternalServerError(
+      'Unable to record the admin escrow audit. Release was not completed.'
+    );
   }
 }
 
@@ -170,7 +182,12 @@ export async function performStripeTransfer(
         release_reason: null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', escrowTransactionId);
+      // Do not overwrite a concurrent dispute/refund/terminal transition.
+      // If another handler has moved the row, leaving it in that state is
+      // safer than reopening it as releasable; operators can reconcile a
+      // release_pending row if necessary.
+      .eq('id', escrowTransactionId)
+      .eq('status', ESCROW_STATUS.RELEASE_PENDING);
 
     throw new InternalServerError(
       'Payment transfer failed. No funds were moved. Please try again.'
@@ -190,7 +207,7 @@ export async function getChargeId(
     return typeof paymentIntent.latest_charge === 'string'
       ? paymentIntent.latest_charge
       : paymentIntent.latest_charge?.id;
-  } catch (error) {
+  } catch {
     logger.warn('Failed to retrieve payment intent for fee tracking', {
       service: 'payments',
       paymentIntentId,

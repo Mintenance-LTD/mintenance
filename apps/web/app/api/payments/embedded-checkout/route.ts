@@ -84,6 +84,23 @@ export const POST = withApiHandler(
     let acceptedContractId: string | null = null;
 
     if (jobId) {
+      // Marketplace bid amounts and escrow records are denominated in GBP.
+      // The client still supplies a priceId for compatibility, but its
+      // currency must not control the authoritative marketplace charge.
+      if (currency.toLowerCase() !== 'gbp') {
+        logger.warn('Marketplace checkout rejected non-GBP price', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          priceId,
+          currency,
+        });
+        return NextResponse.json(
+          { error: 'Marketplace payments must use a GBP price.' },
+          { status: 400 }
+        );
+      }
+
       const { data: jobData, error: jobError } = await serverSupabase
         .from('jobs')
         .select('id, title, homeowner_id, payer_user_id, contractor_id, budget')

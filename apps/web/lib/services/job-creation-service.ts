@@ -113,6 +113,7 @@ export class JobCreationService {
     await this.validatePhotoUrls(user.id, payload);
     await this.validatePropertyOwnership(user.id, payload);
     await this.resolvePayerFromEmail(user.id, payload);
+    await this.validatePreferredContractor(user.id, payload);
 
     const insertPayload = this.buildInsertPayload(user, payload);
 
@@ -139,7 +140,12 @@ export class JobCreationService {
     const jobRow = await this.insertJob(user.id, insertPayload);
 
     await this.updateSeriousBuyerScore(user.id, jobRow.id, payload);
-    await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+    try {
+      await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+    } catch (attachmentError) {
+      await this.rollbackFailedJobCreation(user.id, jobRow.id);
+      throw attachmentError;
+    }
     await this.snapshotRoomScope(user.id, jobRow.id, payload);
 
     await this.notificationService.notifyNearbyContractors(
@@ -367,6 +373,46 @@ export class JobCreationService {
     }
   }
 
+  /**
+   * The preferred-contractor field is a capability-bearing input: it causes
+   * a direct, higher-priority notification to be sent to the selected
+   * contractor.  Do not trust the client-side Hire Again deep-link to prove
+   * that relationship.  Only a completed job owned by this homeowner is
+   * evidence that the contractor was previously hired by them.
+   */
+  private async validatePreferredContractor(
+    userId: string,
+    payload: JobCreationPayload
+  ): Promise<void> {
+    if (!payload.preferred_contractor_id) return;
+
+    const { data: priorJob, error } = await serverSupabase
+      .from('jobs')
+      .select('id')
+      .eq('homeowner_id', userId)
+      .eq('contractor_id', payload.preferred_contractor_id)
+      .eq('status', 'completed')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('Failed to validate preferred contractor relationship', error, {
+        service: 'jobs',
+        userId,
+        preferredContractorId: payload.preferred_contractor_id,
+      });
+      throw new InternalServerError(
+        'Unable to validate the preferred contractor'
+      );
+    }
+
+    if (!priorJob) {
+      throw new ForbiddenError(
+        'You can only select a contractor you previously hired'
+      );
+    }
+  }
+
   private buildInsertPayload(
     user: Pick<User, 'id'>,
     payload: JobCreationPayload
@@ -542,7 +588,8 @@ export class JobCreationService {
         originalError: errorMessage,
       });
 
-      const { required_skills, ...payloadWithoutSkills } = insertPayload;
+      const payloadWithoutSkills = { ...insertPayload };
+      delete payloadWithoutSkills.required_skills;
       result = await serverSupabase
         .from('jobs')
         .insert(payloadWithoutSkills)
@@ -609,20 +656,53 @@ export class JobCreationService {
         .insert(attachments);
 
       if (error) {
-        logger.warn('Failed to save job attachments', {
+        logger.error('Failed to save job attachments', error, {
           service: 'jobs',
           userId,
           jobId,
-          error,
         });
+        throw new InternalServerError(
+          'Failed to save job photographs. Please try posting the job again.'
+        );
       }
     } catch (attachErr) {
-      logger.warn('Error saving job attachments', {
+      if (attachErr instanceof InternalServerError) throw attachErr;
+      logger.error('Error saving job attachments', attachErr, {
         service: 'jobs',
         userId,
         jobId,
-        error: attachErr,
       });
+      throw new InternalServerError(
+        'Failed to save job photographs. Please try posting the job again.'
+      );
+    }
+  }
+
+  /**
+   * Attachment persistence is part of the job-posting contract: a job that
+   * requires photos must not remain visible if its attachment rows cannot be
+   * written.  The job was inserted immediately before saveAttachments, so a
+   * narrowly scoped delete is safe here and prevents a failed request from
+   * leaving a duplicate photo-less job for the next retry.
+   */
+  private async rollbackFailedJobCreation(
+    userId: string,
+    jobId: string
+  ): Promise<void> {
+    const { data: deletedJob, error } = await serverSupabase
+      .from('jobs')
+      .delete()
+      .eq('id', jobId)
+      .eq('homeowner_id', userId)
+      .select('id')
+      .maybeSingle();
+
+    if (error || !deletedJob) {
+      logger.error(
+        'Failed to roll back job after attachment persistence failure',
+        error ?? new Error('job row was not deleted'),
+        { service: 'jobs', userId, jobId }
+      );
     }
   }
 

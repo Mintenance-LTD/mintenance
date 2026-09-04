@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { rotateTokens, setAuthCookie, verifyToken } from '@/lib/auth';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
@@ -6,18 +6,23 @@ import { logger } from '@mintenance/shared';
 import { UnauthorizedError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
+const COOKIE_PREFIX = process.env.NODE_ENV === 'production' ? '__Host-' : '';
+const AUTH_COOKIE = `${COOKIE_PREFIX}mintenance-auth`;
+const REFRESH_COOKIE = `${COOKIE_PREFIX}mintenance-refresh`;
+const REMEMBER_COOKIE = `${COOKIE_PREFIX}mintenance-remember`;
+
 /**
  * Token Refresh API
  * Handles automatic token refresh for persistent sessions
  */
 export const POST = withApiHandler(
   { auth: false, csrf: true, rateLimit: { maxRequests: 5 } },
-  async (request) => {
+  async (_request) => {
     const cookieStore = await cookies();
-    const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
-    const refreshToken = cookieStore.get('__Host-mintenance-refresh')?.value;
+    const currentToken = cookieStore.get(AUTH_COOKIE)?.value;
+    const refreshToken = cookieStore.get(REFRESH_COOKIE)?.value;
     const rememberMe =
-      cookieStore.get('__Host-mintenance-remember')?.value === 'true';
+      cookieStore.get(REMEMBER_COOKIE)?.value === 'true';
 
     if (!currentToken) {
       logger.warn('Token refresh failed: No active session', {
@@ -105,9 +110,9 @@ export const POST = withApiHandler(
  */
 export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 5 } },
-  async (request) => {
+  async (_request) => {
     const cookieStore = await cookies();
-    const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
+    const currentToken = cookieStore.get(AUTH_COOKIE)?.value;
 
     if (!currentToken) {
       throw new UnauthorizedError('Not authenticated');

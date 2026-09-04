@@ -84,15 +84,15 @@ export const POST = withApiHandler(
             )
             .eq('jobs.payer_user_id', user.id)
             .eq('status', 'accepted')
-        : Promise.resolve({ data: [] as unknown[] });
+        : Promise.resolve({ data: [] as unknown[], error: null });
 
     const [
-      { count: activeEscrowCount },
-      { count: activeAsHomeownerCount },
-      { count: activeAsContractorCount },
-      { count: openDisputesCount },
-      { data: acceptedContractsRows },
-      { data: payerAcceptedContractsRows },
+      { count: activeEscrowCount, error: activeEscrowError },
+      { count: activeAsHomeownerCount, error: activeHomeownerJobsError },
+      { count: activeAsContractorCount, error: activeContractorJobsError },
+      { count: openDisputesCount, error: openDisputesError },
+      { data: acceptedContractsRows, error: acceptedContractsError },
+      { data: payerAcceptedContractsRows, error: payerAcceptedContractsError },
     ] = await Promise.all([
       serverSupabase
         .from('escrow_transactions')
@@ -132,6 +132,25 @@ export const POST = withApiHandler(
         .eq('status', 'accepted'),
       payerAcceptedContractsPromise,
     ]);
+
+    const verificationErrors = [
+      activeEscrowError,
+      activeHomeownerJobsError,
+      activeContractorJobsError,
+      openDisputesError,
+      acceptedContractsError,
+      payerAcceptedContractsError,
+    ].filter(Boolean);
+    if (verificationErrors.length > 0) {
+      logger.error(
+        'Account deletion safety checks failed; refusing to delete account',
+        verificationErrors[0],
+        { service: 'user', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to verify account state. Please try again.'
+      );
+    }
 
     type AcceptedContractRow = {
       id: string;
@@ -250,6 +269,17 @@ export const POST = withApiHandler(
         .select('id, stripe_subscription_id, status')
         .eq('homeowner_id', user.id),
     ]);
+
+    if (contractorSubsRes.error || homeownerSubsRes.error) {
+      logger.error(
+        'Subscription snapshot failed; refusing to delete account',
+        contractorSubsRes.error ?? homeownerSubsRes.error,
+        { service: 'user', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Unable to verify subscription state. Please try again.'
+      );
+    }
 
     const subscriptionIds = [
       ...(contractorSubsRes.data ?? []),

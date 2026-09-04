@@ -212,15 +212,10 @@ export const POST = withApiHandler(
               }
             : String(assessmentError),
       });
-      const friendlyMessage =
-        assessmentError instanceof Error
-          ? assessmentError.message
-          : 'Assessment service is temporarily unavailable';
       return NextResponse.json(
         {
           error:
             'Mint AI could not complete the assessment. Please try again in a moment.',
-          details: friendlyMessage,
         },
         { status: 503 }
       );

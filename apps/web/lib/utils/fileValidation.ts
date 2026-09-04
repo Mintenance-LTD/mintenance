@@ -355,3 +355,20 @@ export async function validateVideoUpload(
     requireExtensionMatch: false, // Video extensions can vary
   });
 }
+
+/**
+ * Validate files stored in contractor document storage. Documents are kept
+ * private, but they are later downloaded by users and administrators, so the
+ * server must still reject unknown bytes and must not trust a browser MIME
+ * declaration.
+ */
+export async function validateDocumentUpload(
+  file: File | Buffer,
+  maxSize: number = MAX_FILE_SIZES.document
+): Promise<FileValidationResult> {
+  return validateFileUpload(file, {
+    allowedTypes: ['documents', 'images', 'archives'],
+    maxSize,
+    requireExtensionMatch: false,
+  });
+}

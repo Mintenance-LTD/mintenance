@@ -34,14 +34,29 @@ const { mockConfigInstance, mockCookieStore, supabaseChain } = vi.hoisted(
 
     const supabaseChain: Record<string, ReturnType<typeof vi.fn>> = {};
     supabaseChain.single = vi.fn(() =>
-      Promise.resolve({ data: null, error: null })
+      Promise.resolve({
+        data: {
+          role: 'homeowner',
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+        error: null,
+      })
     );
     // verifyToken's durable per-user revocation backstop (auth.ts, 2026-05-26 audit-56 P0)
     // calls serverSupabase.from('profiles').select().eq().maybeSingle() to read
-    // tokens_revoked_at. Default to "no profile row" so the cutoff check is a no-op
-    // and a freshly minted JWT verifies successfully.
+    // tokens_revoked_at. Provide a minimal live profile so a freshly minted
+    // JWT verifies successfully.
     supabaseChain.maybeSingle = vi.fn(() =>
-      Promise.resolve({ data: null, error: null })
+      Promise.resolve({
+        data: {
+          tokens_revoked_at: null,
+          role: 'homeowner',
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+        error: null,
+      })
     );
     supabaseChain.is = vi.fn(() => supabaseChain);
     supabaseChain.eq = vi.fn(() => supabaseChain);
@@ -161,14 +176,21 @@ describe('Auth Library', () => {
   /**
    * Reset the supabase chain mocks to their default (success) behavior.
    * Must be called after vi.clearAllMocks() since that clears all mock implementations.
-   */
-  function resetSupabaseChain() {
-    supabaseChain.single.mockImplementation(() =>
-      Promise.resolve({ data: null, error: null })
-    );
-    supabaseChain.maybeSingle.mockImplementation(() =>
-      Promise.resolve({ data: null, error: null })
-    );
+    */
+    function resetSupabaseChain() {
+      supabaseChain.single.mockImplementation(() =>
+        Promise.resolve({
+          data: {
+            role: 'homeowner',
+            first_name: 'John',
+            last_name: 'Doe',
+          },
+          error: null,
+        })
+      );
+      supabaseChain.maybeSingle.mockImplementation(() =>
+      Promise.resolve({ data: { tokens_revoked_at: null }, error: null })
+      );
     supabaseChain.is.mockImplementation(() => supabaseChain);
     supabaseChain.eq.mockImplementation(() => supabaseChain);
     supabaseChain.select.mockImplementation(() => supabaseChain);
@@ -230,8 +252,8 @@ describe('Auth Library', () => {
     });
 
     it('should throw error for invalid user data', async () => {
-      await expect(createToken(null as any)).rejects.toThrow();
-      await expect(createToken(undefined as any)).rejects.toThrow();
+      await expect(createToken(null as never)).rejects.toThrow();
+      await expect(createToken(undefined as never)).rejects.toThrow();
     });
   });
 
@@ -267,6 +289,30 @@ describe('Auth Library', () => {
 
       expect(payload).toBeDefined();
       expect(payload?.sub).toBe(mockUser.id);
+    });
+
+    it('should reject a valid JWT when revocation state cannot be read', async () => {
+      supabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: null,
+        error: new Error('profiles lookup unavailable'),
+      });
+
+      const token = await createToken(mockUser);
+      const payload = await verifyToken(token);
+
+      expect(payload).toBeNull();
+    });
+
+    it('should reject a valid JWT when its profile no longer exists', async () => {
+      supabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: null,
+        error: null,
+      });
+
+      const token = await createToken(mockUser);
+      const payload = await verifyToken(token);
+
+      expect(payload).toBeNull();
     });
 
     it('should return null for invalid token', async () => {
@@ -483,6 +529,25 @@ describe('Auth Library', () => {
       expect(user).toBeDefined();
       expect(user?.id).toBe(mockUser.id);
       expect(user?.email).toBe(mockUser.email);
+    });
+
+    it('should reject a cookie whose role no longer matches the profile', async () => {
+      const token = await createToken(mockUser);
+      mockCookieStore.get.mockImplementation((name: string) =>
+        name === 'mintenance-auth' ? { value: token } : undefined
+      );
+      supabaseChain.single.mockResolvedValueOnce({
+        data: {
+          role: 'contractor',
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+        error: null,
+      });
+
+      const user = await getCurrentUserFromCookies();
+
+      expect(user).toBeNull();
     });
 
     it('should return null for missing cookie', async () => {

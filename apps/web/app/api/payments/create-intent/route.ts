@@ -130,6 +130,19 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
+      // Job escrow, platform fees, and Connect payouts are GBP-denominated.
+      // Do not allow the client-provided currency to create a non-GBP
+      // PaymentIntent that would later be recorded as a GBP escrow.
+      if ((currency || 'gbp').toLowerCase() !== 'gbp') {
+        logger.warn('Job payment intent rejected non-GBP currency', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          currency,
+        });
+        throw new BadRequestError('Job payments must use GBP currency');
+      }
+
       const authorizedPayerId =
         (job.payer_user_id as string | null) || job.homeowner_id;
 

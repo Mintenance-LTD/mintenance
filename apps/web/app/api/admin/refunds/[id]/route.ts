@@ -369,10 +369,15 @@ export const POST = withApiHandler(
             await serverSupabase
             .from('escrow_transactions')
             .update({
-              status: ESCROW_STATUS.REFUNDED,
+              // A partial refund does not exhaust the escrow. Keep it held
+              // so a later refund can safely use the remaining balance;
+              // only a full refund is terminal.
+              status:
+                refundAmountValue >= escrow.amount
+                  ? ESCROW_STATUS.REFUNDED
+                  : ESCROW_STATUS.HELD,
               release_reason: `admin_refund: ${reason}`,
-              refunded_at: now,
-              released_at: now,
+              refunded_at: refundAmountValue >= escrow.amount ? now : null,
               metadata: {
                 ...existingEscrowMetadata,
                 stripe_refund_id: refund.id,

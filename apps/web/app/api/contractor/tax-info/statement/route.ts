@@ -52,13 +52,15 @@ export const GET = withApiHandler(
         },
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
       logger.error('Failed to build contractor earnings statement', err, {
         service: 'contractor-tax',
         userId: user.id,
         startYear,
       });
-      return NextResponse.json({ error: message }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to build earnings statement' },
+        { status: 500 }
+      );
     }
   }
 );

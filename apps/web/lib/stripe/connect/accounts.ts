@@ -138,7 +138,7 @@ export async function syncAccountStatus(
     profile.stripe_onboarding_completed_at ??
     (detailsSubmitted ? new Date().toISOString() : null);
 
-  await serverSupabase
+  const { error: mirrorError } = await serverSupabase
     .from('profiles')
     .update({
       stripe_charges_enabled: chargesEnabled,
@@ -149,6 +149,19 @@ export async function syncAccountStatus(
       stripe_requirements_pending: requirementsPending,
     })
     .eq('id', contractorId);
+
+  // The cached flags gate payout readiness throughout the application. Do
+  // not return a fresh Stripe status as if synchronization succeeded when the
+  // service-role mirror write failed; callers would show a transient Stripe
+  // state while subsequent payout checks continued using stale profile data.
+  if (mirrorError) {
+    logger.error('Failed to mirror Stripe Connect account status', mirrorError, {
+      service: 'stripe-connect',
+      contractorId,
+      stripeAccountId: account.id,
+    });
+    throw new Error('Failed to synchronize Connect account status');
+  }
 
   return {
     accountId: account.id,

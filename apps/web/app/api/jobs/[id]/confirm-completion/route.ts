@@ -18,6 +18,7 @@ import {
   NotFoundError,
   BadRequestError,
   ConflictError,
+  InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
@@ -188,12 +189,13 @@ export const POST = withApiHandler(
         // needs both. Now writes the new `completion_confirmed_at`
         // column (migration 20260524130000) and leaves `completed_at`
         // intact.
+        const confirmationTimestamp = new Date().toISOString();
         const { data: confirmedRows, error: updateError } = await serverSupabase
           .from('jobs')
           .update({
             completion_confirmed_by_homeowner: true,
-            completion_confirmed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            completion_confirmed_at: confirmationTimestamp,
+            updated_at: confirmationTimestamp,
           })
           .eq('id', jobId)
           .eq('completion_confirmed_by_homeowner', false)
@@ -215,96 +217,6 @@ export const POST = withApiHandler(
           throw new ConflictError(
             'Completion was confirmed by another request. Refresh the job to see the latest status.'
           );
-        }
-
-        // Notify contractor that homeowner confirmed completion.
-        // Audit P2 (2026-05-10): capture the notification id so the
-        // sendWorkApprovedEmail call below can flip `email_sent = true`.
-        let contractorNotifId: string | null = null;
-        if (job.contractor_id) {
-          try {
-            const { notifyJobConfirmed } =
-              await import('@/lib/services/notifications/NotificationHelper');
-            contractorNotifId = await notifyJobConfirmed(
-              jobId,
-              job.title,
-              job.contractor_id
-            );
-          } catch (notificationError) {
-            logger.error(
-              'Failed to create job confirmed notification',
-              notificationError,
-              {
-                service: 'jobs',
-                jobId,
-                contractorId: job.contractor_id,
-              }
-            );
-            // Don't fail the request if notification fails
-          }
-        }
-
-        // Send email to contractor about work approval and payment release
-        try {
-          const { data: contractorProfile } = await serverSupabase
-            .from('profiles')
-            .select('email, first_name, last_name, company_name')
-            .eq('id', job.contractor_id)
-            .single();
-
-          const { data: homeownerProfile } = await serverSupabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', user.id)
-            .single();
-
-          // Get escrow amount for the email
-          const { data: escrowForEmail } = await serverSupabase
-            .from('escrow_transactions')
-            .select('amount')
-            .eq('job_id', jobId)
-            .in('status', [ESCROW_STATUS.HELD, ESCROW_STATUS.RELEASE_PENDING])
-            .limit(1)
-            .single();
-
-          if (contractorProfile?.email) {
-            const contractorName =
-              contractorProfile.first_name && contractorProfile.last_name
-                ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-                : contractorProfile.company_name || 'Contractor';
-            const homeownerName = homeownerProfile
-              ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() ||
-                'The homeowner'
-              : 'The homeowner';
-
-            // Audit P3 (2026-05-10): `escrow_transactions.amount` is stored in
-            // pounds (not pence) — `payments/create-intent` writes it via
-            // `acceptedBid.amount` and `payments/confirm-intent` passes it
-            // directly as `Number(amount)` to the email service. The previous
-            // `/100` here was a 100x-too-small bug that would render e.g. £350
-            // as £3.50 in the homeowner-approved email.
-            const emailOk = await EmailService.sendWorkApprovedEmail(
-              contractorProfile.email,
-              {
-                contractorName,
-                homeownerName,
-                jobTitle: job.title || 'Job',
-                amount: escrowForEmail ? Number(escrowForEmail.amount) : 0,
-                viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
-              }
-            );
-            // Audit P2 (2026-05-10): paired with notifyJobConfirmed above so
-            // the contractor's notifications row reflects multi-channel
-            // delivery (push from createNotification + email_sent here).
-            if (emailOk && contractorNotifId) {
-              await NotificationService.markEmailSent(contractorNotifId);
-            }
-          }
-        } catch (emailError) {
-          logger.error('Failed to send work approved email', emailError, {
-            service: 'jobs',
-            jobId,
-          });
         }
 
         // Verify after-photos exist before releasing escrow (completion evidence)
@@ -387,17 +299,17 @@ export const POST = withApiHandler(
                   escrowId: preEscrow.id,
                 }
               );
-              // Don't fail the request, but log the issue. Next cron
-              // pass picks it up via the existing auto_release_date
-              // field if it was previously set by the complete-job hook.
-            } else {
-              logger.info('Escrow marked for next auto-release cron run', {
-                service: 'jobs',
-                jobId,
-                escrowId: preEscrow.id,
-                amount: preEscrow.amount,
-              });
+              throw new InternalServerError(
+                'Payment could not be prepared for release'
+              );
             }
+
+            logger.info('Escrow marked for next auto-release cron run', {
+              service: 'jobs',
+              jobId,
+              escrowId: preEscrow.id,
+              amount: preEscrow.amount,
+            });
           } catch (escrowError) {
             logger.error(
               'Unexpected error handling escrow release',
@@ -407,13 +319,114 @@ export const POST = withApiHandler(
                 jobId,
               }
             );
-            // Don't fail the request
+            const { error: rollbackError } = await serverSupabase
+              .from('jobs')
+              .update({
+                completion_confirmed_by_homeowner: false,
+                completion_confirmed_at: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', jobId)
+              .eq('completion_confirmed_by_homeowner', true)
+              .eq('completion_confirmed_at', confirmationTimestamp);
+
+            if (rollbackError) {
+              logger.error(
+                'Failed to roll back job confirmation after escrow failure',
+                rollbackError,
+                { service: 'jobs', jobId, escrowId: preEscrow.id }
+              );
+            }
+            if (escrowError instanceof InternalServerError) {
+              throw escrowError;
+            }
+            throw new InternalServerError(
+              'Payment could not be prepared for release'
+            );
           }
         } else {
           logger.info(
             'Escrow already release_pending — skipping homeowner-approval stamp',
             { service: 'jobs', jobId, escrowId: preEscrow.id }
           );
+        }
+
+        // Notify only after escrow preparation succeeds. If the payment
+        // mutation fails, the caller can retry without receiving a misleading
+        // approval message or creating duplicate notifications.
+        let contractorNotifId: string | null = null;
+        if (job.contractor_id) {
+          try {
+            const { notifyJobConfirmed } =
+              await import('@/lib/services/notifications/NotificationHelper');
+            contractorNotifId = await notifyJobConfirmed(
+              jobId,
+              job.title,
+              job.contractor_id
+            );
+          } catch (notificationError) {
+            logger.error(
+              'Failed to create job confirmed notification',
+              notificationError,
+              {
+                service: 'jobs',
+                jobId,
+                contractorId: job.contractor_id,
+              }
+            );
+          }
+        }
+
+        // Send email to contractor about work approval and payment release.
+        try {
+          const { data: contractorProfile } = await serverSupabase
+            .from('profiles')
+            .select('email, first_name, last_name, company_name')
+            .eq('id', job.contractor_id)
+            .single();
+
+          const { data: homeownerProfile } = await serverSupabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', user.id)
+            .single();
+
+          const { data: escrowForEmail } = await serverSupabase
+            .from('escrow_transactions')
+            .select('amount')
+            .eq('job_id', jobId)
+            .in('status', [ESCROW_STATUS.HELD, ESCROW_STATUS.RELEASE_PENDING])
+            .limit(1)
+            .single();
+
+          if (contractorProfile?.email) {
+            const contractorName =
+              contractorProfile.first_name && contractorProfile.last_name
+                ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+                : contractorProfile.company_name || 'Contractor';
+            const homeownerName = homeownerProfile
+              ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() ||
+                'The homeowner'
+              : 'The homeowner';
+            const emailOk = await EmailService.sendWorkApprovedEmail(
+              contractorProfile.email,
+              {
+                contractorName,
+                homeownerName,
+                jobTitle: job.title || 'Job',
+                amount: escrowForEmail ? Number(escrowForEmail.amount) : 0,
+                viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+              }
+            );
+            if (emailOk && contractorNotifId) {
+              await NotificationService.markEmailSent(contractorNotifId);
+            }
+          }
+        } catch (emailError) {
+          logger.error('Failed to send work approved email', emailError, {
+            service: 'jobs',
+            jobId,
+          });
         }
 
         logger.info('Job completion confirmed successfully', {

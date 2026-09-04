@@ -13,6 +13,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { isPhoneVerificationWaivedFor } from '@/lib/services/verification/EarlyAccessCohort';
+import { InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * Zod schema for profile update validation.
@@ -183,11 +184,19 @@ export const PUT = withApiHandler(
       validatedData.propertyType !== undefined ||
       validatedData.concernTags !== undefined
     ) {
-      const { data: existing } = await serverSupabase
+      const { data: existing, error: settingsError } = await serverSupabase
         .from('profiles')
         .select('settings')
         .eq('id', user.id)
         .single();
+
+      if (settingsError) {
+        logger.error('Failed to read profile settings before update', settingsError, {
+          service: 'users',
+          userId: user.id,
+        });
+        throw new InternalServerError('Profile settings could not be updated');
+      }
 
       const currentSettings =
         (existing?.settings as Record<string, unknown> | null | undefined) ??

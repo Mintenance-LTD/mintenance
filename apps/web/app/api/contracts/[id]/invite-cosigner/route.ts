@@ -27,6 +27,7 @@ import {
   ForbiddenError,
   NotFoundError,
   BadRequestError,
+  InternalServerError,
 } from '@/lib/errors/api-error';
 
 // `.strict()` rejects unknown body keys — sole client (AddCoSignerDialog)
@@ -104,9 +105,7 @@ export const POST = withApiHandler(
         contractId,
         error: insertError.message,
       });
-      throw new BadRequestError(
-        insertError.message || 'Failed to invite co-signer'
-      );
+      throw new InternalServerError('Failed to invite co-signer');
     }
 
     // If we matched an existing platform user, notify them in-app.

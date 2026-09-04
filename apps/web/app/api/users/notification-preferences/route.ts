@@ -132,11 +132,22 @@ export const PATCH = withApiHandler(
     const body = parsed.data;
 
     // Fetch current preferences to merge
-    const { data: current } = await serverSupabase
+    const { data: current, error: currentError } = await serverSupabase
       .from('profiles')
       .select('notification_preferences')
       .eq('id', user.id)
       .single();
+
+    if (currentError) {
+      logger.error(
+        'Failed to read notification preferences before update',
+        currentError,
+        { service: 'notification-preferences', userId: user.id }
+      );
+      throw new InternalServerError(
+        'Notification preferences could not be updated'
+      );
+    }
 
     const merged = {
       ...DEFAULT_PREFS,

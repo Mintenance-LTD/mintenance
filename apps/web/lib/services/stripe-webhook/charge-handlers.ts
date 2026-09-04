@@ -46,26 +46,111 @@ export async function handleChargeRefunded(
       return;
     }
 
-    const { data: escrowTransaction, error: escrowError } = await serverSupabase
+    const { data: existingEscrow, error: escrowLookupError } =
+      await serverSupabase
       .from('escrow_transactions')
-      .update({
-        status: 'refunded',
-        refunded_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .select(
+        'id, job_id, payer_id, payee_id, amount, status, payment_intent_id'
+      )
       .eq('payment_intent_id', paymentIntentId)
-      .select()
-      .single();
+      .maybeSingle();
 
-    if (escrowError) {
-      logger.error('Failed to update refunded payment status', escrowError, {
+    if (escrowLookupError || !existingEscrow) {
+      logger.error('Failed to load escrow for refunded payment', escrowLookupError, {
         service: 'stripe-webhook',
         paymentIntentId,
       });
+      return;
+    }
+
+    const escrowAmountCents = Math.round(Number(existingEscrow.amount) * 100);
+    const refundAmount = charge.amount_refunded;
+    const isValidRefund =
+      charge.currency.toLowerCase() === 'gbp' &&
+      Number.isInteger(refundAmount) &&
+      refundAmount > 0 &&
+      Number.isFinite(escrowAmountCents) &&
+      escrowAmountCents > 0 &&
+      refundAmount <= escrowAmountCents;
+
+    if (!isValidRefund) {
+      logger.error('Ignoring refund webhook with invalid escrow invariant', undefined, {
+        service: 'stripe-webhook',
+        paymentIntentId,
+        chargeId: charge.id,
+        refundAmount,
+        escrowAmountCents,
+        currency: charge.currency,
+      });
+      return;
+    }
+
+    // `amount_refunded` is cumulative on a Charge. A partial refund must not
+    // make the whole escrow terminal or mark the job fully refunded.
+    const isFullRefund = refundAmount === escrowAmountCents;
+    const alreadyRefunded = existingEscrow.status === 'refunded';
+    const refundableStatuses = [
+      'pending',
+      'held',
+      'release_pending',
+      'pending_review',
+      'awaiting_homeowner_approval',
+    ];
+    let escrowTransaction = existingEscrow;
+    let escrowStateFinalized = alreadyRefunded;
+
+    if (isFullRefund && !alreadyRefunded) {
+      const { data: updatedEscrow, error: escrowError } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            status: 'refunded',
+            refunded_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingEscrow.id)
+          .in('status', refundableStatuses)
+          .select(
+            'id, job_id, payer_id, payee_id, amount, status, payment_intent_id'
+          )
+          .maybeSingle();
+
+      if (escrowError || !updatedEscrow) {
+        logger.error('Failed to finalize refunded payment status', escrowError, {
+          service: 'stripe-webhook',
+          paymentIntentId,
+          escrowId: existingEscrow.id,
+          currentStatus: existingEscrow.status,
+        });
+        // Stripe has already moved the money. Continue to the refund ledger
+        // so reconciliation can find this case, but do not update the job or
+        // notify users as if the escrow transition was recorded.
+        escrowTransaction = existingEscrow;
+      } else {
+        escrowStateFinalized = true;
+        escrowTransaction = updatedEscrow;
+      }
+    } else if (!isFullRefund) {
+      logger.info('Partial refund recorded without closing escrow', {
+        service: 'stripe-webhook',
+        paymentIntentId,
+        chargeId: charge.id,
+        escrowId: existingEscrow.id,
+        amountRefunded: refundAmount,
+        escrowAmountCents,
+      });
+    } else if (!refundableStatuses.includes(existingEscrow.status) && !alreadyRefunded) {
+      logger.error('Ignoring refund for escrow outside refundable state', undefined, {
+        service: 'stripe-webhook',
+        paymentIntentId,
+        escrowId: existingEscrow.id,
+        currentStatus: existingEscrow.status,
+      });
+      return;
     }
 
     const jobId = escrowTransaction?.job_id || charge.metadata?.jobId;
-    if (jobId) {
+    if (jobId && isFullRefund && escrowStateFinalized && !alreadyRefunded) {
       await serverSupabase
         .from('jobs')
         .update({
@@ -76,7 +161,6 @@ export async function handleChargeRefunded(
     }
 
     // Record in refunds table
-    const refundAmount = charge.amount_refunded;
     try {
       await serverSupabase.from('refunds').upsert(
         {
@@ -100,13 +184,16 @@ export async function handleChargeRefunded(
     }
 
     // Notify both homeowner and contractor
-    if (escrowTransaction) {
+    const canNotify =
+      !alreadyRefunded && (!isFullRefund || escrowStateFinalized);
+    if (escrowTransaction && canNotify) {
       const amountStr = `£${(refundAmount / 100).toFixed(2)}`;
+      const refundLabel = isFullRefund ? 'refund' : 'partial refund';
       if (escrowTransaction.payer_id) {
         await sendNotification(
           escrowTransaction.payer_id,
           'Refund Processed',
-          `Your refund of ${amountStr} has been processed and will appear on your statement within 5-10 business days.`,
+          `Your ${refundLabel} of ${amountStr} has been processed and will appear on your statement within 5-10 business days.`,
           'refund_processed'
         );
       }
@@ -114,7 +201,7 @@ export async function handleChargeRefunded(
         await sendNotification(
           escrowTransaction.payee_id,
           'Payment Refunded',
-          `A payment of ${amountStr} for this job has been refunded to the homeowner.`,
+          `A ${refundLabel} of ${amountStr} for this job has been sent back to the homeowner.`,
           'payment_refunded'
         );
       }
@@ -125,6 +212,7 @@ export async function handleChargeRefunded(
       paymentIntentId,
       chargeId: charge.id,
       amountRefunded: refundAmount,
+      escrowStateFinalized,
     });
   } catch (error) {
     logger.error('Error in handleChargeRefunded', error, {
@@ -173,7 +261,7 @@ export async function handleChargeFailed(
       paymentIntentId,
       'charge.failed'
     );
-    if (existing === 'blocked') return;
+    if (existing === 'blocked' || existing === 'error') return;
 
     let escrowTransaction: { payer_id: string | null } | null = null;
     if (existing) {

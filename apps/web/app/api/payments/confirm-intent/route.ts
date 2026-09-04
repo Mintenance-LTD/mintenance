@@ -85,6 +85,23 @@ export const POST = withApiHandler(
       );
     }
 
+    // Escrow and Connect payout flows are GBP-only. Enforce the invariant at
+    // confirmation as well as creation so a legacy/malformed PaymentIntent
+    // cannot be promoted to a funded GBP escrow.
+    if (paymentIntent.currency.toLowerCase() !== 'gbp') {
+      logger.warn('Payment confirmation rejected non-GBP intent', {
+        service: 'payments',
+        userId: user.id,
+        paymentIntentId,
+        jobId,
+        currency: paymentIntent.currency,
+      });
+      return NextResponse.json(
+        { error: 'Job payments must use GBP currency' },
+        { status: 400 }
+      );
+    }
+
     // Verify job and escrow transaction.
     //
     // 2026-05-26 audit-60 P2: previously this route selected only

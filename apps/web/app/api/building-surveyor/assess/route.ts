@@ -47,12 +47,35 @@ const INFLIGHT_TTL_MS = 90_000;
 const INFLIGHT_POLL_MS = 1_500;
 const INFLIGHT_MAX_POLLS = 16; // ~24s ceiling, well under maxDuration (300s)
 
-function generateCacheKey(imageUrls: string[]): string {
+function generateCacheKey(input: {
+  userId: string;
+  imageUrls: string[];
+  context: unknown;
+  jobId?: string;
+  propertyId?: string;
+  domain?: string;
+  gps: unknown;
+  roomMetadata: unknown;
+}): string {
+  // Include every request value that can affect the assessment. In particular,
+  // never share assessment data across users or property anchors: the result
+  // may contain context-derived and property-pattern information.
+  const canonicalInput = JSON.stringify({
+    userId: input.userId,
+    imageUrls: [...input.imageUrls].sort(),
+    context: input.context ?? null,
+    jobId: input.jobId ?? null,
+    propertyId: input.propertyId ?? null,
+    domain: input.domain ?? null,
+    gps: input.gps ?? null,
+    roomMetadata: input.roomMetadata ?? null,
+  });
+
   // SHA-256 hex is exactly 64 chars, which fits the VARCHAR(64) cache_key column.
   // The table name (building_assessments) provides the namespace implicitly.
   return crypto
     .createHash('sha256')
-    .update(imageUrls.sort().join('|'))
+    .update(canonicalInput)
     .digest('hex');
 }
 
@@ -147,6 +170,12 @@ export const POST = withApiHandler(
     // for the last 24h / 30d sum and rejecting if over cap.
     const budget = await checkAICostBudget(user.id);
     if (!budget.allowed) {
+      if (budget.reason === 'check_failed') {
+        return NextResponse.json(
+          { error: 'AI usage budget is temporarily unavailable.' },
+          { status: 503 }
+        );
+      }
       deps.logger.warn('Building surveyor cost cap reached', {
         service: 'building-surveyor-api',
         userId: user.id,
@@ -198,7 +227,16 @@ export const POST = withApiHandler(
     });
 
     // Check in-memory cache first
-    const cacheKey = generateCacheKey(imageUrls);
+    const cacheKey = generateCacheKey({
+      userId: user.id,
+      imageUrls,
+      context,
+      jobId: bodyJobId,
+      propertyId: bodyPropertyId,
+      domain: bodyDomain,
+      gps: bodyGps,
+      roomMetadata: bodyRoomMetadata,
+    });
     const memoryAssessment = assessmentCache.get(cacheKey);
     if (memoryAssessment) {
       deps.logger.info('Building assessment cache hit (in-memory)', {
@@ -339,7 +377,16 @@ export const POST = withApiHandler(
                 arm: abResult.arm,
               });
 
-              const abCacheKey = generateCacheKey(imageUrls);
+              const abCacheKey = generateCacheKey({
+                userId: user.id,
+                imageUrls,
+                context,
+                jobId: bodyJobId,
+                propertyId: bodyPropertyId,
+                domain: bodyDomain,
+                gps: bodyGps,
+                roomMetadata: bodyRoomMetadata,
+              });
               await deps.serverSupabase.from('building_assessments').insert({
                 user_id: user.id,
                 job_id: bodyJobId ?? null,

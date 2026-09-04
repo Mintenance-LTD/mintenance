@@ -353,6 +353,9 @@ export const POST = withApiHandler(
 
       // Update escrow transaction with retry logic
       // CRITICAL: Stripe refund already succeeded, so DB must reflect this
+      // A partial refund leaves the escrow held so the remaining balance can
+      // be refunded later. Only a full refund is terminal.
+      const isFullRefund = refundAmount >= escrowAmountCents;
       let updatedEscrow: Record<string, unknown> | null = null;
       let updateError: Error | null = null;
 
@@ -360,8 +363,8 @@ export const POST = withApiHandler(
         const result = await serverSupabase
           .from('escrow_transactions')
           .update({
-            status: 'refunded',
-            refunded_at: new Date().toISOString(),
+            status: isFullRefund ? 'refunded' : 'held',
+            refunded_at: isFullRefund ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', escrowTransactionId)
@@ -456,11 +459,35 @@ export const POST = withApiHandler(
         );
       }
 
-      // Update job status if needed
-      await serverSupabase
+      // Update job status if needed. Stripe and escrow are already settled at
+      // this point, so a failed job update must not be reported as a clean
+      // success: it leaves the UI and downstream workflow inconsistent with
+      // the refunded payment and requires reconciliation.
+      const { data: cancelledJob, error: jobStatusError } = await serverSupabase
         .from('jobs')
         .update({ status: 'cancelled' })
-        .eq('id', jobId);
+        .eq('id', jobId)
+        .select('id')
+        .maybeSingle();
+
+      if (jobStatusError || !cancelledJob) {
+        const effectiveError =
+          jobStatusError ?? new Error('Job cancellation matched no rows');
+        logger.error(
+          'Refund succeeded but failed to cancel the associated job',
+          effectiveError,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            escrowTransactionId,
+            refundId: refund.id,
+          }
+        );
+        throw new InternalServerError(
+          'Refund succeeded but the job status could not be updated. Support must reconcile this payment.'
+        );
+      }
 
       logger.info('Refund processed successfully', {
         service: 'payments',
