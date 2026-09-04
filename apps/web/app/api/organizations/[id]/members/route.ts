@@ -18,7 +18,11 @@ import {
   requireOrgMembership,
   requireOrgRole,
 } from '@/lib/auth-manager/org-roles';
-import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 
 const paramsSchema = z.object({
   id: z.string().uuid(),
@@ -151,12 +155,17 @@ export const DELETE = withApiHandler(
     }
 
     if (target.org_role === 'owner') {
-      const { count } = await serverSupabase
+      const { count, error: ownerCountError } = await serverSupabase
         .from('organization_memberships')
         .select('id', { count: 'exact', head: true })
         .eq('org_id', orgId)
         .eq('status', 'active')
         .eq('org_role', 'owner');
+      if (ownerCountError) {
+        throw new InternalServerError(
+          'Unable to verify organization ownership safely'
+        );
+      }
       if ((count ?? 0) <= 1) {
         throw new ForbiddenError(
           'Cannot remove the last owner of an organization'
