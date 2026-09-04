@@ -140,7 +140,12 @@ export class JobCreationService {
     const jobRow = await this.insertJob(user.id, insertPayload);
 
     await this.updateSeriousBuyerScore(user.id, jobRow.id, payload);
-    await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+    try {
+      await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+    } catch (attachmentError) {
+      await this.rollbackFailedJobCreation(user.id, jobRow.id);
+      throw attachmentError;
+    }
     await this.snapshotRoomScope(user.id, jobRow.id, payload);
 
     await this.notificationService.notifyNearbyContractors(
@@ -669,6 +674,34 @@ export class JobCreationService {
       });
       throw new InternalServerError(
         'Failed to save job photographs. Please try posting the job again.'
+      );
+    }
+  }
+
+  /**
+   * Attachment persistence is part of the job-posting contract: a job that
+   * requires photos must not remain visible if its attachment rows cannot be
+   * written.  The job was inserted immediately before saveAttachments, so a
+   * narrowly scoped delete is safe here and prevents a failed request from
+   * leaving a duplicate photo-less job for the next retry.
+   */
+  private async rollbackFailedJobCreation(
+    userId: string,
+    jobId: string
+  ): Promise<void> {
+    const { data: deletedJob, error } = await serverSupabase
+      .from('jobs')
+      .delete()
+      .eq('id', jobId)
+      .eq('homeowner_id', userId)
+      .select('id')
+      .maybeSingle();
+
+    if (error || !deletedJob) {
+      logger.error(
+        'Failed to roll back job after attachment persistence failure',
+        error ?? new Error('job row was not deleted'),
+        { service: 'jobs', userId, jobId }
       );
     }
   }
