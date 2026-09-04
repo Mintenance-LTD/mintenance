@@ -156,13 +156,13 @@ export const POST = withApiHandler(
     const formData = await request.formData();
 
     const getOptionalField = (value: FormDataEntryValue | null): string | undefined => {
-      const str = (value as string) || '';
+      const str = typeof value === 'string' ? value : '';
       return str.trim() === '' ? undefined : str.trim();
     };
 
     const rawData = {
-      firstName: ((formData.get('firstName') as string) || '').trim(),
-      lastName: ((formData.get('lastName') as string) || '').trim(),
+      firstName: getOptionalField(formData.get('firstName')) || '',
+      lastName: getOptionalField(formData.get('lastName')) || '',
       bio: getOptionalField(formData.get('bio')),
       city: getOptionalField(formData.get('city')),
       country: getOptionalField(formData.get('country')),
@@ -174,9 +174,12 @@ export const POST = withApiHandler(
     };
 
     // Extract coordinates and address if provided from Places Autocomplete
-    const latitudeStr = formData.get('latitude') as string | null;
-    const longitudeStr = formData.get('longitude') as string | null;
-    const address = formData.get('address') as string | null;
+    const latitudeValue = formData.get('latitude');
+    const longitudeValue = formData.get('longitude');
+    const addressValue = formData.get('address');
+    const latitudeStr = typeof latitudeValue === 'string' ? latitudeValue : null;
+    const longitudeStr = typeof longitudeValue === 'string' ? longitudeValue : null;
+    const address = typeof addressValue === 'string' ? addressValue : null;
     const providedLatitude = latitudeStr ? parseFloat(latitudeStr) : undefined;
     const providedLongitude = longitudeStr ? parseFloat(longitudeStr) : undefined;
 
@@ -216,7 +219,14 @@ export const POST = withApiHandler(
     }
 
     const phone = normalizedPhone ?? undefined;
-    const profileImageFile = formData.get('profileImage') as File | null;
+    const rawProfileImage = formData.get('profileImage');
+    const profileImageFile =
+      typeof rawProfileImage === 'object' &&
+      rawProfileImage !== null &&
+      'size' in rawProfileImage &&
+      'arrayBuffer' in rawProfileImage
+        ? rawProfileImage
+        : null;
     let profileImageUrl = null;
 
     // Handle profile photo upload if provided
