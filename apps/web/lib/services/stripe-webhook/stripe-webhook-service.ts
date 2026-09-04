@@ -232,11 +232,22 @@ export class StripeWebhookService {
       return;
     }
 
-    await serverSupabase.rpc('mark_webhook_processed', {
+    const { error } = await serverSupabase.rpc('mark_webhook_processed', {
       p_event_id: eventRecordId,
       p_status: status,
       p_error_message: errorMessage,
     });
+
+    if (error) {
+      logger.error('Failed to persist webhook processing state', error, {
+        service: 'stripe-webhook',
+        eventRecordId,
+        status,
+      });
+      throw new InternalServerError(
+        'Webhook processing state could not be persisted'
+      );
+    }
   }
 
   private safeLogMissingSignature(): void {
