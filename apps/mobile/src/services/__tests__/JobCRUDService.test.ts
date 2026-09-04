@@ -225,6 +225,16 @@ describe('JobCRUDService', () => {
   });
 
   describe('getJobById', () => {
+    it('preserves the designated payer identity from the API response', async () => {
+      mockedApiClient.get.mockResolvedValue({
+        job: { ...mockJobData, payer_user_id: 'payer-456' },
+      });
+
+      const result = await JobCRUDService.getJobById('job-123');
+
+      expect(result?.payer_user_id).toBe('payer-456');
+    });
+
     it('should fetch job via API', async () => {
       mockedApiClient.get.mockResolvedValue({ job: mockJobData });
 

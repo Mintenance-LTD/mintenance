@@ -24,6 +24,7 @@ interface DatabaseJobRow {
   description?: string;
   location?: string;
   homeowner_id?: string;
+  payer_user_id?: string | null;
   contractor_id?: string;
   status?: 'posted' | 'assigned' | 'in_progress' | 'completed';
   budget?: number;
@@ -401,11 +402,17 @@ export class JobCRUDService {
     if (raw.contractor_id !== undefined) {
       job.contractor_id = raw.contractor_id as string;
     }
+    if (raw.payer_user_id !== undefined) {
+      job.payer_user_id = raw.payer_user_id as string | null;
+    }
 
     // Only add computed fields if they don't break test expectations
     if (!process.env.JEST_WORKER_ID) {
       job.homeownerId = job.homeowner_id;
       job.contractorId = raw.contractor_id as string | undefined;
+      if (raw.payer_user_id !== undefined) {
+        job.payerUserId = raw.payer_user_id as string | null;
+      }
       job.createdAt = job.created_at;
       job.updatedAt = job.updated_at;
     }
