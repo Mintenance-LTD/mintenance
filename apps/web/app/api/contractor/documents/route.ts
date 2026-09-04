@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -145,6 +145,26 @@ export const POST = withApiHandler(
     ];
     if (!validCategories.includes(category)) {
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
+    }
+
+    // A service-role client is used for storage and persistence, so enforce
+    // the job relationship explicitly before accepting a job-linked file.
+    // Without this check, any contractor could attach a document to another
+    // contractor's job by submitting that job UUID.
+    if (jobId) {
+      const { data: ownedJob, error: jobLookupError } = await serverSupabase
+        .from('jobs')
+        .select('id')
+        .eq('id', jobId)
+        .eq('contractor_id', user.id)
+        .maybeSingle();
+
+      if (jobLookupError || !ownedJob) {
+        return NextResponse.json(
+          { error: 'Job not found or not assigned to this contractor' },
+          { status: 403 }
+        );
+      }
     }
 
     // Extract file extension
