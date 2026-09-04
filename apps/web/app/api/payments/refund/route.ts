@@ -459,11 +459,31 @@ export const POST = withApiHandler(
         );
       }
 
-      // Update job status if needed
-      await serverSupabase
+      // Update job status if needed. Stripe and escrow are already settled at
+      // this point, so a failed job update must not be reported as a clean
+      // success: it leaves the UI and downstream workflow inconsistent with
+      // the refunded payment and requires reconciliation.
+      const { error: jobStatusError } = await serverSupabase
         .from('jobs')
         .update({ status: 'cancelled' })
         .eq('id', jobId);
+
+      if (jobStatusError) {
+        logger.error(
+          'Refund succeeded but failed to cancel the associated job',
+          jobStatusError,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            escrowTransactionId,
+            refundId: refund.id,
+          }
+        );
+        throw new InternalServerError(
+          'Refund succeeded but the job status could not be updated. Support must reconcile this payment.'
+        );
+      }
 
       logger.info('Refund processed successfully', {
         service: 'payments',
