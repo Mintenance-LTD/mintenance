@@ -79,9 +79,22 @@ export const POST = withApiHandler(
     // another host or another assessment's object would break the private
     // storage boundary and could feed untrusted content into AI processing.
     const expectedPrefix = `assessments/${assessmentId}/`;
-    const imagePaths = parsed.data.urls.map((url) =>
-      extractAssessmentPath(url)
-    );
+    const configuredSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const expectedOrigin = configuredSupabaseUrl
+      ? new URL(configuredSupabaseUrl).origin
+      : null;
+    const imagePaths = parsed.data.urls.map((url) => {
+      if (/^https?:\/\//i.test(url)) {
+        try {
+          if (!expectedOrigin || new URL(url).origin !== expectedOrigin) {
+            return null;
+          }
+        } catch {
+          return null;
+        }
+      }
+      return extractAssessmentPath(url);
+    });
     if (
       imagePaths.some(
         (path) => !path || !path.startsWith(expectedPrefix)
