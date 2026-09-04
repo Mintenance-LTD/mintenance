@@ -592,12 +592,30 @@ export async function getCurrentUserFromCookies(): Promise<Pick<
       return null;
     }
 
+    // The JWT role is a snapshot and must not outlive a database role change.
+    // Reconfirm it against the profile before exposing the session to route
+    // authorization; otherwise a downgraded admin/contractor keeps elevated
+    // access until the access token expires.
+    const { data: profile, error: profileError } = await serverSupabase
+      .from('profiles')
+      .select('role, first_name, last_name')
+      .eq('id', jwtPayload.sub)
+      .single();
+    if (profileError || !profile?.role || profile.role !== jwtPayload.role) {
+      logger.warn('Cookie session rejected because its role is stale', {
+        service: 'auth',
+        userId: jwtPayload.sub,
+        error: profileError?.message,
+      });
+      return null;
+    }
+
     return {
       id: jwtPayload.sub,
       email: jwtPayload.email,
-      role: jwtPayload.role as 'homeowner' | 'contractor' | 'admin',
-      first_name: jwtPayload.first_name || '',
-      last_name: jwtPayload.last_name || '',
+      role: profile.role as 'homeowner' | 'contractor' | 'admin',
+      first_name: profile.first_name || jwtPayload.first_name || '',
+      last_name: profile.last_name || jwtPayload.last_name || '',
     };
   } catch (error) {
     logger.error('Failed to get user from cookies', error);
