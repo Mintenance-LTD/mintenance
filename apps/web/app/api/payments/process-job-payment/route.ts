@@ -60,7 +60,7 @@ export const POST = withApiHandler(
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, title')
       .eq('id', jobId)
       .single();
 
@@ -68,8 +68,10 @@ export const POST = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
-      throw new ForbiddenError('Only the homeowner can pay for this job');
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+      throw new ForbiddenError(
+        'Only the homeowner or designated payer can pay for this job'
+      );
     }
 
     if (!job.contractor_id) {
@@ -168,15 +170,20 @@ export const POST = withApiHandler(
       .select('id');
 
     if (escrowUpdateError) {
-      logger.error('Payment succeeded but escrow could not be held', escrowUpdateError, {
-        service: 'payments',
-        jobId,
-        paymentIntentId: confirmedIntent.id,
-      });
+      logger.error(
+        'Payment succeeded but escrow could not be held',
+        escrowUpdateError,
+        {
+          service: 'payments',
+          jobId,
+          paymentIntentId: confirmedIntent.id,
+        }
+      );
       return NextResponse.json(
         {
           success: false,
-          error: 'Payment succeeded but could not be recorded. Support has been notified.',
+          error:
+            'Payment succeeded but could not be recorded. Support has been notified.',
           paymentIntentId: confirmedIntent.id,
         },
         { status: 500 }
@@ -203,7 +210,8 @@ export const POST = withApiHandler(
         return NextResponse.json(
           {
             success: false,
-            error: 'Payment succeeded but could not be recorded. Support has been notified.',
+            error:
+              'Payment succeeded but could not be recorded. Support has been notified.',
             paymentIntentId: confirmedIntent.id,
           },
           { status: 500 }

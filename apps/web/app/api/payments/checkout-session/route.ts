@@ -38,9 +38,8 @@ export const POST = withApiHandler(
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: jobData, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id')
+      .select('id, homeowner_id, payer_user_id, contractor_id')
       .eq('id', jobId)
-      .eq('homeowner_id', user.id) // Only fetch if user is homeowner
       .single();
 
     if (jobError || !jobData) {
@@ -54,9 +53,13 @@ export const POST = withApiHandler(
     }
 
     const isAdmin = user.role === 'admin';
-    if (!isAdmin && jobData.homeowner_id !== user.id) {
+    if (
+      !isAdmin &&
+      jobData.homeowner_id !== user.id &&
+      jobData.payer_user_id !== user.id
+    ) {
       throw new ForbiddenError(
-        'Only the homeowner can initiate payment checkout'
+        'Only the homeowner or designated payer can initiate payment checkout'
       );
     }
 
