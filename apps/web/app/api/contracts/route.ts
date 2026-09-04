@@ -215,7 +215,7 @@ export const POST = withApiHandler(
     // Verify job exists and contractor is assigned
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
       .eq('id', job_id)
       .single();
 
@@ -234,6 +234,10 @@ export const POST = withApiHandler(
         'Job must be assigned before creating a contract'
       );
     }
+
+    const customerIds = [job.homeowner_id, job.payer_user_id].filter(
+      (id, index, ids): id is string => Boolean(id) && ids.indexOf(id) === index
+    );
 
     // Check if a contract already exists for this job and contractor
     const { data: existingContract } = await serverSupabase
@@ -329,20 +333,26 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to create contract');
     }
 
-    // Notify homeowner through the service so push + preference checks
+    // Notify every customer responsible for the job through the service so
+    // push + preference checks apply when the designated payer differs from
+    // the property's primary homeowner.
     // fire alongside the in-app row. Direct `.from('notifications').
     // insert(...)` was silently skipping push — homeowners only learned
     // a contract existed from email (if enabled) or by opening the
     // app manually.
     try {
-      await NotificationService.createNotification({
-        userId: job.homeowner_id,
-        type: 'contract_created',
-        title: `Contract sent for ${job.title || 'your job'}`,
-        message: `Two-minute read, one tap to sign. No money moves at signing — that happens at the escrow step.`,
-        actionUrl: `/jobs/${job_id}`,
-        metadata: { jobId: job_id, contractorId: user.id },
-      });
+      await Promise.all(
+        customerIds.map((customerId) =>
+          NotificationService.createNotification({
+            userId: customerId,
+            type: 'contract_created',
+            title: `Contract sent for ${job.title || 'your job'}`,
+            message: `Two-minute read, one tap to sign. No money moves at signing — that happens at the escrow step.`,
+            actionUrl: `/jobs/${job_id}`,
+            metadata: { jobId: job_id, contractorId: user.id },
+          })
+        )
+      );
     } catch (notificationError) {
       logger.error('Failed to create notification', notificationError, {
         service: 'contracts',
@@ -351,15 +361,14 @@ export const POST = withApiHandler(
       });
     }
 
-    // Send email notification to homeowner
+    // Send email notification to every customer responsible for the job.
     try {
-      const { data: homeownerProfile } = await serverSupabase
+      const { data: customerProfiles } = await serverSupabase
         .from('profiles')
-        .select('first_name, last_name, email')
-        .eq('id', job.homeowner_id)
-        .single();
+        .select('id, first_name, last_name, email')
+        .in('id', customerIds);
 
-      if (homeownerProfile?.email) {
+      if (customerProfiles?.length) {
         const { data: contractorProfile } = await serverSupabase
           .from('profiles')
           .select('first_name, last_name, company_name')
@@ -377,13 +386,19 @@ export const POST = withApiHandler(
             ? `https://${process.env.VERCEL_URL}`
             : 'https://mintenance.com';
 
-        await EmailService.sendContractNotification(homeownerProfile.email, {
-          homeownerName: homeownerProfile.first_name || 'Homeowner',
-          contractorName: contractorDisplayName,
-          jobTitle: job.title || 'your job',
-          contractAmount: amount,
-          viewUrl: `${baseUrl}/jobs/${job_id}#contract-section`,
-        });
+        await Promise.all(
+          customerProfiles
+            .filter((profile) => profile.email)
+            .map((profile) =>
+              EmailService.sendContractNotification(profile.email!, {
+                homeownerName: profile.first_name || 'Homeowner',
+                contractorName: contractorDisplayName,
+                jobTitle: job.title || 'your job',
+                contractAmount: amount,
+                viewUrl: `${baseUrl}/jobs/${job_id}#contract-section`,
+              })
+            )
+        );
       }
     } catch (emailError) {
       logger.error('Failed to send contract email notification', emailError, {
@@ -429,7 +444,7 @@ export const POST = withApiHandler(
           .from('message_threads')
           .insert({
             job_id: job_id,
-            participant_ids: [user.id, job.homeowner_id].filter(Boolean),
+            participant_ids: [user.id, ...customerIds],
             last_message_at: new Date().toISOString(),
           })
           .select('id')
@@ -464,42 +479,45 @@ export const POST = withApiHandler(
       // lookup; it's now dropped (the chat client can find the
       // contract via job_id + message timing — both are 1:1 with the
       // contract here).
-      const messagePayload = {
-        job_id,
-        sender_id: user.id,
-        receiver_id: job.homeowner_id,
-        content: contractMessageText,
-        message_type: 'system',
-        read: false,
-      };
-
       let messageInserted = false;
       let insertedMessageId: string | null = null;
 
       try {
-        const { data: insertedMessage, error: msgError } = await serverSupabase
-          .from('messages')
-          .insert(messagePayload)
-          .select('id, message_type, created_at')
-          .single();
+        for (const customerId of customerIds) {
+          const { data: insertedMessage, error: msgError } =
+            await serverSupabase
+              .from('messages')
+              .insert({
+                job_id,
+                sender_id: user.id,
+                receiver_id: customerId,
+                content: contractMessageText,
+                message_type: 'system',
+                read: false,
+              })
+              .select('id, message_type, created_at')
+              .single();
 
-        if (msgError) {
-          logger.error('Failed to create contract message', msgError, {
+          if (msgError) {
+            logger.error('Failed to create contract message', msgError, {
+              service: 'contracts',
+              jobId: job_id,
+              receiverId: customerId,
+              errorCode: msgError.code,
+            });
+            continue;
+          }
+
+          messageInserted = true;
+          insertedMessageId ||= insertedMessage?.id || null;
+          logger.info('Contract message created successfully', {
             service: 'contracts',
-            jobId: job_id,
-            errorCode: msgError.code,
+            messageId: insertedMessage?.id,
+            receiverId: customerId,
+            messageType: insertedMessage?.message_type,
+            createdAt: insertedMessage?.created_at,
           });
-          throw msgError;
         }
-
-        messageInserted = true;
-        insertedMessageId = insertedMessage?.id || null;
-        logger.info('Contract message created successfully', {
-          service: 'contracts',
-          messageId: insertedMessageId,
-          messageType: insertedMessage?.message_type,
-          createdAt: insertedMessage?.created_at,
-        });
       } catch (msgError: unknown) {
         logger.error('Failed to create contract message', msgError, {
           service: 'contracts',
