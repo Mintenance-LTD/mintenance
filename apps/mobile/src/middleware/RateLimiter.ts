@@ -15,13 +15,20 @@ interface RateBucket {
   count: number;
   resetTime: number;
 }
-
 interface RateLimitConfig {
   maxAttempts: number;
   windowMs: number;
 }
 
 const buckets = new Map<string, RateBucket>();
+
+function purgeExpiredBuckets(now: number): void {
+  for (const [key, bucket] of buckets) {
+    if (now > bucket.resetTime) {
+      buckets.delete(key);
+    }
+  }
+}
 
 // Pre-configured limits matching web API behavior
 const LIMITS: Record<string, RateLimitConfig> = {
@@ -66,8 +73,10 @@ export function checkRateLimit(
   const config = LIMITS[action];
   if (!config) return true;
 
-  const key = `${action}:${identifier}`;
   const now = Date.now();
+  purgeExpiredBuckets(now);
+
+  const key = `${action}:${identifier}`;
   const bucket = buckets.get(key);
 
   // Window expired or first attempt
@@ -114,24 +123,12 @@ export function getRemainingAttempts(
   const config = LIMITS[action];
   if (!config) return Infinity;
 
-  const key = `${action}:${identifier}`;
   const now = Date.now();
+  purgeExpiredBuckets(now);
+
+  const key = `${action}:${identifier}`;
   const bucket = buckets.get(key);
 
   if (!bucket || now > bucket.resetTime) return config.maxAttempts;
   return Math.max(0, config.maxAttempts - bucket.count);
-}
-
-// Clean up expired buckets every 5 minutes (single interval, guarded against re-import)
-let _cleanupTimer: ReturnType<typeof setInterval> | null = null;
-if (!_cleanupTimer) {
-  _cleanupTimer = setInterval(
-    () => {
-      const now = Date.now();
-      for (const [key, bucket] of buckets) {
-        if (now > bucket.resetTime) buckets.delete(key);
-      }
-    },
-    5 * 60 * 1000
-  );
 }
