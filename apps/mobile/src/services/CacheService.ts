@@ -378,12 +378,13 @@ export class CacheService {
 
   private startCleanupTimer(): void {
     // Clean up expired entries every 5 minutes
-    setInterval(
+    const timer = setInterval(
       () => {
         this.cleanupExpired();
       },
       1000 * 60 * 5
     );
+    (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
   }
 
   private async cleanupExpired(): Promise<void> {

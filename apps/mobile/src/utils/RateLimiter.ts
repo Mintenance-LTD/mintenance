@@ -27,6 +27,9 @@ export class RateLimiter {
 
   constructor(private readonly config: RateLimiterConfig) {
     this.cleanupTimer = setInterval(() => this.cleanup(), config.windowMs);
+    // Do not keep Node/Jest alive solely for an in-memory maintenance task.
+    // React Native timers do not expose unref, so this remains a no-op there.
+    (this.cleanupTimer as NodeJS.Timeout & { unref?: () => void }).unref?.();
   }
 
   async checkLimit(key: string): Promise<RateLimitInfo> {
