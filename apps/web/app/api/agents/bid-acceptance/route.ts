@@ -7,23 +7,12 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { AgentLogger } from '@/lib/services/agents/AgentLogger';
-import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
-import {
-  logger,
-  validateStatusTransition,
-  validateBidTransition,
-  BID_STATUS,
-  type JobStatus,
-  type BidStatusValue,
-} from '@mintenance/shared';
-import {
-  BadRequestError,
-  ConflictError,
-  InternalServerError,
-} from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
+import { BadRequestError } from '@/lib/errors/api-error';
 import type { ActionTaken } from '@/lib/services/agents/types';
+import { POST as acceptBid } from '../../jobs/[id]/bids/[bidId]/accept/route';
 
 const requestSchema = z.object({
   action: z.enum(['evaluate', 'auto-accept', 'recommend']),
@@ -164,69 +153,21 @@ export const POST = withApiHandler(
         });
 
         if (evaluation.confidence >= 0.8 && evaluation.recommend) {
-          // SECURITY: Validate state transitions before updating — prevents skipping contract/escrow gates
-          validateBidTransition(
-            bid.status as BidStatusValue,
-            BID_STATUS.ACCEPTED as BidStatusValue
-          );
-          validateStatusTransition(
-            job.status as JobStatus,
-            'assigned' as JobStatus
-          );
-
-          // Bid acceptance is a coupled bid + job state transition. Use the
-          // row-locking SECURITY DEFINER RPC so concurrent agent requests
-          // cannot create two winners or leave the job assigned to nobody.
-          // The function also rejects callers that do not own the job.
-          interface AcceptBidResult {
-            success: boolean;
-            error_message: string | null;
-            accepted_bid_id: string | null;
-            job_status: string | null;
-          }
-
-          const { data: rpcRaw, error: rpcError } =
-            await serverSupabase.rpc('accept_bid_atomic', {
-              p_bid_id: context.bidId,
-              p_job_id: context.jobId,
-              p_contractor_id: bid.contractor_id,
-              p_homeowner_id: user.id,
-            });
-
-          if (rpcError) {
-            logger.error('Atomic agent bid acceptance failed', rpcError, {
-              service: 'bid-acceptance-agent',
-              jobId: context.jobId,
+          // Keep AI acceptance on the same canonical pipeline as manual
+          // acceptance. The old inline RPC path assigned the job and sent one
+          // notification, but skipped payout-readiness checks, contract
+          // creation, quote synchronisation, welcome messaging, and the
+          // acceptance idempotency key. That left an apparently accepted job
+          // with no safe route to payment.
+          const acceptanceResponse = await acceptBid(req, {
+            params: Promise.resolve({
+              id: context.jobId,
               bidId: context.bidId,
-            });
-            if (rpcError.code === '23505') {
-              throw new ConflictError('Bid has already been accepted for this job');
-            }
-            throw new InternalServerError('Failed to accept bid');
-          }
-
-          const rpcRow = Array.isArray(rpcRaw)
-            ? (rpcRaw[0] as AcceptBidResult | undefined)
-            : (rpcRaw as AcceptBidResult | null);
-          if (!rpcRow || !rpcRow.success) {
-            const message = rpcRow?.error_message?.toLowerCase() ?? '';
-            if (message.includes('already')) {
-              throw new ConflictError('Bid has already been accepted for this job');
-            }
-            throw new InternalServerError('Failed to accept bid');
-          }
-          // 2026-05-21 Mint Editorial voice — match the call-site copy
-          // in accept/_helpers.ts so both AI-agent and manual paths
-          // produce the same notification.
-          const fmtAmount = `£${Number(bid.amount ?? 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-          await NotificationService.createNotification({
-            userId: bid.contractor_id as string,
-            type: 'bid_accepted',
-            title: `${fmtAmount} bid accepted — ${job.title}`,
-            message: `Sign the contract, then the homeowner pays into escrow. You can start the moment the funds land.`,
-            actionUrl: `/contractor/jobs/${context.jobId}`,
-            metadata: { jobId: context.jobId, bidId: context.bidId },
+            }),
           });
+
+          if (!acceptanceResponse.ok) return acceptanceResponse;
+
           result = {
             accepted: true,
             bidId: context.bidId,
