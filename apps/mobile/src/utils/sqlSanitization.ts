@@ -25,14 +25,16 @@ const logDebug = (_data: Record<string, unknown>) => {};
 export function escapeSQLWildcards(input: string): string {
   if (!input) return '';
 
-  return input
-    // Escape backslashes first (must be first to avoid double-escaping)
-    .replace(/\\/g, '\\\\')
-    // Escape SQL wildcards
-    .replace(/%/g, '\\%')
-    .replace(/_/g, '\\_')
-    // Escape single quotes for SQL string safety
-    .replace(/'/g, "''");
+  return (
+    input
+      // Escape backslashes first (must be first to avoid double-escaping)
+      .replace(/\\/g, '\\\\')
+      // Escape SQL wildcards
+      .replace(/%/g, '\\%')
+      .replace(/_/g, '\\_')
+      // Escape single quotes for SQL string safety
+      .replace(/'/g, "''")
+  );
 }
 
 /**
@@ -57,26 +59,54 @@ export function escapeSQLWildcards(input: string): string {
  */
 export function sanitizeForSQL(input: string | undefined | null): string {
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:55',message:'sanitizeForSQL entry',data:{input},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  logDebug({
+    location: 'sqlSanitization.ts:55',
+    message: 'sanitizeForSQL entry',
+    data: { input },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C',
+  });
   // #endregion
   if (!input) return '';
 
   // Step 1: Remove HTML/XSS attempts
   const xssSafe = sanitizeText(input);
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:59',message:'after sanitizeText',data:{input,xssSafe},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  logDebug({
+    location: 'sqlSanitization.ts:59',
+    message: 'after sanitizeText',
+    data: { input, xssSafe },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C',
+  });
   // #endregion
 
   // Step 2: Escape SQL wildcards
   const sqlSafe = escapeSQLWildcards(xssSafe);
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:62',message:'after escapeSQLWildcards',data:{xssSafe,sqlSafe},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  logDebug({
+    location: 'sqlSanitization.ts:62',
+    message: 'after escapeSQLWildcards',
+    data: { xssSafe, sqlSafe },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C',
+  });
   // #endregion
 
   // Trim whitespace
   const result = sqlSafe.trim();
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:65',message:'sanitizeForSQL exit',data:{input,result},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  logDebug({
+    location: 'sqlSanitization.ts:65',
+    message: 'sanitizeForSQL exit',
+    data: { input, result },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C',
+  });
   // #endregion
   return result;
 }
@@ -88,18 +118,36 @@ export function sanitizeForSQL(input: string | undefined | null): string {
  * @param maxLength - Maximum allowed length (default: 200)
  * @returns true if input is valid, false otherwise
  */
-export function isValidSearchTerm(input: string, maxLength: number = 200): boolean {
+export function isValidSearchTerm(
+  input: string,
+  maxLength: number = 200
+): boolean {
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:104',message:'isValidSearchTerm entry',data:{input,inputLength:input?.length,maxLength},sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
+  logDebug({
+    location: 'sqlSanitization.ts:104',
+    message: 'isValidSearchTerm entry',
+    data: { input, inputLength: input?.length, maxLength },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'A',
+  });
   // #endregion
   if (!input || typeof input !== 'string') return false;
   if (input.length > maxLength) return false;
 
   // Check for SQL injection keywords (common attack patterns)
-  const sqlKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|OR|AND)\b/gi;
+  const sqlKeywords =
+    /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|OR|AND)\b/gi;
   if (sqlKeywords.test(input)) {
     // #region agent log
-    logDebug({location:'sqlSanitization.ts:112',message:'SQL keyword detected',data:{input,rejected:true},sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
+    logDebug({
+      location: 'sqlSanitization.ts:112',
+      message: 'SQL keyword detected',
+      data: { input, rejected: true },
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'A',
+    });
     // #endregion
     return false;
   }
@@ -109,14 +157,34 @@ export function isValidSearchTerm(input: string, maxLength: number = 200): boole
   const specialCharRatio = specialCharCount / input.length;
 
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:118',message:'special char calculation',data:{input,specialCharCount,specialCharRatio,threshold:0.3,willReject:specialCharRatio>0.3},sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
+  logDebug({
+    location: 'sqlSanitization.ts:118',
+    message: 'special char calculation',
+    data: {
+      input,
+      specialCharCount,
+      specialCharRatio,
+      threshold: 0.3,
+      willReject: specialCharRatio > 0.3,
+    },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'A',
+  });
   // #endregion
 
   // If more than 30% special characters, likely an attack
   if (specialCharRatio > 0.3) return false;
 
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:123',message:'isValidSearchTerm exit',data:{input,result:true},sessionId:'debug-session',runId:'run1',hypothesisId:'A'});
+  logDebug({
+    location: 'sqlSanitization.ts:123',
+    message: 'isValidSearchTerm exit',
+    data: { input, result: true },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'A',
+  });
   // #endregion
   return true;
 }
@@ -133,29 +201,64 @@ export function sanitizeSearchTerms(
   maxTerms: number = 10
 ): string[] {
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:135',message:'sanitizeSearchTerms entry',data:{termsCount:terms?.length,terms,maxTerms},sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+  logDebug({
+    location: 'sqlSanitization.ts:135',
+    message: 'sanitizeSearchTerms entry',
+    data: { termsCount: terms?.length, terms, maxTerms },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'B',
+  });
   // #endregion
   if (!Array.isArray(terms)) return [];
 
   const sliced = terms.slice(0, maxTerms);
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:142',message:'after slice',data:{slicedCount:sliced.length,sliced},sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+  logDebug({
+    location: 'sqlSanitization.ts:142',
+    message: 'after slice',
+    data: { slicedCount: sliced.length, sliced },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'B',
+  });
   // #endregion
 
   // Filter out invalid terms before sanitizing
-  const validTerms = sliced.filter(term => isValidSearchTerm(term));
+  const validTerms = sliced.filter((term) => isValidSearchTerm(term));
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:145',message:'after validation filter',data:{validCount:validTerms.length,validTerms},sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+  logDebug({
+    location: 'sqlSanitization.ts:145',
+    message: 'after validation filter',
+    data: { validCount: validTerms.length, validTerms },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'B',
+  });
   // #endregion
 
-  const sanitized = validTerms.map(term => sanitizeForSQL(term));
+  const sanitized = validTerms.map((term) => sanitizeForSQL(term));
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:148',message:'after sanitize',data:{sanitizedCount:sanitized.length,sanitized},sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+  logDebug({
+    location: 'sqlSanitization.ts:148',
+    message: 'after sanitize',
+    data: { sanitizedCount: sanitized.length, sanitized },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'B',
+  });
   // #endregion
 
-  const filtered = sanitized.filter(term => term.length > 0);
+  const filtered = sanitized.filter((term) => term.length > 0);
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:151',message:'sanitizeSearchTerms exit',data:{resultCount:filtered.length,result:filtered},sessionId:'debug-session',runId:'run1',hypothesisId:'B'});
+  logDebug({
+    location: 'sqlSanitization.ts:151',
+    message: 'sanitizeSearchTerms exit',
+    data: { resultCount: filtered.length, result: filtered },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'B',
+  });
   // #endregion
   return filtered;
 }
@@ -181,22 +284,52 @@ export function createSafeILIKEPattern(
   pattern: 'contains' | 'startsWith' | 'endsWith' | 'exact' = 'contains'
 ): string {
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:177',message:'createSafeILIKEPattern entry',data:{searchTerm,pattern},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  logDebug({
+    location: 'sqlSanitization.ts:177',
+    message: 'createSafeILIKEPattern entry',
+    data: { searchTerm, pattern },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C',
+  });
   // #endregion
-  
+
   // Check if input is already sanitized (contains escaped wildcards)
   // If it does, use it directly; otherwise sanitize it
   const isAlreadySanitized = /\\[%_]/.test(searchTerm) || /''/.test(searchTerm);
   const safeTerm = isAlreadySanitized ? searchTerm : sanitizeForSQL(searchTerm);
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:183',message:'after sanitize check',data:{searchTerm,isAlreadySanitized,safeTerm,pattern},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  logDebug({
+    location: 'sqlSanitization.ts:183',
+    message: 'after sanitize check',
+    data: { searchTerm, isAlreadySanitized, safeTerm, pattern },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C',
+  });
   // #endregion
 
   if (!safeTerm) return '';
 
-  const result = pattern === 'contains' ? `%${safeTerm}%` : pattern === 'startsWith' ? `${safeTerm}%` : pattern === 'endsWith' ? `%${safeTerm}` : pattern === 'exact' ? safeTerm : `%${safeTerm}%`;
+  const result =
+    pattern === 'contains'
+      ? `%${safeTerm}%`
+      : pattern === 'startsWith'
+        ? `${safeTerm}%`
+        : pattern === 'endsWith'
+          ? `%${safeTerm}`
+          : pattern === 'exact'
+            ? safeTerm
+            : `%${safeTerm}%`;
   // #region agent log
-  logDebug({location:'sqlSanitization.ts:188',message:'createSafeILIKEPattern exit',data:{searchTerm,safeTerm,pattern,result},sessionId:'debug-session',runId:'run1',hypothesisId:'C'});
+  logDebug({
+    location: 'sqlSanitization.ts:188',
+    message: 'createSafeILIKEPattern exit',
+    data: { searchTerm, safeTerm, pattern, result },
+    sessionId: 'debug-session',
+    runId: 'run1',
+    hypothesisId: 'C',
+  });
   // #endregion
   return result;
 }
@@ -206,7 +339,8 @@ export function createSafeILIKEPattern(
  * Prevents brute-force SQL injection attempts.
  */
 class SearchRateLimiter {
-  private attempts: Map<string, { count: number; resetTime: number }> = new Map();
+  private attempts: Map<string, { count: number; resetTime: number }> =
+    new Map();
   private readonly maxAttempts: number = 50;
   private readonly windowMs: number = 60000; // 1 minute
 
@@ -218,13 +352,14 @@ class SearchRateLimiter {
    */
   isAllowed(key: string): boolean {
     const now = Date.now();
+    this.cleanup(now);
     const record = this.attempts.get(key);
 
     if (!record || now > record.resetTime) {
       // Reset or create new record
       this.attempts.set(key, {
         count: 1,
-        resetTime: now + this.windowMs
+        resetTime: now + this.windowMs,
       });
       return true;
     }
@@ -247,8 +382,7 @@ class SearchRateLimiter {
   /**
    * Cleans up expired entries.
    */
-  cleanup(): void {
-    const now = Date.now();
+  cleanup(now: number = Date.now()): void {
     for (const [key, record] of this.attempts.entries()) {
       if (now > record.resetTime) {
         this.attempts.delete(key);
@@ -258,15 +392,3 @@ class SearchRateLimiter {
 }
 
 export const searchRateLimiter = new SearchRateLimiter();
-
-// Cleanup expired entries every 5 minutes
-if (typeof setInterval !== 'undefined') {
-  const cleanupInterval = setInterval(() => {
-    searchRateLimiter.cleanup();
-  }, 5 * 60 * 1000);
-
-  // Allow cleanup to be stopped if needed
-  if (typeof cleanupInterval === 'object' && 'unref' in cleanupInterval) {
-    (cleanupInterval as unknown as { unref: () => void }).unref();
-  }
-}
