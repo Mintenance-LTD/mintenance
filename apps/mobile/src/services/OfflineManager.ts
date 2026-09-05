@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 import { queryClient } from '../lib/queryClient';
+import * as sentry from '../config/sentry';
 import NetInfo from '@react-native-community/netinfo';
 import { EntityVersionTracker } from './offline/EntityVersionTracker';
 import { DataMerger } from './offline/DataMerger';
@@ -54,16 +55,7 @@ class OfflineManagerClass {
   async queueAction(
     action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>
   ): Promise<string> {
-    try {
-      const sentry = require('../config/sentry');
-      sentry.addBreadcrumb?.('offline.queue_action', 'offline');
-    } catch (sentryError) {
-      // MSV-P1-2: sentry breadcrumb is best-effort; don't block queueing, but
-      // log so we know if the import is broken.
-      logger.debug('Sentry breadcrumb unavailable in queueAction', {
-        sentryError,
-      });
-    }
+    sentry.addBreadcrumb?.('offline.queue_action', 'offline');
     const actionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     try {
       const existing =
@@ -162,14 +154,7 @@ class OfflineManagerClass {
   }
 
   async syncQueue(): Promise<void> {
-    try {
-      const sentry = require('../config/sentry');
       sentry.addBreadcrumb?.('offline.sync_start', 'offline');
-    } catch (sentryError) {
-      logger.debug('Sentry breadcrumb unavailable in syncQueue', {
-        sentryError,
-      });
-    }
     const networkState = await NetInfo.fetch();
     if (this.syncInProgress) {
       logger.debug('Sync already in progress, skipping');
@@ -311,14 +296,7 @@ class OfflineManagerClass {
         clearTimeout(this.retryTimer);
         this.retryTimer = null;
       }
-      try {
-        const sentry = require('../config/sentry');
-        sentry.addBreadcrumb?.(`offline.schedule_retry:${delayMs}`, 'offline');
-      } catch (sentryError) {
-        logger.debug('Sentry breadcrumb unavailable in scheduleNextSync', {
-          sentryError,
-        });
-      }
+      sentry.addBreadcrumb?.(`offline.schedule_retry:${delayMs}`, 'offline');
       this.retryTimer = setTimeout(
         () => {
           this.retryTimer = null;
