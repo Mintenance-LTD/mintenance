@@ -531,6 +531,34 @@ describe('PerformanceBudgetManager', () => {
         expect.any(Error)
       );
     });
+
+    it('skips a scheduled tick while the previous check is still running', async () => {
+      jest.useFakeTimers();
+      mockRepo.getAllBudgets.mockReturnValue(
+        new Map<string, PerformanceBudget>([['svcA', sampleBudget('svcA')]])
+      );
+
+      let resolveCollection!: (metrics: PerformanceMetrics) => void;
+      mockCollector.collectMetrics.mockImplementationOnce(
+        () =>
+          new Promise<PerformanceMetrics>((resolve) => {
+            resolveCollection = resolve;
+          })
+      );
+
+      manager.startMonitoring(1000);
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      expect(mockCollector.collectMetrics).toHaveBeenCalledTimes(1);
+
+      resolveCollection({ responseTime: 123 });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
   });
 
   describe('alert handler registration', () => {
