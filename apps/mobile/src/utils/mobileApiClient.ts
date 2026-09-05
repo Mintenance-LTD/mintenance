@@ -52,30 +52,39 @@ export const API_BASE_URL = resolveApiBaseUrl();
  * Falls back to SecureStore if the Supabase client session is null
  * (common after app restart before restoreSession completes).
  */
-async function getAuthToken(): Promise<string | null> {
+async function getAuthToken(signal?: AbortSignal): Promise<string | null> {
+  if (signal?.aborted) return null;
+
   // Primary: get token from Supabase client session
   try {
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
+    if (signal?.aborted) return null;
     if (session?.access_token) {
       return session.access_token;
     }
   } catch (e) {
-    logger.warn('[AUTH] getSession() failed', e);
+    if (!signal?.aborted) {
+      logger.warn('[AUTH] getSession() failed', e);
+    }
   }
+
+  if (signal?.aborted) return null;
 
   // Fallback 1: force a fresh session via getUser() (triggers auto-refresh)
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    if (signal?.aborted) return null;
     if (user) {
       // getUser succeeded — session was refreshed, get it now
       const {
         data: { session: refreshedSession },
       } = await supabase.auth.getSession();
+      if (signal?.aborted) return null;
       if (refreshedSession?.access_token) {
         logger.info(
           '[AUTH] getAuthToken: recovered token via getUser() refresh'
@@ -87,10 +96,14 @@ async function getAuthToken(): Promise<string | null> {
     // getUser may fail if no session at all
   }
 
+  if (signal?.aborted) return null;
+
   // Fallback 2: load from SecureStore (app restart before restoreSession completes)
   try {
     const SecureStore = await import('expo-secure-store');
+    if (signal?.aborted) return null;
     const sessionJson = await SecureStore.getItemAsync('mintenance_session');
+    if (signal?.aborted) return null;
     if (sessionJson) {
       const persisted = JSON.parse(sessionJson);
       if (persisted?.access_token && persisted?.refresh_token) {
@@ -113,7 +126,9 @@ async function getAuthToken(): Promise<string | null> {
     // SecureStore may not be available in all environments
   }
 
-  logger.warn('[AUTH] getAuthToken: no token available from any source');
+  if (!signal?.aborted) {
+    logger.warn('[AUTH] getAuthToken: no token available from any source');
+  }
   return null;
 }
 
@@ -144,7 +159,7 @@ class MobileApiClient extends ApiClient {
     url: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const token = await getAuthToken();
+    const token = await getAuthToken(options.signal ?? undefined);
 
     const headers = {
       ...options.headers,
