@@ -1,4 +1,4 @@
--- Restrict marketplace visibility to contractors. The previous consolidated
+-- Restrict marketplace visibility to unassigned jobs for contractors. The previous consolidated
 -- policy allowed every authenticated user to read every non-draft job,
 -- including private lifecycle data belonging to another homeowner.
 drop policy if exists "rls_merged_select_49214f8cf3e9df480f55df7fd5ba0ed1" on public.jobs;
