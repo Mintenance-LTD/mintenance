@@ -1,4 +1,7 @@
 import { logger } from '../../utils/logger';
+import { JobService } from '../JobService';
+import { MessagingService } from '../MessagingService';
+import { UserService } from '../UserService';
 import type {
   OfflineAction,
   JobData,
@@ -10,7 +13,8 @@ import type {
 /**
  * Executes queued offline actions by dispatching to the appropriate service.
  * Also provides fetchServerData for conflict detection in ConflictManager.
- * Services are loaded via require() so jest.mock() intercepts them in tests.
+ * Services are imported normally so an action cannot trigger a late module
+ * load after the caller or test environment has already torn down.
  */
 export class ActionExecutor {
   async executeAction(action: OfflineAction): Promise<void> {
@@ -46,16 +50,20 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const { JobService } = require('../JobService');
     const jobData = data as JobData;
     switch (type) {
       case 'CREATE':
-        await JobService.createJob(data);
+        await JobService.createJob(
+          data as Parameters<typeof JobService.createJob>[0]
+        );
         break;
       case 'UPDATE':
+        if (!jobData.jobId || !jobData.status) {
+          throw new Error('update job action is missing jobId or status');
+        }
         await JobService.updateJobStatus(
           jobData.jobId,
-          jobData.status,
+          jobData.status as Parameters<typeof JobService.updateJobStatus>[1],
           jobData.contractorId
         );
         break;
@@ -68,11 +76,12 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const { JobService } = require('../JobService');
     const bidData = data as BidData;
     switch (type) {
       case 'CREATE':
-        await JobService.submitBid(data);
+        await JobService.submitBid(
+          data as Parameters<typeof JobService.submitBid>[0]
+        );
         break;
       case 'UPDATE':
         if (bidData.status === 'accepted') {
@@ -98,7 +107,6 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const { MessagingService } = require('../MessagingService');
     const messageData = data as MessageData;
     switch (type) {
       case 'CREATE':
@@ -118,10 +126,12 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const { UserService } = require('../UserService');
     const profileData = data as ProfileData;
     switch (type) {
       case 'UPDATE':
+        if (!profileData.updates) {
+          throw new Error('update profile action is missing updates');
+        }
         await UserService.updateUserProfile(
           profileData.userId,
           profileData.updates
@@ -137,7 +147,6 @@ export class ActionExecutor {
     try {
       switch (entity) {
         case 'job': {
-          const { JobService } = require('../JobService');
           return await JobService.getJobById(entityId);
         }
         case 'bid': {
@@ -151,7 +160,6 @@ export class ActionExecutor {
           return null;
         }
         case 'profile': {
-          const { UserService } = require('../UserService');
           return await UserService.getUserProfile(entityId);
         }
         case 'message':
