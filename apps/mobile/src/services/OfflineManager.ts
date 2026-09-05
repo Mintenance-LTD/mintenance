@@ -27,6 +27,8 @@ class OfflineManagerClass {
   private readonly MAX_RETRIES = 3;
   private readonly CHUNK_SIZE = 50;
   private syncInProgress = false;
+  private syncCompletion: Promise<void> | null = null;
+  private resolveSyncCompletion: (() => void) | null = null;
   private retryTimer: NodeJS.Timeout | null = null;
   // CRITICAL FIX: Memory leak prevention - use unsubscribe from onSyncStatusChange()
   private syncListeners: ((
@@ -109,7 +111,10 @@ class OfflineManagerClass {
 
       const networkState = await NetInfo.fetch();
       if (networkState.isConnected && networkState.isInternetReachable) {
-        this.syncQueue();
+        // Keep the queue operation's lifecycle tied to the immediate sync.
+        // Fire-and-forget here allowed action execution to outlive the
+        // caller, causing unhandled work during screen/test teardown.
+        await this.syncQueue();
       }
 
       const pendingCount = await this.getPendingActionsCount();
@@ -158,6 +163,11 @@ class OfflineManagerClass {
     const networkState = await NetInfo.fetch();
     if (this.syncInProgress) {
       logger.debug('Sync already in progress, skipping');
+      // A caller that arrived during an active sync must wait for that sync
+      // to finish. Returning immediately let queued actions continue after
+      // the caller had already torn down (and could leave work after logout
+      // or test teardown).
+      await this.syncCompletion;
       return;
     }
     if (!networkState.isConnected || !networkState.isInternetReachable) {
@@ -166,6 +176,9 @@ class OfflineManagerClass {
     }
 
     this.syncInProgress = true;
+    this.syncCompletion = new Promise<void>((resolve) => {
+      this.resolveSyncCompletion = resolve;
+    });
     this.notifySyncListeners('syncing', 0);
 
     try {
@@ -287,6 +300,9 @@ class OfflineManagerClass {
       this.notifySyncListeners('error', 0);
     } finally {
       this.syncInProgress = false;
+      this.resolveSyncCompletion?.();
+      this.resolveSyncCompletion = null;
+      this.syncCompletion = null;
     }
   }
 

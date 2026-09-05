@@ -71,6 +71,14 @@ export class MemoryManager {
       this.checkMemoryUsage();
     }, this.CLEANUP_INTERVAL);
 
+    // Do not let an optional monitoring timer keep Node-based tooling alive.
+    // React Native timers do not expose unref, so this remains a no-op on
+    // device.
+    const unref = (this.monitoringInterval as NodeJS.Timeout & {
+      unref?: () => void;
+    })?.unref;
+    unref?.call(this.monitoringInterval);
+
     logger.debug('Memory monitoring started');
   }
 

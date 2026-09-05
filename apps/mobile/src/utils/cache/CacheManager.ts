@@ -339,6 +339,14 @@ export class CacheManager {
     this.cleanupInterval = setInterval(async () => {
       await this.vacuum();
     }, 60000); // Every minute
+
+    // Node-based tooling (including Jest) should not be kept alive by an
+    // optional maintenance timer. React Native timers do not expose unref,
+    // so this is a no-op on device.
+    const unref = (this.cleanupInterval as NodeJS.Timeout & {
+      unref?: () => void;
+    })?.unref;
+    unref?.call(this.cleanupInterval);
   }
 
   private setupMemoryWarningListener(): void {
