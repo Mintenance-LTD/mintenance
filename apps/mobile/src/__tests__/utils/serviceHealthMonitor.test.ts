@@ -117,6 +117,7 @@ describe('ServiceHealthMonitor', () => {
       expect(status.status).toBe('healthy');
       expect(status.responseTime).toBe(100);
       expect(status.errorRate).toBe(0);
+      expect(jest.getTimerCount()).toBe(0);
     });
 
     it('should check service health with URL', async () => {
@@ -143,6 +144,7 @@ describe('ServiceHealthMonitor', () => {
         })
       );
       expect(status.status).toBe('healthy');
+      expect(jest.getTimerCount()).toBe(0);
     });
 
     it('should handle health check failures', async () => {

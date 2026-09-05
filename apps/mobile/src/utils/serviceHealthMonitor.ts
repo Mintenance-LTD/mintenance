@@ -122,10 +122,10 @@ export class ServiceHealthMonitor {
 
     try {
       if (serviceCheck.healthCheckFunction) {
-        isHealthy = (await Promise.race([
+        isHealthy = await this.runWithTimeout(
           serviceCheck.healthCheckFunction(),
-          this.createTimeoutPromise(serviceCheck.timeout),
-        ])) as boolean;
+          serviceCheck.timeout
+        );
       } else if (serviceCheck.healthCheckUrl) {
         isHealthy = await this.checkUrlHealth(
           serviceCheck.healthCheckUrl,
@@ -345,22 +345,40 @@ export class ServiceHealthMonitor {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(url, {
-        signal: controller.signal,
-        method: 'HEAD',
-      });
+      try {
+        const response = await fetch(url, {
+          signal: controller.signal,
+          method: 'HEAD',
+        });
 
-      clearTimeout(timeoutId);
-      return response.ok;
+        return response.ok;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } catch (error) {
       return false;
     }
   }
 
-  private createTimeoutPromise<T>(timeoutMs: number): Promise<T> {
-    return new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Health check timeout')), timeoutMs);
+  private async runWithTimeout<T>(
+    operation: Promise<T>,
+    timeoutMs: number
+  ): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Health check timeout')),
+        timeoutMs
+      );
     });
+
+    try {
+      return await Promise.race([operation, timeout]);
+    } finally {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 
   private determineHealthStatus(
