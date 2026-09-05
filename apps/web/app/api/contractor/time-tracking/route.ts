@@ -8,6 +8,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, BadRequestError } from '@/lib/errors/api-error';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { assertContractorJobAssignment } from '@/lib/services/contractor/job-assignment';
 
 // GET: Fetch all time entries for the contractor
 export const GET = withApiHandler(
@@ -85,6 +86,10 @@ export const POST = withApiHandler(
     if (validation instanceof NextResponse) return validation;
 
     const d = validation.data;
+
+    if (d.jobId) {
+      await assertContractorJobAssignment(d.jobId, user.id);
+    }
 
     const { data: entry, error } = await userDb
       .from('contractor_time_entries')
@@ -181,6 +186,10 @@ export const PATCH = withApiHandler(
         { error: 'Time entry not found' },
         { status: 404 }
       );
+    }
+
+    if (updates.jobId) {
+      await assertContractorJobAssignment(updates.jobId, user.id);
     }
 
     const dbUpdates: Record<string, unknown> = {
