@@ -10,6 +10,7 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateImageUpload } from '@/lib/utils/fileValidation';
+import { parseJobPhotoGeolocation } from '@/lib/validation/job-photo-geolocation';
 import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
@@ -138,9 +139,16 @@ export const POST = withApiHandler(
         | undefined;
       if (geolocationStr) {
         try {
-          geolocation = JSON.parse(geolocationStr);
+          const parsedGeolocation = parseJobPhotoGeolocation(
+            JSON.parse(geolocationStr)
+          );
+          if (parsedGeolocation) {
+            geolocation = parsedGeolocation;
+          } else {
+            logger.warn('Invalid geolocation values');
+          }
         } catch {
-          logger.warn('Invalid geolocation format', { geolocationStr });
+          logger.warn('Invalid geolocation format');
         }
       }
 
