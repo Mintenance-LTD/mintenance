@@ -58,6 +58,7 @@ export class ServiceHealthMonitor {
   private healthChecks: Map<string, ServiceHealthCheck> = new Map();
   private monitoringInterval?: NodeJS.Timeout;
   private isMonitoring = false;
+  private healthCheckInProgress = false;
 
   private readonly defaultThresholds: HealthThresholds = {
     responseTimeWarning: 1000, // 1 second
@@ -230,10 +231,18 @@ export class ServiceHealthMonitor {
 
     this.isMonitoring = true;
     this.monitoringInterval = setInterval(async () => {
+      if (this.healthCheckInProgress) {
+        logger.warn('Skipping overlapping service health monitoring check');
+        return;
+      }
+
+      this.healthCheckInProgress = true;
       try {
         await this.checkAllServices();
       } catch (error) {
         logger.error('Error during health monitoring check:', error);
+      } finally {
+        this.healthCheckInProgress = false;
       }
     }, intervalMs);
 

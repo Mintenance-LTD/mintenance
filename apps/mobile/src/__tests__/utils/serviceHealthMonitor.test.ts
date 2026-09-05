@@ -244,6 +244,35 @@ describe('ServiceHealthMonitor', () => {
       expect(healthCheckFn).toHaveBeenCalledTimes(0);
     });
 
+    it('should skip a monitoring tick while a previous check is in progress', async () => {
+      let resolveHealthCheck!: (healthy: boolean) => void;
+      const healthCheckFn = jest.fn(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveHealthCheck = resolve;
+          })
+      );
+
+      monitor.registerService({
+        serviceName: 'SlowService',
+        timeout: 5000,
+        healthCheckFunction: healthCheckFn,
+      });
+
+      monitor.startMonitoring(1000);
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      expect(healthCheckFn).toHaveBeenCalledTimes(1);
+
+      resolveHealthCheck(true);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
     it('should not start monitoring if already running', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
