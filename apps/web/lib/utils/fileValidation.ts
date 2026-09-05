@@ -179,11 +179,21 @@ async function validateFileUpload(
     // Step 7: Check file extension matches detected type (if required)
     if (options.requireExtensionMatch && fileName) {
       const fileExtension = fileName.split('.').pop()?.toLowerCase();
+      const allowedExtensionsByMime: Record<string, string[]> = {
+        'image/jpeg': ['jpg', 'jpeg'],
+        'image/heic': ['heic'],
+        'image/heif': ['heif'],
+      };
+      const allowedExtensions =
+        allowedExtensionsByMime[detectedFileType.mime] ?? [
+          detectedFileType.ext,
+        ];
 
-      if (fileExtension !== detectedFileType.ext) {
-        warnings.push(
-          `File extension (.${fileExtension}) doesn't match actual file type (.${detectedFileType.ext})`
-        );
+      if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+        const expectedExtensions = allowedExtensions
+          .map((extension) => `.${extension}`)
+          .join(' or ');
+        const error = `File extension (.${fileExtension || 'missing'}) doesn't match actual file type (expected ${expectedExtensions})`;
 
         logger.warn('[SECURITY] File extension mismatch', {
           fileName,
@@ -191,6 +201,12 @@ async function validateFileUpload(
           actualExt: detectedFileType.ext,
           severity: 'LOW',
         });
+
+        return {
+          valid: false,
+          error,
+          detectedType: detectedFileType.mime,
+        };
       }
     }
 
