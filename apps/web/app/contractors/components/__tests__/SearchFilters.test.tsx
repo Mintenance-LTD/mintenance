@@ -141,7 +141,9 @@ describe('SearchFilters', () => {
     it('should submit form on skill change', () => {
       const { container } = render(<SearchFilters {...defaultProps} />);
       const form = container.querySelector('form');
-      const submitSpy = vi.spyOn(form as HTMLFormElement, 'requestSubmit');
+      const submitSpy = vi
+        .spyOn(form as HTMLFormElement, 'requestSubmit')
+        .mockImplementation(() => undefined);
 
       const skillSelect = getSelectByName(container, 'skill');
       fireEvent.change(skillSelect, { target: { value: 'Plumbing' } });
@@ -193,7 +195,9 @@ describe('SearchFilters', () => {
     it('should submit form on location change', () => {
       const { container } = render(<SearchFilters {...defaultProps} />);
       const form = container.querySelector('form');
-      const submitSpy = vi.spyOn(form as HTMLFormElement, 'requestSubmit');
+      const submitSpy = vi
+        .spyOn(form as HTMLFormElement, 'requestSubmit')
+        .mockImplementation(() => undefined);
 
       const locationSelect = getSelectByName(container, 'location');
       fireEvent.change(locationSelect, { target: { value: 'New York' } });
@@ -251,7 +255,9 @@ describe('SearchFilters', () => {
     it('should submit form on rating change', () => {
       const { container } = render(<SearchFilters {...defaultProps} />);
       const form = container.querySelector('form');
-      const submitSpy = vi.spyOn(form as HTMLFormElement, 'requestSubmit');
+      const submitSpy = vi
+        .spyOn(form as HTMLFormElement, 'requestSubmit')
+        .mockImplementation(() => undefined);
 
       const ratingSelect = getSelectByName(container, 'minRating');
       fireEvent.change(ratingSelect, { target: { value: '4.5' } });
@@ -524,7 +530,9 @@ describe('SearchFilters', () => {
     it('should trigger form submit on skill change', () => {
       const { container } = render(<SearchFilters {...defaultProps} />);
       const form = container.querySelector('form') as HTMLFormElement;
-      const submitSpy = vi.spyOn(form, 'requestSubmit');
+      const submitSpy = vi
+        .spyOn(form, 'requestSubmit')
+        .mockImplementation(() => undefined);
 
       const skillSelect = getSelectByName(container, 'skill');
       fireEvent.change(skillSelect, { target: { value: 'Electrical' } });
@@ -535,7 +543,9 @@ describe('SearchFilters', () => {
     it('should trigger form submit on location change', () => {
       const { container } = render(<SearchFilters {...defaultProps} />);
       const form = container.querySelector('form') as HTMLFormElement;
-      const submitSpy = vi.spyOn(form, 'requestSubmit');
+      const submitSpy = vi
+        .spyOn(form, 'requestSubmit')
+        .mockImplementation(() => undefined);
 
       const locationSelect = getSelectByName(container, 'location');
       fireEvent.change(locationSelect, { target: { value: 'Houston' } });
@@ -546,7 +556,9 @@ describe('SearchFilters', () => {
     it('should trigger form submit on rating change', () => {
       const { container } = render(<SearchFilters {...defaultProps} />);
       const form = container.querySelector('form') as HTMLFormElement;
-      const submitSpy = vi.spyOn(form, 'requestSubmit');
+      const submitSpy = vi
+        .spyOn(form, 'requestSubmit')
+        .mockImplementation(() => undefined);
 
       const ratingSelect = getSelectByName(container, 'minRating');
       fireEvent.change(ratingSelect, { target: { value: '3.0' } });
