@@ -151,4 +151,14 @@ describe('POST /api/agents/decision authorization', () => {
     expect(response.status).toBe(403);
     expect(mocks.agentCall).not.toHaveBeenCalled();
   });
+
+  it('rejects job-scoped agents without the required job context', async () => {
+    const response = await POST(
+      request({ agentName: 'PricingAgent', context: { userId: user.id } })
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.supabaseFrom).not.toHaveBeenCalled();
+    expect(mocks.agentCall).not.toHaveBeenCalled();
+  });
 });

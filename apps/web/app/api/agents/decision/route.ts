@@ -58,6 +58,15 @@ const agents: { [key: string]: unknown } = {
   PredictiveAgent: PredictiveAgent,
 };
 
+const JOB_SCOPED_AGENTS = new Set([
+  'PricingAgent',
+  'BidAcceptanceAgent',
+  'SchedulingAgent',
+  'DisputeResolutionAgent',
+  'EscrowReleaseAgent',
+  'JobStatusAgent',
+]);
+
 async function assertAgentJobAccess(
   jobId: string,
   user: { id: string; role?: string },
@@ -122,6 +131,15 @@ export const POST = withApiHandler(
       return NextResponse.json(
         { error: `Unknown agent: ${agentName}` },
         { status: 400 }
+      );
+    }
+
+    if (JOB_SCOPED_AGENTS.has(agentName) && !context.jobId) {
+      throw new BadRequestError(`${agentName} requires context.jobId`);
+    }
+    if (agentName === 'BidAcceptanceAgent' && !context.contractorId) {
+      throw new BadRequestError(
+        'BidAcceptanceAgent requires context.contractorId'
       );
     }
 
