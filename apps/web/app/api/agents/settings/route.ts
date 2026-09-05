@@ -8,6 +8,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@/lib/logger';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { z } from 'zod';
 
 interface AgentSettings {
   enableAutomation: boolean;
@@ -30,6 +31,21 @@ const DEFAULT_SETTINGS: AgentSettings = {
     PredictiveAgent: { enabled: false, confidence: 0.70 }
   }
 };
+
+const agentSettingSchema = z.object({
+  enabled: z.boolean(),
+  confidence: z.number().min(0).max(1),
+  lastAction: z.string().optional(),
+  lastActionTime: z.string().optional(),
+});
+
+const settingsSchema = z.object({
+  enableAutomation: z.boolean(),
+  automationLevel: z
+    .enum(['none', 'minimal', 'moderate', 'full'])
+    .default('none'),
+  agents: z.record(agentSettingSchema).default({}),
+});
 
 export const GET = withApiHandler({}, async (_req, { user }) => {
   const { data: existingSettings, error: fetchError } = await serverSupabase
@@ -70,9 +86,10 @@ export const GET = withApiHandler({}, async (_req, { user }) => {
 });
 
 export const POST = withApiHandler({}, async (req, { user }) => {
-  const settings: AgentSettings = await req.json();
-
-  if (!settings || typeof settings.enableAutomation !== 'boolean') {
+  let settings: AgentSettings;
+  try {
+    settings = settingsSchema.parse(await req.json());
+  } catch {
     throw new BadRequestError('Invalid settings format');
   }
 
@@ -94,12 +111,19 @@ export const POST = withApiHandler({}, async (req, { user }) => {
   }
 
   const bidAcceptEnabled = settings.enableAutomation && settings.agents?.BidAcceptanceAgent?.enabled === true;
-  await serverSupabase.from('automation_preferences').upsert(
+  const { error: preferencesError } = await serverSupabase
+    .from('automation_preferences')
+    .upsert(
     { user_id: user.id, auto_accept_bids: bidAcceptEnabled, updated_at: new Date().toISOString() },
     { onConflict: 'user_id' }
   );
 
-  await serverSupabase.from('agent_decisions').insert({
+  if (preferencesError) {
+    logger.error('Failed to synchronize automation preferences', preferencesError);
+    throw new InternalServerError('Failed to save automation preferences');
+  }
+
+  const { error: auditError } = await serverSupabase.from('agent_decisions').insert({
     user_id: user.id, agent_name: 'SettingsManager',
     context: { previous_level: settings.automationLevel },
     decision: 'settings_updated',
@@ -107,6 +131,11 @@ export const POST = withApiHandler({}, async (req, { user }) => {
     confidence: 1.0,
     metadata: { automation_level: settings.automationLevel, enabled_agents: Object.entries(settings.agents).filter(([_, config]) => config.enabled).map(([name]) => name) }
   });
+
+  if (auditError) {
+    logger.error('Failed to record agent settings audit event', auditError);
+    throw new InternalServerError('Failed to record settings change');
+  }
 
   logger.info('Agent settings updated', { userId: user.id, automationEnabled: settings.enableAutomation, level: settings.automationLevel });
 
