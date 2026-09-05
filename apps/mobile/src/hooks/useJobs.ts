@@ -9,7 +9,10 @@ import { validateJobDraft, type JobDraft } from '@mintenance/api-contracts';
 const useJobs = (limit: number = 20, offset: number = 0) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list(`limit:${limit},offset:${offset}`),
-    queryFn: () => JobService.getJobs(undefined, limit),
+    queryFn: (signal) =>
+      signal
+        ? JobService.getJobs(undefined, limit, signal)
+        : JobService.getJobs(undefined, limit),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
@@ -17,7 +20,8 @@ const useJobs = (limit: number = 20, offset: number = 0) => {
 const useAvailableJobs = () => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list('available'),
-    queryFn: () => JobService.getAvailableJobs(),
+    queryFn: (signal) =>
+      signal ? JobService.getAvailableJobs(signal) : JobService.getAvailableJobs(),
     staleTime: 60 * 1000, // 1 minute for active jobs
   });
 };
@@ -25,7 +29,10 @@ const useAvailableJobs = () => {
 const useJobsByHomeowner = (homeownerId: string) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list(`homeowner:${homeownerId}`),
-    queryFn: () => JobService.getJobsByHomeowner(homeownerId),
+    queryFn: (signal) =>
+      signal
+        ? JobService.getJobsByHomeowner(homeownerId, signal)
+        : JobService.getJobsByHomeowner(homeownerId),
     enabled: !!homeownerId,
   });
 };
@@ -33,14 +40,18 @@ const useJobsByHomeowner = (homeownerId: string) => {
 const useJobsByStatus = (status: Job['status'], userId?: string) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.list(`status:${status},user:${userId || 'all'}`),
-    queryFn: () => JobService.getJobsByStatus(status, userId),
+    queryFn: (signal) =>
+      signal
+        ? JobService.getJobsByStatus(status, userId, signal)
+        : JobService.getJobsByStatus(status, userId),
   });
 };
 
 export const useJob = (jobId: string) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.details(jobId),
-    queryFn: () => JobService.getJobById(jobId),
+    queryFn: (signal) =>
+      signal ? JobService.getJobById(jobId, signal) : JobService.getJobById(jobId),
     enabled: !!jobId,
     staleTime: 30 * 1000, // 30 seconds for individual job details
     retry: 3,
@@ -93,7 +104,10 @@ export const useMyBidForJob = (
 const useSearchJobs = (query: string, limit: number = 20) => {
   return useOfflineQuery({
     queryKey: queryKeys.search.jobs(query),
-    queryFn: () => JobService.searchJobs(query, {}, limit),
+    queryFn: (signal) =>
+      signal
+        ? JobService.searchJobs(query, {}, limit, signal)
+        : JobService.searchJobs(query, {}, limit),
     enabled: query.length > 2, // Only search if query is meaningful
     staleTime: 5 * 60 * 1000, // 5 minutes for search results
   });

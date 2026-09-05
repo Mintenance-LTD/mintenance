@@ -14,7 +14,7 @@ import type { Job, User } from '@mintenance/types';
 
 interface OfflineQueryOptions {
   queryKey: QueryKey;
-  queryFn: () => Promise<unknown>;
+  queryFn: (signal?: AbortSignal) => Promise<unknown>;
   staleTime?: number;
   gcTime?: number;
   enabled?: boolean;
@@ -77,7 +77,7 @@ export const useOfflineQuery = <T = unknown>({
 
   return useQuery<T>({
     queryKey,
-    queryFn: async (): Promise<T> => {
+    queryFn: async ({ signal }): Promise<T> => {
       try {
         // Try local database first if offline or offlineFirst is enabled
         if (!isOnline || offlineFirst) {
@@ -95,7 +95,7 @@ export const useOfflineQuery = <T = unknown>({
           throw new Error('No internet connection and no local data available');
         }
 
-        const remoteData = await queryFn();
+        const remoteData = await queryFn(signal);
 
         // Cache successful remote data locally
         if (remoteData && isOnline) {
@@ -106,6 +106,11 @@ export const useOfflineQuery = <T = unknown>({
 
         return remoteData as T;
       } catch (error) {
+        // React Query cancels an in-flight query when its last observer
+        // unmounts. Do not turn that expected lifecycle event into a local
+        // fallback read or an error log after the screen is gone.
+        if (signal.aborted) throw error;
+
         // Enhanced error logging
         logger.error('Query failed:', error, {
           queryKey: (queryKey as string[]).join('.'),
