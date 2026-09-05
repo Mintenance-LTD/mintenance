@@ -12,6 +12,7 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateImageUpload } from '@/lib/utils/fileValidation';
+import { parseJobPhotoGeolocation } from '@/lib/validation/job-photo-geolocation';
 import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
@@ -147,9 +148,16 @@ export const POST = withApiHandler(
         | undefined;
       if (geolocationStr) {
         try {
-          geolocation = JSON.parse(geolocationStr);
+          const parsedGeolocation = parseJobPhotoGeolocation(
+            JSON.parse(geolocationStr)
+          );
+          if (parsedGeolocation) {
+            geolocation = parsedGeolocation;
+          } else {
+            logger.warn('Invalid geolocation values');
+          }
         } catch {
-          logger.warn('Invalid geolocation format', { geolocationStr });
+          logger.warn('Invalid geolocation format');
         }
       }
 
@@ -306,10 +314,12 @@ export const POST = withApiHandler(
           photos
         );
 
-      // Auto-complete: mark job as completed after successful after photo upload
-      // Safety checks: verify contractor is assigned and escrow payment exists
+      // Auto-complete only after the category-specific evidence requirements
+      // pass. A quality-passing upload is not necessarily a complete evidence
+      // set (for example, a category may require multiple photos/angles).
+      // Safety checks below also verify contractor assignment and held escrow.
       let jobCompleted = false;
-      if (job.status === 'in_progress') {
+      if (job.status === 'in_progress' && validationResult.passed) {
         try {
           // Safety: verify contractor is assigned
           let canAutoComplete = true;
@@ -522,6 +532,12 @@ export const POST = withApiHandler(
           });
           // Don't fail the photo upload if completion fails
         }
+      } else if (job.status === 'in_progress') {
+        logger.info('Auto-complete deferred: photo requirements incomplete', {
+          service: 'jobs',
+          jobId,
+          errors: validationResult.errors,
+        });
       }
 
       const responseData = {

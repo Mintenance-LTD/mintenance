@@ -40,8 +40,13 @@ export class JobService {
     return JobCRUDService.createJob(jobData);
   }
 
-  static async getJobById(jobId: string): Promise<Job | null> {
-    return JobCRUDService.getJobById(jobId);
+  static async getJobById(
+    jobId: string,
+    signal?: AbortSignal
+  ): Promise<Job | null> {
+    return signal
+      ? JobCRUDService.getJobById(jobId, signal)
+      : JobCRUDService.getJobById(jobId);
   }
 
   static async updateJob(
@@ -84,35 +89,59 @@ export class JobService {
   }
 
   // Job search operations - delegate to JobSearchService
-  static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
-    return JobSearchService.getJobsByHomeowner(homeownerId);
+  static async getJobsByHomeowner(
+    homeownerId: string,
+    signal?: AbortSignal
+  ): Promise<Job[]> {
+    return signal
+      ? JobSearchService.getJobsByHomeowner(homeownerId, signal)
+      : JobSearchService.getJobsByHomeowner(homeownerId);
   }
 
-  static async getUserJobs(userId: string): Promise<Job[]> {
-    return JobSearchService.getUserJobs(userId);
+  static async getUserJobs(
+    userId: string,
+    signal?: AbortSignal
+  ): Promise<Job[]> {
+    return signal
+      ? JobSearchService.getUserJobs(userId, signal)
+      : JobSearchService.getUserJobs(userId);
   }
 
-  static async getAvailableJobs(): Promise<Job[]> {
-    return JobSearchService.getAvailableJobs();
+  static async getAvailableJobs(signal?: AbortSignal): Promise<Job[]> {
+    return signal
+      ? JobSearchService.getAvailableJobs(signal)
+      : JobSearchService.getAvailableJobs();
   }
 
   static async getJobsByStatus(
     status: Job['status'],
-    userId?: string
+    userId?: string,
+    signal?: AbortSignal
   ): Promise<Job[]> {
-    return JobSearchService.getJobsByStatus(status, userId);
+    return signal
+      ? JobSearchService.getJobsByStatus(status, userId, signal)
+      : JobSearchService.getJobsByStatus(status, userId);
   }
 
-  static async getJobs(arg1?: unknown, arg2?: unknown): Promise<Job[]> {
-    return JobSearchService.getJobs(arg1, arg2);
+  static async getJobs(
+    arg1?: unknown,
+    arg2?: unknown,
+    signal?: AbortSignal
+  ): Promise<Job[]> {
+    return signal
+      ? JobSearchService.getJobs(arg1, arg2, signal)
+      : JobSearchService.getJobs(arg1, arg2);
   }
 
   static async searchJobs(
     queryText: string,
     filters?: { category?: string; minBudget?: number; maxBudget?: number },
-    limit: number = 20
+    limit: number = 20,
+    signal?: AbortSignal
   ): Promise<Job[]> {
-    return JobSearchService.searchJobs(queryText, filters, limit);
+    return signal
+      ? JobSearchService.searchJobs(queryText, filters, limit, signal)
+      : JobSearchService.searchJobs(queryText, filters, limit);
   }
 
   static async getJob(jobId: string): Promise<Job | null> {
@@ -121,9 +150,12 @@ export class JobService {
 
   static async getJobsByUser(
     userId: string,
-    role: 'homeowner' | 'contractor'
+    role: 'homeowner' | 'contractor',
+    signal?: AbortSignal
   ): Promise<Job[]> {
-    return JobSearchService.getJobsByUser(userId, role);
+    return signal
+      ? JobSearchService.getJobsByUser(userId, role, signal)
+      : JobSearchService.getJobsByUser(userId, role);
   }
 
   // Bid operations - delegate to BidService (single public bid surface).

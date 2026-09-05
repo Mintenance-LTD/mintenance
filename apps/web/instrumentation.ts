@@ -38,7 +38,7 @@ export async function register() {
     try {
       const { logger } = await import('@mintenance/shared');
 
-      // Validate environment variables (logs warnings but doesn't throw)
+      // Validate configuration before initializing services or scheduling work.
       try {
         const { env, isProduction } = await import('./lib/env');
         logger.info('Environment variables validated successfully');
@@ -60,12 +60,13 @@ export async function register() {
           }
         }
       } catch (envError) {
-        // Log but don't crash — routes can still function with
-        // fallback env handling in individual modules
+        // Keep error reporting available, but do not start services with
+        // configuration that the environment validator has rejected.
         console.error(
           '[instrumentation] Environment validation failed:',
           envError
         );
+        return;
       }
 
       // Initialize Roboflow (optional, non-critical)

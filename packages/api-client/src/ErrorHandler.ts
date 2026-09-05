@@ -3,6 +3,8 @@
  * 
  * Standardizes error types and messages across web and mobile platforms.
  */
+import { logger } from '@mintenance/shared';
+
 export enum ErrorType {
   NETWORK = 'NETWORK',
   API = 'API',
@@ -204,7 +206,6 @@ export function parseError(error: unknown): IApiError {
  * Log error for debugging
  */
 export function logError(error: IApiError, context?: string): void {
-  const logger = require('@mintenance/shared').logger;
   logger.error(
     `[${error.type}] ${error.message} (${error.code}, status ${error.statusCode})${context ? ` [${context}]` : ''}`,
     error.details ? { details: error.details } : undefined,

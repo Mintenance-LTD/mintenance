@@ -30,6 +30,7 @@ export function useSilverMode() {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     (async () => {
       // 1) Instant hydrate from AsyncStorage.
@@ -47,7 +48,8 @@ export function useSilverMode() {
       //    /api/user/settings is now a kept-alive legacy alias).
       try {
         const body = await mobileApiClient.get<{ silverMode?: boolean }>(
-          '/api/users/settings'
+          '/api/users/settings',
+          { signal: controller.signal }
         );
         if (cancelled) return;
         const next = Boolean(body?.silverMode);
@@ -56,7 +58,9 @@ export function useSilverMode() {
           // ignore
         });
       } catch (err) {
-        logger.warn('silver-mode: server fetch failed', { err });
+        if (!cancelled) {
+          logger.warn('silver-mode: server fetch failed', { err });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -64,6 +68,7 @@ export function useSilverMode() {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, []);
 

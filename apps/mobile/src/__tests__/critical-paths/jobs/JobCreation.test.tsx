@@ -25,6 +25,23 @@ jest.mock('../../../hooks/useJobs', () => ({
   }),
 }));
 
+// This critical-path test covers job creation, not account-settings hydration.
+// Keep the settings request out of the test so it cannot outlive the screen.
+jest.mock('../../../hooks/useSilverMode', () => ({
+  useSilverMode: () => ({
+    silverMode: false,
+    toggle: jest.fn(),
+    setSilverMode: jest.fn(),
+    loading: false,
+  }),
+}));
+
+// Phone verification is covered by its own component tests. Keep this job
+// creation path focused and avoid mounting its profile preflight query.
+jest.mock('../../../components/verification/PhoneVerificationBanner', () => ({
+  PhoneVerificationBanner: () => null,
+}));
+
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 'homeowner_1', role: 'homeowner' },

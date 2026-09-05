@@ -26,6 +26,7 @@ export class ApiProtectionService {
   private ddosDetector: DDoSDetector;
   private abuseDetector: AbuseDetector;
   private requestValidator: RequestValidator;
+  private cleanupTimers: ReturnType<typeof setInterval>[] = [];
 
   constructor(config: Partial<SecurityConfig> = {}) {
     this.config = { ...DEFAULT_SECURITY_CONFIG, ...config };
@@ -54,12 +55,15 @@ export class ApiProtectionService {
   }
 
   private startCleanupTasks(): void {
-    setInterval(() => {
+    this.cleanupTimers = [setInterval(() => {
       this.cleanupRequestHistory();
-    }, 300000);
-    setInterval(() => {
+    }, 300000), setInterval(() => {
       this.cleanupSecurityViolations();
-    }, 3600000);
+    }, 3600000)];
+
+    for (const timer of this.cleanupTimers) {
+      (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
+    }
   }
 
   async checkRequest(request: ApiRequest): Promise<{

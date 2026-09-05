@@ -60,8 +60,10 @@ export const PhoneVerificationBanner: React.FC<
 
   const { data } = useQuery({
     queryKey: [PHONE_VERIFICATION_STATUS_KEY, user?.id],
-    queryFn: () =>
-      mobileApiClient.get<ProfileVerificationResponse>('/api/users/profile'),
+    queryFn: ({ signal }) =>
+      mobileApiClient.get<ProfileVerificationResponse>('/api/users/profile', {
+        signal,
+      }),
     enabled: !!user && isHomeowner,
     staleTime: 30_000,
   });

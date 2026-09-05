@@ -67,8 +67,8 @@ export function SearchFilters({
             }}
           >
             <option value=''>All Skills</option>
-            {skills.map((skill) => (
-              <option key={skill} value={skill}>
+            {skills.map((skill, index) => (
+              <option key={`${skill}-${index}`} value={skill}>
                 {skill}
               </option>
             ))}
@@ -104,8 +104,8 @@ export function SearchFilters({
             }}
           >
             <option value=''>All Locations</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>
+            {cities.map((city, index) => (
+              <option key={`${city}-${index}`} value={city}>
                 {city}
               </option>
             ))}

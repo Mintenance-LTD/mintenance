@@ -21,6 +21,7 @@ export class PerformanceBudgetManager {
   private collector: PerformanceMetricsCollector;
   private monitoring = false;
   private monitoringInterval?: NodeJS.Timeout;
+  private monitoringCheckInProgress = false;
   private alertHandlers = new Map<string, (alert: PerformanceAlert) => void>();
 
   constructor(
@@ -37,9 +38,12 @@ export class PerformanceBudgetManager {
    * Setup event listeners
    */
   private setupEventListeners(): void {
-    this.collector.addEventListener('budget_manager', (event: PerformanceEvent) => {
-      this.handlePerformanceEvent(event);
-    });
+    this.collector.addEventListener(
+      'budget_manager',
+      (event: PerformanceEvent) => {
+        this.handlePerformanceEvent(event);
+      }
+    );
   }
 
   /**
@@ -76,7 +80,10 @@ export class PerformanceBudgetManager {
   ): Promise<void> {
     const budget = this.repository.getBudget(serviceName);
     if (!budget) {
-      logger.warn('PerformanceBudgetManager', `No performance budget found for service: ${serviceName}`);
+      logger.warn(
+        'PerformanceBudgetManager',
+        `No performance budget found for service: ${serviceName}`
+      );
       return;
     }
 
@@ -89,14 +96,18 @@ export class PerformanceBudgetManager {
       responseTime,
       memoryUsage: memoryUsage || collectedMetrics.memoryUsage || 0,
       cpuUsage: cpuUsage || collectedMetrics.cpuUsage || 0,
-      apiCallsPerMinute: apiCallsPerMinute || collectedMetrics.apiCallsPerMinute || 0,
+      apiCallsPerMinute:
+        apiCallsPerMinute || collectedMetrics.apiCallsPerMinute || 0,
       errorRate: errorRate || collectedMetrics.errorRate || 0,
       downloadSize: downloadSize || collectedMetrics.downloadSize || 0,
       budgetViolations: [],
     };
 
     // Check for budget violations
-    metrics.budgetViolations = this.collector.checkBudgetViolations(metrics, budget);
+    metrics.budgetViolations = this.collector.checkBudgetViolations(
+      metrics,
+      budget
+    );
 
     // Store metrics
     this.repository.storeMetrics(metrics);
@@ -111,7 +122,10 @@ export class PerformanceBudgetManager {
 
     // Emit performance event
     this.collector.emitPerformanceEvent({
-      type: metrics.budgetViolations.length > 0 ? 'budget_violation' : 'performance_improvement',
+      type:
+        metrics.budgetViolations.length > 0
+          ? 'budget_violation'
+          : 'performance_improvement',
       serviceName,
       timestamp: metrics.timestamp,
       data: {
@@ -124,7 +138,9 @@ export class PerformanceBudgetManager {
   /**
    * Handle budget violations
    */
-  private async handleBudgetViolations(metrics: PerformanceMetrics): Promise<void> {
+  private async handleBudgetViolations(
+    metrics: PerformanceMetrics
+  ): Promise<void> {
     for (const violation of metrics.budgetViolations) {
       const alert: PerformanceAlert = {
         serviceName: metrics.serviceName,
@@ -176,7 +192,10 @@ export class PerformanceBudgetManager {
   /**
    * Generate violation message
    */
-  private generateViolationMessage(violation: BudgetViolation, serviceName: string): string {
+  private generateViolationMessage(
+    violation: BudgetViolation,
+    serviceName: string
+  ): string {
     const { metric, actual, budget, violationPercentage } = violation;
 
     const metricDisplay = this.getMetricDisplayName(metric);
@@ -219,13 +238,19 @@ export class PerformanceBudgetManager {
    * Trigger alert handlers
    */
   private async triggerAlertHandlers(alert: PerformanceAlert): Promise<void> {
-    const handlerPromises = Array.from(this.alertHandlers.entries()).map(async ([name, handler]) => {
-      try {
-        await handler(alert);
-      } catch (error) {
-        logger.error('PerformanceBudgetManager', `Alert handler ${name} failed`, error);
+    const handlerPromises = Array.from(this.alertHandlers.entries()).map(
+      async ([name, handler]) => {
+        try {
+          await handler(alert);
+        } catch (error) {
+          logger.error(
+            'PerformanceBudgetManager',
+            `Alert handler ${name} failed`,
+            error
+          );
+        }
       }
-    });
+    );
 
     await Promise.allSettled(handlerPromises);
   }
@@ -236,13 +261,17 @@ export class PerformanceBudgetManager {
   private logPerformanceData(metrics: PerformanceMetrics): void {
     const logLevel = metrics.budgetViolations.length > 0 ? 'warn' : 'debug';
 
-    logger[logLevel]('PerformanceBudgetManager', 'Performance metrics recorded', {
-      serviceName: metrics.serviceName,
-      responseTime: metrics.responseTime,
-      memoryUsage: metrics.memoryUsage,
-      errorRate: metrics.errorRate,
-      violations: metrics.budgetViolations.length,
-    });
+    logger[logLevel](
+      'PerformanceBudgetManager',
+      'Performance metrics recorded',
+      {
+        serviceName: metrics.serviceName,
+        responseTime: metrics.responseTime,
+        memoryUsage: metrics.memoryUsage,
+        errorRate: metrics.errorRate,
+        violations: metrics.budgetViolations.length,
+      }
+    );
   }
 
   /**
@@ -255,9 +284,30 @@ export class PerformanceBudgetManager {
     }
 
     this.monitoring = true;
-    this.monitoringInterval = setInterval(async () => {
-      await this.performScheduledMonitoring();
+    const monitoringInterval = setInterval(async () => {
+      if (this.monitoringCheckInProgress) {
+        logger.warn(
+          'PerformanceBudgetManager',
+          'Skipping overlapping scheduled monitoring check'
+        );
+        return;
+      }
+
+      this.monitoringCheckInProgress = true;
+      try {
+        await this.performScheduledMonitoring();
+      } finally {
+        this.monitoringCheckInProgress = false;
+      }
     }, intervalMs);
+    this.monitoringInterval = monitoringInterval;
+
+    const unref = (
+      monitoringInterval as ReturnType<typeof setInterval> & {
+        unref?: () => void;
+      }
+    ).unref;
+    unref?.call(monitoringInterval);
 
     logger.info('PerformanceBudgetManager', 'Continuous monitoring started', {
       intervalMs,
@@ -309,7 +359,11 @@ export class PerformanceBudgetManager {
       // Cleanup old data
       this.repository.cleanup();
     } catch (error) {
-      logger.error('PerformanceBudgetManager', 'Scheduled monitoring failed', error);
+      logger.error(
+        'PerformanceBudgetManager',
+        'Scheduled monitoring failed',
+        error
+      );
     }
   }
 
@@ -330,7 +384,9 @@ export class PerformanceBudgetManager {
    */
   onAlert(name: string, handler: (alert: PerformanceAlert) => void): void {
     this.alertHandlers.set(name, handler);
-    logger.info('PerformanceBudgetManager', 'Alert handler registered', { name });
+    logger.info('PerformanceBudgetManager', 'Alert handler registered', {
+      name,
+    });
   }
 
   /**
@@ -344,14 +400,20 @@ export class PerformanceBudgetManager {
   /**
    * Get performance report for a service
    */
-  getPerformanceReport(serviceName: string, timeRangeMs?: number): PerformanceReport {
+  getPerformanceReport(
+    serviceName: string,
+    timeRangeMs?: number
+  ): PerformanceReport {
     return this.repository.generateReport(serviceName, timeRangeMs);
   }
 
   /**
    * Get all performance alerts
    */
-  getAlerts(serviceName?: string, severity?: 'warning' | 'critical'): PerformanceAlert[] {
+  getAlerts(
+    serviceName?: string,
+    severity?: 'warning' | 'critical'
+  ): PerformanceAlert[] {
     if (serviceName) {
       return this.repository.getAlerts(serviceName, severity);
     }

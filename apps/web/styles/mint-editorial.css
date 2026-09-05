@@ -14,14 +14,14 @@
   --me-surface: #ffffff;
   --me-ink: #1a2520; /* near-black, slightly warm */
   --me-ink-2: #4a5751;
-  --me-ink-3: #768079;
+  --me-ink-3: #59675f;
   --me-ink-4: #a6aea8;
   --me-line: #d8e2da;
   --me-line-2: #e6ece7;
 
   /* ---- brand ---- */
-  --me-brand: #3f8c7a;
-  --me-brand-2: #2f6f5f;
+  --me-brand: #2f6f5f;
+  --me-brand-2: #245748;
   --me-brand-soft: #dceae5;
   --me-accent: #e26b4f; /* sparingly */
   --me-warm: #c49a4d; /* ratings */

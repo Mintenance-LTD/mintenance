@@ -343,8 +343,18 @@ export const GET = withApiHandler(
     const quoteLineItems: QuoteLineItem[] = Array.isArray(quote?.line_items)
       ? quote!.line_items
       : [];
+    const quoteSubtotal =
+      quote?.subtotal == null ? null : Number(quote.subtotal);
+    const quoteTaxRate =
+      quote?.tax_rate == null ? null : Number(quote.tax_rate);
+    const quoteTaxAmount =
+      quote?.tax_amount == null ? null : Number(quote.tax_amount);
+    const quoteTotalAmount =
+      quote?.total_amount == null ? null : Number(quote.total_amount);
     const quoteHasTax =
-      typeof quote?.tax_amount === 'number' && (quote.tax_amount as number) > 0;
+      quoteTaxAmount !== null &&
+      Number.isFinite(quoteTaxAmount) &&
+      quoteTaxAmount > 0;
     const quoteHasTerms =
       typeof quote?.terms === 'string' &&
       (quote.terms as string).trim().length > 0;
@@ -369,13 +379,21 @@ export const GET = withApiHandler(
 
         for (const item of quoteLineItems) {
           const desc = item.description ?? '—';
-          const qty = typeof item.quantity === 'number' ? item.quantity : 0;
+          const quantity =
+            item.quantity == null ? null : Number(item.quantity);
+          const unitPrice =
+            item.unitPrice == null ? null : Number(item.unitPrice);
+          const totalAmount = item.total == null ? null : Number(item.total);
+          const qty =
+            quantity !== null && Number.isFinite(quantity) ? quantity : 0;
           const unit =
-            typeof item.unitPrice === 'number'
-              ? formatCurrency(item.unitPrice)
+            unitPrice !== null && Number.isFinite(unitPrice)
+              ? formatCurrency(unitPrice)
               : '—';
           const total =
-            typeof item.total === 'number' ? formatCurrency(item.total) : '—';
+            totalAmount !== null && Number.isFinite(totalAmount)
+              ? formatCurrency(totalAmount)
+              : '—';
           const lines = doc.splitTextToSize(desc, 90);
           checkPage(Math.max(lines.length, 1) * 5 + 2);
           doc.text(lines, margin, y);
@@ -391,9 +409,9 @@ export const GET = withApiHandler(
         checkPage(20);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        if (typeof quote?.subtotal === 'number') {
+        if (quoteSubtotal !== null && Number.isFinite(quoteSubtotal)) {
           doc.text(
-            `Subtotal: ${formatCurrency(quote.subtotal as number)}`,
+            `Subtotal: ${formatCurrency(quoteSubtotal)}`,
             pageWidth - margin,
             y,
             { align: 'right' }
@@ -401,20 +419,25 @@ export const GET = withApiHandler(
           y += 5;
         }
         const rateStr =
-          typeof quote?.tax_rate === 'number' && (quote.tax_rate as number) > 0
-            ? ` (${quote.tax_rate}%)`
+          quoteTaxRate !== null &&
+          Number.isFinite(quoteTaxRate) &&
+          quoteTaxRate > 0
+            ? ` (${quoteTaxRate}%)`
             : '';
         doc.text(
-          `VAT${rateStr}: ${formatCurrency(quote!.tax_amount as number)}`,
+          `VAT${rateStr}: ${formatCurrency(quoteTaxAmount!)}`,
           pageWidth - margin,
           y,
           { align: 'right' }
         );
         y += 5;
-        if (typeof quote?.total_amount === 'number') {
+        if (
+          quoteTotalAmount !== null &&
+          Number.isFinite(quoteTotalAmount)
+        ) {
           doc.setFont('helvetica', 'bold');
           doc.text(
-            `Quote Total: ${formatCurrency(quote.total_amount as number)}`,
+            `Quote Total: ${formatCurrency(quoteTotalAmount)}`,
             pageWidth - margin,
             y,
             { align: 'right' }

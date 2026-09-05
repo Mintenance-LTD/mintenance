@@ -416,8 +416,12 @@ export class AdvancedSearchService {
         // useless once homeowners stopped setting budgets (the
         // open-bidding rollout). Skip jobs without a real budget
         // so the facets reflect only commitment-bearing jobs.
+        const parsedBudget =
+          job.budget == null ? NaN : Number(job.budget);
         const budget =
-          typeof job.budget === 'number' && job.budget > 0 ? job.budget : null;
+          Number.isFinite(parsedBudget) && parsedBudget > 0
+            ? parsedBudget
+            : null;
         if (budget == null) continue;
         if (budget <= 500) priceRanges['$0-$500']++;
         else if (budget <= 1000) priceRanges['$500-$1000']++;

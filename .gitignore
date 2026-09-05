@@ -256,6 +256,7 @@ yolo11n.pt
 !index.html
 *.js
 !scripts/**/*.js
+!apps/web/scripts/run-integration-tests.js
 !*.config.js
 !jest*.js
 !playwright*.js

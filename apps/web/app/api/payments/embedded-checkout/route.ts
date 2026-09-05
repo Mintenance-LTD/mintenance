@@ -171,10 +171,14 @@ export const POST = withApiHandler(
         .eq('status', 'accepted')
         .single();
 
+      // PostgREST may preserve PostgreSQL NUMERIC values as strings. Normalize
+      // at this trust boundary so the embedded-checkout path accepts the same
+      // valid bids as the canonical create-intent route.
+      const acceptedBidAmount = Number(acceptedBid?.amount);
       if (
         !acceptedBid ||
-        typeof acceptedBid.amount !== 'number' ||
-        acceptedBid.amount <= 0
+        !Number.isFinite(acceptedBidAmount) ||
+        acceptedBidAmount <= 0
       ) {
         return NextResponse.json(
           {
@@ -186,7 +190,7 @@ export const POST = withApiHandler(
       }
 
       const ABSOLUTE_MAX_PAYMENT = MAX_JOB_PAYMENT_GBP;
-      if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
+      if (acceptedBidAmount > ABSOLUTE_MAX_PAYMENT) {
         return NextResponse.json(
           { error: 'Bid amount exceeds platform maximum.' },
           { status: 400 }
@@ -229,7 +233,7 @@ export const POST = withApiHandler(
       }
 
       // From here the accepted bid amount is THE amount.
-      authoritativeAmount = acceptedBid.amount;
+      authoritativeAmount = acceptedBidAmount;
       acceptedBidId = acceptedBid.id;
       acceptedContractId = contract.id;
       if (

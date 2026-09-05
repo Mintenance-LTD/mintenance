@@ -1722,12 +1722,6 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
   let FeeCalculationService: typeof import('@/lib/services/payment/FeeCalculationService').FeeCalculationService;
 
   beforeEach(async () => {
-    // We need the REAL implementation, so clear any mocks for this module
-    vi.unmock('@/lib/services/payment/FeeCalculationService');
-    vi.unmock('@/lib/logger');
-    // Re-mock logger since FeeCalculationService uses it
-    vi.mock('@/lib/logger', () => ({ logger: mocks.logger }));
-
     const mod = await import('@/lib/services/payment/FeeCalculationService');
     FeeCalculationService = mod.FeeCalculationService;
   });
