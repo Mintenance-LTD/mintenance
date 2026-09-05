@@ -58,12 +58,15 @@ export const GET = withApiHandler(
     // back was throwing inside FeeCalculationService.calculateFees(null).
     // Return a "no_payment_amount_yet" shape so the caller can render an
     // empty-state instead of erroring.
-    const paymentAmount: number | null =
-      typeof acceptedBid?.amount === 'number'
-        ? acceptedBid.amount
-        : typeof job.budget === 'number'
-          ? job.budget
-          : null;
+    // PostgREST may return PostgreSQL NUMERIC values as strings. Normalize the
+    // accepted bid at the API boundary so the amount shown here matches the
+    // amount used by the payment-creation routes.
+    const acceptedBidAmount = Number(acceptedBid?.amount);
+    const paymentAmount: number | null = Number.isFinite(acceptedBidAmount)
+      ? acceptedBidAmount
+      : typeof job.budget === 'number'
+        ? job.budget
+        : null;
 
     if (paymentAmount === null) {
       return NextResponse.json({
@@ -108,7 +111,9 @@ export const GET = withApiHandler(
         contractorPayout: feeBreakdown.contractorAmount,
       },
       breakdown: {
-        acceptedBidAmount: acceptedBid?.amount ?? null,
+        acceptedBidAmount: Number.isFinite(acceptedBidAmount)
+          ? acceptedBidAmount
+          : null,
         jobBudget: job.budget,
         platformFee: feeBreakdown.platformFee,
         stripeFee: feeBreakdown.stripeFee,
