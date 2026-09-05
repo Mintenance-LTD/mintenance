@@ -50,11 +50,12 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const jobData = data as JobData;
+    const payload = this.parseData<Record<string, unknown>>(data);
+    const jobData = payload as JobData;
     switch (type) {
       case 'CREATE':
         await JobService.createJob(
-          data as Parameters<typeof JobService.createJob>[0]
+          payload as Parameters<typeof JobService.createJob>[0]
         );
         break;
       case 'UPDATE':
@@ -76,11 +77,11 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const bidData = data as BidData;
+    const bidData = this.parseData<BidData>(data);
     switch (type) {
       case 'CREATE':
         await JobService.submitBid(
-          data as Parameters<typeof JobService.submitBid>[0]
+          bidData as Parameters<typeof JobService.submitBid>[0]
         );
         break;
       case 'UPDATE':
@@ -107,7 +108,7 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const messageData = data as MessageData;
+    const messageData = this.parseData<MessageData>(data);
     switch (type) {
       case 'CREATE':
         await MessagingService.sendMessage(
@@ -126,7 +127,7 @@ export class ActionExecutor {
     type: OfflineAction['type'],
     data: unknown
   ): Promise<void> {
-    const profileData = data as ProfileData;
+    const profileData = this.parseData<ProfileData>(data);
     switch (type) {
       case 'UPDATE':
         if (!profileData.updates) {
@@ -171,6 +172,15 @@ export class ActionExecutor {
     } catch (error) {
       logger.error('Failed to fetch server data:', error);
       return null;
+    }
+  }
+
+  private parseData<T>(data: unknown): T {
+    if (typeof data !== 'string') return data as T;
+    try {
+      return JSON.parse(data) as T;
+    } catch {
+      return data as T;
     }
   }
 }
