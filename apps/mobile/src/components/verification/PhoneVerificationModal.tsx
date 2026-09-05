@@ -58,8 +58,11 @@ export const PhoneVerificationModal: React.FC<PhoneVerificationModalProps> = ({
   useEffect(() => {
     if (!visible || prefetchedRef.current) return;
     prefetchedRef.current = true;
+    const controller = new AbortController();
     mobileApiClient
-      .get<{ profile?: { phone?: string | null } }>('/api/users/profile')
+      .get<{ profile?: { phone?: string | null } }>('/api/users/profile', {
+        signal: controller.signal,
+      })
       .then((res) => {
         if (res?.profile?.phone) {
           setPhone((current) => current || res.profile!.phone!);
@@ -67,10 +70,14 @@ export const PhoneVerificationModal: React.FC<PhoneVerificationModalProps> = ({
       })
       .catch((e) => {
         // Best-effort — the user can still type their number.
-        logger.warn('PhoneVerificationModal: prefill failed', {
-          error: String(e),
-        });
+        if (!controller.signal.aborted) {
+          logger.warn('PhoneVerificationModal: prefill failed', {
+            error: String(e),
+          });
+        }
       });
+
+    return () => controller.abort();
   }, [visible]);
 
   useEffect(() => {
