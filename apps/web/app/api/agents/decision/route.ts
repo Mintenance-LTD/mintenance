@@ -17,7 +17,12 @@ import { AgentOrchestrator } from '@/lib/services/agents/AgentOrchestrator';
 import { AgentLogger } from '@/lib/services/agents/AgentLogger';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
-import { BadRequestError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 import type { AgentName, ActionTaken } from '@/lib/services/agents/types';
 
 const requestSchema = z.object({
@@ -53,6 +58,39 @@ const agents: { [key: string]: unknown } = {
   PredictiveAgent: PredictiveAgent,
 };
 
+async function assertAgentJobAccess(
+  jobId: string,
+  user: { id: string; role?: string },
+  contractorId?: string
+): Promise<void> {
+  const { data: job, error } = await serverSupabase
+    .from('jobs')
+    .select('homeowner_id, contractor_id')
+    .eq('id', jobId)
+    .maybeSingle();
+
+  if (error) {
+    // Agent execution can trigger state changes, so never continue when the
+    // authorization lookup itself is unavailable.
+    throw new InternalServerError('Unable to verify access to this job');
+  }
+  if (!job) throw new NotFoundError('Job not found');
+
+  const isHomeowner = job.homeowner_id === user.id;
+  const isAssignedContractor = job.contractor_id === user.id;
+  if (!isHomeowner && !isAssignedContractor) {
+    throw new ForbiddenError('You do not have access to this job');
+  }
+
+  // A contractor must not be able to select another contractor identity in
+  // the agent context. Homeowners may provide a candidate contractor while
+  // evaluating a bid, so that case remains allowed and is still scoped to the
+  // homeowner-owned job above.
+  if (user.role === 'contractor' && contractorId && contractorId !== user.id) {
+    throw new ForbiddenError('You cannot act on behalf of another contractor');
+  }
+}
+
 // 2026-05-09: added an explicit role lock — the endpoint is mobile-
 // facing and triggers AI-agent decisions on behalf of the calling
 // user. Without the lock, any authenticated session (including admin
@@ -71,6 +109,14 @@ export const POST = withApiHandler(
       );
     }
     const { agentName, context } = validatedData;
+
+    if (context.userId !== user.id) {
+      throw new ForbiddenError('Agent context does not match the signed-in user');
+    }
+
+    if (context.jobId) {
+      await assertAgentJobAccess(context.jobId, user, context.contractorId);
+    }
 
     if (!agents[agentName]) {
       return NextResponse.json(
