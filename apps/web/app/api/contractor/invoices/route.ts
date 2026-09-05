@@ -18,6 +18,7 @@ import {
   BadRequestError,
   NotFoundError,
   InternalServerError,
+  ForbiddenError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
@@ -207,6 +208,43 @@ export const POST = withApiHandler(
     );
     if (invoiceValidation instanceof NextResponse) return invoiceValidation;
     const validatedData = invoiceValidation.data;
+
+    // A contractor may create an invoice without a platform job, but when a
+    // job ID is supplied it must belong to the authenticated contractor. The
+    // invoice is later used to notify the job's homeowner; accepting an
+    // arbitrary UUID here would let one contractor attach invoices to another
+    // contractor's job and send unsolicited payment requests.
+    if (validatedData.jobId) {
+      const { data: job, error: jobError } = await serverSupabase
+        .from('jobs')
+        .select('id, contractor_id')
+        .eq('id', validatedData.jobId)
+        .maybeSingle();
+
+      if (jobError) {
+        logger.error('Failed to verify invoice job ownership', jobError, {
+          service: 'invoices',
+          contractorId: user.id,
+          jobId: validatedData.jobId,
+        });
+        throw new InternalServerError('Could not verify the linked job');
+      }
+
+      if (!job) {
+        throw new NotFoundError('Linked job not found');
+      }
+
+      if (job.contractor_id !== user.id) {
+        logger.warn('Contractor attempted to invoice an unassigned job', {
+          service: 'invoices',
+          contractorId: user.id,
+          jobId: validatedData.jobId,
+        });
+        throw new ForbiddenError(
+          'You can only create invoices for jobs assigned to you'
+        );
+      }
+    }
 
     // 2026-04-30 audit P0-1 follow-up: when mobile sends a clientId
     // (FK into contractor_clients), resolve the name/email here rather
