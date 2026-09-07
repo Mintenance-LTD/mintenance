@@ -50,6 +50,15 @@
     "GHSA-r28c-9q8g-f849", // postcss ≤8.5.17 — same nested copies
     "GHSA-mh99-v99m-4gvg", // brace-expansion — 1.x copies nested under react-native/@expo/cli; root copy is patched (5.0.8)
     // --- 2026-08-05 (main-red CI unblock) -------------------------------
-    "GHSA-rgw5-rvv9-x895" // brace-expansion — sibling of mh99 (same DoS class); blocked on the same react-native 0.81 / @expo/cli 1.x/2.x nested copies; clears with the expo 57 bump
+    "GHSA-rgw5-rvv9-x895", // brace-expansion — sibling of mh99 (same DoS class); blocked on the same react-native 0.81 / @expo/cli 1.x/2.x nested copies; clears with the expo 57 bump
+    // --- 2026-09-05: Metro's image parser (no patched npm release) -------
+    // image-size is reachable only through mobile -> Expo -> Metro and is
+    // used by Metro while bundling image assets. The current npm release
+    // (2.0.2) remains affected by both parser DoS advisories and the
+    // registry lists no patched version. The web/server source tree has no
+    // image-size import. Keep these explicit until Expo/Metro moves to a
+    // patched parser; do not treat this as a runtime vulnerability fix.
+    "GHSA-5p2g-fcmc-qvqq",
+    "GHSA-w3rx-r6r6-pgpr"
   ]
 }

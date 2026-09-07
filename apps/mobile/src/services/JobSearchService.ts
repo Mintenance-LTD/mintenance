@@ -68,23 +68,35 @@ function unwrapJobs(response: unknown): Job[] {
   return [];
 }
 
+function getJobsRequest<T>(url: string, signal?: AbortSignal) {
+  return signal
+    ? mobileApiClient.get<T>(url, { signal })
+    : mobileApiClient.get<T>(url);
+}
+
 export class JobSearchService {
   /**
    * Returns the homeowner's own jobs. The API auto-scopes by
    * `auth.uid()` so the supplied id is informational; we still pass
    * it on the URL so server-side logs can spot mismatches.
    */
-  static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
+  static async getJobsByHomeowner(
+    homeownerId: string,
+    signal?: AbortSignal
+  ): Promise<Job[]> {
     const url = buildJobsUrl({ homeowner_id: homeownerId });
-    const response = await mobileApiClient.get<JobsListResponse>(url);
+    const response = await getJobsRequest<JobsListResponse>(url, signal);
     return unwrapJobs(response);
   }
 
-  static async getUserJobs(userId: string): Promise<Job[]> {
+  static async getUserJobs(
+    userId: string,
+    signal?: AbortSignal
+  ): Promise<Job[]> {
     // Same shape as getJobsByHomeowner — preserved for API
     // compatibility with screens that pre-date the role split.
     const url = buildJobsUrl({ homeowner_id: userId });
-    const response = await mobileApiClient.get<JobsListResponse>(url);
+    const response = await getJobsRequest<JobsListResponse>(url, signal);
     return unwrapJobs(response);
   }
 
@@ -104,9 +116,9 @@ export class JobSearchService {
    * screen entirely; the user sees the rest of the list and we get
    * a Sentry breadcrumb to fix the contract.
    */
-  static async getAvailableJobs(): Promise<Job[]> {
+  static async getAvailableJobs(signal?: AbortSignal): Promise<Job[]> {
     const url = buildJobsUrl({ status: 'posted', limit: 20 });
-    const response = await mobileApiClient.get<unknown>(url);
+    const response = await getJobsRequest<unknown>(url, signal);
     const validation = safeValidateResponse(jobListResponseSchema, response);
     if (!validation.success) {
       logger.warn(
@@ -119,10 +131,11 @@ export class JobSearchService {
 
   static async getJobsByStatus(
     status: Job['status'],
-    userId?: string
+    userId?: string,
+    signal?: AbortSignal
   ): Promise<Job[]> {
     const url = buildJobsUrl({ status, userId });
-    const response = await mobileApiClient.get<JobsListResponse>(url);
+    const response = await getJobsRequest<JobsListResponse>(url, signal);
     return unwrapJobs(response);
   }
 
@@ -146,10 +159,11 @@ export class JobSearchService {
    */
   static async getJobsByUser(
     _userId: string,
-    _role: 'homeowner' | 'contractor'
+    _role: 'homeowner' | 'contractor',
+    signal?: AbortSignal
   ): Promise<Job[]> {
     const url = buildJobsUrl({});
-    const response = await mobileApiClient.get<JobsListResponse>(url);
+    const response = await getJobsRequest<JobsListResponse>(url, signal);
     return unwrapJobs(response);
   }
 
@@ -161,7 +175,11 @@ export class JobSearchService {
    * Status is validated against the live DB enum so callers can't
    * smuggle arbitrary strings through.
    */
-  static async getJobs(arg1?: unknown, arg2?: unknown): Promise<Job[]> {
+  static async getJobs(
+    arg1?: unknown,
+    arg2?: unknown,
+    signal?: AbortSignal
+  ): Promise<Job[]> {
     let status: Job['status'] | undefined;
     let limit = 20;
     let offset: number | undefined;
@@ -186,7 +204,7 @@ export class JobSearchService {
     }
 
     const url = buildJobsUrl({ status, limit, offset });
-    const response = await mobileApiClient.get<JobsListResponse>(url);
+    const response = await getJobsRequest<JobsListResponse>(url, signal);
     return unwrapJobs(response);
   }
 
@@ -201,7 +219,8 @@ export class JobSearchService {
   static async searchJobs(
     queryText: string,
     filters?: { category?: string; minBudget?: number; maxBudget?: number },
-    limit: number = 20
+    limit: number = 20,
+    signal?: AbortSignal
   ): Promise<Job[]> {
     if (!isValidSearchTerm(queryText)) {
       logger.warn('Invalid search term rejected in JobSearchService');
@@ -215,11 +234,13 @@ export class JobSearchService {
       maxBudget: filters?.maxBudget,
       limit,
     });
-    const response = await mobileApiClient.get<JobsListResponse>(url);
+    const response = await getJobsRequest<JobsListResponse>(url, signal);
     return unwrapJobs(response);
   }
 
-  static async getJob(jobId: string): Promise<Job | null> {
-    return JobCRUDService.getJobById(jobId);
+  static async getJob(jobId: string, signal?: AbortSignal): Promise<Job | null> {
+    return signal
+      ? JobCRUDService.getJobById(jobId, signal)
+      : JobCRUDService.getJobById(jobId);
   }
 }

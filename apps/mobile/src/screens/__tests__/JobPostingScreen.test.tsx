@@ -30,6 +30,25 @@ jest.mock('../../contexts/AuthContext', () => ({
   }),
 }));
 
+// This screen test covers rendering and navigation. Keep the unrelated
+// settings preflight out of the test so an unresolved client request cannot
+// complete after Jest has torn down the environment.
+jest.mock('../../hooks/useSilverMode', () => ({
+  useSilverMode: () => ({
+    silverMode: false,
+    loading: false,
+    toggle: jest.fn(),
+    setSilverMode: jest.fn(),
+  }),
+}));
+
+// PhoneVerificationBanner owns its own profile query. It is covered by its
+// component test; this screen suite should not leave that request running
+// while Jest is tearing down the screen-rendering test environment.
+jest.mock('../../components/verification/PhoneVerificationBanner', () => ({
+  PhoneVerificationBanner: () => null,
+}));
+
 // Mock navigation
 const mockNavigation = {
   navigate: jest.fn(),

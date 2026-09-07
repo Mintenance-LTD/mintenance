@@ -86,8 +86,9 @@ export const GET = withApiHandler(
     );
     const acceptedBidByJob = new Map<string, number>();
     for (const b of bidsRes.data || []) {
-      if (typeof b.amount === 'number') {
-        acceptedBidByJob.set(b.job_id as string, b.amount);
+      const amount = b.amount == null ? NaN : Number(b.amount);
+      if (Number.isFinite(amount)) {
+        acceptedBidByJob.set(b.job_id as string, amount);
       }
     }
     const escrowByJob = new Map<
@@ -95,9 +96,10 @@ export const GET = withApiHandler(
       { status: string; amount: number | null }
     >();
     for (const e of escrowsRes.data || []) {
+      const amount = e.amount == null ? NaN : Number(e.amount);
       escrowByJob.set(e.job_id as string, {
         status: (e.status as string) || 'unknown',
-        amount: (e.amount as number | null) ?? null,
+        amount: Number.isFinite(amount) ? amount : null,
       });
     }
     const contractByJob = new Map<string, string>();

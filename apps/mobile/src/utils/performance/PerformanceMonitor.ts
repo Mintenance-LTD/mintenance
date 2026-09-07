@@ -180,9 +180,18 @@ export class PerformanceMonitor {
   private startPeriodicReporting(): void {
     if (!this.metricsCollector.getEnabled()) return;
 
-    this.reportTimer = setInterval(() => {
+    const reportTimer = setInterval(() => {
       this.generateReport();
     }, this.reportInterval);
+    this.reportTimer = reportTimer;
+
+    // Keep Node-based tests and tooling from staying alive solely because
+    // development reporting is enabled. React Native timer handles do not
+    // expose `unref`, so this remains a no-op on device.
+    const unref = (
+      reportTimer as ReturnType<typeof setInterval> & { unref?: () => void }
+    ).unref;
+    unref?.call(reportTimer);
   }
 
   stopPeriodicReporting(): void {

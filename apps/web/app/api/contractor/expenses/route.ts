@@ -5,6 +5,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError, BadRequestError } from '@/lib/errors/api-error';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { assertContractorJobAssignment } from '@/lib/services/contractor/job-assignment';
 
 // GET: Fetch all expenses for the contractor
 export const GET = withApiHandler(
@@ -90,6 +91,10 @@ export const POST = withApiHandler(
 
     const d = validation.data;
 
+    if (d.jobId) {
+      await assertContractorJobAssignment(d.jobId, user.id);
+    }
+
     const { data: expense, error } = await userDb
       .from('contractor_expenses')
       .insert({
@@ -174,6 +179,10 @@ export const PATCH = withApiHandler(
 
     if (!existing) {
       return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
+    }
+
+    if (updates.jobId) {
+      await assertContractorJobAssignment(updates.jobId, user.id);
     }
 
     // Map camelCase to snake_case

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 import { queryClient } from '../lib/queryClient';
+import * as sentry from '../config/sentry';
 import NetInfo from '@react-native-community/netinfo';
 import { EntityVersionTracker } from './offline/EntityVersionTracker';
 import { DataMerger } from './offline/DataMerger';
@@ -26,6 +27,8 @@ class OfflineManagerClass {
   private readonly MAX_RETRIES = 3;
   private readonly CHUNK_SIZE = 50;
   private syncInProgress = false;
+  private syncCompletion: Promise<void> | null = null;
+  private resolveSyncCompletion: (() => void) | null = null;
   private retryTimer: NodeJS.Timeout | null = null;
   // CRITICAL FIX: Memory leak prevention - use unsubscribe from onSyncStatusChange()
   private syncListeners: ((
@@ -54,16 +57,7 @@ class OfflineManagerClass {
   async queueAction(
     action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>
   ): Promise<string> {
-    try {
-      const sentry = require('../config/sentry');
-      sentry.addBreadcrumb?.('offline.queue_action', 'offline');
-    } catch (sentryError) {
-      // MSV-P1-2: sentry breadcrumb is best-effort; don't block queueing, but
-      // log so we know if the import is broken.
-      logger.debug('Sentry breadcrumb unavailable in queueAction', {
-        sentryError,
-      });
-    }
+    sentry.addBreadcrumb?.('offline.queue_action', 'offline');
     const actionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     try {
       const existing =
@@ -117,7 +111,10 @@ class OfflineManagerClass {
 
       const networkState = await NetInfo.fetch();
       if (networkState.isConnected && networkState.isInternetReachable) {
-        this.syncQueue();
+        // Keep the queue operation's lifecycle tied to the immediate sync.
+        // Fire-and-forget here allowed action execution to outlive the
+        // caller, causing unhandled work during screen/test teardown.
+        await this.syncQueue();
       }
 
       const pendingCount = await this.getPendingActionsCount();
@@ -162,17 +159,15 @@ class OfflineManagerClass {
   }
 
   async syncQueue(): Promise<void> {
-    try {
-      const sentry = require('../config/sentry');
       sentry.addBreadcrumb?.('offline.sync_start', 'offline');
-    } catch (sentryError) {
-      logger.debug('Sentry breadcrumb unavailable in syncQueue', {
-        sentryError,
-      });
-    }
     const networkState = await NetInfo.fetch();
     if (this.syncInProgress) {
       logger.debug('Sync already in progress, skipping');
+      // A caller that arrived during an active sync must wait for that sync
+      // to finish. Returning immediately let queued actions continue after
+      // the caller had already torn down (and could leave work after logout
+      // or test teardown).
+      await this.syncCompletion;
       return;
     }
     if (!networkState.isConnected || !networkState.isInternetReachable) {
@@ -181,6 +176,9 @@ class OfflineManagerClass {
     }
 
     this.syncInProgress = true;
+    this.syncCompletion = new Promise<void>((resolve) => {
+      this.resolveSyncCompletion = resolve;
+    });
     this.notifySyncListeners('syncing', 0);
 
     try {
@@ -302,6 +300,9 @@ class OfflineManagerClass {
       this.notifySyncListeners('error', 0);
     } finally {
       this.syncInProgress = false;
+      this.resolveSyncCompletion?.();
+      this.resolveSyncCompletion = null;
+      this.syncCompletion = null;
     }
   }
 
@@ -311,14 +312,7 @@ class OfflineManagerClass {
         clearTimeout(this.retryTimer);
         this.retryTimer = null;
       }
-      try {
-        const sentry = require('../config/sentry');
-        sentry.addBreadcrumb?.(`offline.schedule_retry:${delayMs}`, 'offline');
-      } catch (sentryError) {
-        logger.debug('Sentry breadcrumb unavailable in scheduleNextSync', {
-          sentryError,
-        });
-      }
+      sentry.addBreadcrumb?.(`offline.schedule_retry:${delayMs}`, 'offline');
       this.retryTimer = setTimeout(
         () => {
           this.retryTimer = null;

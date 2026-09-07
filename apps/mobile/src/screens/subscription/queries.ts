@@ -40,12 +40,13 @@ interface SubscribeResponse {
 export function useSubscriptionStatusQuery(role: string, userId?: string) {
   return useQuery({
     queryKey: ['subscription-status', role, userId ?? null],
-    queryFn: async (): Promise<SubscriptionStatus> => {
+    queryFn: async ({ signal }): Promise<SubscriptionStatus> => {
       // /api/subscriptions/status runs TrialService.requiresSubscription
       // and getEarlyAccessEntitlement server-side. Direct supabase reads
       // here would skip both of those — see audit-18 task #98.
       return mobileApiClient.get<SubscriptionStatus>(
-        '/api/subscriptions/status'
+        '/api/subscriptions/status',
+        { signal }
       );
     },
     enabled: !!userId,

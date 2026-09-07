@@ -25,8 +25,12 @@ describe('sqlSanitization', () => {
       });
 
       it('should handle normal text without special characters', () => {
-        expect(sqlSanitization.escapeSQLWildcards('normal text')).toBe('normal text');
-        expect(sqlSanitization.escapeSQLWildcards('hello world')).toBe('hello world');
+        expect(sqlSanitization.escapeSQLWildcards('normal text')).toBe(
+          'normal text'
+        );
+        expect(sqlSanitization.escapeSQLWildcards('hello world')).toBe(
+          'hello world'
+        );
         expect(sqlSanitization.escapeSQLWildcards('test123')).toBe('test123');
       });
     });
@@ -40,13 +44,17 @@ describe('sqlSanitization', () => {
 
       it('should escape underscores', () => {
         expect(sqlSanitization.escapeSQLWildcards('_')).toBe('\\_');
-        expect(sqlSanitization.escapeSQLWildcards('user_name')).toBe('user\\_name');
+        expect(sqlSanitization.escapeSQLWildcards('user_name')).toBe(
+          'user\\_name'
+        );
         expect(sqlSanitization.escapeSQLWildcards('_test_')).toBe('\\_test\\_');
       });
 
       it('should escape backslashes', () => {
         expect(sqlSanitization.escapeSQLWildcards('\\')).toBe('\\\\');
-        expect(sqlSanitization.escapeSQLWildcards('path\\to\\file')).toBe('path\\\\to\\\\file');
+        expect(sqlSanitization.escapeSQLWildcards('path\\to\\file')).toBe(
+          'path\\\\to\\\\file'
+        );
         expect(sqlSanitization.escapeSQLWildcards('\\n\\t')).toBe('\\\\n\\\\t');
       });
 
@@ -59,15 +67,21 @@ describe('sqlSanitization', () => {
 
     describe('Complex Escaping', () => {
       it('should escape multiple special characters together', () => {
-        expect(sqlSanitization.escapeSQLWildcards("%_")).toBe('\\%\\_');
-        expect(sqlSanitization.escapeSQLWildcards("_%_")).toBe('\\_\\%\\_');
+        expect(sqlSanitization.escapeSQLWildcards('%_')).toBe('\\%\\_');
+        expect(sqlSanitization.escapeSQLWildcards('_%_')).toBe('\\_\\%\\_');
         expect(sqlSanitization.escapeSQLWildcards("'%_'")).toBe("''\\%\\_''");
       });
 
       it('should handle SQL injection attempts', () => {
-        expect(sqlSanitization.escapeSQLWildcards("' OR '1'='1")).toBe("'' OR ''1''=''1");
-        expect(sqlSanitization.escapeSQLWildcards("%' OR '1'='1")).toBe("\\%'' OR ''1''=''1");
-        expect(sqlSanitization.escapeSQLWildcards("'; DROP TABLE users; --")).toBe("''; DROP TABLE users; --");
+        expect(sqlSanitization.escapeSQLWildcards("' OR '1'='1")).toBe(
+          "'' OR ''1''=''1"
+        );
+        expect(sqlSanitization.escapeSQLWildcards("%' OR '1'='1")).toBe(
+          "\\%'' OR ''1''=''1"
+        );
+        expect(
+          sqlSanitization.escapeSQLWildcards("'; DROP TABLE users; --")
+        ).toBe("''; DROP TABLE users; --");
       });
 
       it('should escape already escaped characters', () => {
@@ -102,7 +116,9 @@ describe('sqlSanitization', () => {
 
       it('should handle normal text', () => {
         (sanitizeText as jest.Mock).mockReturnValue('normal text');
-        expect(sqlSanitization.sanitizeForSQL('normal text')).toBe('normal text');
+        expect(sqlSanitization.sanitizeForSQL('normal text')).toBe(
+          'normal text'
+        );
         expect(sanitizeText).toHaveBeenCalledWith('normal text');
       });
 
@@ -115,7 +131,9 @@ describe('sqlSanitization', () => {
     describe('XSS and SQL Injection Prevention', () => {
       it('should remove HTML tags and escape SQL wildcards', () => {
         (sanitizeText as jest.Mock).mockReturnValue('%test%');
-        const result = sqlSanitization.sanitizeForSQL('<script>%test%</script>');
+        const result = sqlSanitization.sanitizeForSQL(
+          '<script>%test%</script>'
+        );
         expect(result).toBe('\\%test\\%');
         expect(sanitizeText).toHaveBeenCalledWith('<script>%test%</script>');
       });
@@ -171,7 +189,9 @@ describe('sqlSanitization', () => {
       it('should return true for valid search terms', () => {
         expect(sqlSanitization.isValidSearchTerm('test')).toBe(true);
         expect(sqlSanitization.isValidSearchTerm('hello world')).toBe(true);
-        expect(sqlSanitization.isValidSearchTerm('user@example.com')).toBe(true);
+        expect(sqlSanitization.isValidSearchTerm('user@example.com')).toBe(
+          true
+        );
       });
     });
 
@@ -208,7 +228,9 @@ describe('sqlSanitization', () => {
 
       it('should detect SQL injection patterns', () => {
         expect(sqlSanitization.isValidSearchTerm("%' OR '1'='1")).toBe(false); // High special char ratio
-        expect(sqlSanitization.isValidSearchTerm("'; DROP TABLE --")).toBe(false);
+        expect(sqlSanitization.isValidSearchTerm("'; DROP TABLE --")).toBe(
+          false
+        );
       });
 
       it('should calculate special character ratio correctly', () => {
@@ -228,8 +250,12 @@ describe('sqlSanitization', () => {
     describe('Input Validation', () => {
       it('should return empty array for non-array input', () => {
         expect(sqlSanitization.sanitizeSearchTerms(null as any)).toEqual([]);
-        expect(sqlSanitization.sanitizeSearchTerms(undefined as any)).toEqual([]);
-        expect(sqlSanitization.sanitizeSearchTerms('string' as any)).toEqual([]);
+        expect(sqlSanitization.sanitizeSearchTerms(undefined as any)).toEqual(
+          []
+        );
+        expect(sqlSanitization.sanitizeSearchTerms('string' as any)).toEqual(
+          []
+        );
         expect(sqlSanitization.sanitizeSearchTerms(123 as any)).toEqual([]);
       });
 
@@ -303,17 +329,26 @@ describe('sqlSanitization', () => {
       });
 
       it('should create contains pattern explicitly', () => {
-        const result = sqlSanitization.createSafeILIKEPattern('test', 'contains');
+        const result = sqlSanitization.createSafeILIKEPattern(
+          'test',
+          'contains'
+        );
         expect(result).toBe('%test%');
       });
 
       it('should create startsWith pattern', () => {
-        const result = sqlSanitization.createSafeILIKEPattern('test', 'startsWith');
+        const result = sqlSanitization.createSafeILIKEPattern(
+          'test',
+          'startsWith'
+        );
         expect(result).toBe('test%');
       });
 
       it('should create endsWith pattern', () => {
-        const result = sqlSanitization.createSafeILIKEPattern('test', 'endsWith');
+        const result = sqlSanitization.createSafeILIKEPattern(
+          'test',
+          'endsWith'
+        );
         expect(result).toBe('%test');
       });
 
@@ -323,24 +358,36 @@ describe('sqlSanitization', () => {
       });
 
       it('should default to contains for invalid pattern type', () => {
-        const result = sqlSanitization.createSafeILIKEPattern('test', 'invalid' as any);
+        const result = sqlSanitization.createSafeILIKEPattern(
+          'test',
+          'invalid' as any
+        );
         expect(result).toBe('%test%');
       });
     });
 
     describe('SQL Injection Prevention', () => {
       it('should escape wildcards in search term', () => {
-        const result = sqlSanitization.createSafeILIKEPattern('test%_', 'contains');
+        const result = sqlSanitization.createSafeILIKEPattern(
+          'test%_',
+          'contains'
+        );
         expect(result).toBe('%test\\%\\_%');
       });
 
       it('should escape quotes in search term', () => {
-        const result = sqlSanitization.createSafeILIKEPattern("John's", 'startsWith');
+        const result = sqlSanitization.createSafeILIKEPattern(
+          "John's",
+          'startsWith'
+        );
         expect(result).toBe("John''s%");
       });
 
       it('should handle SQL injection attempts', () => {
-        const result = sqlSanitization.createSafeILIKEPattern("' OR '1'='1", 'contains');
+        const result = sqlSanitization.createSafeILIKEPattern(
+          "' OR '1'='1",
+          'contains'
+        );
         expect(result).toBe("%'' OR ''1''=''1%");
       });
     });
@@ -350,22 +397,35 @@ describe('sqlSanitization', () => {
         (sanitizeText as jest.Mock).mockReturnValue('');
         expect(sqlSanitization.createSafeILIKEPattern('')).toBe('');
         expect(sqlSanitization.createSafeILIKEPattern(null as any)).toBe('');
-        expect(sqlSanitization.createSafeILIKEPattern(undefined as any)).toBe('');
+        expect(sqlSanitization.createSafeILIKEPattern(undefined as any)).toBe(
+          ''
+        );
       });
 
       it('should handle whitespace-only input', () => {
         (sanitizeText as jest.Mock).mockReturnValue('   ');
-        const result = sqlSanitization.createSafeILIKEPattern('   ', 'contains');
+        const result = sqlSanitization.createSafeILIKEPattern(
+          '   ',
+          'contains'
+        );
         expect(result).toBe(''); // Trimmed to empty
       });
 
       it('should handle special characters in different pattern types', () => {
         const term = 'test_%';
 
-        expect(sqlSanitization.createSafeILIKEPattern(term, 'contains')).toBe('%test\\_\\%%');
-        expect(sqlSanitization.createSafeILIKEPattern(term, 'startsWith')).toBe('test\\_\\%%');
-        expect(sqlSanitization.createSafeILIKEPattern(term, 'endsWith')).toBe('%test\\_\\%');
-        expect(sqlSanitization.createSafeILIKEPattern(term, 'exact')).toBe('test\\_\\%');
+        expect(sqlSanitization.createSafeILIKEPattern(term, 'contains')).toBe(
+          '%test\\_\\%%'
+        );
+        expect(sqlSanitization.createSafeILIKEPattern(term, 'startsWith')).toBe(
+          'test\\_\\%%'
+        );
+        expect(sqlSanitization.createSafeILIKEPattern(term, 'endsWith')).toBe(
+          '%test\\_\\%'
+        );
+        expect(sqlSanitization.createSafeILIKEPattern(term, 'exact')).toBe(
+          'test\\_\\%'
+        );
       });
     });
   });
@@ -545,14 +605,24 @@ describe('sqlSanitization', () => {
       });
     });
 
-    describe('Auto-cleanup Interval', () => {
-      it('should have auto-cleanup configured', () => {
-        // The module sets up an interval for cleanup
-        // We can't easily test the interval directly, but we can verify
-        // that setInterval was called with the correct parameters
+    describe('Lazy cleanup', () => {
+      it('does not create a global timer and purges expired entries on use', () => {
+        jest.useFakeTimers();
+        const key = 'lazy-cleanup';
 
-        // This is implicitly tested by the module loading
-        // The interval is set up when the module loads
+        for (let i = 0; i < 50; i++) {
+          expect(rateLimiter.isAllowed(key)).toBe(true);
+        }
+        expect(rateLimiter.isAllowed(key)).toBe(false);
+
+        jest.advanceTimersByTime(60001);
+
+        expect(rateLimiter.isAllowed(key)).toBe(true);
+        expect(jest.getTimerCount()).toBe(0);
+        jest.useRealTimers();
+      });
+
+      it('keeps the rate limiter available after module initialization', () => {
         expect(sqlSanitization.searchRateLimiter).toBeDefined();
       });
     });
@@ -561,11 +631,17 @@ describe('sqlSanitization', () => {
   describe('Integration Tests', () => {
     describe('Full sanitization pipeline', () => {
       it('should handle complex SQL injection with XSS', () => {
-        const input = "<script>alert('xss')</script>' OR '1'='1; DROP TABLE users; --";
-        (sanitizeText as jest.Mock).mockReturnValue("' OR '1'='1; DROP TABLE users; --");
+        const input =
+          "<script>alert('xss')</script>' OR '1'='1; DROP TABLE users; --";
+        (sanitizeText as jest.Mock).mockReturnValue(
+          "' OR '1'='1; DROP TABLE users; --"
+        );
 
         const sanitized = sqlSanitization.sanitizeForSQL(input);
-        const pattern = sqlSanitization.createSafeILIKEPattern(sanitized, 'contains');
+        const pattern = sqlSanitization.createSafeILIKEPattern(
+          sanitized,
+          'contains'
+        );
 
         expect(pattern).not.toContain('<script>');
         expect(pattern).toContain("''"); // Escaped quotes
@@ -577,7 +653,7 @@ describe('sqlSanitization', () => {
           '%wildcard%',
           "John's name",
           '%%%', // Should be filtered out as invalid
-          'x'.repeat(201) // Too long
+          'x'.repeat(201), // Too long
         ];
 
         (sanitizeText as jest.Mock).mockImplementation((input) => input);
@@ -588,7 +664,7 @@ describe('sqlSanitization', () => {
         expect(sanitized).toEqual([
           'valid search',
           '\\%wildcard\\%',
-          "John''s name"
+          "John''s name",
         ]);
       });
 
@@ -604,7 +680,10 @@ describe('sqlSanitization', () => {
         for (let i = 0; i < 50; i++) {
           if (sqlSanitization.searchRateLimiter.isAllowed(userId)) {
             const safeTerm = sqlSanitization.sanitizeForSQL(searchTerm);
-            const pattern = sqlSanitization.createSafeILIKEPattern(safeTerm, 'contains');
+            const pattern = sqlSanitization.createSafeILIKEPattern(
+              safeTerm,
+              'contains'
+            );
             expect(pattern).toBe('%test\\%%');
           }
         }

@@ -58,6 +58,12 @@ function getJobPhotos(job: JobApiResponse): string[] {
   return [];
 }
 
+function finiteAmount(value: unknown): number | null {
+  if (value == null) return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : null;
+}
+
 function transformJob(job: JobApiResponse) {
   // 2026-05-23: derive a single `total_amount` from the most-committed
   // figure available. Used by the stats card on /contractor/jobs so
@@ -74,13 +80,16 @@ function transformJob(job: JobApiResponse) {
     : job.bids && job.bids.status === 'accepted'
       ? [job.bids]
       : [];
+  const budget = finiteAmount(job.budget);
+  const budgetMax = finiteAmount(job.budget_max);
+  const budgetMin = finiteAmount(job.budget_min);
   const totalAmount = getJobAmount({
-    budget: job.budget ?? job.budget_max ?? job.budget_min ?? null,
-    escrow_amount: latestEscrow ? Number(latestEscrow.amount ?? 0) : null,
+    budget: budget ?? budgetMax ?? budgetMin,
+    escrow_amount: latestEscrow ? finiteAmount(latestEscrow.amount) : null,
     escrow_status: latestEscrow?.status ?? null,
     accepted_bid_amount:
       acceptedBidRows.length > 0
-        ? Number(acceptedBidRows[0]?.amount ?? 0)
+        ? finiteAmount(acceptedBidRows[0]?.amount)
         : null,
   });
 
@@ -93,7 +102,7 @@ function transformJob(job: JobApiResponse) {
     priority: job.priority || job.urgency || 'medium',
     // Legacy `budget` field preserved for back-compat with any caller
     // still reading it; new callers should prefer `total_amount`.
-    budget: job.budget || job.budget_max || job.budget_min || 0,
+    budget: budget ?? budgetMax ?? budgetMin ?? 0,
     total_amount: totalAmount,
     status: job.status,
     photos: getJobPhotos(job),

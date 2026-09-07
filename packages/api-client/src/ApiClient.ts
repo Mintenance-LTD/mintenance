@@ -35,9 +35,9 @@ export class ApiClient {
       (typeof window !== 'undefined' && window.location
         ? window.location.origin
         : '');
-    this.timeout = config.timeout || 30000; // 30 seconds
-    this.defaultRetries = config.retries || 3;
-    this.retryDelay = config.retryDelay || 1000; // 1 second
+    this.timeout = config.timeout ?? 30000; // 30 seconds
+    this.defaultRetries = config.retries ?? 3;
+    this.retryDelay = config.retryDelay ?? 1000; // 1 second
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       ...config.headers,
@@ -75,6 +75,7 @@ export class ApiClient {
       retryDelay = this.retryDelay,
       ...fetchOptions
     } = options;
+    const { signal: externalSignal, ...requestFetchOptions } = fetchOptions;
     const fullUrl = url.startsWith('http') ? url : `${this.baseURL}${url}`;
     const headers = {
       ...this.defaultHeaders,
@@ -85,14 +86,29 @@ export class ApiClient {
       try {
         // Create abort controller for timeout
         const controller = new AbortController();
+        const abortFromCaller = () => controller.abort();
+        if (externalSignal) {
+          if (externalSignal.aborted) {
+            controller.abort();
+          } else {
+            externalSignal.addEventListener('abort', abortFromCaller, {
+              once: true,
+            });
+          }
+        }
         const timeoutId = setTimeout(() => controller.abort(), timeout);
-        const response = await fetch(fullUrl, {
-          ...fetchOptions,
-          headers,
-          signal: controller.signal,
-          redirect: 'manual', // Don't follow redirects — treat 3xx as errors (catches middleware 307s)
-        });
-        clearTimeout(timeoutId);
+        let response: Response;
+        try {
+          response = await fetch(fullUrl, {
+            ...requestFetchOptions,
+            headers,
+            signal: controller.signal,
+            redirect: 'manual', // Don't follow redirects — treat 3xx as errors (catches middleware 307s)
+          });
+        } finally {
+          clearTimeout(timeoutId);
+          externalSignal?.removeEventListener('abort', abortFromCaller);
+        }
         // Treat redirects (307/302) as 401 auth failures — middleware redirects
         // unauthenticated API requests to login page instead of returning JSON
         if (response.status >= 300 && response.status < 400) {

@@ -195,8 +195,13 @@ export class JobCRUDService {
    * retry than render half-broken data and confuse the user about
    * why photos disappeared.
    */
-  static async getJobById(jobId: string): Promise<Job | null> {
-    const response = await mobileApiClient.get<unknown>(`/api/jobs/${jobId}`);
+  static async getJobById(
+    jobId: string,
+    signal?: AbortSignal
+  ): Promise<Job | null> {
+    const response = signal
+      ? await mobileApiClient.get<unknown>(`/api/jobs/${jobId}`, { signal })
+      : await mobileApiClient.get<unknown>(`/api/jobs/${jobId}`);
     // Audit step 15 (2026-04-29): runtime-validate the response
     // shape against the shared `jobResponseSchema`. Using the safe
     // variant so an envelope drift logs a warning and we still try

@@ -1,7 +1,7 @@
 import {
   ServiceHealthMonitor,
   serviceHealthMonitor,
-  initializeCoreServiceHealthChecks
+  initializeCoreServiceHealthChecks,
 } from '../../utils/serviceHealthMonitor';
 
 // Mock logger
@@ -10,8 +10,8 @@ jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
-    debug: jest.fn()
-  }
+    debug: jest.fn(),
+  },
 }));
 
 // Mock supabase
@@ -19,13 +19,13 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     from: jest.fn(() => ({
       select: jest.fn(() => ({
-        limit: jest.fn().mockResolvedValue({ data: [], error: null })
-      }))
+        limit: jest.fn().mockResolvedValue({ data: [], error: null }),
+      })),
     })),
     auth: {
-      getSession: jest.fn().mockResolvedValue({ data: { session: null } })
-    }
-  }
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+    },
+  },
 }));
 
 // Mock fetch for URL health checks
@@ -45,7 +45,7 @@ describe('ServiceHealthMonitor', () => {
 
     // Clear all registered services to ensure test isolation
     const allStatuses = monitor.getAllServiceStatuses();
-    allStatuses.forEach(status => {
+    allStatuses.forEach((status) => {
       monitor.unregisterService(status.serviceName);
     });
   });
@@ -55,7 +55,7 @@ describe('ServiceHealthMonitor', () => {
 
     // Clean up all registered services after each test
     const allStatuses = monitor.getAllServiceStatuses();
-    allStatuses.forEach(status => {
+    allStatuses.forEach((status) => {
       monitor.unregisterService(status.serviceName);
     });
 
@@ -67,7 +67,7 @@ describe('ServiceHealthMonitor', () => {
       const serviceCheck = {
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       };
 
       monitor.registerService(serviceCheck);
@@ -83,7 +83,7 @@ describe('ServiceHealthMonitor', () => {
       const serviceCheck = {
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       };
 
       monitor.registerService(serviceCheck);
@@ -100,13 +100,14 @@ describe('ServiceHealthMonitor', () => {
       const serviceCheck = {
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: healthCheckFn
+        healthCheckFunction: healthCheckFn,
       };
 
       monitor.registerService(serviceCheck);
 
       // Mock Date.now to simulate time passage for response time measurement
-      jest.spyOn(Date, 'now')
+      jest
+        .spyOn(Date, 'now')
         .mockReturnValueOnce(1000) // Start time
         .mockReturnValueOnce(1100); // End time (100ms later)
 
@@ -116,18 +117,19 @@ describe('ServiceHealthMonitor', () => {
       expect(status.status).toBe('healthy');
       expect(status.responseTime).toBe(100);
       expect(status.errorRate).toBe(0);
+      expect(jest.getTimerCount()).toBe(0);
     });
 
     it('should check service health with URL', async () => {
       const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
       mockFetch.mockResolvedValue({
-        ok: true
+        ok: true,
       } as Response);
 
       const serviceCheck = {
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckUrl: 'https://api.test.com/health'
+        healthCheckUrl: 'https://api.test.com/health',
       };
 
       monitor.registerService(serviceCheck);
@@ -138,18 +140,21 @@ describe('ServiceHealthMonitor', () => {
         'https://api.test.com/health',
         expect.objectContaining({
           method: 'HEAD',
-          signal: expect.any(AbortSignal)
+          signal: expect.any(AbortSignal),
         })
       );
       expect(status.status).toBe('healthy');
+      expect(jest.getTimerCount()).toBe(0);
     });
 
     it('should handle health check failures', async () => {
-      const healthCheckFn = jest.fn().mockRejectedValue(new Error('Service unavailable'));
+      const healthCheckFn = jest
+        .fn()
+        .mockRejectedValue(new Error('Service unavailable'));
       const serviceCheck = {
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: healthCheckFn
+        healthCheckFunction: healthCheckFn,
       };
 
       monitor.registerService(serviceCheck);
@@ -165,12 +170,12 @@ describe('ServiceHealthMonitor', () => {
       jest.useRealTimers();
 
       const healthCheckFn = jest.fn().mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(true), 200)) // 200ms delay
+        () => new Promise((resolve) => setTimeout(() => resolve(true), 200)) // 200ms delay
       );
       const serviceCheck = {
         serviceName: 'TestService',
         timeout: 100, // 100ms timeout - shorter than health check
-        healthCheckFunction: healthCheckFn
+        healthCheckFunction: healthCheckFn,
       };
 
       monitor.registerService(serviceCheck);
@@ -187,15 +192,13 @@ describe('ServiceHealthMonitor', () => {
       const serviceCheck = {
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       };
 
       monitor.registerService(serviceCheck);
 
       // Mock slow response time (over warning threshold)
-      jest.spyOn(Date, 'now')
-        .mockReturnValueOnce(0)
-        .mockReturnValueOnce(1500); // 1.5 seconds
+      jest.spyOn(Date, 'now').mockReturnValueOnce(0).mockReturnValueOnce(1500); // 1.5 seconds
 
       const status = await monitor.checkServiceHealth('TestService');
 
@@ -215,7 +218,7 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: healthCheckFn
+        healthCheckFunction: healthCheckFn,
       });
 
       monitor.startMonitoring(1000);
@@ -230,7 +233,7 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: healthCheckFn
+        healthCheckFunction: healthCheckFn,
       });
 
       monitor.startMonitoring(1000);
@@ -239,6 +242,35 @@ describe('ServiceHealthMonitor', () => {
       jest.advanceTimersByTime(2000);
 
       expect(healthCheckFn).toHaveBeenCalledTimes(0);
+    });
+
+    it('should skip a monitoring tick while a previous check is in progress', async () => {
+      let resolveHealthCheck!: (healthy: boolean) => void;
+      const healthCheckFn = jest.fn(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveHealthCheck = resolve;
+          })
+      );
+
+      monitor.registerService({
+        serviceName: 'SlowService',
+        timeout: 5000,
+        healthCheckFunction: healthCheckFn,
+      });
+
+      monitor.startMonitoring(1000);
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      expect(healthCheckFn).toHaveBeenCalledTimes(1);
+
+      resolveHealthCheck(true);
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     it('should not start monitoring if already running', () => {
@@ -258,17 +290,18 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'Service1',
         timeout: 5000,
-        healthCheckFunction: healthCheckFn1
+        healthCheckFunction: healthCheckFn1,
       });
 
       monitor.registerService({
         serviceName: 'Service2',
         timeout: 5000,
-        healthCheckFunction: healthCheckFn2
+        healthCheckFunction: healthCheckFn2,
       });
 
       // Mock Date.now for consistent response time measurement
-      jest.spyOn(Date, 'now')
+      jest
+        .spyOn(Date, 'now')
         .mockReturnValue(1000)
         .mockReturnValueOnce(1100) // Service1 response time
         .mockReturnValueOnce(1200); // Service2 response time
@@ -276,17 +309,23 @@ describe('ServiceHealthMonitor', () => {
       const results = await monitor.checkAllServices();
 
       expect(results).toHaveLength(2);
-      expect(results.find(r => r.serviceName === 'Service1')?.status).toBe('healthy');
-      expect(results.find(r => r.serviceName === 'Service2')?.status).toBe('unhealthy');
+      expect(results.find((r) => r.serviceName === 'Service1')?.status).toBe(
+        'healthy'
+      );
+      expect(results.find((r) => r.serviceName === 'Service2')?.status).toBe(
+        'unhealthy'
+      );
     });
 
     it('should handle service check failures in checkAllServices', async () => {
-      const healthCheckFn = jest.fn().mockRejectedValue(new Error('Service error'));
+      const healthCheckFn = jest
+        .fn()
+        .mockRejectedValue(new Error('Service error'));
 
       monitor.registerService({
         serviceName: 'FailingService',
         timeout: 5000,
-        healthCheckFunction: healthCheckFn
+        healthCheckFunction: healthCheckFn,
       });
 
       const results = await monitor.checkAllServices();
@@ -303,23 +342,24 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'HealthyService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       });
 
       monitor.registerService({
         serviceName: 'DegradedService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       });
 
       monitor.registerService({
         serviceName: 'UnhealthyService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(false)
+        healthCheckFunction: jest.fn().mockResolvedValue(false),
       });
 
       // Mock Date.now for response time measurements
-      jest.spyOn(Date, 'now')
+      jest
+        .spyOn(Date, 'now')
         .mockReturnValueOnce(1000) // HealthyService start
         .mockReturnValueOnce(1100) // HealthyService end (100ms)
         .mockReturnValueOnce(1200) // DegradedService start
@@ -347,11 +387,12 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'DegradedService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       });
 
       // Mock slow response time for degraded status
-      jest.spyOn(Date, 'now')
+      jest
+        .spyOn(Date, 'now')
         .mockReturnValueOnce(1000) // Start time
         .mockReturnValueOnce(2500); // End time (1500ms - degraded)
 
@@ -367,27 +408,27 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'HealthyService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       });
 
       monitor.registerService({
         serviceName: 'DegradedService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       });
 
       monitor.registerService({
         serviceName: 'UnhealthyService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(false)
+        healthCheckFunction: jest.fn().mockResolvedValue(false),
       });
 
       const statuses = monitor.getAllServiceStatuses();
 
       expect(statuses).toHaveLength(3);
-      expect(statuses.map(s => s.serviceName)).toContain('HealthyService');
-      expect(statuses.map(s => s.serviceName)).toContain('DegradedService');
-      expect(statuses.map(s => s.serviceName)).toContain('UnhealthyService');
+      expect(statuses.map((s) => s.serviceName)).toContain('HealthyService');
+      expect(statuses.map((s) => s.serviceName)).toContain('DegradedService');
+      expect(statuses.map((s) => s.serviceName)).toContain('UnhealthyService');
     });
   });
 
@@ -396,7 +437,7 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       });
 
       monitor.recordServiceOperation('TestService', 'testMethod', 500, true);
@@ -414,7 +455,7 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'TestService',
         timeout: 5000,
-        healthCheckFunction: jest.fn().mockResolvedValue(true)
+        healthCheckFunction: jest.fn().mockResolvedValue(true),
       });
 
       // Record successful operation
@@ -431,7 +472,12 @@ describe('ServiceHealthMonitor', () => {
     });
 
     it('should ignore metrics for unregistered services', () => {
-      monitor.recordServiceOperation('UnregisteredService', 'testMethod', 100, true);
+      monitor.recordServiceOperation(
+        'UnregisteredService',
+        'testMethod',
+        100,
+        true
+      );
 
       const status = monitor.getServiceStatus('UnregisteredService');
       expect(status).toBeNull();
@@ -442,13 +488,13 @@ describe('ServiceHealthMonitor', () => {
     it('should check URL health successfully', async () => {
       const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
       mockFetch.mockResolvedValue({
-        ok: true
+        ok: true,
       } as Response);
 
       monitor.registerService({
         serviceName: 'URLService',
         timeout: 5000,
-        healthCheckUrl: 'https://api.test.com/health'
+        healthCheckUrl: 'https://api.test.com/health',
       });
 
       const status = await monitor.checkServiceHealth('URLService');
@@ -460,13 +506,13 @@ describe('ServiceHealthMonitor', () => {
       const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
       mockFetch.mockResolvedValue({
         ok: false,
-        status: 500
+        status: 500,
       } as Response);
 
       monitor.registerService({
         serviceName: 'URLService',
         timeout: 5000,
-        healthCheckUrl: 'https://api.test.com/health'
+        healthCheckUrl: 'https://api.test.com/health',
       });
 
       const status = await monitor.checkServiceHealth('URLService');
@@ -481,7 +527,7 @@ describe('ServiceHealthMonitor', () => {
       monitor.registerService({
         serviceName: 'URLService',
         timeout: 5000,
-        healthCheckUrl: 'https://api.test.com/health'
+        healthCheckUrl: 'https://api.test.com/health',
       });
 
       const status = await monitor.checkServiceHealth('URLService');
@@ -496,23 +542,34 @@ describe('initializeCoreServiceHealthChecks', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    serviceHealthMonitor.stopMonitoring();
+
+    for (const status of serviceHealthMonitor.getAllServiceStatuses()) {
+      serviceHealthMonitor.unregisterService(status.serviceName);
+    }
+  });
+
   it('should initialize core service health checks', () => {
     const registerSpy = jest.spyOn(serviceHealthMonitor, 'registerService');
-    const startMonitoringSpy = jest.spyOn(serviceHealthMonitor, 'startMonitoring');
+    const startMonitoringSpy = jest.spyOn(
+      serviceHealthMonitor,
+      'startMonitoring'
+    );
 
     initializeCoreServiceHealthChecks();
 
     expect(registerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         serviceName: 'Database',
-        timeout: 5000
+        timeout: 5000,
       })
     );
 
     expect(registerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         serviceName: 'AuthService',
-        timeout: 3000
+        timeout: 3000,
       })
     );
 

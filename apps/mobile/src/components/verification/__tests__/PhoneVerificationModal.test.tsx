@@ -44,7 +44,10 @@ describe('PhoneVerificationModal', () => {
     expect(getByText('Verify your phone number')).toBeTruthy();
     expect(getByTestId('phone-verification-phone-input')).toBeTruthy();
     await waitFor(() =>
-      expect(mockGet).toHaveBeenCalledWith('/api/users/profile')
+      expect(mockGet).toHaveBeenCalledWith(
+        '/api/users/profile',
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
     );
   });
 

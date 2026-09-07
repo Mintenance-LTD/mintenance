@@ -21,6 +21,8 @@ interface StaticMapParams {
   maptype?: 'roadmap' | 'satellite' | 'terrain' | 'hybrid';
 }
 
+const STATIC_MAP_REQUEST_TIMEOUT_MS = 8_000;
+
 /**
  * GET /api/maps-static
  *
@@ -134,7 +136,9 @@ export const GET = withApiHandler(
     const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 
     // Fetch Static Map Image
-    const response = await fetch(staticMapUrl);
+    const response = await fetch(staticMapUrl, {
+      signal: AbortSignal.timeout(STATIC_MAP_REQUEST_TIMEOUT_MS),
+    });
 
     if (!response.ok) {
       logger.error('Failed to fetch static map', new Error(`Status: ${response.status}`), {
@@ -153,7 +157,10 @@ export const GET = withApiHandler(
     return new NextResponse(imageBuffer, {
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+        // The URL contains user-supplied property coordinates. Do not allow
+        // a shared CDN cache to serve one authenticated user's map to another
+        // requester who knows the URL.
+        'Cache-Control': 'private, max-age=86400',
         'X-RateLimit-Limit': '20',
         'X-RateLimit-Remaining': String(rateLimitResult.remaining),
       },

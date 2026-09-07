@@ -18,6 +18,7 @@
  * match the keys printed by `supabase start`.
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { localTestUrl } from './local-test-url';
 
 // These are the well-known, non-secret keys emitted by `supabase start` for
 // local development. They are NOT production keys and grant access only to
@@ -28,7 +29,9 @@ const DEFAULT_LOCAL_ANON_KEY =
 const DEFAULT_LOCAL_SERVICE_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
-const TEST_SUPABASE_URL = process.env.SUPABASE_TEST_URL || DEFAULT_LOCAL_URL;
+const TEST_SUPABASE_URL = localTestUrl(
+  process.env.SUPABASE_TEST_URL || DEFAULT_LOCAL_URL
+);
 
 const TEST_ANON_KEY =
   process.env.SUPABASE_TEST_ANON_KEY || DEFAULT_LOCAL_ANON_KEY;

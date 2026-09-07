@@ -108,6 +108,16 @@ describe('useJob (detail)', () => {
     expect(opts.placeholderData(null)).toBeNull();
   });
 
+  it('forwards React Query cancellation signals to the job service', async () => {
+    (JobService.getJobById as jest.Mock).mockResolvedValue({ id: 'job-1' });
+    renderHook(() => useJob('job-1'));
+
+    const signal = new AbortController().signal;
+    await lastQuery().queryFn(signal);
+
+    expect(JobService.getJobById).toHaveBeenCalledWith('job-1', signal);
+  });
+
   it('enabled false when jobId is empty', () => {
     renderHook(() => useJob(''));
     expect(lastQuery().enabled).toBe(false);

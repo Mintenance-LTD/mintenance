@@ -5,6 +5,7 @@ import { InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { assertContractorJobAssignment } from '@/lib/services/contractor/job-assignment';
 
 const createMeetingSchema = z.object({
   title: z.string().min(1).max(500),
@@ -26,6 +27,10 @@ export const POST = withApiHandler(
     const validation = await validateRequest(request, createMeetingSchema);
     if (validation instanceof NextResponse) return validation;
     const payload = validation.data;
+
+    if (payload.job_id) {
+      await assertContractorJobAssignment(payload.job_id, user.id);
+    }
 
     const { data: meeting, error } = await userDb
       .from('contractor_meetings')

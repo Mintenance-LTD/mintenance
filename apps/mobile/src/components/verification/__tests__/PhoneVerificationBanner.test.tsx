@@ -56,7 +56,9 @@ describe('PhoneVerificationBanner', () => {
     await waitFor(() =>
       expect(getByTestId('phone-verification-banner')).toBeTruthy()
     );
-    expect(mockGet).toHaveBeenCalledWith('/api/users/profile');
+    expect(mockGet).toHaveBeenCalledWith('/api/users/profile', {
+      signal: expect.any(AbortSignal),
+    });
   });
 
   it('renders nothing once the phone is verified', async () => {

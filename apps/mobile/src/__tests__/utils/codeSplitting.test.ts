@@ -184,11 +184,9 @@ describe('CodeSplittingManager', () => {
 
     it('should handle timeout', async () => {
       const mockImportFn = jest.fn(
-        () =>
-          new Promise((resolve) => {
-            // Never resolve to simulate timeout
-            setTimeout(() => resolve({ default: () => null }), 20000);
-          })
+        () => new Promise(() => {
+          // Never resolve to simulate a stalled import without leaking a timer.
+        })
       );
 
       codeSplittingManager.createLazyComponent(mockImportFn, {

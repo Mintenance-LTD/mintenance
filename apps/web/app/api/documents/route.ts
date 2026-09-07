@@ -10,6 +10,12 @@ import { logger } from '@mintenance/shared';
  * - Bids received
  * - Escrow/payment records
  */
+function nullableAmount(value: unknown): number | null {
+  if (value == null) return null;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : null;
+}
+
 export const GET = withApiHandler(
   { roles: ['homeowner'], csrf: false },
   async (_req, { user }) => {
@@ -57,7 +63,7 @@ export const GET = withApiHandler(
         type: 'contract' as const,
         name: displayName,
         status: c.status as string,
-        amount: c.amount as number | null,
+        amount: nullableAmount(c.amount),
         job_id: c.job_id as string,
         contractor_name: contractorName,
         contractor_signed: !!c.contractor_signed_at,
@@ -108,7 +114,7 @@ export const GET = withApiHandler(
           type: 'bid' as const,
           name: `Bid for ${jobTitleMap.get(b.job_id as string) || 'Job'}`,
           status: b.status as string,
-          amount: b.amount as number | null,
+          amount: nullableAmount(b.amount),
           job_id: b.job_id as string,
           job_title: jobTitleMap.get(b.job_id as string) || 'Job',
           contractor_name: contractorName,
@@ -132,7 +138,7 @@ export const GET = withApiHandler(
       type: 'payment' as const,
       name: `Payment for ${jobTitleMap.get(e.job_id as string) || 'Job'}`,
       status: e.status as string,
-      amount: e.amount as number | null,
+      amount: nullableAmount(e.amount),
       job_id: e.job_id as string,
       job_title: jobTitleMap.get(e.job_id as string) || 'Job',
       created_at: e.created_at as string,

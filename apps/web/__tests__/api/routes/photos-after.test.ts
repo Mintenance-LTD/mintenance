@@ -525,6 +525,29 @@ describe('POST /api/jobs/[id]/photos/after', () => {
     expect(body.count).toBeGreaterThanOrEqual(1);
   });
 
+  it('should not auto-complete when the uploaded photos do not meet requirements', async () => {
+    setupPhotoMocks();
+    mocks.validatePhotoRequirements.mockResolvedValueOnce({
+      passed: false,
+      errors: ['Missing required angles: closeup'],
+      warnings: [],
+    });
+
+    const formData = new FormData();
+    formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
+    const res = await POST(req, segmentData('job-1'));
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.jobCompleted).toBe(false);
+    expect(body.validation.passed).toBe(false);
+  });
+
   // ---- Auto-complete skipped when no escrow ----
   it('should upload photos but NOT auto-complete when no escrow held', async () => {
     setupPhotoMocks({ escrowData: null });

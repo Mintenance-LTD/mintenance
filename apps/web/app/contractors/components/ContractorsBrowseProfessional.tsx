@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useId } from 'react';
 import {
   Search,
   SlidersHorizontal,
@@ -69,6 +69,7 @@ export function ContractorsBrowseProfessional({
   contractors,
   totalCount,
 }: ContractorsBrowseProfessionalProps) {
+  const filterId = useId();
   // State Management
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -266,6 +267,7 @@ export function ContractorsBrowseProfessional({
                 <Search className='w-5 h-5 text-gray-400' />
                 <input
                   type='text'
+                  aria-label='Search contractors'
                   placeholder='Search by name, skill, or location...'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -481,10 +483,14 @@ export function ContractorsBrowseProfessional({
               {/* Location Filter */}
               {allLocations.length > 0 && (
                 <div className='mb-6 pb-6 border-b border-gray-100'>
-                  <label className='block text-sm font-bold text-slate-900 mb-3'>
+                  <label
+                    htmlFor={`${filterId}-location`}
+                    className='block text-sm font-bold text-slate-900 mb-3'
+                  >
                     Location
                   </label>
                   <select
+                    id={`${filterId}-location`}
                     value={filters.location}
                     onChange={(e) =>
                       setFilters((prev) => ({
@@ -506,11 +512,20 @@ export function ContractorsBrowseProfessional({
 
               {/* Max Hourly Rate */}
               <div className='mb-6 pb-6 border-b border-gray-100'>
-                <label className='block text-sm font-bold text-slate-900 mb-3'>
+                <label
+                  htmlFor={`${filterId}-max-rate`}
+                  className='block text-sm font-bold text-slate-900 mb-3'
+                >
                   Max Hourly Rate
                 </label>
                 <input
+                  id={`${filterId}-max-rate`}
                   type='range'
+                  aria-valuetext={
+                    filters.maxRate === 0
+                      ? 'Any rate'
+                      : `£${filters.maxRate} per hour`
+                  }
                   min='0'
                   max='200'
                   step='10'
@@ -612,6 +627,7 @@ export function ContractorsBrowseProfessional({
                   {/* Sort Dropdown */}
                   <div className='relative'>
                     <select
+                      aria-label='Sort contractors'
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as SortOption)}
                       className='pl-4 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-teal-500 appearance-none cursor-pointer transition-colors'

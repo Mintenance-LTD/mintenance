@@ -128,28 +128,33 @@ class CodeSplittingManager {
       try {
         logger.debug(`Loading chunk ${chunkName} (attempt ${attempt + 1})`);
 
-        const result = await Promise.race([
-          importFn(),
-          this.createTimeoutPromise<T>(timeout, chunkName),
-        ]);
+        const timeoutPromise = this.createTimeoutPromise<T>(timeout, chunkName);
+        try {
+          const result = await Promise.race([
+            importFn(),
+            timeoutPromise.promise,
+          ]);
 
-        const loadTime = performance.now() - startTime;
+          const loadTime = performance.now() - startTime;
 
-        // Track successful load
-        this.trackChunkMetrics({
-          chunkName,
-          loadTime,
-          size: this.estimateChunkSize(result),
-          success: true,
-          timestamp: Date.now(),
-        });
+          // Track successful load
+          this.trackChunkMetrics({
+            chunkName,
+            loadTime,
+            size: this.estimateChunkSize(result),
+            success: true,
+            timestamp: Date.now(),
+          });
 
-        logger.performance(`Chunk ${chunkName} loaded`, loadTime, {
-          attempt: attempt + 1,
-          cached: false,
-        });
+          logger.performance(`Chunk ${chunkName} loaded`, loadTime, {
+            attempt: attempt + 1,
+            cached: false,
+          });
 
-        return result;
+          return result;
+        } finally {
+          timeoutPromise.cancel();
+        }
       } catch (error) {
         lastError = error as Error;
         logger.warn(
@@ -192,12 +197,20 @@ class CodeSplittingManager {
   private createTimeoutPromise<T>(
     timeout: number,
     chunkName: string
-  ): Promise<T> {
-    return new Promise((_, reject) => {
-      setTimeout(() => {
+  ): { promise: Promise<T>; cancel: () => void } {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const promise = new Promise<T>((_, reject) => {
+      timer = setTimeout(() => {
         reject(new Error(`Chunk ${chunkName} load timeout after ${timeout}ms`));
       }, timeout);
     });
+
+    return {
+      promise,
+      cancel: () => {
+        if (timer) clearTimeout(timer);
+      },
+    };
   }
 
   /**
@@ -402,6 +415,7 @@ export const useChunkPerformance = () => {
 
     // Update every 5 seconds when component is mounted
     const interval = setInterval(updateMetrics, 5000);
+    (interval as ReturnType<typeof setInterval> & { unref?: () => void }).unref?.();
     updateMetrics(); // Initial load
 
     return () => clearInterval(interval);

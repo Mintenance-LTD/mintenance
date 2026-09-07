@@ -68,9 +68,11 @@ function isPublicContractorRecord(
 }
 
 function jobPrice(job: Record<string, unknown>): number | undefined {
-  if (typeof job.budget === 'number') return job.budget;
-  if (typeof job.budget_min === 'number') return job.budget_min;
-  if (typeof job.budget_max === 'number') return job.budget_max;
+  for (const value of [job.budget, job.budget_min, job.budget_max]) {
+    if (value == null) continue;
+    const amount = Number(value);
+    if (Number.isFinite(amount)) return amount;
+  }
   return undefined;
 }
 

@@ -58,6 +58,7 @@ export class ServiceHealthMonitor {
   private healthChecks: Map<string, ServiceHealthCheck> = new Map();
   private monitoringInterval?: NodeJS.Timeout;
   private isMonitoring = false;
+  private healthCheckInProgress = false;
 
   private readonly defaultThresholds: HealthThresholds = {
     responseTimeWarning: 1000, // 1 second
@@ -122,10 +123,10 @@ export class ServiceHealthMonitor {
 
     try {
       if (serviceCheck.healthCheckFunction) {
-        isHealthy = (await Promise.race([
+        isHealthy = await this.runWithTimeout(
           serviceCheck.healthCheckFunction(),
-          this.createTimeoutPromise(serviceCheck.timeout),
-        ])) as boolean;
+          serviceCheck.timeout
+        );
       } else if (serviceCheck.healthCheckUrl) {
         isHealthy = await this.checkUrlHealth(
           serviceCheck.healthCheckUrl,
@@ -230,10 +231,18 @@ export class ServiceHealthMonitor {
 
     this.isMonitoring = true;
     this.monitoringInterval = setInterval(async () => {
+      if (this.healthCheckInProgress) {
+        logger.warn('Skipping overlapping service health monitoring check');
+        return;
+      }
+
+      this.healthCheckInProgress = true;
       try {
         await this.checkAllServices();
       } catch (error) {
         logger.error('Error during health monitoring check:', error);
+      } finally {
+        this.healthCheckInProgress = false;
       }
     }, intervalMs);
 
@@ -345,22 +354,40 @@ export class ServiceHealthMonitor {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(url, {
-        signal: controller.signal,
-        method: 'HEAD',
-      });
+      try {
+        const response = await fetch(url, {
+          signal: controller.signal,
+          method: 'HEAD',
+        });
 
-      clearTimeout(timeoutId);
-      return response.ok;
+        return response.ok;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } catch (error) {
       return false;
     }
   }
 
-  private createTimeoutPromise<T>(timeoutMs: number): Promise<T> {
-    return new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Health check timeout')), timeoutMs);
+  private async runWithTimeout<T>(
+    operation: Promise<T>,
+    timeoutMs: number
+  ): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Health check timeout')),
+        timeoutMs
+      );
     });
+
+    try {
+      return await Promise.race([operation, timeout]);
+    } finally {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 
   private determineHealthStatus(

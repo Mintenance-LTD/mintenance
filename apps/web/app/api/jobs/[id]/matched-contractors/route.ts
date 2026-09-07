@@ -136,11 +136,12 @@ export const GET = withApiHandler(
     // contractor. When budget is unknown, drop the budget filter (wide
     // open range) and default complexity to 'medium' so the rest of the
     // matching signal (skills, distance, urgency) still works.
-    const hasBudget = typeof job.budget === 'number' && job.budget > 0;
+    const parsedBudget = job.budget == null ? NaN : Number(job.budget);
+    const hasBudget = Number.isFinite(parsedBudget) && parsedBudget > 0;
     const complexity = hasBudget
-      ? job.budget! > 5000
+      ? parsedBudget > 5000
         ? 'complex'
-        : job.budget! > 2000
+        : parsedBudget > 2000
           ? 'medium'
           : 'simple'
       : 'medium';
@@ -158,8 +159,8 @@ export const GET = withApiHandler(
       },
       budget: hasBudget
         ? {
-            min: Math.max(0, job.budget! * 0.7), // 70% of budget
-            max: job.budget! * 1.5, // 150% of budget
+            min: Math.max(0, parsedBudget * 0.7), // 70% of budget
+            max: parsedBudget * 1.5, // 150% of budget
           }
         : {
             // No budget collected — accept any contractor pricing.
