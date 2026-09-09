@@ -57,24 +57,65 @@ vi.mock('@/lib/services/notifications/NotificationService', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -118,20 +159,31 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(contractorUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.createNotification.mockResolvedValue('notif-1');
 }
 
-function setupWithdrawMocks(overrides: {
-  bidData?: unknown;
-  bidError?: unknown;
-  withdrawError?: unknown;
-  jobData?: unknown;
-} = {}) {
-  const bidResult = { data: overrides.bidData ?? pendingBid, error: overrides.bidError ?? null };
+function setupWithdrawMocks(
+  overrides: {
+    bidData?: unknown;
+    bidError?: unknown;
+    withdrawError?: unknown;
+    jobData?: unknown;
+  } = {}
+) {
+  const bidResult = {
+    data: overrides.bidData ?? pendingBid,
+    error: overrides.bidError ?? null,
+  };
   const withdrawError = overrides.withdrawError ?? null;
-  const jobData = overrides.jobData ?? { homeowner_id: 'homeowner-1', title: 'Fix sink' };
+  const jobData = overrides.jobData ?? {
+    homeowner_id: 'homeowner-1',
+    title: 'Fix sink',
+  };
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'bids') {
@@ -144,7 +196,14 @@ function setupWithdrawMocks(overrides: {
           }),
         }),
         update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: withdrawError }),
+          eq: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis(),
+          single: vi
+            .fn()
+            .mockResolvedValue({
+              data: withdrawError ? null : { id: 'bid-1' },
+              error: withdrawError,
+            }),
         }),
       };
     }
@@ -189,7 +248,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(401);
   });
@@ -204,7 +265,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
       last_name: 'Homeowner',
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(403);
   });
@@ -213,7 +276,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
   it('should return 404 when bid does not exist', async () => {
     setupWithdrawMocks({ bidData: null, bidError: { message: 'not found' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bad-bid/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bad-bid/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bad-bid'));
     expect(res.status).toBe(404);
   });
@@ -224,7 +289,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
       bidData: { ...pendingBid, contractor_id: 'other-contractor' },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     // Route returns NotFoundError to avoid leaking existence info
     expect(res.status).toBe(404);
@@ -236,7 +303,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
       bidData: { ...pendingBid, status: 'accepted' },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(400);
 
@@ -249,7 +318,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
       bidData: { ...pendingBid, status: 'rejected' },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(400);
 
@@ -262,7 +333,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
       bidData: { ...pendingBid, status: 'withdrawn' },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(400);
 
@@ -274,7 +347,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
   it('should withdraw bid successfully when pending', async () => {
     setupWithdrawMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(200);
 
@@ -287,7 +362,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
   it('should notify the homeowner about the withdrawal', async () => {
     setupWithdrawMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     await POST(req, segmentData('job-1', 'bid-1'));
 
     expect(mocks.createNotification).toHaveBeenCalledWith(
@@ -295,7 +372,7 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
         userId: 'homeowner-1',
         title: 'Bid Withdrawn',
         type: 'bid_withdrawn',
-      }),
+      })
     );
   });
 
@@ -303,7 +380,9 @@ describe('POST /api/jobs/[id]/bids/[bidId]/withdraw', () => {
   it('should return 500 when bid withdrawal update fails', async () => {
     setupWithdrawMocks({ withdrawError: { message: 'DB error' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/bids/bid-1/withdraw'
+    );
     const res = await POST(req, segmentData('job-1', 'bid-1'));
     expect(res.status).toBe(500);
   });

@@ -22,9 +22,10 @@
  * is preserved; callers do not need to change.
  */
 
+import { createHash } from 'node:crypto';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { ServiceUnavailableError } from '@/lib/errors/api-error';
+import { ConflictError, ServiceUnavailableError } from '@/lib/errors/api-error';
 
 interface IdempotencyResult<T> {
   isDuplicate: boolean;
@@ -88,21 +89,30 @@ export async function checkIdempotency<T>(
   idempotencyKey: string,
   operation: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _useLocking: boolean = true
+  _useLocking: boolean = true,
+  context: { userId: string; request: unknown }
 ): Promise<IdempotencyResult<T> | null> {
   // Pass the TTL to the RPC so expired-completed rows are swept atomically
   // inside the same transaction as the claim attempt. Avoids the previous
   // recursion path (release_idempotency_claim only deleted status='pending'
   // rows so an expired-completed row would loop forever).
   const { data, error } = await serverSupabase.rpc(
-    'try_claim_idempotency_key',
+    'try_claim_bound_idempotency_key',
     {
       p_idempotency_key: idempotencyKey,
       p_operation: operation,
+      p_user_id: context.userId,
+      p_request_fingerprint: fingerprintRequest(context.request),
       p_stale_after_seconds: STALE_CLAIM_SECONDS,
       p_ttl_seconds: IDEMPOTENCY_TTL_HOURS * 3600,
     }
   );
+
+  if (error?.code === '22023') {
+    throw new ConflictError(
+      'This idempotency key was already used for a different request'
+    );
+  }
 
   if (error) {
     logger.error('Idempotency claim RPC failed — failing closed', error, {
@@ -301,7 +311,7 @@ export async function releaseIdempotencyClaim(
  * instead of waiting for the 60s stale-takeover window.
  *
  * Usage:
- *   const idempotencyCheck = await checkIdempotency(key, 'op');
+ *   const idempotencyCheck = await checkIdempotency(key, 'op', true, { userId, request: payload });
  *   if (idempotencyCheck?.isDuplicate) return cached;
  *   return await releaseOnError(key, 'op', async () => {
  *     // ... do the protected work ...
@@ -330,6 +340,23 @@ export async function releaseOnError<T>(
   }
 }
 
+/** Stable JSON encoding: field order does not change the request identity. */
+export function fingerprintRequest(value: unknown): string {
+  const canonical = JSON.stringify(value, (_key, item) => {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      return Object.fromEntries(
+        Object.keys(item)
+          .sort()
+          .map((key) => [key, item[key]])
+      );
+    }
+    return item;
+  });
+  return createHash('sha256')
+    .update(canonical ?? 'null')
+    .digest('hex');
+}
+
 function generateIdempotencyKey(
   operation: string,
   userId: string,
@@ -347,7 +374,21 @@ function generateIdempotencyKey(
     .filter(Boolean)
     .join('_');
 
-  return `${parts}`.substring(0, 255);
+  return `generated-v3:${fingerprintRequest(parts)}`;
+}
+
+/** Never use an untrusted client key as a global cache address. */
+function scopeClientKey(
+  key: string,
+  operation: string,
+  userId: string,
+  resourceId?: string
+): string {
+  // Structured encoding avoids ambiguous separators; hashing preserves the
+  // complete identity without exposing it or truncating long resource IDs.
+  return `client-v3:${createHash('sha256')
+    .update(JSON.stringify([operation, userId, resourceId ?? null, key]))
+    .digest('hex')}`;
 }
 
 /**
@@ -368,7 +409,7 @@ export function getIdempotencyKeyFromRequest(
 ): string {
   const headerKey = request.headers.get('idempotency-key');
   if (headerKey && headerKey.length > 0 && headerKey.length <= 255) {
-    return headerKey;
+    return scopeClientKey(headerKey, operation, userId, resourceId);
   }
   return generateIdempotencyKey(operation, userId, resourceId);
 }
@@ -384,7 +425,7 @@ export function getIdempotencyKeyFromRequest(
  * pending-claim conflict. Duplicate protection no longer depends on client
  * cooperation.
  *
- * A client-supplied Idempotency-Key header still wins, so cooperating
+ * A client-supplied Idempotency-Key is scoped to actor and resource, so cooperating
  * clients (web PaymentForm, mobile PaymentIntentService) keep per-attempt
  * retry semantics.
  *
@@ -398,11 +439,12 @@ export function getDeterministicIdempotencyKeyFromRequest(
   request: Request,
   operation: string,
   userId: string,
-  resourceIdentity: string
+  resourceIdentity: string,
+  fallbackResourceIdentity: string = resourceIdentity
 ): string {
   const headerKey = request.headers.get('idempotency-key');
   if (headerKey && headerKey.length > 0 && headerKey.length <= 255) {
-    return headerKey;
+    return scopeClientKey(headerKey, operation, userId, resourceIdentity);
   }
-  return `${operation}:${userId}:${resourceIdentity}`.substring(0, 255);
+  return `deterministic-v3:${fingerprintRequest([operation, userId, fallbackResourceIdentity])}`;
 }

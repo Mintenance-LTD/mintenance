@@ -80,23 +80,39 @@ export async function signJobStoragePath(
  * an external CDN link that a seeded dataset used).
  */
 export function extractJobStoragePath(fileUrl: string): string | null {
-  if (!fileUrl) return null;
-
-  // Bare path — already an object key.
-  if (!fileUrl.startsWith('http')) {
-    return fileUrl.replace(/^\/+/, '');
+  if (!fileUrl || fileUrl.startsWith('//')) return null;
+  const validPath = (path: string): string | null => {
+    if (
+      !path ||
+      /[\\\x00-\x1f\x7f?#]/.test(path) ||
+      path.split('/').some((part) => !part || part === '.' || part === '..')
+    )
+      return null;
+    return path;
+  };
+  // Legacy bare keys are supported, but URL schemes are never object keys.
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(fileUrl)) {
+    return validPath(fileUrl.replace(/^\//, ''));
   }
-
-  // Match both public and signed URL shapes with a single regex. The
-  // `?token=` query string on signed URLs drops off because capture
-  // group 1 stops at `?`.
-  const match = fileUrl.match(
-    /\/storage\/v1\/object\/(?:public|sign)\/Job-storage\/([^?]+)/
-  );
-  if (match && match[1]) {
-    return decodeURIComponent(match[1]);
+  try {
+    const url = new URL(fileUrl);
+    const configured = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!configured) return null;
+    const expected = new URL(configured);
+    if (
+      !['https:', 'http:'].includes(url.protocol) ||
+      url.origin !== expected.origin ||
+      url.username ||
+      url.password
+    )
+      return null;
+    const match = url.pathname.match(
+      /^\/storage\/v1\/object\/(?:public|sign)\/Job-storage\/(.+)$/
+    );
+    return match ? validPath(decodeURIComponent(match[1])) : null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /**

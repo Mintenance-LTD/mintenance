@@ -83,7 +83,10 @@ export const POST = withApiHandler(
       success: boolean;
       message: string;
       escrowRefunded: boolean;
-    }>(idempotencyKey, 'contractor_withdraw');
+    }>(idempotencyKey, 'contractor_withdraw', true, {
+      userId: user.id,
+      request: { jobId, ...validation.data },
+    });
     if (idem?.isDuplicate && idem.cachedResult) {
       return NextResponse.json(idem.cachedResult);
     }

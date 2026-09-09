@@ -69,7 +69,10 @@ export const POST = withApiHandler(
     const idem = await checkIdempotency<{
       success: boolean;
       message: string;
-    }>(idempotencyKey, 'job_dispute');
+    }>(idempotencyKey, 'job_dispute', true, {
+      userId: user.id,
+      request: { jobId, ...validation.data },
+    });
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate job_dispute — returning cached result', {
         service: 'jobs',

@@ -13,11 +13,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { notifyPaymentEvent } from '@/lib/services/notifications/NotificationHelper';
 import { EmailService } from '@/lib/email-service';
-import { ContractSignatoriesService } from '@/lib/services/contracts/ContractSignatoriesService';
-import {
-  validateSignaturePayload,
-  persistContractSignature,
-} from '@/lib/services/contracts/ContractSignatureService';
+import { validateSignaturePayload } from '@/lib/services/contracts/ContractSignatureService';
 import { getClientIp } from '@/lib/request-ip';
 import {
   getIdempotencyKeyFromRequest,
@@ -48,20 +44,6 @@ export const POST = withApiHandler(
       user.id,
       contractId
     );
-    const idem = await checkIdempotency<unknown>(
-      idempotencyKey,
-      'contract_accept'
-    );
-    if (idem?.isDuplicate && idem.cachedResult) {
-      logger.info('Duplicate contract_accept — returning cached result', {
-        service: 'contracts',
-        idempotencyKey,
-        userId: user.id,
-        contractId,
-      });
-      return NextResponse.json(idem.cachedResult);
-    }
-
     // 2026-05-27 audit-P0-4: optional signature payload. The body may
     // be empty (legacy click-sign clients), in which case we still
     // record the timestamp but no audit row. Real e-signature clients
@@ -92,6 +74,22 @@ export const POST = withApiHandler(
       signaturePayload = validateSignaturePayload(rawBody);
     } catch {
       // Body absent / not JSON — legacy click-sign, nothing to do.
+    }
+
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'contract_accept',
+      true,
+      { userId: user.id, request: { contractId, signaturePayload } }
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate contract_accept — returning cached result', {
+        service: 'contracts',
+        idempotencyKey,
+        userId: user.id,
+        contractId,
+      });
+      return NextResponse.json(idem.cachedResult);
     }
 
     return await releaseOnError(idempotencyKey, 'contract_accept', async () => {
@@ -164,145 +162,38 @@ export const POST = withApiHandler(
       // pre-fetch jobs + homeowner profile here. The trigger joins these
       // tables server-side in the same transaction as the contract UPDATE.
 
-      // Update contract with signature
-      const updateData: {
-        updated_at: string;
-        contractor_signed_at?: string;
-        homeowner_signed_at?: string;
-        status?: string;
-      } = {
-        updated_at: new Date().toISOString(),
-      };
-
-      // R3 #4: a contract is only ACCEPTED when BOTH legacy parties have
-      // signed AND every co-signer (if any) has signed. Contracts with
-      // no contract_signatories rows behave exactly as before.
-      const allCosignersSigned =
-        await ContractSignatoriesService.areAllCosignersSigned(contractId);
-
-      if (isContractor) {
-        updateData.contractor_signed_at = new Date().toISOString();
-        if (contract.homeowner_signed_at && allCosignersSigned) {
-          updateData.status = CONTRACT_STATUS.ACCEPTED;
-        } else {
-          updateData.status = CONTRACT_STATUS.PENDING_HOMEOWNER;
+      // Evidence and signature state share one database transaction.
+      const { data: updatedContract, error: signatureError } =
+        await serverSupabase.rpc('sign_contract_atomic', {
+          p_contract_id: contractId,
+          p_signer_id: user.id,
+          p_signature: signaturePayload,
+          p_ip: getClientIp(request) ?? null,
+          p_user_agent:
+            request.headers.get('user-agent')?.slice(0, 1024) ?? null,
+        });
+      if (signatureError) {
+        if (
+          signatureError.code === '23514' ||
+          signatureError.code === '23505'
+        ) {
+          throw new ConflictError(
+            'This contract changed while you were signing it. Refresh and try again.'
+          );
         }
-      } else if (isHomeowner) {
-        updateData.homeowner_signed_at = new Date().toISOString();
-        if (contract.contractor_signed_at && allCosignersSigned) {
-          updateData.status = CONTRACT_STATUS.ACCEPTED;
-        } else {
-          updateData.status = CONTRACT_STATUS.PENDING_CONTRACTOR;
-        }
-      }
-
-      const signerTimestampColumn = isContractor
-        ? 'contractor_signed_at'
-        : 'homeowner_signed_at';
-      const { data: updatedContract, error: updateError } = await serverSupabase
-        .from('contracts')
-        .update(updateData)
-        .eq('id', contractId)
-        .eq('status', contract.status)
-        .is(signerTimestampColumn, null)
-        .select(
-          'id, job_id, contractor_id, homeowner_id, status, title, start_date, end_date, amount, contractor_signed_at, homeowner_signed_at, created_at, updated_at'
-        )
-        .single();
-
-      if (updateError) {
-        logger.error('Failed to update contract signature', updateError, {
+        if (signatureError.code === '42501')
+          throw new ForbiddenError('Not authorized to sign this contract');
+        logger.error('Atomic contract signing failed', signatureError, {
           service: 'contracts',
           contractId,
           userId: user.id,
         });
         throw new InternalServerError('Failed to sign contract');
       }
-
-      if (!updatedContract) {
-        throw new ConflictError(
-          'This contract changed while you were signing it. Refresh and try again.'
-        );
-      }
-
-      // 2026-05-27 audit-P0-4: capture the immutable signature audit row
-      // for this signer if the client uploaded a payload. Fail-soft:
-      // the timestamp UPDATE above is already committed; a missing
-      // audit row is a soft failure (logged in
-      // persistContractSignature). Legacy click-sign clients send no
-      // payload and skip this entirely — the timestamp stays the
-      // primary evidence until web wires its own SignaturePad.
-      if (signaturePayload) {
-        const signerRole: 'homeowner' | 'contractor' = isContractor
-          ? 'contractor'
-          : 'homeowner';
-        const userAgent = request.headers.get('user-agent');
-        await persistContractSignature(signaturePayload, {
-          contractId,
-          signerId: user.id,
-          signerRole,
-          signerIp: getClientIp(request) ?? null,
-          signerUserAgent: userAgent ? userAgent.slice(0, 1024) : null,
-        });
-      }
-
-      // 2026-05-13 race-condition fix. The status above is computed from
-      // the PRE-update read of `contract`. If both parties sign within
-      // the same window, each request reads the other's signature as
-      // still NULL and writes `pending_*` — the second UPDATE leaves the
-      // row with BOTH `contractor_signed_at` + `homeowner_signed_at` set
-      // but status `pending_contractor`/`pending_homeowner`. The
-      // double-sign guard above then blocks either party from re-signing,
-      // so the contract is fully signed yet can NEVER reach `accepted` —
-      // payment is permanently blocked and only admin can unstick it.
-      //
-      // Reconcile here: if the post-update row shows both timestamps set
-      // but status isn't accepted, promote it. The `.neq('status',
-      // 'accepted')` guard means only ONE of the two racing requests
-      // actually flips the row, so the "Contract Accepted!" fan-out
-      // below fires exactly once.
-      const originalUpdateSetAccepted =
-        updateData.status === CONTRACT_STATUS.ACCEPTED;
-      let thisRequestPromotedToAccepted = false;
-
-      if (
-        updatedContract.status !== CONTRACT_STATUS.ACCEPTED &&
-        updatedContract.contractor_signed_at &&
-        updatedContract.homeowner_signed_at
-      ) {
-        const cosignersOkNow =
-          await ContractSignatoriesService.areAllCosignersSigned(contractId);
-        if (cosignersOkNow) {
-          const { data: promoted } = await serverSupabase
-            .from('contracts')
-            .update({
-              status: CONTRACT_STATUS.ACCEPTED,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', contractId)
-            .neq('status', CONTRACT_STATUS.ACCEPTED)
-            .select('id')
-            .maybeSingle();
-          thisRequestPromotedToAccepted = !!promoted;
-          updatedContract.status = CONTRACT_STATUS.ACCEPTED;
-          logger.warn(
-            'Contract signature race detected — promoted to accepted',
-            {
-              service: 'contracts',
-              contractId,
-              promotedByThisRequest: thisRequestPromotedToAccepted,
-            }
-          );
-        }
-      }
-
-      // The "Contract Accepted!" fan-out should fire exactly once. It
-      // runs when either: (a) the normal path's UPDATE itself set
-      // ACCEPTED, or (b) THIS request won the race-fix promotion. The
-      // losing racer skips it (the winner already sent it).
+      if (!updatedContract)
+        throw new InternalServerError('Signing returned no contract');
       const shouldFireAcceptedFanout =
-        updatedContract.status === CONTRACT_STATUS.ACCEPTED &&
-        (originalUpdateSetAccepted || thisRequestPromotedToAccepted);
+        updatedContract.status === CONTRACT_STATUS.ACCEPTED;
 
       // Notify the other party that they need to sign (if contract is not yet fully accepted)
       if (updatedContract.status !== CONTRACT_STATUS.ACCEPTED) {

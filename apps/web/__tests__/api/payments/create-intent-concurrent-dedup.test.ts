@@ -14,7 +14,7 @@
  *
  * Unlike payment-flow.test.ts, this suite does NOT mock @/lib/idempotency —
  * it exercises the real claim/complete/release logic against an atomic
- * in-memory simulation of the try_claim_idempotency_key RPC (INSERT … ON
+ * in-memory simulation of the try_claim_bound_idempotency_key RPC (INSERT … ON
  * CONFLICT DO NOTHING semantics), so the dedup path under test is the
  * production one.
  */
@@ -179,7 +179,7 @@ const ACCEPTED_BID = {
 
 function rpcMock(name: string, args: Record<string, unknown>) {
   const key = args.p_idempotency_key as string;
-  if (name === 'try_claim_idempotency_key') {
+  if (name === 'try_claim_bound_idempotency_key') {
     const existing = claimStore.get(key);
     if (!existing) {
       claimStore.set(key, { status: 'pending' });
@@ -565,7 +565,7 @@ describe('create-intent header-less duplicate protection', () => {
         'user-1',
         'job-1:bid-1'
       )
-    ).toBe('client-key-42');
+    ).toMatch(/^client-v3:[a-f0-9]{64}$/);
   });
 
   it('the header-less fallback is deterministic — no timestamp, no randomness', () => {
@@ -582,6 +582,6 @@ describe('create-intent header-less duplicate protection', () => {
     const a = make();
     const b = make();
     expect(a).toBe(b);
-    expect(a).toBe('create_payment_intent:user-1:job-1:bid-1');
+    expect(a).toMatch(/^deterministic-v3:[a-f0-9]{64}$/);
   });
 });

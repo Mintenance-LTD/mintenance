@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserFromCookies: vi.fn(),
   getCurrentUserFromBearerToken: vi.fn(),
   supabaseFrom: vi.fn(),
+  supabaseRpc: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   isValidUUID: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: mocks.supabaseRpc,
   },
   createRequestScopedClient: () => null, // falls back to serverSupabase in route
 }));
@@ -248,6 +250,10 @@ function setupContractMocks(
     updated_at: new Date().toISOString(),
   };
 
+  mocks.supabaseRpc.mockResolvedValue({
+    data: updateError ? null : updatedContract,
+    error: updateError,
+  });
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'contracts') {
       const selectChain = {
@@ -689,6 +695,32 @@ describe('POST /api/contracts/[id]/accept', () => {
     );
   });
 
+  it('submits image evidence to the same RPC that signs the contract', async () => {
+    setupContractMocks();
+    const payload = {
+      signatureImage: '<svg/>',
+      signatureFormat: 'svg',
+      platform: 'web',
+    };
+    const req = new NextRequest(
+      'http://localhost:3000/api/contracts/contract-1/accept',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      }
+    );
+    const res = await POST(req, segmentData('contract-1'));
+    expect(res.status).toBe(200);
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'sign_contract_atomic',
+      expect.objectContaining({
+        p_contract_id: 'contract-1',
+        p_signature: payload,
+      })
+    );
+  });
+
   // ---- DB update error ----
   it('should return 500 when contract update fails', async () => {
     setupContractMocks({ updateError: { message: 'DB error' } });
@@ -701,5 +733,6 @@ describe('POST /api/contracts/[id]/accept', () => {
 
     const body = await res.json();
     expect(body.error.message).toContain('sign contract');
+    expect(mocks.createNotification).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,4 @@
+import { createEscrowTransfer } from '@/lib/services/payment/EscrowTransferService';
 /**
  * Helper functions for the release-escrow route.
  * Extracted to keep route.ts focused on orchestration logic.
@@ -89,16 +90,16 @@ export async function writeAdminBypassAuditLog(
     const { error: auditError } = await serverSupabase
       .from('audit_logs')
       .insert({
-      user_id: adminUserId,
-      action: 'ADMIN_ESCROW_BYPASS',
-      resource_type: 'escrow_transaction',
-      resource_id: escrowTransactionId,
-      metadata: {
-        job_id: job.id,
-        amount,
-        release_reason: releaseReason,
-        justification: adminJustification ?? null,
-      },
+        user_id: adminUserId,
+        action: 'ADMIN_ESCROW_BYPASS',
+        resource_type: 'escrow_transaction',
+        resource_id: escrowTransactionId,
+        metadata: {
+          job_id: job.id,
+          amount,
+          release_reason: releaseReason,
+          justification: adminJustification ?? null,
+        },
       });
 
     if (auditError) {
@@ -132,38 +133,14 @@ export async function performStripeTransfer(
   feeBreakdown: FeeBreakdown
 ): Promise<{ id: string }> {
   try {
-    const transfer = await stripe.transfers.create(
-      {
-        amount: contractorAmountCents,
-        currency: 'gbp',
-        destination: stripeConnectAccountId,
-        description: `Payment for job: ${job.title}`,
-        metadata: {
-          jobId: job.id,
-          escrowTransactionId,
-          homeownerId: job.homeowner_id,
-          contractorId: job.contractor_id,
-          releaseReason,
-          reconciliationId,
-          platformFee: feeBreakdown.platformFee.toString(),
-          contractorAmount: feeBreakdown.contractorAmount.toString(),
-        },
-      },
-      {
-        // Key on the STABLE escrow id — NOT reconciliationId, which is
-        // regenerated per request. If a transfer succeeds at Stripe but the
-        // response is lost, the route reverts escrow to 'held' and releases its
-        // app-level claim; a retry then passes the status='held' CAS and calls
-        // this again. Without this key that second call double-pays the
-        // contractor. With it, Stripe returns the original transfer. (An escrow
-        // releases exactly once, and the DB CAS serialises the manual vs
-        // auto-release paths, so the escrow id is the complete transfer identity.)
-        idempotencyKey: `escrow_release_${escrowTransactionId}`,
-      }
+    const transfer = await createEscrowTransfer(
+      escrowTransactionId,
+      contractorAmountCents,
+      stripeConnectAccountId
     );
     return transfer;
   } catch (stripeError) {
-    // Revert DB to 'held' status — no money moved
+    // Keep the durable provider attempt; a retry reuses its frozen parameters.
     logger.error(
       'Stripe transfer failed, reverting escrow to held',
       stripeError,
@@ -202,7 +179,7 @@ export async function performStripeTransfer(
     }
 
     throw new InternalServerError(
-      'Payment transfer failed. No funds were moved. Please try again.'
+      'Payment transfer could not be confirmed. Retry to check the same payment.'
     );
   }
 }
@@ -350,25 +327,25 @@ export async function writeEscrowAuditLog(params: {
     const { error: auditError } = await serverSupabase
       .from('escrow_audit_log')
       .insert({
-      escrow_transaction_id: params.escrowTransactionId,
-      action: 'released',
-      actor_id: params.actorId,
-      actor_role: params.actorRole,
-      job_id: params.job.id,
-      amount: params.amount,
-      platform_fee: params.feeBreakdown.platformFee,
-      contractor_payout: params.feeBreakdown.contractorAmount,
-      transfer_id: params.transferId,
-      release_reason: params.releaseReason,
-      is_admin_action: params.isAdminAction,
-      metadata: {
-        reconciliationId: params.reconciliationId,
-        feeTransferId: params.feeTransferId,
-        mfaUsed: params.mfaUsed,
-        contractorId: params.job.contractor_id,
-        homeownerId: params.job.homeowner_id,
-      },
-      created_at: new Date().toISOString(),
+        escrow_transaction_id: params.escrowTransactionId,
+        action: 'released',
+        actor_id: params.actorId,
+        actor_role: params.actorRole,
+        job_id: params.job.id,
+        amount: params.amount,
+        platform_fee: params.feeBreakdown.platformFee,
+        contractor_payout: params.feeBreakdown.contractorAmount,
+        transfer_id: params.transferId,
+        release_reason: params.releaseReason,
+        is_admin_action: params.isAdminAction,
+        metadata: {
+          reconciliationId: params.reconciliationId,
+          feeTransferId: params.feeTransferId,
+          mfaUsed: params.mfaUsed,
+          contractorId: params.job.contractor_id,
+          homeownerId: params.job.homeowner_id,
+        },
+        created_at: new Date().toISOString(),
       });
 
     if (auditError) {

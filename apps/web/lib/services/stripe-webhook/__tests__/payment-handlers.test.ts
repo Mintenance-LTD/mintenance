@@ -262,15 +262,17 @@ describe('handlePaymentIntentSucceeded', () => {
     );
   });
 
-  it('returns early when escrow lookup errors', async () => {
-    // The handler now looks the escrow row up via .maybeSingle() before
-    // updating (out-of-order / duplicate payment_intent.succeeded guard).
-    // An error on that lookup is logged and short-circuits before the update.
+  it('throws for retry when escrow lookup errors', async () => {
+    // A transient database failure must not acknowledge a funded payment.
     const chain = buildChain({ singleError: { message: 'not found' } });
     mockFrom.mockReturnValue(chain);
 
     const pi = makePaymentIntent();
-    await handlePaymentIntentSucceeded(pi, mockNotify);
+    await expect(handlePaymentIntentSucceeded(pi, mockNotify)).rejects.toThrow(
+      'Failed to look up funded escrow transaction'
+    );
+    expect(chain.update).not.toHaveBeenCalled();
+    expect(mockNotify).not.toHaveBeenCalled();
 
     expect(mockLoggerError).toHaveBeenCalledWith(
       'Failed to look up escrow transaction',
@@ -571,9 +573,9 @@ describe('handleChargeRefunded', () => {
 
     const charge = makeCharge();
     // Fail the webhook so Stripe retries after the refund record can be saved.
-    await expect(
-      handleChargeRefunded(charge, mockNotify)
-    ).rejects.toThrow('Refund record failed');
+    await expect(handleChargeRefunded(charge, mockNotify)).rejects.toThrow(
+      'Refund record failed'
+    );
 
     expect(mockLoggerError).toHaveBeenCalledWith(
       'Error in handleChargeRefunded',

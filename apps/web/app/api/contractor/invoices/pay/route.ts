@@ -52,7 +52,10 @@ async function createEscrowTransaction(
     .maybeSingle();
 
   if (lookupError) {
-    logger.error('Error looking up existing invoice escrow transaction', lookupError);
+    logger.error(
+      'Error looking up existing invoice escrow transaction',
+      lookupError
+    );
     throw lookupError;
   }
 
@@ -179,7 +182,9 @@ export const POST = withApiHandler(
     );
     const idempotencyCheck = await checkIdempotency(
       idempotencyKey,
-      'pay_invoice'
+      'pay_invoice',
+      true,
+      { userId: user.id, request: validatedData }
     );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       return NextResponse.json(idempotencyCheck.cachedResult);

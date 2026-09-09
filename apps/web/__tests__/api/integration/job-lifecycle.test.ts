@@ -1204,6 +1204,24 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
       };
     });
 
+    mocks.supabaseRpc.mockImplementation(async (name: string) => {
+      if (name !== 'sign_contract_atomic')
+        throw new Error(`Unexpected RPC ${name}`);
+      return {
+        data: {
+          id: CONTRACT_ID,
+          job_id: JOB_ID,
+          contractor_id: contractorUser.id,
+          homeowner_id: homeownerUser.id,
+          status: 'pending_homeowner',
+          title: 'Contract for Fix leaking tap',
+          amount: 150,
+          contractor_signed_at: '2026-03-10T10:00:00Z',
+          homeowner_signed_at: null,
+        },
+        error: null,
+      };
+    });
     const req = createPostRequest(
       `http://localhost:3000/api/contracts/${CONTRACT_ID}/accept`
     );
@@ -1329,6 +1347,24 @@ describe('Job Lifecycle - 4. Contract signed by both parties', () => {
       };
     });
 
+    mocks.supabaseRpc.mockImplementation(async (name: string) => {
+      if (name !== 'sign_contract_atomic')
+        throw new Error(`Unexpected RPC ${name}`);
+      return {
+        data: {
+          id: CONTRACT_ID,
+          job_id: JOB_ID,
+          contractor_id: contractorUser.id,
+          homeowner_id: homeownerUser.id,
+          status: 'accepted',
+          title: 'Contract for Fix leaking tap',
+          amount: 150,
+          contractor_signed_at: '2026-03-10T10:00:00Z',
+          homeowner_signed_at: '2026-03-10T10:01:00Z',
+        },
+        error: null,
+      };
+    });
     const req = createPostRequest(
       `http://localhost:3000/api/contracts/${CONTRACT_ID}/accept`
     );

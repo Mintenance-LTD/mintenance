@@ -41,7 +41,10 @@ export const POST = withApiHandler(
     const { error: withdrawError } = await userDb
       .from('bids')
       .update({ status: 'withdrawn' })
-      .eq('id', bidId);
+      .eq('id', bidId)
+      .eq('status', 'pending')
+      .select('id')
+      .single();
 
     if (withdrawError) {
       logger.error('Failed to withdraw bid', withdrawError, {

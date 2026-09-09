@@ -15,6 +15,8 @@
 
 // ---- Hoisted mocks (survive mockReset: true) ----
 const mocks = vi.hoisted(() => ({
+  createAnonClient: vi.fn(),
+  authClient: { auth: { signInWithPassword: vi.fn(), signUp: vi.fn() } },
   serverSupabase: {
     auth: {
       signInWithPassword: vi.fn(),
@@ -84,6 +86,7 @@ const mocks = vi.hoisted(() => ({
 // Mock all dependencies
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: mocks.serverSupabase,
+  createAnonClient: mocks.createAnonClient,
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -126,7 +129,36 @@ describe('Auth Manager', () => {
   // We need to import after mocks are set up
   let authManager: Awaited<typeof import('@/lib/auth-manager')>['authManager'];
 
+  afterEach(() => {
+    expect(mocks.serverSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(mocks.serverSupabase.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it('isolates concurrent login attempts in separate authentication clients', async () => {
+    mocks.authClient.auth.signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Invalid login credentials' },
+    });
+    await Promise.all([
+      authManager.login({
+        email: 'first@example.test',
+        password: 'Synthetic1!',
+      }),
+      authManager.login({
+        email: 'second@example.test',
+        password: 'Synthetic2!',
+      }),
+    ]);
+    expect(mocks.createAnonClient).toHaveBeenCalledTimes(2);
+    expect(mocks.createAnonClient.mock.results[0].value).not.toBe(
+      mocks.createAnonClient.mock.results[1].value
+    );
+  });
+
   beforeEach(async () => {
+    mocks.createAnonClient.mockImplementation(() => ({
+      auth: { ...mocks.authClient.auth },
+    }));
     // Re-setup hoisted mocks after mockReset clears implementations
     mocks.createTokenPair.mockResolvedValue({
       accessToken: 'jwt-access-token',
@@ -158,7 +190,7 @@ describe('Auth Manager', () => {
         email_verified: true,
       };
 
-      mocks.serverSupabase.auth.signInWithPassword.mockResolvedValue({
+      mocks.authClient.auth.signInWithPassword.mockResolvedValue({
         data: {
           user: {
             id: 'user-123',
@@ -196,7 +228,7 @@ describe('Auth Manager', () => {
     });
 
     it('should reject login with invalid credentials', async () => {
-      mocks.serverSupabase.auth.signInWithPassword.mockResolvedValue({
+      mocks.authClient.auth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Invalid login credentials' },
       });
@@ -233,7 +265,7 @@ describe('Auth Manager', () => {
     });
 
     it('should handle network errors', async () => {
-      mocks.serverSupabase.auth.signInWithPassword.mockRejectedValue(
+      mocks.authClient.auth.signInWithPassword.mockRejectedValue(
         new Error('Network error')
       );
 
@@ -276,7 +308,7 @@ describe('Auth Manager', () => {
         })),
       });
 
-      mocks.serverSupabase.auth.signUp.mockResolvedValue({
+      mocks.authClient.auth.signUp.mockResolvedValue({
         data: {
           user: {
             id: 'user-456',
@@ -373,7 +405,7 @@ describe('Auth Manager', () => {
       process.env.NODE_ENV = 'production';
 
       try {
-        mocks.serverSupabase.auth.signUp.mockResolvedValue({
+        mocks.authClient.auth.signUp.mockResolvedValue({
           data: {
             user: {
               id: 'user-email-failure',
@@ -531,7 +563,7 @@ describe('Auth Manager', () => {
 
   describe('Error Handling', () => {
     it('should handle unexpected errors gracefully during login', async () => {
-      mocks.serverSupabase.auth.signInWithPassword.mockRejectedValue(
+      mocks.authClient.auth.signInWithPassword.mockRejectedValue(
         new Error('Unexpected error')
       );
 

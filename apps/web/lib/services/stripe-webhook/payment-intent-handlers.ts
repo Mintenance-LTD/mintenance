@@ -123,7 +123,7 @@ export async function handlePaymentIntentSucceeded(
         service: 'stripe-webhook',
         paymentIntentId: paymentIntent.id,
       });
-      return;
+      throw new Error('Failed to look up funded escrow transaction');
     }
 
     if (!existing) {
@@ -179,6 +179,8 @@ export async function handlePaymentIntentSucceeded(
         updated_at: new Date().toISOString(),
       })
       .eq('id', existing.id)
+      // Compare-and-set: a release/refund/dispute may have won after our read.
+      .eq('status', existing.status)
       .select()
       .single();
 

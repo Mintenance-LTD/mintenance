@@ -627,6 +627,23 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
     expect(body.success).toBe(true);
   });
 
+  it('does not read a cached result after designated payer access is removed', async () => {
+    mocks.checkIdempotency.mockResolvedValue({
+      isDuplicate: true,
+      cachedResult: { success: true },
+    });
+    setupAcceptMocks({
+      jobData: { ...postedJob, payer_user_id: 'different-payer' },
+    });
+    const res = await POST(
+      createPostRequest('/api/jobs/job-1/bids/bid-1/accept'),
+      segmentData('job-1', 'bid-1')
+    );
+    expect(res.status).toBe(403);
+    expect(mocks.checkIdempotency).not.toHaveBeenCalled();
+    expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+  });
+
   // ---- Success ----
   it('should accept bid successfully', async () => {
     setupAcceptMocks();
@@ -890,6 +907,27 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
       );
       // Failure ⇒ nothing cached for replay.
       expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+    });
+
+    it('allows post-acceptance recovery at the contractor capacity limit', async () => {
+      mocks.resolveContractorTier.mockResolvedValue('free');
+      setupAcceptMocks({
+        activeJobsCount: 3,
+        jobData: {
+          ...postedJob,
+          status: 'assigned',
+          contractor_id: pendingBid.contractor_id,
+        },
+        bidData: { ...pendingBid, status: 'accepted' },
+      });
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(200);
+      expect(mocks.supabaseRpc).not.toHaveBeenCalled();
     });
 
     it('blocks acceptance at the Free/Basic active-jobs cap with 409', async () => {

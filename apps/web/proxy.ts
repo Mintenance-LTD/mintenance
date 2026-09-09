@@ -19,6 +19,7 @@ import {
 import { getConfigManager, getConfigInitError } from './middleware/config';
 import { validateCsrf, setCsrfCookie } from './middleware/csrf';
 import { handleApiRateLimit } from './middleware/rate-limit';
+import { verifySupabaseBearer } from '@/lib/auth/supabase-bearer';
 import { requireCronAuth } from '@/lib/cron-auth';
 import {
   handleSupabaseAuth,
@@ -206,12 +207,9 @@ export async function proxy(request: NextRequest) {
     bearerToken
   ) {
     // Signature check — same as cookie path.
-    const bearerPayload = await verifyJwtToken(
-      bearerToken,
-      cfg,
-      request,
-      pathname
-    );
+    const bearerPayload =
+      (await verifyJwtToken(bearerToken, cfg, request, pathname)) ??
+      (await verifySupabaseBearer(bearerToken));
     if (!bearerPayload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }

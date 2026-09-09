@@ -23,6 +23,7 @@ describe('cross-user data isolation (real DB)', () => {
   let admin: TestUser;
   let jobA: TestJob;
   let jobB: TestJob;
+  let messageJob: TestJob;
   let homeownerAClient: SupabaseClient;
   let homeownerBClient: SupabaseClient;
   let contractorAClient: SupabaseClient;
@@ -100,10 +101,21 @@ describe('cross-user data isolation (real DB)', () => {
     if (propertyBError || !propertyB) throw new Error(propertyBError?.message);
     propertyBId = propertyB.id;
 
+    // Messaging requires an assigned participant; keep the discovery fixture unassigned.
+    messageJob = await createTestJob({
+      homeowner_id: homeownerB.id,
+      status: 'draft',
+    });
+    const assignment = await createServiceClient()
+      .from('jobs')
+      .update({ contractor_id: contractorB.id })
+      .eq('id', messageJob.id);
+    if (assignment.error) throw new Error(assignment.error.message);
+
     const { data: message, error: messageError } = await homeownerBClient
       .from('messages')
       .insert({
-        job_id: jobB.id,
+        job_id: messageJob.id,
         sender_id: homeownerB.id,
         receiver_id: contractorB.id,
         content: 'itest_private_message_b',
@@ -173,6 +185,7 @@ describe('cross-user data isolation (real DB)', () => {
       await service.from('properties').delete().eq('id', propertyBId);
     await jobA?.cleanup();
     await jobB?.cleanup();
+    await messageJob?.cleanup();
     await homeownerA?.cleanup();
     await homeownerB?.cleanup();
     await contractorA?.cleanup();
@@ -200,15 +213,15 @@ describe('cross-user data isolation (real DB)', () => {
       .from('properties')
       .update({ property_name: 'hacked' })
       .eq('id', propertyBId)
-      .select('id', { count: 'exact', head: true });
-    expect(update.error === null && (update.count ?? 0) > 0).toBe(false);
+      .select('id');
+    expect(update.error === null && (update.data?.length ?? 0) > 0).toBe(false);
 
     const remove = await homeownerAClient
       .from('properties')
       .delete()
       .eq('id', propertyBId)
-      .select('id', { count: 'exact', head: true });
-    expect(remove.error === null && (remove.count ?? 0) > 0).toBe(false);
+      .select('id');
+    expect(remove.error === null && (remove.data?.length ?? 0) > 0).toBe(false);
 
     const forgedInsert = await homeownerAClient.from('properties').insert({
       owner_id: homeownerB.id,
@@ -231,9 +244,9 @@ describe('cross-user data isolation (real DB)', () => {
       .from('jobs')
       .update({ title: 'hacked' })
       .eq('id', jobB.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
     expect(
-      homeownerWrite.error === null && (homeownerWrite.count ?? 0) > 0
+      homeownerWrite.error === null && (homeownerWrite.data?.length ?? 0) > 0
     ).toBe(false);
 
     const contractorRead = await contractorAClient
@@ -259,9 +272,9 @@ describe('cross-user data isolation (real DB)', () => {
       .from('jobs')
       .update({ title: 'contractor_hacked' })
       .eq('id', jobB.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
     expect(
-      contractorWrite.error === null && (contractorWrite.count ?? 0) > 0
+      contractorWrite.error === null && (contractorWrite.data?.length ?? 0) > 0
     ).toBe(false);
 
     // Phase 3.5 assigned-job gate: the assigned contractor keeps access, but
@@ -302,20 +315,20 @@ describe('cross-user data isolation (real DB)', () => {
       .from('jobs')
       .update({ title: 'itest_assigned_contractor_update' })
       .eq('id', jobA.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
     expect(
       assignedContractorWrite.error === null &&
-        (assignedContractorWrite.count ?? 0) > 0
+        (assignedContractorWrite.data?.length ?? 0) > 0
     ).toBe(true);
 
     const otherContractorWrite = await contractorBClient
       .from('jobs')
       .update({ title: 'itest_other_contractor_hacked' })
       .eq('id', jobA.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
     expect(
       otherContractorWrite.error === null &&
-        (otherContractorWrite.count ?? 0) > 0
+        (otherContractorWrite.data?.length ?? 0) > 0
     ).toBe(false);
 
     const ownerAssignedRead = await homeownerAClient
@@ -338,18 +351,18 @@ describe('cross-user data isolation (real DB)', () => {
       .from('messages')
       .update({ content: 'hacked' })
       .eq('id', messageBId)
-      .select('id', { count: 'exact', head: true });
-    expect(messageUpdate.error === null && (messageUpdate.count ?? 0) > 0).toBe(
-      false
-    );
+      .select('id');
+    expect(
+      messageUpdate.error === null && (messageUpdate.data?.length ?? 0) > 0
+    ).toBe(false);
     const messageDelete = await homeownerAClient
       .from('messages')
       .delete()
       .eq('id', messageBId)
-      .select('id', { count: 'exact', head: true });
-    expect(messageDelete.error === null && (messageDelete.count ?? 0) > 0).toBe(
-      false
-    );
+      .select('id');
+    expect(
+      messageDelete.error === null && (messageDelete.data?.length ?? 0) > 0
+    ).toBe(false);
 
     const documentRead = await contractorAClient
       .from('contractor_documents')
@@ -361,17 +374,17 @@ describe('cross-user data isolation (real DB)', () => {
       .from('contractor_documents')
       .update({ name: 'hacked' })
       .eq('id', documentBId)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
     expect(
-      documentUpdate.error === null && (documentUpdate.count ?? 0) > 0
+      documentUpdate.error === null && (documentUpdate.data?.length ?? 0) > 0
     ).toBe(false);
     const documentDelete = await contractorAClient
       .from('contractor_documents')
       .delete()
       .eq('id', documentBId)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
     expect(
-      documentDelete.error === null && (documentDelete.count ?? 0) > 0
+      documentDelete.error === null && (documentDelete.data?.length ?? 0) > 0
     ).toBe(false);
   });
 
