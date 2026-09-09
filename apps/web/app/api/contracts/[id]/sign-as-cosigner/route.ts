@@ -55,7 +55,9 @@ export const POST = withApiHandler(
     );
     const idem = await checkIdempotency<unknown>(
       idempotencyKey,
-      'contract_sign_cosigner'
+      'contract_sign_cosigner',
+      true,
+      { userId: user.id, request: { contractId } }
     );
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info(

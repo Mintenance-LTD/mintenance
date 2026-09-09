@@ -1,0 +1,11 @@
+# Local audit runtime, raw output and environment snapshots.
+**/isolated-stack/
+*.log
+*.json
+*.toml
+**/commit-candidates.txt
+**/restart-local-worker
+
+# Reproducible audit diagnostics override the repository-wide script ignores.
+!2026-09-06/*.sql
+!2026-09-06/*.py

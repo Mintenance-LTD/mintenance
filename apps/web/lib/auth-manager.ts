@@ -8,7 +8,7 @@ import {
 import { DatabaseManager, type User } from './database';
 import { config } from './config';
 import { logger } from '@mintenance/shared';
-import { serverSupabase } from './api/supabaseServer';
+import { createAnonClient, serverSupabase } from './api/supabaseServer';
 import { getAppUrl } from './env';
 import type {
   AuthResult,
@@ -81,7 +81,7 @@ export class AuthManager {
 
       // Authenticate with Supabase Auth
       const { data: authData, error: authError } =
-        await serverSupabase.auth.signInWithPassword({
+        await createAnonClient().auth.signInWithPassword({
           email,
           password,
         });
@@ -233,7 +233,7 @@ export class AuthManager {
         service: 'auth',
       });
       const { data: authData, error: initialAuthError } =
-        await serverSupabase.auth.signUp({
+        await createAnonClient().auth.signUp({
           email: userData.email,
           password: userData.password,
           options: {
@@ -508,7 +508,6 @@ export class AuthManager {
 
       // AUDIT FIX: Verify current password via Supabase Auth (the legacy
       // DatabaseManager.authenticateUser never actually verified passwords)
-      const { createAnonClient } = await import('@/lib/api/supabaseServer');
       const supabaseAuth = createAnonClient();
       const { error: authError } = await supabaseAuth.auth.signInWithPassword({
         email: user.email,

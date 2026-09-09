@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserFromCookies: vi.fn(),
   getCurrentUserFromBearerToken: vi.fn(),
   supabaseFrom: vi.fn(),
+  supabaseRpc: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   createNotification: vi.fn(),
@@ -39,6 +40,7 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: mocks.supabaseRpc,
   },
 }));
 
@@ -123,6 +125,16 @@ vi.mock('@/lib/errors/api-error', async () => {
       super('BAD_REQUEST', m, 400, d);
     }
   }
+  class ConflictError extends APIError {
+    constructor(m = 'Conflict') {
+      super('CONFLICT', m, 409);
+    }
+  }
+  class InternalServerError extends APIError {
+    constructor(m = 'Internal error') {
+      super('INTERNAL_SERVER_ERROR', m, 500);
+    }
+  }
   class ServiceUnavailableError extends APIError {
     constructor(m = 'Service unavailable') {
       super('SERVICE_UNAVAILABLE', m, 503);
@@ -135,6 +147,8 @@ vi.mock('@/lib/errors/api-error', async () => {
     NotFoundError,
     BadRequestError,
     ServiceUnavailableError,
+    ConflictError,
+    InternalServerError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         return NextResponse.json(error.toResponse(), {
@@ -228,6 +242,10 @@ function setupRequestChangesMocks(
     error: overrides.jobError ?? null,
   };
   const updateResult = { error: overrides.updateError ?? null };
+  mocks.supabaseRpc.mockResolvedValue({
+    data: !overrides.updateError,
+    error: overrides.updateError ?? null,
+  });
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'jobs') {
@@ -404,9 +422,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
   });
 
   // ---- Job not completed ----
-  it('should return 400 when job is not in completed status', async () => {
+  it('returns conflict when the atomic RPC rejects a changed job state', async () => {
     setupRequestChangesMocks({
       jobData: { ...completedJob, status: 'in_progress' },
+      updateError: { code: '23514', message: 'Job is not completed' },
     });
 
     const req = createPostRequest(
@@ -414,10 +433,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
       { comments: 'Fix it' }
     );
     const res = await POST(req, segmentData('job-1'));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(409);
 
     const body = await res.json();
-    expect(body.error.message).toContain('completed');
+    expect(body.error.message).toContain('state changed');
   });
 
   // ---- Success ----
@@ -434,6 +453,13 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.message).toContain('reopened');
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'request_job_rework',
+      expect.objectContaining({
+        p_job_id: 'job-1',
+        p_comments: 'Grout needs redo',
+      })
+    );
   });
 
   it('should allow the designated payer to request changes', async () => {
@@ -491,5 +517,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(500);
+    expect(mocks.createNotification).not.toHaveBeenCalled();
+    expect(mocks.sendChangesRequestedEmail).not.toHaveBeenCalled();
   });
 });

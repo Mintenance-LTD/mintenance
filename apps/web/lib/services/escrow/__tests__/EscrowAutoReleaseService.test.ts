@@ -34,7 +34,30 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: { from: (...args: unknown[]) => mocks.supabaseFrom(...args) },
+  serverSupabase: {
+    rpc: async (
+      _name: string,
+      args: { p_escrow_id: string; p_amount: number; p_destination: string }
+    ) => ({
+      data: [
+        {
+          created_at: new Date().toISOString(),
+          transfer_id: null,
+          idempotency_key: `escrow_release_${args.p_escrow_id}`,
+          stripe_parameters: {
+            amount: args.p_amount,
+            currency: 'gbp',
+            destination: args.p_destination,
+          },
+        },
+      ],
+      error: null,
+    }),
+    from: (table: string) =>
+      table === 'escrow_transfer_attempts'
+        ? chain({ data: [{ escrow_id: 'escrow-1' }], error: null })
+        : mocks.supabaseFrom(table),
+  },
 }));
 
 vi.mock('@/lib/stripe', () => ({
@@ -103,6 +126,7 @@ function chain(terminal: unknown) {
     'limit',
     'update',
     'single',
+    'is',
   ]) {
     p[m] = vi.fn(() => p);
   }
@@ -317,7 +341,7 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
         destination: 'acct_1',
       }),
       expect.objectContaining({
-        idempotencyKey: expect.stringContaining('escrow_auto_release'),
+        idempotencyKey: 'escrow_release_escrow-1',
       })
     );
     expect(mocks.notifyAutoRelease).toHaveBeenCalledWith(
@@ -352,7 +376,7 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
     const res = await EscrowAutoReleaseService.processAutoReleases();
 
     expect(mocks.stripeTransfersCreate).toHaveBeenCalled();
-    expect(mocks.stripeTransfersCreateReversal).toHaveBeenCalledWith('tr_1');
+    expect(mocks.stripeTransfersCreateReversal).not.toHaveBeenCalled();
     expect(res.errors).toBe(1);
     expect(res.released).toBe(0);
   });
@@ -487,7 +511,7 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
       expect(res.released).toBe(0);
     });
 
-    it('finalize-failure compensation: reversal AND claim revert both target the claimed row', async () => {
+    it('finalization failure retains the transfer and reverts only the claimed escrow', async () => {
       const updates: Array<Record<string, unknown>> = [];
       mocks.supabaseFrom.mockImplementation((table: string) => {
         if (table === 'profiles') {
@@ -527,7 +551,7 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
       const res = await EscrowAutoReleaseService.processAutoReleases();
 
       expect(res.released).toBe(0);
-      expect(mocks.stripeTransfersCreateReversal).toHaveBeenCalledWith('tr_1');
+      expect(mocks.stripeTransfersCreateReversal).not.toHaveBeenCalled();
       // Update sequence: claim → finalize(completed) → revert(held).
       const statuses = updates.map((u) => u.status);
       expect(statuses).toEqual(['release_pending', 'completed', 'held']);

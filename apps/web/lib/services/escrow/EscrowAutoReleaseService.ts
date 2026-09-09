@@ -1,3 +1,4 @@
+import { createEscrowTransfer } from '@/lib/services/payment/EscrowTransferService';
 /**
  * Escrow Auto-Release Service
  *
@@ -27,7 +28,6 @@ import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 // pinned '2024-04-10' and was ~9 months behind the rest of the
 // platform — risk of subtle behavioural drift on transfers.create /
 // paymentIntents.capture / accounts.retrieve responses.
-import { stripe } from '@/lib/stripe';
 
 const ESCROW_BATCH_LIMIT = 50;
 
@@ -334,31 +334,32 @@ export class EscrowAutoReleaseService {
         );
       }
 
-      const { data: accumulatedRows, error: accUpdateErr } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: 'completed',
-          released_at: new Date().toISOString(),
-          release_reason: 'auto_release_accumulated',
-          updated_at: new Date().toISOString(),
-          // transfer_id intentionally null — will be set by weekly payout
-          platform_fee: feeBreakdown.platformFee,
-          contractor_payout: feeBreakdown.contractorAmount,
-          stripe_processing_fee: feeBreakdown.stripeFee,
-          fee_transfer_status: feeTransferResultAcc?.status || 'pending',
-          fee_transfer_id: feeTransferResultAcc?.feeTransferId || null,
-          metadata: {
-            ...(typeof escrow.metadata === 'object' && escrow.metadata
-              ? escrow.metadata
-              : {}),
-            auto_released: true,
-            auto_released_at: new Date().toISOString(),
-            payout_mode: 'accumulated',
-          },
-        })
-        .eq('id', escrow.id)
-        .eq('status', 'release_pending')
-        .select('id');
+      const { data: accumulatedRows, error: accUpdateErr } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            status: 'completed',
+            released_at: new Date().toISOString(),
+            release_reason: 'auto_release_accumulated',
+            updated_at: new Date().toISOString(),
+            // transfer_id intentionally null — will be set by weekly payout
+            platform_fee: feeBreakdown.platformFee,
+            contractor_payout: feeBreakdown.contractorAmount,
+            stripe_processing_fee: feeBreakdown.stripeFee,
+            fee_transfer_status: feeTransferResultAcc?.status || 'pending',
+            fee_transfer_id: feeTransferResultAcc?.feeTransferId || null,
+            metadata: {
+              ...(typeof escrow.metadata === 'object' && escrow.metadata
+                ? escrow.metadata
+                : {}),
+              auto_released: true,
+              auto_released_at: new Date().toISOString(),
+              payout_mode: 'accumulated',
+            },
+          })
+          .eq('id', escrow.id)
+          .eq('status', 'release_pending')
+          .select('id');
 
       if (accUpdateErr || !accumulatedRows || accumulatedRows.length === 0) {
         logger.error('Failed to update escrow after accumulated release', {
@@ -396,24 +397,23 @@ export class EscrowAutoReleaseService {
     // code path is somehow entered twice for the same escrow, Stripe returns
     // the original transfer instead of creating a second one (defence in depth
     // on top of the DB claim above).
-    const transfer = await stripe.transfers.create(
-      {
-        amount: contractorAmountCents,
-        currency: 'gbp',
-        destination: contractorStripeAccountId,
-        description: `Auto-release: ${job.title}`,
-        metadata: {
-          jobId: job.id,
-          escrowId: escrow.id,
-          homeownerId: job.homeowner_id,
-          contractorId: escrow.payee_id,
-          releaseReason: 'auto_release',
-          platformFee: feeBreakdown.platformFee.toString(),
-          contractorAmount: feeBreakdown.contractorAmount.toString(),
-        },
-      },
-      { idempotencyKey: `escrow_auto_release_${escrow.id}` }
-    );
+    let transfer: { id: string };
+    try {
+      transfer = await createEscrowTransfer(
+        escrow.id,
+        contractorAmountCents,
+        contractorStripeAccountId
+      );
+    } catch (error) {
+      // The attempt survives uncertain provider outcomes. Retrying this escrow
+      // uses the same provider operation, including across manual/cron paths.
+      await serverSupabase
+        .from('escrow_transactions')
+        .update({ status: 'held', updated_at: new Date().toISOString() })
+        .eq('id', escrow.id)
+        .eq('status', 'release_pending');
+      throw error;
+    }
 
     // Track platform fee
     const chargeId = await getChargeId(escrow.payment_intent_id);
@@ -480,27 +480,22 @@ export class EscrowAutoReleaseService {
         error: finalizationError.message,
       });
 
-      // Attempt to reverse the transfer
-      await stripe.transfers.createReversal(transfer.id).catch((err) => {
-        logger.error('Failed to reverse transfer after DB error', err, {
-          service: 'EscrowAutoReleaseService',
-          transferId: transfer.id,
-        });
-      });
-
-      // Release the claim (release_pending -> held) so a later cron run can
-      // retry cleanly instead of the row being stranded in release_pending.
+      // Preserve the successful transfer. A later retry reads its durable
+      // transfer ID and finalizes this escrow without paying or reversing again.
       const { error: revertError } = await serverSupabase
         .from('escrow_transactions')
         .update({ status: 'held', updated_at: new Date().toISOString() })
         .eq('id', escrow.id)
         .eq('status', 'release_pending');
       if (revertError) {
-        logger.error('Failed to revert escrow claim after transfer reversal', {
-          service: 'EscrowAutoReleaseService',
-          escrowId: escrow.id,
-          error: revertError.message,
-        });
+        logger.error(
+          'Failed to revert escrow claim after transfer finalization failure',
+          {
+            service: 'EscrowAutoReleaseService',
+            escrowId: escrow.id,
+            error: revertError.message,
+          }
+        );
       }
 
       return false;

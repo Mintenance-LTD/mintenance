@@ -529,7 +529,7 @@ const nextConfig = {
       {
         key: 'Permissions-Policy',
         value:
-          'geolocation=(), camera=(), microphone=(), payment=(self "https://js.stripe.com")',
+          'geolocation=(self), camera=(), microphone=(), payment=(self "https://js.stripe.com")',
       },
     ];
 

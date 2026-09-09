@@ -76,7 +76,8 @@ export const POST = withApiHandler(
     const idempotencyCheck = await checkIdempotency(
       idempotencyKey,
       'release_escrow',
-      true
+      true,
+      { userId: user.id, request: validation.data }
     );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info(
@@ -387,7 +388,10 @@ export const POST = withApiHandler(
       if (currentJobError || currentJob?.status !== JOB_STATUS.COMPLETED) {
         const { error: rollbackError } = await serverSupabase
           .from('escrow_transactions')
-          .update({ status: ESCROW_STATUS.HELD, updated_at: new Date().toISOString() })
+          .update({
+            status: ESCROW_STATUS.HELD,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', escrowTransactionId)
           .eq('status', ESCROW_STATUS.RELEASE_PENDING);
         if (rollbackError) {
@@ -485,31 +489,31 @@ export const POST = withApiHandler(
           const { error: reconciliationInsertError } = await serverSupabase
             .from('escrow_audit_log')
             .insert({
-            escrow_transaction_id: escrowTransactionId,
-            // 'released' is the accurate CHECK-permitted action (the transfer
-            // succeeded, so funds WERE released to the contractor). The
-            // reconciliation nuance — that the escrow row didn't get its
-            // final status write — lives in release_reason + metadata below.
-            // NOTE: escrow_audit_log.action's CHECK only allows
-            // released/held/refunded/disputed/admin_override, so the previous
-            // 'reconciliation_needed' silently 23514'd and this entire
-            // recovery insert was lost — defeating its own purpose.
-            action: 'released',
-            actor_id: user.id,
-            actor_role: user.role,
-            job_id: job.id,
-            amount: contractorAmountCents / 100,
-            contractor_payout: contractorAmountCents / 100,
-            transfer_id: transfer.id,
-            release_reason: 'transfer_succeeded_final_update_failed',
-            is_admin_action: user.role === 'admin',
-            metadata: {
-              reconciliation_id: reconciliationId,
-              issue_type: 'transfer_succeeded_final_update_failed',
-              status: 'pending_review',
-              contractor_id: job.contractor_id,
-              update_error_message: finalizationError.message,
-            },
+              escrow_transaction_id: escrowTransactionId,
+              // 'released' is the accurate CHECK-permitted action (the transfer
+              // succeeded, so funds WERE released to the contractor). The
+              // reconciliation nuance — that the escrow row didn't get its
+              // final status write — lives in release_reason + metadata below.
+              // NOTE: escrow_audit_log.action's CHECK only allows
+              // released/held/refunded/disputed/admin_override, so the previous
+              // 'reconciliation_needed' silently 23514'd and this entire
+              // recovery insert was lost — defeating its own purpose.
+              action: 'released',
+              actor_id: user.id,
+              actor_role: user.role,
+              job_id: job.id,
+              amount: contractorAmountCents / 100,
+              contractor_payout: contractorAmountCents / 100,
+              transfer_id: transfer.id,
+              release_reason: 'transfer_succeeded_final_update_failed',
+              is_admin_action: user.role === 'admin',
+              metadata: {
+                reconciliation_id: reconciliationId,
+                issue_type: 'transfer_succeeded_final_update_failed',
+                status: 'pending_review',
+                contractor_id: job.contractor_id,
+                update_error_message: finalizationError.message,
+              },
             });
           if (reconciliationInsertError) {
             throw reconciliationInsertError;

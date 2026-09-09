@@ -19,6 +19,12 @@ const WARNING_LINES = 400;
 // security/business logic that requires careful decomposition. Allowing them
 // through the hook prevents blocking security fixes on pre-existing tech debt.
 const KNOWN_LARGE_FILES = new Set([
+  // Audit checkpoint: already above 500 lines at b6fda5b8a, before remediation.
+  // Keep security fixes reviewable; decompose these flows in a separate change.
+  'apps/web/app/api/payments/embedded-checkout/route.ts', // baseline 543
+  'apps/web/app/api/payments/refund/route.ts', // baseline 558
+  'apps/web/lib/services/escrow/EscrowAutoReleaseService.ts', // baseline 530
+  'apps/web/lib/services/stripe-webhook/payment-intent-handlers.ts', // baseline 522
   'apps/web/middleware.ts',
   'apps/web/lib/auth-manager.ts',
   // 2026-05-26 audit-56: pre-existing at 554; audit fix added the

@@ -60,7 +60,9 @@ export const POST = withApiHandler(
     );
     const idem = await checkIdempotency<unknown>(
       idempotencyKey,
-      'contract_reject'
+      'contract_reject',
+      true,
+      { userId: user.id, request: { contractId, reason } }
     );
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate contract_reject — returning cached result', {

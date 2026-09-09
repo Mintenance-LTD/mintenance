@@ -55,7 +55,8 @@ export const GET = withApiHandler(
     const jobRel = (bid as { job?: unknown }).job;
     const jobAccess = Array.isArray(jobRel)
       ? (jobRel[0] as
-          { homeowner_id?: string; payer_user_id?: string } | undefined)
+          | { homeowner_id?: string; payer_user_id?: string }
+          | undefined)
       : (jobRel as { homeowner_id?: string; payer_user_id?: string } | null);
     const homeownerId = jobAccess?.homeowner_id;
     const payerUserId = jobAccess?.payer_user_id;
@@ -136,6 +137,7 @@ export const PATCH = withApiHandler(
       .from('bids')
       .update(updates)
       .eq('id', bidId)
+      .eq('status', 'pending')
       .select()
       .single();
 

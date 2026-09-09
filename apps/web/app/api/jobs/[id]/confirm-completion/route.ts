@@ -43,7 +43,9 @@ export const POST = withApiHandler(
 
     const idempotencyCheck = await checkIdempotency(
       idempotencyKey,
-      'confirm_completion'
+      'confirm_completion',
+      true,
+      { userId: user.id, request: { jobId } }
     );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info(

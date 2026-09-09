@@ -54,15 +54,11 @@ export const POST = withApiHandler(
     // Get MFA token from header if present
     const mfaToken = request.headers.get('x-mfa-token');
 
-    // Idempotency check - prevent duplicate refunds (with distributed locking).
-    // Audit 2026-07-27: deterministic header-less fallback so double-taps
-    // dedupe without client cooperation. The requested amount is part of the
-    // identity so a legitimately distinct second PARTIAL refund (different
-    // amount, same escrow) within the 24h TTL is not swallowed by the cache.
     const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
       request,
       'refund_payment',
       user.id,
+      escrowTransactionId,
       `${escrowTransactionId}:${typeof amount === 'number' ? amount : 'full'}`
     );
 
@@ -70,7 +66,8 @@ export const POST = withApiHandler(
     const idempotencyCheck = await checkIdempotency(
       idempotencyKey,
       'refund_payment',
-      true
+      true,
+      { userId: user.id, request: data }
     );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info(
@@ -410,29 +407,11 @@ export const POST = withApiHandler(
           }
         );
 
-        // Record a reconciliation trail in escrow_audit_log — the canonical
-        // recovery table, same pattern the release path uses for its twin
-        // "money moved but DB stuck" failure.
-        //
-        // The previous code wrote admin_hold_status:'needs_reconciliation',
-        // which (a) is not a permitted CHECK value, so the UPDATE always failed
-        // with 23514 and the error was never inspected — the recovery trail was
-        // silently dropped — and (b) even had it been valid, 'pending_review'-
-        // style hold statuses are ACTIONABLE in the admin escrow queue: an
-        // admin could "release" an escrow whose homeowner was already refunded,
-        // paying the contractor as well (double loss). So we leave the escrow
-        // status untouched and only append an audit row for operators to find.
         try {
           const { error: reconciliationError } = await serverSupabase
             .from('escrow_audit_log')
             .insert({
               escrow_transaction_id: escrowTransactionId,
-              // 'refunded' is the accurate CHECK-permitted action (the money was
-              // refunded at Stripe). The reconciliation nuance — that the escrow
-              // row didn't get its status flipped — lives in release_reason +
-              // metadata. NOTE: escrow_audit_log.action's CHECK only allows
-              // released/held/refunded/disputed/admin_override, so an out-of-set
-              // value like 'reconciliation_needed' silently 23514s.
               action: 'refunded',
               actor_id: user.id,
               actor_role: user.role,
@@ -469,30 +448,33 @@ export const POST = withApiHandler(
       // this point, so a failed job update must not be reported as a clean
       // success: it leaves the UI and downstream workflow inconsistent with
       // the refunded payment and requires reconciliation.
-      const { data: cancelledJob, error: jobStatusError } = await serverSupabase
-        .from('jobs')
-        .update({ status: 'cancelled' })
-        .eq('id', jobId)
-        .select('id')
-        .maybeSingle();
+      if (isFullRefund) {
+        const { data: cancelledJob, error: jobStatusError } =
+          await serverSupabase
+            .from('jobs')
+            .update({ status: 'cancelled' })
+            .eq('id', jobId)
+            .select('id')
+            .maybeSingle();
 
-      if (jobStatusError || !cancelledJob) {
-        const effectiveError =
-          jobStatusError ?? new Error('Job cancellation matched no rows');
-        logger.error(
-          'Refund succeeded but failed to cancel the associated job',
-          effectiveError,
-          {
-            service: 'payments',
-            userId: user.id,
-            jobId,
-            escrowTransactionId,
-            refundId: refund.id,
-          }
-        );
-        throw new InternalServerError(
-          'Refund succeeded but the job status could not be updated. Support must reconcile this payment.'
-        );
+        if (jobStatusError || !cancelledJob) {
+          const effectiveError =
+            jobStatusError ?? new Error('Job cancellation matched no rows');
+          logger.error(
+            'Refund succeeded but failed to cancel the associated job',
+            effectiveError,
+            {
+              service: 'payments',
+              userId: user.id,
+              jobId,
+              escrowTransactionId,
+              refundId: refund.id,
+            }
+          );
+          throw new InternalServerError(
+            'Refund succeeded but the job status could not be updated. Support must reconcile this payment.'
+          );
+        }
       }
 
       logger.info('Refund processed successfully', {
