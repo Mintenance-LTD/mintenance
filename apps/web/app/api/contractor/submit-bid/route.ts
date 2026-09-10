@@ -127,7 +127,9 @@ export const POST = withApiHandler(
 
     const idempotencyCheck = await checkIdempotency(
       idempotencyKey,
-      'submit_bid'
+      'submit_bid',
+      true,
+      { userId: user.id, request: body }
     );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info(

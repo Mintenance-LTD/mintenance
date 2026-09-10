@@ -1,3 +1,4 @@
+import { fingerprintMultipartRequest } from '@/lib/api/request-fingerprint';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { signJobStoragePath } from '@/lib/api/job-storage';
@@ -52,7 +53,12 @@ export const POST = withApiHandler(
     );
     const idem = await checkIdempotency<unknown>(
       idempotencyKey,
-      'photos_before'
+      'photos_before',
+      true,
+      {
+        userId: user.id,
+        request: { jobId, form: await fingerprintMultipartRequest(request) },
+      }
     );
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate photos_before — returning cached result', {
@@ -244,17 +250,19 @@ export const POST = withApiHandler(
         }
 
         // Save metadata
-        const { error: metadataError } = await serverSupabase.from('job_photos_metadata').insert({
-          job_id: jobId,
-          photo_url: photoUrl,
-          photo_type: 'before',
-          geolocation: geolocation || null,
-          geolocation_verified: geolocation ? geolocationVerified : null,
-          timestamp: new Date().toISOString(),
-          verified: qualityResult.passed,
-          quality_score: qualityResult.qualityScore,
-          created_by: user.id,
-        });
+        const { error: metadataError } = await serverSupabase
+          .from('job_photos_metadata')
+          .insert({
+            job_id: jobId,
+            photo_url: photoUrl,
+            photo_type: 'before',
+            geolocation: geolocation || null,
+            geolocation_verified: geolocation ? geolocationVerified : null,
+            timestamp: new Date().toISOString(),
+            verified: qualityResult.passed,
+            quality_score: qualityResult.qualityScore,
+            created_by: user.id,
+          });
 
         if (metadataError) {
           await serverSupabase.storage.from('Job-storage').remove([fileName]);

@@ -140,7 +140,7 @@ jobs:
         if: github.event_name == 'pull_request'
 
       - name: Run web tests (fails on coverage regression below thresholds)
-        run: npm run test:web -- run --coverage
+        run: npm run test:coverage -w @mintenance/web
 
       - name: Run mobile tests (fails on coverage regression below thresholds)
         run: npm run test:mobile -- --coverage --watchAll=false
@@ -150,7 +150,7 @@ jobs:
         uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage/lcov.info
+          file: ./apps/web/coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
         continue-on-error: true

@@ -13,13 +13,17 @@
  * the re-sign-on-read flow can produce a fresh signed URL without
  * migrating the DB rows.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { extractJobStoragePath } from '../../lib/api/job-storage';
 
 describe('extractJobStoragePath', () => {
+  beforeEach(() =>
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://storage.example.invalid')
+  );
+  afterEach(() => vi.unstubAllEnvs());
   it('extracts path from a legacy public URL', () => {
     const url =
-      'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/Job-storage/job-photos/Rotten_roof_timbers.jpg';
+      'https://storage.example.invalid/storage/v1/object/public/Job-storage/job-photos/Rotten_roof_timbers.jpg';
     expect(extractJobStoragePath(url)).toBe(
       'job-photos/Rotten_roof_timbers.jpg'
     );
@@ -27,13 +31,13 @@ describe('extractJobStoragePath', () => {
 
   it('extracts path from a signed URL and drops the token query string', () => {
     const url =
-      'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/sign/Job-storage/job-photos/abc.jpeg?token=eyJhbGciOi.J1dHMi&expires=1800';
+      'https://storage.example.invalid/storage/v1/object/sign/Job-storage/job-photos/abc.jpeg?token=eyJhbGciOi.J1dHMi&expires=1800';
     expect(extractJobStoragePath(url)).toBe('job-photos/abc.jpeg');
   });
 
   it('extracts path from a nested jobId/file.jpeg signed URL', () => {
     const url =
-      'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/sign/Job-storage/c8d55375-cda1-47dd-a56a-ec1072384731/photo.jpeg?token=xyz';
+      'https://storage.example.invalid/storage/v1/object/sign/Job-storage/c8d55375-cda1-47dd-a56a-ec1072384731/photo.jpeg?token=xyz';
     expect(extractJobStoragePath(url)).toBe(
       'c8d55375-cda1-47dd-a56a-ec1072384731/photo.jpeg'
     );
@@ -50,7 +54,7 @@ describe('extractJobStoragePath', () => {
 
   it('decodes percent-encoded path segments', () => {
     const url =
-      'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/Job-storage/job-photos/my%20photo.jpeg';
+      'https://storage.example.invalid/storage/v1/object/public/Job-storage/job-photos/my%20photo.jpeg';
     expect(extractJobStoragePath(url)).toBe('job-photos/my photo.jpeg');
   });
 
@@ -63,7 +67,21 @@ describe('extractJobStoragePath', () => {
 
   it('returns null for URLs on a different Supabase bucket', () => {
     const url =
-      'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/contractor-documents/doc.pdf';
+      'https://storage.example.invalid/storage/v1/object/public/contractor-documents/doc.pdf';
+    expect(extractJobStoragePath(url)).toBeNull();
+  });
+
+  it.each([
+    'https://storage.example.invalid.evil.test/storage/v1/object/sign/Job-storage/private.jpg',
+    'https://user@storage.example.invalid/storage/v1/object/sign/Job-storage/private.jpg',
+    'http://storage.example.invalid/storage/v1/object/sign/Job-storage/private.jpg',
+    'https://storage.example.invalid:444/storage/v1/object/sign/Job-storage/private.jpg',
+    'https://storage.example.invalid/storage/v1/object/sign/Job-storage/bad%ZZ.jpg',
+    'https://storage.example.invalid/storage/v1/object/sign/Job-storage/%00.jpg',
+    '//evil.test/private.jpg',
+    'data:image/png;base64,AAA',
+    '../private.jpg',
+  ])('rejects invalid signing origin or key: %s', (url) => {
     expect(extractJobStoragePath(url)).toBeNull();
   });
 

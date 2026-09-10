@@ -52,7 +52,10 @@ export const POST = withApiHandler(
     const idem = await checkIdempotency<{
       success: boolean;
       message: string;
-    }>(idempotencyKey, 'job_start');
+    }>(idempotencyKey, 'job_start', true, {
+      userId: user.id,
+      request: { jobId },
+    });
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate job_start — returning cached result', {
         service: 'jobs',

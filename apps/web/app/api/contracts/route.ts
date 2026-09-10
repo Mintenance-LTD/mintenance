@@ -242,7 +242,7 @@ export const POST = withApiHandler(
     // Check if a contract already exists for this job and contractor
     const { data: existingContract } = await serverSupabase
       .from('contracts')
-      .select('id, status')
+      .select('id, status, contractor_signed_at, homeowner_signed_at')
       .eq('job_id', job_id)
       .eq('contractor_id', user.id)
       .maybeSingle();
@@ -270,6 +270,12 @@ export const POST = withApiHandler(
     let contractError;
 
     if (existingContract) {
+      if (
+        existingContract.contractor_signed_at ||
+        existingContract.homeowner_signed_at
+      ) {
+        throw new BadRequestError('Signed contract terms cannot be edited.');
+      }
       // Allow updating when contractor can still edit:
       // - draft: initial state
       // - pending_contractor: auto-created on bid acceptance, contractor fills details
@@ -584,6 +590,10 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
 
   if (!canEdit) {
     throw new ForbiddenError('Not authorized to edit this contract');
+  }
+
+  if (contract.contractor_signed_at || contract.homeowner_signed_at) {
+    throw new BadRequestError('Signed contract terms cannot be edited.');
   }
 
   // Can only edit if status is draft or pending

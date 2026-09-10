@@ -80,9 +80,69 @@ export const POST = withApiHandler(
       `${jobId}_${bidId}`
     );
 
+    // Recheck current resource access before returning any cached response.
+    if (user.role !== 'homeowner') {
+      throw new ForbiddenError('Only homeowners can accept bids');
+    }
+
+    // Verify the job belongs to this homeowner or designated payer
+    const { data: job, error: jobError } = await userDb
+      .from('jobs')
+      .select('homeowner_id, payer_user_id, contractor_id, status')
+      .eq('id', jobId)
+      .single();
+
+    if (jobError || !job) {
+      // Full DB error is logged server-side. The client-visible 404
+      // intentionally drops schema-leaking detail (constraint / column /
+      // table names that help an attacker fingerprint the DB).
+      logger.error('Failed to fetch job for bid acceptance', {
+        service: 'jobs',
+        jobId,
+        errorMessage: jobError?.message,
+        errorCode: jobError?.code,
+        errorDetails: jobError?.details,
+        hasData: !!job,
+      });
+      throw new NotFoundError('Job not found');
+    }
+
+    const isDesignatedPayer =
+      job.payer_user_id === user.id ||
+      (!job.payer_user_id && job.homeowner_id === user.id);
+    if (!isDesignatedPayer) {
+      throw new ForbiddenError('Not authorized to accept bids for this job');
+    }
+
+    // Verify the bid exists and belongs to this job (user-scoped read)
+    const { data: bidData, error: bidError } = await userDb
+      .from('bids')
+      .select(
+        'id, job_id, contractor_id, status, amount, description, message, estimated_duration_days, proposed_start_date, quote_id, warranty_months, materials_included'
+      )
+      .eq('id', bidId)
+      .eq('job_id', jobId)
+      .single();
+
+    const bid = bidData as BidRow | null;
+
+    if (bidError || !bid) {
+      logger.error('Failed to fetch bid for acceptance', {
+        service: 'jobs',
+        bidId,
+        jobId,
+        errorMessage: bidError?.message,
+        errorCode: bidError?.code,
+        hasData: !!bidData,
+      });
+      throw new NotFoundError('Bid not found');
+    }
+
     const idempotencyCheck = await checkIdempotency(
       idempotencyKey,
-      'accept_bid'
+      'accept_bid',
+      true,
+      { userId: user.id, request: { jobId, bidId } }
     );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info(
@@ -99,63 +159,6 @@ export const POST = withApiHandler(
     }
 
     return await releaseOnError(idempotencyKey, 'accept_bid', async () => {
-      if (user.role !== 'homeowner') {
-        throw new ForbiddenError('Only homeowners can accept bids');
-      }
-
-      // Verify the job belongs to this homeowner or designated payer
-      const { data: job, error: jobError } = await userDb
-        .from('jobs')
-        .select('homeowner_id, payer_user_id, contractor_id, status')
-        .eq('id', jobId)
-        .single();
-
-      if (jobError || !job) {
-        // Full DB error is logged server-side. The client-visible 404
-        // intentionally drops schema-leaking detail (constraint / column /
-        // table names that help an attacker fingerprint the DB).
-        logger.error('Failed to fetch job for bid acceptance', {
-          service: 'jobs',
-          jobId,
-          errorMessage: jobError?.message,
-          errorCode: jobError?.code,
-          errorDetails: jobError?.details,
-          hasData: !!job,
-        });
-        throw new NotFoundError('Job not found');
-      }
-
-      const isDesignatedPayer =
-        job.payer_user_id === user.id ||
-        (!job.payer_user_id && job.homeowner_id === user.id);
-      if (!isDesignatedPayer) {
-        throw new ForbiddenError('Not authorized to accept bids for this job');
-      }
-
-      // Verify the bid exists and belongs to this job (user-scoped read)
-      const { data: bidData, error: bidError } = await userDb
-        .from('bids')
-        .select(
-          'id, job_id, contractor_id, status, amount, description, message, estimated_duration_days, proposed_start_date, quote_id, warranty_months, materials_included'
-        )
-        .eq('id', bidId)
-        .eq('job_id', jobId)
-        .single();
-
-      const bid = bidData as BidRow | null;
-
-      if (bidError || !bid) {
-        logger.error('Failed to fetch bid for acceptance', {
-          service: 'jobs',
-          bidId,
-          jobId,
-          errorMessage: bidError?.message,
-          errorCode: bidError?.code,
-          hasData: !!bidData,
-        });
-        throw new NotFoundError('Bid not found');
-      }
-
       // 2026-05-13 onboarding audit fix: previously this only logged a
       // warning when a bid came from a contractor without Stripe Connect,
       // and accepted the bid anyway. Result: homeowner pays into escrow,
@@ -217,6 +220,15 @@ export const POST = withApiHandler(
         );
       }
 
+      // A prior request may have committed the atomic acceptance but failed
+      // during the follow-up contract creation. Allow the same authorized
+      // homeowner to retry that post-acceptance work without re-running the
+      // state transition or creating a second winner.
+      const acceptanceAlreadyApplied =
+        bid.status === BID_STATUS.ACCEPTED &&
+        job.status === JOB_STATUS.ASSIGNED &&
+        job.contractor_id === bid.contractor_id;
+
       // 2026-05-22 Sprint 2: Active-jobs cap on Free/Basic contractors. A
       // free contractor can bid on 10 jobs/month but only WORK ON 3 at a
       // time. The cap creates upgrade pressure — once they're consistently
@@ -232,8 +244,9 @@ export const POST = withApiHandler(
       const acceptingContractorTier =
         await FeeCalculationService.resolveContractorTier(bid.contractor_id);
       if (
-        acceptingContractorTier === 'free' ||
-        acceptingContractorTier === 'basic'
+        !acceptanceAlreadyApplied &&
+        (acceptingContractorTier === 'free' ||
+          acceptingContractorTier === 'basic')
       ) {
         const { count: activeJobsCount } = await serverSupabase
           .from('jobs')
@@ -263,15 +276,6 @@ export const POST = withApiHandler(
           );
         }
       }
-
-      // A prior request may have committed the atomic acceptance but failed
-      // during the follow-up contract creation. Allow the same authorized
-      // homeowner to retry that post-acceptance work without re-running the
-      // state transition or creating a second winner.
-      const acceptanceAlreadyApplied =
-        bid.status === BID_STATUS.ACCEPTED &&
-        job.status === JOB_STATUS.ASSIGNED &&
-        job.contractor_id === bid.contractor_id;
 
       if (!acceptanceAlreadyApplied) {
         // Validate bid status transition (must be pending -> accepted)
@@ -310,7 +314,12 @@ export const POST = withApiHandler(
 
       const { data: rpcRaw, error: rpcError } = acceptanceAlreadyApplied
         ? { data: null, error: null }
-        : await serverSupabase.rpc('accept_bid_atomic', {
+        : await serverSupabase.rpc('accept_bid_with_capacity', {
+            p_active_job_limit: ['free', 'basic'].includes(
+              acceptingContractorTier
+            )
+              ? 3
+              : null,
             p_bid_id: bidId,
             p_job_id: jobId,
             p_contractor_id: bid.contractor_id,
@@ -349,6 +358,11 @@ export const POST = withApiHandler(
         const msg = rpcRow.error_message ?? 'Unknown bid acceptance error';
         // The RPC detects concurrent acceptance and reports it via error_message;
         // treat it as a ConflictError so the client can retry cleanly.
+        if (msg.toLowerCase().includes('active job limit')) {
+          throw new ConflictError(
+            'This contractor has reached their concurrent work limit.'
+          );
+        }
         if (msg.toLowerCase().includes('already')) {
           throw new ConflictError('Bid has already been accepted for this job');
         }

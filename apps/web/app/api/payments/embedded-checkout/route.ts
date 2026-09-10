@@ -4,10 +4,6 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { getAppUrl } from '@/lib/env';
-// Route through the shared lazy proxy so the API version stays pinned in one
-// place (lib/stripe.ts). Previously `new Stripe(env.STRIPE_SECRET_KEY)` with no
-// apiVersion defaulted to whatever the installed SDK picked. The `Stripe`
-// default import is retained for types only.
 import { stripe } from '@/lib/stripe';
 import {
   FeeCalculationService,
@@ -27,10 +23,6 @@ import {
 const bodySchema = z.object({
   priceId: z.string().min(1, 'Price ID is required'),
   jobId: z.string().uuid().optional(),
-  // Winning bid this payment settles, when the checkout is launched from a
-  // bid (see BidCard → /checkout). Recorded in session metadata for
-  // payment↔bid reconciliation; previously the client sent it and the
-  // server silently dropped it.
   bidId: z.string().uuid().optional(),
   contractorId: z.string().uuid().optional(),
   quantity: z.number().int().positive().optional().default(1),
@@ -141,11 +133,6 @@ export const POST = withApiHandler(
         );
       }
 
-      // AMOUNT AUTHORITY (audit C2): the marketplace amount must come from the
-      // accepted bid + accepted contract, NOT the client-supplied priceId.
-      // Without these gates a homeowner could fund a £500 job at any Stripe
-      // price they can produce and still march it through to release. Mirrors
-      // the hardening already in /api/payments/create-intent.
       const { data: contract, error: contractError } = await serverSupabase
         .from('contracts')
         .select('id, status')
@@ -312,11 +299,14 @@ export const POST = withApiHandler(
       request,
       checkoutOperation,
       user.id,
+      jobId || priceId,
       checkoutResource
     );
     const idempotencyCheck = await checkIdempotency(
       idempotencyKey,
-      checkoutOperation
+      checkoutOperation,
+      true,
+      { userId: user.id, request: validation.data }
     );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
       logger.info('Duplicate embedded checkout detected', {
@@ -374,10 +364,6 @@ export const POST = withApiHandler(
         if (acceptedContractId) metadata.contractId = acceptedContractId;
       }
 
-      // Line items (audit C2): for a marketplace payment charge the
-      // server-authoritative accepted-bid amount via an inline price_data so the
-      // amount CHARGED cannot diverge from the amount recorded in escrow.
-      // Non-marketplace checkout keeps the client priceId.
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
         authoritativeAmount !== null
           ? [

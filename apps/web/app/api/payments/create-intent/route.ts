@@ -220,21 +220,26 @@ export const POST = withApiHandler(
       // accepted bid and use its amount as the single source of truth for
       // what goes to Stripe + escrow. The client-supplied amount is only
       // used to detect tampering (logged, warning, but not trusted).
-      const { data: acceptedBid, error: acceptedBidError } = await serverSupabase
-        .from('bids')
-        .select('id, amount, status, quote_id')
-        .eq('job_id', jobId)
-        .eq('contractor_id', contractorId)
-        .eq('status', 'accepted')
-        .single();
+      const { data: acceptedBid, error: acceptedBidError } =
+        await serverSupabase
+          .from('bids')
+          .select('id, amount, status, quote_id')
+          .eq('job_id', jobId)
+          .eq('contractor_id', contractorId)
+          .eq('status', 'accepted')
+          .single();
 
       if (acceptedBidError) {
-        logger.error('Failed to load accepted bid before payment intent', acceptedBidError, {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          contractorId,
-        });
+        logger.error(
+          'Failed to load accepted bid before payment intent',
+          acceptedBidError,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            contractorId,
+          }
+        );
         throw new InternalServerError(
           'Could not verify the accepted bid. Payment was not attempted.'
         );
@@ -301,7 +306,9 @@ export const POST = withApiHandler(
       const { data: blockingEscrowRows, error: blockingEscrowErr } =
         await serverSupabase
           .from('escrow_transactions')
-          .select('id, status, payment_intent_id, created_at')
+          .select(
+            'id, status, payment_intent_id, created_at, payer_id, payee_id, amount'
+          )
           .eq('job_id', jobId)
           .in('status', BLOCKING_ESCROW_STATUSES);
 
@@ -320,6 +327,46 @@ export const POST = withApiHandler(
 
       if (blockingEscrowRows && blockingEscrowRows.length > 0) {
         const existing = blockingEscrowRows[0];
+        if (
+          blockingEscrowRows.length === 1 &&
+          existing.status === 'pending' &&
+          existing.payment_intent_id &&
+          existing.payer_id === user.id &&
+          existing.payee_id === job.contractor_id
+        ) {
+          const pending = await stripeWithTimeout(
+            () => stripe.paymentIntents.retrieve(existing.payment_intent_id!),
+            'retrieve_pending_payment_intent'
+          );
+          const cashPence = Math.round(Number(existing.amount) * 100);
+          const creditPence = Number(pending.metadata.creditAppliedPence ?? 0);
+          const resumable = [
+            'requires_payment_method',
+            'requires_confirmation',
+            'requires_action',
+          ];
+          if (
+            resumable.includes(pending.status) &&
+            pending.client_secret &&
+            pending.currency === 'gbp' &&
+            pending.amount === cashPence &&
+            Number.isSafeInteger(creditPence) &&
+            creditPence >= 0 &&
+            cashPence + creditPence === Math.round(acceptedBidAmount * 100) &&
+            pending.metadata.jobId === jobId &&
+            pending.metadata.bidId === acceptedBid.id &&
+            pending.metadata.payerId === user.id &&
+            pending.metadata.contractorId === job.contractor_id
+          ) {
+            return NextResponse.json({
+              clientSecret: pending.client_secret,
+              paymentIntentId: pending.id,
+              escrowTransactionId: existing.id,
+              amount: cashPence / 100,
+              currency: pending.currency,
+            });
+          }
+        }
         logger.warn('Payment intent attempted with non-terminal escrow', {
           service: 'payments',
           userId: user.id,
@@ -403,7 +450,9 @@ export const POST = withApiHandler(
       // needed here — the failure path is fail-CLOSED by construction.
       const idempotencyCheck = await checkIdempotency(
         idempotencyKey,
-        'create_payment_intent'
+        'create_payment_intent',
+        true,
+        { userId: user.id, request: validation.data }
       );
       // We own the claim from this point onward. Track so the outer catch
       // can release it if any later step fails.
@@ -496,18 +545,23 @@ export const POST = withApiHandler(
       // every escrow funding via a saved card failed at confirm time.
       // Read via service-role (stripe_customer_id is grant-locked). Omit
       // when absent (first-time payer entering a fresh card still works).
-      const { data: payerProfile, error: payerProfileError } = await serverSupabase
-        .from('profiles')
-        .select('stripe_customer_id')
-        .eq('id', user.id)
-        .single();
+      const { data: payerProfile, error: payerProfileError } =
+        await serverSupabase
+          .from('profiles')
+          .select('stripe_customer_id')
+          .eq('id', user.id)
+          .single();
 
       if (payerProfileError) {
-        logger.error('Failed to load payer Stripe customer', payerProfileError, {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-        });
+        logger.error(
+          'Failed to load payer Stripe customer',
+          payerProfileError,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+          }
+        );
         throw new Error('Failed to load payer Stripe customer');
       }
       const payerCustomerId = payerProfile?.stripe_customer_id ?? undefined;
@@ -595,22 +649,27 @@ export const POST = withApiHandler(
 
       // Check for existing escrow record to prevent duplicates
       // (e.g. user refreshes payment page, or idempotency cache expired)
-      const { data: existingEscrow, error: existingEscrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .select(
-          'id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at'
-        )
-        .eq('job_id', jobId)
-        .eq('payment_intent_id', paymentIntent.id)
-        .maybeSingle();
+      const { data: existingEscrow, error: existingEscrowError } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .select(
+            'id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at'
+          )
+          .eq('job_id', jobId)
+          .eq('payment_intent_id', paymentIntent.id)
+          .maybeSingle();
 
       if (existingEscrowError) {
-        logger.error('Failed to check for existing escrow transaction', existingEscrowError, {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          paymentIntentId: paymentIntent.id,
-        });
+        logger.error(
+          'Failed to check for existing escrow transaction',
+          existingEscrowError,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            paymentIntentId: paymentIntent.id,
+          }
+        );
         throw new Error('Failed to check for existing escrow transaction');
       }
 

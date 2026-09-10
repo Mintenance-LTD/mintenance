@@ -1,3 +1,4 @@
+import { fingerprintMultipartRequest } from '@/lib/api/request-fingerprint';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { signJobStoragePath } from '@/lib/api/job-storage';
@@ -58,7 +59,12 @@ export const POST = withApiHandler(
     );
     const idem = await checkIdempotency<unknown>(
       idempotencyKey,
-      'photos_after'
+      'photos_after',
+      true,
+      {
+        userId: user.id,
+        request: { jobId, form: await fingerprintMultipartRequest(request) },
+      }
     );
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate photos_after — returning cached result', {
@@ -216,14 +222,13 @@ export const POST = withApiHandler(
 
         // Upload to storage
         const fileName = `job-photos/${jobId}/after/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { error: uploadError } =
-          await serverSupabase.storage
-            .from('Job-storage')
-            .upload(fileName, file, {
-              cacheControl: '3600',
-              contentType: magicValidation.detectedType,
-              upsert: false,
-            });
+        const { error: uploadError } = await serverSupabase.storage
+          .from('Job-storage')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            contentType: magicValidation.detectedType,
+            upsert: false,
+          });
 
         if (uploadError) {
           logger.error('Upload error', uploadError);
@@ -261,18 +266,20 @@ export const POST = withApiHandler(
         }
 
         // Save metadata
-        const { error: metadataError } = await serverSupabase.from('job_photos_metadata').insert({
-          job_id: jobId,
-          photo_url: photoUrl,
-          photo_type: 'after',
-          geolocation: geolocation || null,
-          geolocation_verified: geolocation ? geolocationVerified : null,
-          timestamp: new Date().toISOString(),
-          verified: qualityResult.passed,
-          quality_score: qualityResult.qualityScore,
-          angle_type: angleType,
-          created_by: user.id,
-        });
+        const { error: metadataError } = await serverSupabase
+          .from('job_photos_metadata')
+          .insert({
+            job_id: jobId,
+            photo_url: photoUrl,
+            photo_type: 'after',
+            geolocation: geolocation || null,
+            geolocation_verified: geolocation ? geolocationVerified : null,
+            timestamp: new Date().toISOString(),
+            verified: qualityResult.passed,
+            quality_score: qualityResult.qualityScore,
+            angle_type: angleType,
+            created_by: user.id,
+          });
 
         if (metadataError) {
           await serverSupabase.storage.from('Job-storage').remove([fileName]);

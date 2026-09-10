@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger, JOB_STATUS } from '@mintenance/shared';
+import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import {
@@ -75,7 +75,10 @@ export const POST = withApiHandler(
     const idem = await checkIdempotency<{
       success: boolean;
       message: string;
-    }>(idempotencyKey, 'request_changes');
+    }>(idempotencyKey, 'request_changes', true, {
+      userId: user.id,
+      request: { jobId, comments },
+    });
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate request_changes — returning cached result', {
         service: 'jobs',
@@ -107,104 +110,30 @@ export const POST = withApiHandler(
         );
       }
 
-      if (job.status !== JOB_STATUS.COMPLETED) {
-        throw new BadRequestError('Can only request changes on completed jobs');
-      }
-
-      // Do not reopen a job after escrow release has been claimed. The
-      // release worker may already be about to call Stripe, and rework must
-      // never coexist with an in-flight payout.
-      const { data: escrow, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .select('id, status')
-        .eq('job_id', jobId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (escrowError) {
-        logger.error('Failed to verify escrow before rework request', escrowError, {
+      const { error: reworkError } = await serverSupabase.rpc(
+        'request_job_rework',
+        {
+          p_job_id: jobId,
+          p_actor_id: user.id,
+          p_request_key: idempotencyKey,
+          p_comments: comments,
+        }
+      );
+      if (reworkError) {
+        if (reworkError.code === '23514') {
+          throw new ConflictError(
+            'The job or payment state changed. Refresh and try again.'
+          );
+        }
+        if (reworkError.code === '42501')
+          throw new ForbiddenError('Not authorized to request changes');
+        if (reworkError.code === 'P0002')
+          throw new NotFoundError('Job not found');
+        logger.error('Atomic rework request failed', reworkError, {
           service: 'jobs',
           jobId,
-        });
-        throw new BadRequestError('Could not verify payment state. Please try again.');
-      }
-      if (!escrow || escrow.status !== 'held') {
-        throw new ConflictError(
-          'Payment release is already in progress or complete. Changes cannot be requested at this stage.'
-        );
-      }
-
-      // 2. Reset escrow approval before reopening the job. If this mutation
-      // fails, leave the completed job untouched so an approved auto-release
-      // state cannot be hidden behind a rework state.
-      //
-      // Audit P1 (2026-05-10): also reset `completion_confirmed_by_homeowner`.
-      // Without this, a homeowner who confirmed completion and later requested
-      // changes would leave the flag = true, which lets the escrow auto-release
-      // cron fire even though the job is back to in_progress.
-      //
-      // 2026-05-13 funds-stuck audit: the auto-release cron actually
-      // filters on `escrow.auto_release_date <= now` + `status='held'`,
-      // not on the job-level flag. confirm-completion sets the escrow
-      // fields directly so we must reset those here too, otherwise the
-      // cron would happily release funds during a rework cycle.
-      //
-      // 2026-05-26 audit-52: also clear completion_confirmed_at so the
-      // boolean and timestamp do not disagree after a rework cycle.
-      const { data: resetRows, error: escrowResetErr } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          homeowner_approval: false,
-          homeowner_approval_at: null,
-          homeowner_inspection_completed: false,
-          homeowner_inspection_at: null,
-          auto_release_date: null,
-          release_reason: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrow.id)
-        .eq('status', 'held')
-        .select('id');
-      if (escrowResetErr || !resetRows || resetRows.length === 0) {
-        const effectiveError =
-          escrowResetErr ?? new Error('Escrow reset matched no rows');
-        logger.error('Failed to reset escrow approval fields on rework', effectiveError, {
-          service: 'jobs',
-          jobId,
-          escrowId: escrow.id,
-        });
-        throw new InternalServerError('Could not prepare payment for rework');
-      }
-
-      // 3. Reopen the job only after the escrow is no longer approved.
-      // Homeowner requesting changes bypasses the normal terminal-state rule.
-      const { data: reopenedRows, error: updateError } = await serverSupabase
-        .from('jobs')
-        .update({
-          status: JOB_STATUS.IN_PROGRESS,
-          completed_at: null,
-          completion_confirmed_by_homeowner: false,
-          completion_confirmed_at: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', jobId)
-        .eq('status', JOB_STATUS.COMPLETED)
-        .select('id');
-
-      if (updateError) {
-        logger.error('Failed to roll back job status', updateError, {
-          service: 'jobs',
-          jobId,
-          escrowId: escrow.id,
         });
         throw new InternalServerError('Failed to process change request');
-      }
-
-      if (!reopenedRows || reopenedRows.length === 0) {
-        throw new ConflictError(
-          'This job changed while the change request was being submitted. Refresh and try again.'
-        );
       }
 
       // 4. Notify contractor.

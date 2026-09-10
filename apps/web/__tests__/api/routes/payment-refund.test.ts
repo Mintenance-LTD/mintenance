@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserFromCookies: vi.fn(),
   getCurrentUserFromBearerToken: vi.fn(),
   supabaseFrom: vi.fn(),
+  jobUpdate: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   checkApiRateLimit: vi.fn(),
@@ -284,7 +285,7 @@ function setupRefundMocks(
             single: vi.fn().mockResolvedValue(jobResult),
           }),
         }),
-        update: vi.fn().mockReturnValue({
+        update: mocks.jobUpdate.mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
@@ -316,9 +317,7 @@ function setupRefundMocks(
                   error: escrowUpdateError,
                 }),
                 maybeSingle: vi.fn().mockResolvedValue({
-                  data: escrowUpdateError
-                    ? null
-                    : { id: 'escrow-1' },
+                  data: escrowUpdateError ? null : { id: 'escrow-1' },
                   error: escrowUpdateError,
                 }),
               }),
@@ -703,5 +702,22 @@ describe('POST /api/payments/refund', () => {
         escrowTransactionId: 'escrow-1',
       })
     );
+  });
+  it('does not cancel the job for a partial refund', async () => {
+    setupRefundMocks();
+    mocks.validateRequest.mockResolvedValue({
+      data: { ...validRefundData, amount: 100 },
+    });
+    mocks.stripeRefundsCreate.mockResolvedValue({
+      id: 'refund-partial',
+      status: 'succeeded',
+      amount: 10000,
+    });
+    const req = new NextRequest('http://localhost:3000/api/payments/refund', {
+      method: 'POST',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mocks.jobUpdate).not.toHaveBeenCalled();
   });
 });
