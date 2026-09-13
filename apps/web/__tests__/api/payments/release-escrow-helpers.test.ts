@@ -1,3 +1,6 @@
+vi.mock('@/lib/services/payment/EscrowFundingService', () => ({
+  verifyEscrowFunding: vi.fn().mockResolvedValue('ch_verified'),
+}));
 /**
  * Regression tests for release-escrow/_helpers.notifyAndEmailContractor.
  *

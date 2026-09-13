@@ -17,7 +17,8 @@ import { serverSupabase } from './supabaseServer';
 import { resignJobStorageUrls } from './job-storage';
 
 export async function getJobPhotosByJobId(
-  jobIds: string[]
+  jobIds: string[],
+  viewerId: string | null
 ): Promise<Map<string, string[]>> {
   const result = new Map<string, string[]>();
   if (jobIds.length === 0) return result;
@@ -77,7 +78,7 @@ export async function getJobPhotosByJobId(
 
   // Batch-resign all URLs in one round trip, then re-chunk per job.
   const allUrls = rawPerJob.flatMap((r) => r.urls);
-  const allSigned = await resignJobStorageUrls(allUrls);
+  const allSigned = await resignJobStorageUrls(allUrls, viewerId);
   let offset = 0;
   for (const { jobId, urls } of rawPerJob) {
     const signed = allSigned.slice(offset, offset + urls.length);

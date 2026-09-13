@@ -271,7 +271,7 @@ export class JobQueryService {
       };
     });
     const allRawPhotos = rawItems.flatMap((i) => i.photos);
-    const allSignedPhotos = await resignJobStorageUrls(allRawPhotos);
+    const allSignedPhotos = await resignJobStorageUrls(allRawPhotos, user.id);
     // Re-chunk the flat signed array back per-item using the same
     // slice offsets we implicitly built when flattening.
     let offset = 0;
@@ -565,8 +565,11 @@ export class JobQueryService {
             confidence: assessment.confidence || 0,
             urgency:
               (assessment.urgency as
-                'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor') ||
-              'monitor',
+                | 'immediate'
+                | 'urgent'
+                | 'soon'
+                | 'planned'
+                | 'monitor') || 'monitor',
             assessment_data: assessment.assessment_data,
             created_at: assessment.created_at,
           });

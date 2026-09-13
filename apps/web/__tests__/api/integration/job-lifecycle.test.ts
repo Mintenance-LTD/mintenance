@@ -1,3 +1,6 @@
+vi.mock('@/lib/services/payment/EscrowFundingService', () => ({
+  verifyEscrowFunding: vi.fn().mockResolvedValue('ch_verified'),
+}));
 // @vitest-environment node
 /**
  * Integration tests for the FULL job lifecycle.

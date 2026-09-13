@@ -32,33 +32,42 @@ beforeEach(() => {
 
 describe('resolveJobThumbnails', () => {
   it('prefers jobs.photos over attachments and signs only the first', async () => {
-    const result = await resolveJobThumbnails([
-      {
-        id: 'job-1',
-        photos: ['legacy-a.jpg', 'legacy-b.jpg'],
-        job_attachments: [{ file_url: 'att.jpg', file_type: 'image' }],
-      },
-    ]);
+    const result = await resolveJobThumbnails(
+      [
+        {
+          id: 'job-1',
+          photos: ['legacy-a.jpg', 'legacy-b.jpg'],
+          job_attachments: [{ file_url: 'att.jpg', file_type: 'image' }],
+        },
+      ],
+      'synthetic-viewer'
+    );
     expect(result.get('job-1')).toEqual({
       photoUrl: 'signed:legacy-a.jpg',
       photoCount: 2,
     });
     expect(mocks.resignJobStorageUrls).toHaveBeenCalledTimes(1);
-    expect(mocks.resignJobStorageUrls).toHaveBeenCalledWith(['legacy-a.jpg']);
+    expect(mocks.resignJobStorageUrls).toHaveBeenCalledWith(
+      ['legacy-a.jpg'],
+      'synthetic-viewer'
+    );
   });
 
   it('falls back to image attachments and skips non-image file types', async () => {
-    const result = await resolveJobThumbnails([
-      {
-        id: 'job-2',
-        photos: null,
-        job_attachments: [
-          { file_url: 'quote.pdf', file_type: 'document' },
-          { file_url: 'kitchen.jpg', file_type: 'image' },
-          { file_url: 'sink.jpg', file_type: 'image' },
-        ],
-      },
-    ]);
+    const result = await resolveJobThumbnails(
+      [
+        {
+          id: 'job-2',
+          photos: null,
+          job_attachments: [
+            { file_url: 'quote.pdf', file_type: 'document' },
+            { file_url: 'kitchen.jpg', file_type: 'image' },
+            { file_url: 'sink.jpg', file_type: 'image' },
+          ],
+        },
+      ],
+      'synthetic-viewer'
+    );
     expect(result.get('job-2')).toEqual({
       photoUrl: 'signed:kitchen.jpg',
       photoCount: 2,
@@ -66,9 +75,10 @@ describe('resolveJobThumbnails', () => {
   });
 
   it('resolves photo-less jobs to null/0 without a signing round-trip', async () => {
-    const result = await resolveJobThumbnails([
-      { id: 'job-3', photos: [], job_attachments: null },
-    ]);
+    const result = await resolveJobThumbnails(
+      [{ id: 'job-3', photos: [], job_attachments: null }],
+      'synthetic-viewer'
+    );
     expect(result.get('job-3')).toEqual({ photoUrl: null, photoCount: 0 });
     expect(mocks.resignJobStorageUrls).not.toHaveBeenCalled();
   });
@@ -77,21 +87,25 @@ describe('resolveJobThumbnails', () => {
     // resignJobStorageUrls filters falsy results; an orphaned attachment
     // row whose object was never uploaded can yield an empty array.
     mocks.resignJobStorageUrls.mockResolvedValue([]);
-    const result = await resolveJobThumbnails([
-      { id: 'job-4', photos: ['gone.jpg'], job_attachments: null },
-    ]);
+    const result = await resolveJobThumbnails(
+      [{ id: 'job-4', photos: ['gone.jpg'], job_attachments: null }],
+      'synthetic-viewer'
+    );
     expect(result.get('job-4')).toEqual({ photoUrl: null, photoCount: 1 });
   });
 
   it('handles attachment rows with null file_url and mixed jobs in one call', async () => {
-    const result = await resolveJobThumbnails([
-      {
-        id: 'job-5',
-        photos: null,
-        job_attachments: [{ file_url: null, file_type: 'image' }],
-      },
-      { id: 'job-6', photos: ['p.jpg'], job_attachments: null },
-    ]);
+    const result = await resolveJobThumbnails(
+      [
+        {
+          id: 'job-5',
+          photos: null,
+          job_attachments: [{ file_url: null, file_type: 'image' }],
+        },
+        { id: 'job-6', photos: ['p.jpg'], job_attachments: null },
+      ],
+      'synthetic-viewer'
+    );
     expect(result.get('job-5')).toEqual({ photoUrl: null, photoCount: 0 });
     expect(result.get('job-6')).toEqual({
       photoUrl: 'signed:p.jpg',

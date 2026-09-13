@@ -227,7 +227,8 @@ export default async function JobDetailPage2025({
           .in('reviewee_id', contractorIds)
       : Promise.resolve({ data: [] as Array<{ reviewee_id: string | null }> }),
     resignJobStorageUrls(
-      (photos ?? []).map((p) => p.file_url as string | null)
+      (photos ?? []).map((p) => p.file_url as string | null),
+      user.id
     ),
   ]);
 

@@ -22,6 +22,11 @@ import {
 } from '@/lib/stripe/stale-customer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+import {
+  reservePaymentFunding,
+  attachPaymentFunding,
+  getEscrowCashRequirement,
+} from '@/lib/services/payment/PaymentFundingService';
 import { MAX_JOB_PAYMENT_GBP } from '@mintenance/api-contracts';
 
 export const POST = withApiHandler(
@@ -34,10 +39,6 @@ export const POST = withApiHandler(
     // post-claim step throws. Stays undefined when the throw happens
     // before the claim was made — guarded in the catch.
     let claimedIdempotencyKey: string | undefined;
-    let paymentJobId: string | undefined;
-    let creditAppliedPence = 0;
-    let escrowCreated = false;
-    let createdPaymentIntentId: string | undefined;
     try {
       // Validate and sanitize input using Zod schema
       const validation = await validateRequest(request, paymentIntentSchema);
@@ -48,7 +49,6 @@ export const POST = withApiHandler(
 
       const { amount, currency, jobId, contractorId, metadata } =
         validation.data;
-      paymentJobId = jobId;
 
       // Monitor transaction for anomalies (non-blocking: payment proceeds even if monitoring fails)
       try {
@@ -338,7 +338,12 @@ export const POST = withApiHandler(
             () => stripe.paymentIntents.retrieve(existing.payment_intent_id!),
             'retrieve_pending_payment_intent'
           );
-          const cashPence = Math.round(Number(existing.amount) * 100);
+          const cashPence = await getEscrowCashRequirement(
+            existing.id,
+            Number(existing.amount),
+            pending.id,
+            pending.metadata
+          );
           const creditPence = Number(pending.metadata.creditAppliedPence ?? 0);
           const resumable = [
             'requires_payment_method',
@@ -363,6 +368,8 @@ export const POST = withApiHandler(
               paymentIntentId: pending.id,
               escrowTransactionId: existing.id,
               amount: cashPence / 100,
+              grossAmount: (cashPence + creditPence) / 100,
+              creditApplied: creditPence / 100,
               currency: pending.currency,
             });
           }
@@ -414,7 +421,7 @@ export const POST = withApiHandler(
       }
 
       // From here on, this is THE amount — do not trust `amount` further.
-      let authoritativeAmount = acceptedBidAmount;
+      const authoritativeAmount = acceptedBidAmount;
 
       // 2026-05-25 audit-45 P0: idempotency check moved BEFORE the
       // referral credit spend. Previously the order was:
@@ -472,46 +479,23 @@ export const POST = withApiHandler(
         return NextResponse.json(idempotencyCheck.cachedResult);
       }
 
-      // R7 #8 neighbour referral: spend any accrued credit before the
-      // Stripe charge. Amounts on this route are in pounds — convert to
-      // pence, cap at the amount due, then translate back. A tiny
-      // minimum of £1 is left on the card so Stripe always has a
-      // reserve to hold escrow against.
-      //
-      // 2026-05-25 audit-45 P0: moved here from above the idempotency
-      // claim so duplicate requests can't double-debit user_credits.
-      try {
-        const { NeighbourhoodReferralService } =
-          await import('@/lib/services/referrals/NeighbourhoodReferralService');
-        const amountPence = Math.round(authoritativeAmount * 100);
-        const maxSpendPence = Math.max(0, amountPence - 100); // keep £1 floor
-        if (maxSpendPence > 0) {
-          creditAppliedPence = await NeighbourhoodReferralService.spendCredit(
-            user.id,
-            maxSpendPence,
-            'escrow_payment',
-            jobId
-          );
-          if (creditAppliedPence > 0) {
-            authoritativeAmount = (amountPence - creditAppliedPence) / 100;
-          }
-        }
-      } catch (creditErr) {
-        logger.warn('Credit spend hook failed, continuing at full price', {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          err:
-            creditErr instanceof Error ? creditErr.message : String(creditErr),
-        });
-      }
+      const funding = await reservePaymentFunding({
+        actorId: user.id,
+        jobId,
+        bidId: acceptedBid.id,
+        contractId: contract.id,
+        requestKey: idempotencyKey,
+        grossMinor: Math.round(authoritativeAmount * 100),
+      });
+      const creditAppliedPence = funding.credit_minor;
+      const cashAmount = funding.cash_minor / 100;
 
       // Record payment attempt using the server-authoritative amount
       const { error: paymentAttemptError } = await serverSupabase
         .from('payment_attempts')
         .insert({
           user_id: user.id,
-          amount: authoritativeAmount,
+          amount: cashAmount,
           currency: currency || 'gbp',
           status: 'pending',
           ip_address: getClientIp(request),
@@ -534,7 +518,7 @@ export const POST = withApiHandler(
       // retry from landing on the wrong contractor if the job was reassigned
       // between the first attempt and the retry. Our internal idempotency
       // check prevents duplicates reaching Stripe; this is a second layer.
-      const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}_${job.contractor_id}`;
+      const stripeIdempotencyKey = `payment_funding_${funding.id}`;
 
       // 2026-06-11 P1: attach the payer's Stripe customer to the
       // PaymentIntent. When the homeowner pays with a SAVED card, that
@@ -571,7 +555,7 @@ export const POST = withApiHandler(
       // Customer is spread in per-attempt (see the resource_missing recovery
       // below), so the shared base params exclude it.
       const basePaymentIntentParams = {
-        amount: Math.round(authoritativeAmount * 100), // Convert to cents
+        amount: funding.cash_minor, // The card funds only the cash contribution
         currency: (currency || 'gbp').toLowerCase(),
         description: metadata?.description || `Payment for job: ${job.title}`,
         metadata: {
@@ -589,6 +573,7 @@ export const POST = withApiHandler(
           bidAmount: authoritativeAmount.toString(),
           isRentalProperty: String(Boolean(job.is_rental_property)),
           creditAppliedPence: String(creditAppliedPence),
+          fundingReservationId: funding.id,
         },
         // Enable automatic payment methods
         automatic_payment_methods: {
@@ -645,123 +630,20 @@ export const POST = withApiHandler(
           10000 // 10 second timeout
         );
       }
-      createdPaymentIntentId = paymentIntent.id;
-
-      // Check for existing escrow record to prevent duplicates
-      // (e.g. user refreshes payment page, or idempotency cache expired)
-      const { data: existingEscrow, error: existingEscrowError } =
-        await serverSupabase
-          .from('escrow_transactions')
-          .select(
-            'id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at'
-          )
-          .eq('job_id', jobId)
-          .eq('payment_intent_id', paymentIntent.id)
-          .maybeSingle();
-
-      if (existingEscrowError) {
-        logger.error(
-          'Failed to check for existing escrow transaction',
-          existingEscrowError,
-          {
-            service: 'payments',
-            userId: user.id,
-            jobId,
-            paymentIntentId: paymentIntent.id,
-          }
-        );
-        throw new Error('Failed to check for existing escrow transaction');
-      }
-
-      let escrowTransaction = existingEscrow;
-      let escrowError = null;
-
-      if (!existingEscrow) {
-        // Create escrow transaction record. Amount is the server-authoritative
-        // bid amount — the source of truth for later release to contractor.
-        //
-        // 2026-05-13 traceability audit: the schema has no `bid_id` /
-        // `contract_id` FK columns on `escrow_transactions`, but does
-        // have a flexible `metadata` JSONB. Stash the references there
-        // so dispute analysis + reconciliation can walk back to the
-        // exact bid + contract + quote without re-deriving from
-        // `job_id` (which would be ambiguous if a job ever cycled
-        // through multiple acceptances after a rollback).
-        const { data: newEscrow, error: insertError } = await serverSupabase
-          .from('escrow_transactions')
-          .insert({
-            job_id: jobId,
-            payer_id: user.id, // Homeowner who pays
-            payee_id: job.contractor_id, // Contractor who receives
-            amount: authoritativeAmount,
-            status: 'pending',
-            payment_intent_id: paymentIntent.id,
-            metadata: {
-              bid_id: acceptedBid.id,
-              contract_id: contract.id,
-              quote_id: contract.quote_id || acceptedBid.quote_id || null,
-              credit_applied_pence: creditAppliedPence,
-              source: 'create-intent',
-            },
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .select(
-            'id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at'
-          )
-          .single();
-        escrowTransaction = newEscrow;
-        escrowError = insertError;
-      } else {
-        logger.info('Reusing existing escrow record for payment intent', {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          escrowId: existingEscrow.id,
-          paymentIntentId: paymentIntent.id,
-        });
-      }
-
-      if (escrowError || !escrowTransaction) {
-        logger.error('Error creating escrow transaction', escrowError, {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          paymentIntentId: paymentIntent.id,
-        });
-        // Try to cancel the payment intent if DB insert fails
-        await stripe.paymentIntents.cancel(paymentIntent.id).catch((err) =>
-          logger.error(
-            'Failed to cancel payment intent after escrow error',
-            err,
-            {
-              service: 'payments',
-              paymentIntentId: paymentIntent.id,
-            }
-          )
-        );
-        if (creditAppliedPence > 0) {
-          const { NeighbourhoodReferralService } =
-            await import('@/lib/services/referrals/NeighbourhoodReferralService');
-          const restored = await NeighbourhoodReferralService.restoreCredit(
-            user.id,
-            creditAppliedPence,
-            jobId
-          );
-          if (restored) creditAppliedPence = 0;
-        }
-        return NextResponse.json(
-          { error: 'Failed to create escrow transaction' },
-          { status: 500 }
-        );
-      }
-      escrowCreated = true;
+      // Attachment and gross escrow creation commit together. If the response is
+      // lost, the reservation's stable provider key and attachment RPC recover it.
+      // Do not cancel an unknown outcome or restore credit from a catch block:
+      // another retry may already have completed the same operation.
+      const escrowTransaction = await attachPaymentFunding(
+        funding.id,
+        paymentIntent.id
+      );
 
       logger.info('Payment intent created successfully', {
         service: 'payments',
         userId: user.id,
         jobId,
-        amount: authoritativeAmount,
+        amount: cashAmount,
         currency,
         escrowTransactionId: escrowTransaction.id,
       });
@@ -772,7 +654,9 @@ export const POST = withApiHandler(
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         escrowTransactionId: escrowTransaction.id,
-        amount: authoritativeAmount,
+        amount: cashAmount,
+        grossAmount: authoritativeAmount,
+        creditApplied: creditAppliedPence / 100,
         currency,
       };
 
@@ -791,53 +675,6 @@ export const POST = withApiHandler(
 
       return NextResponse.json(responseData);
     } catch (error) {
-      if (creditAppliedPence > 0 && !escrowCreated && paymentJobId) {
-        try {
-          if (createdPaymentIntentId) {
-            await stripe.paymentIntents
-              .cancel(createdPaymentIntentId)
-              .catch((cancelError) => {
-                logger.error(
-                  'PaymentIntent cancellation failed during payment rollback',
-                  cancelError,
-                  {
-                    service: 'payments',
-                    userId: user.id,
-                    jobId: paymentJobId,
-                    paymentIntentId: createdPaymentIntentId,
-                  }
-                );
-              });
-          }
-          const { NeighbourhoodReferralService } =
-            await import('@/lib/services/referrals/NeighbourhoodReferralService');
-          const restored = await NeighbourhoodReferralService.restoreCredit(
-            user.id,
-            creditAppliedPence,
-            paymentJobId
-          );
-          if (!restored) {
-            logger.error('Credit rollback requires reconciliation', null, {
-              service: 'payments',
-              userId: user.id,
-              jobId: paymentJobId,
-              creditAppliedPence,
-            });
-          }
-        } catch (rollbackError) {
-          logger.error(
-            'Credit rollback threw after payment failure',
-            rollbackError,
-            {
-              service: 'payments',
-              userId: user.id,
-              jobId: paymentJobId,
-              creditAppliedPence,
-            }
-          );
-        }
-      }
-
       // Release the pending idempotency claim so the user can retry
       // immediately rather than wait for the 60s stale-takeover window.
       // Only released if the claim was actually acquired in this request

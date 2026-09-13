@@ -234,3 +234,206 @@ account usage limit. The concurrent reservation script was written but not execu
 changes still require SQL/concurrency/type-check verification, provider funding checks, durable
 reconciliation and accumulation-path repairs. No hosted changes or real payments. Remediation
 remains incomplete.
+
+9 September continuation: transfer reservation SQL now passes after fixture correction; concurrent
+two-session reservations produce one identical provider operation (remediation-transfer-race.log).
+Added EscrowFundingService to verify matching succeeded GBP PaymentIntent, exact captured cash
+amount, job/payer/payee metadata and a paid/captured, undisputed, unrefunded charge before new
+direct transfers, accumulation credit and job start. Six targeted suites/82 tests passed, including
+failure propagation preventing transfer creation. Embedded checkout now copies canonical metadata
+onto its PaymentIntent, resolves contractor from the job when absent from input, and enforces
+designated payer precedence; three route tests passed after correcting reset-prone price/fee mocks.
+Legacy checkout PaymentIntents missing metadata require evidence-based reconciliation; no hosted
+backfill attempted. Funding verification currently uses escrow cash amount; F5 gross/credit
+accounting and F9 partial-refund reconciliation remain unresolved. Web type-check attempt 6 started.
+No completion claim.
+
+9 September private-photo continuation: web type-check attempt 6 passed. Added mandatory viewer
+identity to private-photo refresh callers and service-only authorized_private_photo_paths
+migration 20260909091114. Authority derives from storage ownership/server-generated paths and
+current job/property-room access, never editable attachment URL arrays. Public contractor profile
+readers cannot mint private photo capabilities. Denied/missing private photos now return a
+placeholder without recycling old signed URLs; batch positions remain stable and fresh URLs expire
+after one hour. Room-photo GET now uses the same authorization boundary, including current
+property-team membership. Four suites/28 tests passed for parsing, cross-user/anonymous denial,
+expiry limits, RPC/signing failure, and thumbnail viewer propagation. Type-check attempt 7 found a
+missing viewer argument in the contractor list helper; corrected, and attempt 8 passed. Docker had
+stopped; restarted Desktop and applied the migration only to the disposable audit stack. The
+rollback-only SQL diagnostic passed owner access, unrelated denial, accepted room-photo viewer
+access, removal revocation, and denial of client-supplied actor impersonation. No hosted changes or
+real users/payments. Logs are ignored local artifacts; new test/SQL files are audit artifacts
+identified by their remediation-private-photo names.
+
+F13 remains incomplete: ordinary property-photo and legacy root job-photo sharing need trusted
+attachment bindings before authorized collaborators can renew those images. Existing signed URLs
+issued before this change remain capabilities until expiry; this change cannot revoke them. No
+browser usability or device verification of the new photo flows has been performed. The full
+migration chain, db diff, remaining payment/credit/refund recovery, and other outstanding audit
+findings still require completion. Current changes are uncommitted; the prior GitHub checkpoint
+remains 8fec38aa5cd84a1dacb7e654f6b1b6802e55446b. Goal remains active.
+
+9 September trusted property-photo bindings: CLI-generated migration
+20260909141332_trusted_property_photo_bindings.sql adds a service-only attachment table and
+save_property_with_photo_bindings. Property POST/PUT now persist fields and attachments in the same
+database transaction. New attachments require the actor's own storage upload; existing attachments
+can be retained by an authorized property manager. Shared-photo reads consult these trusted bindings
+and current team membership. Clients cannot directly create bindings or invoke the actor-taking save
+RPC. Property creation's primary-property reset now occurs in the same transaction, so rejected
+creation does not clear the previous primary property. PUT also redacts key_safe_code for property
+managers/admins who are not the owner or platform admin, matching GET.
+
+The migration applied on the disposable local stack. remediation-property-photo-bindings.sql passed
+synthetic owner/manager/unrelated authorization, forbidden attachment, immutable owner field,
+attachment removal, and rollback checks. An injected binding trigger failure after the property
+update restored both the old property and the removed bindings. All fixtures, trigger, and function
+rolled back. Four helper/photo suites passed 18 tests; the real PUT route with mocked auth/database
+boundary passed 3 tests for atomic-save arguments, manager code redaction, owner code access, and
+denied edits. Web type-check attempts 9 and 10 passed, including final route/test changes. New
+diagnostic files: remediation-property-photo-bindings.sql, remediation-property-save.test.ts,
+remediation-property-edit-route.test.ts; new application helper lib/properties/save-property.ts. No
+hosted writes, deployment, real users, or payment operations.
+
+Remaining photo work: legacy property photos without trusted bindings require the upload owner to
+reattach them before team members can refresh URLs. No blind backfill from mutable legacy arrays was
+performed. Legacy root job-photo sharing still needs a trusted attachment mechanism, and
+browser/device UX plus full migration-chain validation remain outstanding. F5 still reduces escrow
+principal when referral credit lowers the card charge; gross principal, cash capture, platform
+credit liability, fees, release, and refund accounting must be reconciled together. The funding
+verifier added earlier currently verifies cash against escrow.amount and must be adapted with that
+accounting change. Goal remains active and current changes are uncommitted.
+
+9–10 September funding continuation (F4/F5/F6 partial): added CLI-generated
+20260909142420_reserved_payment_funding.sql and PaymentFundingService. The reservation records gross
+principal, payer cash, and platform credit separately. Credit debit and reservation are atomic;
+job-row locking and an active-reservation index reuse one reservation across different request keys.
+The Stripe create key now derives from that durable reservation. Escrow creation and reservation
+attachment commit together, with escrow.amount retaining gross principal. The original
+£500/£50-credit diagnostic now requires a £450 provider request and £500 escrow. Unknown provider/DB
+outcomes retain the reservation for recovery instead of restoring credit from a catch block while
+another retry may already have succeeded. Requests older than 23 hours fail closed for
+reconciliation rather than reuse a potentially expired provider idempotency key.
+
+Confirmation, pending-intent resume, webhook success, and pre-release funding verification now
+resolve the cash requirement from trusted funding records when credit is applied. Provider credit
+metadata without a matching attached reservation cannot authorize subsidy. Authenticated provider
+success events can recover an escrow missing after a provider-success/DB-failure gap. Confirmed
+cancellation events call an idempotent SQL transaction that restores credit once and cancels the
+pending escrow/job payment status together. SQL verification caught an actual schema mismatch:
+jobs.payment_status accepts 'canceled', not 'cancelled'; corrected the new transaction and legacy
+cancellation webhook write. The original migration and updated function are applied only on the
+disposable audit stack. Docker was restarted and subsequently recovered; no original local-stack
+schema was changed.
+
+Validation: remediation-payment-funding.sql passed actual PostgreSQL gross/cash/credit equality,
+payer authorization, request reuse, provider-identity binding, duplicate cancellation restoration,
+and injected-ledger-failure rollback. remediation-funding-race.py passed with two independent DB
+connections, different request keys, one reservation and one £50 credit debit; generated records
+were removed. Combined isolated checkpoint: 9 suites / 174 tests passed, including create/confirm,
+release authorization, provider funding, webhook guards/recovery and web payment display.
+remediation-funding-checkpoint.log records this run. Web type-check attempts 11, 12, and 13 passed;
+attempt 13 includes the latest production changes. No live/test-provider payment was executed;
+provider outcomes in these tests are synthetic mocks.
+
+The web PaymentForm now uses returned cash for its Pay button, displays gross and applied credit,
+rejects inconsistent breakdowns, and ignores obsolete async responses. Confirmation returns cash and
+credit separately alongside gross escrow amount; payer emails explain applied credit. The mobile
+skill was read and the mobile service/hook traced, but mobile code was not changed: the service
+currently discards funding amounts and the hook still treats failed server confirmation as success.
+Those are remaining repairs, not verified mobile behavior.
+
+F5/F9 remain incomplete: partial/full refunds still need a durable operation ledger separating cash
+returns, restored credits and remaining contractor principal. Existing credited payments without new
+funding records require evidence-based reconciliation, not blind metadata backfill. Reservation
+cancellation is integrated via provider events; abandoned intents, aged unknown outcomes,
+completed/refunded reservation lifecycle, and customer-initiated cancellation/retry UX still need
+recovery work. Fee/payout accounting must be tested through credited refunds and actual Stripe test
+mode, including platform balance insufficiency. Full migration replay/db diff, remaining audit
+findings, browser/device checks and broad final checks remain outstanding. These changes are
+uncommitted; the active goal is not complete.
+
+10 September mobile confirmation and refund authority continuation: usePayment now requires an
+intent ID before invoking Stripe and an explicit success:true/status:held response from server
+confirmation before showing Payment Successful. A card payment that succeeds while application
+confirmation fails displays Payment Received / escrow confirmation pending; Check Status retries
+application confirmation using the retained intent without another SDK confirmation. Changing a
+payment method/resetting retry count no longer discards the intent. A synchronous in-flight guard
+serializes double taps, completed escrow prevents another payment, and an epoch guard ignores
+responses arriving after a different job/account/contractor or unmount. The mobile API wrapper was
+traced: post<T> returns the parsed response body, matching the new status check.
+
+The existing mobile tests explicitly expected success on failed server confirmation; those unsafe
+expectations were replaced. 34 hook tests passed, including pending HTTP-success responses,
+received-payment retry without duplicate SDK/create calls, double taps, method reset, and stale
+navigation responses. Mobile type-check passed (remediation-mobile-typecheck-1.log). Added
+run-isolated-mobile-tests.cjs, an audit-only Jest launcher that clears deployment variables from
+root/web/mobile env files and uses synthetic configuration. Tests mock providers/native UI; no
+emulator, device, real account, or payment-provider request was used.
+
+Refund POST now validates the current designated payer (homeowner only when no designated payer
+exists) and escrow.payer_id before checking/replaying idempotency results. A former payer cannot
+retrieve a cached refund result, and current job authority alone cannot refund another account's
+funding. The route checks resource ownership before returning a completed result but leaves
+terminal-state handling after cache lookup so legitimate retries still work. Missing payer IDs fail
+closed pending reconciliation. Relevant synthetic fixtures were updated to include recorded payer
+identity; 92 refund/payment tests passed, including two new negative-authority regressions. Web
+type-check attempt 14 passed after the final refund edits. Current changes remain uncommitted. No
+deployment or hosted changes.
+
+Still outstanding: credit-aware refund operation ledger, cumulative/refundable balances and
+payout-versus-refund race protection; mobile cash/credit display parity; pending/abandoned payment
+recovery across app restart; full SQL migration replay/db diff; other F1–F15 repairs and final
+end-to-end verification. These tests do not establish full payment or launch readiness. Goal remains
+active.
+
+## 13 September: refund/payout exclusion, internal grants, and migration replay
+
+Added `20260913191656_serialize_refund_and_transfer_claims.sql`. The escrow row lock now serializes
+a refund claim against durable payout reservations. A refund cannot claim funds with an existing
+transfer attempt, including an attempt with no returned provider ID. `reserve_escrow_transfer`
+rejects `refund_pending` before returning or creating a reservation. The rollback SQL diagnostic
+passed; the new `remediation-refund-transfer-race.py` passed both payout-first and refund-first
+orderings using two actual database sessions and synthetic records.
+
+Refund POST no longer unlocks escrow when a Stripe request throws after being started: a timeout
+does not prove no refund occurred. Pending, requires-action, failed, or canceled provider refund
+objects cannot close escrow, cancel the job, or return a success response. They retain the claim for
+reconciliation and return an explicit non-success response, which existing callers already treat as
+such. This is containment, not complete recovery: the credit-aware refund operation ledger,
+cumulative partial balances, and durable refund reconciliation remain open. The route tests now use
+the real API error classes instead of an incomplete mock that omitted ConflictError. 98
+refund/payment tests passed.
+
+Added `20260913192749_restrict_internal_database_surfaces.sql`. Source callers of application RPCs
+use the privileged web server client; no direct mobile RPC caller was found. The injectable shared
+conformal service has no application initializer. Policy expressions and catalog dependencies were
+checked before revoking client EXECUTE on application SECURITY DEFINER routines. The seven predicate
+names used by RLS or participant checks remain callable; extension routines and trigger-returning
+functions are excluded. Service-role execution remains explicitly granted. The migration uses
+ROUTINE to include the existing recalibration procedure as well as functions. All nine public
+materialized views deny both table and column SELECT to PUBLIC/anon/authenticated; server analytics
+retain SELECT.
+
+`remediation-internal-grants.sql` verifies effective grants and actual denied calls to MFA mutation,
+data export, legacy escrow release, and analytics reads. All 15 rollback-only remediation SQL
+scripts passed after the grant change, including profile ownership, mobile session validation, bids,
+contract signing, credits, private photos and property bindings, rework, and payment reservations.
+
+Supabase CLI 2.116.0 replayed the complete current migration chain in its disposable shadow database
+and ran `supabase db diff --local` against the isolated audit stack. Both the initial pass and the
+pass including internal-grant restrictions completed with **No schema changes found**
+(remediation-full-migration-diff-2.log is the latest). The original mintenance-clean database and
+hosted projects were not changed.
+
+Read-only security advisors now report no materialized-view exposure warnings. Two extension
+findings remain: public PostGIS and RLS-disabled spatial_ref_sys. The isolated extension table is
+owned by supabase_admin and grants clients writes; postgres is not its owner, not a supabase_admin
+member, and has no grant option. Do not dismiss this as a harmless advisor warning or add an
+owner-only migration that cannot execute. Restricting those extension-owned grants needs the
+appropriate provider/owner authority; hosted extension privileges have not been rechecked. PostGIS
+is non-relocatable in this installation. No owner escalation was attempted.
+
+Application checkpoint: 18 affected web suites / 229 tests passed with dummy provider credentials;
+the separately executed mocked job-lifecycle suite passed. Changed web/mobile TypeScript files (53)
+passed ESLint with zero warnings; web type-check attempt 15 passed. These checks do not replace real
+provider, browser or device journey validation. Remaining F1–F15 work keeps the remediation goal
+active.

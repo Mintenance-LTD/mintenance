@@ -10,7 +10,7 @@
  * Stripe refund success, escrow DB update with retry, job cancellation,
  * idempotency result storage.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserFromBearerToken: vi.fn(),
   supabaseFrom: vi.fn(),
   jobUpdate: vi.fn(),
+  escrowUpdate: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   checkApiRateLimit: vi.fn(),
@@ -100,75 +101,6 @@ vi.mock('@/lib/monitoring/payment-monitor', () => ({
     detectAnomalies: mocks.detectAnomalies,
   },
 }));
-
-vi.mock('@/lib/errors/api-error', async () => {
-  class APIError extends Error {
-    constructor(
-      public code: string,
-      public userMessage: string,
-      public statusCode: number = 500,
-      public details?: unknown
-    ) {
-      super(userMessage);
-      this.name = 'APIError';
-    }
-    toResponse() {
-      return {
-        error: { code: this.code, message: this.userMessage },
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
-  class UnauthorizedError extends APIError {
-    constructor(m = 'Unauthorized') {
-      super('UNAUTHORIZED', m, 401);
-    }
-  }
-  class ForbiddenError extends APIError {
-    constructor(m = 'Forbidden') {
-      super('FORBIDDEN', m, 403);
-    }
-  }
-  class NotFoundError extends APIError {
-    constructor(m = 'Resource not found') {
-      super('NOT_FOUND', m, 404);
-    }
-  }
-  class BadRequestError extends APIError {
-    constructor(m = 'Bad Request', d?: unknown) {
-      super('BAD_REQUEST', m, 400, d);
-    }
-  }
-  class RateLimitError extends APIError {
-    constructor(m = 'Rate limit exceeded') {
-      super('RATE_LIMIT', m, 429);
-    }
-  }
-  return {
-    APIError,
-    UnauthorizedError,
-    ForbiddenError,
-    NotFoundError,
-    BadRequestError,
-    RateLimitError,
-    handleAPIError: vi.fn((error: unknown) => {
-      if (error instanceof APIError) {
-        return NextResponse.json(error.toResponse(), {
-          status: error.statusCode,
-        });
-      }
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'An unexpected error occurred',
-          },
-        },
-        { status: 500 }
-      );
-    }),
-  };
-});
 
 vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 
@@ -265,6 +197,9 @@ function setupRefundMocks(
     data: overrides.escrowData ?? {
       id: 'escrow-1',
       job_id: 'job-1',
+      payer_id:
+        (jobResult.data as { payer_user_id?: string }).payer_user_id ||
+        'homeowner-1',
       amount: 250,
       status: 'held',
       payment_intent_id: 'pi_test_123',
@@ -306,7 +241,7 @@ function setupRefundMocks(
             }),
           }),
         }),
-        update: vi.fn().mockReturnValue({
+        update: mocks.escrowUpdate.mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               select: vi.fn().mockReturnValue({
@@ -416,6 +351,55 @@ describe('POST /api/payments/refund', () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(body.refundId).toBe('refund-1');
+  });
+
+  it('rejects a former payer before reading a cached refund response', async () => {
+    mocks.checkIdempotency.mockResolvedValue({
+      isDuplicate: true,
+      cachedResult: { refundId: 'private-result' },
+    });
+    setupRefundMocks({
+      jobData: {
+        id: 'job-1',
+        homeowner_id: 'homeowner-1',
+        payer_user_id: 'new-payer',
+        contractor_id: 'contractor-1',
+        status: 'cancelled',
+      },
+    });
+    const response = await POST(
+      createPostRequest(
+        'http://localhost/api/payments/refund',
+        validRefundData
+      ),
+      segmentData()
+    );
+    expect(response.status).toBe(403);
+    expect(mocks.checkIdempotency).not.toHaveBeenCalled();
+    expect(mocks.stripeRefundsCreate).not.toHaveBeenCalled();
+  });
+
+  it('requires the escrow funding payer as well as current job authority', async () => {
+    setupRefundMocks({
+      escrowData: {
+        id: 'escrow-1',
+        job_id: 'job-1',
+        payer_id: 'different-funder',
+        amount: 250,
+        status: 'held',
+        payment_intent_id: 'pi_other',
+      },
+    });
+    const response = await POST(
+      createPostRequest(
+        'http://localhost/api/payments/refund',
+        validRefundData
+      ),
+      segmentData()
+    );
+    expect(response.status).toBe(403);
+    expect(mocks.checkIdempotency).not.toHaveBeenCalled();
+    expect(mocks.stripeRefundsCreate).not.toHaveBeenCalled();
   });
 
   // 2026-05-21: removed "should return 409 when idempotency lock contention
@@ -558,6 +542,7 @@ describe('POST /api/payments/refund', () => {
       escrowData: {
         id: 'escrow-1',
         job_id: 'job-1',
+        payer_id: 'homeowner-1',
         amount: 250,
         status: 'released',
         payment_intent_id: 'pi_test_123',
@@ -581,6 +566,7 @@ describe('POST /api/payments/refund', () => {
       escrowData: {
         id: 'escrow-1',
         job_id: 'job-1',
+        payer_id: 'homeowner-1',
         amount: 250,
         status: 'held',
         payment_intent_id: null,
@@ -640,6 +626,70 @@ describe('POST /api/payments/refund', () => {
   });
 
   // ---- Success ----
+  it('does not call Stripe when the database rejects a refund claim for an existing payout attempt', async () => {
+    setupRefundMocks({
+      escrowUpdateError: {
+        code: '23514',
+        message: 'A payout attempt exists; reconcile it before refunding',
+      },
+    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
+    const response = await POST(req, segmentData());
+    expect(response.status).toBe(409);
+    expect(mocks.stripeRefundsCreate).not.toHaveBeenCalled();
+  });
+
+  it('keeps escrow locked after an uncertain provider outcome', async () => {
+    setupRefundMocks();
+    mocks.stripeRefundsCreate.mockRejectedValue(
+      new Error('Network timeout after request was sent')
+    );
+    const response = await POST(
+      createPostRequest(
+        'http://localhost/api/payments/refund',
+        validRefundData
+      ),
+      segmentData()
+    );
+    expect(response.status).toBe(500);
+    expect(mocks.escrowUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.escrowUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'release_pending',
+        release_reason: 'refund_pending',
+      })
+    );
+    expect(mocks.jobUpdate).not.toHaveBeenCalled();
+    expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+  });
+
+  it.each(['pending', 'requires_action', 'failed', 'canceled'])(
+    'does not report %s provider refunds as completed',
+    async (status) => {
+      setupRefundMocks();
+      mocks.stripeRefundsCreate.mockResolvedValue({
+        id: 're_synthetic',
+        status,
+        amount: 25000,
+      });
+      const response = await POST(
+        createPostRequest(
+          'http://localhost/api/payments/refund',
+          validRefundData
+        ),
+        segmentData()
+      );
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({ success: false, status });
+      expect(mocks.escrowUpdate).toHaveBeenCalledTimes(1);
+      expect(mocks.jobUpdate).not.toHaveBeenCalled();
+      expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+    }
+  );
+
   it('should process refund successfully and return refund details', async () => {
     setupRefundMocks();
 

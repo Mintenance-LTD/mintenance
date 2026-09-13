@@ -1,3 +1,4 @@
+import { getEscrowCashRequirement } from '@/lib/services/payment/PaymentFundingService';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
@@ -168,7 +169,12 @@ export const POST = withApiHandler(
     // valid-but-cheaper PaymentIntent could be attached to this job and
     // recorded as fully paid.
     const stripeAmountCents = paymentIntent.amount;
-    const escrowAmountCents = Math.round(Number(currentEscrow.amount) * 100);
+    const escrowAmountCents = await getEscrowCashRequirement(
+      currentEscrow.id,
+      Number(currentEscrow.amount),
+      paymentIntent.id,
+      paymentIntent.metadata
+    );
     if (
       !Number.isFinite(stripeAmountCents) ||
       !Number.isFinite(escrowAmountCents) ||
@@ -383,6 +389,7 @@ export const POST = withApiHandler(
                 homeownerName,
                 jobTitle,
                 amount: Number(amount),
+                creditApplied: Number(amount) - escrowAmountCents / 100,
                 contractorName,
                 viewUrl: `${baseUrl}/payments`,
               }
@@ -437,6 +444,8 @@ export const POST = withApiHandler(
       escrowTransactionId: escrowTransaction.id,
       status: escrowTransaction.status,
       amount: escrowTransaction.amount,
+      cashAmount: escrowAmountCents / 100,
+      creditApplied: Number(escrowTransaction.amount) - escrowAmountCents / 100,
     });
   }
 );

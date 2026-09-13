@@ -1,3 +1,6 @@
+vi.mock('@/lib/services/payment/EscrowFundingService', () => ({
+  verifyEscrowFunding: vi.fn().mockResolvedValue('ch_verified'),
+}));
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({
@@ -81,6 +84,18 @@ beforeEach(() => {
   }));
 });
 describe('escrow transfer recovery', () => {
+  it('does not transfer when captured funding verification fails', async () => {
+    const { verifyEscrowFunding } =
+      await import('@/lib/services/payment/EscrowFundingService');
+    vi.mocked(verifyEscrowFunding).mockRejectedValueOnce(
+      new Error('Unfunded escrow')
+    );
+    await expect(
+      createEscrowTransfer('one', 43000, 'acct_one')
+    ).rejects.toThrow('Unfunded escrow');
+    expect(m.create).not.toHaveBeenCalled();
+  });
+
   it('recovers provider success with a lost response without a second transfer', async () => {
     loseResponse = true;
     await expect(

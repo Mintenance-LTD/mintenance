@@ -1,4 +1,4 @@
-// Audit observation tests: passing assertions document unsafe current behavior.
+// Regression: foreign URL text cannot authorize private storage signing.
 import { describe, it, expect, vi } from 'vitest';
 const storage = vi.hoisted(() => ({ sign: vi.fn(), from: vi.fn() }));
 vi.mock('@/lib/api/supabaseServer', () => ({
@@ -21,7 +21,9 @@ describe('AUDIT: property image signing authority', () => {
       data: { signedUrl: 'https://local.example/new-synthetic-signature' },
       error: null,
     });
-    expect(await resignJobStorageUrls(parsed.photos!)).toEqual([foreignUrl]);
+    expect(
+      await resignJobStorageUrls(parsed.photos!, 'synthetic-viewer')
+    ).toEqual([foreignUrl]);
     expect(storage.from).not.toHaveBeenCalled();
     expect(storage.sign).not.toHaveBeenCalled();
   });

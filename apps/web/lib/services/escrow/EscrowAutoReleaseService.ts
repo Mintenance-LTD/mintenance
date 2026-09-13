@@ -1,3 +1,4 @@
+import { verifyEscrowFunding } from '@/lib/services/payment/EscrowFundingService';
 import { createEscrowTransfer } from '@/lib/services/payment/EscrowTransferService';
 /**
  * Escrow Auto-Release Service
@@ -284,6 +285,7 @@ export class EscrowAutoReleaseService {
       const { accumulateEarnings } =
         await import('@/lib/stripe/connect/payouts');
       try {
+        await verifyEscrowFunding(escrow.id);
         await accumulateEarnings({
           contractorId: escrow.payee_id,
           amountMinor: contractorAmountCents,

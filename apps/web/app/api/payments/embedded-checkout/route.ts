@@ -68,6 +68,7 @@ export const POST = withApiHandler(
     let contractorStripeAccountId: string | null = null;
     let applicationFeeAmount: number | null = null;
     let jobHomeownerId: string | null = null;
+    let jobContractorId: string | null = null;
     // Server-authoritative amount for the marketplace path (audit C2). Stays
     // null for non-marketplace checkout. When set, it — NOT the client priceId
     // — is what gets charged and recorded in escrow.
@@ -102,7 +103,7 @@ export const POST = withApiHandler(
       if (
         jobError ||
         !jobData ||
-        (jobData.homeowner_id !== user.id && jobData.payer_user_id !== user.id)
+        (jobData.payer_user_id ?? jobData.homeowner_id) !== user.id
       ) {
         logger.warn('Job access denied or not found', {
           service: 'payments',
@@ -119,6 +120,7 @@ export const POST = withApiHandler(
       jobHomeownerId = jobData.homeowner_id;
 
       // Validate contractor matches if provided
+      jobContractorId = jobData.contractor_id;
       if (contractorId && jobData.contractor_id !== contractorId) {
         return NextResponse.json(
           { error: 'Contractor does not match job assignment' },
@@ -342,13 +344,14 @@ export const POST = withApiHandler(
         metadata.bidId = bidId;
       }
 
-      if (contractorId) {
-        metadata.contractorId = contractorId;
+      if (jobContractorId) {
+        metadata.contractorId = jobContractorId;
       }
 
+      // Mirror trusted identity onto the PaymentIntent as well as Checkout.
       // Build payment intent data for marketplace payments
       const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData =
-        {};
+        { metadata };
 
       // Store contractor account ID in metadata for later escrow release
       if (contractorStripeAccountId) {
