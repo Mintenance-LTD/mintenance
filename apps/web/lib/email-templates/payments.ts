@@ -19,6 +19,11 @@ export function paymentConfirmationTemplate(
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
   const fmtAmount = `£${data.amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const credit = data.creditApplied ?? 0;
+  const fundingNote =
+    credit > 0
+      ? `This includes £${(data.amount - credit).toFixed(2)} paid by you and £${credit.toFixed(2)} of Mintenance credit.`
+      : '';
   const subject = `${fmtAmount} held in escrow for ${data.jobTitle}.`;
   const preview = `Your payment is safe — released to ${data.contractorName} only after you approve the work.`;
   const html = mintEmailShell(
@@ -26,11 +31,12 @@ export function paymentConfirmationTemplate(
     preview,
     `<p>Hi ${e(data.homeownerName)},</p>
      <p>Your <strong>${fmtAmount}</strong> for <strong>${e(data.jobTitle)}</strong> is now sitting in escrow. <strong>${e(data.contractorName)}</strong> can see the funds are good and will start the work.</p>
+     ${fundingNote ? `<p>${e(fundingNote)}</p>` : ''}
      <div class="note">We release the money to ${e(data.contractorName)} the moment you approve the finished job. If something isn't right, you flag it instead — money stays put until we sort it.</div>
      <a href="${e(data.viewUrl)}" class="cta">See payment details →</a>`,
     unsubscribeFooter
   );
-  const text = `Hi ${data.homeownerName},\n\n${fmtAmount} for "${data.jobTitle}" is now held in escrow. ${data.contractorName} can see the funds and will start work.\n\nWe release it the moment you approve the finished job. Flag any issue and the money stays put.\n\nView details: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  const text = `Hi ${data.homeownerName},\n\n${fmtAmount} for "${data.jobTitle}" is now held in escrow. ${data.contractorName} can see the funds and will start work.\n\n${fundingNote}\n\nWe release it the moment you approve the finished job. Flag any issue and the money stays put.\n\nView details: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
   return { subject, html, text };
 }
 

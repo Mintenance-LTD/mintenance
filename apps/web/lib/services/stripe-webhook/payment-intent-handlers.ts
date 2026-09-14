@@ -1,3 +1,7 @@
+import {
+  getEscrowCashRequirement,
+  reconcileReservedFundingIntent,
+} from '@/lib/services/payment/PaymentFundingService';
 /**
  * PaymentIntent webhook handlers.
  *
@@ -112,7 +116,7 @@ export async function handlePaymentIntentSucceeded(
     // must NOT flip an escrow that has already progressed past 'held' back to
     // 'held' — that would re-open a released/completed escrow for a second
     // release. Look the row up first and bail on any post-held state.
-    const { data: existing, error: lookupError } = await serverSupabase
+    const { data: foundEscrow, error: lookupError } = await serverSupabase
       .from('escrow_transactions')
       .select('id, status, amount')
       .eq('payment_intent_id', paymentIntent.id)
@@ -126,6 +130,12 @@ export async function handlePaymentIntentSucceeded(
       throw new Error('Failed to look up funded escrow transaction');
     }
 
+    const existing =
+      foundEscrow ||
+      (paymentIntent.metadata?.fundingReservationId
+        ? await reconcileReservedFundingIntent(paymentIntent)
+        : null);
+
     if (!existing) {
       logger.warn('No escrow transaction found for payment intent', {
         service: 'stripe-webhook',
@@ -134,7 +144,12 @@ export async function handlePaymentIntentSucceeded(
       return;
     }
 
-    const escrowAmountCents = Math.round(Number(existing.amount) * 100);
+    const escrowAmountCents = await getEscrowCashRequirement(
+      existing.id,
+      Number(existing.amount),
+      paymentIntent.id,
+      paymentIntent.metadata
+    );
     if (
       paymentIntent.currency.toLowerCase() !== 'gbp' ||
       !Number.isFinite(escrowAmountCents) ||
@@ -432,6 +447,11 @@ export async function handlePaymentIntentCanceled(
   });
 
   try {
+    if (paymentIntent.metadata?.fundingReservationId) {
+      await reconcileReservedFundingIntent(paymentIntent);
+      return;
+    }
+
     const existing = await lookupEscrowForTerminalEvent(
       paymentIntent.id,
       'payment_intent.canceled'
@@ -465,7 +485,7 @@ export async function handlePaymentIntentCanceled(
       await serverSupabase
         .from('jobs')
         .update({
-          payment_status: 'cancelled',
+          payment_status: 'canceled',
           updated_at: new Date().toISOString(),
         })
         .eq('id', jobId);

@@ -267,7 +267,7 @@ export const GET = withApiHandler(
             }
             // Re-sign all URLs in one shot (cheaper than per-tile signing)
             const allRawUrls = Array.from(byJob.values()).flat();
-            const signed = await resignJobStorageUrls(allRawUrls);
+            const signed = await resignJobStorageUrls(allRawUrls, null);
             const signedByRaw = new Map<string, string>();
             allRawUrls.forEach((raw, i) => signedByRaw.set(raw, signed[i]));
             jobAfterPhotoUrls = signed;

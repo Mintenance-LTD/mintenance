@@ -153,6 +153,7 @@ const claimStore = new Map<
 >();
 
 const escrowInserts: Array<Record<string, unknown>> = [];
+let fundingReservation: Record<string, unknown> | null = null;
 
 // Controls the profiles mock: the stored stripe_customer_id returned by the
 // read, and a capture of any update the route writes back. Reset in beforeEach.
@@ -177,7 +178,37 @@ const ACCEPTED_BID = {
   quote_id: null,
 };
 
-function rpcMock(name: string, args: Record<string, unknown>) {
+async function rpcMock(name: string, args: Record<string, unknown>) {
+  // Funding SQL is exercised against PostgreSQL separately; this mock exposes
+  // its response contract so these tests keep exercising real route/idempotency code.
+  if (name === 'reserve_payment_funding') {
+    if (!fundingReservation) {
+      const credit = await mocks.spendCredit();
+      fundingReservation = {
+        id: 'funding-1',
+        created_at: new Date().toISOString(),
+        gross_minor: args.p_gross_minor,
+        cash_minor: Number(args.p_gross_minor) - credit,
+        credit_minor: credit,
+        state: 'reserved',
+      };
+    }
+    return { data: [fundingReservation], error: null };
+  }
+  if (name === 'attach_payment_funding') {
+    if (!escrowInserts.length)
+      escrowInserts.push({
+        id: 'escrow-1',
+        job_id: JOB.id,
+        payer_id: JOB.payer_user_id || JOB.homeowner_id,
+        payee_id: JOB.contractor_id,
+        amount: Number(fundingReservation!.gross_minor) / 100,
+        status: 'pending',
+        payment_intent_id: args.p_payment_intent_id,
+        metadata: { credit_applied_pence: fundingReservation!.credit_minor },
+      });
+    return { data: [escrowInserts[0]], error: null };
+  }
   const key = args.p_idempotency_key as string;
   if (name === 'try_claim_bound_idempotency_key') {
     const existing = claimStore.get(key);
@@ -389,6 +420,7 @@ describe('create-intent header-less duplicate protection', () => {
     vi.clearAllMocks();
     claimStore.clear();
     escrowInserts.length = 0;
+    fundingReservation = null;
     profileCustomerId = null;
     profileUpdates.length = 0;
 

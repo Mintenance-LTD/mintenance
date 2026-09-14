@@ -25,6 +25,28 @@ DO $$ DECLARE a record; b record; BEGIN
  RAISE NOTICE 'PASS: retries retain transfer identity and parameters; changed amount/recipient rejected';
 END $$;
 RESET ROLE;
+-- An unknown provider outcome must still prevent a refund.
+UPDATE public.escrow_transactions SET status='held' WHERE id='fa060906-0000-4000-8000-000000000030';
+DO $$ BEGIN
+ BEGIN
+  UPDATE public.escrow_transactions SET status='release_pending', release_reason='refund_pending'
+  WHERE id='fa060906-0000-4000-8000-000000000030';
+  RAISE EXCEPTION 'Refund claimed escrow with an unresolved payout';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+END $$;
+-- Even a reservation made before the refund claim must not be reusable.
+DELETE FROM public.escrow_transfer_attempts WHERE escrow_id='fa060906-0000-4000-8000-000000000030';
+UPDATE public.escrow_transactions SET status='release_pending', release_reason='refund_pending'
+WHERE id='fa060906-0000-4000-8000-000000000030';
+SET LOCAL ROLE service_role;
+DO $$ BEGIN
+ BEGIN
+  PERFORM public.reserve_escrow_transfer('fa060906-0000-4000-8000-000000000030',43000,'acct_synthetic');
+  RAISE EXCEPTION 'Payout reserved against refund claim';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+ RAISE NOTICE 'PASS: uncertain payout blocks refund and refund blocks payout';
+END $$;
+RESET ROLE;
 SET LOCAL ROLE authenticated;
 DO $$ BEGIN
  BEGIN

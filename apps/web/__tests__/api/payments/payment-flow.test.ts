@@ -1027,6 +1027,7 @@ describe('POST /api/payments/refund', () => {
           selectReturn: {
             data: {
               id: '660e8400-e29b-41d4-a716-446655440001',
+              payer_id: 'homeowner-user-id',
               job_id: '550e8400-e29b-41d4-a716-446655440000',
               amount: 250,
               status: 'held',
@@ -1115,6 +1116,7 @@ describe('POST /api/payments/refund', () => {
           selectReturn: {
             data: {
               id: '660e8400-e29b-41d4-a716-446655440001',
+              payer_id: 'homeowner-user-id',
               job_id: '550e8400-e29b-41d4-a716-446655440000',
               amount: 250,
               status: 'completed', // Already released
@@ -1162,6 +1164,7 @@ describe('POST /api/payments/refund', () => {
           selectReturn: {
             data: {
               id: '660e8400-e29b-41d4-a716-446655440001',
+              payer_id: 'homeowner-user-id',
               job_id: '550e8400-e29b-41d4-a716-446655440000',
               amount: 250,
               status: 'refunded', // Already refunded
@@ -1213,6 +1216,7 @@ describe('POST /api/payments/refund', () => {
             selectReturn: {
               data: {
                 id: '660e8400-e29b-41d4-a716-446655440001',
+                payer_id: 'homeowner-user-id',
                 job_id: '550e8400-e29b-41d4-a716-446655440000',
                 amount: 250,
                 status: 'held',
@@ -1267,6 +1271,7 @@ describe('POST /api/payments/refund', () => {
             selectReturn: {
               data: {
                 id: '660e8400-e29b-41d4-a716-446655440001',
+                payer_id: 'homeowner-user-id',
                 job_id: '550e8400-e29b-41d4-a716-446655440000',
                 amount: 250,
                 status: 'held',
@@ -1277,6 +1282,7 @@ describe('POST /api/payments/refund', () => {
             updateReturn: {
               data: {
                 id: '660e8400-e29b-41d4-a716-446655440001',
+                payer_id: 'homeowner-user-id',
                 status: 'refunded',
               },
               error: null,
@@ -1443,6 +1449,9 @@ describe('POST /api/payments/release-escrow', () => {
             data: {
               id: '660e8400-e29b-41d4-a716-446655440001',
               amount: 500,
+              job_id: '550e8400-e29b-41d4-a716-446655440000',
+              payer_id: 'homeowner-user-id',
+              payee_id: 'contractor-abc',
               status: 'held',
               payment_intent_id: 'pi_test_123',
               updated_at: new Date().toISOString(),
@@ -1506,6 +1515,29 @@ describe('POST /api/payments/release-escrow', () => {
         },
       });
 
+      mocks.supabaseRpc.mockImplementation(
+        async (name: string, args: Record<string, unknown>) => {
+          if (name !== 'reserve_escrow_transfer')
+            throw new Error(`Unexpected RPC ${name}`);
+          return {
+            data: [
+              {
+                created_at: new Date().toISOString(),
+                idempotency_key: 'synthetic-transfer',
+                stripe_parameters: {
+                  amount: args.p_amount,
+                  currency: 'gbp',
+                  destination: args.p_destination,
+                },
+              },
+            ],
+            error: null,
+          };
+        }
+      );
+      mocks.stripeWithTimeout.mockImplementation((fn: () => Promise<unknown>) =>
+        fn()
+      );
       // Stripe transfer succeeds
       mocks.stripeTransfersCreate.mockResolvedValue({
         id: 'tr_test_123',
@@ -1514,7 +1546,24 @@ describe('POST /api/payments/release-escrow', () => {
 
       mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
         id: 'pi_test_123',
-        latest_charge: 'ch_test_123',
+        status: 'succeeded',
+        currency: 'gbp',
+        amount_received: 50000,
+        metadata: {
+          jobId: '550e8400-e29b-41d4-a716-446655440000',
+          payerId: 'homeowner-user-id',
+          contractorId: 'contractor-abc',
+        },
+        latest_charge: {
+          id: 'ch_test_123',
+          paid: true,
+          captured: true,
+          disputed: false,
+          refunded: false,
+          amount_refunded: 0,
+          amount: 50000,
+          currency: 'gbp',
+        },
       });
 
       const request = createMockRequest(
@@ -1898,6 +1947,37 @@ describe('POST /api/payments/create-intent', () => {
           selectReturn: { data: { stripe_customer_id: null }, error: null },
         },
       });
+
+      mocks.supabaseRpc.mockImplementation(
+        async (name: string, args: Record<string, unknown>) => {
+          if (name === 'reserve_payment_funding')
+            return {
+              data: [
+                {
+                  id: 'funding-max',
+                  created_at: new Date().toISOString(),
+                  state: 'reserved',
+                  gross_minor: args.p_gross_minor,
+                  cash_minor: args.p_gross_minor,
+                  credit_minor: 0,
+                },
+              ],
+              error: null,
+            };
+          if (name === 'attach_payment_funding')
+            return {
+              data: [
+                {
+                  id: 'escrow-max-1',
+                  payment_intent_id: args.p_payment_intent_id,
+                  amount: 100000,
+                },
+              ],
+              error: null,
+            };
+          throw new Error(`Unexpected RPC ${name}`);
+        }
+      );
 
       const request = createMockRequest(
         'http://localhost:3000/api/payments/create-intent'
@@ -2329,6 +2409,31 @@ describe('Cross-Cutting Payment Security', () => {
         },
       });
 
+      createSupabaseChain({
+        jobs: {
+          selectReturn: {
+            data: {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              homeowner_id: 'homeowner-user-id',
+              status: 'cancelled',
+            },
+            error: null,
+          },
+        },
+        escrow_transactions: {
+          selectReturn: {
+            data: {
+              id: '660e8400-e29b-41d4-a716-446655440001',
+              job_id: '550e8400-e29b-41d4-a716-446655440000',
+              payer_id: 'homeowner-user-id',
+              amount: 250,
+              status: 'held',
+              payment_intent_id: 'pi_test',
+            },
+            error: null,
+          },
+        },
+      });
       const { POST } = await import('@/app/api/payments/refund/route');
       const request = createMockRequest(
         'http://localhost:3000/api/payments/refund'
@@ -2360,6 +2465,31 @@ describe('Cross-Cutting Payment Security', () => {
         },
       });
 
+      createSupabaseChain({
+        jobs: {
+          selectReturn: {
+            data: {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              homeowner_id: 'homeowner-user-id',
+              status: 'cancelled',
+            },
+            error: null,
+          },
+        },
+        escrow_transactions: {
+          selectReturn: {
+            data: {
+              id: '660e8400-e29b-41d4-a716-446655440001',
+              job_id: '550e8400-e29b-41d4-a716-446655440000',
+              payer_id: 'homeowner-user-id',
+              amount: 250,
+              status: 'held',
+              payment_intent_id: 'pi_test',
+            },
+            error: null,
+          },
+        },
+      });
       const { POST } = await import('@/app/api/payments/refund/route');
       const request = createMockRequest(
         'http://localhost:3000/api/payments/refund'
@@ -2461,6 +2591,7 @@ describe('Refund DB Retry Logic', () => {
           : {
               data: {
                 id: '660e8400-e29b-41d4-a716-446655440001',
+                payer_id: 'homeowner-user-id',
                 status: 'refunded',
               },
               error: null,
@@ -2515,6 +2646,7 @@ describe('Refund DB Retry Logic', () => {
                 single: vi.fn().mockResolvedValue({
                   data: {
                     id: '660e8400-e29b-41d4-a716-446655440001',
+                    payer_id: 'homeowner-user-id',
                     job_id: '550e8400-e29b-41d4-a716-446655440000',
                     amount: 250,
                     status: 'held',

@@ -1,3 +1,6 @@
+vi.mock('@/lib/services/payment/EscrowFundingService', () => ({
+  verifyEscrowFunding: vi.fn().mockResolvedValue('ch_verified'),
+}));
 // @vitest-environment node
 /**
  * Tests for POST /api/jobs/[id]/start
@@ -69,9 +72,7 @@ vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
 // returns null (caller owns the claim → proceed); releaseOnError just runs
 // the wrapped fn; storeIdempotencyResult is a no-op.
 vi.mock('@/lib/idempotency', () => ({
-  getDeterministicIdempotencyKeyFromRequest: vi.fn(
-    () => 'idem-key-job-start'
-  ),
+  getDeterministicIdempotencyKeyFromRequest: vi.fn(() => 'idem-key-job-start'),
   getIdempotencyKeyFromRequest: vi.fn(() => 'idem-key-job-start'),
   checkIdempotency: vi.fn().mockResolvedValue(null),
   storeIdempotencyResult: vi.fn().mockResolvedValue(undefined),

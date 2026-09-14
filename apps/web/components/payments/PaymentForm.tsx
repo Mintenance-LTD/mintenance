@@ -140,6 +140,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingIntent, setLoadingIntent] = useState(true);
+  const [funding, setFunding] = useState<{
+    cash: number;
+    gross: number;
+    credit: number;
+  } | null>(null);
 
   const amountInPence = Math.round(defaultAmount * 100);
 
@@ -173,6 +178,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   useEffect(() => {
     if (!jobId || defaultAmount <= 0) return;
 
+    let active = true;
+    setClientSecret(null);
+    setFunding(null);
     setLoadingIntent(true);
 
     getCsrfToken()
@@ -201,11 +209,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         return res.json();
       })
       .then((data) => {
+        if (!active) return;
         if (!data.clientSecret)
           throw new Error('No client secret returned from server');
+        const cash = Number(data.amount);
+        const gross = Number(data.grossAmount ?? data.amount);
+        const credit = Number(data.creditApplied ?? 0);
+        if (
+          ![cash, gross, credit].every(Number.isFinite) ||
+          cash <= 0 ||
+          credit < 0 ||
+          Math.round(cash * 100) + Math.round(credit * 100) !==
+            Math.round(gross * 100)
+        ) {
+          throw new Error(
+            'The payment total could not be verified. Please retry.'
+          );
+        }
+        setFunding({ cash, gross, credit });
         setClientSecret(data.clientSecret);
       })
       .catch((err) => {
+        if (!active) return;
         logger.error('Failed to create PaymentIntent', {
           error: err.message,
           jobId,
@@ -215,7 +240,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             'Failed to initialise payment. Please refresh and try again.'
         );
       })
-      .finally(() => setLoadingIntent(false));
+      .finally(() => {
+        if (active) setLoadingIntent(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [jobId, contractorId, amountInPence]);
 
   const appearance = {
@@ -263,17 +293,35 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     );
   }
 
-  if (!clientSecret) return null;
+  if (!clientSecret || !funding) return null;
 
   return (
-    <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-      <StripeCheckoutForm
-        clientSecret={clientSecret}
-        amount={defaultAmount}
-        onSuccess={onSuccess}
-        onError={onError}
-        onCancel={onCancel}
-      />
-    </Elements>
+    <div className='space-y-4'>
+      {funding.credit > 0 && (
+        <dl className='text-sm space-y-2' aria-label='Payment breakdown'>
+          <div className='flex justify-between'>
+            <dt>Agreed job amount</dt>
+            <dd>£{funding.gross.toFixed(2)}</dd>
+          </div>
+          <div className='flex justify-between'>
+            <dt>Mintenance credit</dt>
+            <dd>−£{funding.credit.toFixed(2)}</dd>
+          </div>
+          <div className='flex justify-between font-semibold'>
+            <dt>Pay now</dt>
+            <dd>£{funding.cash.toFixed(2)}</dd>
+          </div>
+        </dl>
+      )}
+      <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+        <StripeCheckoutForm
+          clientSecret={clientSecret}
+          amount={funding.cash}
+          onSuccess={onSuccess}
+          onError={onError}
+          onCancel={onCancel}
+        />
+      </Elements>
+    </div>
   );
 };

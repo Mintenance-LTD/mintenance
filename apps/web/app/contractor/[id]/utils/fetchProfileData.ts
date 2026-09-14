@@ -127,7 +127,7 @@ export async function fetchContractorProfileData(
         byJob.set(row.job_id, list);
       }
       const allRawUrls = Array.from(byJob.values()).flat();
-      const signed = await resignJobStorageUrls(allRawUrls);
+      const signed = await resignJobStorageUrls(allRawUrls, null);
       const signedByRaw = new Map<string, string>();
       allRawUrls.forEach((raw, i) => signedByRaw.set(raw, signed[i]));
 

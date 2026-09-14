@@ -15,6 +15,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
 import { normalisePropertyType } from '@/lib/properties/property-type';
+import { saveProperty } from '@/lib/properties/save-property';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 export const GET = withApiHandler(
@@ -59,7 +60,7 @@ export const GET = withApiHandler(
           (photo): photo is string => typeof photo === 'string'
         ) as string[])
       : [];
-    const freshPhotos = await resignJobStorageUrls(storedPhotos);
+    const freshPhotos = await resignJobStorageUrls(storedPhotos, user.id);
     const propertyData: Record<string, unknown> = {
       ...(data as Record<string, unknown>),
       photos: freshPhotos,
@@ -232,24 +233,12 @@ export const PUT = withApiHandler(
       }
     }
 
-    const { data, error } = await serverSupabase
-      .from('properties')
-      .update(updateData)
-      .eq('id', params.id)
-      .select()
-      .single();
+    const data = await saveProperty(user.id, params.id, updateData);
 
-    if (error) {
-      logger.error('Error updating property', error, {
-        service: 'properties',
-        propertyId: params.id,
-        userId: user.id,
-      });
-      throw error;
-    }
-
-    if (!data) {
-      throw new NotFoundError('Property not found or not authorized');
+    // Editing a property does not grant access to its physical-entry secret.
+    // Match the GET response policy for managers and property administrators.
+    if (data.owner_id !== user.id && user.role !== 'admin') {
+      data.key_safe_code = null;
     }
 
     return NextResponse.json({ success: true, data });

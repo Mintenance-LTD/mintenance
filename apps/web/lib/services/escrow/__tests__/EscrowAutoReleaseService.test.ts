@@ -1,3 +1,6 @@
+vi.mock('@/lib/services/payment/EscrowFundingService', () => ({
+  verifyEscrowFunding: vi.fn().mockResolvedValue('ch_verified'),
+}));
 // @vitest-environment node
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 

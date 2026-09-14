@@ -51,6 +51,43 @@ export const POST = withApiHandler(
 
     const { jobId, escrowTransactionId, amount, reason } = data;
 
+    // Revalidate current resource authority before returning cached financial data.
+    const { data: job, error: jobError } = await serverSupabase
+      .from('jobs')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status')
+      .eq('id', jobId)
+      .single();
+    if (jobError || !job) throw new NotFoundError('Job not found');
+    const payerId = job.payer_user_id || job.homeowner_id;
+    if (payerId !== user.id)
+      throw new ForbiddenError(
+        'Only the designated payer can request a refund'
+      );
+
+    // Get escrow transaction. NOTE: the live table only has
+    // `payment_intent_id` — there is no `stripe_payment_intent_id`
+    // column. Listing it made PostgREST reject the whole SELECT, so
+    // `escrowError` was always set and every refund 500'd with
+    // "Escrow transaction not found".
+    const { data: escrow, error: escrowError } = await serverSupabase
+      .from('escrow_transactions')
+      .select(
+        'id, job_id, payer_id, amount, status, payment_intent_id, created_at, released_at, refunded_at'
+      )
+      .eq('id', escrowTransactionId)
+      .eq('job_id', jobId)
+      .single();
+
+    if (escrowError || !escrow) {
+      throw new NotFoundError('Escrow transaction not found');
+    }
+
+    if (escrow.payer_id !== user.id) {
+      throw new ForbiddenError(
+        'This payment belongs to another payer. Contact support for reconciliation.'
+      );
+    }
+
     // Get MFA token from header if present
     const mfaToken = request.headers.get('x-mfa-token');
 
@@ -87,60 +124,8 @@ export const POST = withApiHandler(
     // takeover. (Note: checkIdempotency now THROWS on real contention, so
     // a `null` return from it would only mean "new request, proceed".)
     let escrowClaimed = false;
-    let refundId: string | null = null;
+    let providerRequestStarted = false;
     try {
-      // Verify job access
-      const { data: job, error: jobError } = await serverSupabase
-        .from('jobs')
-        .select('id, homeowner_id, payer_user_id, contractor_id, status')
-        .eq('id', jobId)
-        .single();
-
-      if (jobError || !job) {
-        throw new NotFoundError('Job not found');
-      }
-
-      // SECURITY: Enhanced refund authorization logic
-      const isHomeowner = job.homeowner_id === user.id;
-      const isDesignatedPayer = job.payer_user_id === user.id;
-      const isContractor = job.contractor_id === user.id;
-
-      if (!isHomeowner && !isDesignatedPayer && !isContractor) {
-        throw new ForbiddenError('Unauthorized');
-      }
-
-      // Get escrow transaction. NOTE: the live table only has
-      // `payment_intent_id` — there is no `stripe_payment_intent_id`
-      // column. Listing it made PostgREST reject the whole SELECT, so
-      // `escrowError` was always set and every refund 500'd with
-      // "Escrow transaction not found".
-      const { data: escrow, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .select(
-          'id, job_id, amount, status, payment_intent_id, created_at, released_at, refunded_at'
-        )
-        .eq('id', escrowTransactionId)
-        .eq('job_id', jobId)
-        .single();
-
-      if (escrowError || !escrow) {
-        throw new NotFoundError('Escrow transaction not found');
-      }
-
-      // SECURITY: Only allow refunds in specific scenarios
-      if (!isHomeowner && !isDesignatedPayer) {
-        logger.warn('Non-homeowner attempted refund', {
-          service: 'payments',
-          userId: user.id,
-          role: user.role,
-          jobId,
-        });
-        return NextResponse.json(
-          { error: 'Only the designated payer can request a refund' },
-          { status: 403 }
-        );
-      }
-
       // Only allow refunds for jobs that are cancelled, disputed, or pending
       const refundableStatuses = ['cancelled', 'disputed', 'pending', 'posted'];
       if (!refundableStatuses.includes(job.status)) {
@@ -330,6 +315,7 @@ export const POST = withApiHandler(
 
       // Create Stripe refund. Idempotency key keyed on escrow+amount+intent so
       // retries against the same protected operation don't issue a second refund.
+      providerRequestStarted = true;
       const refund = await stripe.refunds.create(
         {
           payment_intent: paymentIntentId,
@@ -346,7 +332,21 @@ export const POST = withApiHandler(
           idempotencyKey: `refund_${escrowTransactionId}_${paymentIntentId}_${refundAmount}`,
         }
       );
-      refundId = refund.id;
+      if (refund.status !== 'succeeded') {
+        // A provider object is not proof that money was returned. Keep the
+        // database claim until a verified event or reconciliation settles it.
+        // Non-2xx also keeps existing clients from showing false success.
+        return NextResponse.json(
+          {
+            success: false,
+            refundId: refund.id,
+            status: refund.status,
+            error:
+              'The refund has not completed. This payment remains locked while its status is reconciled.',
+          },
+          { status: 503 }
+        );
+      }
 
       // Update escrow transaction with retry logic
       // CRITICAL: Stripe refund already succeeded, so DB must reflect this
@@ -504,9 +504,9 @@ export const POST = withApiHandler(
 
       return NextResponse.json(responseData);
     } catch (err) {
-      if (escrowClaimed && !refundId) {
-        // Stripe did not create a refund, so release the payment claim and
-        // allow a safe retry. Never do this after Stripe has returned a refund.
+      if (escrowClaimed && !providerRequestStarted) {
+        // Only pre-provider failures are safe to unlock. A timeout can happen
+        // after Stripe accepted the request, even though no refund ID arrived.
         const { error: claimReleaseError } = await serverSupabase
           .from('escrow_transactions')
           .update({
@@ -515,7 +515,8 @@ export const POST = withApiHandler(
             updated_at: new Date().toISOString(),
           })
           .eq('id', escrowTransactionId)
-          .eq('status', 'release_pending');
+          .eq('status', 'release_pending')
+          .eq('release_reason', 'refund_pending');
 
         if (claimReleaseError) {
           logger.error(

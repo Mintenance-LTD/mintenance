@@ -209,6 +209,9 @@ function setupDefaultMocks() {
 function setupConfirmIntentMocks(
   overrides: {
     paymentIntentStatus?: string;
+    paymentAmount?: number;
+    paymentMetadata?: Record<string, string>;
+    fundingData?: unknown;
     jobData?: unknown;
     jobError?: unknown;
     escrowData?: unknown;
@@ -220,7 +223,8 @@ function setupConfirmIntentMocks(
   mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
     id: 'pi_test123',
     status: overrides.paymentIntentStatus ?? 'succeeded',
-    amount: 25000,
+    amount: overrides.paymentAmount ?? 25000,
+    metadata: overrides.paymentMetadata ?? {},
     currency: 'gbp',
   });
 
@@ -265,6 +269,18 @@ function setupConfirmIntentMocks(
         }),
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      };
+    }
+    if (table === 'payment_funding_reservations') {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: overrides.fundingData ?? null,
+              error: null,
+            }),
+          }),
         }),
       };
     }
@@ -506,6 +522,45 @@ describe('POST /api/payments/confirm-intent', () => {
     expect(body.success).toBe(true);
     expect(body.escrowTransactionId).toBe('escrow-1');
     expect(body.amount).toBe(250);
+  });
+
+  it('confirms gross escrow funded by cash and trusted credit separately', async () => {
+    mocks.validateRequest.mockResolvedValue({
+      data: { paymentIntentId: 'pi_test123', jobId: validJobId },
+    });
+    setupConfirmIntentMocks({
+      paymentAmount: 20000,
+      paymentMetadata: {
+        creditAppliedPence: '5000',
+        fundingReservationId: 'funding-1',
+      },
+      fundingData: {
+        id: 'funding-1',
+        state: 'attached',
+        payment_intent_id: 'pi_test123',
+        gross_minor: 25000,
+        cash_minor: 20000,
+        credit_minor: 5000,
+      },
+    });
+    const req = createPostRequest(
+      'http://localhost/api/payments/confirm-intent',
+      {
+        paymentIntentId: 'pi_test123',
+        jobId: validJobId,
+      }
+    );
+    const response = await POST(req, { params: Promise.resolve({}) });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      amount: 250,
+      cashAmount: 200,
+      creditApplied: 50,
+    });
+    expect(mocks.sendPaymentConfirmationEmail).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ amount: 250, creditApplied: 50 })
+    );
   });
 
   // ---- Unexpected escrow state ----

@@ -44,6 +44,9 @@ export function usePayment({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const paymentInFlight = useRef(false);
+  const paymentCompleted = useRef(false);
+  const paymentEpoch = useRef(0);
 
   // Holds the PaymentIntent created for THIS payment attempt. A "Try Again"
   // reuses this intent instead of minting a new one. Re-confirming a single
@@ -55,7 +58,19 @@ export function usePayment({
   const pendingIntentRef = useRef<{
     clientSecret: string;
     paymentIntentId?: string;
+    providerSucceeded?: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    paymentEpoch.current += 1;
+    pendingIntentRef.current = null;
+    paymentInFlight.current = false;
+    paymentCompleted.current = false;
+    setProcessing(false);
+    return () => {
+      paymentEpoch.current += 1;
+    };
+  }, [jobId, contractorId, userId]);
 
   // Server-authoritative fee breakdown. The platform fee is tier-aware and
   // (since 2026-05-22) uncapped — values the mobile client cannot derive
@@ -152,11 +167,14 @@ export function usePayment({
   };
 
   const handlePayment = async () => {
+    if (paymentInFlight.current || paymentCompleted.current) return;
     if (!selectedMethod || !userId) {
       Alert.alert('Error', 'Please select a payment method');
       return;
     }
 
+    const epoch = paymentEpoch.current;
+    paymentInFlight.current = true;
     setProcessing(true);
     try {
       if (useEscrow) {
@@ -175,7 +193,12 @@ export function usePayment({
             contractorId
           );
 
-          if (intentResult.error || !intentResult.clientSecret) {
+          if (epoch !== paymentEpoch.current) return;
+          if (
+            intentResult.error ||
+            !intentResult.clientSecret ||
+            !intentResult.paymentIntentId
+          ) {
             throw new Error(
               intentResult.error || 'Failed to create payment intent'
             );
@@ -189,52 +212,29 @@ export function usePayment({
 
         const { clientSecret, paymentIntentId } = pendingIntentRef.current;
 
-        // Step 2: Confirm with Stripe SDK. Safe to retry against the SAME
-        // intent — Stripe guarantees at most one successful charge per
-        // PaymentIntent, so a re-confirm after a transient post-charge
-        // failure returns the already-succeeded intent rather than
-        // charging again.
-        const confirmed = await PaymentService.confirmPayment({
-          clientSecret,
-          paymentMethodId: selectedMethod.id,
-        });
-
-        if (confirmed.status !== 'Succeeded') {
-          throw new Error('Payment confirmation failed');
-        }
-
-        // 2026-05-26 audit-53 P1: explicitly POST /api/payments/
-        // confirm-intent to flip the escrow row from 'pending' to
-        // 'held'. The Stripe webhook does the same flip on
-        // payment_intent.succeeded, but webhook delivery can lag
-        // seconds-to-minutes; without this client-side handoff the
-        // homeowner saw "Payment Successful" while the contractor
-        // sat on "Waiting for Payment". The server-side handler is
-        // idempotent (validateEscrowTransition gates pending->held;
-        // a duplicate call from the webhook no-ops), so firing both
-        // paths is safe. Non-fatal: if confirm-intent fails the
-        // webhook still settles eventually.
-        if (paymentIntentId) {
-          try {
-            await mobileApiClient.post('/api/payments/confirm-intent', {
-              paymentIntentId,
-              jobId,
-            });
-          } catch (confirmErr) {
-            logger.warn('confirm-intent call failed; webhook will reconcile', {
-              jobId,
-              paymentIntentId,
-              err:
-                confirmErr instanceof Error
-                  ? confirmErr.message
-                  : String(confirmErr),
-            });
+        // Retry application confirmation without asking Stripe to confirm an
+        // already successful payment again. Keep this intent until escrow settles.
+        if (!pendingIntentRef.current.providerSucceeded) {
+          const confirmed = await PaymentService.confirmPayment({
+            clientSecret,
+            paymentMethodId: selectedMethod.id,
+          });
+          if (epoch !== paymentEpoch.current) return;
+          if (confirmed.status !== 'Succeeded') {
+            throw new Error('Payment confirmation failed');
           }
+          pendingIntentRef.current.providerSucceeded = true;
         }
 
-        // Payment landed — drop the cached intent so any future attempt
-        // (a genuinely new payment) starts a fresh one.
-        pendingIntentRef.current = null;
+        const confirmation = await mobileApiClient.post<{
+          success: boolean;
+          status: string;
+        }>('/api/payments/confirm-intent', { paymentIntentId, jobId });
+        if (epoch !== paymentEpoch.current) return;
+        if (confirmation?.success !== true || confirmation.status !== 'held') {
+          throw new Error('Escrow confirmation is still pending');
+        }
+        paymentCompleted.current = true;
 
         Alert.alert(
           'Payment Successful',
@@ -249,6 +249,7 @@ export function usePayment({
           selectedMethod.id
         );
 
+        if (epoch !== paymentEpoch.current) return;
         if (result.requiresAction && result.clientSecret) {
           // Handle 3D Secure
           const confirmed = await PaymentService.confirmPayment({
@@ -256,6 +257,7 @@ export function usePayment({
             paymentMethodId: selectedMethod.id,
           });
 
+          if (epoch !== paymentEpoch.current) return;
           if (confirmed.status !== 'Succeeded') {
             throw new Error('Payment confirmation failed');
           }
@@ -270,6 +272,23 @@ export function usePayment({
         );
       }
     } catch (err) {
+      if (epoch !== paymentEpoch.current) return;
+      if (pendingIntentRef.current?.providerSucceeded) {
+        logger.warn('Payment received; escrow confirmation pending', {
+          jobId,
+          paymentIntentId: pendingIntentRef.current.paymentIntentId,
+          err: err instanceof Error ? err.message : String(err),
+        });
+        Alert.alert(
+          'Payment Received',
+          'Your payment was received. Escrow confirmation is still pending.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Check Status', onPress: handlePayment },
+          ]
+        );
+        return;
+      }
       logger.error('Payment failed', err);
       setRetryCount((prev) => prev + 1);
       Alert.alert(
@@ -285,13 +304,16 @@ export function usePayment({
           : [{ text: 'OK' }]
       );
     } finally {
-      setProcessing(false);
+      if (epoch === paymentEpoch.current) {
+        paymentInFlight.current = false;
+        setProcessing(false);
+      }
     }
   };
 
   const resetRetry = () => {
     setRetryCount(0);
-    pendingIntentRef.current = null;
+    // Changing the selected method must not discard an existing payment.
   };
 
   return {

@@ -276,7 +276,7 @@ export const GET = withApiHandler(
     // 2026-07-26: one signed thumbnail + photo count per job for the
     // mobile map card. Runs on the post-filter row set only, so at most
     // `limit` signing round-trips per request.
-    const thumbnails = await resolveJobThumbnails(rows);
+    const thumbnails = await resolveJobThumbnails(rows, user.id);
 
     const jobs = rows.map((row) => {
       const firstName = Array.isArray(row.homeowner)
