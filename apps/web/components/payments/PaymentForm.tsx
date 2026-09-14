@@ -132,7 +132,6 @@ function StripeCheckoutForm({
 export const PaymentForm: React.FC<PaymentFormProps> = ({
   jobId,
   contractorId,
-  jobTitle,
   defaultAmount = 0,
   onSuccess,
   onError,
@@ -148,40 +147,43 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
   const amountInPence = Math.round(defaultAmount * 100);
 
-  // Stable idempotency key for this payment attempt (one per form mount).
-  // The create-intent route reads the `Idempotency-Key` header to dedupe
-  // duplicate payment-intent creation; without a stable client key the server
-  // mints a fresh random key per request, so a StrictMode double-invoke,
-  // effect re-run, or user retry would each start a fresh attempt and could
-  // double-spend referral credit. A ref keeps the key constant across renders
-  // and retries until the component unmounts (attempt resolves).
-  const idempotencyKeyRef = useRef<string>('');
-  if (!idempotencyKeyRef.current) {
-    // Optional-chaining on a `Crypto | undefined` local, NOT `in` checks on the
-    // global: with @types/node loaded, a false `'randomUUID' in crypto` narrows
-    // the global to `never` (both lib.dom and Node's types declare randomUUID,
-    // so TS treats its absence as impossible) and the getRandomValues branch
-    // stopped compiling — which broke every production deploy from 31 Jul.
-    const c = globalThis.crypto as Crypto | undefined;
-    const uuid = c?.randomUUID
-      ? c.randomUUID()
-      : c?.getRandomValues
-        ? `${Date.now().toString(36)}${Array.from(
-            c.getRandomValues(new Uint8Array(16))
-          )
-            .map((b) => b.toString(16).padStart(2, '0'))
-            .join('')}`
-        : `${Date.now().toString(36)}fallback`;
-    idempotencyKeyRef.current = `create_payment_intent:${jobId}:${uuid}`;
-  }
+  // Keep callbacks fresh without restarting a financial request when a parent
+  // creates a new callback during render.
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+  const idempotencyKeyRef = useRef<{ identity: string; key: string } | null>(
+    null
+  );
 
   useEffect(() => {
-    if (!jobId || defaultAmount <= 0) return;
-
     let active = true;
     setClientSecret(null);
     setFunding(null);
     setLoadingIntent(true);
+    if (!jobId || amountInPence <= 0) {
+      setLoadingIntent(false);
+      return;
+    }
+    const identity = JSON.stringify([jobId, contractorId, amountInPence]);
+    if (idempotencyKeyRef.current?.identity !== identity) {
+      const c = globalThis.crypto as Crypto | undefined;
+      const uuid = c?.randomUUID
+        ? c.randomUUID()
+        : c?.getRandomValues
+          ? Array.from(c.getRandomValues(new Uint8Array(16)))
+              .map((byte) => byte.toString(16).padStart(2, '0'))
+              .join('')
+          : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+      idempotencyKeyRef.current = {
+        identity,
+        key: `create_payment_intent:${jobId}:${uuid}`,
+      };
+    }
+    // Capture this effect's key. A delayed CSRF response must not borrow the key
+    // for a different job that the user has since opened.
+    const requestKey = idempotencyKeyRef.current.key;
 
     getCsrfToken()
       .then((csrfToken) =>
@@ -191,10 +193,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
           headers: {
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken,
-            'Idempotency-Key': idempotencyKeyRef.current,
+            'Idempotency-Key': requestKey,
           },
           body: JSON.stringify({
-            amount: defaultAmount,
+            amount: amountInPence / 100,
             currency: 'gbp',
             jobId,
             contractorId,
@@ -235,7 +237,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
           error: err.message,
           jobId,
         });
-        onError(
+        onErrorRef.current(
           err.message ||
             'Failed to initialise payment. Please refresh and try again.'
         );

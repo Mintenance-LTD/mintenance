@@ -437,3 +437,71 @@ the separately executed mocked job-lifecycle suite passed. Changed web/mobile Ty
 passed ESLint with zero warnings; web type-check attempt 15 passed. These checks do not replace real
 provider, browser or device journey validation. Remaining F1–F15 work keeps the remediation goal
 active.
+
+## 14 September: durable refund ledger foundation and corrected lint verification
+
+The prior checkpoint was pushed to the existing GitHub branch as 3412038b5. The following work
+continues the goal; it does not close F9 or establish launch readiness.
+
+Added 20260914081119_durable_refund_balances.sql and RefundService.ts. Original cash and credit
+funding, cumulative cash refunded, credit returned, and remaining principal are recorded separately.
+Reservations bind payer/job/escrow, request key, amount and reason; different simultaneous
+operations serialize on job/escrow locks. The chosen partial policy returns cash first and restores
+unused promotional credit afterward, so credit cannot be converted into provider cash. Existing
+transfer attempts or recorded accumulated contractor credits prevent reservation. Payout insertion
+rejects amounts above the remaining principal and accounts awaiting refund reconciliation. Client
+roles cannot read/write these internal tables or invoke their mutation RPCs; service-role table
+access is SELECT only, with mutations performed by the trusted RPCs.
+
+Finalization atomically updates refund counters, credit-wallet entries, escrow status, and
+full-refund job cancellation. Pending/requires-action results keep the claim; failed or canceled
+attempts consume no principal. Repeated finalization cannot restore credit twice. Late contradictory
+bank outcomes freeze the account instead of silently making settled principal payable again,
+including when a newer refund is already in flight. Provider identifiers are treated as opaque
+strings rather than assuming one prefix.
+
+The recovery service freezes Stripe parameters and its operation key, verifies original captured
+funding and prior refund totals before creating a refund, finds an existing provider refund after a
+lost response/write, follows bounded history pagination, and retrieves current provider state when
+handling events. An old unknown attempt is not re-created after the safe idempotency window. Missing
+status, mismatched metadata, amount/currency/payment IDs, or duplicate provider matches fail closed.
+Credit-only returns never call Stripe refunds.create. Stripe's current refund documentation also
+confirms pending/requires-action states and later bank failures: https://docs.stripe.com/refunds
+
+Verification: 22 recovery-service tests passed with mocked providers; SQL reproduced 50000 minus
+10000 = 40000 remaining, cash/credit allocation, replay, negative authority, terminal outcomes, and
+payout caps. Injecting a job-write failure after credit return rolled back every accounting write.
+Separate-session races proved one reservation and one deduction under competing requests and
+duplicate finalizations. All 16 rollback-only database regressions passed after the final migration
+revision. Full migration replay and supabase db diff --local found no schema changes against the
+isolated audit stack (remediation-refund-migration-diff-2.log). No hosted database or real payment
+was used.
+
+IMPORTANT: RefundService is not yet called by the active refund route/webhook dispatcher. The
+current route still has the original partial-principal defect. Next work must replace that route's
+direct Stripe/DB updates, route provider events through the ledger, update payout/funding
+verification and displayed remaining balances, give distinct user refund actions distinct persistent
+keys, reconcile external/admin refunds, and serialize the accumulated-payout path. Do not interpret
+component tests as an end-to-end refund fix.
+
+Lint evidence correction: the root ESLint config ignores apps/\*\*, and the existing lint-staged
+rule suppressed ignored-file warnings. Therefore the earlier claim that 53 application files passed
+lint was too strong. .lintstagedrc.js now invokes each app's actual workspace configuration. Actual
+npm-workspace lint passed on 33 affected web source files after fixing six warnings; the mobile
+payment hook also passed its own workspace lint. Tests remain excluded by the existing workspace
+lint configurations. This correction does not change the independently observed unit/SQL/type-check
+results.
+
+The real lint pass exposed a payment request key that remained tied to the first job. PaymentForm
+now generates/captures its key in the request effect, binds it to the job, contractor and amount,
+preserves it for StrictMode retries, avoids refetching for callback identity changes, and clears
+stale payable state for invalid job input. Five component tests passed, including job/amount changes
+and callback/StrictMode behavior. Removed unused dashboard KPI computation and destructured values
+without changing visible data.
+
+Mobile method loading now follows account changes, clears the previous account's methods, and
+ignores stale asynchronous responses. It no longer stays loading forever when no user is signed in.
+Server fee state is cleared when the job changes. 36 hook tests passed, including late
+previous-account responses and login/logout transitions. Web type-check 19 and mobile type-check 2
+passed. The combined refund/display check passed 27 tests. No device, browser payment hand-off, real
+Stripe challenge, or provider refund was tested.
