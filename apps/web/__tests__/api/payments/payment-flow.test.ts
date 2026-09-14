@@ -35,6 +35,9 @@ const mocks = vi.hoisted(() => ({
   stripePaymentIntentsCancel: vi.fn(),
   stripePaymentIntentsRetrieve: vi.fn(),
   stripeRefundsCreate: vi.fn(),
+  refundContext: vi.fn(),
+  reserveRefund: vi.fn(),
+  recoverRefund: vi.fn(),
   stripeTransfersCreate: vi.fn(),
   stripeTransfersCreateReversal: vi.fn(),
   stripeCustomersCreate: vi.fn(),
@@ -67,6 +70,13 @@ const mocks = vi.hoisted(() => ({
 // ---------------------------------------------------------------------------
 // Module mocks
 // ---------------------------------------------------------------------------
+
+// Route boundary only; RefundService and SQL have independent recovery regressions.
+vi.mock('@/lib/services/payment/RefundService', () => ({
+  readRefundContext: mocks.refundContext,
+  reserveRefund: mocks.reserveRefund,
+  recoverRefund: mocks.recoverRefund,
+}));
 
 // Auth
 vi.mock('@/lib/auth', () => ({
@@ -541,6 +551,24 @@ function createMockRequest(
  * Individual tests override only what they need.
  */
 function setupDefaultMocks() {
+  mocks.refundContext.mockResolvedValue({
+    existing: null,
+    remainingMinor: 25000,
+  });
+  mocks.reserveRefund.mockImplementation(async (input) => ({
+    id: 'refund-operation',
+    escrow_id: input.escrowId,
+    actor_id: input.actorId,
+    gross_minor: input.grossMinor,
+    cash_minor: input.grossMinor,
+    credit_minor: 0,
+    state: 'reserved',
+  }));
+  mocks.recoverRefund.mockImplementation(async (op) => ({
+    ...op,
+    state: 'succeeded',
+    provider_refund_id: 'refund_test_123',
+  }));
   // Auth - authenticated homeowner by default
   mocks.getCurrentUserFromCookies.mockResolvedValue({
     id: 'homeowner-user-id',
@@ -2390,7 +2418,12 @@ describe('Cross-Cutting Payment Security', () => {
   });
 
   describe('Idempotency', () => {
-    it('should return cached result for duplicate refund request', async () => {
+    it('recovers the durable result for a duplicate refund request', async () => {
+      mocks.recoverRefund.mockImplementationOnce(async (op) => ({
+        ...op,
+        state: 'succeeded',
+        provider_refund_id: 'refund_cached_123',
+      }));
       mocks.checkIdempotency.mockResolvedValue({
         isDuplicate: true,
         cachedResult: {
@@ -2446,16 +2479,11 @@ describe('Cross-Cutting Payment Security', () => {
       expect(body.success).toBe(true);
     });
 
-    it('should surface a 503 when the idempotency store signals contention', async () => {
-      // 2026-05: checkIdempotency no longer returns null for contention —
-      // null now means "claim acquired, proceed". Real contention (another
-      // in-flight request holding the key) THROWS
-      // IdempotencyStoreUnavailableError, a ServiceUnavailableError subclass
-      // that withApiHandler maps to a clean 503 (fail-closed).
+    it('fails closed when the durable refund ledger is unavailable', async () => {
       const { ServiceUnavailableError } =
         await import('@/lib/errors/api-error');
-      mocks.checkIdempotency.mockRejectedValue(
-        new ServiceUnavailableError('Idempotency store')
+      mocks.refundContext.mockRejectedValue(
+        new ServiceUnavailableError('Refund ledger unavailable')
       );
 
       mocks.validateRequest.mockResolvedValue({
@@ -2551,7 +2579,7 @@ describe('Cross-Cutting Payment Security', () => {
 // TEST SUITE 8: Refund DB Retry Logic
 // ============================================================================
 
-describe('Refund DB Retry Logic', () => {
+describe('Refund Durable Retry Recovery', () => {
   let POST: typeof import('@/app/api/payments/refund/route').POST;
 
   beforeEach(async () => {
@@ -2560,7 +2588,7 @@ describe('Refund DB Retry Logic', () => {
     POST = mod.POST;
   });
 
-  it('should succeed on the second DB retry after first update fails', async () => {
+  it('recovers the same operation after an uncertain recording failure', async () => {
     mocks.validateRequest.mockResolvedValue({
       data: {
         jobId: '550e8400-e29b-41d4-a716-446655440000',
@@ -2575,40 +2603,13 @@ describe('Refund DB Retry Logic', () => {
       amount: 25000,
     });
 
-    // Track DB update call count for retry behavior
-    let updateCallCount = 0;
-    const mockUpdateChain = () => {
-      updateCallCount++;
-      const isClaim = updateCallCount === 1;
-      const shouldFail = updateCallCount === 2; // First finalization attempt fails
-      const result = isClaim
-        ? {
-            data: { id: '660e8400-e29b-41d4-a716-446655440001' },
-            error: null,
-          }
-        : shouldFail
-          ? { data: null, error: { message: 'Temporary DB error' } }
-          : {
-              data: {
-                id: '660e8400-e29b-41d4-a716-446655440001',
-                payer_id: 'homeowner-user-id',
-                status: 'refunded',
-              },
-              error: null,
-            };
-      const selectResult = {
-        single: vi.fn().mockResolvedValue(result),
-        maybeSingle: vi.fn().mockResolvedValue(result),
-      };
-      return {
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue(selectResult),
-          }),
-          select: vi.fn().mockReturnValue(selectResult),
-        }),
-      };
-    };
+    mocks.recoverRefund
+      .mockRejectedValueOnce(new Error('Recording unavailable'))
+      .mockImplementationOnce(async (op) => ({
+        ...op,
+        state: 'succeeded',
+        provider_refund_id: 'refund_test_retry',
+      }));
 
     mocks.supabaseFrom.mockImplementation((tableName: string) => {
       if (tableName === 'jobs') {
@@ -2657,7 +2658,7 @@ describe('Refund DB Retry Logic', () => {
               }),
             }),
           }),
-          update: vi.fn().mockImplementation(() => mockUpdateChain()),
+          update: vi.fn(),
         };
       }
       return {
@@ -2676,14 +2677,21 @@ describe('Refund DB Retry Logic', () => {
     const request = createMockRequest(
       'http://localhost:3000/api/payments/refund'
     );
-    const response = await POST(request);
+    const failed = await POST(request);
+    expect(failed.status).toBe(500);
+    const response = await POST(
+      createMockRequest('http://localhost:3000/api/payments/refund')
+    );
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.refundId).toBe('refund_test_retry');
 
-    // Verify the retry actually happened (2 update calls: 1 fail + 1 success)
-    expect(updateCallCount).toBeGreaterThanOrEqual(2);
+    expect(mocks.reserveRefund).toHaveBeenCalledTimes(2);
+    expect(mocks.reserveRefund.mock.calls[0][0].requestKey).toBe(
+      mocks.reserveRefund.mock.calls[1][0].requestKey
+    );
+    expect(mocks.stripeRefundsCreate).not.toHaveBeenCalled();
   });
 });

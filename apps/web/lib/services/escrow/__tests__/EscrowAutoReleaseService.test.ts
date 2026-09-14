@@ -561,3 +561,59 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
     });
   });
 });
+
+describe('auto-release durable failure handling', () => {
+  it('blocks a missing payee before creating a transfer', async () => {
+    configureSupabase({ eligible: [makeEscrow({ payee_id: null })] });
+    const result = await EscrowAutoReleaseService.processAutoReleases();
+    expect(result.errors).toBe(1);
+    expect(mocks.blockEscrow).toHaveBeenCalledWith(
+      'escrow-1',
+      'missing_payee_id'
+    );
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+  });
+  it('counts an uncertain transfer as failed and does not reverse it', async () => {
+    configureSupabase({
+      eligible: [makeEscrow()],
+      profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+    });
+    mocks.stripeTransfersCreate.mockRejectedValue(
+      new Error('Provider timeout')
+    );
+    const result = await EscrowAutoReleaseService.processAutoReleases();
+    expect(result.errors).toBe(1);
+    expect(result.released).toBe(0);
+    expect(mocks.stripeTransfersCreateReversal).not.toHaveBeenCalled();
+    expect(mocks.notifyAutoRelease).not.toHaveBeenCalled();
+  });
+  it('does not announce release when accumulated credit fails', async () => {
+    process.env.ESCROW_USE_PAYOUT_ACCUMULATION = 'true';
+    configureSupabase({
+      eligible: [makeEscrow()],
+      profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+    });
+    mocks.accumulateEarnings.mockRejectedValue(
+      new Error('Refund claimed funds')
+    );
+    const result = await EscrowAutoReleaseService.processAutoReleases();
+    expect(result.errors).toBe(1);
+    expect(result.released).toBe(0);
+    expect(mocks.notifyAutoRelease).not.toHaveBeenCalled();
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+  });
+  it('retains accumulated earnings for reconciliation after finalization fails', async () => {
+    process.env.ESCROW_USE_PAYOUT_ACCUMULATION = 'true';
+    configureSupabase({
+      eligible: [makeEscrow()],
+      profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+      updateResult: { error: { message: 'DB unavailable' } },
+    });
+    const result = await EscrowAutoReleaseService.processAutoReleases();
+    expect(result.errors).toBe(1);
+    expect(result.released).toBe(0);
+    expect(mocks.accumulateEarnings).toHaveBeenCalledTimes(1);
+    expect(mocks.notifyAutoRelease).not.toHaveBeenCalled();
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+  });
+});

@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
 
   // Supabase
   supabaseFrom: vi.fn(),
+  supabaseRpc: vi.fn(),
   supabaseFunctionsInvoke: vi.fn(),
 
   // CSRF / rate-limiter
@@ -96,11 +97,13 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
     functions: { invoke: mocks.supabaseFunctionsInvoke },
   },
   createRequestScopedClient: () => null, // falls back to serverSupabase in route
   createServerSupabaseClient: () => ({
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
     functions: { invoke: mocks.supabaseFunctionsInvoke },
   }),
 }));
@@ -387,6 +390,8 @@ function baseEscrowRow(statusOverride: string = 'pending') {
   return {
     id: ESCROW_ID,
     job_id: JOB_ID,
+    payer_id: homeownerUser.id,
+    payee_id: contractorUser.id,
     amount: 250, // GBP
     status: statusOverride,
     payment_intent_id: PAYMENT_INTENT_ID,
@@ -490,6 +495,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
     // Stripe says payment succeeded
     mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
       id: PAYMENT_INTENT_ID,
+      metadata: {},
       status: 'succeeded',
       amount: 25000,
       currency: 'gbp',
@@ -585,6 +591,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
   it('rejects a succeeded PaymentIntent whose amount differs from escrow', async () => {
     mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
       id: PAYMENT_INTENT_ID,
+      metadata: {},
       status: 'succeeded',
       amount: 24900,
       currency: 'gbp',
@@ -642,6 +649,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
   it('should handle idempotent confirm when webhook already set escrow to "held"', async () => {
     mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
       id: PAYMENT_INTENT_ID,
+      metadata: {},
       status: 'succeeded',
       amount: 25000,
       currency: 'gbp',
@@ -717,6 +725,7 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
   it('should reject confirmation when escrow is in a terminal state (e.g. "failed")', async () => {
     mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
       id: PAYMENT_INTENT_ID,
+      metadata: {},
       status: 'succeeded',
       amount: 25000,
       currency: 'gbp',
@@ -1457,6 +1466,26 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     auditInserts: Array<Record<string, unknown>>;
     finalUpdateResult?: { data: unknown; error: unknown };
   }) {
+    mocks.supabaseRpc.mockImplementation(async (name, params) => {
+      expect(name).toBe('reserve_escrow_transfer');
+      opts.orderLog.push('reserve-transfer');
+      return {
+        data: [
+          {
+            escrow_id: params.p_escrow_id,
+            created_at: new Date().toISOString(),
+            transfer_id: null,
+            idempotency_key: `escrow_release_${params.p_escrow_id}`,
+            stripe_parameters: {
+              amount: params.p_amount,
+              currency: 'gbp',
+              destination: params.p_destination,
+            },
+          },
+        ],
+        error: null,
+      };
+    });
     mocks.checkIdempotency.mockResolvedValue(null); // claim acquired
     mocks.validateRequest.mockResolvedValue({
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
@@ -1468,7 +1497,25 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     });
     mocks.stripePaymentIntentsRetrieve.mockResolvedValue({
       id: PAYMENT_INTENT_ID,
-      latest_charge: 'ch_depth123',
+      status: 'succeeded',
+      currency: 'gbp',
+      amount: 25000,
+      amount_received: 25000,
+      metadata: {
+        jobId: JOB_ID,
+        payerId: homeownerUser.id,
+        contractorId: contractorUser.id,
+      },
+      latest_charge: {
+        id: 'ch_depth123',
+        paid: true,
+        captured: true,
+        disputed: false,
+        refunded: false,
+        amount_refunded: 0,
+        currency: 'gbp',
+        amount: 25000,
+      },
     });
     mocks.transferPlatformFee.mockResolvedValue({
       status: 'completed',
@@ -1487,6 +1534,20 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
 
     let escrowCallCount = 0;
     mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'escrow_transfer_attempts') {
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              is: vi.fn().mockReturnValue({
+                select: vi.fn().mockImplementation(async () => {
+                  opts.orderLog.push('persist-transfer');
+                  return { data: [{ escrow_id: ESCROW_ID }], error: null };
+                }),
+              }),
+            }),
+          }),
+        };
+      }
       if (table === 'escrow_transactions') {
         escrowCallCount++;
         if (escrowCallCount === 1) {
@@ -1522,6 +1583,18 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
               eq: vi.fn().mockImplementation((...args: unknown[]) => {
                 opts.casEqArgs.push(args);
                 return { eq: eq2 };
+              }),
+            }),
+          };
+        }
+        if (escrowCallCount === 3) {
+          // Independent captured-funding verification after reserving transfer.
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: escrow, error: null }),
               }),
             }),
           };
@@ -1624,7 +1697,13 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
 
     // THE ordering invariant: the row is claimed (held → release_pending)
     // BEFORE any money moves, and finalised only after the transfer.
-    expect(orderLog).toEqual(['cas-update', 'stripe-transfer', 'final-update']);
+    expect(orderLog).toEqual([
+      'cas-update',
+      'reserve-transfer',
+      'stripe-transfer',
+      'persist-transfer',
+      'final-update',
+    ]);
 
     // The CAS predicate must be the status invariant, not updated_at
     // (2026-07-17 fix — an updated_at guard deterministically 409'd itself).
@@ -1675,7 +1754,13 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     expect(body.error.message).toContain('team has been notified');
 
     expect(mocks.stripeTransfersCreate).toHaveBeenCalledTimes(1);
-    expect(orderLog).toEqual(['cas-update', 'stripe-transfer', 'final-update']);
+    expect(orderLog).toEqual([
+      'cas-update',
+      'reserve-transfer',
+      'stripe-transfer',
+      'persist-transfer',
+      'final-update',
+    ]);
 
     // Recovery trail: escrow_audit_log row carrying the transfer +
     // reconciliation ids an operator needs. Matched by release_reason (its

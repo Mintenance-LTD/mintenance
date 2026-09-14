@@ -10,7 +10,7 @@ import type { SendNotificationFn } from './webhook-helpers';
  */
 export async function handleSetupIntentWebhookSucceeded(
   setupIntent: Stripe.SetupIntent,
-  _sendNotification: SendNotificationFn,
+  _sendNotification: SendNotificationFn
 ): Promise<void> {
   const customerId =
     typeof setupIntent.customer === 'string'
@@ -30,18 +30,23 @@ export async function handleSetupIntentWebhookSucceeded(
   }
 
   // Resolve user from customer id
-  const { data: profile } = await serverSupabase
+  const { data: profile, error: profileError } = await serverSupabase
     .from('profiles')
     .select('id')
     .eq('stripe_customer_id', customerId)
-    .single();
+    .maybeSingle();
+
+  if (profileError) throw new Error('Failed to resolve SetupIntent customer');
 
   if (!profile) {
-    logger.warn('No profile found for Stripe customer in setup_intent.succeeded', {
-      service: 'stripe-webhook',
-      customerId,
-      setupIntentId: setupIntent.id,
-    });
+    logger.warn(
+      'No profile found for Stripe customer in setup_intent.succeeded',
+      {
+        service: 'stripe-webhook',
+        customerId,
+        setupIntentId: setupIntent.id,
+      }
+    );
     return;
   }
 
@@ -59,7 +64,7 @@ export async function handleSetupIntentWebhookSucceeded(
  */
 export async function handleSetupIntentWebhookFailed(
   setupIntent: Stripe.SetupIntent,
-  _sendNotification: SendNotificationFn,
+  _sendNotification: SendNotificationFn
 ): Promise<void> {
   logger.warn('SetupIntent failed', {
     service: 'stripe-webhook',
@@ -91,7 +96,7 @@ export async function handleSetupIntentWebhookFailed(
  */
 export async function handlePaymentMethodDetached(
   paymentMethod: Stripe.PaymentMethod,
-  _sendNotification: SendNotificationFn,
+  _sendNotification: SendNotificationFn
 ): Promise<void> {
   const { error: deleteError } = await serverSupabase
     .from('payment_methods')
@@ -99,10 +104,14 @@ export async function handlePaymentMethodDetached(
     .eq('stripe_payment_method_id', paymentMethod.id);
 
   if (deleteError) {
-    logger.error('Failed to remove detached payment method from DB', deleteError, {
-      service: 'stripe-webhook',
-      paymentMethodId: paymentMethod.id,
-    });
+    logger.error(
+      'Failed to remove detached payment method from DB',
+      deleteError,
+      {
+        service: 'stripe-webhook',
+        paymentMethodId: paymentMethod.id,
+      }
+    );
     throw new Error('Failed to remove detached payment method');
   }
 

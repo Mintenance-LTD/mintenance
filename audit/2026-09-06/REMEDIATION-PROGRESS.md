@@ -569,3 +569,56 @@ remaining-balance UI and payout fee consumers need wiring, and real test-mode pr
 external-refund resolution, notification durability, and weekly payout recovery remain unverified or
 unfinished. The webhook tests are not proof of a complete refund journey. The overall remediation
 goal stays open.
+
+### 2026-09-14: active refund route and reported CI failures
+
+The homeowner refund HTTP route now calls readRefundContext, reserveRefund, and recoverRefund after
+current job/escrow payer checks, role checks, MFA, rate limiting, and anomaly detection. The
+operation key binds actor, escrow and caller key. It uses the durable operation instead of the
+ephemeral result cache or application-side Stripe/escrow/job writes. Omitted amounts use remaining
+principal; retries retain the original operation amount after settlement. Invalid/excess amounts are
+rejected, not silently capped or promoted to a full refund. Responses distinguish cash returned,
+credit restored, remaining principal and pending/failed outcomes. An unknown provider outcome cannot
+unlock the claim in a route catch block.
+
+Route tests now assert authorization before operation reads, current/funding payer agreement, MFA,
+payload binding, remaining principal, terminal-operation recovery, non-success outcomes, and refusal
+to bypass rejected reservations. Real RefundService recovery tests and isolated SQL diagnostics
+remain separate evidence for accounting; the route boundary mocks do not prove provider or database
+behavior by themselves. Web/mobile per-action request-key persistence, displayed remaining balances
+and partial-refund payout fee/funding consumers still need completion.
+
+Reproduced all six failures from the user's CI output in escrow-lifecycle.test.ts. Four confirmation
+fixtures omitted Stripe's metadata object and failed inside the cash-requirement helper before their
+intended assertions. The two deep release fixtures omitted the new reserve_escrow_transfer RPC,
+transfer-ID persistence, independent captured funding read, payer/payee IDs and expanded paid charge
+evidence. Updated those synthetic fixtures and strengthened the expected sequence to CAS claim,
+durable reservation, provider transfer, persistence, final escrow update. Kept actual funding
+verification enabled and kept the finalization-failure reconciliation assertions. All 43 lifecycle
+cases passed after the fixture correction.
+
+A full local web coverage run then passed 3287 tests in 297 files, but failed the existing
+per-directory coverage floors for release, confirmation, auto-release and webhook code
+(refund-route-full-coverage.log). No threshold was lowered. Added tests for dispute/MFA/evidence
+gates, failed/rejected approval persistence, lost transfer outcomes, accumulated payout failures,
+customer lookup, saved-card persistence and provider account synchronization failures.
+
+Those tests exposed two additional recovery defects: the second completion-photo check ran after job
+confirmation but outside rollback handling; it now runs inside the escrow preparation try/catch so a
+lost photo rolls back this request's confirmation. The setup-intent success handler now throws on a
+customer lookup DB error rather than acknowledging the event as an unknown customer. The existing
+unknown-customer behavior is preserved. Targeted verification passed 252 tests in eight files, web
+type checking, and workspace lint for all changed application sources
+(payment-depth-final-tests.log, payment-depth-types.log). A second full coverage run is recorded
+separately below.
+
+No production or hosted database was changed, and no real provider operation occurred. The original
+remediation goal remains open; passing mocks/coverage is not a production readiness verdict or a
+verified end-to-end refund/payout journey.
+
+The second full coverage run passed: 3326 tests in 299 files, exit code 0, including all original
+per-directory coverage thresholds (payment-depth-full-coverage.log). Afterward the customer lookup
+was changed from single to maybeSingle to distinguish a zero-row lookup from a DB error; all 13
+affected webhook tests passed again (setup-intent-lookup-final-tests.log). The full coverage run
+preceded that equivalent lookup-contract adjustment; normal commit checks verify the final source
+snapshot.

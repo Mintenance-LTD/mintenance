@@ -221,20 +221,6 @@ export const POST = withApiHandler(
           );
         }
 
-        // Verify after-photos exist before releasing escrow (completion evidence)
-        const { count: afterPhotoCount } = await serverSupabase
-          .from('job_photos_metadata')
-          .select('id', { count: 'exact', head: true })
-          .eq('job_id', jobId)
-          .eq('photo_type', 'after')
-          .eq('verified', true);
-
-        if (!afterPhotoCount || afterPhotoCount === 0) {
-          throw new BadRequestError(
-            'Cannot confirm completion without after-photos. The contractor must upload completion photos first.'
-          );
-        }
-
         // Trigger escrow release workflow.
         //
         // 2026-05-13 funds-stuck-in-limbo audit fix: this route previously
@@ -267,6 +253,20 @@ export const POST = withApiHandler(
         // cron is processing them.
         if (preEscrow.status === ESCROW_STATUS.HELD) {
           try {
+            // Verify after-photos exist before releasing escrow (completion evidence)
+            const { count: afterPhotoCount } = await serverSupabase
+              .from('job_photos_metadata')
+              .select('id', { count: 'exact', head: true })
+              .eq('job_id', jobId)
+              .eq('photo_type', 'after')
+              .eq('verified', true);
+
+            if (!afterPhotoCount || afterPhotoCount === 0) {
+              throw new BadRequestError(
+                'Cannot confirm completion without after-photos. The contractor must upload completion photos first.'
+              );
+            }
+
             // Sanity-check the transition is still valid; we don't
             // actually flip status (the cron will), but the assertion
             // guards against race conditions where the escrow is
@@ -339,7 +339,10 @@ export const POST = withApiHandler(
                 { service: 'jobs', jobId, escrowId: preEscrow.id }
               );
             }
-            if (escrowError instanceof InternalServerError) {
+            if (
+              escrowError instanceof InternalServerError ||
+              escrowError instanceof BadRequestError
+            ) {
               throw escrowError;
             }
             throw new InternalServerError(
