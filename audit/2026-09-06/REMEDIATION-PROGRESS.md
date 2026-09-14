@@ -622,3 +622,36 @@ was changed from single to maybeSingle to distinguish a zero-row lookup from a D
 affected webhook tests passed again (setup-intent-lookup-final-tests.log). The full coverage run
 preceded that equivalent lookup-contract adjustment; normal commit checks verify the final source
 snapshot.
+
+## 2026-09-15 — Browser refund retry and remaining-balance contract
+
+The payment-history route now accepts an exact transaction UUID while retaining the authenticated
+payer/payee predicate. It reads service-only refund balances only for those returned payment IDs;
+ledger read failures fail the request rather than showing the original principal as refundable. The
+response retains original amount and adds remainingAmount and refundNeedsReview.
+
+Both browser refund forms use a browser-persisted, actor/escrow-scoped operation key and frozen
+payload. Network, pending, and malformed success responses retain that identity. A confirmed
+terminal response retires it; another action receives a fresh key. Persistence failure prevents
+sending. Forms guard double submissions and restore unresolved request fields when reopened.
+Transaction details now load older records by ID, use the API camelCase identities/dates, offer
+refunds for held payments/current payers (or recovery of a saved action), display the available
+amount, and update the remaining balance after confirmed success.
+
+Eight request-helper regressions cover lost responses/module reload, changed-payload rejection,
+new-action/account key separation, malformed/pending responses, and unavailable storage. Four
+history boundary tests check actor/ID predicates, restricted ledger IDs, zero-row behavior, review
+holds, and lookup failure. All 12 passed; all 43 reported escrow lifecycle tests also passed in the
+paired targeted run (51 total). Web type checking and application workspace lint passed. These are
+mocked route-boundary/browser-helper tests, not real-account browser journeys.
+
+Remaining work includes the mobile refund consumer, payout behavior after partial refunds,
+browser/device exercise, and other previously recorded audit findings. Existing invoice download
+stubs and guessed fee/VAT detail displays were observed and remain open; this checkpoint does not
+claim the whole payment UI or public launch readiness. No schema changes, hosted writes, or real
+provider operations were performed in this checkpoint.
+
+Full web coverage passed with unchanged thresholds (exit 0; refund-client-full-coverage.log). Final
+type checking passed (refund-client-types.log), and final five-source workspace lint passed. The
+detail-form maximum/status presentation received a small follow-up adjustment during the full run;
+final type/lint and normal commit hooks check that final snapshot.

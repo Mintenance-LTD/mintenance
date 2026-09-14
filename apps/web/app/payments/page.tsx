@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { readPendingRefund, submitRefund } from '@/lib/payments/refund-request';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
@@ -19,6 +20,8 @@ import { PaymentsReceiptModal } from './components/PaymentsReceiptModal';
 interface Transaction {
   id: string;
   amount: number;
+  remainingAmount?: number;
+  refundNeedsReview?: boolean;
   status:
     | 'pending'
     | 'held'
@@ -52,6 +55,8 @@ interface Transaction {
 interface PaymentData {
   id: string;
   amount: number;
+  remainingAmount?: number;
+  refundNeedsReview?: boolean;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -99,6 +104,9 @@ export default function PaymentsPage2025() {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [refundReason, setRefundReason] = useState('');
+  const [refundRequestedAmount, setRefundRequestedAmount] = useState<number>();
+  const [submittingRefund, setSubmittingRefund] = useState(false);
+  const refundInFlight = useRef(false);
   const confirm = useConfirm();
 
   // Hide the inline "Back to Dashboard" link when the Mint Editorial
@@ -144,6 +152,8 @@ export default function PaymentsPage2025() {
             return {
               id: t.id,
               amount,
+              remainingAmount: t.remainingAmount,
+              refundNeedsReview: t.refundNeedsReview,
               status: t.status,
               type: (t.transaction_type || 'payment') as Transaction['type'],
               created_at: t.created_at || t.createdAt,
@@ -236,7 +246,8 @@ export default function PaymentsPage2025() {
   };
 
   const handleRefundPayment = async () => {
-    if (!selectedTransaction || !csrfToken) return;
+    if (!selectedTransaction || !csrfToken || !user || refundInFlight.current)
+      return;
     if (!refundReason.trim()) {
       toast.error('Please provide a refund reason');
       return;
@@ -249,23 +260,19 @@ export default function PaymentsPage2025() {
       toast.error('This transaction has no linked job and cannot be refunded');
       return;
     }
+    refundInFlight.current = true;
+    setSubmittingRefund(true);
     try {
-      const response = await fetch('/api/payments/refund', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
-        },
-        body: JSON.stringify({
+      await submitRefund(
+        user.id,
+        {
           jobId: selectedTransaction.job_id,
           escrowTransactionId: selectedTransaction.id,
+          amount: refundRequestedAmount,
           reason: refundReason,
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to process refund');
-      }
+        },
+        csrfToken
+      );
       toast.success('Refund processed successfully!');
       setShowRefundModal(false);
       setRefundReason('');
@@ -273,6 +280,9 @@ export default function PaymentsPage2025() {
     } catch (error: unknown) {
       const err = error as Error;
       toast.error(err.message || 'Failed to process refund');
+    } finally {
+      refundInFlight.current = false;
+      setSubmittingRefund(false);
     }
   };
 
@@ -424,8 +434,34 @@ export default function PaymentsPage2025() {
           userRole={user?.role}
           onReleasePayment={handleReleasePayment}
           onRequestRefund={(transaction) => {
-            setSelectedTransaction(transaction);
-            setShowRefundModal(true);
+            try {
+              const pending = readPendingRefund(user.id, transaction.id);
+              const current = transactions.find(
+                (item) => item.id === transaction.id
+              );
+              if (!current)
+                throw new Error(
+                  'Payment is no longer available. Refresh and retry.'
+                );
+              if (current.refundNeedsReview)
+                throw new Error(
+                  'This payment needs support review before another refund.'
+                );
+              setSelectedTransaction(current);
+              setRefundReason(pending?.body.reason ?? '');
+              setRefundRequestedAmount(
+                pending
+                  ? pending.body.amount
+                  : (current.remainingAmount ?? current.amount)
+              );
+              setShowRefundModal(true);
+            } catch (error) {
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : 'Could not recover refund request'
+              );
+            }
           }}
           onViewReceipt={(transaction) => {
             setSelectedTransaction(transaction);
@@ -435,7 +471,13 @@ export default function PaymentsPage2025() {
 
         <PaymentsRefundModal
           isOpen={showRefundModal && selectedTransaction !== null}
-          amount={selectedTransaction?.amount || 0}
+          amount={
+            refundRequestedAmount ??
+            selectedTransaction?.remainingAmount ??
+            selectedTransaction?.amount ??
+            0
+          }
+          submitting={submittingRefund}
           refundReason={refundReason}
           onReasonChange={setRefundReason}
           onClose={() => {
