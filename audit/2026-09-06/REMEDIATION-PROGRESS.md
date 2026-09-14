@@ -535,3 +535,37 @@ not establish an end-to-end working refund journey.
 
 Final full migration replay and supabase db diff --local completed with no schema changes
 (remediation-accumulated-payout-diff-final.log).
+
+### 2026-09-14: refund webhook recovery connected
+
+The signature-verified Stripe dispatcher now routes refund.created, refund.updated, and
+refund.failed to current-provider-state reconciliation. Charge refund events first check the durable
+refund ledger and bypass all legacy escrow/job/refund-table writes when that ledger applies. Bounded
+provider pagination is exhausted before recording known operations; incomplete history,
+provider/ledger disagreement, and DB failures propagate so the webhook service returns an error and
+records failure. No webhook recovery path creates a provider refund.
+
+External/unmarked active refunds on ledger-backed charges persist needs_review via a new
+service-only RPC before failing for reconciliation. Further refund reservations, direct transfers,
+and accumulated credits are blocked by that flag. The flag does not change cash, credit, or
+remaining principal. Human reconciliation and an explicit resolution path remain required; this
+change intentionally does not invent financial entries for external refunds. Legacy charges without
+a ledger keep their existing handler and still need migration/reconciliation work.
+
+Also reproduced and fixed a legacy recovery gap: after escrow finalization succeeded but the job
+write failed, a replay skipped the job update because escrow was already refunded. Full-refund
+replay now repairs the job payment status without repeating the escrow transition or terminal
+notifications. A regression simulates a failed job write followed by successful replay.
+
+Verification: 145 tests across eight refund/webhook files passed with mocked providers and DB
+boundaries (refund-webhook-final-tests.log). Web type checking and the real web workspace lint
+passed for the changed source. The rollback-only refund-review SQL proved service/client privileges,
+idempotent flagging without principal changes, and exclusion of both payout modes and new refunds.
+The full migration chain replayed; supabase db diff --local reported no changes against the isolated
+audit stack (refund-webhook-db-diff.log). No provider request or hosted database write was made.
+
+Still incomplete: the refund HTTP route does not yet reserve/finalize through the new ledger;
+remaining-balance UI and payout fee consumers need wiring, and real test-mode provider outcomes,
+external-refund resolution, notification durability, and weekly payout recovery remain unverified or
+unfinished. The webhook tests are not proof of a complete refund journey. The overall remediation
+goal stays open.
