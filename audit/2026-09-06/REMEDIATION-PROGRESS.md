@@ -505,3 +505,33 @@ Server fee state is cleared when the job changes. 36 hook tests passed, includin
 previous-account responses and login/logout transitions. Web type-check 19 and mobile type-check 2
 passed. The combined refund/display check passed 27 tests. No device, browser payment hand-off, real
 Stripe challenge, or provider refund was tested.
+
+### 2026-09-14: accumulated payout and refund exclusion
+
+Traced accumulateEarnings to its only active caller, EscrowAutoReleaseService, which claims
+release_pending before crediting the weekly payout balance. The old credit_payout_balance RPC
+neither locked escrow nor checked a concurrent refund, and a same-job retry silently accepted a
+changed amount or recipient.
+
+20260914132337_serialize_accumulated_payout_claims.sql now takes job then escrow locks, matching
+refund reservation order. It validates the assigned contractor, GBP currency, release claim,
+remaining principal, and absence of unresolved refunds or direct transfer attempts. Matching retries
+remain exactly once; mismatched payloads fail. Direct transfer insertion and the legacy refund claim
+trigger also reject an existing accumulated credit, including after a stale worker resets an escrow
+to held. This protects the currently active legacy refund path as well as the new ledger foundation.
+No application route was switched to the new ledger yet.
+
+Verification: all 17 rollback-only SQL diagnostics passed against the disposable
+mintenance-audit-20260906 stack. The new SQL covers refund-first and payout-first exclusion, both
+direct/accumulated payout orderings, wrong recipient/currency, remaining-principal caps,
+matching/changed retries, and the legacy refund claim. A separate-session diagnostic observed the
+competitor waiting on a PostgreSQL Lock before committing the first transaction; refund-first and
+credit-first both rejected the competing operation and preserved exactly one credit. Synthetic
+fixtures were removed. No hosted data or payment provider was used.
+
+The full refund route/webhook/remaining-balance integration, weekly provider payout recovery, fee
+reconciliation, and actual provider test-mode journeys remain open. These database protections do
+not establish an end-to-end working refund journey.
+
+Final full migration replay and supabase db diff --local completed with no schema changes
+(remediation-accumulated-payout-diff-final.log).
