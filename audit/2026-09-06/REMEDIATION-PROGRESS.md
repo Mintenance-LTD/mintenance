@@ -655,3 +655,35 @@ Full web coverage passed with unchanged thresholds (exit 0; refund-client-full-c
 type checking passed (refund-client-types.log), and final five-source workspace lint passed. The
 detail-form maximum/status presentation received a small follow-up adjustment during the full run;
 final type/lint and normal commit hooks check that final snapshot.
+
+## 2026-09-15 — Atomic remaining-principal release claim (integration pending)
+
+Inspection confirmed both manual and automatic release still calculate fees on original escrow
+amount, and EscrowFundingService rejects any refunded charge. Accepting refunded charges alone would
+be unsafe: an old payout can be below the new gross balance yet exceed the correctly fee-adjusted
+payout. This remains an open defect until both callers and funding verification use the refund
+ledger consistently.
+
+Added service-only claim_escrow_release(uuid,text,uuid), locking job then escrow in the refund lock
+order. It checks completed work/current contractor, held state, review/in-flight refund holds and
+positive remaining principal, then claims release and returns that principal from the same
+transaction. Original escrow amount stays unchanged. This function is not called by the application
+yet; no end-to-end payout fix is claimed by this database checkpoint.
+
+Applied migration 20260914234544 only to supabase_db_mintenance-audit-20260906.
+remediation-remaining-release-claim.sql passed with all fixtures rolled back: £500 original / £100
+refund / £400 claim; duplicate claim exclusion; refund exclusion; unfinished-job and review-hold
+rejection; anon/authenticated execution privileges absent. Initial test incorrectly skipped job
+lifecycle transitions and was corrected to follow posted -> assigned -> in_progress -> completed; no
+production controls were weakened.
+
+remediation-remaining-release-race.py passed with random synthetic fixtures and cleanup. It observed
+pg_stat_activity Lock waits before committing the first transaction: a refund plus valid job
+completion committed before a waiting release, which returned 40000 minor units; a release blocked a
+competing refund and a second release. Refund reservation itself disallows completed jobs, so the
+first scenario performs valid completion after the refund inside the first transaction.
+
+Required npx supabase db diff --local using isolated-stack completed exit 0, full shadow replay, no
+schema changes (remaining-release-claim-diff.log). No original local or hosted database changes,
+provider calls, real accounts, or deployment. Next required work is application integration and
+provider/ledger reconciliation tests; the overall remediation goal remains active.
