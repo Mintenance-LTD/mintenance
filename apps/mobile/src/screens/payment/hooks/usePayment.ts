@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { PaymentService } from '../../../services/PaymentService';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
@@ -47,6 +47,7 @@ export function usePayment({
   const paymentInFlight = useRef(false);
   const paymentCompleted = useRef(false);
   const paymentEpoch = useRef(0);
+  const methodLoadEpoch = useRef(0);
 
   // Holds the PaymentIntent created for THIS payment attempt. A "Try Again"
   // reuses this intent instead of minting a new one. Re-confirming a single
@@ -92,14 +93,11 @@ export function usePayment({
     ? (serverFees?.totalAmount ?? amount)
     : amount + platformFee;
 
-  useEffect(() => {
-    loadPaymentMethods();
-  }, []);
-
   // Fetch the server-calculated fee breakdown so the homeowner sees the same
   // tier-aware figures the backend will actually apply at escrow release.
   useEffect(() => {
     let cancelled = false;
+    setServerFees(null);
     if (!jobId) return;
 
     (async () => {
@@ -137,11 +135,17 @@ export function usePayment({
     };
   }, [jobId]);
 
-  const loadPaymentMethods = async () => {
-    if (!userId) return;
+  const loadPaymentMethods = useCallback(async () => {
+    const requestEpoch = ++methodLoadEpoch.current;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
 
     try {
       const result = await PaymentService.getPaymentMethods();
+      if (requestEpoch !== methodLoadEpoch.current) return;
 
       if (result.error || !result.methods) {
         setError(result.error || 'Failed to load payment methods');
@@ -159,12 +163,23 @@ export function usePayment({
 
       setError(null);
     } catch (err) {
+      if (requestEpoch !== methodLoadEpoch.current) return;
       setError('Failed to load payment methods');
       logger.error('Failed to load payment methods', err);
     } finally {
-      setLoading(false);
+      if (requestEpoch === methodLoadEpoch.current) setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    setPaymentMethods([]);
+    setSelectedMethod(null);
+    setError(null);
+    void loadPaymentMethods();
+    return () => {
+      methodLoadEpoch.current += 1;
+    };
+  }, [loadPaymentMethods]);
 
   const handlePayment = async () => {
     if (paymentInFlight.current || paymentCompleted.current) return;

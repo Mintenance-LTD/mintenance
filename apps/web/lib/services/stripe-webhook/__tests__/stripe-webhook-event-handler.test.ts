@@ -1,5 +1,9 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import type Stripe from 'stripe';
+vi.mock('@/lib/services/payment/RefundWebhookService', () => ({
+  handleRefundChanged: vi.fn(),
+}));
+import { handleRefundChanged } from '@/lib/services/payment/RefundWebhookService';
 
 // ---------------------------------------------------------------------------
 // Hoisted handler mocks — `survive vitest mockReset: true` so the
@@ -307,4 +311,26 @@ describe('StripeWebhookEventHandler dispatcher', () => {
       ).rejects.toThrow('downstream supabase outage');
     });
   });
+});
+
+describe('durable refund events', () => {
+  it.each(['refund.created', 'refund.updated', 'refund.failed'])(
+    'dispatches %s and propagates recovery failures',
+    async (type) => {
+      const handler = new StripeWebhookEventHandler({} as Stripe);
+      const refund = { id: 're_synthetic' };
+      const event = {
+        type,
+        data: { object: refund },
+      } as unknown as Stripe.Event;
+      await handler.handleEvent(event);
+      expect(handleRefundChanged).toHaveBeenCalledWith(refund);
+      vi.mocked(handleRefundChanged).mockRejectedValueOnce(
+        new Error('Recording unavailable')
+      );
+      await expect(handler.handleEvent(event)).rejects.toThrow(
+        'Recording unavailable'
+      );
+    }
+  );
 });

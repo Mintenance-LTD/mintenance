@@ -1,5 +1,9 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import type Stripe from 'stripe';
+vi.mock('@/lib/services/payment/RefundWebhookService', () => ({
+  reconcileLedgerRefundCharge: vi.fn(),
+}));
+import { reconcileLedgerRefundCharge } from '@/lib/services/payment/RefundWebhookService';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks — survive mockReset
@@ -514,6 +518,40 @@ describe('handleChargeRefunded', () => {
     );
   });
 
+  it('repairs the job on replay after escrow succeeded but the job write failed', async () => {
+    const escrow = buildChain({
+      singleData: {
+        id: ESCROW_ID,
+        job_id: JOB_ID,
+        amount: 50,
+        status: 'refunded',
+      },
+    });
+    const updateJob = vi.fn();
+    const jobResult = vi
+      .fn()
+      .mockResolvedValueOnce({ error: new Error('Job write unavailable') })
+      .mockResolvedValueOnce({ error: null });
+    updateJob.mockReturnValue({ eq: jobResult });
+    mockFrom.mockImplementation((table: string) =>
+      table === 'jobs'
+        ? { update: updateJob }
+        : table === 'refunds'
+          ? { upsert: vi.fn().mockResolvedValue({ error: null }) }
+          : escrow
+    );
+    await expect(
+      handleChargeRefunded(makeCharge(), mockNotify)
+    ).rejects.toThrow('refunded job payment status');
+    await handleChargeRefunded(makeCharge(), mockNotify);
+    expect(updateJob).toHaveBeenCalledTimes(2);
+    expect(updateJob).toHaveBeenLastCalledWith(
+      expect.objectContaining({ payment_status: 'refunded' })
+    );
+    expect(escrow.update).not.toHaveBeenCalled();
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
   it('returns early when charge has no payment_intent', async () => {
     const charge = makeCharge({ payment_intent: null as unknown as string });
     await handleChargeRefunded(charge, mockNotify);
@@ -709,5 +747,26 @@ describe('out-of-order event guards', () => {
     // The authoritative escrow state is unknown, so metadata must not drive
     // a job mutation either.
     expect(mockFrom).not.toHaveBeenCalledWith('jobs');
+  });
+});
+
+describe('ledger refund routing', () => {
+  it('does not perform legacy writes or notifications after ledger reconciliation', async () => {
+    vi.mocked(reconcileLedgerRefundCharge).mockResolvedValueOnce(true);
+    const notify = vi.fn();
+    mockFrom.mockClear();
+    await handleChargeRefunded(makeCharge(), notify);
+    expect(mockFrom).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
+  });
+  it('propagates ledger recovery failure without legacy fallback', async () => {
+    vi.mocked(reconcileLedgerRefundCharge).mockRejectedValueOnce(
+      new Error('Ledger unavailable')
+    );
+    mockFrom.mockClear();
+    await expect(handleChargeRefunded(makeCharge(), vi.fn())).rejects.toThrow(
+      'Ledger unavailable'
+    );
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 });

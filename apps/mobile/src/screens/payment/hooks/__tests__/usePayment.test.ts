@@ -102,6 +102,53 @@ beforeEach(() => {
 });
 
 describe('usePayment — initial load', () => {
+  it('reloads methods after account changes and ignores the previous account response', async () => {
+    let finishFirst: (
+      value: Awaited<ReturnType<typeof PaymentService.getPaymentMethods>>
+    ) => void = () => undefined;
+    mockPaymentService.getPaymentMethods.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishFirst = resolve;
+        })
+    );
+    const { result, rerender } = renderHook(
+      ({ userId }) => usePayment(baseOptions({ userId })),
+      { initialProps: { userId: 'first-user' } }
+    );
+    const secondMethod = { ...DEFAULT_METHOD, id: 'pm_second_user' };
+    mockPaymentService.getPaymentMethods.mockResolvedValue({
+      methods: [secondMethod],
+    } as never);
+    rerender({ userId: 'second-user' });
+    await waitFor(() =>
+      expect(result.current.selectedMethod?.id).toBe('pm_second_user')
+    );
+    await act(async () => {
+      finishFirst({ methods: [DEFAULT_METHOD] } as never);
+    });
+    expect(result.current.paymentMethods).toEqual([secondMethod]);
+    expect(result.current.selectedMethod?.id).toBe('pm_second_user');
+    expect(mockPaymentService.getPaymentMethods).toHaveBeenCalledTimes(2);
+  });
+  it('loads methods when authentication arrives and clears them on logout', async () => {
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId: string | undefined }) =>
+        usePayment(baseOptions({ userId })),
+      { initialProps: { userId: undefined as string | undefined } }
+    );
+    expect(result.current.loading).toBe(false);
+    expect(mockPaymentService.getPaymentMethods).not.toHaveBeenCalled();
+    rerender({ userId: 'signed-in-user' });
+    await waitFor(() =>
+      expect(result.current.selectedMethod?.id).toBe(DEFAULT_METHOD.id)
+    );
+    rerender({ userId: undefined });
+    expect(result.current.selectedMethod).toBeNull();
+    expect(result.current.paymentMethods).toEqual([]);
+    expect(result.current.loading).toBe(false);
+  });
+
   it('loads payment methods, selects the default, clears error, ends loading', async () => {
     const { result } = renderHook(() => usePayment(baseOptions()));
 
@@ -139,7 +186,7 @@ describe('usePayment — initial load', () => {
     await waitFor(() =>
       expect(mockPaymentService.getPaymentMethods).not.toHaveBeenCalled()
     );
-    expect(result.current.loading).toBe(true);
+    expect(result.current.loading).toBe(false);
     expect(result.current.paymentMethods).toEqual([]);
   });
 

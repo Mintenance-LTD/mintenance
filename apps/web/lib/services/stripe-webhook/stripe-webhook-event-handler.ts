@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { handleRefundChanged } from '@/lib/services/payment/RefundWebhookService';
 import { logger } from '@mintenance/shared';
 import { sendNotification } from './webhook-helpers';
 import {
@@ -57,16 +58,28 @@ export class StripeWebhookEventHandler {
     switch (event.type) {
       // Payment Intent events
       case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent, notify);
+        await handlePaymentIntentSucceeded(
+          event.data.object as Stripe.PaymentIntent,
+          notify
+        );
         return;
       case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent, notify);
+        await handlePaymentIntentFailed(
+          event.data.object as Stripe.PaymentIntent,
+          notify
+        );
         return;
       case 'payment_intent.canceled':
-        await handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent, notify);
+        await handlePaymentIntentCanceled(
+          event.data.object as Stripe.PaymentIntent,
+          notify
+        );
         return;
       case 'payment_intent.requires_action':
-        await handlePaymentIntentRequiresAction(event.data.object as Stripe.PaymentIntent, notify);
+        await handlePaymentIntentRequiresAction(
+          event.data.object as Stripe.PaymentIntent,
+          notify
+        );
         return;
 
       // Charge events
@@ -80,21 +93,39 @@ export class StripeWebhookEventHandler {
         await handleChargeRefunded(event.data.object as Stripe.Charge, notify);
         return;
 
+      case 'refund.created':
+      case 'refund.updated':
+      case 'refund.failed':
+        await handleRefundChanged(event.data.object as Stripe.Refund);
+        return;
+
       // Subscription events
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, notify);
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription,
+          notify
+        );
         return;
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, notify);
+        await handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription,
+          notify
+        );
         return;
 
       // Invoice events
       case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, notify);
+        await handleInvoicePaymentSucceeded(
+          event.data.object as Stripe.Invoice,
+          notify
+        );
         return;
       case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, notify);
+        await handleInvoicePaymentFailed(
+          event.data.object as Stripe.Invoice,
+          notify
+        );
         return;
 
       // Account events
@@ -115,19 +146,19 @@ export class StripeWebhookEventHandler {
       case 'setup_intent.succeeded':
         await handleSetupIntentWebhookSucceeded(
           event.data.object as Stripe.SetupIntent,
-          notify,
+          notify
         );
         return;
       case 'setup_intent.setup_failed':
         await handleSetupIntentWebhookFailed(
           event.data.object as Stripe.SetupIntent,
-          notify,
+          notify
         );
         return;
       case 'payment_method.detached':
         await handlePaymentMethodDetached(
           event.data.object as Stripe.PaymentMethod,
-          notify,
+          notify
         );
         return;
 

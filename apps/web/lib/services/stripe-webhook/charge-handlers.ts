@@ -17,6 +17,7 @@
 import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { reconcileLedgerRefundCharge } from '@/lib/services/payment/RefundWebhookService';
 import type { SendNotificationFn } from './webhook-helpers';
 import {
   lookupEscrowForTerminalEvent,
@@ -36,7 +37,11 @@ export async function handleChargeRefunded(
   });
 
   try {
-    const paymentIntentId = charge.payment_intent as string;
+    if (await reconcileLedgerRefundCharge(charge)) return;
+    const paymentIntentId =
+      typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id;
 
     if (!paymentIntentId) {
       logger.warn('Charge has no payment intent', {
@@ -48,18 +53,22 @@ export async function handleChargeRefunded(
 
     const { data: existingEscrow, error: escrowLookupError } =
       await serverSupabase
-      .from('escrow_transactions')
-      .select(
-        'id, job_id, payer_id, payee_id, amount, status, payment_intent_id'
-      )
-      .eq('payment_intent_id', paymentIntentId)
-      .maybeSingle();
+        .from('escrow_transactions')
+        .select(
+          'id, job_id, payer_id, payee_id, amount, status, payment_intent_id'
+        )
+        .eq('payment_intent_id', paymentIntentId)
+        .maybeSingle();
 
     if (escrowLookupError) {
-      logger.error('Failed to load escrow for refunded payment', escrowLookupError, {
-        service: 'stripe-webhook',
-        paymentIntentId,
-      });
+      logger.error(
+        'Failed to load escrow for refunded payment',
+        escrowLookupError,
+        {
+          service: 'stripe-webhook',
+          paymentIntentId,
+        }
+      );
       throw new Error('Failed to load escrow for refunded payment');
     }
 
@@ -83,14 +92,18 @@ export async function handleChargeRefunded(
       refundAmount <= escrowAmountCents;
 
     if (!isValidRefund) {
-      logger.error('Ignoring refund webhook with invalid escrow invariant', undefined, {
-        service: 'stripe-webhook',
-        paymentIntentId,
-        chargeId: charge.id,
-        refundAmount,
-        escrowAmountCents,
-        currency: charge.currency,
-      });
+      logger.error(
+        'Ignoring refund webhook with invalid escrow invariant',
+        undefined,
+        {
+          service: 'stripe-webhook',
+          paymentIntentId,
+          chargeId: charge.id,
+          refundAmount,
+          escrowAmountCents,
+          currency: charge.currency,
+        }
+      );
       return;
     }
 
@@ -109,28 +122,31 @@ export async function handleChargeRefunded(
     let escrowStateFinalized = alreadyRefunded;
 
     if (isFullRefund && !alreadyRefunded) {
-      const { data: updatedEscrow, error: escrowError } =
-        await serverSupabase
-          .from('escrow_transactions')
-          .update({
-            status: 'refunded',
-            refunded_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingEscrow.id)
-          .in('status', refundableStatuses)
-          .select(
-            'id, job_id, payer_id, payee_id, amount, status, payment_intent_id'
-          )
-          .maybeSingle();
+      const { data: updatedEscrow, error: escrowError } = await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          status: 'refunded',
+          refunded_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingEscrow.id)
+        .in('status', refundableStatuses)
+        .select(
+          'id, job_id, payer_id, payee_id, amount, status, payment_intent_id'
+        )
+        .maybeSingle();
 
       if (escrowError || !updatedEscrow) {
-        logger.error('Failed to finalize refunded payment status', escrowError, {
-          service: 'stripe-webhook',
-          paymentIntentId,
-          escrowId: existingEscrow.id,
-          currentStatus: existingEscrow.status,
-        });
+        logger.error(
+          'Failed to finalize refunded payment status',
+          escrowError,
+          {
+            service: 'stripe-webhook',
+            paymentIntentId,
+            escrowId: existingEscrow.id,
+            currentStatus: existingEscrow.status,
+          }
+        );
         // Stripe has already moved the money. Fail the webhook so Stripe
         // retries the escrow transition instead of acknowledging a refund
         // while the application still treats the escrow as payable.
@@ -148,18 +164,27 @@ export async function handleChargeRefunded(
         amountRefunded: refundAmount,
         escrowAmountCents,
       });
-    } else if (!refundableStatuses.includes(existingEscrow.status) && !alreadyRefunded) {
-      logger.error('Ignoring refund for escrow outside refundable state', undefined, {
-        service: 'stripe-webhook',
-        paymentIntentId,
-        escrowId: existingEscrow.id,
-        currentStatus: existingEscrow.status,
-      });
+    } else if (
+      !refundableStatuses.includes(existingEscrow.status) &&
+      !alreadyRefunded
+    ) {
+      logger.error(
+        'Ignoring refund for escrow outside refundable state',
+        undefined,
+        {
+          service: 'stripe-webhook',
+          paymentIntentId,
+          escrowId: existingEscrow.id,
+          currentStatus: existingEscrow.status,
+        }
+      );
       return;
     }
 
     const jobId = escrowTransaction?.job_id || charge.metadata?.jobId;
-    if (jobId && isFullRefund && escrowStateFinalized && !alreadyRefunded) {
+    // A previous attempt may have committed escrow before its job write failed.
+    // Repair the job on replay even when escrow is already terminal.
+    if (jobId && isFullRefund && escrowStateFinalized) {
       const { error: jobUpdateError } = await serverSupabase
         .from('jobs')
         .update({
@@ -180,7 +205,9 @@ export async function handleChargeRefunded(
     }
 
     // Record in refunds table
-    const { error: refundRecordError } = await serverSupabase.from('refunds').upsert(
+    const { error: refundRecordError } = await serverSupabase
+      .from('refunds')
+      .upsert(
         {
           charge_id: charge.id,
           payment_intent_id: paymentIntentId,
