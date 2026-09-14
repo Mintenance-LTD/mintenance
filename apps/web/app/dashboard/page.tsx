@@ -12,7 +12,6 @@ import { fetchDashboardData } from './lib/data-fetching';
 import {
   combineBidsAndQuotes,
   filterJobsByStatus,
-  calculateKpiData,
 } from './lib/data-processing';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { fetchNotificationFeed } from '@/lib/notifications/feed';
@@ -50,7 +49,6 @@ export default async function DashboardPage2025() {
     bids,
     quotes,
     properties,
-    subscriptions,
     payments,
     recommendations,
     onboardingStatus,
@@ -59,18 +57,7 @@ export default async function DashboardPage2025() {
   // Process data
   const allBids = combineBidsAndQuotes(bids, quotes);
 
-  const { activeJobs, completedJobs, postedJobs, awaitingBids, scheduledJobs } =
-    filterJobsByStatus(jobs);
-
-  const kpiData = calculateKpiData(
-    jobs,
-    allBids,
-    properties,
-    subscriptions,
-    payments,
-    completedJobs,
-    scheduledJobs
-  );
+  const { activeJobs, completedJobs, postedJobs } = filterJobsByStatus(jobs);
 
   const userDisplayName = homeownerProfile
     ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`.trim() ||

@@ -1,9 +1,24 @@
 module.exports = {
   // TypeScript/JavaScript files
-  '*.{ts,tsx,js,jsx}': [
-    'eslint --fix --max-warnings=0 --no-warn-ignored',
-    'prettier --write',
-  ],
+  '*.{ts,tsx,js,jsx}': (filenames) => {
+    // Root ESLint deliberately ignores apps/**. Run each app from its workspace
+    // so the hook actually applies that app's rules to staged source files.
+    const groups = { web: [], mobile: [], root: [] };
+    for (const filename of filenames) {
+      const normalized = filename.replace(/\\/g, '/');
+      const group = normalized.includes('/apps/web/') ? 'web'
+        : normalized.includes('/apps/mobile/') ? 'mobile' : 'root';
+      groups[group].push(JSON.stringify(normalized));
+    }
+    const commands = [];
+    for (const [group, files] of Object.entries(groups)) {
+      if (!files.length) continue;
+      const prefix = group === 'root' ? '' : `npm exec --workspace @mintenance/${group} -- `;
+      commands.push(`${prefix}eslint --fix --max-warnings=0 --no-warn-ignored ${files.join(' ')}`);
+    }
+    commands.push(`prettier --write ${filenames.map((filename) => JSON.stringify(filename.replace(/\\/g, '/'))).join(' ')}`);
+    return commands;
+  },
 
   // JSON files
   '*.json': [
