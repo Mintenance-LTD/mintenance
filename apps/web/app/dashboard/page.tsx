@@ -198,7 +198,7 @@ export default async function DashboardPage2025() {
       photoOrder.push(photo.job_id);
     }
   });
-  const signedPhotoUrls = await resignJobStorageUrls(rawPhotoUrls);
+  const signedPhotoUrls = await resignJobStorageUrls(rawPhotoUrls, user.id);
   const photoMap = new Map<string, string>();
   photoOrder.forEach((jobId, idx) => {
     const signed = signedPhotoUrls[idx];

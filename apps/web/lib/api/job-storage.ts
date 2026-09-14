@@ -1,32 +1,10 @@
 import { serverSupabase } from './supabaseServer';
 import { logger } from '@mintenance/shared';
 
-/**
- * Job-storage URL helper for Phase 2 storage hardening.
- *
- * Background (see audit-reports/BETA_READINESS.md Gate 1):
- *   The `Job-storage` bucket is scheduled to flip from `public=true` to
- *   `public=false`. Today upload routes call `getPublicUrl()` which returns a
- *   `/storage/v1/object/public/...` URL. Those URLs break instantly when the
- *   bucket is flipped private.
- *
- *   Signed URLs keep working after the flip for as long as their TTL allows
- *   and can be re-signed on demand.
- *
- * Phase split:
- *   - Phase 2a (this session): writer routes call `signJobStoragePath()` with
- *     a long TTL so newly uploaded objects survive the flip.
- *   - Phase 2b (separate migration): backfill legacy `photo_url` rows and
- *     flip `storage.buckets.public = false`.
- *
- * Uses the service-role client because signing does not require the caller's
- * JWT — callers are responsible for verifying participation before calling.
- *
- * @param path Object key inside the `Job-storage` bucket (no leading slash).
- * @param ttlSeconds Signed-URL validity. Defaults to one year (365d).
- * @returns The signed URL, or `null` if signing failed.
- */
-const DEFAULT_TTL_SECONDS = 60 * 60 * 24 * 365; // 365 days
+// Short-lived URLs are refreshed by authorized readers. Upload callers sign
+// only the server-generated path they have just uploaded.
+const DEFAULT_TTL_SECONDS = 60 * 60;
+export const PRIVATE_PHOTO_PLACEHOLDER = '/placeholder-property.svg';
 
 export async function signJobStoragePath(
   path: string,
@@ -37,14 +15,7 @@ export async function signJobStoragePath(
     .createSignedUrl(path, ttlSeconds);
 
   if (error || !data?.signedUrl) {
-    // "Object not found" is an expected condition: production has 12+
-    // job_attachments rows referencing seeded building-surveyor demo
-    // images (Rotten_*, Penetrating_*) whose actual files were never
-    // uploaded to the Job-storage bucket. The caller (resignJobStorageUrls)
-    // already falls back to the original URL so the UI handles it
-    // gracefully — demote to `warn` so prod logs aren't noisy with
-    // false-alarm errors. Other signing failures (auth, network) keep
-    // the `error` level so they surface properly.
+    // Missing objects render a placeholder; other failures remain errors.
     const isMissingObject =
       error != null && /object not found/i.test(error.message ?? '');
     const meta = { service: 'job-storage', path, ttlSeconds };
@@ -116,35 +87,52 @@ export function extractJobStoragePath(fileUrl: string): string | null {
 }
 
 /**
- * Re-sign one or more persisted `file_url` values into fresh signed URLs.
- *
- * Use this on server-rendered pages that display job photos. Legacy rows
- * (public URLs from before the bucket flip) become reachable again, and
- * signed-URL rows get a fresh TTL without forcing a schema migration on
- * `job_attachments`. Unrecognised URLs pass through unchanged so the
- * caller's render doesn't lose external images.
- *
- * Skips the re-sign round-trip for empty/null inputs.
+ * Refresh private images only after checking the viewer against trusted storage
+ * ownership and resource access. Preserve positions for callers batching photos.
+ * Denied or unavailable private images render a placeholder; external URLs pass
+ * through unchanged. A null viewer cannot obtain private signed URLs.
  */
 export async function resignJobStorageUrls(
   fileUrls: Array<string | null | undefined>,
+  viewerId: string | null,
   ttlSeconds: number = DEFAULT_TTL_SECONDS
 ): Promise<string[]> {
-  const results = await Promise.all(
-    fileUrls.map(async (url) => {
-      if (!url) return null;
-      const path = extractJobStoragePath(url);
-      if (!path) {
-        // Not a Job-storage URL — pass through (external image, CDN, etc.)
-        return url;
+  const paths = [
+    ...new Set(
+      fileUrls.flatMap((url) => {
+        const path = url ? extractJobStoragePath(url) : null;
+        return path ? [path] : [];
+      })
+    ),
+  ];
+  const allowed = new Set<string>();
+  if (viewerId && paths.length) {
+    const { data, error } = await serverSupabase.rpc(
+      'authorized_private_photo_paths',
+      {
+        p_actor_id: viewerId,
+        p_paths: paths,
       }
-      const signed = await signJobStoragePath(path, ttlSeconds);
-      // Fall back to the original (possibly broken) URL rather than
-      // dropping the photo entirely — the UI already shows a graceful
-      // "couldn't be loaded" state and dropping would hide that it
-      // was supposed to render.
-      return signed ?? url;
+    );
+    if (!error && Array.isArray(data)) {
+      for (const row of data)
+        if (typeof row.path === 'string') allowed.add(row.path);
+    }
+  }
+  // Preserve cardinality: callers re-chunk flat batches into individual jobs.
+  // Never fall back to an old private signed URL after failed authorization.
+  return Promise.all(
+    fileUrls.map(async (url) => {
+      if (!url) return PRIVATE_PHOTO_PLACEHOLDER;
+      const path = extractJobStoragePath(url);
+      if (!path) return url;
+      if (!allowed.has(path)) return PRIVATE_PHOTO_PLACEHOLDER;
+      return (
+        (await signJobStoragePath(
+          path,
+          Math.min(ttlSeconds, DEFAULT_TTL_SECONDS)
+        )) ?? PRIVATE_PHOTO_PLACEHOLDER
+      );
     })
   );
-  return results.filter((u): u is string => Boolean(u));
 }

@@ -225,7 +225,8 @@ export const GET = withApiHandler(
 
       return NextResponse.json({
         jobs: await attachSignedPhotos(
-          (jobs || []).map((job: JobApiResponse) => transformJob(job))
+          (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+          user.id
         ),
       });
     } else {
@@ -256,7 +257,8 @@ export const GET = withApiHandler(
 
       return NextResponse.json({
         jobs: await attachSignedPhotos(
-          (jobs || []).map((job: JobApiResponse) => transformJob(job))
+          (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+          user.id
         ),
       });
     }
@@ -270,12 +272,13 @@ export const GET = withApiHandler(
 // images pass through untouched. Deferred from f507c639 —
 // landed now that the list-endpoint pattern is stable.
 async function attachSignedPhotos<T extends { photos: string[] }>(
-  jobs: T[]
+  jobs: T[],
+  viewerId: string
 ): Promise<T[]> {
   await Promise.all(
     jobs.map(async (job) => {
       if (job.photos.length > 0) {
-        job.photos = await resignJobStorageUrls(job.photos);
+        job.photos = await resignJobStorageUrls(job.photos, viewerId);
       }
     })
   );

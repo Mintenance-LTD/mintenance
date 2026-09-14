@@ -128,7 +128,7 @@ export async function handleGet(
     ...(attachmentsRes.data ?? []).map((a: { file_url: string }) => a.file_url),
     ...(photoMetaRes.data ?? []).map((p: { photo_url: string }) => p.photo_url),
   ].filter(Boolean);
-  const signedPhotos = await resignJobStorageUrls(rawPhotos);
+  const signedPhotos = await resignJobStorageUrls(rawPhotos, user.id);
 
   // Coerce Postgres NUMERIC columns (serialised as strings by
   // supabase-js to preserve precision) into real JS numbers. The
@@ -226,7 +226,9 @@ export async function handleGet(
           canRevealKeySafeCode({
             status: row.status as string | null,
             scheduled_start_date: row.scheduled_start_date as
-              string | null | undefined,
+              | string
+              | null
+              | undefined,
           });
         propertyAccess = {
           access_mode: (p.access_mode as string | null) ?? null,

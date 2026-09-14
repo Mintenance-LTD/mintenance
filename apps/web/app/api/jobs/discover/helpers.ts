@@ -94,7 +94,8 @@ export interface JobThumbnail {
  * would misalign a batched result with its input rows.
  */
 export async function resolveJobThumbnails(
-  rows: Pick<JobRow, 'id' | 'photos' | 'job_attachments'>[]
+  rows: Pick<JobRow, 'id' | 'photos' | 'job_attachments'>[],
+  viewerId: string
 ): Promise<Map<string, JobThumbnail>> {
   const byJobId = new Map<string, JobThumbnail>();
   await Promise.all(
@@ -107,7 +108,7 @@ export async function resolveJobThumbnails(
         legacyPhotos.length > 0 ? legacyPhotos : attachmentImages;
       const first = rawPhotos[0] ?? null;
       const signed = first
-        ? ((await resignJobStorageUrls([first]))[0] ?? null)
+        ? ((await resignJobStorageUrls([first], viewerId))[0] ?? null)
         : null;
       byJobId.set(row.id, { photoUrl: signed, photoCount: rawPhotos.length });
     })

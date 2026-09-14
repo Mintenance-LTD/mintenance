@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { signJobStoragePath } from '@/lib/api/job-storage';
+import {
+  signJobStoragePath,
+  resignJobStorageUrls,
+} from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -104,8 +107,9 @@ export const GET = withApiHandler(
     const freshPhotos = await Promise.all(
       (data || []).map(async (photo) => ({
         ...photo,
-        photo_url:
-          (await signJobStoragePath(photo.storage_path)) ?? photo.photo_url,
+        photo_url: (
+          await resignJobStorageUrls([photo.storage_path], user.id)
+        )[0],
       }))
     );
 
@@ -180,7 +184,9 @@ export const POST = withApiHandler(
       // types are forgeable and must not decide what gets stored.
       const validation = await validateImageUpload(file, MAX_FILE_SIZE);
       if (!validation.valid || !validation.detectedType) {
-        errors.push(`${file.name}: ${validation.error || 'Invalid image file'}`);
+        errors.push(
+          `${file.name}: ${validation.error || 'Invalid image file'}`
+        );
         continue;
       }
 
@@ -228,7 +234,7 @@ export const POST = withApiHandler(
           photo_url: photoUrl,
           file_name: file.name,
           file_size: file.size,
-        mime_type: validation.detectedType,
+          mime_type: validation.detectedType,
           uploaded_by: user.id,
         })
         .select('id, photo_url, room_type')

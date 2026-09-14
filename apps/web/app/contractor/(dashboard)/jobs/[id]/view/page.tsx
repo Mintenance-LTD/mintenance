@@ -137,8 +137,8 @@ export default async function ContractorJobDetailsPage({
 
   const signedPhotoUrls =
     attachmentUrls.length > 0
-      ? (await resignJobStorageUrls(attachmentUrls)).filter((u): u is string =>
-          Boolean(u)
+      ? (await resignJobStorageUrls(attachmentUrls, user.id)).filter(
+          (u): u is string => Boolean(u)
         )
       : [];
 

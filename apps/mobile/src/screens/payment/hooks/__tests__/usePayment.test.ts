@@ -98,7 +98,7 @@ beforeEach(() => {
     error: null,
   } as never);
   mockApi.get.mockResolvedValue({ fees: null } as never);
-  mockApi.post.mockResolvedValue({} as never);
+  mockApi.post.mockResolvedValue({ success: true, status: 'held' } as never);
 });
 
 describe('usePayment — initial load', () => {
@@ -322,14 +322,15 @@ describe('usePayment — escrow payment (happy path)', () => {
     });
 
     expect(mockApi.post).not.toHaveBeenCalled();
+    expect(mockPaymentService.confirmPayment).not.toHaveBeenCalled();
     expect(alertSpy).toHaveBeenCalledWith(
-      'Payment Successful',
+      'Payment Failed',
       expect.any(String),
       expect.any(Array)
     );
   });
 
-  it('treats a failed confirm-intent POST as non-fatal and still succeeds', async () => {
+  it('keeps received payment pending until application confirmation succeeds', async () => {
     mockPaymentService.createPaymentIntent.mockResolvedValue({
       clientSecret: 'cs_live_789',
       paymentIntentId: 'pi_789',
@@ -354,15 +355,23 @@ describe('usePayment — escrow payment (happy path)', () => {
     });
 
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      'confirm-intent call failed; webhook will reconcile',
+      'Payment received; escrow confirmation pending',
       { jobId: 'job-abc', paymentIntentId: 'pi_789', err: 'confirm-intent 500' }
     );
-    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onSuccess).not.toHaveBeenCalled();
     expect(alertSpy).toHaveBeenCalledWith(
-      'Payment Successful',
+      'Payment Received',
       expect.any(String),
       expect.any(Array)
     );
+    mockApi.post.mockResolvedValue({ success: true, status: 'held' } as never);
+    await act(async () => {
+      await result.current.handlePayment();
+    });
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(mockPaymentService.createPaymentIntent).toHaveBeenCalledTimes(1);
+    expect(mockPaymentService.confirmPayment).toHaveBeenCalledTimes(1);
+    expect(mockApi.post).toHaveBeenCalledTimes(2);
   });
 
   it('serializes a non-Error confirm-intent rejection via String()', async () => {
@@ -384,7 +393,7 @@ describe('usePayment — escrow payment (happy path)', () => {
     });
 
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      'confirm-intent call failed; webhook will reconcile',
+      'Payment received; escrow confirmation pending',
       { jobId: 'job-abc', paymentIntentId: 'pi_x', err: 'post-string-fail' }
     );
   });
@@ -522,11 +531,7 @@ describe('usePayment — retry / single-intent reuse', () => {
     // First failure alert: press "Try Again" (buttons[1].onPress = handlePayment).
     // Second alert is the success alert: press OK (buttons[0].onPress).
     alertSpy.mockImplementation((title, _m, buttons) => {
-      if (title === 'Payment Failed') {
-        // Try Again
-        const tryAgain = buttons[1];
-        if (tryAgain?.onPress) tryAgain.onPress();
-      } else if (title === 'Payment Successful') {
+      if (title === 'Payment Successful') {
         if (buttons?.[0]?.onPress) buttons[0].onPress();
       }
     });
@@ -538,6 +543,10 @@ describe('usePayment — retry / single-intent reuse', () => {
       await result.current.handlePayment();
     });
 
+    const retry = alertSpy.mock.calls[0][2][1].onPress;
+    await act(async () => {
+      await retry();
+    });
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
     // Intent created exactly once despite the retry.
     expect(mockPaymentService.createPaymentIntent).toHaveBeenCalledTimes(1);
@@ -576,7 +585,7 @@ describe('usePayment — retry / single-intent reuse', () => {
     expect(lastCall[2]).toEqual([{ text: 'OK' }]);
   });
 
-  it('resetRetry clears retryCount and the cached intent', async () => {
+  it('resetRetry clears retryCount while preserving the existing intent', async () => {
     mockPaymentService.createPaymentIntent.mockResolvedValue({
       clientSecret: 'cs_rr',
       paymentIntentId: 'pi_rr',
@@ -597,7 +606,7 @@ describe('usePayment — retry / single-intent reuse', () => {
     act(() => result.current.resetRetry());
     expect(result.current.retryCount).toBe(0);
 
-    // After reset + a new attempt, a fresh intent is minted.
+    // A method change retries the existing intent.
     mockPaymentService.confirmPayment.mockResolvedValue({
       status: 'Succeeded',
     } as never);
@@ -605,7 +614,100 @@ describe('usePayment — retry / single-intent reuse', () => {
     await act(async () => {
       await result.current.handlePayment();
     });
-    expect(mockPaymentService.createPaymentIntent).toHaveBeenCalledTimes(2);
+    expect(mockPaymentService.createPaymentIntent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('usePayment — interruption and concurrency', () => {
+  it('serializes double taps and does not create another payment after success', async () => {
+    let resolveIntent!: (value: never) => void;
+    mockPaymentService.createPaymentIntent.mockReturnValue(
+      new Promise((resolve) => {
+        resolveIntent = resolve;
+      })
+    );
+    mockPaymentService.confirmPayment.mockResolvedValue({
+      status: 'Succeeded',
+    } as never);
+    const { result } = renderHook(() => usePayment(baseOptions()));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    let first!: Promise<void>;
+    await act(async () => {
+      first = result.current.handlePayment();
+      await result.current.handlePayment();
+    });
+    expect(mockPaymentService.createPaymentIntent).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveIntent({
+        clientSecret: 'synthetic',
+        paymentIntentId: 'pi_double',
+      } as never);
+      await first;
+      await result.current.handlePayment();
+    });
+    expect(mockPaymentService.createPaymentIntent).toHaveBeenCalledTimes(1);
+    expect(mockPaymentService.confirmPayment).toHaveBeenCalledTimes(1);
+    expect(mockApi.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores an old job response after navigation', async () => {
+    let resolveIntent!: (value: never) => void;
+    mockPaymentService.createPaymentIntent.mockReturnValue(
+      new Promise((resolve) => {
+        resolveIntent = resolve;
+      })
+    );
+    const { result, rerender } = renderHook(
+      ({ jobId }) => usePayment(baseOptions({ jobId })),
+      {
+        initialProps: { jobId: 'old-job' },
+      }
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = result.current.handlePayment();
+    });
+    rerender({ jobId: 'new-job' });
+    await act(async () => {
+      resolveIntent({
+        clientSecret: 'old-secret',
+        paymentIntentId: 'pi_old',
+      } as never);
+      await pending;
+    });
+    expect(mockPaymentService.confirmPayment).not.toHaveBeenCalled();
+    expect(mockApi.post).not.toHaveBeenCalled();
+    expect(result.current.processing).toBe(false);
+  });
+
+  it('does not accept a successful HTTP response whose escrow is still pending', async () => {
+    mockPaymentService.createPaymentIntent.mockResolvedValue({
+      clientSecret: 'synthetic',
+      paymentIntentId: 'pi_pending',
+    });
+    mockPaymentService.confirmPayment.mockResolvedValue({
+      status: 'Succeeded',
+    } as never);
+    mockApi.post.mockResolvedValue({
+      success: true,
+      status: 'pending',
+    } as never);
+    const { result } = renderHook(() => usePayment(baseOptions()));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.handlePayment();
+    });
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Payment Received',
+      expect.any(String),
+      expect.any(Array)
+    );
+    expect(alertSpy).not.toHaveBeenCalledWith(
+      'Payment Successful',
+      expect.any(String),
+      expect.any(Array)
+    );
   });
 });
 

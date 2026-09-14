@@ -46,6 +46,7 @@ export interface PaymentConfirmationData {
   homeownerName: string;
   jobTitle: string;
   amount: number;
+  creditApplied?: number;
   contractorName: string;
   viewUrl: string;
 }

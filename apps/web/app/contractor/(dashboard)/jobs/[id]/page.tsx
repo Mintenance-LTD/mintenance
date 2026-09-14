@@ -173,7 +173,8 @@ export default async function ContractorJobDetailPage({
     .order('uploaded_at', { ascending: false });
 
   const jobPhotoUrls = await resignJobStorageUrls(
-    (jobAttachments ?? []).map((a: { file_url: string | null }) => a.file_url)
+    (jobAttachments ?? []).map((a: { file_url: string | null }) => a.file_url),
+    user.id
   );
 
   // Fetch AI building assessment if one exists

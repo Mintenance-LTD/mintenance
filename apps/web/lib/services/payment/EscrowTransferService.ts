@@ -1,3 +1,4 @@
+import { verifyEscrowFunding } from './EscrowFundingService';
 import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { stripe } from '@/lib/stripe';
@@ -36,6 +37,7 @@ export async function createEscrowTransfer(
   if (!Number.isFinite(created) || Date.now() - created > 23 * 60 * 60 * 1000) {
     throw new InternalServerError('Payment transfer requires reconciliation');
   }
+  await verifyEscrowFunding(escrowId);
   const transfer = await stripe.transfers.create(
     attempt.stripe_parameters as Stripe.TransferCreateParams,
     { idempotencyKey: attempt.idempotency_key }

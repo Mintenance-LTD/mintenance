@@ -101,7 +101,7 @@ export default async function ContractorProfilePage2025() {
   // before/after photos in the portfolio. Same path the canonical
   // /api/jobs list reader uses.
   const completedJobIds = completedJobsRaw.map((j) => j.id);
-  const photosByJobId = await getJobPhotosByJobId(completedJobIds);
+  const photosByJobId = await getJobPhotosByJobId(completedJobIds, user.id);
   const completedJobs = completedJobsRaw.map((j) => ({
     ...j,
     photos: (photosByJobId.get(j.id) ?? []).map((url) => ({ url })),

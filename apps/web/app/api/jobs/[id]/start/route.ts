@@ -1,3 +1,4 @@
+import { verifyEscrowFunding } from '@/lib/services/payment/EscrowFundingService';
 /**
  * POST /api/jobs/:id/start
  * Contractor starts a job after uploading before photos.
@@ -117,6 +118,8 @@ export const POST = withApiHandler(
           'Payment must be secured in escrow before starting the job'
         );
       }
+
+      await verifyEscrowFunding(escrow.id);
 
       // 6. Check at least 1 before photo exists (user-scoped read)
       const { count } = await userDb

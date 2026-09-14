@@ -15,11 +15,11 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
 import { normalisePropertyType } from '@/lib/properties/property-type';
+import { saveProperty } from '@/lib/properties/save-property';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 // Type definition for property insert data
 interface PropertyInsertData {
-  owner_id: string;
   property_name: string;
   address: string;
   property_type: string;
@@ -196,7 +196,7 @@ export const GET = withApiHandler(
           : [];
         return {
           ...property,
-          photos: await resignJobStorageUrls(storedPhotos),
+          photos: await resignJobStorageUrls(storedPhotos, user.id),
         };
       })
     );
@@ -284,18 +284,8 @@ export const POST = withApiHandler(
 
     const is_primary = body.is_primary ?? false;
 
-    // If setting as primary, unset all other primary properties for this user
-    if (is_primary) {
-      await userDb
-        .from('properties')
-        .update({ is_primary: false })
-        .eq('owner_id', user.id)
-        .eq('is_primary', true);
-    }
-
     // Create the property with sanitized data
     const insertData: PropertyInsertData = {
-      owner_id: user.id,
       property_name: sanitizeText(property_name, 255),
       address: sanitizeText(address, 500),
       property_type,
@@ -346,27 +336,24 @@ export const POST = withApiHandler(
       insertData.photos = body.photos;
     }
 
-    const { data: property, error: createError } = await userDb
-      .from('properties')
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (createError) {
-      logger.error('Failed to create property', createError, {
-        userId: user.id,
-        service: 'properties',
-        errorCode: createError.code,
-        errorMessage: createError.message,
-        errorDetails: createError.details,
-      });
-
-      // Handle duplicate or constraint errors
-      if (createError.code === '23505') {
+    let property;
+    try {
+      property = await saveProperty(
+        user.id,
+        crypto.randomUUID(),
+        { ...insertData },
+        true
+      );
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === '23505'
+      ) {
         throw new ConflictError('A property with this name already exists');
       }
-
-      throw createError;
+      throw error;
     }
 
     logger.info('Property created successfully', {

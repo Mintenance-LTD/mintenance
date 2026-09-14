@@ -226,7 +226,7 @@ export default async function ContractorDiscoverPage2025() {
             ? attachmentPhotos
             : null;
       const resolvedPhotos = rawPhotos
-        ? await resignJobStorageUrls(rawPhotos)
+        ? await resignJobStorageUrls(rawPhotos, user.id)
         : null;
 
       // Extract bid count from embedded aggregate
