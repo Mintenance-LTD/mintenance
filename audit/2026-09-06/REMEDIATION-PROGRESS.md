@@ -1988,3 +1988,22 @@ observed separately. Browser/device login and password-reset completion still re
 - The earlier job-exit-final-diff.log exited 0 but reported a function difference; exit status alone
   was insufficient. Restored the intended unconditional terminal-reconciliation return and verified
   the corrected replay explicitly returned an empty diff and No schema changes found.
+
+### 15 September 2026 — confirmed earnings filing updates
+
+- Followed admin tax page handleMarkFiled through POST /api/admin/tax/mark-filed to
+  UKEarningsStatementService.markFiled. Existing admin/fresh-MFA checks remain intact. The old
+  update accepted zero affected rows and allowed ungenerated statements to be filed.
+- The update now atomically filters statement_generated=true, returns contractor_id, and reports
+  confirmation only for the requested contractor. No matching generated statement returns HTTP 409;
+  the existing UI error path displays it instead of the success toast.
+- Added service cases for missing, ungenerated, generated and database-failure responses. Final
+  selected suite: 8 tests / 1 file passed (filing-after.log). Web TypeScript and changed source
+  ESLint --max-warnings=0 passed. Initial sandbox runs failed before test startup; those failures
+  are not regression reproductions.
+- Added remediation-filing-rest.py. Real isolated local PostgREST reproduced the old ungenerated
+  update, then verified zero changes for missing/ungenerated rows and returned/persisted generated
+  state (filing-rest.log, exit 0). Exact synthetic records cleaned up in finally.
+- No schema change, hosted mutation or external filing occurred. This is bookkeeping confirmation,
+  not proof of submission to a tax authority. Reporting pagination and broader journey checks
+  remain.

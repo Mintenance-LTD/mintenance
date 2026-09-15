@@ -380,9 +380,9 @@ export class UKEarningsStatementService {
   static async markFiled(
     contractorId: string,
     startYear: number
-  ): Promise<void> {
+  ): Promise<boolean> {
     const now = new Date().toISOString();
-    const { error } = await serverSupabase
+    const { data, error } = await serverSupabase
       .from('tax_year_summaries')
       .update({
         statement_filed: true,
@@ -390,7 +390,10 @@ export class UKEarningsStatementService {
         updated_at: now,
       })
       .eq('contractor_id', contractorId)
-      .eq('tax_year', startYear);
+      .eq('tax_year', startYear)
+      .eq('statement_generated', true)
+      .select('contractor_id')
+      .maybeSingle();
     if (error) {
       logger.error('Failed to mark statement filed', error, {
         service: 'uk-earnings',
@@ -399,5 +402,6 @@ export class UKEarningsStatementService {
       });
       throw new Error('Failed to record statement filing');
     }
+    return data?.contractor_id === contractorId;
   }
 }

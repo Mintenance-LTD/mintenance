@@ -202,3 +202,62 @@ describe('UKEarningsStatementService.getStatement', () => {
     ).rejects.toThrow('requires reconciliation');
   });
 });
+
+describe('earnings filing confirmation', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('does not report a failed database write as filing confirmation', async () => {
+    const query = chain({
+      data: null,
+      error: { message: 'synthetic unavailable database' },
+    });
+    query.update = vi.fn(() => query);
+    query.maybeSingle = vi.fn(async () => ({
+      data: null,
+      error: { message: 'synthetic unavailable database' },
+    }));
+    mocks.from.mockReturnValue(query);
+    await expect(
+      UKEarningsStatementService.markFiled('contractor-1', 2025)
+    ).rejects.toThrow('Failed to record statement filing');
+  });
+
+  it.each(['missing', 'not generated', 'generated'])(
+    'confirms filing only for a generated statement: %s',
+    async (state) => {
+      const filters = new Map<string, unknown>();
+      let filed = false;
+      const query: Record<string, unknown> = {};
+      query.update = vi.fn(() => query);
+      query.select = vi.fn(() => query);
+      query.eq = vi.fn((key: string, value: unknown) => {
+        filters.set(key, value);
+        return query;
+      });
+      const result = () => {
+        const matches =
+          state !== 'missing' &&
+          (filters.get('statement_generated') !== true ||
+            state === 'generated');
+        filed = matches;
+        return {
+          data: matches ? { contractor_id: 'contractor-1' } : null,
+          error: null,
+        };
+      };
+      query.maybeSingle = vi.fn(async () => result());
+      query.then = (resolve: (value: unknown) => unknown) =>
+        Promise.resolve(result()).then(resolve);
+      mocks.from.mockReturnValue(query);
+
+      const confirmed = await UKEarningsStatementService.markFiled(
+        'contractor-1',
+        2025
+      );
+      expect(confirmed).toBe(state === 'generated');
+      expect(filed).toBe(state === 'generated');
+      expect(filters.get('contractor_id')).toBe('contractor-1');
+      expect(filters.get('tax_year')).toBe(2025);
+    }
+  );
+});
