@@ -83,4 +83,4 @@ try:
     assert sql(f"SELECT count(*) FROM public.contract_cosignature_evidence WHERE contract_id='{contract3}'")=='0'
     print('PASS: co-sign/delete and primary-sign/invite serialize; concurrent replay retains one evidence row')
 finally:
-    sql(f"DELETE FROM public.notifications WHERE user_id IN ('{owner}','{contractor}','{cosigner}'); DELETE FROM public.contracts WHERE id IN ('{contract}','{contract2}','{contract3}'); DELETE FROM public.jobs WHERE id IN ('{job}','{job2}','{job3}'); DELETE FROM auth.users WHERE id IN ('{owner}','{contractor}','{cosigner}');")
+    sql(f"DELETE FROM public.notifications WHERE user_id IN ('{owner}','{contractor}','{cosigner}'); DELETE FROM public.contracts WHERE id IN ('{contract}','{contract2}','{contract3}'); DELETE FROM public.retained_contract_records WHERE contract_id IN ('{contract}','{contract2}','{contract3}'); DELETE FROM public.jobs WHERE id IN ('{job}','{job2}','{job3}'); DELETE FROM auth.users WHERE id IN ('{owner}','{contractor}','{cosigner}');")

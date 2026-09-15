@@ -856,3 +856,46 @@ Full isolated web coverage completed exit 0: **3,389 tests / 303 files passed**,
 unchanged coverage thresholds (`contract-cosign-full-coverage.log`). Changed production routes and
 the contract UI hook passed workspace ESLint with zero warnings. No live providers, hosted
 databases, real accounts or deployments were used.
+
+### 2026-09-15 — Retain signed evidence before account-deletion cascades
+
+Reproduced `delete_user_data` deleting a synthetic cancelled signed contract and both primary
+acceptance records: the transaction succeeded with zero contracts and zero acceptance rows
+remaining. This is distinct from the newer funding/payout foreign keys that can block deletion of
+other accounts. Source inspection also confirms the route snapshots subscription IDs only in request
+memory before deleting their source rows; durable billing/auth cleanup remains outstanding.
+
+Added `retained_contract_records` and a BEFORE DELETE trigger on contracts. The restricted archive
+captures the contract, original primary/co-signer evidence, signature images, signed signatory
+identities and minimal party names before cascading deletion. It has no foreign keys back to the
+deleted account/job, cannot be read or modified by client roles, and cannot be overwritten/deleted
+by ordinary service-role table access. Archive insertion failure aborts deletion in the same
+transaction. Unsigned drafts (including legacy NULL status) are not archived. Previously lost
+evidence is not reconstructed.
+
+Added a service-only participant reader and authenticated `GET /api/contracts/[id]/retained`. Every
+read checks a current non-deleted profile plus archived participation; unrelated administrators get
+no override. The response selects agreement fields and signature timestamps, excludes raw
+IP/user-agent/signature payloads, and sets private/no-store caching. Raw retained evidence remains
+server-only. This endpoint has no archive navigation page or list yet; it is not a completed
+ordinary-user archive journey or a verified former-user identity/export process.
+
+Retention is explicitly marked for classification/review in 30 days; no unsupported fiscal-year or
+universal six-year expiry is invented. A review/disposal worker, scoped holds and operational
+ownership still need implementation. This checkpoint preserves signed evidence; it does not solve
+payment-record retention, deletion/provider recovery, referenced storage-object preservation,
+historical backups, or the complete policy implementation. The full goal remains active.
+
+Validation: `remediation-contract-retention.sql` proves original acceptance JSON survives exactly,
+an injected archive-write failure rolls back deletion, the deleted owner profile is removed, the
+surviving party can read the redacted view, deleted/unrelated/admin readers are denied, and direct
+client/archive mutations are denied. All 23 rollback SQL diagnostics and all 10 concurrency
+diagnostics passed on the isolated stack. Six race cleanup queries now also remove their
+specifically identified synthetic archives; an explicit count confirmed zero archive rows remain.
+The new viewer/atomic route boundary suite passed 28 tests, and viewer production ESLint passed.
+Initial isolated migration replay completed exit 0/no drift; final replay after the NULL-status
+minimisation correction is recorded below on completion. No live provider, hosted data or deployment
+actions were taken.
+
+Final isolated migration replay after the minimisation correction completed exit 0 with no schema
+changes (`contract-retention-db-diff-final.log`).

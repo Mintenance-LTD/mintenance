@@ -86,3 +86,49 @@ describe.each([
     expect(mocks.rpc).toHaveBeenCalledTimes(2);
   });
 });
+
+// Viewer contract tests; the SQL diagnostic proves authorization against real records.
+import { GET as retained } from '@/app/api/contracts/[id]/retained/route';
+describe('retained contract viewer boundary', () => {
+  const handler = retained as unknown as Handler;
+  const viewRequest = () =>
+    new NextRequest(`http://localhost/api/contracts/${contractId}/retained`);
+  it('uses the current actor and prevents cached private responses', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: { contract: { id: contractId }, signatures: [] },
+      error: null,
+    });
+    const response = await handler(viewRequest(), context);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(mocks.rpc).toHaveBeenCalledWith('read_retained_contract', {
+      p_contract_id: contractId,
+      p_user_id: actorId,
+    });
+  });
+  it.each([
+    ['P0002', 404],
+    ['42501', 403],
+    ['XX000', 500],
+  ])('maps viewer %s to %s', async (code, statusCode) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code } });
+    await expect(handler(viewRequest(), context)).rejects.toMatchObject({
+      statusCode,
+    });
+  });
+  it.each([null, {}, { contract: { id: 'another-contract' } }])(
+    'rejects an invalid viewer result %j',
+    async (data) => {
+      mocks.rpc.mockResolvedValue({ data, error: null });
+      await expect(handler(viewRequest(), context)).rejects.toMatchObject({
+        statusCode: 500,
+      });
+    }
+  );
+  it('rejects malformed IDs without database access', async () => {
+    await expect(
+      handler(viewRequest(), { ...context, params: { id: 'invalid' } })
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+});
