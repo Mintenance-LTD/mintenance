@@ -180,6 +180,7 @@ export default async function JobDetailPage2025({
       .from('contracts')
       .select('id, status, contractor_signed_at, homeowner_signed_at')
       .eq('job_id', resolvedParams.id)
+      .neq('status', 'cancelled')
       .single(),
     serverSupabase
       .from('escrow_transactions')

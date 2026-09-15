@@ -2147,3 +2147,129 @@ observed separately. Browser/device login and password-reset completion still re
   handling pre-existing unused results in the touched file. Normal commit hooks check final types.
 - No SMS, hosted Auth request or customer interaction occurred. This proves the local client-session
   isolation contract; it does not certify the entire phone-change/provider-fallback journey.
+
+### 15 September 2026 — F11 current capacity proof and confirmed contract durability gap
+
+- Reviewed and reran remediation-capacity-race.py: withdrawn bid denied; two concurrent acceptances
+  for one remaining slot yielded exactly one winner and three active jobs. Fixture cleanup ran.
+- Followed the active bid-accept route: it commits accept_bid_with_capacity before contract
+  creation. The existing retry-at-cap test passes by skipping the transition and rerunning follow-up
+  work. The current bid-accept test file passed (current-bid-accept-tests.log); this is not
+  unattended recovery.
+- Added audit-only remediation-contract-durability-gap.py. It preserves the capacity checks then
+  asserts the winning committed assignment has a contract. It currently FAILS that criterion
+  (current-contract-durability-gap.log, exit 1), with exact fixture cleanup in finally. This
+  deliberate failing diagnostic is not part of the web test suite and must become passing when F11
+  is fixed.
+- Current source has no durable contract recovery queued by acceptance. Required next change is an
+  atomic contract/acceptance operation or a durable transactionally created recovery obligation,
+  preserving proposal, dates, warranty/materials, contractor identity/insurance and quote linkage.
+  Do not substitute a bare contract or claim client retry alone satisfies this requirement.
+
+### F11 in-progress atomic-contract regression (2026-09-15)
+
+The uncommitted `20260915220535_atomic_bid_acceptance_contract.sql` was confirmed installed on the
+isolated `supabase_db_mintenance-audit-20260906` database. Running
+`python audit/2026-09-06/remediation-contract-durability-gap.py` exited 0: an injected contract
+INSERT exception rolled back both job assignment and bid acceptance; a withdrawn bid was rejected;
+two independent connections competed for one capacity slot and exactly one succeeded; the winning
+transaction included one contract; repeating it at capacity returned success with the same contract
+and exactly two contract notifications. All new-run synthetic fixtures were cleaned. The first run
+exposed an outdated diagnostic cleanup assumption (job DELETE blocked by the new contract FK);
+cleanup now deletes synthetic contracts first, and the exact earlier synthetic fixture was removed
+after validating its job description and example.invalid accounts.
+
+This is a partial F11 result, not completion: the HTTP retry path still bypasses the RPC, the legacy
+follow-up contract block remains, reopened jobs with retained cancelled contracts need coherent
+agreement-history handling, full contract-field preservation and authorization tests remain, and
+migration replay/diff plus route regression checks are outstanding. No hosted database or payment
+provider was touched.
+
+### F11 API integration and expanded checks (2026-09-15)
+
+The acceptance route now always invokes `accept_bid_with_capacity`, including already-applied
+retries, and requires its successful result before returning/caching success. Removed the separate
+HTTP contract-creation block; its proposal/identity/schedule work now belongs to the transaction.
+Added a route regression for an already-applied retry whose contract operation fails: returns 500
+and caches no success. All 24 bid-accept route tests passed (1 file, 1.82s); web `tsc --noEmit` and
+route ESLint `--max-warnings=0` exited 0. Initial sandboxed Vitest startup could not read the
+config; the same sanitized launcher passed with filesystem escalation.
+
+Expanded real-database diagnostic exited 0: denies null and unrelated actor IDs, denies
+anon/authenticated execution, preserves proposal/schedule/warranty/materials/company/license, and
+retains rollback/concurrency/retry assertions. The transaction actor check now matches the API:
+designated payer when present, otherwise homeowner. First expanded fixture used an unsupported
+license type; corrected to actual schema value `trade`, without changing the constraint. Fixtures
+were cleaned on both attempts.
+
+Remaining F11 work is recorded in CURRENT-ACCEPTANCE.md; do not treat these subset checks as closure
+or public readiness.
+
+### F11 migration replay, payer and contract-field proof (2026-09-15)
+
+`npx --offline supabase db diff --local --workdir audit/2026-09-06/isolated-stack` completed with
+exit 0 after copying the pending migration into the isolated replay directory. Inspected actual
+output: `No schema changes found` and JSON `diff:""`, `files:[]`, `dropStatements:[]` (pg-delta).
+This proves replay matched the isolated live schema at this point; no hosted operation occurred. The
+expanded durability diagnostic then exited 0, additionally proving designated payer acceptance and
+owner denial when designated, correct contract party, quote linkage and insurance
+provider/policy/expiry snapshot. Existing capacity race exited 0 after its synthetic cleanup was
+updated to delete newly created contracts before jobs. Formatted API regression rerun: 24 tests
+passed.
+
+Reassignment consumer review: the single-contract constraint is `contracts_job_id_key`; homeowner
+and contractor job pages use job-filtered `.single()` without status; scheduling and jobs-as-payer
+build per-job results from unfiltered contract lists; contract POST uses job/contractor
+`.maybeSingle()`; payment/start queries already filter accepted status. Real isolated FK inspection
+confirmed `payment_funding_reservations.contract_id` references contracts without delete cascade,
+while signature/evidence children cascade. Thus deleting/replacing a cancelled agreement is not a
+valid repair, and merely dropping uniqueness would break active-contract consumers. Next required
+implementation is retained cancelled agreements plus one current agreement per job, with
+corresponding consumer selection and mutation protections tested. No such history schema change has
+been applied yet.
+
+### F11 contract history implementation and full-suite verification (2026-09-15)
+
+The pending migration now replaces job-wide contract uniqueness with a partial unique index for
+non-cancelled contracts. Cancelled rows remain in place with signature/funding references intact; a
+database trigger denies rewriting them. Acceptance selects only the current agreement. Updated job
+pages, scheduling, jobs-as-payer, preparation/details and contract creation lookups to exclude
+cancelled history. Job-filtered contract GET defaults to the current agreement; explicit cancelled
+status and participant document lists retain history. Document/PDF routes using contract IDs remain
+available.
+
+Real isolated diagnostic exited 0 after independently signing a former contractor agreement,
+cancelling it, and accepting another contractor: both agreements persisted, original signature
+timestamps and complete acceptance snapshots stayed unchanged, and the new contract used the new
+contractor. History rewrite denial, injected rollback, concurrent capacity, payer/actor denial,
+quote/insurance fields and retry invariants also passed. Diagnostic transactions rolled back and
+committed synthetic fixtures were cleaned.
+
+Second isolated migration replay/diff exited 0 and actual JSON contained an empty diff, no files and
+no drop statements (`current-f11-history-db-diff.log`). Full sanitized web run passed **3,633 tests
+/ 334 files**, 157.77 seconds (`current-f11-full-web-tests.log`). Web types exited 0. Changed
+production-file lint found 0 errors and 4 unused-variable warnings in contracts/route.ts and
+scheduling.ts, so the strict zero-warning command exited 1; not reported as passing. Three new API
+selection tests cover current-vs-history responses and contractor isolation with deliberately
+history-first mock ordering; these complement, not replace, real SQL verification.
+
+Still required before F11 closure/commit: review acceptance retry after negotiated contract edits,
+integration with the actual job-exit finalizer rather than a synthetic status change, and final
+changed-file/hook validation. The wider F1-F15 completion ledger remains active.
+
+### F11 final interaction checks (2026-09-15)
+
+Expanded the signed-history test to call the real `reserve_job_exit` withdrawal/finalization
+operation, then accept the replacement contractor. It passed with job reopening and original
+signature snapshots intact. An initial diagnostic used reversed actor/job arguments and was
+corrected to the actual function signature; no authorization control was changed. A separate
+regression reproduced retry failure after allowed unsigned-contract amount/scope edits. Fixed the
+wrapper to compare the original bid amount only for a new acceptance, while an already-applied
+assignment still requires the correct parties and valid current contract status. The revised
+diagnostic passed with amount 550 and negotiated scope preserved, no new contract or duplicate
+notifications.
+
+Removed unused import/local computation/query/helper/catch binding responsible for the four
+changed-file warnings. Strict changed-source ESLint now exits 0. Final replay and normal commit
+hooks are being checked; the prior complete web run was 3633/334 and the prior schema diff was
+empty.

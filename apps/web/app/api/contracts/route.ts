@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger, JOB_STATUS, CONTRACT_STATUS } from '@mintenance/shared';
 import {
@@ -63,6 +63,9 @@ export const GET = withApiHandler(
     // filters to the nested jobs lookup.
     if (jobId) {
       query = query.eq('job_id', jobId);
+      // Job actions operate on the current agreement; explicit status filters
+      // and the unfiltered document list can still retrieve cancelled history.
+      if (!status) query = query.neq('status', 'cancelled');
     }
     if (status) {
       query = query.eq('status', status);
@@ -244,6 +247,7 @@ export const POST = withApiHandler(
       .from('contracts')
       .select('id, status, contractor_signed_at, homeowner_signed_at')
       .eq('job_id', job_id)
+      .neq('status', 'cancelled')
       .eq('contractor_id', user.id)
       .maybeSingle();
 
@@ -416,18 +420,6 @@ export const POST = withApiHandler(
 
     // Create a message in the chat history for both parties to see
     try {
-      const { data: contractorData } = await serverSupabase
-        .from('profiles')
-        .select('first_name, last_name, company_name')
-        .eq('id', user.id)
-        .single();
-
-      const contractorName = contractorData
-        ? contractorData.first_name && contractorData.last_name
-          ? `${contractorData.first_name} ${contractorData.last_name}`
-          : contractorData.company_name || 'Contractor'
-        : 'Contractor';
-
       const contractMessageText = `📋 New contract submitted: £${amount.toLocaleString()}\n\n${title || `Contract for ${job.title || 'your job'}`}${description ? `\n\n${description}` : ''}`;
 
       logger.info('Creating contract message', {

@@ -28,5 +28,5 @@ try:
     assert sql(f"SELECT count(*) FROM public.jobs WHERE contractor_id='{contractor}' AND status IN ('assigned','in_progress');")=='3'
     print('PASS: two concurrent acceptances compete for one slot; exactly one succeeds, active count=3')
 finally:
-    for j in jobs: sql(f"DELETE FROM public.jobs WHERE id='{j}';")
+    for j in jobs: sql(f"DELETE FROM public.contracts WHERE job_id='{j}'; DELETE FROM public.jobs WHERE id='{j}';")
     sql(f"DELETE FROM auth.users WHERE id IN ('{owner}','{contractor}');")

@@ -11,7 +11,6 @@ import {
   validateBidTransition,
   JOB_STATUS,
   BID_STATUS,
-  CONTRACT_STATUS,
   type JobStatus,
   type BidStatusValue,
 } from '@mintenance/shared';
@@ -224,9 +223,8 @@ export const POST = withApiHandler(
         }
 
         // A prior request may have committed the atomic acceptance but failed
-        // during the follow-up contract creation. Allow the same authorized
-        // homeowner to retry that post-acceptance work without re-running the
-        // state transition or creating a second winner.
+        // during a follow-up response. The RPC rechecks the assignment and
+        // contract on retries without consuming another capacity slot.
         const acceptanceAlreadyApplied =
           bid.status === BID_STATUS.ACCEPTED &&
           job.status === JOB_STATUS.ASSIGNED &&
@@ -315,19 +313,20 @@ export const POST = withApiHandler(
           job_status: string | null;
         }
 
-        const { data: rpcRaw, error: rpcError } = acceptanceAlreadyApplied
-          ? { data: null, error: null }
-          : await serverSupabase.rpc('accept_bid_with_capacity', {
-              p_active_job_limit: ['free', 'basic'].includes(
-                acceptingContractorTier
-              )
-                ? 3
-                : null,
-              p_bid_id: bidId,
-              p_job_id: jobId,
-              p_contractor_id: bid.contractor_id,
-              p_homeowner_id: user.id,
-            });
+        const { data: rpcRaw, error: rpcError } = await serverSupabase.rpc(
+          'accept_bid_with_capacity',
+          {
+            p_active_job_limit: ['free', 'basic'].includes(
+              acceptingContractorTier
+            )
+              ? 3
+              : null,
+            p_bid_id: bidId,
+            p_job_id: jobId,
+            p_contractor_id: bid.contractor_id,
+            p_homeowner_id: user.id,
+          }
+        );
 
         if (rpcError) {
           logger.error(
@@ -355,11 +354,11 @@ export const POST = withApiHandler(
         const rpcRow = Array.isArray(rpcRaw)
           ? (rpcRaw[0] as AcceptBidResult | undefined)
           : (rpcRaw as AcceptBidResult | null);
-        if (!acceptanceAlreadyApplied && !rpcRow) {
+        if (!rpcRow) {
           throw new InternalServerError('accept_bid_atomic returned no rows');
         }
 
-        if (!acceptanceAlreadyApplied && rpcRow && !rpcRow.success) {
+        if (rpcRow && !rpcRow.success) {
           const msg = rpcRow.error_message ?? 'Unknown bid acceptance error';
           // The RPC detects concurrent acceptance and reports it via error_message;
           // treat it as a ConflictError so the client can retry cleanly.
@@ -549,202 +548,6 @@ export const POST = withApiHandler(
               service: 'jobs',
               jobId,
             }
-          );
-        }
-
-        // Auto-create draft contract from accepted bid (idempotency guard)
-        //
-        // 2026-05-13 bid → contract pipeline audit: this block previously
-        // wrote a near-empty contract — generic title, boilerplate
-        // description ("Contract created from accepted bid for X"), no
-        // schedule, no contractor identity, no insurance, no quote link.
-        // Homeowner was then asked to sign a contract whose body told
-        // them nothing about what the contractor actually proposed.
-        //
-        // The contractor's full submission lived in three places:
-        //   • bids.message          — proposal text (50–5000 chars)
-        //   • bids.proposed_start_date / estimated_duration_days
-        //   • bids.warranty_months / materials_included
-        //   • bids.quote_id → contractor_quotes (line items, subtotal,
-        //     tax_rate, tax_amount, total_amount, terms text)
-        //   • profiles (company_name, license_number, license_type)
-        //   • contractor_insurance (provider, policy_number)
-        //
-        // We now pull all of that into the draft so the homeowner sees the
-        // real proposal at the signature step.
-        try {
-          const { data: existingContract } = await serverSupabase
-            .from('contracts')
-            .select('id')
-            .eq('job_id', jobId)
-            .limit(1);
-
-          if (existingContract && existingContract.length > 0) {
-            logger.info(
-              'Contract already exists for this job, skipping auto-creation',
-              {
-                service: 'jobs',
-                jobId,
-                existingContractId: existingContract[0].id,
-              }
-            );
-          } else {
-            // Pull the contractor's identity + insurance in parallel with
-            // the rest of the accept-flow side-effects. Failures here are
-            // non-fatal — we degrade to the previous bare-bones contract
-            // rather than block acceptance.
-            const [profileRes, insuranceRes] = await Promise.all([
-              serverSupabase
-                .from('profiles')
-                .select('company_name, license_number, license_type')
-                .eq('id', bid.contractor_id)
-                .maybeSingle(),
-              serverSupabase
-                .from('contractor_insurance')
-                .select('provider, policy_number, expiry_date')
-                .eq('contractor_id', bid.contractor_id)
-                .eq('status', 'active')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle(),
-            ]);
-
-            const contractorProfile = profileRes.data;
-            const insurance = insuranceRes.data;
-            const bidAmount = bid.amount || 0;
-
-            // Prefer `message` (the canonical proposal column on bids) but
-            // fall back to `description` for older rows.
-            const proposalText =
-              (bid.message ?? bid.description ?? '').toString().trim() || null;
-
-            // contracts.start_date / end_date are `timestamp with time
-            // zone`; bids.proposed_start_date is a `date`. Promote to ISO
-            // and compute the projected end-date from the duration if both
-            // are present.
-            let startDateIso: string | null = null;
-            let endDateIso: string | null = null;
-            if (bid.proposed_start_date) {
-              const start = new Date(
-                `${bid.proposed_start_date}T09:00:00.000Z`
-              );
-              if (!Number.isNaN(start.getTime())) {
-                startDateIso = start.toISOString();
-                if (
-                  bid.estimated_duration_days &&
-                  bid.estimated_duration_days > 0
-                ) {
-                  const end = new Date(start);
-                  end.setUTCDate(
-                    end.getUTCDate() + bid.estimated_duration_days
-                  );
-                  endDateIso = end.toISOString();
-                }
-              }
-            }
-
-            const termsPayload: Record<string, unknown> = {
-              source: 'accepted_bid',
-              bid_id: bidId,
-              created_from: 'bid_acceptance',
-            };
-            if (insurance?.provider) {
-              termsPayload.insurance_provider = insurance.provider;
-            }
-            if (insurance?.policy_number) {
-              termsPayload.insurance_policy_number = insurance.policy_number;
-            }
-            if (insurance?.expiry_date) {
-              termsPayload.insurance_expiry_date = insurance.expiry_date;
-            }
-            if (
-              bid.estimated_duration_days &&
-              bid.estimated_duration_days > 0
-            ) {
-              termsPayload.estimated_duration_days =
-                bid.estimated_duration_days;
-            }
-            if (bid.warranty_months && bid.warranty_months > 0) {
-              termsPayload.warranty_months = bid.warranty_months;
-            }
-            // Only persist `materials_included: true` — the falsy case
-            // would render as literal "false" under ContractScope's
-            // additional-terms list, which is confusing UX.
-            if (bid.materials_included === true) {
-              termsPayload.materials_included = true;
-            }
-
-            const contractPayload: Record<string, unknown> = {
-              job_id: jobId,
-              contractor_id: bid.contractor_id,
-              homeowner_id: user.id,
-              title: `Contract for ${jobDetails?.title || 'Job'}`,
-              description:
-                proposalText ||
-                `Contract created from accepted bid for "${jobDetails?.title || 'this job'}"`,
-              amount: bidAmount,
-              status: CONTRACT_STATUS.PENDING_CONTRACTOR,
-              start_date: startDateIso,
-              end_date: endDateIso,
-              terms: termsPayload,
-              contractor_company_name: contractorProfile?.company_name ?? null,
-              contractor_license_registration:
-                contractorProfile?.license_number ?? null,
-              contractor_license_type: contractorProfile?.license_type ?? null,
-              quote_id: bid.quote_id ?? null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
-
-            const { error: contractError } = await serverSupabase
-              .from('contracts')
-              .insert(contractPayload);
-
-            if (contractError) {
-              logger.error('Failed to create draft contract', contractError, {
-                service: 'jobs',
-                jobId,
-                contractorId: bid.contractor_id,
-              });
-              throw new InternalServerError(
-                'Bid accepted, but the contract could not be created. Please retry.'
-              );
-            } else {
-              logger.info('Draft contract created', {
-                service: 'jobs',
-                jobId,
-                contractorId: bid.contractor_id,
-              });
-
-              await Promise.all([
-                NotificationService.createNotification({
-                  userId: bid.contractor_id,
-                  title: 'Contract Ready for Review',
-                  message: `A contract for "${jobDetails?.title || 'the job'}" has been created. Review the terms and sign to proceed.`,
-                  type: 'contract_created',
-                  actionUrl: `/contractor/jobs/${jobId}`,
-                }),
-                NotificationService.createNotification({
-                  userId: user.id,
-                  title: 'Contract Created',
-                  message: `A contract for "${jobDetails?.title || 'your job'}" has been created. It will be ready for your signature once the contractor reviews it.`,
-                  type: 'contract_created',
-                  actionUrl: `/jobs/${jobId}`,
-                }),
-              ]);
-            }
-          }
-        } catch (contractError) {
-          logger.error(
-            'Unexpected error creating draft contract',
-            contractError,
-            {
-              service: 'jobs',
-              jobId,
-            }
-          );
-          throw new InternalServerError(
-            'Bid accepted, but the contract could not be created. Please retry.'
           );
         }
 
