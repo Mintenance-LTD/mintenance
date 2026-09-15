@@ -28,6 +28,7 @@ import {
   recoverRefund,
   reconcileRefundEvent,
   reserveRefund,
+  readRefundContext,
   type RefundOperation,
 } from '@/lib/services/payment/RefundService';
 
@@ -101,7 +102,10 @@ function tables(extra: Record<string, unknown> = {}) {
   };
   mocks.from.mockImplementation((name: string) => ({
     select: () => ({
-      eq: () => ({ single: async () => ({ data: rows[name], error: null }) }),
+      eq: () => ({
+        single: async () => ({ data: rows[name], error: null }),
+        maybeSingle: async () => ({ data: rows[name], error: null }),
+      }),
     }),
   }));
 }
@@ -301,5 +305,58 @@ describe('durable refund recovery', () => {
         reason: 'Synthetic',
       })
     ).rejects.toThrow('does not match');
+  });
+});
+
+describe('refund route context', () => {
+  const input = {
+    escrowId: 'escrow-1',
+    actorId: 'payer-1',
+    requestKey: 'key-1',
+    originalAmount: 500,
+  };
+  it('uses remaining ledger principal instead of original escrow amount', async () => {
+    tables({ escrow_refund_balances: { ...balance, remaining_minor: 40000 } });
+    expect(await readRefundContext(input)).toMatchObject({
+      remainingMinor: 40000,
+      existing: { id: 'operation-1' },
+    });
+  });
+  it('uses original principal only when no ledger exists', async () => {
+    tables({ escrow_refund_balances: null, escrow_refund_operations: null });
+    expect(await readRefundContext(input)).toEqual({
+      remainingMinor: 50000,
+      existing: null,
+    });
+  });
+  it.each([{ actor_id: 'other' }, { escrow_id: 'other' }])(
+    'rejects a mismatched operation %j',
+    async (changed) => {
+      tables({ escrow_refund_operations: { ...operation(), ...changed } });
+      await expect(readRefundContext(input)).rejects.toThrow(
+        'different operation'
+      );
+    }
+  );
+  it('blocks accounts awaiting reconciliation', async () => {
+    tables({ escrow_refund_balances: { ...balance, needs_review: true } });
+    await expect(readRefundContext(input)).rejects.toThrow(
+      'requires reconciliation'
+    );
+  });
+  it('does not turn a failed balance lookup into full available principal', async () => {
+    mocks.from.mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: null,
+            error: { message: 'DB unavailable' },
+          }),
+        }),
+      }),
+    });
+    await expect(readRefundContext(input)).rejects.toThrow(
+      'could not be loaded'
+    );
   });
 });

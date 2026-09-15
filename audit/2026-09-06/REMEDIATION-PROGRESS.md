@@ -569,3 +569,162 @@ remaining-balance UI and payout fee consumers need wiring, and real test-mode pr
 external-refund resolution, notification durability, and weekly payout recovery remain unverified or
 unfinished. The webhook tests are not proof of a complete refund journey. The overall remediation
 goal stays open.
+
+### 2026-09-14: active refund route and reported CI failures
+
+The homeowner refund HTTP route now calls readRefundContext, reserveRefund, and recoverRefund after
+current job/escrow payer checks, role checks, MFA, rate limiting, and anomaly detection. The
+operation key binds actor, escrow and caller key. It uses the durable operation instead of the
+ephemeral result cache or application-side Stripe/escrow/job writes. Omitted amounts use remaining
+principal; retries retain the original operation amount after settlement. Invalid/excess amounts are
+rejected, not silently capped or promoted to a full refund. Responses distinguish cash returned,
+credit restored, remaining principal and pending/failed outcomes. An unknown provider outcome cannot
+unlock the claim in a route catch block.
+
+Route tests now assert authorization before operation reads, current/funding payer agreement, MFA,
+payload binding, remaining principal, terminal-operation recovery, non-success outcomes, and refusal
+to bypass rejected reservations. Real RefundService recovery tests and isolated SQL diagnostics
+remain separate evidence for accounting; the route boundary mocks do not prove provider or database
+behavior by themselves. Web/mobile per-action request-key persistence, displayed remaining balances
+and partial-refund payout fee/funding consumers still need completion.
+
+Reproduced all six failures from the user's CI output in escrow-lifecycle.test.ts. Four confirmation
+fixtures omitted Stripe's metadata object and failed inside the cash-requirement helper before their
+intended assertions. The two deep release fixtures omitted the new reserve_escrow_transfer RPC,
+transfer-ID persistence, independent captured funding read, payer/payee IDs and expanded paid charge
+evidence. Updated those synthetic fixtures and strengthened the expected sequence to CAS claim,
+durable reservation, provider transfer, persistence, final escrow update. Kept actual funding
+verification enabled and kept the finalization-failure reconciliation assertions. All 43 lifecycle
+cases passed after the fixture correction.
+
+A full local web coverage run then passed 3287 tests in 297 files, but failed the existing
+per-directory coverage floors for release, confirmation, auto-release and webhook code
+(refund-route-full-coverage.log). No threshold was lowered. Added tests for dispute/MFA/evidence
+gates, failed/rejected approval persistence, lost transfer outcomes, accumulated payout failures,
+customer lookup, saved-card persistence and provider account synchronization failures.
+
+Those tests exposed two additional recovery defects: the second completion-photo check ran after job
+confirmation but outside rollback handling; it now runs inside the escrow preparation try/catch so a
+lost photo rolls back this request's confirmation. The setup-intent success handler now throws on a
+customer lookup DB error rather than acknowledging the event as an unknown customer. The existing
+unknown-customer behavior is preserved. Targeted verification passed 252 tests in eight files, web
+type checking, and workspace lint for all changed application sources
+(payment-depth-final-tests.log, payment-depth-types.log). A second full coverage run is recorded
+separately below.
+
+No production or hosted database was changed, and no real provider operation occurred. The original
+remediation goal remains open; passing mocks/coverage is not a production readiness verdict or a
+verified end-to-end refund/payout journey.
+
+The second full coverage run passed: 3326 tests in 299 files, exit code 0, including all original
+per-directory coverage thresholds (payment-depth-full-coverage.log). Afterward the customer lookup
+was changed from single to maybeSingle to distinguish a zero-row lookup from a DB error; all 13
+affected webhook tests passed again (setup-intent-lookup-final-tests.log). The full coverage run
+preceded that equivalent lookup-contract adjustment; normal commit checks verify the final source
+snapshot.
+
+## 2026-09-15 — Browser refund retry and remaining-balance contract
+
+The payment-history route now accepts an exact transaction UUID while retaining the authenticated
+payer/payee predicate. It reads service-only refund balances only for those returned payment IDs;
+ledger read failures fail the request rather than showing the original principal as refundable. The
+response retains original amount and adds remainingAmount and refundNeedsReview.
+
+Both browser refund forms use a browser-persisted, actor/escrow-scoped operation key and frozen
+payload. Network, pending, and malformed success responses retain that identity. A confirmed
+terminal response retires it; another action receives a fresh key. Persistence failure prevents
+sending. Forms guard double submissions and restore unresolved request fields when reopened.
+Transaction details now load older records by ID, use the API camelCase identities/dates, offer
+refunds for held payments/current payers (or recovery of a saved action), display the available
+amount, and update the remaining balance after confirmed success.
+
+Eight request-helper regressions cover lost responses/module reload, changed-payload rejection,
+new-action/account key separation, malformed/pending responses, and unavailable storage. Four
+history boundary tests check actor/ID predicates, restricted ledger IDs, zero-row behavior, review
+holds, and lookup failure. All 12 passed; all 43 reported escrow lifecycle tests also passed in the
+paired targeted run (51 total). Web type checking and application workspace lint passed. These are
+mocked route-boundary/browser-helper tests, not real-account browser journeys.
+
+Remaining work includes the mobile refund consumer, payout behavior after partial refunds,
+browser/device exercise, and other previously recorded audit findings. Existing invoice download
+stubs and guessed fee/VAT detail displays were observed and remain open; this checkpoint does not
+claim the whole payment UI or public launch readiness. No schema changes, hosted writes, or real
+provider operations were performed in this checkpoint.
+
+Full web coverage passed with unchanged thresholds (exit 0; refund-client-full-coverage.log). Final
+type checking passed (refund-client-types.log), and final five-source workspace lint passed. The
+detail-form maximum/status presentation received a small follow-up adjustment during the full run;
+final type/lint and normal commit hooks check that final snapshot.
+
+## 2026-09-15 — Atomic remaining-principal release claim (integration pending)
+
+Inspection confirmed both manual and automatic release still calculate fees on original escrow
+amount, and EscrowFundingService rejects any refunded charge. Accepting refunded charges alone would
+be unsafe: an old payout can be below the new gross balance yet exceed the correctly fee-adjusted
+payout. This remains an open defect until both callers and funding verification use the refund
+ledger consistently.
+
+Added service-only claim_escrow_release(uuid,text,uuid), locking job then escrow in the refund lock
+order. It checks completed work/current contractor, held state, review/in-flight refund holds and
+positive remaining principal, then claims release and returns that principal from the same
+transaction. Original escrow amount stays unchanged. This function is not called by the application
+yet; no end-to-end payout fix is claimed by this database checkpoint.
+
+Applied migration 20260914234544 only to supabase_db_mintenance-audit-20260906.
+remediation-remaining-release-claim.sql passed with all fixtures rolled back: £500 original / £100
+refund / £400 claim; duplicate claim exclusion; refund exclusion; unfinished-job and review-hold
+rejection; anon/authenticated execution privileges absent. Initial test incorrectly skipped job
+lifecycle transitions and was corrected to follow posted -> assigned -> in_progress -> completed; no
+production controls were weakened.
+
+remediation-remaining-release-race.py passed with random synthetic fixtures and cleanup. It observed
+pg_stat_activity Lock waits before committing the first transaction: a refund plus valid job
+completion committed before a waiting release, which returned 40000 minor units; a release blocked a
+competing refund and a second release. Refund reservation itself disallows completed jobs, so the
+first scenario performs valid completion after the refund inside the first transaction.
+
+Required npx supabase db diff --local using isolated-stack completed exit 0, full shadow replay, no
+schema changes (remaining-release-claim-diff.log). No original local or hosted database changes,
+provider calls, real accounts, or deployment. Next required work is application integration and
+provider/ledger reconciliation tests; the overall remediation goal remains active.
+
+## 2026-09-15 — Release callers integrated with remaining principal
+
+Manual release and EscrowAutoReleaseService now call claim_escrow_release instead of separately
+updating held -> release_pending. Fees are calculated after the claim on its remaining_minor, which
+is also passed to fee-record creation in direct and accumulated payout modes. Original escrow amount
+stays intact for historical principal. Losing the claim still prevents provider work.
+
+EscrowFundingService now accepts a refunded charge only when the internal committed refund balance
+matches original gross/cash/credit, cumulative provider cash refunds, returned credits, and positive
+remaining principal. Missing/error/review-held/inconsistent balances and unaccounted provider
+refunds still fail. An attached funding reservation remains necessary for promotional credit. Fully
+returned principal fails; cash fully refunded with some unreturned promotional credit is separately
+tested.
+
+The targeted lifecycle/automatic-release/funding run passed 93 tests in three files
+(remaining-release-integration-tests.log). Its manual partial-refund case runs the real fee and
+funding helpers: £250 captured, £50 reconciled refund, £200 release basis, £176 contractor payout;
+fee-record input is £200. Both automatic modes assert the claimed remainder reaches fee calculation,
+fee tracking and payout/accumulation. Existing ordering/finalization failure tests now instrument
+the claim RPC rather than the removed direct UPDATE. Real lock/authorization invariants remain
+covered by the SQL and concurrent diagnostic recorded above, not by these mock RPC responses.
+
+A subsequent focused funding run passed 27 tests including all-cash-refunded/unreturned-credit and
+zero-remaining cases (remaining-release-credit-tests.log). Web type checking and three changed
+application-source lint passed. Processing costs remain estimates, not provider-settled fees; that
+existing accounting limitation is not resolved here. No provider test-mode or browser journey was
+exercised in this checkpoint, and overall remediation is still incomplete.
+
+The first full integration coverage run had one stale payment-flow fixture that rejected the new
+claim RPC (3347 passed / one failed). Updated that fixture; its 72-test suite passed. Final full
+coverage is recorded separately below. During review, a further existing edge case was confirmed:
+FeeCalculationService's minimum platform fee can exhaust a very small post-refund remainder,
+returning zero contractor payout; both direct and accumulated reservation functions reject zero.
+This requires explicit zero-payout settlement/accounting handling and remains open. Processing fee
+estimates likewise remain an accounting limitation. Do not treat this checkpoint as all F9 or all
+payment journeys complete.
+
+Final full coverage passed exit 0: 3348 tests in 301 files, unchanged thresholds
+(remaining-release-full-coverage-final.log). The new claim migration must be applied before these
+application callers are deployed; only the isolated audit database has received it here.

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({
   single: vi.fn(),
   funding: vi.fn(),
+  balance: vi.fn(),
   retrieve: vi.fn(),
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
@@ -12,7 +13,11 @@ vi.mock('@/lib/api/supabaseServer', () => ({
         eq: () => ({
           single: m.single,
           maybeSingle:
-            table === 'payment_funding_reservations' ? m.funding : m.single,
+            table === 'payment_funding_reservations'
+              ? m.funding
+              : table === 'escrow_refund_balances'
+                ? m.balance
+                : m.single,
         }),
       }),
     }),
@@ -28,6 +33,7 @@ import { verifyEscrowFunding } from '@/lib/services/payment/EscrowFundingService
 let intent: Record<string, any>;
 beforeEach(() => {
   vi.clearAllMocks();
+  m.balance.mockResolvedValue({ data: null, error: null });
   m.funding.mockResolvedValue({ data: null, error: null });
   m.single.mockResolvedValue({
     data: {
@@ -167,4 +173,96 @@ describe('provider-backed escrow funding', () => {
       'Provider unavailable'
     );
   });
+});
+
+describe('partial-refund funding reconciliation', () => {
+  it('accepts an exact committed cash refund with principal remaining', async () => {
+    intent.latest_charge.amount_refunded = 10000;
+    m.balance.mockResolvedValue({
+      data: {
+        gross_minor: 50000,
+        cash_minor: 50000,
+        credit_minor: 0,
+        cash_refunded_minor: 10000,
+        credit_returned_minor: 0,
+        remaining_minor: 40000,
+        needs_review: false,
+      },
+      error: null,
+    });
+    await expect(verifyEscrowFunding('escrow')).resolves.toBe('ch_one');
+  });
+  it.each([
+    { cash_refunded_minor: 9000, remaining_minor: 41000 },
+    { needs_review: true },
+    { remaining_minor: 50000 },
+    { cash_minor: 45000 },
+    { credit_returned_minor: 100 },
+  ])('rejects inconsistent/reviewed refund ledger %#', async (change) => {
+    intent.latest_charge.amount_refunded = 10000;
+    m.balance.mockResolvedValue({
+      data: {
+        gross_minor: 50000,
+        cash_minor: 50000,
+        credit_minor: 0,
+        cash_refunded_minor: 10000,
+        credit_returned_minor: 0,
+        remaining_minor: 40000,
+        needs_review: false,
+        ...change,
+      },
+      error: null,
+    });
+    await expect(verifyEscrowFunding('escrow')).rejects.toThrow(
+      'reconciliation'
+    );
+  });
+});
+
+it('keeps only unreturned promotional credit funded after all provider cash is refunded', async () => {
+  intent.amount_received = 45000;
+  intent.metadata.creditAppliedPence = '5000';
+  intent.metadata.fundingReservationId = 'funding';
+  Object.assign(intent.latest_charge, {
+    amount: 45000,
+    amount_refunded: 45000,
+    refunded: true,
+  });
+  m.funding.mockResolvedValue({
+    data: {
+      id: 'funding',
+      state: 'attached',
+      gross_minor: 50000,
+      cash_minor: 45000,
+      credit_minor: 5000,
+      payment_intent_id: 'pi_one',
+    },
+    error: null,
+  });
+  m.balance.mockResolvedValue({
+    data: {
+      gross_minor: 50000,
+      cash_minor: 45000,
+      credit_minor: 5000,
+      cash_refunded_minor: 45000,
+      credit_returned_minor: 2000,
+      remaining_minor: 3000,
+      needs_review: false,
+    },
+    error: null,
+  });
+  await expect(verifyEscrowFunding('escrow')).resolves.toBe('ch_one');
+  m.balance.mockResolvedValue({
+    data: {
+      gross_minor: 50000,
+      cash_minor: 45000,
+      credit_minor: 5000,
+      cash_refunded_minor: 45000,
+      credit_returned_minor: 5000,
+      remaining_minor: 0,
+      needs_review: false,
+    },
+    error: null,
+  });
+  await expect(verifyEscrowFunding('escrow')).rejects.toThrow('reconciliation');
 });

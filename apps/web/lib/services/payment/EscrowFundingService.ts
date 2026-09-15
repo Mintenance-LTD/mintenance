@@ -41,6 +41,38 @@ export async function verifyEscrowFunding(escrowId: string): Promise<string> {
   );
   const charge =
     typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
+  let refundedMinor = 0;
+  if (charge && (charge.amount_refunded !== 0 || charge.refunded)) {
+    const { data: balance, error: balanceError } = await serverSupabase
+      .from('escrow_refund_balances')
+      .select(
+        'gross_minor,cash_minor,credit_minor,cash_refunded_minor,credit_returned_minor,remaining_minor,needs_review'
+      )
+      .eq('escrow_id', escrowId)
+      .maybeSingle();
+    if (
+      balanceError ||
+      !balance ||
+      balance.needs_review ||
+      balance.gross_minor !== grossMinor ||
+      balance.cash_minor !== expectedMinor ||
+      balance.credit_minor !== grossMinor - expectedMinor ||
+      !Number.isSafeInteger(balance.cash_refunded_minor) ||
+      balance.cash_refunded_minor < 0 ||
+      balance.cash_refunded_minor > expectedMinor ||
+      !Number.isSafeInteger(balance.credit_returned_minor) ||
+      balance.credit_returned_minor < 0 ||
+      balance.credit_returned_minor > balance.credit_minor ||
+      balance.remaining_minor !==
+        grossMinor -
+          balance.cash_refunded_minor -
+          balance.credit_returned_minor ||
+      balance.remaining_minor <= 0
+    ) {
+      throw new ConflictError('Refunded escrow funds require reconciliation');
+    }
+    refundedMinor = balance.cash_refunded_minor;
+  }
   if (
     intent.status !== 'succeeded' ||
     intent.currency !== 'gbp' ||
@@ -52,8 +84,8 @@ export async function verifyEscrowFunding(escrowId: string): Promise<string> {
     !charge.paid ||
     !charge.captured ||
     charge.disputed ||
-    charge.refunded ||
-    charge.amount_refunded !== 0 ||
+    charge.refunded !== (refundedMinor === expectedMinor) ||
+    charge.amount_refunded !== refundedMinor ||
     charge.currency !== 'gbp' ||
     charge.amount !== expectedMinor
   ) {

@@ -328,40 +328,21 @@ export const POST = withApiHandler(
       const contractorTier = await FeeCalculationService.resolveContractorTier(
         job.contractor_id
       );
-      const feeBreakdown = calculateReleaseFeeBreakdown(
-        escrowTransaction.amount,
-        paymentType,
-        contractorTier
-      );
-      const contractorAmountCents = Math.round(
-        feeBreakdown.contractorAmount * 100
-      );
-
       // FIX CRIT-3: DB update FIRST (mark as release_pending), THEN Stripe transfer.
       const reconciliationId = crypto.randomUUID();
 
-      // Step 1: Mark escrow as release_pending.
-      // 2026-07-17: CAS on status='held', not updated_at. The route's own
-      // pre-CAS helpers (evaluateAutoRelease auto-approval path, and
-      // previously calculateAutoReleaseDate) write metadata to this row and
-      // bump updated_at, so an updated_at guard deterministically 409'd its
-      // own request. status='held' is the actual invariant release requires,
-      // matches the cron's claim predicate (EscrowAutoReleaseService), and
-      // still guarantees exactly one claimant wins against any concurrent
-      // release/refund/dispute/hold, all of which change status.
-      const { data: pendingEscrow, error: pendingError } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: ESCROW_STATUS.RELEASE_PENDING,
-          reconciliation_id: reconciliationId,
-          transfer_attempted_at: new Date().toISOString(),
-          release_reason: releaseReason,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowTransactionId)
-        .eq('status', ESCROW_STATUS.HELD)
-        .select()
-        .single();
+      // Claim and read remaining principal under the same job/escrow locks
+      // used by refunds. A separate balance read followed by a status CAS
+      // could retain the pre-refund amount after a refund restores held.
+      const { data: claimRows, error: pendingError } = await serverSupabase.rpc(
+        'claim_escrow_release',
+        {
+          p_escrow_id: escrowTransactionId,
+          p_release_reason: releaseReason,
+          p_reconciliation_id: reconciliationId,
+        }
+      );
+      const pendingEscrow = claimRows?.[0];
 
       if (pendingError || !pendingEscrow) {
         logger.warn(
@@ -411,6 +392,22 @@ export const POST = withApiHandler(
         );
       }
 
+      const remainingMinor = pendingEscrow.remaining_minor;
+      if (!Number.isSafeInteger(remainingMinor) || remainingMinor <= 0) {
+        throw new ConflictError(
+          'Remaining escrow principal could not be verified'
+        );
+      }
+      const releaseAmount = remainingMinor / 100;
+      const feeBreakdown = calculateReleaseFeeBreakdown(
+        releaseAmount,
+        paymentType,
+        contractorTier
+      );
+      const contractorAmountCents = Math.round(
+        feeBreakdown.contractorAmount * 100
+      );
+
       // Step 2: Create Stripe transfer (DB already locked as release_pending)
       const transfer = await performStripeTransfer(
         contractorAmountCents,
@@ -432,7 +429,7 @@ export const POST = withApiHandler(
         escrowTransactionId,
         jobId: job.id,
         contractorId: job.contractor_id,
-        amount: escrowTransaction.amount,
+        amount: releaseAmount,
         paymentIntentId: escrowTransaction.payment_intent_id || '',
         chargeId,
         paymentType,
