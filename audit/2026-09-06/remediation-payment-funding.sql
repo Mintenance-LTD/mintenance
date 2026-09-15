@@ -45,6 +45,18 @@ BEGIN
   PERFORM public.attach_payment_funding(r.id,'pi_different');
   RAISE EXCEPTION 'Existing reservation attached to different provider payment';
  EXCEPTION WHEN check_violation THEN NULL; END;
+ -- Provider gross amount cannot masquerade as the cash leg of a subsidised payment.
+ BEGIN
+  PERFORM public.apply_payment_intent_state('pi_synthetic_funding','succeeded',50000,'gbp');
+  RAISE EXCEPTION 'Gross principal accepted instead of cash requirement';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+ BEGIN
+  SELECT * INTO e2 FROM public.apply_payment_intent_state('pi_synthetic_funding','succeeded',45000,'gbp');
+  IF e2.status<>'held' OR e2.amount<>500 OR (SELECT payment_status FROM public.jobs WHERE id=job)<>'paid' THEN
+   RAISE EXCEPTION 'Subsidised webhook did not preserve principal and paid job'; END IF;
+  -- Restore pending fixture state through a subtransaction rollback, not a production reset.
+  RAISE EXCEPTION 'synthetic rollback after cash verification' USING ERRCODE='ZX002';
+ EXCEPTION WHEN SQLSTATE 'ZX002' THEN NULL; END;
  -- Synthetic stand-in for service-side confirmed provider cancellation.
  PERFORM public.cancel_payment_funding(r.id,actor,'pi_synthetic_funding');
  PERFORM public.cancel_payment_funding(r.id,actor,'pi_synthetic_funding');
@@ -52,6 +64,9 @@ BEGIN
   (SELECT count(*) FROM public.user_credit_ledger WHERE reference_id=r.id AND delta_pence=5000)<>1 OR
   NOT EXISTS(SELECT FROM public.escrow_transactions WHERE id=e.id AND status='cancelled') THEN
   RAISE EXCEPTION 'Cancellation did not restore credit exactly once'; END IF;
+ IF EXISTS(SELECT FROM public.apply_payment_intent_state('pi_synthetic_funding','succeeded',45000,'gbp'))
+  OR (SELECT payment_status FROM public.jobs WHERE id=job)<>'canceled' THEN
+  RAISE EXCEPTION 'Late success revived cancelled credit funding'; END IF;
  BEGIN
   PERFORM public.reserve_payment_funding(actor,job,bid,contract,'synthetic-funding',50000);
   RAISE EXCEPTION 'Cancelled request was revived';

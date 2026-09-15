@@ -2306,3 +2306,75 @@ This repair proves pagination completeness for stable records, not a database sn
 concurrent settlement changes. Point-in-time reporting under concurrent financial changes,
 tax-policy/legal suitability and broader real-provider verification are not established by these
 tests. The overall F1-F15 objective remains active.
+
+### F6 current webhook review: two reproduced guards repaired, atomic job transition still open
+
+New synthetic handler regressions reproduced four failing cases: failed/cancelled PaymentIntent
+lookup errors were swallowed, and succeeded events for `pending_review` /
+`awaiting_homeowner_approval` attempted to reset escrow to held. The lookup now throws on database
+error; failed/cancelled and charge-failed callers share that behavior. Traced active POST through
+StripeWebhookService: a handler exception marks the event failed and returns an API error instead of
+marking it processed. Added both post-funding states to the success guard. Updated the pre-existing
+lookup-error test to require rejection as well as no mutations.
+
+After repairs, **46 tests / 4 files passed**, covering the new cases, existing handler state tests,
+success CAS diagnostic and webhook idempotency. Web type check completed with an empty error log;
+changed-source zero-warning lint exited 0. No provider calls or database mutations were used for
+this subset. Changes remain uncommitted.
+
+F6 is NOT closed. Current failure/cancellation handlers still log escrow UPDATE errors and fall back
+to a stale selected row before writing jobs. Success and terminal handlers also persist escrow and
+job payment status in separate statements, leaving a cross-statement race with refunds/releases/new
+funding. The remaining repair must make authoritative escrow/job transitions atomic (with existing
+job-before-escrow lock order) and test concurrent processing, losing compare-and-set, missing rows
+and injected write failure. This confirmed source path is distinct from the narrower lookup/state
+guards fixed here.
+
+### F6 atomic persistence in progress (16 September 2026)
+
+CLI-created migration `20260915225551_atomic_webhook_payment_transition.sql` adds a service-only
+`apply_payment_intent_state` RPC. It locks job then escrow, rechecks actual state/funding and
+obsolete attempts, validates succeeded amount/currency against the trusted funding ledger, and
+updates escrow plus job in one transaction. PaymentIntent success/failure/legacy cancellation and
+charge failure now call it; split job writes and stale-row update fallbacks were removed.
+Reserved-credit cancellation still uses its existing dedicated credit-restoration transaction and
+requires lock-order review.
+
+Real rollback-only SQL (`remediation-webhook-atomic.sql`) passed injected job-write failure (escrow
+also rolls back), funding both records, late failure no-op, seven post-funding states, amount
+rejection, cancellation and client EXECUTE denial. Initial diagnostic fixture description was
+corrected to satisfy the existing length constraint. More importantly, real SQL exposed
+schema/implementation drift: escrow permitted `cancelled`, not `canceled`, and neither escrow nor
+jobs permitted the `disputed` state used by active dispute handlers. The pending migration preserves
+canonical escrow cancellation, maps provider cancellation to it, and explicitly admits disputed in
+both applicable constraints. No existing constraint was disabled.
+
+Handler tests now assert the atomic RPC and absence of metadata-driven/separate job writes.
+Corrected an old concurrency diagnostic that could pass on any thrown error: it now requires the
+actual RPC call and no side effects on an ignored transaction result. The focused suites pass,
+changed-source lint exits 0, and the web type check passed after initial RPC integration.
+Protected-state checks precede credit lookup so retired funding does not turn an obsolete success
+event into endless retries.
+
+Still uncommitted and not F6 closure: actual concurrent-connection races,
+missing/newer/funded-credit cases, reserved-cancellation lock order, full affected webhook suites,
+current types and isolated migration replay/diff remain required. No hosted schema or payment
+provider was touched.
+
+### F6 concurrency and funding regression results (16 September 2026)
+
+Attachment and cancellation now acquire the job lock before their funding/escrow locks, matching
+webhook/refund/release/job-exit ordering. Real two-connection diagnostics
+(`remediation-webhook-races.py`) wait until pg_stat_activity confirms the leading connection is
+sleeping while holding its job lock, then start the competitor: success-first ignores late failure;
+failure-first is followed by valid success; both end held/paid. Missing and older intents cannot
+alter a newer paid job. A cancellation-first race on a 50000-gross/45000-cash/5000-credit
+reservation ends cancelled/canceled with 5000 credits restored; waiting success returns no row and
+cannot revive it. Committed synthetic fixtures were explicitly cleaned.
+
+Extended `remediation-payment-funding.sql` passed: gross 50000 is rejected as the provider cash leg,
+45000 funds the full 50000 principal and paid job, cancellation remains exactly-once, and late
+success cannot revive cancelled credit funding. Its fixtures and fault injection roll back. The full
+sanitized web suite passed **3646 tests / 336 files**, 153.75 seconds
+(`current-webhook-atomic-full-tests.log`). Migration replay is running; final types/hooks/diff
+results will be recorded separately. No provider or hosted database requests occurred.

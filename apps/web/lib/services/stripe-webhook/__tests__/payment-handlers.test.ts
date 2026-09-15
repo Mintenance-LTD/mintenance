@@ -10,12 +10,14 @@ import { reconcileLedgerRefundCharge } from '@/lib/services/payment/RefundWebhoo
 // ---------------------------------------------------------------------------
 const {
   mockFrom,
+  mockRpc,
   mockLoggerInfo,
   mockLoggerWarn,
   mockLoggerError,
   mockNotifyStakeholders,
 } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
+  mockRpc: vi.fn(),
   mockLoggerInfo: vi.fn(),
   mockLoggerWarn: vi.fn(),
   mockLoggerError: vi.fn(),
@@ -61,7 +63,7 @@ function buildChain(overrides?: {
 vi.mock('@/lib/api/supabaseServer', () => {
   const chain = buildChain();
   mockFrom.mockReturnValue(chain);
-  return { serverSupabase: { from: mockFrom } };
+  return { serverSupabase: { from: mockFrom, rpc: mockRpc } };
 });
 
 vi.mock('@mintenance/shared', () => ({
@@ -95,6 +97,13 @@ import {
   handleChargeRefunded,
 } from '../payment-handlers';
 import { handleChargeFailed } from '../charge-handlers';
+
+beforeEach(() => {
+  mockRpc.mockImplementation(async () => {
+    const result = await mockFrom('escrow_transactions').single();
+    return { data: result.data ? [result.data] : [], error: result.error };
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -154,17 +163,13 @@ describe('handlePaymentIntentSucceeded', () => {
     const pi = makePaymentIntent();
     await handlePaymentIntentSucceeded(pi, mockNotify);
 
-    // Should call from('escrow_transactions') first, then from('jobs')
-    expect(mockFrom).toHaveBeenCalledWith('escrow_transactions');
-    expect(mockFrom).toHaveBeenCalledWith('jobs');
-
-    const chain = mockFrom.mock.results[0].value;
-    expect(chain.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'held',
-        payment_intent_id: 'pi_test_123',
-      })
-    );
+    expect(mockRpc).toHaveBeenCalledWith('apply_payment_intent_state', {
+      p_intent_id: pi.id,
+      p_outcome: 'succeeded',
+      p_cash_minor: pi.amount,
+      p_currency: 'gbp',
+    });
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
   });
 
   it('reconciles invoice payment and invoice status from webhook metadata', async () => {
@@ -323,8 +328,9 @@ describe('handlePaymentIntentFailed', () => {
 
     expect(mockFrom).toHaveBeenCalledWith('escrow_transactions');
     const chain = mockFrom.mock.results[0].value;
-    expect(chain.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'failed' })
+    expect(mockRpc).toHaveBeenCalledWith(
+      'apply_payment_intent_state',
+      expect.objectContaining({ p_outcome: 'failed' })
     );
 
     expect(mockNotify).toHaveBeenCalledWith(
@@ -335,7 +341,7 @@ describe('handlePaymentIntentFailed', () => {
     );
   });
 
-  it('uses metadata jobId when escrow has no job_id', async () => {
+  it('does not mutate a metadata-supplied job outside the authoritative transaction', async () => {
     const chain = buildChain({
       singleData: {
         id: ESCROW_ID,
@@ -351,7 +357,8 @@ describe('handlePaymentIntentFailed', () => {
     });
     await handlePaymentIntentFailed(pi, mockNotify);
 
-    expect(mockFrom).toHaveBeenCalledWith('jobs');
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
   it('does not notify when no homeowner ID', async () => {
@@ -388,11 +395,12 @@ describe('handlePaymentIntentCanceled', () => {
     await handlePaymentIntentCanceled(pi, mockNotify);
 
     expect(mockFrom).toHaveBeenCalledWith('escrow_transactions');
-    expect(mockFrom).toHaveBeenCalledWith('jobs');
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
 
     const chain = mockFrom.mock.results[0].value;
-    expect(chain.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'canceled' })
+    expect(mockRpc).toHaveBeenCalledWith(
+      'apply_payment_intent_state',
+      expect.objectContaining({ p_outcome: 'canceled' })
     );
   });
 });
@@ -696,8 +704,9 @@ describe('out-of-order event guards', () => {
     const chain = chainWithStatus('pending');
     await handleChargeFailed(makeCharge(), mockNotify);
 
-    expect(chain.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'failed' })
+    expect(mockRpc).toHaveBeenCalledWith(
+      'apply_payment_intent_state',
+      expect.objectContaining({ p_outcome: 'failed' })
     );
     expect(mockNotify).toHaveBeenCalledWith(
       VALID_UUID,
@@ -712,33 +721,37 @@ describe('out-of-order event guards', () => {
     await handlePaymentIntentFailed(makePaymentIntent(), mockNotify);
 
     // Same-state reapplication is allowed — harmless, keeps retries green.
-    expect(chain.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'failed' })
+    expect(mockRpc).toHaveBeenCalledWith(
+      'apply_payment_intent_state',
+      expect.objectContaining({ p_outcome: 'failed' })
     );
   });
 
-  it('write-time re-assertion: the failed-update itself carries the pre-money status filter', async () => {
-    const chain = chainWithStatus('pending');
+  it('delegates write-time state validation to the atomic transaction', async () => {
+    chainWithStatus('pending');
     await handlePaymentIntentFailed(makePaymentIntent(), mockNotify);
-
-    // .in('status', PRE_MONEY_STATUSES) closes the lookup→update race window
-    // against a concurrent payment_intent.succeeded.
-    expect(chain.in).toHaveBeenCalledWith(
-      'status',
-      expect.arrayContaining(['pending'])
+    expect(mockRpc).toHaveBeenCalledWith(
+      'apply_payment_intent_state',
+      expect.objectContaining({
+        p_intent_id: 'pi_test_123',
+        p_outcome: 'failed',
+      })
     );
+    expect(mockFrom).not.toHaveBeenCalledWith('jobs');
   });
 
   it('guard lookup error → escrow and job remain untouched', async () => {
     const chain = buildChain({ singleError: { message: 'lookup timeout' } });
     mockFrom.mockReturnValue(chain);
 
-    await handlePaymentIntentFailed(
-      makePaymentIntent({
-        metadata: { jobId: JOB_ID, homeownerId: VALID_UUID },
-      }),
-      mockNotify
-    );
+    await expect(
+      handlePaymentIntentFailed(
+        makePaymentIntent({
+          metadata: { jobId: JOB_ID, homeownerId: VALID_UUID },
+        }),
+        mockNotify
+      )
+    ).rejects.toThrow('Failed to look up escrow for terminal payment event');
 
     // Escrow status must NOT be rewritten blind when its state is unknown…
     expect(chain.update).not.toHaveBeenCalledWith(
