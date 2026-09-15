@@ -2007,3 +2007,62 @@ observed separately. Browser/device login and password-reset completion still re
 - No schema change, hosted mutation or external filing occurred. This is bookkeeping confirmation,
   not proof of submission to a tax authority. Reporting pagination and broader journey checks
   remain.
+
+### 15 September 2026 — reconciliation consumer repair (in progress)
+
+- Current worker writes boolean reconciliation_flag, but administrator GET called .includes on it.
+  Added reconciliation-dashboard.test.ts: actual route reproduces TypeError plus false HTTP 200 for
+  failed records/count queries (3 failed, reconciliation-dashboard-before.log).
+- Route now handles boolean/legacy string flags, reads mismatch_type and reconciliation_date, does
+  not infer resolved from refunded/released status, and returns 503 on unavailable queries. Three
+  route tests passed (reconciliation-dashboard-after.log). Types and changed-source lint passed
+  before the final conditional table-render refinement.
+- Followed actual admin/payments/reconciliation page: reads previously swallowed failures; Run
+  Reconciliation POST has no implementation. Added visible errors/retry and suppress empty table on
+  error. This does not implement manual execution; DOM/browser verification remains.
+- Required next work: durable bounded worker traversal beyond newest 100, canonical funding cash
+  comparison (current worker compares gross escrow to Stripe cash), safe metadata persistence,
+  explicit run history and meaningful manual execution. Existing Last Run is inferred from flagged
+  record time, not authoritative execution history. Do not mark this flow complete or publish this
+  partial change as complete remediation. No provider/hosted request was made.
+
+### 15 September 2026 — durable bounded payment reconciliation
+
+- Replaced the newest-100 worker with service-only claim/acknowledge RPCs and persistent per-escrow
+  work records. Selection prioritizes unchecked/oldest checked payments, skips live leases, rotates
+  expired claim tokens, and rechecks lease state after acquiring the escrow lock. Each invocation
+  handles at most three records with a 25-second provider-call budget (8 seconds/call, no helper
+  retries). Unknown provider failures retry after 15 minutes; completed comparisons after one day.
+- Claims snapshot authoritative escrow, funding reservation and refund-balance fields. A changed
+  snapshot requeues without writing a conclusion. Acknowledgement merges only reconciliation keys
+  into escrow metadata in the same transaction; stale tokens cannot overwrite newer work.
+- Cash comparison now uses the trusted funding reservation, verifies provider metadata identity,
+  currency, received/captured amount and recorded refunds, and handles completed/release-pending/
+  approval states plus refunded retired reservations. Resource-missing is distinct from other
+  provider errors. These are reconciliation observations, not new payment or release authorizations.
+- Durable run records expose started/completed/failed states. Manual POST now uses the same worker
+  behind administrator role, fresh MFA and one request/minute. Cron is configured every five
+  minutes; provider/storage errors surface as failure. No scheduler or application was deployed.
+- Dashboard handles boolean flags, unavailable queries and failed manual requests, distinguishes
+  batch completion from complete backlog coverage, and labels capped record counts as the current
+  view. Run history comes from recorded executions, not a flagged payment's update timestamp.
+- Added migration 20260915210327_durable_payment_reconciliation.sql, worker/funding comparison,
+  reconciliation-dashboard/worker/page regression tests, remediation-reconciliation-queue.sql and
+  remediation-reconciliation-race.py. SQL diagnostics roll back; race fixtures are precisely
+  deleted.
+- Real local SQL processed 105 oldest records; tested lease expiry/reclaim, stale snapshot
+  rejection, metadata preservation, client grants and rollback of acknowledgement after an injected
+  write failure (reconciliation-queue.log). Two service-role connections claimed distinct payments
+  concurrently (reconciliation-race.log). Both exited 0.
+- Final targeted tests: 21 tests / 3 files passed, 7.20 seconds (reconciliation-final-targeted.log).
+  Web TypeScript and changed-source ESLint passed. Exact isolated migration replay/diff returned
+  empty diff, No schema changes found, exit 0 (reconciliation-diff.log).
+- Limits: Stripe responses in tests are synthetic; no real provider reconciliation, authenticated
+  browser session or deployed scheduler was exercised. The three-record/five-minute schedule has
+  finite throughput (at most 864 attempts/day); production backlog metrics and capacity validation
+  remain necessary. Latest 100 flagged records are still a capped view, explicitly labeled; complete
+  dashboard pagination remains local follow-up. Goal remains active.
+
+- Combined sanitized full web coverage passed: 3,612 tests / 330 files, exit 0, 218.01 seconds
+  (reconciliation-full-coverage.log). Final worker/API/page cases are included. No mobile behavior
+  was changed or device verification claimed by this reconciliation increment.

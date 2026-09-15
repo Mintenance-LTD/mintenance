@@ -25,6 +25,9 @@ interface ReconciliationStats {
   mismatches_found: number;
   unresolved_count: number;
   last_run: string | null;
+  last_run_status: string | null;
+  last_run_checked: number | null;
+  records_limited: boolean;
 }
 
 /**
@@ -36,19 +39,28 @@ export default function ReconciliationDashboard() {
   const [stats, setStats] = useState<ReconciliationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [runNotice, setRunNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unresolved'>('unresolved');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/admin/reconciliation');
+      if (!res.ok)
+        throw new Error(
+          'Reconciliation records could not be loaded. Please retry.'
+        );
       if (res.ok) {
         const data = await res.json();
         setRecords(data.records || []);
         setStats(data.stats || null);
       }
     } catch {
-      // Silently fail — will show empty state
+      setError('Reconciliation records could not be loaded. Please retry.');
+      setStats(null);
+      setRecords([]);
     } finally {
       setLoading(false);
     }
@@ -60,14 +72,25 @@ export default function ReconciliationDashboard() {
 
   const runReconciliation = async () => {
     setRunning(true);
+    setRunNotice(null);
     try {
       const csrfHeaders = await getCsrfHeaders();
-      await fetch('/api/admin/reconciliation', {
+      const response = await fetch('/api/admin/reconciliation', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders },
       });
+      if (!response.ok)
+        throw new Error(
+          'Reconciliation did not complete successfully. Please retry.'
+        );
+      const result = await response.json();
+      setRunNotice(
+        `Batch checked ${result.checked} payments. Scheduled runs continue through the remaining payments.`
+      );
       await fetchData();
+    } catch {
+      setError('Reconciliation did not complete successfully. Please retry.');
     } finally {
       setRunning(false);
     }
@@ -100,10 +123,22 @@ export default function ReconciliationDashboard() {
           variant='primary'
           className='bg-[#565e74] hover:bg-[#4a5268] text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-[#565e74]/20 transition-all'
         >
-          {running ? 'Running...' : 'Run Reconciliation'}
+          {running ? 'Running...' : 'Run Reconciliation Batch'}
         </Button>
       </div>
 
+      {error && (
+        <div role='alert'>
+          {error}
+          <Button onClick={fetchData} disabled={loading}>
+            Retry loading records
+          </Button>
+        </div>
+      )}
+      {runNotice && <p role='status'>{runNotice}</p>}
+      {stats?.records_limited && (
+        <p>Showing the latest 100 flagged records. Older records may exist.</p>
+      )}
       {/* Stats Cards */}
       {stats && (
         <div
@@ -148,7 +183,7 @@ export default function ReconciliationDashboard() {
                   letterSpacing: '0.05em',
                 }}
               >
-                Mismatches Found
+                Flagged Records in View
               </div>
               <div
                 style={{
@@ -173,7 +208,7 @@ export default function ReconciliationDashboard() {
                   letterSpacing: '0.05em',
                 }}
               >
-                Unresolved
+                Unresolved in View
               </div>
               <div
                 style={{
@@ -197,10 +232,18 @@ export default function ReconciliationDashboard() {
                   letterSpacing: '0.05em',
                 }}
               >
-                Last Run
+                Last Run Started
               </div>
               {stats.last_run ? (
                 <div style={{ marginTop: 8 }}>
+                  <p>
+                    {stats.last_run_status === 'running'
+                      ? 'Started; completion not confirmed'
+                      : stats.last_run_status === 'failed'
+                        ? 'Run needs retry'
+                        : 'Batch completed'}{' '}
+                    ({stats.last_run_checked ?? 0} checked)
+                  </p>
                   <div
                     style={{
                       fontSize: 14,
@@ -249,7 +292,7 @@ export default function ReconciliationDashboard() {
                         marginTop: 2,
                       }}
                     >
-                      Click &apos;Run Reconciliation&apos; to start
+                      Run a reconciliation batch to start
                     </div>
                   </div>
                 </div>
@@ -292,11 +335,13 @@ export default function ReconciliationDashboard() {
       </div>
 
       {/* Records Table */}
-      <ReconciliationTable
-        records={filteredRecords}
-        loading={loading}
-        filter={filter}
-      />
+      {!error && (
+        <ReconciliationTable
+          records={filteredRecords}
+          loading={loading}
+          filter={filter}
+        />
+      )}
     </div>
   );
 }

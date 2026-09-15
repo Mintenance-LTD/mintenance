@@ -1,175 +1,123 @@
-/**
- * Payment Reconciliation Service
- *
- * Extracted from cron/payment-reconciliation route handler.
- * Compares local escrow_transactions records against Stripe PaymentIntents
- * to detect and flag discrepancies for manual review.
- */
-
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import Stripe from 'stripe';
-// Route through the shared lazy proxy so the API version stays pinned in one
-// place (lib/stripe.ts). The `Stripe` import above is retained for types only
-// (Stripe.PaymentIntent, Stripe.errors.*).
 import { stripe } from '@/lib/stripe';
-
-/** Maps local escrow status → expected Stripe PaymentIntent statuses */
-const STATUS_MAP: Record<string, string[]> = {
-  held: ['succeeded'],
-  released: ['succeeded'],
-  pending: ['requires_payment_method', 'requires_confirmation', 'processing'],
-  failed: ['canceled', 'requires_payment_method'],
-  refunded: ['succeeded'], // refunded PI still shows succeeded
-  canceled: ['canceled'],
-};
-
-const RECONCILIATION_LIMIT = 100;
-const AMOUNT_TOLERANCE = 0.01; // £0.01
-
-interface ReconciliationResults {
-  checked: number;
-  matched: number;
-  mismatched: number;
-  missingInStripe: number;
-  errors: number;
-}
-
-interface EscrowRecord {
-  id: string;
-  payment_intent_id: string | null;
-  amount: number;
-  status: string;
-  job_id: string;
-  created_at: string;
-}
+import { stripeWithTimeout } from '@/lib/utils/api-timeout';
+import { InternalServerError } from '@/lib/errors/api-error';
+import {
+  compareReconciliationFunding,
+  type ReconciliationSource,
+} from './reconciliation-funding';
 
 export class PaymentReconciliationService {
-  /**
-   * Reconcile local escrow records against Stripe PaymentIntents.
-   * Returns counts of matched, mismatched, missing, and errored records.
-   */
-  static async reconcile(): Promise<ReconciliationResults> {
-    const results: ReconciliationResults = {
+  /** Each bounded run resumes oldest unchecked work; successful acknowledgements are durable. */
+  static async reconcile() {
+    const deadline = Date.now() + 25000;
+    const results = {
       checked: 0,
       matched: 0,
       mismatched: 0,
       missingInStripe: 0,
       errors: 0,
     };
-
-    // Fetch escrow transactions that have a payment_intent_id
-    const { data: escrows, error: fetchError } = await serverSupabase
-      .from('escrow_transactions')
-      .select('id, payment_intent_id, amount, status, job_id, created_at')
-      .neq('payment_intent_id', null)
-      .order('created_at', { ascending: false })
-      .limit(RECONCILIATION_LIMIT);
-
-    if (fetchError) {
-      logger.error(
-        'Failed to fetch escrow transactions for reconciliation',
-        fetchError,
-        {
-          service: 'PaymentReconciliationService',
-        }
-      );
-      throw new Error('Failed to fetch escrow transactions');
-    }
-
-    if (!escrows || escrows.length === 0) {
-      return results;
-    }
-
-    // Reconcile each transaction against Stripe
-    for (const escrow of escrows as EscrowRecord[]) {
-      results.checked++;
-
-      if (!escrow.payment_intent_id) continue;
-
-      try {
-        const pi = await stripe.paymentIntents.retrieve(
-          escrow.payment_intent_id
+    const { data: run, error: runError } = await serverSupabase
+      .from('payment_reconciliation_runs')
+      .insert({ status: 'running' })
+      .select('id')
+      .single();
+    if (runError || !run?.id)
+      throw new InternalServerError('Reconciliation run could not be recorded');
+    let failure: unknown;
+    try {
+      while (results.checked < 3 && Date.now() < deadline) {
+        const { data: work, error } = await serverSupabase.rpc(
+          'claim_payment_reconciliation'
         );
-
-        // Compare amount (Stripe stores in pence, escrow in pounds)
-        const stripeAmountPounds = pi.amount / 100;
-        const localAmount = Number(escrow.amount);
-
-        const expectedStripeStatuses = STATUS_MAP[escrow.status] || [];
-        const statusMatch = expectedStripeStatuses.includes(pi.status);
-        const amountMatch =
-          Math.abs(stripeAmountPounds - localAmount) < AMOUNT_TOLERANCE;
-
-        if (statusMatch && amountMatch) {
-          results.matched++;
-        } else {
-          results.mismatched++;
-          await this.flagMismatch(
-            escrow,
-            pi,
-            statusMatch,
-            amountMatch,
-            stripeAmountPounds
+        if (error)
+          throw new InternalServerError(
+            'Reconciliation work could not be claimed'
           );
+        if (!work) break;
+        if (
+          !work.escrow_id ||
+          !work.token ||
+          work.source?.id !== work.escrow_id ||
+          !work.source.payment_intent_id
+        )
+          throw new InternalServerError('Reconciliation work is invalid');
+        results.checked++;
+        let outcome: 'matched' | 'mismatch' | 'missing' | 'error' = 'error';
+        let evidence: Record<string, unknown> = {
+          reason: 'provider_unavailable',
+        };
+        try {
+          const remaining = Math.min(8000, deadline - Date.now());
+          if (remaining <= 0)
+            throw new Error('Reconciliation time budget exhausted');
+          const intent = await stripeWithTimeout(
+            () =>
+              stripe.paymentIntents.retrieve(work.source.payment_intent_id, {
+                expand: ['latest_charge'],
+              }),
+            'reconcile-payment',
+            remaining,
+            0
+          );
+          const comparison = compareReconciliationFunding(
+            work.source as ReconciliationSource,
+            intent
+          );
+          outcome = comparison.matched ? 'matched' : 'mismatch';
+          evidence = comparison.evidence;
+        } catch (error) {
+          // Other invalid-request failures (bad key/account/parameters) do not prove a missing payment.
+          if (
+            error &&
+            typeof error === 'object' &&
+            'code' in error &&
+            error.code === 'resource_missing'
+          ) {
+            outcome = 'missing';
+            evidence = { mismatch_type: 'missing' };
+          }
         }
-      } catch (stripeError) {
-        if (stripeError instanceof Stripe.errors.StripeInvalidRequestError) {
-          results.missingInStripe++;
-          logger.warn('PaymentIntent not found in Stripe', {
-            service: 'PaymentReconciliationService',
-            escrowId: escrow.id,
-            paymentIntentId: escrow.payment_intent_id,
+        const { data: acknowledged, error: acknowledgeError } =
+          await serverSupabase.rpc('finish_payment_reconciliation', {
+            p_escrow_id: work.escrow_id,
+            p_token: work.token,
+            p_outcome: outcome,
+            p_evidence: evidence,
           });
-        } else {
-          results.errors++;
-          logger.error(
-            'Stripe API error during reconciliation',
-            stripeError instanceof Error
-              ? stripeError
-              : new Error(String(stripeError)),
-            { service: 'PaymentReconciliationService', escrowId: escrow.id }
+        if (acknowledgeError)
+          throw new InternalServerError(
+            'Reconciliation result could not be saved'
           );
-        }
+        if (acknowledged !== true || outcome === 'error') results.errors++;
+        else if (outcome === 'matched') results.matched++;
+        else if (outcome === 'missing') results.missingInStripe++;
+        else results.mismatched++;
       }
+    } catch (error) {
+      failure = error;
     }
-
-    return results;
-  }
-
-  /**
-   * Flag a mismatched escrow transaction for manual review.
-   */
-  private static async flagMismatch(
-    escrow: EscrowRecord,
-    pi: Stripe.PaymentIntent,
-    statusMatch: boolean,
-    amountMatch: boolean,
-    stripeAmountPounds: number
-  ): Promise<void> {
-    logger.warn('Reconciliation mismatch detected', {
-      service: 'PaymentReconciliationService',
-      escrowId: escrow.id,
-      paymentIntentId: escrow.payment_intent_id,
-      localStatus: escrow.status,
-      stripeStatus: pi.status,
-      localAmount: Number(escrow.amount),
-      stripeAmount: stripeAmountPounds,
-      statusMatch,
-      amountMatch,
-    });
-
-    await serverSupabase
-      .from('escrow_transactions')
+    const { data: completed, error: completeError } = await serverSupabase
+      .from('payment_reconciliation_runs')
       .update({
-        metadata: {
-          reconciliation_flag: true,
-          reconciliation_date: new Date().toISOString(),
-          stripe_status: pi.status,
-          stripe_amount: stripeAmountPounds,
-          mismatch_type: !statusMatch ? 'status' : 'amount',
-        },
+        completed_at: new Date().toISOString(),
+        status: failure || results.errors ? 'failed' : 'completed',
+        checked: results.checked,
+        matched: results.matched,
+        mismatched: results.mismatched,
+        missing: results.missingInStripe,
+        errors: results.errors + (failure ? 1 : 0),
       })
-      .eq('id', escrow.id);
+      .eq('id', run.id)
+      .eq('status', 'running')
+      .select('id')
+      .single();
+    if (completeError || completed?.id !== run.id)
+      throw new InternalServerError(
+        'Reconciliation run completion could not be saved'
+      );
+    if (failure) throw failure;
+    return results;
   }
 }
