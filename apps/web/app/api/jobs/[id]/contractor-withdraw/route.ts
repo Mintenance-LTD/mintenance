@@ -195,6 +195,9 @@ export const POST = withApiHandler(
               idempotencyKey: `contractor_withdraw_refund_${escrow.id}`,
             }
           );
+          if (refund.status !== 'succeeded') {
+            throw new Error('Provider refund has not succeeded');
+          }
           stripeRefundId = refund.id;
           logger.info('Stripe refund issued for contractor withdrawal', {
             service: 'jobs',

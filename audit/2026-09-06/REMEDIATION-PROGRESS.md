@@ -1495,3 +1495,47 @@ observed separately. Browser/device login and password-reset completion still re
   (`photo-replay-final.log`). Source lint passed. Tests use mocked authentication/database
   boundaries; multipart fingerprinting is real. No actual storage/provider request, migration, or
   hosted mutation. Signed-link expiry and device/browser checks remain separately unverified.
+
+### 2026-09-15 — Combined replay authorization validation
+
+- Full isolated web coverage at `ed5f3f6ac`: **3,494 tests / 316 files passed**, exit 0, 159.70
+  seconds (`replay-access-full-coverage.log`). Sanitized launcher; no live payments or hosted
+  mutations. This validates the accumulated route changes against the available web suite, not real
+  provider/device/browser behavior.
+- Follow-up source trace: contractor-withdraw and terminate-contractor still call
+  `stripe.refunds.create` directly, outside `RefundService` reservation/outcome tracking. Contractor
+  withdrawal uses refund.id without requiring succeeded status before marking escrow refunded. This
+  path needs a durable lifecycle/refund integration review, including pending provider results,
+  payout exclusion, credit restoration, and recovery before reassignment. Do not interpret the green
+  suite as closing that review.
+- Ruled out one suspected incompatibility: `protect_bid_financial_terms` permits trusted
+  accepted-to-withdrawn status changes while freezing financial identity;
+  `freeze_signed_contract_terms` preserves terms/signatures but does not prohibit cancellation
+  status. Neither supports a claim that those specific guards always break withdrawal. No
+  application changes in this validation checkpoint.
+
+### 2026-09-15 — Lifecycle refund status guard (partial remediation)
+
+- Actual withdrawal and termination handlers reproduced eight false transitions: provider
+  pending/requires_action/failed/canceled responses still wrote escrow refunded and reopened the
+  job. Synthetic provider/database boundary regression: `lifecycle-refund-pending-before.log`.
+- Added a succeeded-status guard before recording the refund or making lifecycle changes.
+  Non-success responses follow the existing error path; this prevents the reproduced false
+  transitions but is not durable recovery.
+- New regression suite: **10 tests passed**, exit 0, 2.10 seconds
+  (`lifecycle-refund-pending-final.log`), including both succeeded paths and explicit error
+  assertions for all eight non-success cases. Web TypeScript and source ESLint passed. No provider
+  calls or hosted mutations.
+- Required follow-up: integrate both exit flows with a durable lifecycle operation and refund
+  reservation/outcome tracking; authorize contractor-initiated refunds without impersonating the
+  payer; serialize payout/refund/assignment changes; restore credits; recover pending provider
+  outcomes and DB failures; provide truthful pending UI. The existing refund reservation only allows
+  payer-owned jobs in cancellation/dispute/pre-assignment states, so simply calling it from these
+  routes would break legitimate assigned-job exits. This guard does not close the payment finding.
+
+- Follow-up reachability search found no literal web/mobile UI caller for contractor-withdraw or
+  terminate-contractor (API endpoints remain present). Admin refunds also have a direct Stripe
+  refund path (`apps/web/app/api/admin/refunds/[id]/route.ts`, refund action): it claims
+  release_pending first, but does not check provider refund.status before finalization and uses
+  original escrow.amount for partial/full classification. This requires inclusion in durable refund
+  integration; no admin repair claimed.
