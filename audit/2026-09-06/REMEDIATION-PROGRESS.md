@@ -2088,3 +2088,30 @@ observed separately. Browser/device login and password-reset completion still re
 - This closes the capped dashboard view follow-up recorded above. Cursor pages remain live views,
   not a transactionally frozen financial export. Authenticated browser/device and production-scale
   operational verification remain outside this increment; the wider remediation goal is active.
+
+### 15 September 2026 — F12 location fallback and native permission validation
+
+- Traced LocationPromptModal through geocode-proxy and withApiHandler. Both forward/reverse
+  geocoding POSTs omitted required CSRF headers. Manual entry therefore failed for cookie sessions;
+  reverse lookup silently lost its address result. Added getCsrfHeaders to both requests, preserving
+  route controls. Accepted finite zero coordinates instead of treating them as missing.
+- Extracted request/state logic into useLocationPrompt.ts so the existing 678-line modal and the new
+  hook both fit repository file-size checks. No provider/auth bypass was added.
+- Added six actual-component tests for protected manual lookup, denied/unavailable browser location,
+  granted location, zero coordinates, and retained manual text on failed save. All six passed
+  (location-prompt-after.log). Initial failures included three incorrect button selectors, corrected
+  to the actual label; only missing headers and zero-coordinate rejection were code defects.
+- Added location-policy-browser.cjs plus its sanitized run-location-policy-browser.cjs launcher.
+  Actual Next /login returned 200 with geolocation=(self). Headless Chromium with synthetic
+  coordinates succeeded when permitted and returned permission-denied after denial. External browser
+  requests were blocked, no login/provider call was made, and browser/server shut down
+  (location-policy-browser.log, exit 0). This is a real policy check, not a full authenticated flow.
+- Changed-source ESLint passed. A malformed ignored .next/dev/types/routes.d.ts initially blocked
+  TypeScript; it contained duplicate trailing content. Removed only that generated file, regenerated
+  route definitions using supported next typegen under sanitized credentials, then web TypeScript
+  passed (location-typegen.log and location-types-final.log). No type-check exclusions were changed.
+- Also reran reviewed rollback-only F1/F2 probes against the current isolated schema: sensitive RPC
+  and default grants, allowed owner/denied cross-user profile writes, role/verification forgery,
+  forbidden escrow/signature inserts and valid service inserts all passed (current-\*.sql.log).
+  These local results do not change the recorded hosted environment distinction or prove every
+  privileged database function safe. Full F1–F15 completion review remains active.
