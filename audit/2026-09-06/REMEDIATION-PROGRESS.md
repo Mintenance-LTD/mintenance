@@ -1225,3 +1225,28 @@ observed separately. Browser/device login and password-reset completion still re
   database and no payment-provider calls. Post-run counts: **0 recent synthetic accounts and jobs**.
   Added three ignored isolated-stack launchers; no application or schema changes in this checkpoint.
   Existing unrelated worktree tsconfig warnings persist.
+
+### 2026-09-15 — mobile payment verification and screen test repair
+
+- Ran the actual mobile payment hook, PaymentService and BidService unit suites: **121 tests / 3
+  suites passed**, 13.101 seconds (`mobile-payment-contract-check.log`). External API/provider
+  dependencies are mocked; these are caller/component regression checks, not device or real-provider
+  verification.
+- The separate payment screen/Stripe form/schema-contract group printed 60 passing assertions but
+  the command exited **1** after pending payment-method API retries logged after test completion
+  (`mobile-payment-screen-check.log`). Existing screen tests merely asserted arbitrary text, a
+  defined navigation object, and an interaction count greater than or equal to zero. These were not
+  evidence of working payment behavior.
+- Replaced those screen assertions with the real rendered PaymentScreen/usePayment plus explicitly
+  mocked service/API boundaries. Five cases check loading, no-card disabled action, visible
+  method-load error, selected-method intent creation followed by held escrow confirmation, and
+  pending confirmation without a success alert. Removed the unbounded network retry side effect from
+  this component test; no application behavior changed.
+- Final screen/Stripe form/schema-contract group: **61 tests / 3 suites passed**, command exit
+  **0**, 15.995 seconds (`mobile-payment-screen-final.log`). Mobile TypeScript check exited 0.
+  Existing react-test-renderer deprecation warnings remain; no emulator, 3DS hand-off or real Stripe
+  verification is claimed.
+- Static follow-up remains: the reachable payment screen can retain local fee estimates after
+  payment-details failure; cash/credit presentation and authoritative payable-amount display still
+  need complete review. The optional direct-payment branch was not found in current navigation
+  callers. Do not treat its mocked tests as evidence of a reachable user journey.
