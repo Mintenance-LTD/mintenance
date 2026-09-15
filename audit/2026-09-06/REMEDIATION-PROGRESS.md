@@ -1271,3 +1271,22 @@ observed separately. Browser/device login and password-reset completion still re
 - This proves client gating and request composition against controlled responses, not the server
   quote's complete eligibility/credit accounting or a real device/Stripe hand-off. Those remain
   open. No deployment or hosted data changes.
+
+### 2026-09-15 — accepted-bid-only server payment quotes
+
+- Traced `/api/jobs/[id]/payment-details` against create-intent. The quote handler ignored bid
+  lookup errors, did not constrain accepted bids to the assigned contractor, and fell back to a
+  numeric job budget. Consequently it could display a payable quote that intent creation would
+  reject.
+- Quote selection now includes the current contractor and never substitutes job budget for an agreed
+  bid. No assigned contractor or missing/nonpositive/invalid accepted amount returns the existing
+  no-quote shape. Bid lookup failures return a retryable 503 instead of fabricated fee totals.
+  Homeowner/designated-payer access checks remain enforced.
+- Added nine production-handler tests for numeric-string normalization, contractor filtering,
+  missing/null/zero/negative/invalid amounts, query error, missing assignment, designated payer and
+  unrelated-user denial. These mock the database and handler authentication wrapper; they do not
+  claim end-to-end authorization.
+- Quote + create-intent concurrency + payment-ceiling group: **21 tests / 3 files passed**, exit 0,
+  2.05 seconds (`payment-quote-final.log`). Web TypeScript and changed route lint passed. No schema
+  changes, provider calls or deployments. Full quote eligibility (including already funded states),
+  credit presentation and real device/provider journeys remain separate unfinished checks.
