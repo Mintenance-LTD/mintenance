@@ -1344,6 +1344,7 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
     // request already moved out of 'held' matches no rows and the route
     // throws ConflictError. We drive that path here.
     mocks.checkIdempotency.mockResolvedValue(null); // claim acquired, proceed
+    mocks.supabaseRpc.mockResolvedValue({ data: [], error: null });
     mocks.validateRequest.mockResolvedValue({
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
     });
@@ -1464,9 +1465,22 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     orderLog: string[];
     casEqArgs: unknown[][];
     auditInserts: Array<Record<string, unknown>>;
+    refundedMinor?: number;
     finalUpdateResult?: { data: unknown; error: unknown };
   }) {
     mocks.supabaseRpc.mockImplementation(async (name, params) => {
+      if (name === 'claim_escrow_release') {
+        opts.orderLog.push('cas-update');
+        return {
+          data: [
+            {
+              escrow_id: params.p_escrow_id,
+              remaining_minor: 25000 - (opts.refundedMinor ?? 0),
+            },
+          ],
+          error: null,
+        };
+      }
       expect(name).toBe('reserve_escrow_transfer');
       opts.orderLog.push('reserve-transfer');
       return {
@@ -1512,7 +1526,7 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
         captured: true,
         disputed: false,
         refunded: false,
-        amount_refunded: 0,
+        amount_refunded: opts.refundedMinor ?? 0,
         currency: 'gbp',
         amount: 25000,
       },
@@ -1534,6 +1548,26 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
 
     let escrowCallCount = 0;
     mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'escrow_refund_balances')
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: {
+                  gross_minor: 25000,
+                  cash_minor: 25000,
+                  credit_minor: 0,
+                  cash_refunded_minor: opts.refundedMinor ?? 0,
+                  credit_returned_minor: 0,
+                  remaining_minor: 25000 - (opts.refundedMinor ?? 0),
+                  needs_review: false,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        };
+
       if (table === 'escrow_transfer_attempts') {
         return {
           update: vi.fn().mockReturnValue({
@@ -1563,31 +1597,6 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
           };
         }
         if (escrowCallCount === 2) {
-          // CAS: update(...).eq('id', X).eq('status', 'held').select().single()
-          const eq2 = vi.fn().mockImplementation((...args: unknown[]) => {
-            opts.casEqArgs.push(args);
-            return {
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockImplementation(async () => {
-                  opts.orderLog.push('cas-update');
-                  return {
-                    data: { ...escrow, status: 'release_pending' },
-                    error: null,
-                  };
-                }),
-              }),
-            };
-          });
-          return {
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockImplementation((...args: unknown[]) => {
-                opts.casEqArgs.push(args);
-                return { eq: eq2 };
-              }),
-            }),
-          };
-        }
-        if (escrowCallCount === 3) {
           // Independent captured-funding verification after reserving transfer.
           return {
             select: vi.fn().mockReturnValue({
@@ -1676,6 +1685,32 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     });
   }
 
+  it('releases only remaining principal after a reconciled partial refund', async () => {
+    setupFullReleaseMocks({
+      orderLog: [],
+      casEqArgs: [],
+      auditInserts: [],
+      refundedMinor: 5000,
+    });
+    const response = await releaseEscrowPOST(
+      createPostRequest('http://localhost/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.contractorAmount).toBe(176);
+    expect(mocks.stripeTransfersCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 17600 }),
+      expect.any(Object)
+    );
+    expect(mocks.transferPlatformFee).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 200 })
+    );
+  });
+
   it('enforces strict ordering: CAS claim → Stripe transfer → final DB update', async () => {
     const orderLog: string[] = [];
     const casEqArgs: unknown[][] = [];
@@ -1705,13 +1740,12 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
       'final-update',
     ]);
 
-    // The CAS predicate must be the status invariant, not updated_at
-    // (2026-07-17 fix — an updated_at guard deterministically 409'd itself).
-    expect(casEqArgs).toEqual(
-      expect.arrayContaining([
-        ['id', ESCROW_ID],
-        ['status', 'held'],
-      ])
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'claim_escrow_release',
+      expect.objectContaining({
+        p_escrow_id: ESCROW_ID,
+        p_release_reason: 'job_completed',
+      })
     );
 
     // Exactly one transfer.

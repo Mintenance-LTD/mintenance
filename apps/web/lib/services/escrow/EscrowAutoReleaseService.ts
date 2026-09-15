@@ -232,32 +232,16 @@ export class EscrowAutoReleaseService {
     const contractorTier = await FeeCalculationService.resolveContractorTier(
       escrow.payee_id
     );
-    const feeBreakdown = FeeCalculationService.calculateFees(
-      escrow.amount || 0,
-      { paymentType, contractorTier }
+    // Share the atomic remaining-principal claim with manual release.
+    // The database serializes this against refunds and competing releases.
+    const { data: claimed, error: claimError } = await serverSupabase.rpc(
+      'claim_escrow_release',
+      {
+        p_escrow_id: escrow.id,
+        p_release_reason: 'auto_release',
+        p_reconciliation_id: crypto.randomUUID(),
+      }
     );
-    const contractorAmountCents = Math.round(
-      feeBreakdown.contractorAmount * 100
-    );
-
-    // 2026-07-10 audit P1 — claim the row atomically BEFORE any irreversible
-    // Stripe work. The manual release path (api/payments/release-escrow) has
-    // always done this via a compare-and-swap; the cron path did not. So a
-    // homeowner clicking "Release Payment" while this hourly cron processed the
-    // same escrow — or two overlapping cron invocations — could each pass the
-    // read-time `held` check and issue a SECOND stripe.transfers.create,
-    // double-paying the contractor from the platform balance. Flipping
-    // held -> release_pending here is the CAS: exactly one worker wins the
-    // update; the loser matches 0 rows and bails without transferring.
-    const { data: claimed, error: claimError } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        status: 'release_pending',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', escrow.id)
-      .eq('status', 'held')
-      .select('id');
 
     if (claimError) {
       logger.error('Failed to claim escrow for auto-release', {
@@ -276,6 +260,19 @@ export class EscrowAutoReleaseService {
       });
       return false;
     }
+
+    const remainingMinor = claimed[0].remaining_minor;
+    if (!Number.isSafeInteger(remainingMinor) || remainingMinor <= 0) {
+      throw new Error('Remaining escrow principal could not be verified');
+    }
+    const releaseAmount = remainingMinor / 100;
+    const feeBreakdown = FeeCalculationService.calculateFees(releaseAmount, {
+      paymentType,
+      contractorTier,
+    });
+    const contractorAmountCents = Math.round(
+      feeBreakdown.contractorAmount * 100
+    );
 
     // Accumulation mode: skip direct transfer, credit the payout balance.
     // The weekly cron (/api/cron/contractor-payouts) will issue the Stripe
@@ -319,7 +316,7 @@ export class EscrowAutoReleaseService {
           escrowTransactionId: escrow.id,
           jobId: job.id,
           contractorId: escrow.payee_id,
-          amount: escrow.amount || 0,
+          amount: releaseAmount,
           paymentIntentId: escrow.payment_intent_id || '',
           chargeId: chargeIdAcc,
           paymentType,
@@ -425,7 +422,7 @@ export class EscrowAutoReleaseService {
         escrowTransactionId: escrow.id,
         jobId: job.id,
         contractorId: escrow.payee_id,
-        amount: escrow.amount || 0,
+        amount: releaseAmount,
         paymentIntentId: escrow.payment_intent_id || '',
         chargeId,
         paymentType,

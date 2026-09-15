@@ -687,3 +687,44 @@ Required npx supabase db diff --local using isolated-stack completed exit 0, ful
 schema changes (remaining-release-claim-diff.log). No original local or hosted database changes,
 provider calls, real accounts, or deployment. Next required work is application integration and
 provider/ledger reconciliation tests; the overall remediation goal remains active.
+
+## 2026-09-15 — Release callers integrated with remaining principal
+
+Manual release and EscrowAutoReleaseService now call claim_escrow_release instead of separately
+updating held -> release_pending. Fees are calculated after the claim on its remaining_minor, which
+is also passed to fee-record creation in direct and accumulated payout modes. Original escrow amount
+stays intact for historical principal. Losing the claim still prevents provider work.
+
+EscrowFundingService now accepts a refunded charge only when the internal committed refund balance
+matches original gross/cash/credit, cumulative provider cash refunds, returned credits, and positive
+remaining principal. Missing/error/review-held/inconsistent balances and unaccounted provider
+refunds still fail. An attached funding reservation remains necessary for promotional credit. Fully
+returned principal fails; cash fully refunded with some unreturned promotional credit is separately
+tested.
+
+The targeted lifecycle/automatic-release/funding run passed 93 tests in three files
+(remaining-release-integration-tests.log). Its manual partial-refund case runs the real fee and
+funding helpers: £250 captured, £50 reconciled refund, £200 release basis, £176 contractor payout;
+fee-record input is £200. Both automatic modes assert the claimed remainder reaches fee calculation,
+fee tracking and payout/accumulation. Existing ordering/finalization failure tests now instrument
+the claim RPC rather than the removed direct UPDATE. Real lock/authorization invariants remain
+covered by the SQL and concurrent diagnostic recorded above, not by these mock RPC responses.
+
+A subsequent focused funding run passed 27 tests including all-cash-refunded/unreturned-credit and
+zero-remaining cases (remaining-release-credit-tests.log). Web type checking and three changed
+application-source lint passed. Processing costs remain estimates, not provider-settled fees; that
+existing accounting limitation is not resolved here. No provider test-mode or browser journey was
+exercised in this checkpoint, and overall remediation is still incomplete.
+
+The first full integration coverage run had one stale payment-flow fixture that rejected the new
+claim RPC (3347 passed / one failed). Updated that fixture; its 72-test suite passed. Final full
+coverage is recorded separately below. During review, a further existing edge case was confirmed:
+FeeCalculationService's minimum platform fee can exhaust a very small post-refund remainder,
+returning zero contractor payout; both direct and accumulated reservation functions reject zero.
+This requires explicit zero-payout settlement/accounting handling and remains open. Processing fee
+estimates likewise remain an accounting limitation. Do not treat this checkpoint as all F9 or all
+payment journeys complete.
+
+Final full coverage passed exit 0: 3348 tests in 301 files, unchanged thresholds
+(remaining-release-full-coverage-final.log). The new claim migration must be applied before these
+application callers are deployed; only the isolated audit database has received it here.

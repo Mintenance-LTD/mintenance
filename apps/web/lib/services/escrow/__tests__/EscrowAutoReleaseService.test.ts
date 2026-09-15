@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   blockEscrow: vi.fn(),
   resolveContractorTier: vi.fn(),
   calculateFees: vi.fn(),
+  claim: vi.fn(),
   transferPlatformFee: vi.fn(),
   accumulateEarnings: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -41,21 +42,24 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     rpc: async (
       _name: string,
       args: { p_escrow_id: string; p_amount: number; p_destination: string }
-    ) => ({
-      data: [
-        {
-          created_at: new Date().toISOString(),
-          transfer_id: null,
-          idempotency_key: `escrow_release_${args.p_escrow_id}`,
-          stripe_parameters: {
-            amount: args.p_amount,
-            currency: 'gbp',
-            destination: args.p_destination,
+    ) =>
+      _name === 'claim_escrow_release'
+        ? mocks.claim(args)
+        : {
+            data: [
+              {
+                created_at: new Date().toISOString(),
+                transfer_id: null,
+                idempotency_key: `escrow_release_${args.p_escrow_id}`,
+                stripe_parameters: {
+                  amount: args.p_amount,
+                  currency: 'gbp',
+                  destination: args.p_destination,
+                },
+              },
+            ],
+            error: null,
           },
-        },
-      ],
-      error: null,
-    }),
     from: (table: string) =>
       table === 'escrow_transfer_attempts'
         ? chain({ data: [{ escrow_id: 'escrow-1' }], error: null })
@@ -155,7 +159,12 @@ interface SupabaseScenario {
 }
 
 function configureSupabase(s: SupabaseScenario) {
-  let escrowUpdateCalls = 0;
+  mocks.claim.mockResolvedValue(
+    s.claimResult ?? {
+      data: [{ escrow_id: 'escrow-1', remaining_minor: 10000 }],
+      error: null,
+    }
+  );
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'profiles') {
       return {
@@ -168,21 +177,10 @@ function configureSupabase(s: SupabaseScenario) {
         chain({ data: s.eligible ?? [], error: s.eligibleError ?? null })
       ),
       update: vi.fn(() => {
-        escrowUpdateCalls += 1;
-        // The first update is the CAS claim and must be modelled separately
-        // from later finalization/revert writes. Otherwise a configured
-        // finalization failure incorrectly prevents the Stripe transfer from
-        // ever being attempted.
-        const terminal =
-          escrowUpdateCalls === 1
-            ? (s.claimResult ?? {
-                data: [{ id: 'escrow-1' }],
-                error: null,
-              })
-            : (s.updateResult ?? {
-                data: [{ id: 'escrow-1' }],
-                error: null,
-              });
+        const terminal = s.updateResult ?? {
+          data: [{ id: 'escrow-1' }],
+          error: null,
+        };
         return chain(terminal);
       }),
     };
@@ -218,6 +216,10 @@ function makeEscrow(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.claim.mockResolvedValue({
+    data: [{ escrow_id: 'escrow-1', remaining_minor: 10000 }],
+    error: null,
+  });
   delete process.env.ESCROW_USE_PAYOUT_ACCUMULATION;
   // Sensible happy-path defaults; individual tests override.
   mocks.evaluateAutoRelease.mockResolvedValue({ success: true });
@@ -325,6 +327,41 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
     expect(res.errors).toBe(1);
     expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
   });
+
+  it.each([false, true])(
+    'uses the claimed remaining principal for fees in accumulation=%s',
+    async (accumulated) => {
+      if (accumulated) process.env.ESCROW_USE_PAYOUT_ACCUMULATION = 'true';
+      configureSupabase({
+        eligible: [makeEscrow()],
+        profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+      });
+      mocks.claim.mockResolvedValue({
+        data: [{ escrow_id: 'escrow-1', remaining_minor: 6000 }],
+        error: null,
+      });
+      mocks.calculateFees.mockReturnValue({
+        platformFee: 7.2,
+        contractorAmount: 52.8,
+        stripeFee: 1.1,
+      });
+      const result = await EscrowAutoReleaseService.processAutoReleases();
+      expect(result.released).toBe(1);
+      expect(mocks.calculateFees).toHaveBeenCalledWith(60, expect.any(Object));
+      expect(mocks.transferPlatformFee).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 60 })
+      );
+      if (accumulated)
+        expect(mocks.accumulateEarnings).toHaveBeenCalledWith(
+          expect.objectContaining({ amountMinor: 5280 })
+        );
+      else
+        expect(mocks.stripeTransfersCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: 5280 }),
+          expect.any(Object)
+        );
+    }
+  );
 
   it('releases via direct Stripe transfer on the happy path', async () => {
     configureSupabase({
@@ -443,6 +480,13 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
 
     it('claims the row (CAS held→release_pending) BEFORE creating the Stripe transfer', async () => {
       const orderLog: string[] = [];
+      mocks.claim.mockImplementation(async () => {
+        orderLog.push('cas-claim');
+        return {
+          data: [{ escrow_id: 'escrow-1', remaining_minor: 10000 }],
+          error: null,
+        };
+      });
       // Instrumented scenario: record claim vs transfer ordering.
       mocks.supabaseFrom.mockImplementation((table: string) => {
         if (table === 'profiles') {
@@ -464,7 +508,6 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
           update: vi.fn(() => {
             const c = chain({ error: null });
             c.select = vi.fn(() => {
-              orderLog.push('cas-claim');
               return chain({ data: [{ id: 'escrow-1' }], error: null });
             });
             return c;
@@ -557,7 +600,8 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
       expect(mocks.stripeTransfersCreateReversal).not.toHaveBeenCalled();
       // Update sequence: claim → finalize(completed) → revert(held).
       const statuses = updates.map((u) => u.status);
-      expect(statuses).toEqual(['release_pending', 'completed', 'held']);
+      expect(mocks.claim).toHaveBeenCalledTimes(1);
+      expect(statuses).toEqual(['completed', 'held']);
     });
   });
 });

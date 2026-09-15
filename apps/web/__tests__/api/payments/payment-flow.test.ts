@@ -1545,6 +1545,11 @@ describe('POST /api/payments/release-escrow', () => {
 
       mocks.supabaseRpc.mockImplementation(
         async (name: string, args: Record<string, unknown>) => {
+          if (name === 'claim_escrow_release')
+            return {
+              data: [{ escrow_id: args.p_escrow_id, remaining_minor: 50000 }],
+              error: null,
+            };
           if (name !== 'reserve_escrow_transfer')
             throw new Error(`Unexpected RPC ${name}`);
           return {
