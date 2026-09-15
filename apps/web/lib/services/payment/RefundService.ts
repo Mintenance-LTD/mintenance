@@ -8,6 +8,7 @@ export interface RefundOperation {
   id: string;
   escrow_id: string;
   actor_id: string;
+  initiated_by?: string | null;
   gross_minor: number;
   cash_minor: number;
   credit_minor: number;
@@ -83,6 +84,45 @@ export async function reserveRefund(input: {
     op.gross_minor !== input.grossMinor
   ) {
     throw new ConflictError('Refund reservation does not match the request');
+  }
+  return op;
+}
+
+/** Admin authority is checked by the reservation RPC; money still belongs to the payer. */
+export async function reserveAdminRefund(input: {
+  adminId: string;
+  payerId: string;
+  jobId: string;
+  escrowId: string;
+  requestKey: string;
+  grossMinor: number;
+  reason: string;
+}): Promise<RefundOperation> {
+  const { data, error } = await serverSupabase.rpc(
+    'reserve_admin_escrow_refund',
+    {
+      p_admin_id: input.adminId,
+      p_job_id: input.jobId,
+      p_escrow_id: input.escrowId,
+      p_request_key: input.requestKey,
+      p_gross_minor: input.grossMinor,
+      p_reason: input.reason,
+    }
+  );
+  if (error)
+    throw new ConflictError(
+      'Admin refund could not be reserved. Refresh its status before retrying.'
+    );
+  const op = operationFrom(data);
+  if (
+    op.initiated_by !== input.adminId ||
+    op.actor_id !== input.payerId ||
+    op.escrow_id !== input.escrowId ||
+    op.gross_minor !== input.grossMinor
+  ) {
+    throw new ConflictError(
+      'Admin refund reservation does not match the request'
+    );
   }
   return op;
 }

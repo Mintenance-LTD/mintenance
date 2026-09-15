@@ -1539,3 +1539,47 @@ observed separately. Browser/device login and password-reset completion still re
   release_pending first, but does not check provider refund.status before finalization and uses
   original escrow.amount for partial/full classification. This requires inclusion in durable refund
   integration; no admin repair claimed.
+
+### 2026-09-15 — Admin refund uncertainty guard (partial remediation)
+
+- Five controlled-handler regressions reproduced false finalization for
+  pending/requires_action/failed/canceled refunds and restoration to held after an ambiguous
+  provider exception (`admin-refund-outcomes-before.log`). Admin refund UI caller confirmed in
+  RefundManagementClient.handleAction.
+- Require provider succeeded status before finalization. Preserve release_pending on an ambiguous
+  provider exception instead of restoring spendable escrow. Error text no longer asserts provider
+  success without evidence. This intentionally requires reconciliation while the durable recovery
+  integration remains unfinished.
+- Admin and lifecycle refund regression group: 15 tests / 2 files passed, exit 0
+  (`admin-refund-outcomes-final.log`). Source lint passed; synthetic provider/database boundaries
+  only. No live payment or hosted mutation. No claim that pending refunds can yet recover
+  automatically, that admin repeated partial amounts are correctly deduplicated, or that
+  credit/cumulative balances are fixed. Durable reservation/outcome integration remains required.
+
+### 2026-09-15 — Durable admin refund reservation foundation
+
+- CLI-created `20260915180822_reserve_admin_refund_operations.sql` adds a separately recorded admin
+  initiator and service-only reserve_admin_escrow_refund RPC. The financial actor remains the escrow
+  payer, preserving existing refund verification and credit restoration. Current non-deleted admin
+  role is checked in the transaction before reservation. Existing amount/payload identity,
+  cash-first allocation, inflight refund exclusion and payout-attempt checks are retained.
+- Applied only to disposable audit DB. Rollback SQL `remediation-admin-refund-reservation.sql`
+  passed: non-admin denial, matching retry identity, changed payload denial, competing operation
+  denial, pending claim preservation, exactly-once partial settlement, remaining cash/credit
+  allocation and payer-only credit restoration, authenticated RPC denial. These are sequential
+  real-DB checks, not concurrent network/provider tests.
+- Local security advisors exit 1: existing public.spatial_ref_sys RLS error and PostGIS
+  extension-in-public warning remain (`admin-refund-advisors.log`). No new advisor item was
+  reported. API/service/UI integration and durable pending/retry recovery are not yet connected to
+  this function. No hosted changes or deployment.
+- Isolated migration replay/diff completed with exit 0 and no schema differences
+  (`admin-refund-db-diff.log`).
+
+- Service adapter reserveAdminRefund now calls the admin RPC with the real administrator and
+  validates returned administrator, payer, escrow and gross amount before provider work. Six new
+  adapter cases plus existing recovery/admin guard tests: **39 tests / 2 files passed**, exit 0,
+  1.98 seconds (`admin-refund-service.log`). Source lint passed. The admin route is not switched to
+  this adapter yet; API and UI durable retry integration remains required.
+- Commit file-size gate required extracting the existing guarded admin refund action and audit
+  writer into AdminRefundAction.ts. After extraction, the same 39 tests passed (1.97 seconds;
+  admin-refund-extraction.log); no hook bypass was used.
