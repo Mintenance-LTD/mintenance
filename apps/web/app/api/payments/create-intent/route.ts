@@ -39,6 +39,7 @@ export const POST = withApiHandler(
     // post-claim step throws. Stays undefined when the throw happens
     // before the claim was made — guarded in the catch.
     let claimedIdempotencyKey: string | undefined;
+    let claimOwnership: import('@/lib/idempotency').ClaimOwnership | undefined;
     try {
       // Validate and sanitize input using Zod schema
       const validation = await validateRequest(request, paymentIntentSchema);
@@ -465,6 +466,7 @@ export const POST = withApiHandler(
       // can release it if any later step fails.
       if (!idempotencyCheck?.isDuplicate) {
         claimedIdempotencyKey = idempotencyKey;
+        claimOwnership = idempotencyCheck?.ownership;
       }
       if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
         logger.info(
@@ -670,7 +672,8 @@ export const POST = withApiHandler(
           jobId,
           paymentIntentId: paymentIntent.id,
           escrowTransactionId: escrowTransaction.id,
-        }
+        },
+        claimOwnership
       );
 
       return NextResponse.json(responseData);
@@ -685,7 +688,8 @@ export const POST = withApiHandler(
         try {
           await releaseIdempotencyClaim(
             claimedIdempotencyKey,
-            'create_payment_intent'
+            'create_payment_intent',
+            claimOwnership
           );
         } catch {
           // Swallow: the 60s stale-takeover is the backstop.

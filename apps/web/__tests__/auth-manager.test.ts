@@ -443,6 +443,16 @@ describe('Auth Manager', () => {
       await expect(authManager.logout()).resolves.not.toThrow();
       expect(mocks.clearAuthCookie).toHaveBeenCalled();
     });
+
+    it('clears local cookies but reports failed server revocation', async () => {
+      mocks.revokeAllTokens.mockRejectedValueOnce(
+        new Error('synthetic revocation failure')
+      );
+      await expect(authManager.logout('synthetic-user')).rejects.toThrow(
+        'synthetic revocation failure'
+      );
+      expect(mocks.clearAuthCookie).toHaveBeenCalled();
+    });
   });
 
   describe('Token Validation', () => {

@@ -1271,6 +1271,17 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
     });
 
+    mocks.supabaseFrom.mockImplementation(() => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({
+            data: { ...baseEscrowRow('held'), jobs: baseJobRow },
+            error: null,
+          }),
+        }),
+      }),
+    }));
+
     const req = createPostRequest(
       'http://localhost:3000/api/payments/release-escrow',
       {
@@ -1286,6 +1297,45 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
     expect(body.transferId).toBe(TRANSFER_ID);
 
     // Stripe transfer should NOT have been called again
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+  });
+
+  it('denies a cached release after the caller loses participant access', async () => {
+    mocks.checkIdempotency.mockResolvedValue({
+      isDuplicate: true,
+      cachedResult: { success: true, transferId: TRANSFER_ID },
+    });
+    mocks.validateRequest.mockResolvedValue({
+      data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
+    });
+    mocks.supabaseFrom.mockImplementation(() => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({
+            data: {
+              ...baseEscrowRow('held'),
+              jobs: {
+                ...baseJobRow,
+                homeowner_id: 'different-owner',
+                payer_user_id: null,
+              },
+            },
+            error: null,
+          }),
+        }),
+      }),
+    }));
+    const response = await releaseEscrowPOST(
+      createPostRequest('http://localhost:3000/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+    expect(response.status).toBe(403);
+    expect(mocks.checkIdempotency).not.toHaveBeenCalled();
+    const { releaseIdempotencyClaim } = await import('@/lib/idempotency');
+    expect(releaseIdempotencyClaim).not.toHaveBeenCalled();
     expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
   });
 

@@ -18,6 +18,7 @@ import type { EscrowRecord } from './RefundManagementClient';
 type ActionType = 'release' | 'refund' | 'hold';
 
 interface ActionModalProps {
+  savedRefund?: { reason: string; amount?: number } | null;
   open: boolean;
   type: ActionType;
   escrow: EscrowRecord | null;
@@ -50,7 +51,7 @@ const ACTION_CONFIG: Record<
   refund: {
     title: 'Issue Refund',
     description:
-      'This will refund the payment to the homeowner via Stripe. Refunds typically take 5-10 business days.',
+      'This returns funds to the original payer. Card refunds and returned account credit are reported separately.',
     icon: 'undo',
     confirmLabel: 'Process Refund',
     confirmVariant: 'primary',
@@ -68,6 +69,7 @@ const ACTION_CONFIG: Record<
 };
 
 export function ActionModal({
+  savedRefund,
   open,
   type,
   escrow,
@@ -83,11 +85,13 @@ export function ActionModal({
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      setReason('');
-      setRefundType('full');
-      setPartialAmount('');
+      setReason(savedRefund?.reason ?? '');
+      setRefundType(savedRefund?.amount === undefined ? 'full' : 'partial');
+      setPartialAmount(
+        savedRefund?.amount === undefined ? '' : String(savedRefund.amount)
+      );
     }
-  }, [open]);
+  }, [open, savedRefund]);
 
   if (!escrow) return null;
 
@@ -153,7 +157,7 @@ export function ActionModal({
             </div>
             <div>
               <span style={{ color: theme.colors.textSecondary }}>
-                Amount:{' '}
+                Original payment:{' '}
               </span>
               <span
                 style={{ fontWeight: 600, color: theme.colors.textPrimary }}
@@ -215,7 +219,7 @@ export function ActionModal({
                   onChange={() => setRefundType('full')}
                 />
                 <span style={{ fontSize: theme.typography.fontSize.sm }}>
-                  Full ({formatCurrency(escrow.amount)})
+                  Full remaining balance
                 </span>
               </label>
               <label

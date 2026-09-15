@@ -284,7 +284,10 @@ function setupDefaultMocks() {
     retryAfter: 0,
   });
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-123');
-  mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
+  mocks.checkIdempotency.mockResolvedValue({
+    isDuplicate: false,
+    ownership: { userId: 'homeowner-1', claimToken: 'request-token' },
+  });
   mocks.storeIdempotencyResult.mockResolvedValue(undefined);
   mocks.validateStatusTransition.mockReturnValue(undefined);
   mocks.validateBidTransition.mockReturnValue(undefined);
@@ -698,7 +701,8 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
       'accept_bid',
       expect.objectContaining({ success: true }),
       'homeowner-1',
-      expect.objectContaining({ jobId: 'job-1', bidId: 'bid-1' })
+      expect.objectContaining({ jobId: 'job-1', bidId: 'bid-1' }),
+      { userId: 'homeowner-1', claimToken: 'request-token' }
     );
   });
 
@@ -903,7 +907,8 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
       expect(releaseOnError).toHaveBeenCalledWith(
         'idem-key-123',
         'accept_bid',
-        expect.any(Function)
+        expect.any(Function),
+        { userId: 'homeowner-1', claimToken: 'request-token' }
       );
       // Failure ⇒ nothing cached for replay.
       expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();

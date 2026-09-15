@@ -33,6 +33,33 @@ export const POST = withApiHandler(
   async (request, { user, params }) => {
     const jobId = params.id as string;
 
+    // Fetch the job
+    const { data: job, error: jobError } = await serverSupabase
+      .from('jobs')
+      .select(
+        'id, homeowner_id, payer_user_id, contractor_id, status, title, completion_confirmed_by_homeowner'
+      )
+      .eq('id', jobId)
+      .single();
+
+    if (jobError || !job) {
+      logger.error('Failed to fetch job', jobError, {
+        service: 'jobs',
+        jobId,
+      });
+      throw new NotFoundError('Job not found');
+    }
+
+    // Verify user is the homeowner or designated payer
+    const isDesignatedPayer =
+      job.payer_user_id === user.id ||
+      (!job.payer_user_id && job.homeowner_id === user.id);
+    if (!isDesignatedPayer) {
+      throw new ForbiddenError(
+        'Only the job owner or designated payer can confirm completion'
+      );
+    }
+
     // Idempotency check - prevent duplicate confirmations
     const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
       request,
@@ -64,33 +91,6 @@ export const POST = withApiHandler(
       idempotencyKey,
       'confirm_completion',
       async () => {
-        // Fetch the job
-        const { data: job, error: jobError } = await serverSupabase
-          .from('jobs')
-          .select(
-            'id, homeowner_id, payer_user_id, contractor_id, status, title, completion_confirmed_by_homeowner'
-          )
-          .eq('id', jobId)
-          .single();
-
-        if (jobError || !job) {
-          logger.error('Failed to fetch job', jobError, {
-            service: 'jobs',
-            jobId,
-          });
-          throw new NotFoundError('Job not found');
-        }
-
-        // Verify user is the homeowner or designated payer
-        const isDesignatedPayer =
-          job.payer_user_id === user.id ||
-          (!job.payer_user_id && job.homeowner_id === user.id);
-        if (!isDesignatedPayer) {
-          throw new ForbiddenError(
-            'Only the job owner or designated payer can confirm completion'
-          );
-        }
-
         // Verify job is in completed status
         if (job.status !== JOB_STATUS.COMPLETED) {
           throw new BadRequestError(
@@ -453,11 +453,13 @@ export const POST = withApiHandler(
           'confirm_completion',
           responseData,
           user.id,
-          { jobId, contractorId: job.contractor_id }
+          { jobId, contractorId: job.contractor_id },
+          idempotencyCheck?.ownership
         );
 
         return NextResponse.json(responseData);
-      }
+      },
+      idempotencyCheck?.ownership
     );
   }
 );

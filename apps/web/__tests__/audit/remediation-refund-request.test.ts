@@ -86,3 +86,43 @@ describe('durable browser refund requests', () => {
     spy.mockRestore();
   });
 });
+
+describe('admin browser refund requests', () => {
+  it('sends the admin contract and retains its key after pending and reload', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        operationId: 'op',
+        status: 'processing',
+      }),
+    });
+    await expect(
+      submitRefund('admin:operator', body, 'csrf', true)
+    ).rejects.toThrow();
+    const saved = readPendingRefund('admin:operator', 'escrow');
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/admin/refunds/escrow');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      action: 'refund',
+      reason: body.reason,
+      refundAmount: body.amount,
+    });
+    expect(readPendingRefund('operator', 'escrow')).toBeNull();
+    vi.resetModules();
+    const reloaded = await import('@/lib/payments/refund-request');
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => success });
+    await reloaded.submitRefund('admin:operator', body, 'new-csrf', true);
+    expect(fetchMock.mock.calls[1][1].headers['Idempotency-Key']).toBe(
+      saved?.key
+    );
+    expect(readPendingRefund('admin:operator', 'escrow')).toBeNull();
+  });
+  it('uses a distinct key for a second identical confirmed partial refund', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => success });
+    await submitRefund('admin:operator', body, 'csrf', true);
+    await submitRefund('admin:operator', body, 'csrf', true);
+    expect(fetchMock.mock.calls[0][1].headers['Idempotency-Key']).not.toBe(
+      fetchMock.mock.calls[1][1].headers['Idempotency-Key']
+    );
+  });
+});

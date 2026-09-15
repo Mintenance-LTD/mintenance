@@ -1,5 +1,6 @@
 'use client';
 
+import { readAccountDeletionOutcome } from '@/lib/account-deletion-outcome';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCsrfHeaders } from '@/lib/csrf-client';
@@ -72,8 +73,13 @@ export function DeleteAccountModal({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete account');
+        throw new Error(
+          data.error?.message || data.error || 'Failed to delete account'
+        );
       }
+
+      const outcome = readAccountDeletionOutcome(data, response.status);
+      if (!outcome.completed) window.alert(outcome.notice);
 
       // Clear any auth cookies/tokens
       document.cookie.split(';').forEach((c) => {
@@ -83,7 +89,7 @@ export function DeleteAccountModal({
       });
 
       // Redirect to login page
-      router.push('/login?message=Account deleted successfully');
+      router.push(outcome.completed ? '/login?deleted=true' : '/login');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setLoading(false);

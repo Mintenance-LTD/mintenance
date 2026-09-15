@@ -190,14 +190,14 @@ describe('payments RLS + state machine (real DB)', () => {
   });
 
   it('payer CANNOT update payment status (service-role only)', async () => {
-    const { error, count } = await homeownerClient
+    const { error, data: affectedRows } = await homeownerClient
       .from('payments')
       .update({ status: 'released' })
       .eq('id', payment.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
 
-    const updated = error === null && count !== null && count > 0;
-    expect(updated).toBe(false);
+    expect(error?.code).toBe('42501');
+    expect(affectedRows).toBeNull();
 
     // Verify status is unchanged via service client
     const admin = createServiceClient();
@@ -210,25 +210,25 @@ describe('payments RLS + state machine (real DB)', () => {
   });
 
   it('payee CANNOT update payment status (service-role only)', async () => {
-    const { error, count } = await contractorClient
+    const { error, data: affectedRows } = await contractorClient
       .from('payments')
       .update({ status: 'released' })
       .eq('id', payment.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
 
-    const updated = error === null && count !== null && count > 0;
-    expect(updated).toBe(false);
+    expect(error?.code).toBe('42501');
+    expect(affectedRows).toBeNull();
   });
 
   it('authenticated user CANNOT delete payment (service-role only)', async () => {
-    const { error, count } = await homeownerClient
+    const { error, data: affectedRows } = await homeownerClient
       .from('payments')
       .delete()
       .eq('id', payment.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
 
-    const deleted = error === null && count !== null && count > 0;
-    expect(deleted).toBe(false);
+    expect(error?.code).toBe('42501');
+    expect(affectedRows).toBeNull();
 
     // Verify payment still exists
     const admin = createServiceClient();

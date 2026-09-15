@@ -3,7 +3,11 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
 import { logger } from '@mintenance/shared';
-import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  APIError,
+  ForbiddenError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 
 /**
  * GET /api/jobs/[id]/payment-details
@@ -44,28 +48,29 @@ export const GET = withApiHandler(
       );
     }
 
-    // Use accepted bid amount as the payment base (not job budget)
-    const { data: acceptedBid } = await serverSupabase
-      .from('bids')
-      .select('amount')
-      .eq('job_id', jobId)
-      .eq('status', 'accepted')
-      .maybeSingle();
-
-    // 2026-05-23 audit P2: jobs.budget is now nullable (the 2026-05-22
-    // budget-removal commit dropped homeowner budget collection). If no
-    // bid has been accepted yet, there's no payment base at all — fall
-    // back was throwing inside FeeCalculationService.calculateFees(null).
-    // Return a "no_payment_amount_yet" shape so the caller can render an
-    // empty-state instead of erroring.
-    // PostgREST may return PostgreSQL NUMERIC values as strings. Normalize the
-    // accepted bid at the API boundary so the amount shown here matches the
-    // amount used by the payment-creation routes.
+    // Match intent creation: only the assigned contractor's accepted bid is payable.
+    // A budget is an estimate, never an agreed payment amount.
+    const bidResult = job.contractor_id
+      ? await serverSupabase
+          .from('bids')
+          .select('amount')
+          .eq('job_id', jobId)
+          .eq('contractor_id', job.contractor_id)
+          .eq('status', 'accepted')
+          .maybeSingle()
+      : { data: null, error: null };
+    if (bidResult.error) {
+      throw new APIError(
+        'PAYMENT_QUOTE_UNAVAILABLE',
+        'Could not verify the accepted bid. Please retry.',
+        503
+      );
+    }
+    const acceptedBid = bidResult.data;
     const acceptedBidAmount = Number(acceptedBid?.amount);
-    const paymentAmount: number | null = Number.isFinite(acceptedBidAmount)
-      ? acceptedBidAmount
-      : typeof job.budget === 'number'
-        ? job.budget
+    const paymentAmount =
+      acceptedBid && Number.isFinite(acceptedBidAmount) && acceptedBidAmount > 0
+        ? acceptedBidAmount
         : null;
 
     if (paymentAmount === null) {

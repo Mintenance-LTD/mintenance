@@ -28,6 +28,7 @@ import {
   recoverRefund,
   reconcileRefundEvent,
   reserveRefund,
+  reserveAdminRefund,
   readRefundContext,
   type RefundOperation,
 } from '@/lib/services/payment/RefundService';
@@ -358,5 +359,93 @@ describe('refund route context', () => {
     await expect(readRefundContext(input)).rejects.toThrow(
       'could not be loaded'
     );
+  });
+});
+
+describe('Administrator refund reservation identity', () => {
+  const input = {
+    adminId: 'admin-1',
+    payerId: 'payer-1',
+    jobId: 'job-1',
+    escrowId: 'escrow-1',
+    requestKey: 'admin-key',
+    grossMinor: 10000,
+    reason: 'Synthetic',
+  };
+  beforeEach(() => {
+    mocks.rpc.mockReset();
+    mocks.create.mockReset();
+  });
+  it('passes the admin authority to the RPC while retaining the payer as money owner', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ ...operation(), initiated_by: 'admin-1' }],
+      error: null,
+    });
+    expect(await reserveAdminRefund(input)).toMatchObject({
+      actor_id: 'payer-1',
+      initiated_by: 'admin-1',
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith('reserve_admin_escrow_refund', {
+      p_admin_id: 'admin-1',
+      p_job_id: 'job-1',
+      p_escrow_id: 'escrow-1',
+      p_request_key: 'admin-key',
+      p_gross_minor: 10000,
+      p_reason: 'Synthetic',
+    });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it.each([
+    { initiated_by: 'another-admin' },
+    { actor_id: 'another-payer' },
+    { escrow_id: 'another-escrow' },
+    { gross_minor: 10001, cash_minor: 10001 },
+  ])('rejects mismatched returned operation %j', async (change) => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ ...operation(), initiated_by: 'admin-1', ...change }],
+      error: null,
+    });
+    await expect(reserveAdminRefund(input)).rejects.toMatchObject({
+      statusCode: 409,
+    });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('stops before provider work when database authorization or reservation fails', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '42501' } });
+    await expect(reserveAdminRefund(input)).rejects.toMatchObject({
+      statusCode: 409,
+    });
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('refund recovery time budget', () => {
+  beforeEach(() => {
+    mocks.list.mockReset();
+    mocks.create.mockReset();
+  });
+  it('does not start a provider request after the worker budget expires', async () => {
+    await expect(
+      recoverRefund(operation(), Date.now() - 1)
+    ).rejects.toMatchObject({ statusCode: 503 });
+    expect(mocks.list).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('stops pagination when the total worker budget is exhausted', async () => {
+    const start = Date.now();
+    const now = vi.spyOn(Date, 'now').mockReturnValue(start);
+    try {
+      mocks.list.mockImplementationOnce(async () => {
+        now.mockReturnValue(start + 6000);
+        return { data: [{ id: 're_other', metadata: {} }], has_more: true };
+      });
+      await expect(
+        recoverRefund(operation(), start + 5000)
+      ).rejects.toMatchObject({ statusCode: 503 });
+      expect(mocks.list).toHaveBeenCalledTimes(1);
+      expect(mocks.create).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
   });
 });

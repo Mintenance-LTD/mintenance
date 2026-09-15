@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/Icon';
 import type { EscrowRecord } from './RefundManagementClient';
 
 interface EscrowTableProps {
+  retryableIds?: string[];
   escrows: EscrowRecord[];
   loading: boolean;
   onRelease: (escrow: EscrowRecord) => void;
@@ -104,6 +105,7 @@ function canHold(status: string): boolean {
 }
 
 export function EscrowTable({
+  retryableIds = [],
   escrows,
   loading,
   onRelease,
@@ -280,7 +282,8 @@ export function EscrowTable({
                           <Icon name='unlock' size={14} /> Release
                         </Button>
                       )}
-                      {canRefund(escrow.status) && (
+                      {(canRefund(escrow.status) ||
+                        retryableIds.includes(escrow.id)) && (
                         <Button
                           size='sm'
                           variant='secondary'
@@ -288,7 +291,10 @@ export function EscrowTable({
                           aria-label={`Refund payment for ${escrow.jobs.title}`}
                           style={{ fontSize: 12 }}
                         >
-                          <Icon name='undo' size={14} /> Refund
+                          <Icon name='undo' size={14} />{' '}
+                          {retryableIds.includes(escrow.id)
+                            ? 'Check refund'
+                            : 'Refund'}
                         </Button>
                       )}
                       {canHold(escrow.status) && (

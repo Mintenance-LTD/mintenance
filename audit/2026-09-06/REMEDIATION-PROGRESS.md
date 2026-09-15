@@ -905,3 +905,778 @@ data, explicitly including payment history. The modal and both settings confirma
 restricted signed-contract retention; the success response also makes that exception clear. Removed
 two unused imports and an unused prop binding found by the changed-file lint check. These are
 copy/import changes; archive navigation and full deletion recovery are still outstanding.
+
+### 2026-09-15 — Durable account-deletion provider cleanup
+
+Replaced the request-memory subscription snapshot and one-shot provider calls in
+`/api/user/delete-account` with `delete_account_with_recovery`. The database transaction freezes
+subscription/auth cleanup identifiers in internal tables and calls the existing eligible-data
+deletion routine. A data failure rolls back both the journal and deletion; a lost success response
+leaves recovery work accessible after profile-linked subscription rows disappear. The existing
+active-work/payment/dispute preflight is preserved.
+
+The service-only cleanup worker claims individual immutable-resource steps with SKIP LOCKED,
+two-minute leases and random fencing tokens. Provider outcomes are acknowledged only under a current
+lease. Retryable failures back off; ambiguous provider ownership becomes `needs_review` and does not
+cancel an unrelated subscription. Provider-confirmed cancellation/missing records can reconcile a
+successful side effect after a lost database acknowledgement. The worker verifies Stripe
+subscription IDs and all present owner metadata keys used by the actual contractor, homeowner and
+Home Health creators before cancellation. It validates cancellation status and Auth deletion
+responses instead of treating any HTTP success/error as confirmation. An authenticated cron route
+and five-minute repository schedule use the same bounded worker; scheduling has not been deployed or
+verified on the hosting plan.
+
+Prerequisite found while tracing cancellation: homeowner_subscriptions had authenticated owner
+INSERT/UPDATE policies plus column grants permitting edits to provider identifiers and paid
+entitlements. Revoked client table/column INSERT/UPDATE/DELETE on both subscription mirrors; actual
+server persistence/webhook writers remain supported. Real SQL tests now reject direct owner
+replacement/insertion of another subscription ID. The metadata guard also accounts for references
+persisted before grant revocation. Other subscription mutation consumers still need review for
+legacy substituted references and their own partial-failure semantics; this checkpoint does not
+claim every subscription flow fixed.
+
+The API returns 200/success only when all durable cleanup steps are completed. Pending/review work
+returns 202 with success=false and a request reference. All three web callers distinguish the
+response and show a pending notice before returning to login; mobile validates the response, shows
+an appropriate alert and disables automatic retries for this destructive request. Web/mobile
+deletion copy no longer claims every associated record is immediately erased. The best-effort Redis
+blacklist call, which can swallow errors and do nothing without Redis, is no longer used as evidence
+of successful credential removal. Actual auth-provider removal remains pending until explicitly
+confirmed.
+
+Evidence so far: rollback SQL diagnostic validates atomic snapshot/deletion rollback, frozen
+provider targets surviving source erasure, replay, client grant denial, lease replacement/stale
+acknowledgement denial, backoff and manual-review exclusion. The concurrent diagnostic observed the
+profile-row lock: duplicate erasure produced one operation, and concurrent workers claimed different
+steps. All 24 remediation SQL diagnostics passed. Targeted web recovery/route/response tests: 25
+passed; mobile response tests: 6 passed. Both web and mobile type checks passed. Changed web source
+ESLint passed after removing six unused catch bindings already present in the contractor settings
+file. Isolated migration replay completed exit 0 with no schema changes. Stripe/Auth behavior here
+uses mocks plus the real local database journal, not a real provider trial. Device, hosted cron and
+full session-revocation behavior are unverified.
+
+Still outstanding: retained financial records, full erasure/storage coverage, atomic
+marketplace-state exclusion during deletion, operator review/requeue and retention/disposal of
+cleanup journals, former-user status/export access after a lost response, archive navigation, and
+the previously documented F1–F15 gaps. This is a recoverable provider-cleanup implementation, not a
+completed privacy/readiness claim.
+
+Full isolated web coverage completed exit 0: **3,422 tests / 305 files passed**, duration 162.74s,
+unchanged thresholds (`account-deletion-full-coverage.log`). Web/mobile type checks passed
+separately. No emulator/device, real Stripe/Auth provider operation or deployed cron was exercised.
+
+The first commit attempt was rejected by the existing 500-line source-file hook: contractor settings
+page was 737 lines. Extracted its state/actions into `useContractorSettingsData.ts` and kept the
+view separately, with no hook bypass. The split exposed pre-existing password-change and
+notification-save handlers that only show success toasts without requests; these remain an explicit
+follow-up before public use. Added a real hook-level HTTP 202 regression to verify the pending
+notice and absence of a success toast.
+
+Final settings-split coverage: 3,423 tests / 306 files passed, 155.66s. A subsequent real isolated
+Auth diagnostic exposed successful DELETE returning no user identity. Recovery now verifies
+user_not_found with a fresh admin lookup before acknowledging an empty response; ambiguous lookup
+failures retry. The added regression covers absent, still-present and provider-error results.
+Post-correction targeted suite: 27 tests passed. See account-deletion-auth-final.log for the local
+Auth result; hosted Auth and Stripe remain untested.
+
+### 2026-09-15 — Contractor notification form contract
+
+Replaced the active contractor no-request notification handler and incompatible
+emailJobs/smsJobs/pushJobs state with the shared canonical preference form. Traced the singular API
+through actor-scoped user_notification_preferences storage to
+NotificationService/NotificationPreferenceResolver. Fixed missing CSRF on save, schema validation of
+GET/PATCH responses, failed-load default overwrite risk, retry loading, and protected payment-event
+mute controls. Failed saves preserve edits. Removed the exposed email toggle from this shared form
+because repository-wide consumer inspection found email_enabled is loaded but not consulted by the
+actual senders; copy explicitly limits controls to supported push/in-app delivery. SMS/category
+matrix behavior was never persisted by the replaced contractor handler. Full email/SMS preference
+enforcement and noncanonical notification writers remain outstanding; this is not a claim that every
+sender respects preferences.
+
+React checklist reviewed: effect cleanup prevents late updates after unmount, inputs retain labels,
+retry has an alert, and save failures preserve local values. Four targeted tests passed across the
+form and existing contractor deletion hook: failed load/retry, actual CSRF helper and payload,
+provider failure/edit preservation, protected-type filtering, malformed success response and
+confirmed-save success. Web typecheck passed. No real user notification was sent. The contractor
+password-change fake success handler remains a separate required fix.
+
+### 2026-09-15 — MFA settings and disable recovery
+
+Replaced the contractor local-only two-factor toggle with a link to the implemented MFA settings
+flow. The destination used data.csrfToken while /api/csrf returns token; its three mutations now use
+the shared CSRF fetch helper. Failed/malformed status reads show an unavailable state with retry
+instead of falsely displaying Disabled. Mutation responses require success=true; enrollment checks
+its response shape before presenting the QR image and recovery codes. Failed code verification
+preserves input.
+
+Following disable through the service exposed a second error: disableMFA ignored Supabase RPC
+errors. The actual local disable_user_mfa function targeted public.users, whose view omits
+mfa_enabled and the other MFA columns. A synthetic local call reproduced undefined_column.
+CLI-generated migration 20260915152316_repair_mfa_disable_profile_target.sql targets profiles,
+preserves transactional removal of backup/trusted/pending records, fails on a missing account and
+explicitly restricts EXECUTE to service_role. The service now propagates RPC failures; status
+counter reads also fail instead of substituting misleading zeroes on database errors.
+
+Real rollback SQL diagnostic passed: direct authenticated RPC denied, injected backup cleanup
+failure rolls back the profile change, successful disable removes credentials/recovery data, missing
+profile rejected. Web typecheck and changed-source ESLint passed. Target run: 36 tests / 4 files
+passed. Evidence caveat: the tests in the existing mfa-service.test.ts define a substitute service
+inside the test rather than import production behavior; they do NOT verify production MFA. The new
+client and service boundary tests plus real SQL supply the relevant evidence for this checkpoint.
+Full TOTP enrollment/login/device enforcement, enrollment concurrency, MFA disable password identity
+binding and contractor password change still need completion; this checkpoint does not establish MFA
+journey readiness.
+
+### 2026-09-15 — Serialize web-session revocation with refresh issuance
+
+Password-change tracing identified a prerequisite: createTokenPair inserts a replacement refresh
+token after rotate_refresh_token finishes its transaction. Existing revokeAllTokens only updated
+currently visible rows and ignored PostgREST errors, while AuthManager.logout swallowed failures and
+could skip cookie clearing. A rollback reproduction inserted an unrevoked refresh token from a
+session started before profiles.tokens_revoked_at; one stale token was accepted.
+
+CLI-generated migration 20260915152927_serialize_web_session_revocation.sql adds a service-only
+atomic cutoff/refresh-token revocation function and a BEFORE INSERT guard. Both lock the account
+profile. A late rotation retaining its original session_started_at is rejected after revocation; a
+token inserted first is included in subsequent revocation. Existing pre-MFA sessions are deleted in
+the same transaction. Fresh login sessions remain allowed. revokeAllTokens now calls the RPC and
+throws on a database failure; AuthManager.logout clears local cookies in finally while propagating
+unsuccessful server revocation. The logout route still has its redundant cutoff update; this
+checkpoint does not claim Supabase bearer sessions or concurrent pre-MFA issuance are fully revoked.
+
+Evidence: real rollback diagnostic covers atomic failure rollback, client RPC denial, stale
+insertion denial and fresh login acceptance. Two-connection diagnostic observed actual lock waits in
+both orderings and left zero unrevoked fixture tokens. Target auth/auth-manager/API suite: 53 tests
+/ 3 files passed; corrected the existing auth test RPC mock to reference the actual mock consumed by
+the imported implementation. Web typecheck and changed-source lint passed. Isolated db diff
+completed exit 0 with no schema changes. Prior MFA migration replay also completed exit 0/no drift
+(mfa-disable-db-diff.log).
+
+Still required for password changes: authenticated current-password verification bound to the actor,
+conditional fresh MFA verification, provider mutation and durable revocation/recovery across custom
+cookies and Supabase sessions, truthful failed/uncertain outcomes, and wiring both web settings
+callers. Current contractor no-request password handler remains open until those controls are
+implemented and exercised.
+
+### 2026-09-15 — Mobile refreshed-session revocation
+
+The previous web revocation checkpoint completed full coverage after commit: 3,432 tests / 309 files
+passed, exit 0, 163.84s (session-revocation-full-coverage.log).
+
+A real SQL reproduction found verified_mobile_session_context accepted an Auth session created an
+hour before the revocation cutoff when the supplied verified JWT was newly refreshed. The function
+compared only JWT iat with the cutoff. CLI-generated migration
+20260915153939_bind_mobile_revocation_to_session_creation.sql additionally binds authorization to
+auth.sessions.created_at and excludes soft-deleted profiles. JWT second precision is handled
+separately from the full-resolution session creation time so a genuinely new login in the same
+second as revocation is accepted. Existing ownership, expiry and database-role checks remain.
+
+The new rollback SQL diagnostic passes for refreshed old-session rejection, same-second fresh login,
+and soft-deleted account denial. The original mobile session SQL diagnostic also passes. Existing
+production bearer verifier tests: 4 passed. An actual local Auth/REST diagnostic creates a synthetic
+account, signs in, validates its identity, invokes the service-only session lookup, revokes web
+sessions, refreshes the original Supabase session and checks access again. Both the original and
+refreshed bearer contexts are rejected, and a fresh password login succeeds. Cleanup removes the
+synthetic Auth user, including sessions. No credentials, tokens or real account data are printed.
+
+Scope limit: Supabase itself still issues refreshed credentials for the old Auth session; this
+repair protects routes using verifySupabaseBearer/verified_mobile_session_context. It does not by
+itself revoke direct PostgREST/storage JWT access, nor complete password-change/provider-session
+recovery. Those remain required work. Migration replay result is recorded on completion.
+
+Mobile revocation migration replay completed exit 0 with no schema changes
+(mobile-revocation-db-diff.log).
+
+### 2026-09-15 — MFA disable password identity and temporary sessions
+
+The MFA disable route previously treated any successful signInWithPassword result for the request
+email as proof for user.id, without comparing the returned Auth identity. It also retained the newly
+created provider session. It now requires a matching Auth user ID and a returned session; any
+temporary session is signed out with scope=local before the MFA mutation, including mismatched
+identities. A cleanup failure prevents the mutation. Invalid JSON and oversized password bodies are
+rejected before provider calls, and the existing user-based rate limiter now explicitly uses auth
+criticality so production fallback is fail-closed. MFA client errors now display structured API
+error messages rather than [object Object].
+
+Twelve targeted route/client/service tests passed, including mismatched identities, absent sessions,
+credential errors, cleanup failure, rate denial, malformed bodies and database mutation failure. Web
+typecheck and changed-source lint passed. An actual local Auth diagnostic created two sessions,
+confirmed reauthentication identity, revoked only the temporary session, rejected its refresh and
+successfully refreshed the pre-existing session. Synthetic cleanup completed; no real account or
+email delivery was used. This verifies the new temporary-session behavior, not a full MFA
+enrollment/login journey.
+
+Password-provider probe (isolated-stack/probe-password-sessions.py, ignored diagnostic scratch): a
+real local admin password update removed existing Auth sessions, old refresh and old password
+returned HTTP 400, and the new password returned HTTP 200. This helps choose the next
+password-change implementation; it is not yet wired to the contractor form.
+
+GitHub checkpoint: after explicit repository/source authorization, all five prior commits were
+pushed to Mintenance-LTD/mintenance, codex/migrate-next-proxy, and ls-remote confirmed
+e55651171ce3a75ce211b1b4cf68ae47c0bc7254.
+
+### 2026-09-15 — Real password change with durable web-session cleanup
+
+Added authenticated POST /api/auth/change-password. It uses a fresh provider identity for the
+authenticated actor, verifies the current password against that identity, removes the temporary
+local-scope Auth session and requires a fresh TOTP/backup code when MFA is enabled. It validates
+password strength and breached-password status, rejects arbitrary actor fields, and enforces
+per-account and per-IP auth-critical rate budgets. Neither password nor provider token is stored in
+the recovery journal or returned.
+
+CLI migration 20260915155133_durable_password_change_revocation.sql adds internal operation records
+and service-only begin/finish/recovery functions. Begin locks the account and compares its
+revocation cutoff with the pre-verification snapshot, rejecting stale concurrent verification. It
+records durable cleanup and revokes existing custom web sessions before the provider update.
+Confirmed provider updates are followed by a second atomic revocation to catch intermediate
+login/refresh races; completion and revocation commit together. Failed acknowledgement leaves work
+queued. Unknown provider outcomes are not automatically replayed; delayed cleanup is eligible after
+two minutes and a five-minute cron recovers it without retaining passwords. Completed cleanup replay
+does not invalidate later logins. The schedule is repository configuration, not deployed/verified
+hosting behavior; journal retention/disposal remains part of the open retention work.
+
+Both active web settings paths now use the shared server client. The contractor handler no longer
+shows a success toast without a request, and the homeowner helper no longer mutates only the browser
+Supabase session. The shared client sends CSRF, prompts for MFA only when the server requires it,
+preserves caller inputs on failure and distinguishes 200 completed from 202 pending. Both outcomes
+explain sign-in requirements; an ambiguous provider result advises trying the new password or reset
+without claiming success. The reset-email route and direct mobile/provider password updates remain
+separate surfaces requiring equivalent custom-session handling.
+
+Evidence: rollback SQL passed for direct-client denial, stale proof rejection, failed final
+acknowledgement with retained pending work, recovery of an intervening token, and completed replay
+preserving a fresh login. A real two-connection lock test proved concurrent begin calls cannot both
+use the same verification snapshot. Actual local Auth/REST sequence passed current-password
+verification, scoped temporary logout, durable begin, password update, durable finish, old
+password/refresh rejection and new-password login. Final targeted client/route/contractor-hook run:
+14 tests passed; web typecheck and changed-source ESLint passed. Isolated migration replay completed
+exit 0/no drift. Full coverage result follows after completion; no browser/emulator or hosted cron
+was exercised.
+
+### 2026-09-15 — Web session-start cutoff verification
+
+Password-change checkpoint full coverage completed exit 0: 3,453 tests / 312 files passed, 173.15s
+(password-change-full-coverage.log).
+
+Production JWT signing includes sessionStart in milliseconds and preserves it during token rotation.
+verifyToken previously compared the database cutoff only with second-resolution JWT iat. Two new
+tests using the real signing/verifying functions reproduced both problems: a genuine login after a
+cutoff within the same second was rejected, while a newly issued access token retaining an older
+revoked sessionStart was accepted. The verifier now compares the signed sessionStart, rejects
+impossible/malformed start times and missing/invalid issuance claims, and retains a conservative iat
+fallback for legacy tokens without that claim. Invalid cutoff data also fails closed. No unsigned
+token metadata is used.
+
+Both reproduction cases now pass, together with future-start rejection and legacy cutoff tests.
+Auth/library/manager/API target run: 57 tests passed. Web typecheck and source lint passed. The
+database boundary remains independently enforced by the already validated refresh insertion trigger
+and mobile session-creation guard; no schema changed in this checkpoint. A full web run is being
+observed separately. Browser/device login and password-reset completion still remain unverified.
+
+### 2026-09-15 — original F15 real isolation suite and strict fixture cleanup
+
+- Full web coverage at `987087919`: **3,457 tests / 312 files passed**
+  (`web-session-boundary-full-coverage.log`). This does not include the separately configured real
+  database suites.
+- Ran the original `apps/web/__tests__/integration-real/cross-user-isolation.integration.test.ts`
+  against the disposable API on port 55321, using five synthetic Auth accounts and the real REST/RLS
+  implementation, with `vitest.integration.config.ts` (no mock setup). Four tests passed. This
+  exercises properties, jobs/discovery/assignment, messages, contractor documents, tenant
+  report/token isolation and administrator access; it is not a browser journey test.
+- Post-run counts exposed a fixture defect: one synthetic contractor survived because
+  `job_audit_log_changed_by_fkey` blocked profile deletion and cleanup ignored errors. Reproduced
+  the constraint failure inside a rolled-back transaction. The fixture now removes only its
+  synthetic actor's audit rows, checks profile/Auth/job cleanup errors and verifies Auth user
+  absence. Removed the exact leftover fixture from the disposable stack.
+- Strengthened negative read checks to require error-free queries, added positive owner
+  message/document reads, required the forged property insert to fail with SQLSTATE 42501, and
+  checked the foreign property remained unchanged.
+- Final real suite: **4/4 passed**, 4.67 seconds (`original-isolation-strengthened.log`); web
+  TypeScript check passed. Post-run database counts: **0 recent synthetic accounts, 0 jobs, 0
+  properties**. No hosted database or production data touched.
+- Added ignored diagnostic launcher `isolated-stack/run-original-isolation.cjs`; it captures local
+  stack credentials in memory, asserts the exact disposable API URL and clears deployment
+  environment values. No credentials logged. Existing unrelated worktree tsconfig parsing warnings
+  remain in Vitest output.
+- Remaining: other real database suites, full browser/device journeys and external payment-provider
+  recovery still require their own evidence. This checkpoint does not establish public readiness.
+
+### 2026-09-15 — F15 financial/job/review assertion repair and real REST validation
+
+- Removed the remaining unsupported mutation `.select(..., {count, head})` assertions from
+  `__tests__/integration-real`: escrow, payments, jobs and contract/review tests. Job/review RLS
+  denial now requires a successful query with an empty returned row array; financial mutation denial
+  requires SQLSTATE 42501. Existing and added persisted-state checks confirm blocked operations did
+  not change or delete records.
+- Expanded real escrow mutation coverage to payer, payee and unrelated actors (UPDATE and DELETE);
+  exact INSERT denial also asserted. **9 escrow tests passed**, 3.04 seconds
+  (`escrow-isolation-final.log`).
+- Real job/payment suites: **22 tests / 2 files passed**, 6.28 seconds
+  (`job-payment-isolation.log`). Service-role payment status writes in this suite validate database
+  constraints and access, not Stripe processing or a complete application state machine.
+- Contract/review setup previously attempted homeowner direct contract INSERT, which is now
+  intentionally forbidden. Seeded the completed-job quote and contract with the service fixture
+  client; renamed the suite/assertion to describe its actual access-boundary scope instead of
+  claiming a complete quote handoff. Added independent homeowner/contractor/outsider INSERT, UPDATE
+  and DELETE denial tests and persisted amount/status checks. **7 contract/review tests passed**,
+  3.50 seconds (`contract-review-isolation-final.log`). Server contract generation/signing remain
+  covered by their separate route/SQL diagnostics, not this fixture setup.
+- All checks used actual synthetic Auth accounts and the disposable API on port 55321, no mocked
+  database and no payment-provider calls. Post-run counts: **0 recent synthetic accounts and jobs**.
+  Added three ignored isolated-stack launchers; no application or schema changes in this checkpoint.
+  Existing unrelated worktree tsconfig warnings persist.
+
+### 2026-09-15 — mobile payment verification and screen test repair
+
+- Ran the actual mobile payment hook, PaymentService and BidService unit suites: **121 tests / 3
+  suites passed**, 13.101 seconds (`mobile-payment-contract-check.log`). External API/provider
+  dependencies are mocked; these are caller/component regression checks, not device or real-provider
+  verification.
+- The separate payment screen/Stripe form/schema-contract group printed 60 passing assertions but
+  the command exited **1** after pending payment-method API retries logged after test completion
+  (`mobile-payment-screen-check.log`). Existing screen tests merely asserted arbitrary text, a
+  defined navigation object, and an interaction count greater than or equal to zero. These were not
+  evidence of working payment behavior.
+- Replaced those screen assertions with the real rendered PaymentScreen/usePayment plus explicitly
+  mocked service/API boundaries. Five cases check loading, no-card disabled action, visible
+  method-load error, selected-method intent creation followed by held escrow confirmation, and
+  pending confirmation without a success alert. Removed the unbounded network retry side effect from
+  this component test; no application behavior changed.
+- Final screen/Stripe form/schema-contract group: **61 tests / 3 suites passed**, command exit
+  **0**, 15.995 seconds (`mobile-payment-screen-final.log`). Mobile TypeScript check exited 0.
+  Existing react-test-renderer deprecation warnings remain; no emulator, 3DS hand-off or real Stripe
+  verification is claimed.
+- Static follow-up remains: the reachable payment screen can retain local fee estimates after
+  payment-details failure; cash/credit presentation and authoritative payable-amount display still
+  need complete review. The optional direct-payment branch was not found in current navigation
+  callers. Do not treat its mocked tests as evidence of a reachable user journey.
+
+### 2026-09-15 — fail-closed mobile payment quote display
+
+- Confirmed reachable `PaymentScreen`/`usePayment` retained a local fee estimate after
+  payment-details failure and could still initiate payment. The displayed job amount also came from
+  navigation params even when the server returned another amount.
+- Removed the local fallback from this hook. It now requires finite, nonnegative fee fields and a
+  positive total, shows loading/error/retry states, and refuses payment initiation without a valid
+  server quote. The screen displays the quoted job amount and uses that amount for intent creation
+  rather than stale navigation data. No schema or provider behavior changed.
+- Quote requests are scoped to both account and job, with stale-response rejection on account
+  changes/unmount. Quote retry retains the chosen payment method and does not initiate a charge.
+  Invalid/null/negative/string totals are rejected.
+- Regression coverage includes stale navigation values, invalid quotes, rejected GET retry,
+  old-account responses, and a rendered screen that hides Pay on quote failure then restores it
+  after retry. Final targeted mobile group **101 tests / 4 suites passed**, exit 0, 23.767 seconds
+  (`mobile-quote-final.log`). Mobile type check and source lint passed before final formatting/test
+  addition; normal commit hooks run the final checks.
+- This proves client gating and request composition against controlled responses, not the server
+  quote's complete eligibility/credit accounting or a real device/Stripe hand-off. Those remain
+  open. No deployment or hosted data changes.
+
+### 2026-09-15 — accepted-bid-only server payment quotes
+
+- Traced `/api/jobs/[id]/payment-details` against create-intent. The quote handler ignored bid
+  lookup errors, did not constrain accepted bids to the assigned contractor, and fell back to a
+  numeric job budget. Consequently it could display a payable quote that intent creation would
+  reject.
+- Quote selection now includes the current contractor and never substitutes job budget for an agreed
+  bid. No assigned contractor or missing/nonpositive/invalid accepted amount returns the existing
+  no-quote shape. Bid lookup failures return a retryable 503 instead of fabricated fee totals.
+  Homeowner/designated-payer access checks remain enforced.
+- Added nine production-handler tests for numeric-string normalization, contractor filtering,
+  missing/null/zero/negative/invalid amounts, query error, missing assignment, designated payer and
+  unrelated-user denial. These mock the database and handler authentication wrapper; they do not
+  claim end-to-end authorization.
+- Quote + create-intent concurrency + payment-ceiling group: **21 tests / 3 files passed**, exit 0,
+  2.05 seconds (`payment-quote-final.log`). Web TypeScript and changed route lint passed. No schema
+  changes, provider calls or deployments. Full quote eligibility (including already funded states),
+  credit presentation and real device/provider journeys remain separate unfinished checks.
+
+### 2026-09-15 — combined validation at e239322d5
+
+- Full sanitized web coverage: **3,466 tests / 313 files passed**, exit 0, 160.49 seconds
+  (`quote-final-full-coverage.log`). This includes the new server quote tests and existing
+  payment/auth regressions. Real database suites remain separate from this mocked/unit
+  configuration.
+- Executed all **28** current `audit/2026-09-06/remediation-*.sql` suites through psql with
+  ON_ERROR_STOP against `supabase_db_mintenance-audit-20260906`: **28/28 passed**, exit 0
+  (`final-rollback-sql-check.log`). Each diagnostic ends in ROLLBACK. Coverage includes effective
+  grants, client mutation restrictions, funding/credit reservations, refunds and payout claims,
+  signing/co-sign/retained evidence, deletion recovery, mobile/web revocation and password-change
+  recovery. This run does not repeat the separate multi-connection race scripts or external Auth
+  HTTP probes.
+- Required command executed using cached CLI v2.116.0:
+  `npx --offline supabase db diff --local --workdir audit/2026-09-06/isolated-stack`. Fresh shadow
+  migration replay completed; exit **0**, **No schema changes found** (`final-local-db-diff.log`).
+  No CLI upgrade, hosted mutation, original local database mutation or deployment performed.
+- These results strengthen current local evidence but do not satisfy the complete readiness gate:
+  hosted upgrade/permission parity, real provider challenge/webhook/recovery journeys, device
+  behavior, and identified remaining local flow concerns still need resolution. Goal remains active.
+
+### 2026-09-15 — release cache authorization ordering (F3 follow-up)
+
+- Confirmed `release-escrow` checked and returned a cached result before loading the escrow/job or
+  rechecking current participant/admin access and MFA. Actor/payload-scoped keys prevented another
+  actor's cache lookup, but did not account for access revoked since that actor's original request.
+- Moved the idempotency claim/cache check after current record, MFA, database-admin and participant
+  checks. A request denied before acquiring a claim no longer calls releaseIdempotencyClaim in its
+  catch path. This avoids deleting a claim that this attempt never acquired.
+- Added a former-participant replay regression: even with a cached successful transfer, the route
+  returns 403, never checks the cache, never transfers and never releases a claim. Updated the valid
+  duplicate fixture to include the current escrow/job record.
+- Escrow lifecycle + transfer helpers: **56 tests / 2 files passed**, exit 0, 2.03 seconds
+  (`release-cache-final.log`). Web TypeScript and changed route lint passed. Tests use controlled
+  external dependencies; no real Stripe call or schema change.
+- F3 broader completion is not claimed: stale-lease fencing and other callers still require their
+  own verification. Existing durable transfer reservations remain the separate money-movement
+  protection.
+
+### 2026-09-15 — reproduced open stale-claim fencing defect (F3)
+
+- Added `diagnostic-idempotency-stale-owner.sql`, explicitly an **open-defect reproduction**, not an
+  expected-safe regression. It runs in a rollback transaction on the disposable stack: claim, age
+  claimed_at by two minutes, acquire replacement claim, then submit the old request's
+  completion/release arguments.
+- Actual current database result: **expired completion accepted and replacement pending claim
+  deleted**, reproduction exit 0 with `REPRODUCED OPEN DEFECT`
+  (`idempotency-stale-owner-reproduction.log`). All data rolled back. Unlike the 28 expected-safe
+  suites, this diagnostic succeeding means the defect remains present.
+- Root cause: `try_claim_bound_idempotency_key` preserves actor/payload identity but returns no
+  generation token; `complete_idempotency_claim` and `release_idempotency_claim` match only
+  key/operation/pending state. `lib/idempotency.ts` completion retry exhaustion also invokes the
+  unfenced release RPC. Thus a slow old request cannot be distinguished from the new owner.
+- Scope: internal service-role calls, not publicly executable RPCs; this evidence establishes
+  claim/cache ownership corruption, not a reproduced duplicate provider charge. Payment funding and
+  transfer reservations remain separate mitigations. Consumers include financial routes, contracts,
+  bids and job lifecycle handlers, including the shared releaseOnError wrapper.
+- Required repair remains open: issue an opaque claim-generation token on every
+  acquisition/takeover, require that token plus actor/key/operation for completion/release,
+  propagate it explicitly through every caller and wrapper, retire unfenced internal write entry
+  points, and verify stale completion/release rejection plus valid-owner recovery in SQL and
+  concurrent-request tests. Avoid a process-global key-to-token map: overlapping requests could pick
+  up the replacement token. Do not disable takeover as a substitute for durable recovery.
+
+### 2026-09-15 — fenced idempotency database primitives (caller integration pending)
+
+- CLI-generated migration `20260915170225_fence_idempotency_claim_ownership.sql` adds
+  per-acquisition UUID tokens and expiry timestamps. New service-only claim/complete/release
+  functions require actor plus token for writes. Acquisition retains the existing bound
+  actor/payload validation and transaction lock; each takeover rotates the token. Cached responses
+  do not return an ownership token.
+- Applied only to disposable Supabase. New rollback regression `remediation-idempotency-fencing.sql`
+  passed: expired completion denied before takeover, old completion/release denied after takeover,
+  wrong actor denied, current completion and release succeed, completed replay retains the correct
+  response without exposing token, direct client RPC grants absent (`idempotency-fencing-sql.log`,
+  exit 0).
+- Isolated `supabase db diff --local` replay passed with no schema changes
+  (`idempotency-fencing-db-diff.log`, exit 0).
+- Security advisors ran with `--type security --level warn --fail-on error`: exit **1**, retaining
+  the existing public PostGIS / spatial_ref_sys findings. Explicit effective grants check confirms
+  anon and authenticated SELECT/INSERT/UPDATE/DELETE privileges on spatial_ref_sys remain true. Do
+  not interpret successful migration replay as resolved effective-grant scope; this remains a
+  separate F1 concern.
+- **Not integrated yet:** shared TypeScript helper and its 16 route consumers still invoke the old
+  functions, which remain available for the staged migration. Therefore the original stale-owner
+  defect remains reproducible in active application code. Next required work is explicit
+  request-local token propagation through check/store/release/releaseOnError, retiring old write
+  entry points, updating real helper/route tests and proving concurrent stale-owner rejection. No
+  deployment or hosted mutation occurred.
+
+### 2026-09-15 — request-local fenced idempotency integrated (F3)
+
+- Shared helper now acquires through claim_fenced_idempotency and returns an explicit ownership
+  object (actor and token); missing tokens fail closed. All **16 route consumers** pass that
+  request-local object through storeIdempotencyResult, releaseIdempotencyClaim and releaseOnError.
+  No shared key-to-token map is used. Payment create/release outer catch paths retain only their own
+  request's ownership. Completion retry exhaustion also uses the fenced release function.
+- CLI-generated `20260915171223_retire_unfenced_idempotency_entrypoints.sql` revokes service-role
+  and client access to the old claim/bound-claim/complete/release entry points. Owner-internal calls
+  remain available to the fenced acquisition wrapper. Source search found no remaining active calls
+  to those retired RPC names in apps/packages/edge functions. **Callers and both fencing migrations
+  must ship together**; none have been deployed here.
+- Real rollback SQL verifies expired/stale/wrong-actor denial, valid-owner completion/release,
+  cached replay and retired grants. All 29 current rollback suites were run: initially 28 passed and
+  the broad grant test failed because it still expected service execution on retired RPCs. Updated
+  that test to explicitly require denial on those routines; its rerun passed
+  (`fenced-final-all-sql.log`, `fenced-internal-grants-final.log`).
+- Added `remediation-idempotency-fencing-race.py`: while replacement completion remains uncommitted,
+  two separate connections attempt stale completion and stale release; both return false,
+  replacement commits and its correct result remains. Exact synthetic fixture cleanup in finally.
+  Passed (`fenced-claims-race.log`). This is actual local SQL overlap, not a JavaScript mock.
+- Shared-helper tests verify separate ownership objects survive overlapping acquisitions and are
+  passed unchanged to completion/cleanup; missing ownership/token fails closed. Route tests assert
+  ownership is forwarded. Initial full run had three old argument-list expectations fail (3,467
+  passed); after updating expectations, final full coverage **3,470 tests / 313 files passed**, exit
+  0, 160.60 seconds (`fenced-callers-final-full.log`). Web type-check and all changed
+  production-source lint passed. Subsequent source cleanup removed unused imports/directive only.
+- Isolated fresh migration replay/diff passed, exit 0, no drift (`fenced-callers-db-diff.log`).
+  Existing PostGIS advisor findings remain as previously recorded. The old open-defect SQL is
+  historical and now encounters permission denial under service_role; use the expected-safe fencing
+  tests for the repaired contract.
+- Fencing prevents old requests from corrupting replacement claim/cache state. It does not cancel a
+  slow request's business work or replace operation-specific database/provider idempotency and
+  durable recovery. Other F3 caller authorization ordering and broader readiness checks remain in
+  scope. No hosted writes, deployment or real payment occurred.
+
+### 2026-09-15 — contract rejection cache access and extension-owner recheck
+
+- Rechecked disposable PostGIS ownership: spatial_ref_sys belongs to supabase_admin; postgres is not
+  superuser or a member of supabase_admin. This confirms the earlier provider/owner authority
+  limitation; did not attempt ownership escalation or install an owner-only migration. F1
+  extension-grant remediation remains open under the existing scope restriction against hosted
+  mutation.
+- Found another cache-before-access path in `contracts/[id]/reject`: a former designated payer could
+  receive their prior cached contract response before current party checks. Moved contract existence
+  and homeowner/designated-payer reads before claiming/returning idempotency results. Current
+  authorized retries still recover success even after the original state transition, without
+  repeating it.
+- Four handler regressions cover revoked payer access, deleted contract, current homeowner and
+  current designated payer. Denied requests never call the cache; successful retries do not update
+  the contract. Auth wrapper and DB are controlled test boundaries, not end-to-end authentication
+  evidence.
+- Contract rejection/acceptance group: **21 tests / 2 files passed**, exit 0, 1.99 seconds
+  (`contract-cache-final.log`). Web type-check and route lint passed. No schema change, provider
+  call or deployment.
+
+### 2026-09-15 — contract signing cached-response authorization
+
+- `contracts/[id]/accept` also returned cached responses before loading the contract and checking
+  current signer membership. Moved the existing contract/job read and role-specific
+  homeowner/payer/contractor checks ahead of idempotency lookup. State-transition validation stays
+  after cache recovery, allowing an authorized retry after a successful signature without signing
+  again.
+- Five new controlled-handler tests verify former-payer denial, missing-contract denial and cached
+  success for each current authorized party. No mutation path is invoked for cached retries.
+  Existing atomic-signing tests remain in the targeted run.
+- Contract signing/rejection access and existing signing group: **26 tests / 3 files passed**, exit
+  0, 2.33 seconds (`contract-signing-cache-access.log`). Web TypeScript and route lint passed. These
+  are handler contract tests with mocked authentication/DB boundaries, not real session/browser
+  signing verification.
+- No database migration, hosted changes or deployment in this checkpoint. Other idempotency consumer
+  authorization ordering and broader readiness gates remain open.
+
+### 2026-09-15 — Job start and rework replay authorization
+
+- Moved current assigned-contractor and designated-payer checks before cached idempotency responses
+  in job start and request-changes routes. Missing jobs and former participants cannot recover
+  cached success. Transition checks remain after cache recovery so legitimate retries do not repeat
+  work.
+- Added six controlled-handler regression cases covering both routes: former participant denial
+  before cache lookup, missing job denial, and current participant recovery without RPC/update
+  execution. Authentication and database boundaries are mocked; these are not browser or
+  real-session tests.
+- Targeted job replay/start/rework suites: **28 tests / 3 files passed**, exit 0, 3.38 seconds
+  (`job-replay-access-final.log`). Source ESLint passed. No database migration or hosted mutation.
+  Broader readiness verification remains open.
+
+### 2026-09-15 — Completion confirmation replay authorization
+
+- Extended job replay regression coverage to completion confirmation. Before the fix, two tests
+  failed: a former participant and a missing job both received cached success
+  (`completion-replay-before.log`, 2 failed / 7 passed).
+- Moved existing current job/payer authorization before idempotency lookup. State and financial
+  transition checks remain after cache recovery, preserving authorized retries without repeating
+  transitions.
+- After the fix, completion/replay/start/rework suites passed **53 tests / 4 files**, exit 0, 2.85
+  seconds (`completion-replay-final.log`). Route lint passed. Tests exercise actual handlers with
+  mocked authentication and database boundaries, not real browser or provider flows. No migration or
+  hosted mutation. Broader readiness gates remain open.
+
+### 2026-09-15 — Before/after photo replay authorization
+
+- Both upload routes previously returned cached responses before loading the current job and
+  checking assignment/admin access. Four controlled-handler regressions reproduced
+  former-participant and missing-job cached success (4 failed / 11 passed,
+  `photo-replay-before.log`). Cached upload responses include photo metadata, making current access
+  material.
+- Moved existing job/assignment checks before multipart fingerprinting and cache lookup. Authorized
+  cache recovery still skips upload/mutation work. Existing admin predicate and upload validation
+  remain unchanged.
+- Upload/replay/private-photo suites: **49 tests / 4 files passed**, exit 0, 3.32 seconds
+  (`photo-replay-final.log`). Source lint passed. Tests use mocked authentication/database
+  boundaries; multipart fingerprinting is real. No actual storage/provider request, migration, or
+  hosted mutation. Signed-link expiry and device/browser checks remain separately unverified.
+
+### 2026-09-15 — Combined replay authorization validation
+
+- Full isolated web coverage at `ed5f3f6ac`: **3,494 tests / 316 files passed**, exit 0, 159.70
+  seconds (`replay-access-full-coverage.log`). Sanitized launcher; no live payments or hosted
+  mutations. This validates the accumulated route changes against the available web suite, not real
+  provider/device/browser behavior.
+- Follow-up source trace: contractor-withdraw and terminate-contractor still call
+  `stripe.refunds.create` directly, outside `RefundService` reservation/outcome tracking. Contractor
+  withdrawal uses refund.id without requiring succeeded status before marking escrow refunded. This
+  path needs a durable lifecycle/refund integration review, including pending provider results,
+  payout exclusion, credit restoration, and recovery before reassignment. Do not interpret the green
+  suite as closing that review.
+- Ruled out one suspected incompatibility: `protect_bid_financial_terms` permits trusted
+  accepted-to-withdrawn status changes while freezing financial identity;
+  `freeze_signed_contract_terms` preserves terms/signatures but does not prohibit cancellation
+  status. Neither supports a claim that those specific guards always break withdrawal. No
+  application changes in this validation checkpoint.
+
+### 2026-09-15 — Lifecycle refund status guard (partial remediation)
+
+- Actual withdrawal and termination handlers reproduced eight false transitions: provider
+  pending/requires_action/failed/canceled responses still wrote escrow refunded and reopened the
+  job. Synthetic provider/database boundary regression: `lifecycle-refund-pending-before.log`.
+- Added a succeeded-status guard before recording the refund or making lifecycle changes.
+  Non-success responses follow the existing error path; this prevents the reproduced false
+  transitions but is not durable recovery.
+- New regression suite: **10 tests passed**, exit 0, 2.10 seconds
+  (`lifecycle-refund-pending-final.log`), including both succeeded paths and explicit error
+  assertions for all eight non-success cases. Web TypeScript and source ESLint passed. No provider
+  calls or hosted mutations.
+- Required follow-up: integrate both exit flows with a durable lifecycle operation and refund
+  reservation/outcome tracking; authorize contractor-initiated refunds without impersonating the
+  payer; serialize payout/refund/assignment changes; restore credits; recover pending provider
+  outcomes and DB failures; provide truthful pending UI. The existing refund reservation only allows
+  payer-owned jobs in cancellation/dispute/pre-assignment states, so simply calling it from these
+  routes would break legitimate assigned-job exits. This guard does not close the payment finding.
+
+- Follow-up reachability search found no literal web/mobile UI caller for contractor-withdraw or
+  terminate-contractor (API endpoints remain present). Admin refunds also have a direct Stripe
+  refund path (`apps/web/app/api/admin/refunds/[id]/route.ts`, refund action): it claims
+  release_pending first, but does not check provider refund.status before finalization and uses
+  original escrow.amount for partial/full classification. This requires inclusion in durable refund
+  integration; no admin repair claimed.
+
+### 2026-09-15 — Admin refund uncertainty guard (partial remediation)
+
+- Five controlled-handler regressions reproduced false finalization for
+  pending/requires_action/failed/canceled refunds and restoration to held after an ambiguous
+  provider exception (`admin-refund-outcomes-before.log`). Admin refund UI caller confirmed in
+  RefundManagementClient.handleAction.
+- Require provider succeeded status before finalization. Preserve release_pending on an ambiguous
+  provider exception instead of restoring spendable escrow. Error text no longer asserts provider
+  success without evidence. This intentionally requires reconciliation while the durable recovery
+  integration remains unfinished.
+- Admin and lifecycle refund regression group: 15 tests / 2 files passed, exit 0
+  (`admin-refund-outcomes-final.log`). Source lint passed; synthetic provider/database boundaries
+  only. No live payment or hosted mutation. No claim that pending refunds can yet recover
+  automatically, that admin repeated partial amounts are correctly deduplicated, or that
+  credit/cumulative balances are fixed. Durable reservation/outcome integration remains required.
+
+### 2026-09-15 — Durable admin refund reservation foundation
+
+- CLI-created `20260915180822_reserve_admin_refund_operations.sql` adds a separately recorded admin
+  initiator and service-only reserve_admin_escrow_refund RPC. The financial actor remains the escrow
+  payer, preserving existing refund verification and credit restoration. Current non-deleted admin
+  role is checked in the transaction before reservation. Existing amount/payload identity,
+  cash-first allocation, inflight refund exclusion and payout-attempt checks are retained.
+- Applied only to disposable audit DB. Rollback SQL `remediation-admin-refund-reservation.sql`
+  passed: non-admin denial, matching retry identity, changed payload denial, competing operation
+  denial, pending claim preservation, exactly-once partial settlement, remaining cash/credit
+  allocation and payer-only credit restoration, authenticated RPC denial. These are sequential
+  real-DB checks, not concurrent network/provider tests.
+- Local security advisors exit 1: existing public.spatial_ref_sys RLS error and PostGIS
+  extension-in-public warning remain (`admin-refund-advisors.log`). No new advisor item was
+  reported. API/service/UI integration and durable pending/retry recovery are not yet connected to
+  this function. No hosted changes or deployment.
+- Isolated migration replay/diff completed with exit 0 and no schema differences
+  (`admin-refund-db-diff.log`).
+
+- Service adapter reserveAdminRefund now calls the admin RPC with the real administrator and
+  validates returned administrator, payer, escrow and gross amount before provider work. Six new
+  adapter cases plus existing recovery/admin guard tests: **39 tests / 2 files passed**, exit 0,
+  1.98 seconds (`admin-refund-service.log`). Source lint passed. The admin route is not switched to
+  this adapter yet; API and UI durable retry integration remains required.
+- Commit file-size gate required extracting the existing guarded admin refund action and audit
+  writer into AdminRefundAction.ts. After extraction, the same 39 tests passed (1.97 seconds;
+  admin-refund-extraction.log); no hook bypass was used.
+
+### 2026-09-15 — Admin refund route/browser durable integration (in progress)
+
+- AdminRefundAction now uses readRefundContext, reserveAdminRefund and recoverRefund instead of
+  direct Stripe/refund escrow updates. Requires a scoped request key, derives omitted amount from
+  remaining principal or original replay amount, rejects excessive amounts rather than clamping,
+  returns 202 success:false for unknown/pending outcomes, and returns actual cash/credit/remaining
+  totals only after confirmed settlement. Current admin authority remains checked at route and
+  reservation boundaries.
+- Admin page supplies authenticated actor identity; browser persists actor/escrow-scoped payload and
+  key before network access, restores saved form values, and offers Check refund for saved actions
+  even after escrow status changes. Pending/network failures retain identity; a confirmed action
+  retires it so another identical partial refund gets a new key. Admin and payer browser slots are
+  separate.
+- Route/recovery/browser request group: **54 tests / 3 files passed**, exit 0, 3.24 seconds
+  (`admin-refund-integration.log`). Web TypeScript and source lint passed. These are mocked-boundary
+  route and persistence tests, not rendered UI or real Stripe tests.
+- Integration remains in progress and uncommitted: replace previous route-level notification fanout
+  with durable settlement notifications, verify rendered recovery UI, test concurrent admin
+  reservations on real DB, and verify full-refund downstream job/contract semantics. No production
+  readiness claim or deployment.
+
+### 2026-09-15 — Transactional admin refund notifications and concurrency
+
+- CLI-created migration 20260915182522_durable_admin_refund_notifications.sql inserts in-app
+  payer/payee notifications and an audit record in the same transaction as admin refund settlement.
+  Replayed success creates neither duplicate notifications nor duplicate audit entries. A
+  notification failure rolls settlement back so provider reconciliation can retry it. Push/email
+  delivery is not established by these inserts.
+- Real DB execution exposed the previous route audit writer using nonexistent audit_logs columns and
+  an invalid action value. Corrected both migration and shared writer to actual
+  table_name/record_id/new_values columns, with action UPDATE and named event metadata. Removed
+  route refund audit duplication; other admin actions retain the corrected writer.
+- Extended rollback SQL passed: pending outcomes send no success notification; repeated confirmation
+  creates two recipient notifications and one audit row; injected notification failure leaves the
+  pending operation and full balance intact. New remediation-admin-refund-race.py passed on separate
+  DB connections: one competing reservation wins; concurrent finalizations deduct once and emit
+  notifications/audit once. Synthetic fixtures cleaned up; no provider calls.
+- Web route/recovery/browser request group remained **54 tests / 3 files passed**, exit 0, 3.10
+  seconds (admin-refund-notifications-web.log). UI rendering and full-refund contract lifecycle
+  semantics remain unverified; broader F1-F15 goal remains open.
+- Isolated migration replay/diff passed with exit 0 and no schema differences
+  (admin-refund-notifications-diff.log). Source lint and web TypeScript passed. Refund form now
+  labels original payment separately and calls the full option Full remaining balance, avoiding a
+  promise to refund the original amount again after partial refunds.
+
+### 2026-09-15 — Admin refund form verification
+
+- Actual ActionModal rendered in test DOM: three tests passed for restored partial refund
+  amount/reason, unchanged submission payload, preserved values/disabled submission while
+  processing, and full remaining balance without a client-selected amount (`admin-refund-form.log`,
+  exit 0, 3.36 seconds). This is component DOM verification, not a live browser/auth/provider
+  journey.
+- Final local advisors exit 1 with the same spatial_ref_sys RLS error and PostGIS extension warning,
+  no new reported item (`admin-refund-final-advisors.log`).
+- Source search confirmed refund recovery is currently invoked by route retries and verified
+  webhooks, with no cron sweep for abandoned reserved/pending refund operations. A bounded durable
+  recovery sweep remains required; do not describe unattended recovery as complete.
+- Full isolated web coverage for the combined integration: **3,525 tests / 319 files passed**,
+  178.15 seconds (admin-refund-final-coverage.log).
+
+### 2026-09-15 — Bounded unattended refund recovery (in progress)
+
+- Added service-only refund recovery claim/acknowledgement RPCs with a two-minute initial delay,
+  three-minute expiring token lease, SKIP LOCKED selection, sanitized recovery error category and
+  bounded retry backoff. Rollback SQL verified fresh/live claim exclusion, expiry/takeover,
+  wrong/stale-token rejection, backoff and client privilege denial.
+- Added a 25-second total provider deadline to recoverRefund, retaining its existing default
+  behavior for interactive callers. Tests verify no provider request starts after expiry and
+  pagination stops when the total budget expires.
+- Added refund-recovery cron through the existing authenticated withCronHandler, maxDuration 60,
+  configured every five minutes. Worker handles at most three operations, acknowledges exact lease
+  ownership, and reports failures for monitoring. No deployment or real provider calls.
+- Worker/provider recovery group: **40 tests / 2 files passed**, exit 0, 1.97 seconds
+  (`refund-recovery-worker.log`). Real rollback SQL passed; isolated db diff exit 0/no differences
+  (`refund-recovery-leases-diff.log`). Source lint and web TypeScript passed. Separate-worker DB
+  concurrency, cron authentication regression, and full-suite integration remain to be checked
+  before committing this checkpoint.
+
+### 2026-09-15 — Recovery worker concurrency and cron authentication
+
+- remediation-refund-worker-race.py passed using separate real DB connections and service-role RPC
+  execution: one overlapping worker claims due work, expiry rotates the lease token, stale
+  acknowledgement fails, and current acknowledgement succeeds. Exact synthetic fixtures were cleaned
+  up.
+- Actual withCronHandler/cron-auth boundaries tested with synthetic secrets and a mocked worker:
+  missing/wrong bearer credentials, missing configuration, expired HMAC and wrong-path HMAC all
+  rejected before worker/tracking. Valid scheduler credential accepted; worker failures return 503.
+  Targeted recovery group **47 tests / 3 files passed**, exit 0, 2.03 seconds
+  (refund-recovery-final-targeted.log). Web TypeScript passed.
+- Next confirmed source gap: admin release in apps/web/app/api/admin/refunds/[id]/route.ts still
+  derives Stripe transfer from original escrow.amount and bypasses the durable remaining-principal
+  transfer service. It must be integrated before treating admin payment intervention as ready,
+  particularly after partial refunds. No fix to this separate release path claimed here.
+- Full isolated web coverage: **3,538 tests / 321 files passed**, exit 0, 156.24 seconds
+  (refund-recovery-full-coverage.log). Hosted scheduling, real Stripe recovery and broader readiness
+  remain unverified.

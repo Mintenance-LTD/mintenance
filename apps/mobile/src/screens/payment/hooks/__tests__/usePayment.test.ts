@@ -92,12 +92,14 @@ beforeEach(() => {
   alertSpy.mockImplementation(() => {});
 
   mockPaymentService.calculateFees.mockReturnValue(FALLBACK_FEES);
-  // Default: payment methods load with a default card; fee GET resolves to null.
+  // Default: a selected card and a valid server quote.
   mockPaymentService.getPaymentMethods.mockResolvedValue({
     methods: [DEFAULT_METHOD, NON_DEFAULT_METHOD],
     error: null,
   } as never);
-  mockApi.get.mockResolvedValue({ fees: null } as never);
+  mockApi.get.mockResolvedValue({
+    fees: { platformFee: 24, contractorPayout: 172.8, totalAmount: AMOUNT },
+  } as never);
   mockApi.post.mockResolvedValue({ success: true, status: 'held' } as never);
 });
 
@@ -230,76 +232,63 @@ describe('usePayment — initial load', () => {
   });
 });
 
-describe('usePayment — fee resolution', () => {
-  it('uses local fallback fees before the server breakdown loads', async () => {
-    const { result } = renderHook(() => usePayment(baseOptions()));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(mockPaymentService.calculateFees).toHaveBeenCalledWith(AMOUNT);
-    expect(result.current.platformFee).toBe(FALLBACK_FEES.platformFee);
-    expect(result.current.contractorPayout).toBe(
-      FALLBACK_FEES.contractorAmount
-    );
-    // useEscrow=true, serverFees null → totalAmount falls back to amount (£200)
-    expect(result.current.totalAmount).toBe(AMOUNT);
-  });
-
-  it('reconciles to server-authoritative GBP fees from payment-details', async () => {
+describe('usePayment — authoritative quote', () => {
+  it('uses the server amount instead of stale navigation parameters', async () => {
     mockApi.get.mockResolvedValue({
       fees: { platformFee: 16, contractorPayout: 184, totalAmount: 200 },
     } as never);
-
-    const { result } = renderHook(() => usePayment(baseOptions()));
-
-    await waitFor(() => expect(result.current.platformFee).toBe(16));
-    expect(mockApi.get).toHaveBeenCalledWith(
-      '/api/jobs/job-abc/payment-details'
-    );
-    expect(result.current.contractorPayout).toBe(184);
-    expect(result.current.totalAmount).toBe(200);
-  });
-
-  it('computes totalAmount as amount + platformFee for non-escrow direct pay', async () => {
     const { result } = renderHook(() =>
-      usePayment(baseOptions({ useEscrow: false }))
+      usePayment(baseOptions({ amount: 999 }))
     );
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    // £200 + £24 platform fee = £224
-    expect(result.current.totalAmount).toBe(AMOUNT + FALLBACK_FEES.platformFee);
+    await waitFor(() => expect(result.current.quoteLoading).toBe(false));
+    expect(result.current.totalAmount).toBe(200);
+    expect(mockPaymentService.calculateFees).not.toHaveBeenCalled();
   });
-
-  it('skips the fee GET entirely when jobId is empty', async () => {
-    const { result } = renderHook(() => usePayment(baseOptions({ jobId: '' })));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(mockApi.get).not.toHaveBeenCalled();
-  });
-
-  it('keeps local estimate and warns when the fee GET rejects', async () => {
-    const err = new Error('502');
-    mockApi.get.mockRejectedValue(err);
-
+  it.each([
+    null,
+    { platformFee: 1, contractorPayout: 2, totalAmount: '200' },
+    { platformFee: 1, contractorPayout: 2, totalAmount: -1 },
+  ])('blocks payment without a valid quote: %p', async (fees) => {
+    mockApi.get.mockResolvedValue({ fees } as never);
     const { result } = renderHook(() => usePayment(baseOptions()));
-    await waitFor(() =>
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Failed to load server fee breakdown; using local estimate',
-        { jobId: 'job-abc', err: '502' }
-      )
-    );
-    expect(result.current.platformFee).toBe(FALLBACK_FEES.platformFee);
+    await waitFor(() => expect(result.current.quoteError).toBeTruthy());
+    await act(async () => {
+      await result.current.handlePayment();
+    });
+    expect(mockPaymentService.createPaymentIntent).not.toHaveBeenCalled();
   });
-
-  it('serializes a non-Error rejection from the fee GET via String()', async () => {
-    mockApi.get.mockRejectedValue('weird-string-failure');
-
-    renderHook(() => usePayment(baseOptions()));
-    await waitFor(() =>
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Failed to load server fee breakdown; using local estimate',
-        { jobId: 'job-abc', err: 'weird-string-failure' }
-      )
+  it('retries a failed quote without charging and preserves the selected method', async () => {
+    mockApi.get.mockRejectedValueOnce(new Error('network unavailable'));
+    const { result } = renderHook(() => usePayment(baseOptions()));
+    await waitFor(() => expect(result.current.quoteError).toBeTruthy());
+    await act(async () => {
+      await result.current.loadQuote();
+    });
+    expect(result.current.quoteError).toBeNull();
+    expect(result.current.totalAmount).toBe(200);
+    expect(result.current.selectedMethod?.id).toBe(DEFAULT_METHOD.id);
+    expect(mockPaymentService.createPaymentIntent).not.toHaveBeenCalled();
+  });
+  it('ignores a late quote from a previous account', async () => {
+    let finish: (value: unknown) => void = () => {};
+    mockApi.get.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
     );
+    const { result, rerender } = renderHook(
+      ({ userId }) => usePayment(baseOptions({ userId })),
+      { initialProps: { userId: 'first' } }
+    );
+    rerender({ userId: 'second' });
+    await waitFor(() => expect(result.current.quoteLoading).toBe(false));
+    await act(async () => {
+      finish({
+        fees: { platformFee: 1, contractorPayout: 998, totalAmount: 999 },
+      });
+    });
+    expect(result.current.totalAmount).toBe(200);
   });
 });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 interface PasswordData {
   currentPassword: string;
@@ -12,11 +13,9 @@ interface AccountSecuritySectionProps {
   email: string;
   emailVerified: boolean;
   passwordData: PasswordData;
-  twoFactorEnabled: boolean;
   showDeleteConfirm: boolean;
   isSaving: boolean;
   onPasswordDataChange: (data: PasswordData) => void;
-  onTwoFactorChange: (enabled: boolean) => void;
   onChangePassword: () => void;
   onShowDeleteConfirm: (show: boolean) => void;
   onDeleteAccount: () => void;
@@ -26,11 +25,9 @@ export function AccountSecuritySection({
   email,
   emailVerified,
   passwordData,
-  twoFactorEnabled,
   showDeleteConfirm,
   isSaving,
   onPasswordDataChange,
-  onTwoFactorChange,
   onChangePassword,
   onShowDeleteConfirm,
   onDeleteAccount,
@@ -135,15 +132,12 @@ export function AccountSecuritySection({
               Add an extra layer of security to your account
             </p>
           </div>
-          <label className='relative inline-flex items-center cursor-pointer'>
-            <input
-              type='checkbox'
-              checked={twoFactorEnabled}
-              onChange={(e) => onTwoFactorChange(e.target.checked)}
-              className='sr-only peer'
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-          </label>
+          <Link
+            href='/settings/security/mfa'
+            className='font-semibold text-teal-700 underline'
+          >
+            Manage two-factor authentication
+          </Link>
         </div>
       </div>
 

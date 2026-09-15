@@ -31,8 +31,6 @@ export function usePayment({
   userId,
   jobId,
   contractorId,
-  jobTitle,
-  amount,
   useEscrow,
   onSuccess,
 }: UsePaymentOptions) {
@@ -73,67 +71,65 @@ export function usePayment({
     };
   }, [jobId, contractorId, userId]);
 
-  // Server-authoritative fee breakdown. The platform fee is tier-aware and
-  // (since 2026-05-22) uncapped — values the mobile client cannot derive
-  // because it doesn't know the contractor's subscription tier. The local
-  // PaymentService.calculateFees() hardcodes the legacy 5% + £50 cap, so it's
-  // used only as a placeholder while the GET below is in flight; the displayed
-  // numbers are always reconciled to whatever the server returns.
   const [serverFees, setServerFees] = useState<{
     platformFee: number;
     contractorPayout: number;
     totalAmount: number;
   } | null>(null);
-
-  const fallbackFees = PaymentService.calculateFees(amount);
-  const platformFee = serverFees?.platformFee ?? fallbackFees.platformFee;
-  const contractorPayout =
-    serverFees?.contractorPayout ?? fallbackFees.contractorAmount;
-  const totalAmount = useEscrow
-    ? (serverFees?.totalAmount ?? amount)
-    : amount + platformFee;
-
-  // Fetch the server-calculated fee breakdown so the homeowner sees the same
-  // tier-aware figures the backend will actually apply at escrow release.
-  useEffect(() => {
-    let cancelled = false;
+  const [quoteLoading, setQuoteLoading] = useState(true);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const quoteEpoch = useRef(0);
+  const loadQuote = useCallback(async () => {
+    const epoch = ++quoteEpoch.current;
     setServerFees(null);
-    if (!jobId) return;
-
-    (async () => {
-      try {
-        const res = await mobileApiClient.get<{
-          fees: {
-            platformFee: number;
-            contractorPayout: number;
-            totalAmount: number;
-          } | null;
-        }>(`/api/jobs/${jobId}/payment-details`);
-
-        if (!cancelled && res.fees) {
-          setServerFees({
-            platformFee: res.fees.platformFee,
-            contractorPayout: res.fees.contractorPayout,
-            totalAmount: res.fees.totalAmount,
-          });
-        }
-      } catch (err) {
-        // Non-fatal — keep the local placeholder. The authoritative fee is
-        // still applied server-side at release regardless of what's shown.
-        logger.warn(
-          'Failed to load server fee breakdown; using local estimate',
-          {
-            jobId,
-            err: err instanceof Error ? err.message : String(err),
-          }
-        );
+    setQuoteError(null);
+    setQuoteLoading(true);
+    if (!jobId || !userId) {
+      setQuoteError('Sign in and select a job to load its payment amount.');
+      setQuoteLoading(false);
+      return;
+    }
+    try {
+      const response = await mobileApiClient.get<{
+        fees: {
+          platformFee: number;
+          contractorPayout: number;
+          totalAmount: number;
+        } | null;
+      }>(`/api/jobs/${jobId}/payment-details`);
+      if (epoch !== quoteEpoch.current) return;
+      const fees = response?.fees;
+      if (
+        !fees ||
+        ![fees.platformFee, fees.contractorPayout, fees.totalAmount].every(
+          (value) =>
+            typeof value === 'number' && Number.isFinite(value) && value >= 0
+        ) ||
+        fees.totalAmount <= 0 ||
+        fees.platformFee > fees.totalAmount ||
+        fees.contractorPayout > fees.totalAmount
+      ) {
+        throw new Error('No valid payment quote is available for this job.');
       }
-    })();
-
+      setServerFees(fees);
+    } catch {
+      if (epoch === quoteEpoch.current)
+        setQuoteError('Unable to load the payment amount. Please retry.');
+    } finally {
+      if (epoch === quoteEpoch.current) setQuoteLoading(false);
+    }
+  }, [jobId, userId]);
+  useEffect(() => {
+    void loadQuote();
     return () => {
-      cancelled = true;
+      quoteEpoch.current += 1;
     };
-  }, [jobId]);
+  }, [loadQuote]);
+
+  // Zero values are never displayed as a quote: the screen gates on quoteLoading/quoteError.
+  const platformFee = serverFees?.platformFee ?? 0;
+  const contractorPayout = serverFees?.contractorPayout ?? 0;
+  const totalAmount = serverFees?.totalAmount ?? 0;
 
   const loadPaymentMethods = useCallback(async () => {
     const requestEpoch = ++methodLoadEpoch.current;
@@ -188,6 +184,13 @@ export function usePayment({
       return;
     }
 
+    if (quoteLoading || quoteError || !serverFees) {
+      Alert.alert(
+        'Payment unavailable',
+        'Load the payment amount before trying again.'
+      );
+      return;
+    }
     const epoch = paymentEpoch.current;
     paymentInFlight.current = true;
     setProcessing(true);
@@ -203,7 +206,7 @@ export function usePayment({
         if (!pendingIntentRef.current) {
           const intentResult = await PaymentService.createPaymentIntent(
             jobId,
-            amount,
+            serverFees.totalAmount,
             selectedMethod.id,
             contractorId
           );
@@ -260,7 +263,7 @@ export function usePayment({
         // Direct payment using processJobPayment (handles 3DS)
         const result = await PaymentService.processJobPayment(
           jobId,
-          amount,
+          serverFees.totalAmount,
           selectedMethod.id
         );
 
@@ -332,6 +335,9 @@ export function usePayment({
   };
 
   return {
+    quoteLoading,
+    quoteError,
+    loadQuote,
     paymentMethods,
     selectedMethod,
     setSelectedMethod,

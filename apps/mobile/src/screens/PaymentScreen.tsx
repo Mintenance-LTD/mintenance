@@ -121,6 +121,13 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     );
   }
 
+  if (payment.quoteLoading)
+    return <LoadingSpinner message='Loading payment amount…' />;
+  if (payment.quoteError)
+    return (
+      <ErrorView message={payment.quoteError} onRetry={payment.loadQuote} />
+    );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topNav}>
@@ -156,7 +163,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <PaymentSummaryCard
             jobTitle={jobTitle}
             jobId={jobId}
-            amount={amount}
+            amount={payment.totalAmount}
             platformFee={payment.platformFee}
             contractorPayout={payment.contractorPayout}
             totalAmount={payment.totalAmount}

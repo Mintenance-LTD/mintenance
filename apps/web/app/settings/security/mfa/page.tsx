@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -28,10 +28,9 @@ interface EnrollmentData {
 }
 
 export default function MFASettingsPage() {
-  const router = useRouter();
   const [mfaStatus, setMfaStatus] = useState<MFAStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [csrfToken, setCsrfToken] = useState('');
+  const [statusError, setStatusError] = useState(false);
 
   // Enrollment state
   const [enrollmentData, setEnrollmentData] = useState<EnrollmentData | null>(
@@ -48,36 +47,29 @@ export default function MFASettingsPage() {
   // Backup codes state
   const [showBackupCodes, setShowBackupCodes] = useState(false);
 
-  // Fetch CSRF token
-  useEffect(() => {
-    async function fetchCSRF() {
-      try {
-        const response = await fetch('/api/csrf');
-        const data = await response.json();
-        setCsrfToken(data.csrfToken);
-      } catch (error) {
-        logger.error('Failed to fetch CSRF token', error);
-      }
-    }
-    fetchCSRF();
-  }, []);
-
   // Fetch MFA status
   useEffect(() => {
     fetchMFAStatus();
   }, []);
 
   const fetchMFAStatus = async () => {
+    setStatusError(false);
     try {
       const response = await fetch('/api/auth/mfa/status');
       const data = await response.json();
 
-      if (response.ok) {
+      if (
+        response.ok &&
+        data.success === true &&
+        typeof data.data?.enabled === 'boolean'
+      ) {
         setMfaStatus(data.data);
       } else {
+        setStatusError(true);
         toast.error('Failed to load MFA status');
       }
     } catch (error) {
+      setStatusError(true);
       logger.error('Failed to fetch MFA status', error);
       toast.error('Failed to load MFA status');
     } finally {
@@ -89,20 +81,33 @@ export default function MFASettingsPage() {
     setEnrolling(true);
 
     try {
-      const response = await fetch('/api/auth/mfa/enroll/totp', {
+      const response = await fetchWithCsrf('/api/auth/mfa/enroll/totp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
         },
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to start enrollment');
+      if (!response.ok || data.success !== true) {
+        throw new Error(
+          (typeof data.error === 'string' ? data.error : data.error?.message) ||
+            'Failed to start enrollment'
+        );
       }
 
+      if (
+        typeof data.data?.secret !== 'string' ||
+        typeof data.data?.qrCode !== 'string' ||
+        !data.data.qrCode.startsWith('data:image/png;base64,') ||
+        !Array.isArray(data.data?.backupCodes) ||
+        !data.data.backupCodes.every(
+          (code: unknown) => typeof code === 'string'
+        )
+      ) {
+        throw new Error('Invalid enrollment response. Retry setup.');
+      }
       setEnrollmentData(data.data);
       setShowBackupCodes(true);
       toast.success('Scan the QR code with your authenticator app');
@@ -125,19 +130,21 @@ export default function MFASettingsPage() {
     setEnrolling(true);
 
     try {
-      const response = await fetch('/api/auth/mfa/verify-enrollment', {
+      const response = await fetchWithCsrf('/api/auth/mfa/verify-enrollment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ token: verificationCode }),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
+      if (!response.ok || data.success !== true) {
+        throw new Error(
+          (typeof data.error === 'string' ? data.error : data.error?.message) ||
+            'Verification failed'
+        );
       }
 
       toast.success('MFA enabled successfully!');
@@ -164,19 +171,21 @@ export default function MFASettingsPage() {
     setDisabling(true);
 
     try {
-      const response = await fetch('/api/auth/mfa/disable', {
+      const response = await fetchWithCsrf('/api/auth/mfa/disable', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ password: disablePassword }),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to disable MFA');
+      if (!response.ok || data.success !== true) {
+        throw new Error(
+          (typeof data.error === 'string' ? data.error : data.error?.message) ||
+            'Failed to disable MFA'
+        );
       }
 
       toast.success('MFA disabled successfully');
@@ -210,6 +219,15 @@ export default function MFASettingsPage() {
     return (
       <div className='flex items-center justify-center min-h-screen'>
         <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600'></div>
+      </div>
+    );
+  }
+
+  if (statusError || !mfaStatus) {
+    return (
+      <div role='alert'>
+        <p>Unable to confirm two-factor authentication status.</p>
+        <Button onClick={fetchMFAStatus}>Retry MFA status</Button>
       </div>
     );
   }

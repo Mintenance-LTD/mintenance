@@ -426,11 +426,11 @@ export class AuthManager {
       if (userId) {
         await revokeAllTokens(userId);
       }
-
-      await clearAuthCookie();
     } catch (error) {
       logger.error('Logout error', error, { service: 'auth' });
-      // Don't throw error for logout - always clear locally
+      throw error;
+    } finally {
+      await clearAuthCookie();
     }
   }
 

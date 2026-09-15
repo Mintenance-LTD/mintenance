@@ -142,7 +142,10 @@ function setupDefaultMocks() {
   mocks.getDeterministicIdempotencyKeyFromRequest.mockReturnValue(
     'idem-key-123'
   );
-  mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
+  mocks.checkIdempotency.mockResolvedValue({
+    isDuplicate: false,
+    ownership: { userId: 'homeowner-1', claimToken: 'request-token' },
+  });
   mocks.storeIdempotencyResult.mockResolvedValue(undefined);
   mocks.notifyJobConfirmed.mockResolvedValue(undefined);
   mocks.sendWorkApprovedEmail.mockResolvedValue(true);
@@ -442,7 +445,8 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
       'confirm_completion',
       expect.objectContaining({ success: true }),
       'homeowner-1',
-      expect.objectContaining({ jobId: 'job-1' })
+      expect.objectContaining({ jobId: 'job-1' }),
+      { userId: 'homeowner-1', claimToken: 'request-token' }
     );
   });
 

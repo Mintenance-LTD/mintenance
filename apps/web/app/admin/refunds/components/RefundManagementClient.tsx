@@ -1,4 +1,9 @@
 'use client';
+import {
+  readPendingRefund,
+  submitRefund,
+  type RefundRequestBody,
+} from '@/lib/payments/refund-request';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
@@ -71,7 +76,12 @@ const STATUS_TABS = [
   { key: 'failed', label: 'Failed' },
 ] as const;
 
-export function RefundManagementClient() {
+export function RefundManagementClient({ adminId }: { adminId: string }) {
+  const refundActor = `admin:${adminId}`;
+  const [savedRefund, setSavedRefund] = useState<RefundRequestBody | null>(
+    null
+  );
+  const [retryableIds, setRetryableIds] = useState<string[]>([]);
   const [escrows, setEscrows] = useState<EscrowRecord[]>([]);
   const [stats, setStats] = useState<EscrowStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,6 +145,20 @@ export function RefundManagementClient() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  useEffect(() => {
+    setRetryableIds(
+      escrows
+        .filter((escrow) => {
+          try {
+            return !!readPendingRefund(refundActor, escrow.id);
+          } catch {
+            return false;
+          }
+        })
+        .map((escrow) => escrow.id)
+    );
+  }, [escrows, refundActor]);
+
   // Auto-dismiss toast
   useEffect(() => {
     if (!toast) return;
@@ -143,6 +167,20 @@ export function RefundManagementClient() {
   }, [toast]);
 
   const openAction = (type: ActionType, escrow: EscrowRecord) => {
+    try {
+      setSavedRefund(
+        type === 'refund'
+          ? (readPendingRefund(refundActor, escrow.id)?.body ?? null)
+          : null
+      );
+    } catch (error) {
+      setToast({
+        message:
+          error instanceof Error ? error.message : 'Saved refund unavailable',
+        type: 'error',
+      });
+      return;
+    }
     setActionModal({ open: true, type, escrow });
   };
 
@@ -151,6 +189,23 @@ export function RefundManagementClient() {
     setActionLoading(true);
     try {
       const csrfHeaders = await getCsrfHeaders();
+      if (actionModal.type === 'refund') {
+        await submitRefund(
+          refundActor,
+          {
+            jobId: actionModal.escrow.job_id,
+            escrowTransactionId: actionModal.escrow.id,
+            amount: refundAmount,
+            reason,
+          },
+          new Headers(csrfHeaders).get('x-csrf-token') ?? '',
+          true
+        );
+        setToast({ message: 'Refund confirmed.', type: 'success' });
+        setActionModal({ open: false, type: 'release', escrow: null });
+        await fetchData();
+        return;
+      }
       const res = await fetch(`/api/admin/refunds/${actionModal.escrow.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders },
@@ -172,9 +227,26 @@ export function RefundManagementClient() {
         setActionModal({ open: false, type: 'release', escrow: null });
         fetchData();
       }
-    } catch {
-      setToast({ message: 'Network error. Please try again.', type: 'error' });
+    } catch (error) {
+      setToast({
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Network error. Retry the same request.',
+        type: 'error',
+      });
     } finally {
+      setRetryableIds(
+        escrows
+          .filter((escrow) => {
+            try {
+              return !!readPendingRefund(refundActor, escrow.id);
+            } catch {
+              return false;
+            }
+          })
+          .map((escrow) => escrow.id)
+      );
       setActionLoading(false);
     }
   };
@@ -312,6 +384,7 @@ export function RefundManagementClient() {
 
       {/* Table */}
       <EscrowTable
+        retryableIds={retryableIds}
         escrows={escrows}
         loading={loading}
         onRelease={(e) => openAction('release', e)}
@@ -321,6 +394,7 @@ export function RefundManagementClient() {
 
       {/* Action Modal */}
       <ActionModal
+        savedRefund={savedRefund}
         open={actionModal.open}
         type={actionModal.type}
         escrow={actionModal.escrow}

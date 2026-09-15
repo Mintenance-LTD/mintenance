@@ -32,7 +32,8 @@ export function readPendingRefund(
 export async function submitRefund(
   actorId: string,
   body: RefundRequestBody,
-  csrfToken: string
+  csrfToken: string,
+  admin = false
 ) {
   if (!actorId || !body.jobId || !body.escrowTransactionId)
     throw new Error('Refund payment identity is missing');
@@ -52,16 +53,29 @@ export async function submitRefund(
   // Persist before sending. If storage is unavailable, do not risk a request
   // whose identity would be lost on refresh or an interrupted connection.
   window.localStorage.setItem(slot, JSON.stringify(pending));
-  const response = await fetch('/api/payments/refund', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-csrf-token': csrfToken,
-      'Idempotency-Key': pending.key,
-    },
-    body: JSON.stringify(pending.body),
-  });
+  const response = await fetch(
+    admin
+      ? `/api/admin/refunds/${encodeURIComponent(body.escrowTransactionId)}`
+      : '/api/payments/refund',
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken,
+        'Idempotency-Key': pending.key,
+      },
+      body: JSON.stringify(
+        admin
+          ? {
+              action: 'refund',
+              reason: pending.body.reason,
+              refundAmount: pending.body.amount,
+            }
+          : pending.body
+      ),
+    }
+  );
   const result = await response.json();
   const confirmed =
     response.ok &&

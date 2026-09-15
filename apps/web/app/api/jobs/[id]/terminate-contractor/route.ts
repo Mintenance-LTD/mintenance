@@ -156,6 +156,9 @@ export const POST = withApiHandler(
             idempotencyKey: `terminate_refund_${escrow.id}`,
           }
         );
+        if (refund.status !== 'succeeded') {
+          throw new Error('Provider refund has not succeeded');
+        }
         stripeRefundId = refund.id;
         logger.info('Stripe refund issued for terminated job', {
           service: 'jobs',
@@ -256,11 +259,15 @@ export const POST = withApiHandler(
       .eq('status', 'accepted');
 
     if (bidError) {
-      logger.error('Failed to reject accepted bid during termination', bidError, {
-        service: 'jobs',
-        jobId,
-        contractorId,
-      });
+      logger.error(
+        'Failed to reject accepted bid during termination',
+        bidError,
+        {
+          service: 'jobs',
+          jobId,
+          contractorId,
+        }
+      );
       throw new BadRequestError(
         'Failed to release the contractor assignment. Please retry.'
       );
