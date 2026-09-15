@@ -814,3 +814,45 @@ acceptance criteria. Legal/accounting review and technical enforcement are outst
 a claim of compliance or completed account-erasure remediation. No application behavior or database
 state changed in this checkpoint. The empty atomic co-sign/delete migration remains work in progress
 and is excluded from this documentation commit.
+
+### 2026-09-15 — Atomic contract co-signing and unsigned deletion
+
+Replaced separate signatory/status updates in `sign-as-cosigner/route.ts` with service-only
+`sign_contract_cosigner_atomic`. It locks the parent contract, rechecks invitation membership on
+every retry, records a restricted snapshot for new assent, and atomically promotes acceptance plus
+inserts both in-app notifications. Cancelled contracts cannot be resurrected. Legacy duplicate
+invitations for the same account are resolved together; pre-existing timestamps do not receive
+fabricated historical snapshots. The route no longer returns a cached result before checking current
+membership.
+
+`delete/route.ts` now invokes `delete_unsigned_contract_atomic`, locking the same row as
+primary/co-signing and refusing deletion once any party has signed or evidence exists. The job UI
+hides deletion after contractor signature as well as homeowner signature. This is a deliberate
+retention-preserving restriction: cancelling/withdrawing a signed version must use a separate
+retained-record workflow, not hard deletion. The broader account-deletion routine still needs
+retention remediation; this change does not protect every privileged cascade.
+
+The invitation insertion trigger takes the parent lock, rejects terminal contracts, prefilled
+signatures and duplicate invitations. Client-role table and column INSERT/UPDATE/DELETE privileges
+on signatories are revoked. Server invitation errors now explain conflicts rather than returning
+generic 500 errors. Co-sign APIs exist, but current source search found no UI caller of the co-sign
+endpoint and no import of the invitation dialog; this is not a verified user-facing co-sign journey.
+Non-platform invitation delivery/redemption remains unimplemented.
+
+Evidence: migration applied only to `supabase_db_mintenance-audit-20260906`;
+`remediation-contract-cosign.sql` passed with transaction rollback (client denial, uninvited
+administrator denial, atomic notification-failure rollback, replay counts, signed deletion
+rejection, terminal invitation/sign rejection and unsigned deletion). One initial test fixture
+reused a job despite the one-contract-per-job constraint; corrected to a separate synthetic job,
+then passed. `remediation-contract-cosign-race.py` passed both signing/deletion orders, final
+primary signing versus invitation, concurrent retry and concurrent final co-sign acceptance while
+observing actual PostgreSQL Lock waits; fixtures cleaned in finally. All 22 remediation SQL scripts
+passed. Full isolated `supabase db diff --local` completed exit 0 with no schema changes. Targeted
+Vitest: 37 tests / 2 files passed; route-boundary tests explicitly mock the wrapper and do not claim
+authentication or database isolation proof. Production route ESLint passed. Full coverage result
+recorded below when complete.
+
+Full isolated web coverage completed exit 0: **3,389 tests / 303 files passed**, duration 154.31s,
+unchanged coverage thresholds (`contract-cosign-full-coverage.log`). Changed production routes and
+the contract UI hook passed workspace ESLint with zero warnings. No live providers, hosted
+databases, real accounts or deployments were used.
