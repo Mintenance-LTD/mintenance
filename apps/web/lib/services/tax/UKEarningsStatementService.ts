@@ -28,6 +28,7 @@
  * Producing and submitting the annual report (due 31 January) is a separate
  * piece of work that reads this same data.
  */
+import { readEarningsPages } from './read-earnings-pages';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import {
@@ -109,19 +110,26 @@ export class UKEarningsStatementService {
   ): Promise<UKEarningsStatement> {
     const taxYear: UKTaxYear = ukTaxYearFromStartYear(startYear);
 
-    const { data: rawEscrows, error } = await serverSupabase
-      .from('escrow_transactions')
-      .select(
-        `job_id, amount, platform_fee, stripe_processing_fee, contractor_payout,
+    const { data: rawEscrows, error } = await readEarningsPages(
+      async (after) => {
+        let query = serverSupabase
+          .from('escrow_transactions')
+          .select(
+            `id, job_id, amount, platform_fee, stripe_processing_fee, contractor_payout,
          released_at, status, jobs:job_id ( title ),
          refund_balance:escrow_refund_balances(gross_minor,remaining_minor,needs_review)`
-      )
-      .eq('payee_id', contractorId)
-      .in('status', RELEASED_STATUSES)
-      .not('released_at', 'is', null)
-      .gte('released_at', taxYear.start.toISOString())
-      .lte('released_at', taxYear.end.toISOString())
-      .order('released_at', { ascending: true });
+          )
+          .eq('payee_id', contractorId)
+          .in('status', RELEASED_STATUSES)
+          .not('released_at', 'is', null)
+          .gte('released_at', taxYear.start.toISOString())
+          .lte('released_at', taxYear.end.toISOString())
+          .order('id', { ascending: true })
+          .limit(500);
+        if (after) query = query.gt('id', after);
+        return query;
+      }
+    );
 
     if (error) {
       logger.error('Failed to load escrow rows for earnings statement', error, {
@@ -132,7 +140,9 @@ export class UKEarningsStatementService {
       throw new Error('Failed to build earnings statement');
     }
 
-    const escrows = (rawEscrows ?? []) as unknown as EscrowRow[];
+    const escrows = ((rawEscrows ?? []) as unknown as EscrowRow[]).sort(
+      (a, b) => (a.released_at ?? '').localeCompare(b.released_at ?? '')
+    );
 
     const payments: EarningsLine[] = escrows.map((e) => {
       const { gross, platformFee, stripeFee, net } = earningsSettlement(e);
@@ -161,7 +171,7 @@ export class UKEarningsStatementService {
 
     const jobCount = new Set(payments.map((p) => p.jobId).filter(Boolean)).size;
 
-    const { data: profile } = await serverSupabase
+    const { data: profile, error: profileError } = await serverSupabase
       .from('contractor_tax_profiles')
       .select(
         `tax_name, business_name, vat_registered, vat_number, company_number,
@@ -169,6 +179,10 @@ export class UKEarningsStatementService {
       )
       .eq('contractor_id', contractorId)
       .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      throw new Error('Failed to load earnings tax profile');
+    }
 
     return {
       contractorId,
@@ -260,17 +274,25 @@ export class UKEarningsStatementService {
   > {
     const taxYear = ukTaxYearFromStartYear(startYear);
 
-    const { data: rawEscrows, error } = await serverSupabase
-      .from('escrow_transactions')
-      .select(
-        `payee_id, job_id, amount, platform_fee, stripe_processing_fee,
+    const { data: rawEscrows, error } = await readEarningsPages(
+      async (after) => {
+        let query = serverSupabase
+          .from('escrow_transactions')
+          .select(
+            `id, payee_id, job_id, amount, platform_fee, stripe_processing_fee,
          contractor_payout, status, released_at,
          refund_balance:escrow_refund_balances(gross_minor,remaining_minor,needs_review)`
-      )
-      .in('status', RELEASED_STATUSES)
-      .not('released_at', 'is', null)
-      .gte('released_at', taxYear.start.toISOString())
-      .lte('released_at', taxYear.end.toISOString());
+          )
+          .in('status', RELEASED_STATUSES)
+          .not('released_at', 'is', null)
+          .gte('released_at', taxYear.start.toISOString())
+          .lte('released_at', taxYear.end.toISOString())
+          .order('id', { ascending: true })
+          .limit(500);
+        if (after) query = query.gt('id', after);
+        return query;
+      }
+    );
 
     if (error) {
       logger.error('Failed to list earners for tax year', error, {
@@ -281,7 +303,7 @@ export class UKEarningsStatementService {
     }
 
     const rows = (rawEscrows ?? []) as Array<
-      EscrowRow & { payee_id: string | null }
+      Omit<EscrowRow, 'jobs'> & { payee_id: string | null }
     >;
 
     const byContractor = new Map<
@@ -315,24 +337,34 @@ export class UKEarningsStatementService {
     const contractorIds = [...byContractor.keys()];
     if (contractorIds.length === 0) return [];
 
-    const [{ data: profiles }, { data: summaries }, { data: taxProfiles }] =
-      await Promise.all([
+    const metadata = [];
+    for (let offset = 0; offset < contractorIds.length; offset += 100) {
+      const batch = contractorIds.slice(offset, offset + 100);
+      const results = await Promise.all([
         serverSupabase
           .from('profiles')
           .select('id, first_name, last_name, email')
-          .in('id', contractorIds),
+          .in('id', batch),
         serverSupabase
           .from('tax_year_summaries')
           .select(
             'contractor_id, statement_generated, statement_generated_at, statement_filed, statement_filed_at'
           )
           .eq('tax_year', startYear)
-          .in('contractor_id', contractorIds),
+          .in('contractor_id', batch),
         serverSupabase
           .from('contractor_tax_profiles')
           .select('contractor_id, tax_name, utr_encrypted, nino_encrypted')
-          .in('contractor_id', contractorIds),
+          .in('contractor_id', batch),
       ]);
+      if (results.some((result) => result.error)) {
+        throw new Error('Failed to load complete earnings metadata');
+      }
+      metadata.push(results);
+    }
+    const profiles = metadata.flatMap((result) => result[0].data ?? []);
+    const summaries = metadata.flatMap((result) => result[1].data ?? []);
+    const taxProfiles = metadata.flatMap((result) => result[2].data ?? []);
 
     const profileMap = new Map(
       (profiles ?? []).map((p) => [p.id as string, p])

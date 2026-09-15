@@ -47,10 +47,10 @@ assertions.
 
 The final review must reconcile this ledger with `REMEDIATION-PROGRESS.md`, rather than treating its
 historical “still open” or “passed” entries as current proof. Required local work still includes the
-known earnings-report pagination follow-up and any incomplete caller/recovery checks discovered in
-that review. Final checks must cover relevant web/mobile types, tests, build/lint and isolated
-migration replay, with exact failures/skips recorded. Current green subsets do not waive these
-gates.
+earnings-report final integration review (row-cap and metadata-failure repairs now have unit and
+real REST evidence) and any incomplete caller/recovery checks discovered in that review. Final
+checks must cover relevant web/mobile types, tests, build/lint and isolated migration replay, with
+exact failures/skips recorded. Current green subsets do not waive these gates.
 
 External verification remains explicitly bounded: no hosted mutation is authorized, no real money
 may be moved, and no real users may be contacted. Missing hosted parity, provider test credentials,

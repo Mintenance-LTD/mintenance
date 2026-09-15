@@ -21,6 +21,16 @@ import { UKEarningsStatementService } from '@/lib/services/tax/UKEarningsStateme
 /** A chain that is awaitable (resolves to `result`) and whose .single() resolves too. */
 function chain(result: { data: unknown; error: unknown }) {
   const obj: Record<string, unknown> = {};
+  let after: string | null = null;
+  let limit = Infinity;
+  obj.gt = vi.fn((_key: string, value: string) => {
+    after = value;
+    return obj;
+  });
+  obj.limit = vi.fn((value: number) => {
+    limit = value;
+    return obj;
+  });
   const passthrough = () => obj;
   for (const m of ['select', 'eq', 'in', 'not', 'gte', 'lte', 'order']) {
     obj[m] = vi.fn(passthrough);
@@ -28,12 +38,103 @@ function chain(result: { data: unknown; error: unknown }) {
   obj.single = vi.fn(() => Promise.resolve(result));
   // Make the chain itself awaitable for queries that don't end in .single().
   (obj as { then: unknown }).then = (resolve: (v: unknown) => unknown) =>
-    Promise.resolve(result).then(resolve);
+    Promise.resolve({
+      ...result,
+      data: Array.isArray(result.data)
+        ? result.data
+            .map((row, index) => ({
+              id: String(index).padStart(8, '0'),
+              ...row,
+            }))
+            .filter((row) => after === null || row.id > after)
+            .slice(0, limit)
+        : result.data,
+    }).then(resolve);
   return obj;
 }
 
 describe('UKEarningsStatementService.getStatement', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('includes all 1205 payments and jobs beyond the API page size', async () => {
+    const rows = Array.from({ length: 1205 }, (_, index) => ({
+      job_id: `job-${index}`,
+      payee_id: 'contractor-1',
+      amount: 100,
+      platform_fee: 12,
+      contractor_payout: 88,
+      stripe_processing_fee: null,
+      released_at: '2025-06-01T10:00:00Z',
+      status: 'completed',
+      jobs: null,
+    }));
+    mocks.from.mockImplementation((table: string) =>
+      chain({
+        data: table === 'escrow_transactions' ? rows : [],
+        error: null,
+      })
+    );
+    const statement = await UKEarningsStatementService.getStatement(
+      'contractor-1',
+      2025
+    );
+    expect(statement.totals).toMatchObject({
+      paymentCount: 1205,
+      jobCount: 1205,
+      grossEarnings: 120500,
+      netPaid: 106040,
+    });
+    const earners = await UKEarningsStatementService.listEarners(2025);
+    expect(earners[0]).toMatchObject({
+      jobCount: 1205,
+      grossEarnings: 120500,
+      netPaid: 106040,
+    });
+  });
+
+  it('rejects incomplete reports when a later contractor metadata batch fails', async () => {
+    const rows = Array.from({ length: 205 }, (_, index) => ({
+      job_id: `job-${index}`,
+      payee_id: `contractor-${index}`,
+      amount: 100,
+      platform_fee: 12,
+      contractor_payout: 88,
+      stripe_processing_fee: null,
+      released_at: '2025-06-01T10:00:00Z',
+      status: 'completed',
+      jobs: null,
+    }));
+    let profileBatches = 0;
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'profiles') profileBatches++;
+      return chain({
+        data: table === 'escrow_transactions' ? rows : [],
+        error:
+          table === 'profiles' && profileBatches === 2
+            ? { message: 'metadata unavailable' }
+            : null,
+      });
+    });
+    await expect(UKEarningsStatementService.listEarners(2025)).rejects.toThrow(
+      'complete earnings metadata'
+    );
+    expect(profileBatches).toBe(2);
+  });
+
+  it('does not disguise an unavailable tax-profile query as missing tax details', async () => {
+    mocks.from.mockImplementation((table: string) =>
+      chain({
+        data: [],
+        error:
+          table === 'contractor_tax_profiles'
+            ? { code: '08006', message: 'connection lost' }
+            : null,
+      })
+    );
+    await expect(
+      UKEarningsStatementService.getStatement('contractor-1', 2025)
+    ).rejects.toThrow('earnings tax profile');
+  });
 
   it('reports only released principal after partial refunds and no platform-borne cost as a contractor deduction', async () => {
     const row = {

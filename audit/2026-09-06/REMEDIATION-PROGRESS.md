@@ -2284,3 +2284,25 @@ pending final-check notes; full-suite evidence remains 3633 tests / 334 files, f
 focused tests after unused-code cleanup and real SQL checks after the final negotiated-term
 correction. No hosted changes or real-provider actions occurred. Overall remediation remains active;
 next confirmed local follow-up is earnings-query truncation and batched metadata failure handling.
+
+### Earnings completeness and metadata failures (2026-09-15)
+
+Both `getStatement` and `listEarners` now read escrow rows in ascending-ID cursor pages, continuing
+until an empty page rather than assuming a short server-capped page is final. Errors discard the
+incomplete result, and a missing/non-advancing ID fails instead of looping or double-counting.
+Contractor statements restore chronological presentation after loading. Contractor metadata queries
+use batches of 100 IDs and reject provider errors instead of presenting missing names/filing state;
+statement tax-profile errors are distinguished from a missing record. No schema changes.
+
+`remediation-earnings-pagination-rest.py` on the isolated stack reproduced the old request
+truncating **1205 synthetic payments to 1000**. Actual PostgREST cursor queries returned all 1205
+IDs once, principal 120500 and recorded payout 106040. Synthetic rows/users were cleaned and service
+credentials stayed in memory. This verifies real query behavior; unit tests separately execute the
+TypeScript service/helper. The focused run passed **14 tests / 2 files**, including totals above
+1000, a lower 137-row server cap, later-page failure, ignored cursor, second metadata-batch failure
+and unavailable tax-profile handling. Web types and zero-warning source lint exited 0.
+
+This repair proves pagination completeness for stable records, not a database snapshot across
+concurrent settlement changes. Point-in-time reporting under concurrent financial changes,
+tax-policy/legal suitability and broader real-provider verification are not established by these
+tests. The overall F1-F15 objective remains active.
