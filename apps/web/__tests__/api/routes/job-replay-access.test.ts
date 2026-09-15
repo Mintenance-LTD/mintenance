@@ -55,7 +55,10 @@ vi.mock('@/lib/api/supabaseServer', () => {
 import { POST as start } from '@/app/api/jobs/[id]/start/route';
 import { POST as rework } from '@/app/api/jobs/[id]/request-changes/route';
 
+import { POST as confirm } from '@/app/api/jobs/[id]/confirm-completion/route';
+
 describe.each([
+  { name: 'confirm completion', route: confirm, actor: 'payer' },
   { name: 'start', route: start, actor: 'contractor' },
   { name: 'request changes', route: rework, actor: 'payer' },
 ])('$name replay access', ({ route, actor }) => {

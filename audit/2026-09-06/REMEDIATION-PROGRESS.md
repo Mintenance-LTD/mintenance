@@ -1467,3 +1467,16 @@ observed separately. Browser/device login and password-reset completion still re
 - Targeted job replay/start/rework suites: **28 tests / 3 files passed**, exit 0, 3.38 seconds
   (`job-replay-access-final.log`). Source ESLint passed. No database migration or hosted mutation.
   Broader readiness verification remains open.
+
+### 2026-09-15 — Completion confirmation replay authorization
+
+- Extended job replay regression coverage to completion confirmation. Before the fix, two tests
+  failed: a former participant and a missing job both received cached success
+  (`completion-replay-before.log`, 2 failed / 7 passed).
+- Moved existing current job/payer authorization before idempotency lookup. State and financial
+  transition checks remain after cache recovery, preserving authorized retries without repeating
+  transitions.
+- After the fix, completion/replay/start/rework suites passed **53 tests / 4 files**, exit 0, 2.85
+  seconds (`completion-replay-final.log`). Route lint passed. Tests exercise actual handlers with
+  mocked authentication and database boundaries, not real browser or provider flows. No migration or
+  hosted mutation. Broader readiness gates remain open.
