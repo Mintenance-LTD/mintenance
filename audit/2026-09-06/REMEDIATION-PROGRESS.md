@@ -1480,3 +1480,18 @@ observed separately. Browser/device login and password-reset completion still re
   seconds (`completion-replay-final.log`). Route lint passed. Tests exercise actual handlers with
   mocked authentication and database boundaries, not real browser or provider flows. No migration or
   hosted mutation. Broader readiness gates remain open.
+
+### 2026-09-15 — Before/after photo replay authorization
+
+- Both upload routes previously returned cached responses before loading the current job and
+  checking assignment/admin access. Four controlled-handler regressions reproduced
+  former-participant and missing-job cached success (4 failed / 11 passed,
+  `photo-replay-before.log`). Cached upload responses include photo metadata, making current access
+  material.
+- Moved existing job/assignment checks before multipart fingerprinting and cache lookup. Authorized
+  cache recovery still skips upload/mutation work. Existing admin predicate and upload validation
+  remain unchanged.
+- Upload/replay/private-photo suites: **49 tests / 4 files passed**, exit 0, 3.32 seconds
+  (`photo-replay-final.log`). Source lint passed. Tests use mocked authentication/database
+  boundaries; multipart fingerprinting is real. No actual storage/provider request, migration, or
+  hosted mutation. Signed-link expiry and device/browser checks remain separately unverified.

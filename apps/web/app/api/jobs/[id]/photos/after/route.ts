@@ -45,6 +45,23 @@ export const POST = withApiHandler(
   async (request, { user, params }) => {
     const jobId = params.id as string;
 
+    // Verify user is contractor for this job (include location for geolocation check)
+    const { data: job, error: jobError } = await serverSupabase
+      .from('jobs')
+      .select(
+        'id, contractor_id, homeowner_id, category, status, title, latitude, longitude'
+      )
+      .eq('id', jobId)
+      .single();
+
+    if (jobError || !job) {
+      throw new NotFoundError('Job not found');
+    }
+
+    if (job.contractor_id !== user.id && user.role !== 'admin') {
+      throw new ForbiddenError('Not authorized to upload photos for this job');
+    }
+
     // Idempotency — opt-in via the `Idempotency-Key` header. After
     // photos auto-trigger job completion + notify the homeowner +
     // send the "Job Completed - Review Required" email. Without
@@ -80,25 +97,6 @@ export const POST = withApiHandler(
       idempotencyKey,
       'photos_after',
       async () => {
-        // Verify user is contractor for this job (include location for geolocation check)
-        const { data: job, error: jobError } = await serverSupabase
-          .from('jobs')
-          .select(
-            'id, contractor_id, homeowner_id, category, status, title, latitude, longitude'
-          )
-          .eq('id', jobId)
-          .single();
-
-        if (jobError || !job) {
-          throw new NotFoundError('Job not found');
-        }
-
-        if (job.contractor_id !== user.id && user.role !== 'admin') {
-          throw new ForbiddenError(
-            'Not authorized to upload photos for this job'
-          );
-        }
-
         const formData = await request.formData();
         // Accept both 'photos' (web) and 'photo' (mobile) field names
         let photoFiles = formData

@@ -16,7 +16,10 @@ vi.mock('@/lib/api/with-api-handler', () => ({
       handler: (request: NextRequest, context: unknown) => Promise<Response>
     ) =>
     (request: NextRequest) =>
-      handler(request, { user: { id: state.actor }, params: { id: 'job' } }),
+      handler(request, {
+        user: { id: state.actor, role: 'contractor' },
+        params: { id: 'job' },
+      }),
 }));
 vi.mock('@/lib/idempotency', () => ({
   getIdempotencyKeyFromRequest: () => 'key',
@@ -57,7 +60,12 @@ import { POST as rework } from '@/app/api/jobs/[id]/request-changes/route';
 
 import { POST as confirm } from '@/app/api/jobs/[id]/confirm-completion/route';
 
+import { POST as beforePhotos } from '@/app/api/jobs/[id]/photos/before/route';
+import { POST as afterPhotos } from '@/app/api/jobs/[id]/photos/after/route';
+
 describe.each([
+  { name: 'before photos', route: beforePhotos, actor: 'contractor' },
+  { name: 'after photos', route: afterPhotos, actor: 'contractor' },
   { name: 'confirm completion', route: confirm, actor: 'payer' },
   { name: 'start', route: start, actor: 'contractor' },
   { name: 'request changes', route: rework, actor: 'payer' },
@@ -66,7 +74,9 @@ describe.each([
     route(
       new NextRequest('http://localhost/api/jobs/job/action', {
         method: 'POST',
-        body: JSON.stringify({ comments: 'Please finish the repair' }),
+        body: [beforePhotos, afterPhotos].includes(route)
+          ? new FormData()
+          : JSON.stringify({ comments: 'Please finish the repair' }),
       }),
       { params: Promise.resolve({ id: 'job' }) }
     );
