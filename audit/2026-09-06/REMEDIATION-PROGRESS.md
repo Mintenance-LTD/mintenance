@@ -770,3 +770,36 @@ The full web log reports 3369 passing tests in 302 files and a completed coverag
 reported threshold failures (fee-only-full-coverage.log). After continuation the process handle was
 unavailable, so its exit code could not be recovered; this is not recorded as an observed exit-0
 result. Normal commit hooks validate the final source snapshot separately.
+
+## 2026-09-15 — Close direct contract UPDATE signature bypass (F2)
+
+Current local ACL/RLS/trigger inspection showed broad authenticated UPDATE column grants on bids,
+contracts and escrow. Escrow UPDATE is already constrained by admin-only RLS, and bids have the
+pending-owner/immutable-accepted-amount trigger. These broad grants alone were not reported as
+ordinary-user escrow exploits. Contracts still allowed participant UPDATE, and the freeze trigger
+only checks prior signatures/evidence. A rollback-only authenticated-homeowner reproduction changed
+both signature timestamps and status to accepted on an unsigned contract with zero evidence rows.
+This was reproduced only on the disposable database, not on hosted production.
+
+Migration 20260915134801 revokes direct UPDATE (table and all column grants) and DELETE on contracts
+and escrow_transactions from PUBLIC/anon/authenticated. Service-role authority remains. Source
+tracing found contract mutations in server routes using serverSupabase; escrow writers are server
+services/routes or administrative reconciliation scripts, while mobile escrow access is read-only.
+Thus the change routes mutations through existing server authorization/MFA/audit checks, including
+for authenticated administrators. Existing SELECT and pending-bid flows remain unchanged.
+
+remediation-financial-client-updates.sql passed: homeowner, contractor, unrelated-user, and admin
+client sessions cannot forge signatures/accepted state, alter funded escrow, or delete these rows.
+No residual anon/authenticated UPDATE column grants remain. Trusted service edits still work, and
+sign_contract_atomic creates both evidence rows and transitions pending_contractor ->
+pending_homeowner -> accepted. All 21 remediation SQL scripts passed against the updated disposable
+schema (financial-client-updates-sql-suite.log). No application code changed in this checkpoint.
+
+A separate open server-side retention race was identified while tracing callers: the contract DELETE
+route checks signing state then deletes only by ID/contractor, allowing concurrent signing to race
+deletion. The account-deletion DB function also deletes contract rows. These need coordinated
+retention/recovery work; do not infer signed-record deletion safety from the client-grant repair. No
+original-local or hosted database was changed. The overall goal remains active.
+
+Required isolated supabase db diff --local completed exit 0 after full migration replay, with no
+schema drift (financial-client-updates-diff.log).
