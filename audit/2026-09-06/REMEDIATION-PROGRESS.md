@@ -1825,3 +1825,36 @@ observed separately. Browser/device login and password-reset completion still re
 - Final validation: full sanitized web coverage passed 3,566 tests / 325 files, exit 0, 163.74
   seconds (admin-release-worker-full-coverage.log). Isolated Supabase migration replay/diff passed
   with no schema changes (admin-release-worker-diff.log).
+
+### 2026-09-15 atomic admin-release fee ledger and honest reporting
+
+- Added 20260915194629_record_admin_release_fees_atomically.sql. Admin release finalization now
+  inserts exactly one platform_fee_transfers row in the same transaction, using the frozen operation
+  ID/fee and GBP currency. Processing cost and net revenue are NULL with pending provenance until
+  provider reconciliation; no zero or formula-derived cost is invented. The legacy net_revenue
+  column now permits NULL.
+- Existing fee accounting prevents a new admin release reservation before provider activity. A fee
+  conflict arising before finalization also fails settlement closed, retaining the recoverable
+  operation. The ledger represents a retained platform fee, not a separate bank transfer. The
+  existing administrative fee interface lists pending/held records; this change does not add a
+  completed-ledger explorer or a provider-cost reconciliation worker.
+- Existing FeeTransferService estimates now carry explicit estimated provenance. Fee-report rows
+  display Pending reconciliation, Estimate or Unverified instead of presenting every number as
+  confirmed. Pending and held metric totals now use their own records (previous pending was
+  hardcoded zero and held included all loaded fees). Unknown net revenue prevents a misleading
+  aggregate number. These are loaded-record totals, not global reporting totals.
+- Real isolated SQL passed: reservation rejects preexisting fee accounting; injected notification
+  failure rolls back the fee row too; successful retry records one fee with unknown cost; concurrent
+  finalization produces exactly one fee row. Fee-only settlement SQL also passed. No provider calls
+  occurred; all SQL fixtures rolled back or were cleaned exactly.
+- Actual component tests with synthetic API data: 2 passed / 1 file, exit 0, 2.40 seconds
+  (admin-fee-ui-tests.log). Web TypeScript passed. Changed-source ESLint passed after removing three
+  unused catch bindings; no lint rule was weakened.
+- Follow-through found a separate unfinished reporting issue: UKEarningsStatementService still
+  treats null processing costs as zero and uses original escrow gross even after partial refunds.
+  Recorded contractor_payout is preferred for paid totals, but statement gross/fee semantics need
+  correction before calling financial reporting complete. Payment history itself preserves null
+  processing cost as undefined.
+- Final checks: full sanitized web coverage passed 3,568 tests / 326 files, exit 0, 165.24 seconds
+  (admin-fee-ledger-full-coverage.log). Isolated migration replay/diff exited 0 with no schema
+  changes (admin-fee-ledger-diff.log).

@@ -32,6 +32,7 @@ try:
     assert sql(f"SELECT status||','||platform_fee||','||contractor_payout FROM public.escrow_transactions WHERE id='{escrow}'") == 'completed,60.00,440.00'
     assert sql(f"SELECT count(*) FROM public.notifications WHERE metadata->>'releaseOperationId'='{op}'") == '2'
     assert sql(f"SELECT count(*) FROM public.audit_logs WHERE new_values->>'operation_id'='{op}'") == '1'
+    assert sql(f"SELECT count(*) FROM public.platform_fee_transfers WHERE escrow_transaction_id='{escrow}'") == '1'
     print('PASS: concurrent admin release claims share one operation; concurrent finalization emits notifications and audit once')
 
 finally:

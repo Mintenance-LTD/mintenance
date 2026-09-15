@@ -47,6 +47,13 @@ BEGIN
   PERFORM public.reserve_admin_escrow_release(payer,e.id,'Reviewed completion',0.12);
   RAISE EXCEPTION 'Non-admin claimed release';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ INSERT INTO public.platform_fee_transfers(escrow_transaction_id,amount,currency,net_revenue)
+ VALUES(e.id,1,'gbp',NULL);
+ BEGIN
+  PERFORM public.reserve_admin_escrow_release(administrator,e.id,'Reviewed completion',0.12);
+  RAISE EXCEPTION 'Existing fee ledger did not prevent a new payout claim';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+ DELETE FROM public.platform_fee_transfers WHERE escrow_transaction_id=e.id;
  SELECT * INTO op FROM public.reserve_admin_escrow_release(administrator,e.id,'Reviewed completion',0.12);
  IF op.principal_minor<>40000 OR op.fee_minor<>4800 OR op.payout_minor<>35200 THEN
   RAISE EXCEPTION 'Admin release used original amount or incorrect fees'; END IF;
@@ -80,7 +87,8 @@ BEGIN
  IF (SELECT state FROM public.escrow_admin_release_operations WHERE id=op.id)<>'reserved' OR
     (SELECT status FROM public.escrow_transactions WHERE id=e.id)<>'release_pending' OR
     EXISTS(SELECT FROM public.notifications WHERE metadata->>'releaseOperationId'=op.id::text) OR
-    EXISTS(SELECT FROM public.audit_logs WHERE new_values->>'operation_id'=op.id::text) THEN
+    EXISTS(SELECT FROM public.audit_logs WHERE new_values->>'operation_id'=op.id::text) OR
+    EXISTS(SELECT FROM public.platform_fee_transfers WHERE escrow_transaction_id=e.id) THEN
   RAISE EXCEPTION 'Failed notification left a partial settlement'; END IF;
  PERFORM set_config('audit.fail_release_notify','off',true);
  PERFORM public.finalize_admin_escrow_release(op.id,'tr_admin_fixture');
@@ -90,6 +98,10 @@ BEGIN
     (SELECT count(*) FROM public.notifications WHERE metadata->>'releaseOperationId'=op.id::text)<>2 OR
     (SELECT count(*) FROM public.audit_logs WHERE new_values->>'operation_id'=op.id::text)<>1 THEN
   RAISE EXCEPTION 'Finalization amounts or exactly-once effects incorrect'; END IF;
+ IF (SELECT count(*) FROM public.platform_fee_transfers WHERE escrow_transaction_id=e.id)<>1 OR
+    NOT EXISTS(SELECT FROM public.platform_fee_transfers WHERE id=op.id AND amount=48 AND currency='gbp'
+      AND stripe_processing_fee IS NULL AND net_revenue IS NULL AND metadata->>'processingFeeStatus'='pending') THEN
+  RAISE EXCEPTION 'Atomic fee accounting missing or fabricated provider cost'; END IF;
  IF has_function_privilege('authenticated','public.reserve_admin_escrow_release(uuid,uuid,text,numeric)','EXECUTE') THEN
   RAISE EXCEPTION 'Client can reserve admin release'; END IF;
 END $$;
