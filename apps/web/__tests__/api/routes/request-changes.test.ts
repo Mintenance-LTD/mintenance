@@ -295,6 +295,16 @@ function setupRequestChangesMocks(
         }),
       };
     }
+    if (table === 'notifications') {
+      const query = {
+        select: vi.fn(() => query),
+        eq: vi.fn(() => query),
+        maybeSingle: vi
+          .fn()
+          .mockResolvedValue({ data: { id: 'notification-1' }, error: null }),
+      };
+      return query;
+    }
     if (table === 'profiles') {
       return {
         select: vi.fn().mockReturnValue({
@@ -485,26 +495,50 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     expect((await res.json()).success).toBe(true);
   });
 
-  it('should create a notification for the contractor', async () => {
+  it('uses the transaction notification without creating a duplicate in the route', async () => {
     setupRequestChangesMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Grout needs redo' }
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/request-changes',
+        { comments: 'Grout needs redo' }
+      ),
+      segmentData('job-1')
     );
-    await POST(req, segmentData('job-1'));
-
-    // 2026-05-21 Mint Editorial voice: title now names the homeowner's ask
-    // (`${job.title} — homeowner asked for a tweak`) and the message body is
-    // the verbatim comment. Realigned from the old static 'Changes Requested'.
-    expect(mocks.createNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 'contractor-1',
-        title: 'Fix leaking pipe — homeowner asked for a tweak',
-        message: 'Grout needs redo',
-        type: 'changes_requested',
-      })
+    expect(res.status).toBe(200);
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'request_job_rework',
+      expect.objectContaining({ p_comments: 'Grout needs redo' })
     );
+    expect(mocks.createNotification).not.toHaveBeenCalled();
+  });
+
+  it('recovers an applied request without repeating email or notifications', async () => {
+    setupRequestChangesMocks();
+    mocks.supabaseRpc.mockResolvedValue({ data: false, error: null });
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/request-changes',
+        { comments: 'Grout needs redo' }
+      ),
+      segmentData('job-1')
+    );
+    expect(res.status).toBe(200);
+    expect(mocks.createNotification).not.toHaveBeenCalled();
+    expect(mocks.sendChangesRequestedEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not return success when the transaction result is missing', async () => {
+    setupRequestChangesMocks();
+    mocks.supabaseRpc.mockResolvedValue({ data: null, error: null });
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/request-changes',
+        { comments: 'Grout needs redo' }
+      ),
+      segmentData('job-1')
+    );
+    expect(res.status).toBe(500);
+    expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
   });
 
   // ---- Update failure ----

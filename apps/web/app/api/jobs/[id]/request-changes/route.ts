@@ -80,12 +80,8 @@ export const POST = withApiHandler(
       );
     }
 
-    // Idempotency — without it, a network retry would re-fire the
-    // contractor notification + the change-request email even though
-    // the status flip is already done. Status is checked below
-    // (`if (job.status !== COMPLETED)`) so the second call would
-    // throw 400 anyway, but only after the side-effects ran on the
-    // first call's tail. AUDIT_PUNCH_LIST P2 #75.
+    // Bind client retries to the actor, job and feedback. The SQL transaction
+    // also recognizes replay if the response cache write fails after commit.
     const idempotencyKey = getIdempotencyKeyFromRequest(
       request,
       'request_changes',
@@ -113,15 +109,13 @@ export const POST = withApiHandler(
       idempotencyKey,
       'request_changes',
       async () => {
-        const { error: reworkError } = await serverSupabase.rpc(
-          'request_job_rework',
-          {
+        const { data: reworkApplied, error: reworkError } =
+          await serverSupabase.rpc('request_job_rework', {
             p_job_id: jobId,
             p_actor_id: user.id,
             p_request_key: idempotencyKey,
             p_comments: comments,
-          }
-        );
+          });
         if (reworkError) {
           if (reworkError.code === '23514') {
             throw new ConflictError(
@@ -139,66 +133,64 @@ export const POST = withApiHandler(
           throw new InternalServerError('Failed to process change request');
         }
 
-        // 4. Notify contractor.
-        //
-        // Audit P2 (2026-05-10): capture the notification id so we can flip
-        // `email_sent = true` after the email provider accepts the message.
-        // Same pattern as /api/payments/confirm-intent and /api/jobs/[id]/start.
-        // 2026-05-21 Mint Editorial voice: name the homeowner's ask, not a
-        // bureaucratic "Changes Requested". The actual comment is the
-        // message — it's the only thing the contractor needs to read.
-        const contractorNotifId = await NotificationService.createNotification({
-          userId: job.contractor_id,
-          title: `${job.title} — homeowner asked for a tweak`,
-          message: comments,
-          type: 'changes_requested',
-          actionUrl: `/contractor/jobs/${jobId}`,
-        });
-
-        // Send email to contractor about changes requested
-        try {
-          const { data: contractorProfile } = await serverSupabase
-            .from('profiles')
-            .select('email, first_name, last_name, company_name')
-            .eq('id', job.contractor_id)
-            .single();
-
-          const { data: homeownerProfile } = await serverSupabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', user.id)
-            .single();
-
-          if (contractorProfile?.email) {
-            const contractorName =
-              contractorProfile.first_name && contractorProfile.last_name
-                ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-                : contractorProfile.company_name || 'Contractor';
-            const homeownerName = homeownerProfile
-              ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() ||
-                'The homeowner'
-              : 'The homeowner';
-
-            const emailOk = await EmailService.sendChangesRequestedEmail(
-              contractorProfile.email,
-              {
-                contractorName,
-                homeownerName,
-                jobTitle: job.title || 'Job',
-                comments,
-                viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
-              }
-            );
-            if (emailOk) {
-              await NotificationService.markEmailSent(contractorNotifId);
-            }
-          }
-        } catch (emailError) {
-          logger.error('Failed to send changes requested email', emailError, {
-            service: 'jobs',
-            jobId,
-          });
+        if (reworkApplied !== true && reworkApplied !== false) {
+          throw new InternalServerError('Unable to confirm change request');
         }
+
+        // The transaction creates the in-app notification. Email is supplementary,
+        // and only the first application attempts it, never an idempotent replay.
+        // Send email to contractor about changes requested
+        if (reworkApplied)
+          try {
+            const { data: contractorProfile } = await serverSupabase
+              .from('profiles')
+              .select('email, first_name, last_name, company_name')
+              .eq('id', job.contractor_id)
+              .single();
+
+            const { data: homeownerProfile } = await serverSupabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', user.id)
+              .single();
+
+            if (contractorProfile?.email) {
+              const contractorName =
+                contractorProfile.first_name && contractorProfile.last_name
+                  ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+                  : contractorProfile.company_name || 'Contractor';
+              const homeownerName = homeownerProfile
+                ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() ||
+                  'The homeowner'
+                : 'The homeowner';
+
+              const emailOk = await EmailService.sendChangesRequestedEmail(
+                contractorProfile.email,
+                {
+                  contractorName,
+                  homeownerName,
+                  jobTitle: job.title || 'Job',
+                  comments,
+                  viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+                }
+              );
+              if (emailOk) {
+                const { data: notification } = await serverSupabase
+                  .from('notifications')
+                  .select('id')
+                  .eq('user_id', job.contractor_id)
+                  .eq('metadata->>reworkRequestKey', idempotencyKey)
+                  .maybeSingle();
+                if (notification)
+                  await NotificationService.markEmailSent(notification.id);
+              }
+            }
+          } catch (emailError) {
+            logger.error('Failed to send changes requested email', emailError, {
+              service: 'jobs',
+              jobId,
+            });
+          }
 
         logger.info(
           'Homeowner requested changes, job rolled back to in_progress',

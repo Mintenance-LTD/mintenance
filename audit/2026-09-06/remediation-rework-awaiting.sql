@@ -13,7 +13,7 @@ INSERT INTO public.jobs(id,homeowner_id,contractor_id,title,description,location
 INSERT INTO public.properties(id,owner_id,property_name,address,property_type)
  VALUES ('fa060906-0000-4000-8000-000000000020','fa060906-0000-4000-8000-000000000001','Synthetic','Synthetic','residential');
 INSERT INTO public.escrow_transactions(job_id,payer_id,payee_id,amount,status,homeowner_approval,auto_release_date,auto_approval_date,cooling_off_ends_at)
-VALUES ('fa060906-0000-4000-8000-000000000010','fa060906-0000-4000-8000-000000000001','fa060906-0000-4000-8000-000000000002',500,'held',true,now(),now(),now());
+VALUES ('fa060906-0000-4000-8000-000000000010','fa060906-0000-4000-8000-000000000001','fa060906-0000-4000-8000-000000000002',500,'awaiting_homeowner_approval',true,now(),now(),now());
 CREATE FUNCTION public.audit_rework_fail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
   RAISE EXCEPTION 'synthetic write failure' USING ERRCODE='ZX001';
 END $$;

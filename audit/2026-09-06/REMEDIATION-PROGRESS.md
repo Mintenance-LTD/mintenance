@@ -2389,3 +2389,65 @@ evidence: 3646/336 full web tests, real rollback SQL, controlled two-connection 
 invariants and replayed migration. This supersedes prior pending replay/commit notes for F6. Actual
 Stripe delivery and deployed schema parity are outside these isolated results; no readiness claim
 for unverified provider journeys is made.
+
+### F7 rework review-state mismatch and durable notification (16 September 2026)
+
+Traced enhanced photo verification to HomeownerApprovalService.requestHomeownerApproval, which
+persists `awaiting_homeowner_approval`. The rework RPC only accepted `held`. A rollback-only copy of
+the current diagnostic using that reachable status reproduced `Escrow is not available for rework`.
+CLI-created pending migration `20260915231739_durable_rework_review_transition.sql` accepts
+held/awaiting approval, returns escrow to held, resets approval/inspection flags plus auto-release,
+auto-approval and cooling-off deadlines, and persists the contractor notification in the same
+transaction as the rework record/job reopening. Other financial states remain excluded;
+administrative hold flags are preserved.
+
+Both `remediation-rework-tests.sql` and new `remediation-rework-awaiting.sql` passed on the isolated
+DB: injected job failure and injected notification failure roll back the transition; valid requests
+reopen work and clear all deadlines; replay preserves exactly one notification; unrelated actors are
+denied. Route now confirms the RPC boolean, skips supplementary email on replay and does not
+independently create another in-app notification. **28 tests / 2 files passed**, 3.36 seconds; web
+type log is empty. No external email or SMS was sent.
+
+Still required before F7 closure/commit: web/mobile callers omit stable Idempotency-Key headers
+(server fallback is generated), so response-loss retry can hit a new key after the job is already
+reopened. Client retry identity, visible UI behavior, remaining concurrency with approval/release
+and migration replay are pending. Email remains best-effort; the durable guarantee is the in-app
+notification. Changes are uncommitted.
+
+### F7 client response-loss regression checkpoint (16 September 2026)
+
+Both active photo-review screens now keep per-attempt keys across retries while mounted, scoped to
+job/completion timestamp/trimmed feedback (mobile also includes current actor). Edited feedback gets
+a different key; returning to original feedback reuses its original key. Synchronous refs prevent
+concurrent submissions before state rerenders. Both clients require `success: true`, keep feedback
+on failure, and disable editing while sending. Web displays structured API messages and refreshes
+job data after confirmed success. Mobile cancellation is disabled while sending.
+
+`rework-review.test.tsx` tests lost responses, key/payload reuse, feedback changes, pending
+duplicate clicks, malformed HTTP-success responses and structured errors. Combined with route and
+replay-access tests: **32 tests / 3 files passed**, 3.41 seconds
+(`current-rework-final-web-tests.log`). Mobile `HomeownerPhotoReviewScreen.test.tsx` renders the
+real screen and controls with network/photo-data boundaries mocked: response-loss retry and missing
+confirmation both pass, **2 tests / 1 file**, 8.256 seconds (`current-rework-mobile-tests.log`).
+These are component tests, not device evidence. Web/mobile type checks exited 0 with empty logs;
+affected web/mobile source lint exited 0. The two rollback-only SQL fixtures were rerun successfully
+against the isolated audit DB.
+
+Remaining concrete F7 work is not waived: key maps do not survive remount/restart, the unused
+`JobCRUDService.requestJobChanges` helper still has no explicit key contract, and approval writes
+must serialize with rework. Current `HomeownerApprovalService.approveCompletion` reads parties and
+photos then claims escrow by status/approval only, without a locked completed-job check; its history
+write follows separately. `confirm-completion/route.ts` separately sets the job flag then escrow
+approval, with only preflight state checks. These paths require atomic decision/recovery work and
+real race tests before F7 closure. The existing countdown/approval UI promises also need comparison
+with the authoritative release policy. Migration replay and new `remediation-rework-races.py` are
+pending at this checkpoint; no hosted/provider operations occurred.
+
+Final local database results for this checkpoint: isolated migration replay/diff exited 0 with
+`No schema changes found` and actual JSON `diff: ""`, no files or drop statements
+(`current-rework-db-diff.log`). `remediation-rework-races.py` passed both real two-connection cases
+after observing the leading transaction holding the job lock in `pg_stat_activity`: same-key retry
+returns false, different-key request is rejected after reopening. Both cases leave one rework
+record, one notification and in_progress/held with cleared auto-approval date. All committed
+synthetic fixture records were explicitly cleaned. This supersedes the pending replay/race note
+above, but does not close the separate approval/release and restart work.
