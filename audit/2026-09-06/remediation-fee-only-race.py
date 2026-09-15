@@ -18,7 +18,7 @@ try:
     sql(f"UPDATE public.escrow_transactions SET status='held' WHERE id='{escrow}'")
     import threading
     import time
-    def held_transaction(query, competing, expected_error):
+    def held_transaction(query, competing, expected_error=None, expected_result=None):
         # Flush a marker after the first statement has acquired its row locks.
         proc=subprocess.Popen(['docker','exec','-i','supabase_db_mintenance-audit-20260906',
             'psql','-U','postgres','-d','postgres','-X','-q','-t','-A','-v','ON_ERROR_STOP=1'],
@@ -34,11 +34,12 @@ try:
             def compete():
                 started.set()
                 try:
-                    sql(f"SET application_name='audit-payout-race-{job}'; " + competing)
+                    result=sql(f"SET application_name='audit-payout-race-{job}'; " + competing)
                 except RuntimeError as error:
                     assert expected_error in str(error), str(error)
                     return
-                raise AssertionError('Competing financial operation succeeded')
+                if expected_error: raise AssertionError('Competing financial operation succeeded')
+                assert result==expected_result, repr(result)
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 future=pool.submit(compete)
                 assert started.wait(5)
@@ -53,18 +54,22 @@ try:
                 future.result(timeout=15)
         finally:
             if proc.poll() is None: proc.kill()
+
+
+    refund=sql(f"SELECT id FROM public.reserve_escrow_refund('{owner}','{job}','{escrow}','tiny-{job}',49975,'Synthetic')")
+    sql(f"SELECT id FROM public.record_escrow_refund_outcome('{refund}','re_synthetic_{job}','succeeded'); UPDATE public.jobs SET status='assigned' WHERE id='{job}'; UPDATE public.jobs SET status='in_progress' WHERE id='{job}'; UPDATE public.jobs SET status='completed' WHERE id='{job}'; SELECT remaining_minor FROM public.claim_escrow_release('{escrow}','auto_release',gen_random_uuid())")
     held_transaction(
-        f"SELECT id FROM public.reserve_escrow_refund('{owner}','{job}','{escrow}','refund-{job}',10000,'Synthetic')",
-        f"SELECT public.credit_payout_balance('{contractor}',35000,'GBP','{job}')",
-        'Escrow cannot be credited')
-    op=sql(f"SELECT id FROM public.escrow_refund_operations WHERE escrow_id='{escrow}'")
-    sql(f"SELECT id FROM public.record_escrow_refund_outcome('{op}','re_synthetic_{job}','failed'); UPDATE public.escrow_transactions SET status='release_pending',release_reason='auto_release' WHERE id='{escrow}'")
+        f"SELECT principal_minor FROM public.settle_fee_only_escrow('{escrow}',25,'{owner}')",
+        f"SELECT principal_minor FROM public.settle_fee_only_escrow('{escrow}',25,NULL)",
+        expected_result='25')
+    assert sql(f"SELECT count(*) FROM public.escrow_fee_only_settlements WHERE escrow_id='{escrow}'")=='1'
+    assert sql(f"SELECT count(*) FROM public.escrow_audit_log WHERE escrow_transaction_id='{escrow}'")=='1'
+    assert sql(f"SELECT count(*) FROM public.notifications WHERE metadata->>'escrowTransactionId'='{escrow}'")=='2'
     held_transaction(
-        f"SELECT public.credit_payout_balance('{contractor}',35000,'GBP','{job}'); UPDATE public.escrow_transactions SET status='held',release_reason=NULL WHERE id='{escrow}'",
-        f"SELECT id FROM public.reserve_escrow_refund('{owner}','{job}','{escrow}','after-credit-{job}',10000,'Synthetic')",
-        'Escrow cannot be claimed for refund')
-    assert sql(f"SELECT pending_amount_minor FROM public.contractor_payout_balances WHERE contractor_id='{contractor}' AND currency='GBP'")=='35000'
-    assert sql(f"SELECT count(*) FROM public.escrow_refund_operations WHERE escrow_id='{escrow}'")=='1'
-    print('PASS: refund-first and accumulated-credit-first concurrent transactions exclude the competing operation')
+        f"SELECT principal_minor FROM public.settle_fee_only_escrow('{escrow}',25,'{owner}')",
+        f"UPDATE public.escrow_transactions SET status='held' WHERE id='{escrow}'",
+        expected_error='Settled escrow cannot be reopened')
+    print('PASS: concurrent fee-only settlement is exactly once; stale rollback cannot reopen settled funds')
+
 finally:
-    sql(f"DELETE FROM public.contractor_payout_credit_events WHERE job_id='{job}'; DELETE FROM public.contractor_payout_balances WHERE contractor_id='{contractor}'; DELETE FROM public.escrow_refund_operations WHERE escrow_id IN(SELECT id FROM public.escrow_transactions WHERE job_id='{job}'); DELETE FROM public.escrow_refund_balances WHERE escrow_id IN(SELECT id FROM public.escrow_transactions WHERE job_id='{job}'); DELETE FROM public.payment_funding_reservations WHERE job_id='{job}'; DELETE FROM public.escrow_transactions WHERE job_id='{job}'; DELETE FROM public.contracts WHERE id='{contract}'; DELETE FROM public.retained_contract_records WHERE contract_id='{contract}'; DELETE FROM public.bids WHERE id='{bid}'; DELETE FROM public.jobs WHERE id='{job}'; DELETE FROM auth.users WHERE id IN ('{owner}','{contractor}');")
+    sql(f"DELETE FROM public.escrow_audit_log WHERE job_id='{job}'; DELETE FROM public.escrow_fee_only_settlements WHERE escrow_id IN(SELECT id FROM public.escrow_transactions WHERE job_id='{job}'); DELETE FROM public.contractor_payout_credit_events WHERE job_id='{job}'; DELETE FROM public.contractor_payout_balances WHERE contractor_id='{contractor}'; DELETE FROM public.escrow_refund_operations WHERE escrow_id IN(SELECT id FROM public.escrow_transactions WHERE job_id='{job}'); DELETE FROM public.escrow_refund_balances WHERE escrow_id IN(SELECT id FROM public.escrow_transactions WHERE job_id='{job}'); DELETE FROM public.payment_funding_reservations WHERE job_id='{job}'; DELETE FROM public.escrow_transactions WHERE job_id='{job}'; DELETE FROM public.contracts WHERE id='{contract}'; DELETE FROM public.retained_contract_records WHERE contract_id='{contract}'; DELETE FROM public.bids WHERE id='{bid}'; DELETE FROM public.jobs WHERE id='{job}'; DELETE FROM auth.users WHERE id IN ('{owner}','{contractor}');")

@@ -1,3 +1,4 @@
+import { settleFeeOnlyEscrow } from '@/lib/services/payment/FeeOnlySettlementService';
 import { verifyEscrowFunding } from '@/lib/services/payment/EscrowFundingService';
 import { createEscrowTransfer } from '@/lib/services/payment/EscrowTransferService';
 /**
@@ -273,6 +274,11 @@ export class EscrowAutoReleaseService {
     const contractorAmountCents = Math.round(
       feeBreakdown.contractorAmount * 100
     );
+
+    if (contractorAmountCents === 0) {
+      await settleFeeOnlyEscrow(escrow.id, remainingMinor, null);
+      return true;
+    }
 
     // Accumulation mode: skip direct transfer, credit the payout balance.
     // The weekly cron (/api/cron/contractor-payouts) will issue the Stripe

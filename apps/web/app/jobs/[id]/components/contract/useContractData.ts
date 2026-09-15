@@ -214,6 +214,7 @@ export function useContractData(jobId: string, userRole: string) {
     contract &&
     userRole === 'contractor' &&
     !contract.homeowner_signed_at &&
+    !contract.contractor_signed_at &&
     ['draft', 'pending_homeowner', 'pending_contractor'].includes(
       contract.status
     );

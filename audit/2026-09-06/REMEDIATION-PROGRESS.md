@@ -728,3 +728,180 @@ payment journeys complete.
 Final full coverage passed exit 0: 3348 tests in 301 files, unchanged thresholds
 (remaining-release-full-coverage-final.log). The new claim migration must be applied before these
 application callers are deployed; only the isolated audit database has received it here.
+
+## 2026-09-15 — Explicit fee-only settlement for tiny remainders
+
+FeeCalculationService now caps the platform fee at available principal, preventing the minimum fee
+from allocating more money than remains. Manual and automatic release (both payout modes) use
+FeeOnlySettlementService when contractor payout is zero. It verifies captured/credit funding, then
+calls a service-only atomic settlement function. The response explicitly has transferId:null,
+settlementType:fee_only, and a separate settlement ID; no fictitious Stripe transfer is created.
+
+Migration 20260915080346 adds escrow_fee_only_settlements and settle_fee_only_escrow. Under job then
+escrow locks, it validates completed work, the release claim, current participants, no prior direct
+or accumulated payout, and an exact remaining principal between 1 and 50 minor units. It atomically
+records the fee, zero payout, terminal escrow/job payment state, actor-role audit record, and two
+in-app notifications explaining that no contractor payout is due. A trigger rejects stale attempts
+to reopen a settled escrow. Manual retries read the settlement only after MFA/role/participant
+gates, so a lost response does not become a second payout or expose another user's record.
+
+remediation-fee-only-settlement.sql passed against only the disposable audit database with complete
+rollback. It exercises changed amount/unrelated actor rejection, direct and accumulated payout
+exclusion, actor-role retention, replay without duplicate audit/notifications, absent transfer ID,
+blocked reopening, and an injected notification failure rolling back all accounting changes.
+remediation-fee-only-race.py passed with observed pg_stat_activity Lock waits: concurrent settlement
+produces one record/audit and two notifications; a waiting stale status reset is rejected. Its first
+cleanup failed on the retained audit actor FK; the two identified synthetic users/audit row were
+removed and cleanup was corrected before the successful rerun. No fixtures from that run remain.
+
+Targeted verification passed 112 tests in four files (fee-only-targeted-final.log), including real
+manual fee calculation/funding verification, both automatic modes, response-loss recovery,
+unrelated-user denial, fee conservation, and service failures. Web type checking and application
+workspace lint passed. Required isolated npx supabase db diff --local completed exit 0 with full
+shadow replay and no schema drift (fee-only-schema-diff.log). The temporary approval-review quota
+rejection was resolved before these final database checks; it was not bypassed.
+
+No hosted/original-local database or real provider was modified. The new migration is required
+before deploying these callers. Overall F1-F15 remediation and real-account/provider/browser
+verification remain incomplete; existing fee-reporting/processing-cost estimates and other recorded
+items are not claimed fixed by this settlement checkpoint.
+
+The full web log reports 3369 passing tests in 302 files and a completed coverage table, with no
+reported threshold failures (fee-only-full-coverage.log). After continuation the process handle was
+unavailable, so its exit code could not be recovered; this is not recorded as an observed exit-0
+result. Normal commit hooks validate the final source snapshot separately.
+
+## 2026-09-15 — Close direct contract UPDATE signature bypass (F2)
+
+Current local ACL/RLS/trigger inspection showed broad authenticated UPDATE column grants on bids,
+contracts and escrow. Escrow UPDATE is already constrained by admin-only RLS, and bids have the
+pending-owner/immutable-accepted-amount trigger. These broad grants alone were not reported as
+ordinary-user escrow exploits. Contracts still allowed participant UPDATE, and the freeze trigger
+only checks prior signatures/evidence. A rollback-only authenticated-homeowner reproduction changed
+both signature timestamps and status to accepted on an unsigned contract with zero evidence rows.
+This was reproduced only on the disposable database, not on hosted production.
+
+Migration 20260915134801 revokes direct UPDATE (table and all column grants) and DELETE on contracts
+and escrow_transactions from PUBLIC/anon/authenticated. Service-role authority remains. Source
+tracing found contract mutations in server routes using serverSupabase; escrow writers are server
+services/routes or administrative reconciliation scripts, while mobile escrow access is read-only.
+Thus the change routes mutations through existing server authorization/MFA/audit checks, including
+for authenticated administrators. Existing SELECT and pending-bid flows remain unchanged.
+
+remediation-financial-client-updates.sql passed: homeowner, contractor, unrelated-user, and admin
+client sessions cannot forge signatures/accepted state, alter funded escrow, or delete these rows.
+No residual anon/authenticated UPDATE column grants remain. Trusted service edits still work, and
+sign_contract_atomic creates both evidence rows and transitions pending_contractor ->
+pending_homeowner -> accepted. All 21 remediation SQL scripts passed against the updated disposable
+schema (financial-client-updates-sql-suite.log). No application code changed in this checkpoint.
+
+A separate open server-side retention race was identified while tracing callers: the contract DELETE
+route checks signing state then deletes only by ID/contractor, allowing concurrent signing to race
+deletion. The account-deletion DB function also deletes contract rows. These need coordinated
+retention/recovery work; do not infer signed-record deletion safety from the client-grant repair. No
+original-local or hosted database was changed. The overall goal remains active.
+
+Required isolated supabase db diff --local completed exit 0 after full migration replay, with no
+schema drift (financial-client-updates-diff.log).
+
+### 2026-09-15 — Proposed retention policy following owner instruction
+
+The owner confirmed there is no existing retention policy and authorised drafting one. Added
+`DATA-RETENTION-POLICY-DRAFT.md`, grounded in ICO storage-limitation/erasure guidance, GOV.UK
+accounting-record guidance and the Limitation Act. It specifies proposed category-specific periods,
+restricted access after account closure, scoped reviewable holds, backup disposal and implementation
+acceptance criteria. Legal/accounting review and technical enforcement are outstanding; this is not
+a claim of compliance or completed account-erasure remediation. No application behavior or database
+state changed in this checkpoint. The empty atomic co-sign/delete migration remains work in progress
+and is excluded from this documentation commit.
+
+### 2026-09-15 — Atomic contract co-signing and unsigned deletion
+
+Replaced separate signatory/status updates in `sign-as-cosigner/route.ts` with service-only
+`sign_contract_cosigner_atomic`. It locks the parent contract, rechecks invitation membership on
+every retry, records a restricted snapshot for new assent, and atomically promotes acceptance plus
+inserts both in-app notifications. Cancelled contracts cannot be resurrected. Legacy duplicate
+invitations for the same account are resolved together; pre-existing timestamps do not receive
+fabricated historical snapshots. The route no longer returns a cached result before checking current
+membership.
+
+`delete/route.ts` now invokes `delete_unsigned_contract_atomic`, locking the same row as
+primary/co-signing and refusing deletion once any party has signed or evidence exists. The job UI
+hides deletion after contractor signature as well as homeowner signature. This is a deliberate
+retention-preserving restriction: cancelling/withdrawing a signed version must use a separate
+retained-record workflow, not hard deletion. The broader account-deletion routine still needs
+retention remediation; this change does not protect every privileged cascade.
+
+The invitation insertion trigger takes the parent lock, rejects terminal contracts, prefilled
+signatures and duplicate invitations. Client-role table and column INSERT/UPDATE/DELETE privileges
+on signatories are revoked. Server invitation errors now explain conflicts rather than returning
+generic 500 errors. Co-sign APIs exist, but current source search found no UI caller of the co-sign
+endpoint and no import of the invitation dialog; this is not a verified user-facing co-sign journey.
+Non-platform invitation delivery/redemption remains unimplemented.
+
+Evidence: migration applied only to `supabase_db_mintenance-audit-20260906`;
+`remediation-contract-cosign.sql` passed with transaction rollback (client denial, uninvited
+administrator denial, atomic notification-failure rollback, replay counts, signed deletion
+rejection, terminal invitation/sign rejection and unsigned deletion). One initial test fixture
+reused a job despite the one-contract-per-job constraint; corrected to a separate synthetic job,
+then passed. `remediation-contract-cosign-race.py` passed both signing/deletion orders, final
+primary signing versus invitation, concurrent retry and concurrent final co-sign acceptance while
+observing actual PostgreSQL Lock waits; fixtures cleaned in finally. All 22 remediation SQL scripts
+passed. Full isolated `supabase db diff --local` completed exit 0 with no schema changes. Targeted
+Vitest: 37 tests / 2 files passed; route-boundary tests explicitly mock the wrapper and do not claim
+authentication or database isolation proof. Production route ESLint passed. Full coverage result
+recorded below when complete.
+
+Full isolated web coverage completed exit 0: **3,389 tests / 303 files passed**, duration 154.31s,
+unchanged coverage thresholds (`contract-cosign-full-coverage.log`). Changed production routes and
+the contract UI hook passed workspace ESLint with zero warnings. No live providers, hosted
+databases, real accounts or deployments were used.
+
+### 2026-09-15 — Retain signed evidence before account-deletion cascades
+
+Reproduced `delete_user_data` deleting a synthetic cancelled signed contract and both primary
+acceptance records: the transaction succeeded with zero contracts and zero acceptance rows
+remaining. This is distinct from the newer funding/payout foreign keys that can block deletion of
+other accounts. Source inspection also confirms the route snapshots subscription IDs only in request
+memory before deleting their source rows; durable billing/auth cleanup remains outstanding.
+
+Added `retained_contract_records` and a BEFORE DELETE trigger on contracts. The restricted archive
+captures the contract, original primary/co-signer evidence, signature images, signed signatory
+identities and minimal party names before cascading deletion. It has no foreign keys back to the
+deleted account/job, cannot be read or modified by client roles, and cannot be overwritten/deleted
+by ordinary service-role table access. Archive insertion failure aborts deletion in the same
+transaction. Unsigned drafts (including legacy NULL status) are not archived. Previously lost
+evidence is not reconstructed.
+
+Added a service-only participant reader and authenticated `GET /api/contracts/[id]/retained`. Every
+read checks a current non-deleted profile plus archived participation; unrelated administrators get
+no override. The response selects agreement fields and signature timestamps, excludes raw
+IP/user-agent/signature payloads, and sets private/no-store caching. Raw retained evidence remains
+server-only. This endpoint has no archive navigation page or list yet; it is not a completed
+ordinary-user archive journey or a verified former-user identity/export process.
+
+Retention is explicitly marked for classification/review in 30 days; no unsupported fiscal-year or
+universal six-year expiry is invented. A review/disposal worker, scoped holds and operational
+ownership still need implementation. This checkpoint preserves signed evidence; it does not solve
+payment-record retention, deletion/provider recovery, referenced storage-object preservation,
+historical backups, or the complete policy implementation. The full goal remains active.
+
+Validation: `remediation-contract-retention.sql` proves original acceptance JSON survives exactly,
+an injected archive-write failure rolls back deletion, the deleted owner profile is removed, the
+surviving party can read the redacted view, deleted/unrelated/admin readers are denied, and direct
+client/archive mutations are denied. All 23 rollback SQL diagnostics and all 10 concurrency
+diagnostics passed on the isolated stack. Six race cleanup queries now also remove their
+specifically identified synthetic archives; an explicit count confirmed zero archive rows remain.
+The new viewer/atomic route boundary suite passed 28 tests, and viewer production ESLint passed.
+Initial isolated migration replay completed exit 0/no drift; final replay after the NULL-status
+minimisation correction is recorded below on completion. No live provider, hosted data or deployment
+actions were taken.
+
+Final isolated migration replay after the minimisation correction completed exit 0 with no schema
+changes (`contract-retention-db-diff-final.log`).
+
+Follow-up customer-copy correction: the deletion modal previously promised removal of all associated
+data, explicitly including payment history. The modal and both settings confirmations now disclose
+restricted signed-contract retention; the success response also makes that exception clear. Removed
+two unused imports and an unused prop binding found by the changed-file lint check. These are
+copy/import changes; archive navigation and full deletion recovery are still outstanding.

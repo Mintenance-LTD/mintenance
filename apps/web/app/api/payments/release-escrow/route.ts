@@ -1,3 +1,8 @@
+import {
+  settleFeeOnlyEscrow,
+  readFeeOnlySettlement,
+  feeOnlyReleaseResponse,
+} from '@/lib/services/payment/FeeOnlySettlementService';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
@@ -173,6 +178,23 @@ export const POST = withApiHandler(
           userRole: user.role,
         });
         throw new ForbiddenError('Unauthorized to release this escrow');
+      }
+
+      // Recover a committed settlement after a lost response, only after the
+      // same MFA/role/participant gates used for a new release.
+      if (
+        escrowTransaction.status === 'completed' &&
+        escrowTransaction.contractor_payout === 0
+      ) {
+        const settlement = await readFeeOnlySettlement(escrowTransactionId);
+        if (settlement)
+          return NextResponse.json(
+            feeOnlyReleaseResponse(
+              settlement,
+              escrowTransaction.amount,
+              job.contractor_id
+            )
+          );
       }
 
       // Validate current state allows release
@@ -407,6 +429,27 @@ export const POST = withApiHandler(
       const contractorAmountCents = Math.round(
         feeBreakdown.contractorAmount * 100
       );
+
+      if (contractorAmountCents === 0) {
+        const settlement = await settleFeeOnlyEscrow(
+          escrowTransactionId,
+          remainingMinor,
+          user.id
+        );
+        const responseData = feeOnlyReleaseResponse(
+          settlement,
+          escrowTransaction.amount,
+          job.contractor_id
+        );
+        await storeIdempotencyResult(
+          idempotencyKey,
+          'release_escrow',
+          responseData,
+          user.id,
+          { escrowTransactionId, settlementId: settlement.id, releaseReason }
+        );
+        return NextResponse.json(responseData);
+      }
 
       // Step 2: Create Stripe transfer (DB already locked as release_pending)
       const transfer = await performStripeTransfer(

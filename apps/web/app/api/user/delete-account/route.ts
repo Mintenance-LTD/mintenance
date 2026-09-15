@@ -17,8 +17,9 @@ const deleteAccountSchema = z.object({
 /**
  * POST /api/user/delete-account — GDPR Right to Erasure (HARD delete).
  *
- * Deletes user account AND all associated data (messages / bids / jobs /
- * properties / payment history where legally permitted to drop).
+ * Deletes eligible account data. Signed contract evidence is archived before
+ * contract cascades; financial retention and durable provider cleanup remain
+ * separate remediation work.
  *
  * Sprint 7 (1.6): narrowed sibling endpoint DELETE /api/account/delete
  * to a "deactivate" (soft-delete only — sets deleted_at). Call this one
@@ -453,7 +454,8 @@ export const POST = withApiHandler(
 
     return NextResponse.json({
       success: true,
-      message: 'Account deleted successfully',
+      message:
+        'Account deleted. Signed contract evidence is retained with restricted access where applicable.',
     });
   }
 );
