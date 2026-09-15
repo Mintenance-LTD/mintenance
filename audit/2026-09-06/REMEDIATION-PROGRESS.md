@@ -1311,3 +1311,21 @@ observed separately. Browser/device login and password-reset completion still re
 - These results strengthen current local evidence but do not satisfy the complete readiness gate:
   hosted upgrade/permission parity, real provider challenge/webhook/recovery journeys, device
   behavior, and identified remaining local flow concerns still need resolution. Goal remains active.
+
+### 2026-09-15 — release cache authorization ordering (F3 follow-up)
+
+- Confirmed `release-escrow` checked and returned a cached result before loading the escrow/job or
+  rechecking current participant/admin access and MFA. Actor/payload-scoped keys prevented another
+  actor's cache lookup, but did not account for access revoked since that actor's original request.
+- Moved the idempotency claim/cache check after current record, MFA, database-admin and participant
+  checks. A request denied before acquiring a claim no longer calls releaseIdempotencyClaim in its
+  catch path. This avoids deleting a claim that this attempt never acquired.
+- Added a former-participant replay regression: even with a cached successful transfer, the route
+  returns 403, never checks the cache, never transfers and never releases a claim. Updated the valid
+  duplicate fixture to include the current escrow/job record.
+- Escrow lifecycle + transfer helpers: **56 tests / 2 files passed**, exit 0, 2.03 seconds
+  (`release-cache-final.log`). Web TypeScript and changed route lint passed. Tests use controlled
+  external dependencies; no real Stripe call or schema change.
+- F3 broader completion is not claimed: stale-lease fencing and other callers still require their
+  own verification. Existing durable transfer reservations remain the separate money-movement
+  protection.
