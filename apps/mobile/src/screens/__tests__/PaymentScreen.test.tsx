@@ -182,6 +182,25 @@ describe('PaymentScreen', () => {
     expect(view.queryByLabelText('Pay £350.00')).toBeNull();
   });
 
+  it('hides the pay action after quote failure and retries the quote', async () => {
+    (mobileApiClient.get as jest.Mock).mockRejectedValueOnce(
+      new Error('offline')
+    );
+    const view = renderScreen();
+    await waitFor(() =>
+      expect(
+        view.getByText('Unable to load the payment amount. Please retry.')
+      ).toBeTruthy()
+    );
+    expect(view.queryByLabelText('Pay \u00a3350.00')).toBeNull();
+    fireEvent.press(view.getByText('Try Again'));
+    await waitFor(() =>
+      expect(view.getByLabelText('Pay \u00a3350.00')).toBeTruthy()
+    );
+    expect(mobileApiClient.get).toHaveBeenCalledTimes(2);
+    expect(PaymentService.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
   it('confirms the selected payment and requires held escrow before success', async () => {
     const view = renderScreen();
     await waitFor(() =>

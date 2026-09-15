@@ -1250,3 +1250,24 @@ observed separately. Browser/device login and password-reset completion still re
   payment-details failure; cash/credit presentation and authoritative payable-amount display still
   need complete review. The optional direct-payment branch was not found in current navigation
   callers. Do not treat its mocked tests as evidence of a reachable user journey.
+
+### 2026-09-15 — fail-closed mobile payment quote display
+
+- Confirmed reachable `PaymentScreen`/`usePayment` retained a local fee estimate after
+  payment-details failure and could still initiate payment. The displayed job amount also came from
+  navigation params even when the server returned another amount.
+- Removed the local fallback from this hook. It now requires finite, nonnegative fee fields and a
+  positive total, shows loading/error/retry states, and refuses payment initiation without a valid
+  server quote. The screen displays the quoted job amount and uses that amount for intent creation
+  rather than stale navigation data. No schema or provider behavior changed.
+- Quote requests are scoped to both account and job, with stale-response rejection on account
+  changes/unmount. Quote retry retains the chosen payment method and does not initiate a charge.
+  Invalid/null/negative/string totals are rejected.
+- Regression coverage includes stale navigation values, invalid quotes, rejected GET retry,
+  old-account responses, and a rendered screen that hides Pay on quote failure then restores it
+  after retry. Final targeted mobile group **101 tests / 4 suites passed**, exit 0, 23.767 seconds
+  (`mobile-quote-final.log`). Mobile type check and source lint passed before final formatting/test
+  addition; normal commit hooks run the final checks.
+- This proves client gating and request composition against controlled responses, not the server
+  quote's complete eligibility/credit accounting or a real device/Stripe hand-off. Those remain
+  open. No deployment or hosted data changes.
