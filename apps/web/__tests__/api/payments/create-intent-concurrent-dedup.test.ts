@@ -14,7 +14,7 @@
  *
  * Unlike payment-flow.test.ts, this suite does NOT mock @/lib/idempotency —
  * it exercises the real claim/complete/release logic against an atomic
- * in-memory simulation of the try_claim_bound_idempotency_key RPC (INSERT … ON
+ * in-memory simulation of the claim_fenced_idempotency RPC (INSERT … ON
  * CONFLICT DO NOTHING semantics), so the dedup path under test is the
  * production one.
  */
@@ -210,7 +210,7 @@ async function rpcMock(name: string, args: Record<string, unknown>) {
     return { data: [escrowInserts[0]], error: null };
   }
   const key = args.p_idempotency_key as string;
-  if (name === 'try_claim_bound_idempotency_key') {
+  if (name === 'claim_fenced_idempotency') {
     const existing = claimStore.get(key);
     if (!existing) {
       claimStore.set(key, { status: 'pending' });
@@ -218,6 +218,7 @@ async function rpcMock(name: string, args: Record<string, unknown>) {
         data: [
           {
             claimed: true,
+            claim_token: 'fenced-test-token',
             is_duplicate: false,
             is_pending: false,
             cached_result: null,
@@ -254,11 +255,11 @@ async function rpcMock(name: string, args: Record<string, unknown>) {
       error: null,
     };
   }
-  if (name === 'complete_idempotency_claim') {
+  if (name === 'complete_fenced_idempotency') {
     claimStore.set(key, { status: 'completed', result: args.p_result });
     return { data: true, error: null };
   }
-  if (name === 'release_idempotency_claim') {
+  if (name === 'release_fenced_idempotency') {
     claimStore.delete(key);
     return { data: null, error: null };
   }

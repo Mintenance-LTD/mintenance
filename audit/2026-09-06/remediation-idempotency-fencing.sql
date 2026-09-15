@@ -46,4 +46,16 @@ BEGIN
   END LOOP;
  END LOOP;
 END $$;
+DO $$
+DECLARE signature text;
+BEGIN
+ FOREACH signature IN ARRAY ARRAY[
+ 'public.try_claim_idempotency_key(text,text,uuid,jsonb,integer)',
+ 'public.try_claim_idempotency_key(text,text,uuid,jsonb,integer,integer)',
+ 'public.try_claim_bound_idempotency_key(text,text,uuid,text,integer,integer)',
+ 'public.complete_idempotency_claim(text,text,jsonb,uuid,jsonb)',
+ 'public.release_idempotency_claim(text,text)'] LOOP
+  IF has_function_privilege('service_role',signature,'EXECUTE') THEN RAISE EXCEPTION 'Unfenced entry point remains callable'; END IF;
+ END LOOP;
+END $$;
 ROLLBACK;

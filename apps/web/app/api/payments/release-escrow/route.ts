@@ -79,6 +79,7 @@ export const POST = withApiHandler(
     );
 
     let ownsIdempotencyClaim = false;
+    let claimOwnership: import('@/lib/idempotency').ClaimOwnership | undefined;
     try {
       const { data: escrowTransaction, error: escrowError } =
         await serverSupabase
@@ -178,6 +179,7 @@ export const POST = withApiHandler(
         return NextResponse.json(idempotencyCheck.cachedResult);
       }
       ownsIdempotencyClaim = true;
+      claimOwnership = idempotencyCheck?.ownership;
 
       // Recover a committed settlement after a lost response, only after the
       // same MFA/role/participant gates used for a new release.
@@ -445,7 +447,8 @@ export const POST = withApiHandler(
           'release_escrow',
           responseData,
           user.id,
-          { escrowTransactionId, settlementId: settlement.id, releaseReason }
+          { escrowTransactionId, settlementId: settlement.id, releaseReason },
+          claimOwnership
         );
         return NextResponse.json(responseData);
       }
@@ -655,7 +658,8 @@ export const POST = withApiHandler(
         'release_escrow',
         responseData,
         user.id,
-        { escrowTransactionId, transferId: transfer.id, releaseReason }
+        { escrowTransactionId, transferId: transfer.id, releaseReason },
+        claimOwnership
       );
 
       return NextResponse.json(responseData);
@@ -664,7 +668,11 @@ export const POST = withApiHandler(
       // failures — the 60s backstop still applies.
       try {
         if (ownsIdempotencyClaim)
-          await releaseIdempotencyClaim(idempotencyKey, 'release_escrow');
+          await releaseIdempotencyClaim(
+            idempotencyKey,
+            'release_escrow',
+            claimOwnership
+          );
       } catch {
         // intentional: don't let release failure mask the original error
       }

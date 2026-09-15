@@ -397,13 +397,18 @@ export const POST = withApiHandler(
         'contractor_withdraw',
         responseData,
         user.id,
-        { jobId, homeownerId }
+        { jobId, homeownerId },
+        idem?.ownership
       );
 
       return NextResponse.json(responseData);
     } catch (err) {
       try {
-        await releaseIdempotencyClaim(idempotencyKey, 'contractor_withdraw');
+        await releaseIdempotencyClaim(
+          idempotencyKey,
+          'contractor_withdraw',
+          idem?.ownership
+        );
       } catch {
         // intentional: don't let release failure mask the original error
       }

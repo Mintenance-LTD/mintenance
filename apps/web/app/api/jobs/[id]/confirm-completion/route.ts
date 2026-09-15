@@ -453,11 +453,13 @@ export const POST = withApiHandler(
           'confirm_completion',
           responseData,
           user.id,
-          { jobId, contractorId: job.contractor_id }
+          { jobId, contractorId: job.contractor_id },
+          idempotencyCheck?.ownership
         );
 
         return NextResponse.json(responseData);
-      }
+      },
+      idempotencyCheck?.ownership
     );
   }
 );

@@ -1380,3 +1380,39 @@ observed separately. Browser/device login and password-reset completion still re
   request-local token propagation through check/store/release/releaseOnError, retiring old write
   entry points, updating real helper/route tests and proving concurrent stale-owner rejection. No
   deployment or hosted mutation occurred.
+
+### 2026-09-15 — request-local fenced idempotency integrated (F3)
+
+- Shared helper now acquires through claim_fenced_idempotency and returns an explicit ownership
+  object (actor and token); missing tokens fail closed. All **16 route consumers** pass that
+  request-local object through storeIdempotencyResult, releaseIdempotencyClaim and releaseOnError.
+  No shared key-to-token map is used. Payment create/release outer catch paths retain only their own
+  request's ownership. Completion retry exhaustion also uses the fenced release function.
+- CLI-generated `20260915171223_retire_unfenced_idempotency_entrypoints.sql` revokes service-role
+  and client access to the old claim/bound-claim/complete/release entry points. Owner-internal calls
+  remain available to the fenced acquisition wrapper. Source search found no remaining active calls
+  to those retired RPC names in apps/packages/edge functions. **Callers and both fencing migrations
+  must ship together**; none have been deployed here.
+- Real rollback SQL verifies expired/stale/wrong-actor denial, valid-owner completion/release,
+  cached replay and retired grants. All 29 current rollback suites were run: initially 28 passed and
+  the broad grant test failed because it still expected service execution on retired RPCs. Updated
+  that test to explicitly require denial on those routines; its rerun passed
+  (`fenced-final-all-sql.log`, `fenced-internal-grants-final.log`).
+- Added `remediation-idempotency-fencing-race.py`: while replacement completion remains uncommitted,
+  two separate connections attempt stale completion and stale release; both return false,
+  replacement commits and its correct result remains. Exact synthetic fixture cleanup in finally.
+  Passed (`fenced-claims-race.log`). This is actual local SQL overlap, not a JavaScript mock.
+- Shared-helper tests verify separate ownership objects survive overlapping acquisitions and are
+  passed unchanged to completion/cleanup; missing ownership/token fails closed. Route tests assert
+  ownership is forwarded. Initial full run had three old argument-list expectations fail (3,467
+  passed); after updating expectations, final full coverage **3,470 tests / 313 files passed**, exit
+  0, 160.60 seconds (`fenced-callers-final-full.log`). Web type-check and all changed
+  production-source lint passed. Subsequent source cleanup removed unused imports/directive only.
+- Isolated fresh migration replay/diff passed, exit 0, no drift (`fenced-callers-db-diff.log`).
+  Existing PostGIS advisor findings remain as previously recorded. The old open-defect SQL is
+  historical and now encounters permission denial under service_role; use the expected-safe fencing
+  tests for the repaired contract.
+- Fencing prevents old requests from corrupting replacement claim/cache state. It does not cancel a
+  slow request's business work or replace operation-specific database/provider idempotency and
+  durable recovery. Other F3 caller authorization ordering and broader readiness checks remain in
+  scope. No hosted writes, deployment or real payment occurred.

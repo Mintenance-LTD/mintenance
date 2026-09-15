@@ -8,8 +8,7 @@ BEGIN
   FOREACH signature IN ARRAY ARRAY[
     'public.delete_user_data(uuid)',
     'public.accept_bid_atomic(uuid,uuid,uuid,uuid)',
-    'public.try_claim_idempotency_key(text,text,uuid,jsonb,integer)',
-    'public.try_claim_idempotency_key(text,text,uuid,jsonb,integer,integer)',
+    'public.claim_fenced_idempotency(text,text,uuid,text,integer,integer)',
     'public.increment_contractor_contribution_stats(uuid,integer,numeric)',
     'public.claim_contractor_contribution_milestone(uuid)'
   ] LOOP

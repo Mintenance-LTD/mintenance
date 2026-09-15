@@ -92,419 +92,434 @@ export const POST = withApiHandler(
       return NextResponse.json(idem.cachedResult);
     }
 
-    return await releaseOnError(idempotencyKey, 'contract_accept', async () => {
-      // The contract has no payer_user_id column; the designated payer is
-      // stored on the linked job. Use the service client only with the
-      // explicit contract and job-party checks below, so a payer who is not
-      // the primary homeowner can still sign their authorised contract.
-      const { data: contract, error: contractError } = await serverSupabase
-        .from('contracts')
-        .select(
-          'id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date'
-        )
-        .eq('id', contractId)
-        .single();
-
-      if (contractError || !contract) {
-        // Don't reveal if contract exists or not - return generic error
-        throw new NotFoundError('Contract not found or access denied');
-      }
-
-      const { data: linkedJob } = await serverSupabase
-        .from('jobs')
-        .select('payer_user_id')
-        .eq('id', contract.job_id)
-        .single();
-
-      // Verify user is authorized to sign. A designated payer signs in the
-      // homeowner party's place; the contractor still must match the
-      // contract's contractor_id.
-      const isContractor =
-        user.role === 'contractor' && contract.contractor_id === user.id;
-      const isHomeowner =
-        user.role === 'homeowner' &&
-        (contract.homeowner_id === user.id ||
-          linkedJob?.payer_user_id === user.id);
-
-      if (!isContractor && !isHomeowner) {
-        throw new ForbiddenError('Not authorized to sign this contract');
-      }
-
-      // Only pending contracts may be signed. This also prevents a stale
-      // read from allowing a signature on a contract that was cancelled or
-      // rejected while this request was in flight.
-      if (
-        contract.status !== CONTRACT_STATUS.PENDING_CONTRACTOR &&
-        contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER
-      ) {
-        if (contract.status === CONTRACT_STATUS.DRAFT) {
-          throw new BadRequestError(
-            'This contract is still in draft status and cannot be signed.'
-          );
-        }
-        throw new BadRequestError(
-          'This contract is no longer awaiting a signature.'
-        );
-      }
-
-      // Check if already signed
-      if (isContractor && contract.contractor_signed_at) {
-        throw new BadRequestError(
-          'Contractor has already signed this contract'
-        );
-      }
-      if (isHomeowner && contract.homeowner_signed_at) {
-        throw new BadRequestError('Homeowner has already signed this contract');
-      }
-
-      // Sprint 7 (2.2): appointment creation is now handled by a DB trigger
-      // (contract_accepted_create_appointment) so we no longer need to
-      // pre-fetch jobs + homeowner profile here. The trigger joins these
-      // tables server-side in the same transaction as the contract UPDATE.
-
-      // Evidence and signature state share one database transaction.
-      const { data: updatedContract, error: signatureError } =
-        await serverSupabase.rpc('sign_contract_atomic', {
-          p_contract_id: contractId,
-          p_signer_id: user.id,
-          p_signature: signaturePayload,
-          p_ip: getClientIp(request) ?? null,
-          p_user_agent:
-            request.headers.get('user-agent')?.slice(0, 1024) ?? null,
-        });
-      if (signatureError) {
-        if (
-          signatureError.code === '23514' ||
-          signatureError.code === '23505'
-        ) {
-          throw new ConflictError(
-            'This contract changed while you were signing it. Refresh and try again.'
-          );
-        }
-        if (signatureError.code === '42501')
-          throw new ForbiddenError('Not authorized to sign this contract');
-        logger.error('Atomic contract signing failed', signatureError, {
-          service: 'contracts',
-          contractId,
-          userId: user.id,
-        });
-        throw new InternalServerError('Failed to sign contract');
-      }
-      if (!updatedContract)
-        throw new InternalServerError('Signing returned no contract');
-      const shouldFireAcceptedFanout =
-        updatedContract.status === CONTRACT_STATUS.ACCEPTED;
-
-      // Notify the other party that they need to sign (if contract is not yet fully accepted)
-      if (updatedContract.status !== CONTRACT_STATUS.ACCEPTED) {
-        const otherPartyId = isContractor
-          ? contract.homeowner_id
-          : contract.contractor_id;
-        const otherPartyRole = isContractor ? 'homeowner' : 'contractor';
-
-        // Get user's name for the notification message
-        const { data: signerData } = await serverSupabase
-          .from('profiles')
-          .select('first_name, last_name, company_name')
-          .eq('id', user.id)
+    return await releaseOnError(
+      idempotencyKey,
+      'contract_accept',
+      async () => {
+        // The contract has no payer_user_id column; the designated payer is
+        // stored on the linked job. Use the service client only with the
+        // explicit contract and job-party checks below, so a payer who is not
+        // the primary homeowner can still sign their authorised contract.
+        const { data: contract, error: contractError } = await serverSupabase
+          .from('contracts')
+          .select(
+            'id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date'
+          )
+          .eq('id', contractId)
           .single();
 
-        const signerName = signerData
-          ? signerData.first_name && signerData.last_name
-            ? `${signerData.first_name} ${signerData.last_name}`
-            : signerData.company_name || 'Contractor'
-          : user.role === 'contractor'
-            ? 'The contractor'
-            : 'The homeowner';
+        if (contractError || !contract) {
+          // Don't reveal if contract exists or not - return generic error
+          throw new NotFoundError('Contract not found or access denied');
+        }
 
-        // Audit P2 (2026-05-10): capture the otherParty notification id
-        // so the email-send block below can flip `email_sent = true`.
-        let otherPartyNotifId: string | null = null;
-        try {
-          otherPartyNotifId = await NotificationService.createNotification({
-            userId: otherPartyId,
-            title: `${signerName} signed — your turn`,
-            message: `Two-minute read on ${updatedContract.title || 'the contract'}. No money moves at signing.`,
-            type: 'contract_pending_signature',
-            actionUrl:
-              otherPartyRole === 'contractor'
-                ? `/contractor/jobs/${contract.job_id}`
-                : `/jobs/${contract.job_id}`,
+        const { data: linkedJob } = await serverSupabase
+          .from('jobs')
+          .select('payer_user_id')
+          .eq('id', contract.job_id)
+          .single();
+
+        // Verify user is authorized to sign. A designated payer signs in the
+        // homeowner party's place; the contractor still must match the
+        // contract's contractor_id.
+        const isContractor =
+          user.role === 'contractor' && contract.contractor_id === user.id;
+        const isHomeowner =
+          user.role === 'homeowner' &&
+          (contract.homeowner_id === user.id ||
+            linkedJob?.payer_user_id === user.id);
+
+        if (!isContractor && !isHomeowner) {
+          throw new ForbiddenError('Not authorized to sign this contract');
+        }
+
+        // Only pending contracts may be signed. This also prevents a stale
+        // read from allowing a signature on a contract that was cancelled or
+        // rejected while this request was in flight.
+        if (
+          contract.status !== CONTRACT_STATUS.PENDING_CONTRACTOR &&
+          contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER
+        ) {
+          if (contract.status === CONTRACT_STATUS.DRAFT) {
+            throw new BadRequestError(
+              'This contract is still in draft status and cannot be signed.'
+            );
+          }
+          throw new BadRequestError(
+            'This contract is no longer awaiting a signature.'
+          );
+        }
+
+        // Check if already signed
+        if (isContractor && contract.contractor_signed_at) {
+          throw new BadRequestError(
+            'Contractor has already signed this contract'
+          );
+        }
+        if (isHomeowner && contract.homeowner_signed_at) {
+          throw new BadRequestError(
+            'Homeowner has already signed this contract'
+          );
+        }
+
+        // Sprint 7 (2.2): appointment creation is now handled by a DB trigger
+        // (contract_accepted_create_appointment) so we no longer need to
+        // pre-fetch jobs + homeowner profile here. The trigger joins these
+        // tables server-side in the same transaction as the contract UPDATE.
+
+        // Evidence and signature state share one database transaction.
+        const { data: updatedContract, error: signatureError } =
+          await serverSupabase.rpc('sign_contract_atomic', {
+            p_contract_id: contractId,
+            p_signer_id: user.id,
+            p_signature: signaturePayload,
+            p_ip: getClientIp(request) ?? null,
+            p_user_agent:
+              request.headers.get('user-agent')?.slice(0, 1024) ?? null,
           });
-
-          logger.info('Contract signature notification sent', {
+        if (signatureError) {
+          if (
+            signatureError.code === '23514' ||
+            signatureError.code === '23505'
+          ) {
+            throw new ConflictError(
+              'This contract changed while you were signing it. Refresh and try again.'
+            );
+          }
+          if (signatureError.code === '42501')
+            throw new ForbiddenError('Not authorized to sign this contract');
+          logger.error('Atomic contract signing failed', signatureError, {
             service: 'contracts',
             contractId,
-            signerRole: user.role,
-            notifiedUserId: otherPartyId,
-            contractStatus: updatedContract.status,
+            userId: user.id,
           });
-        } catch (notificationError) {
-          logger.error(
-            'Failed to create signature notification',
-            notificationError,
-            {
+          throw new InternalServerError('Failed to sign contract');
+        }
+        if (!updatedContract)
+          throw new InternalServerError('Signing returned no contract');
+        const shouldFireAcceptedFanout =
+          updatedContract.status === CONTRACT_STATUS.ACCEPTED;
+
+        // Notify the other party that they need to sign (if contract is not yet fully accepted)
+        if (updatedContract.status !== CONTRACT_STATUS.ACCEPTED) {
+          const otherPartyId = isContractor
+            ? contract.homeowner_id
+            : contract.contractor_id;
+          const otherPartyRole = isContractor ? 'homeowner' : 'contractor';
+
+          // Get user's name for the notification message
+          const { data: signerData } = await serverSupabase
+            .from('profiles')
+            .select('first_name, last_name, company_name')
+            .eq('id', user.id)
+            .single();
+
+          const signerName = signerData
+            ? signerData.first_name && signerData.last_name
+              ? `${signerData.first_name} ${signerData.last_name}`
+              : signerData.company_name || 'Contractor'
+            : user.role === 'contractor'
+              ? 'The contractor'
+              : 'The homeowner';
+
+          // Audit P2 (2026-05-10): capture the otherParty notification id
+          // so the email-send block below can flip `email_sent = true`.
+          let otherPartyNotifId: string | null = null;
+          try {
+            otherPartyNotifId = await NotificationService.createNotification({
+              userId: otherPartyId,
+              title: `${signerName} signed — your turn`,
+              message: `Two-minute read on ${updatedContract.title || 'the contract'}. No money moves at signing.`,
+              type: 'contract_pending_signature',
+              actionUrl:
+                otherPartyRole === 'contractor'
+                  ? `/contractor/jobs/${contract.job_id}`
+                  : `/jobs/${contract.job_id}`,
+            });
+
+            logger.info('Contract signature notification sent', {
               service: 'contracts',
               contractId,
-            }
-          );
-          // Don't fail the request if notification fails
-        }
-
-        // Send email to other party about pending signature
-        try {
-          const { data: otherPartyProfile } = await serverSupabase
-            .from('profiles')
-            .select('email, first_name, last_name, company_name')
-            .eq('id', otherPartyId)
-            .single();
-
-          if (otherPartyProfile?.email) {
-            const recipientName =
-              otherPartyProfile.first_name && otherPartyProfile.last_name
-                ? `${otherPartyProfile.first_name} ${otherPartyProfile.last_name}`
-                : otherPartyProfile.company_name || 'there';
-            const viewUrl =
-              otherPartyRole === 'contractor'
-                ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${contract.job_id}`
-                : `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${contract.job_id}`;
-
-            const emailOk = await EmailService.sendContractSignedEmail(
-              otherPartyProfile.email,
-              {
-                recipientName,
-                signerName,
-                jobTitle: updatedContract.title || 'Job',
-                contractTitle: updatedContract.title || 'Contract',
-                isFullyAccepted: false,
-                viewUrl,
-              }
-            );
-            if (emailOk && otherPartyNotifId) {
-              await NotificationService.markEmailSent(otherPartyNotifId);
-            }
-          }
-        } catch (emailError) {
-          logger.error('Failed to send contract signed email', emailError, {
-            service: 'contracts',
-            contractId,
-          });
-        }
-      }
-
-      // If contract is now accepted, create notifications and schedule job.
-      // Guarded by `shouldFireAcceptedFanout` so the simultaneous-sign
-      // race fires this exactly once (see race-condition fix above).
-      if (shouldFireAcceptedFanout) {
-        // Notify both parties.
-        //
-        // Audit P2 (2026-05-10): capture both notification ids so the
-        // email-send block below can flip `email_sent = true` per
-        // recipient. Promise.all preserves order so [0]=contractor, [1]=homeowner.
-        let contractorAcceptedNotifId: string | null = null;
-        let homeownerAcceptedNotifId: string | null = null;
-        try {
-          // 2026-05-21 Mint Editorial voice: both sides signed, name the
-          // next step (escrow funding for homeowner; awaiting escrow for
-          // contractor) rather than a generic "Accepted!".
-          const jobLabel = updatedContract.title || 'your job';
-          const [cId, hId] = await Promise.all([
-            NotificationService.createNotification({
-              userId: contract.contractor_id,
-              title: `${jobLabel} — contract is live`,
-              message: `Both sides signed. The homeowner is funding escrow next; you'll get a notification when the money lands.`,
-              type: 'contract_signed',
-              actionUrl: `/contractor/jobs/${contract.job_id}`,
-            }),
-            NotificationService.createNotification({
-              userId: contract.homeowner_id,
-              title: `${jobLabel} — contract is live`,
-              message: `Both sides signed. Next step is to fund the escrow — payment stays held until you approve the finished work.`,
-              type: 'contract_signed',
-              actionUrl: `/jobs/${contract.job_id}`,
-            }),
-          ]);
-          contractorAcceptedNotifId = cId;
-          homeownerAcceptedNotifId = hId;
-        } catch (notificationError) {
-          logger.error(
-            'Failed to create acceptance notifications',
-            notificationError,
-            {
-              service: 'contracts',
-              contractId,
-            }
-          );
-          // Don't fail the request
-        }
-
-        // Dedicated payment prompt for the homeowner. The
-        // contract_signed message above only *mentions* escrow in body
-        // text; payment_required is the actionable event that deep-links
-        // straight to /jobs/[id]/payment (and the mobile routing table
-        // sends it to the job's Pay CTA). Fires only inside the
-        // shouldFireAcceptedFanout guard, so the simultaneous-sign race
-        // and idempotent retries emit it exactly once. Swallows its own
-        // errors — never fails the signing request.
-        await notifyPaymentEvent({
-          userId: contract.homeowner_id,
-          jobId: contract.job_id,
-          jobTitle: updatedContract.title || 'your job',
-          amount: Number(updatedContract.amount ?? 0),
-          eventType: 'required',
-        });
-
-        // Send email to both parties about fully accepted contract
-        try {
-          const { data: contractorProfile } = await serverSupabase
-            .from('profiles')
-            .select('email, first_name, last_name, company_name')
-            .eq('id', contract.contractor_id)
-            .single();
-
-          const { data: homeownerProfile2 } = await serverSupabase
-            .from('profiles')
-            .select('email, first_name, last_name')
-            .eq('id', contract.homeowner_id)
-            .single();
-
-          const baseUrl =
-            process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
-
-          if (contractorProfile?.email) {
-            const name =
-              contractorProfile.first_name && contractorProfile.last_name
-                ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-                : contractorProfile.company_name || 'Contractor';
-            const emailOk = await EmailService.sendContractSignedEmail(
-              contractorProfile.email,
-              {
-                recipientName: name,
-                signerName: homeownerProfile2
-                  ? `${homeownerProfile2.first_name || ''} ${homeownerProfile2.last_name || ''}`.trim() ||
-                    'Homeowner'
-                  : 'Homeowner',
-                jobTitle: updatedContract.title || 'Job',
-                contractTitle: updatedContract.title || 'Contract',
-                isFullyAccepted: true,
-                viewUrl: `${baseUrl}/contractor/jobs/${contract.job_id}`,
-              }
-            );
-            if (emailOk && contractorAcceptedNotifId) {
-              await NotificationService.markEmailSent(
-                contractorAcceptedNotifId
-              );
-            }
-          }
-
-          if (homeownerProfile2?.email) {
-            const name =
-              homeownerProfile2.first_name && homeownerProfile2.last_name
-                ? `${homeownerProfile2.first_name} ${homeownerProfile2.last_name}`
-                : 'Homeowner';
-            const emailOk = await EmailService.sendContractSignedEmail(
-              homeownerProfile2.email,
-              {
-                recipientName: name,
-                signerName: contractorProfile
-                  ? contractorProfile.first_name && contractorProfile.last_name
-                    ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-                    : contractorProfile.company_name || 'Contractor'
-                  : 'Contractor',
-                jobTitle: updatedContract.title || 'Job',
-                contractTitle: updatedContract.title || 'Contract',
-                isFullyAccepted: true,
-                viewUrl: `${baseUrl}/jobs/${contract.job_id}`,
-              }
-            );
-            if (emailOk && homeownerAcceptedNotifId) {
-              await NotificationService.markEmailSent(homeownerAcceptedNotifId);
-            }
-          }
-        } catch (emailError) {
-          logger.error('Failed to send contract accepted emails', emailError, {
-            service: 'contracts',
-            contractId,
-          });
-        }
-
-        // Update job with contract dates and schedule on both calendars.
-        // Historical note: this used to also set `scheduled_date`, but that
-        // column does not exist on `jobs` — including it caused Supabase to
-        // reject the whole update, so the schedule silently never landed
-        // when a contract was accepted. Calendars were blank as a result.
-        if (updatedContract.start_date || updatedContract.end_date) {
-          const jobUpdateData: {
-            updated_at: string;
-            scheduled_start_date?: string;
-            scheduled_end_date?: string;
-          } = {
-            updated_at: new Date().toISOString(),
-          };
-
-          if (updatedContract.start_date) {
-            jobUpdateData.scheduled_start_date = updatedContract.start_date;
-          }
-          if (updatedContract.end_date) {
-            jobUpdateData.scheduled_end_date = updatedContract.end_date;
-          }
-
-          // Update job with contract dates
-          const { error: jobUpdateError } = await serverSupabase
-            .from('jobs')
-            .update(jobUpdateData)
-            .eq('id', contract.job_id);
-
-          if (jobUpdateError) {
+              signerRole: user.role,
+              notifiedUserId: otherPartyId,
+              contractStatus: updatedContract.status,
+            });
+          } catch (notificationError) {
             logger.error(
-              'Failed to update job with contract dates',
-              jobUpdateError,
+              'Failed to create signature notification',
+              notificationError,
               {
                 service: 'contracts',
-                jobId: contract.job_id,
                 contractId,
               }
             );
-            // Don't fail the request, but log the error
-          } else {
-            logger.info('Job scheduled with contract dates', {
-              service: 'contracts',
-              jobId: contract.job_id,
-              contractId,
-              startDate: updatedContract.start_date,
-              endDate: updatedContract.end_date,
-              scheduledDate: updatedContract.start_date,
-            });
+            // Don't fail the request if notification fails
           }
 
-          // Sprint 7 (2.2): appointment creation is now handled atomically by
-          // the `contract_accepted_create_appointment` trigger on
-          // public.contracts (migration 20260417000001). If the trigger
-          // failed, the UPDATE above would have been rolled back and we
-          // wouldn't be in this branch. See create_appointment_from_accepted_contract()
-          // — idempotent, joins jobs + profiles for enrichment, skips if
-          // an appointment already exists for the (job_id, contractor_id) pair.
+          // Send email to other party about pending signature
+          try {
+            const { data: otherPartyProfile } = await serverSupabase
+              .from('profiles')
+              .select('email, first_name, last_name, company_name')
+              .eq('id', otherPartyId)
+              .single();
+
+            if (otherPartyProfile?.email) {
+              const recipientName =
+                otherPartyProfile.first_name && otherPartyProfile.last_name
+                  ? `${otherPartyProfile.first_name} ${otherPartyProfile.last_name}`
+                  : otherPartyProfile.company_name || 'there';
+              const viewUrl =
+                otherPartyRole === 'contractor'
+                  ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${contract.job_id}`
+                  : `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${contract.job_id}`;
+
+              const emailOk = await EmailService.sendContractSignedEmail(
+                otherPartyProfile.email,
+                {
+                  recipientName,
+                  signerName,
+                  jobTitle: updatedContract.title || 'Job',
+                  contractTitle: updatedContract.title || 'Contract',
+                  isFullyAccepted: false,
+                  viewUrl,
+                }
+              );
+              if (emailOk && otherPartyNotifId) {
+                await NotificationService.markEmailSent(otherPartyNotifId);
+              }
+            }
+          } catch (emailError) {
+            logger.error('Failed to send contract signed email', emailError, {
+              service: 'contracts',
+              contractId,
+            });
+          }
         }
-      }
 
-      const responseData = {
-        success: true,
-        contract: updatedContract,
-        message:
-          updatedContract.status === CONTRACT_STATUS.ACCEPTED
-            ? 'Contract accepted! Both parties have signed.'
-            : 'Contract signed. Waiting for other party to sign.',
-      };
+        // If contract is now accepted, create notifications and schedule job.
+        // Guarded by `shouldFireAcceptedFanout` so the simultaneous-sign
+        // race fires this exactly once (see race-condition fix above).
+        if (shouldFireAcceptedFanout) {
+          // Notify both parties.
+          //
+          // Audit P2 (2026-05-10): capture both notification ids so the
+          // email-send block below can flip `email_sent = true` per
+          // recipient. Promise.all preserves order so [0]=contractor, [1]=homeowner.
+          let contractorAcceptedNotifId: string | null = null;
+          let homeownerAcceptedNotifId: string | null = null;
+          try {
+            // 2026-05-21 Mint Editorial voice: both sides signed, name the
+            // next step (escrow funding for homeowner; awaiting escrow for
+            // contractor) rather than a generic "Accepted!".
+            const jobLabel = updatedContract.title || 'your job';
+            const [cId, hId] = await Promise.all([
+              NotificationService.createNotification({
+                userId: contract.contractor_id,
+                title: `${jobLabel} — contract is live`,
+                message: `Both sides signed. The homeowner is funding escrow next; you'll get a notification when the money lands.`,
+                type: 'contract_signed',
+                actionUrl: `/contractor/jobs/${contract.job_id}`,
+              }),
+              NotificationService.createNotification({
+                userId: contract.homeowner_id,
+                title: `${jobLabel} — contract is live`,
+                message: `Both sides signed. Next step is to fund the escrow — payment stays held until you approve the finished work.`,
+                type: 'contract_signed',
+                actionUrl: `/jobs/${contract.job_id}`,
+              }),
+            ]);
+            contractorAcceptedNotifId = cId;
+            homeownerAcceptedNotifId = hId;
+          } catch (notificationError) {
+            logger.error(
+              'Failed to create acceptance notifications',
+              notificationError,
+              {
+                service: 'contracts',
+                contractId,
+              }
+            );
+            // Don't fail the request
+          }
 
-      await storeIdempotencyResult(
-        idempotencyKey,
-        'contract_accept',
-        responseData,
-        user.id,
-        { contractId, jobId: contract.job_id }
-      );
+          // Dedicated payment prompt for the homeowner. The
+          // contract_signed message above only *mentions* escrow in body
+          // text; payment_required is the actionable event that deep-links
+          // straight to /jobs/[id]/payment (and the mobile routing table
+          // sends it to the job's Pay CTA). Fires only inside the
+          // shouldFireAcceptedFanout guard, so the simultaneous-sign race
+          // and idempotent retries emit it exactly once. Swallows its own
+          // errors — never fails the signing request.
+          await notifyPaymentEvent({
+            userId: contract.homeowner_id,
+            jobId: contract.job_id,
+            jobTitle: updatedContract.title || 'your job',
+            amount: Number(updatedContract.amount ?? 0),
+            eventType: 'required',
+          });
 
-      return NextResponse.json(responseData);
-    });
+          // Send email to both parties about fully accepted contract
+          try {
+            const { data: contractorProfile } = await serverSupabase
+              .from('profiles')
+              .select('email, first_name, last_name, company_name')
+              .eq('id', contract.contractor_id)
+              .single();
+
+            const { data: homeownerProfile2 } = await serverSupabase
+              .from('profiles')
+              .select('email, first_name, last_name')
+              .eq('id', contract.homeowner_id)
+              .single();
+
+            const baseUrl =
+              process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+
+            if (contractorProfile?.email) {
+              const name =
+                contractorProfile.first_name && contractorProfile.last_name
+                  ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+                  : contractorProfile.company_name || 'Contractor';
+              const emailOk = await EmailService.sendContractSignedEmail(
+                contractorProfile.email,
+                {
+                  recipientName: name,
+                  signerName: homeownerProfile2
+                    ? `${homeownerProfile2.first_name || ''} ${homeownerProfile2.last_name || ''}`.trim() ||
+                      'Homeowner'
+                    : 'Homeowner',
+                  jobTitle: updatedContract.title || 'Job',
+                  contractTitle: updatedContract.title || 'Contract',
+                  isFullyAccepted: true,
+                  viewUrl: `${baseUrl}/contractor/jobs/${contract.job_id}`,
+                }
+              );
+              if (emailOk && contractorAcceptedNotifId) {
+                await NotificationService.markEmailSent(
+                  contractorAcceptedNotifId
+                );
+              }
+            }
+
+            if (homeownerProfile2?.email) {
+              const name =
+                homeownerProfile2.first_name && homeownerProfile2.last_name
+                  ? `${homeownerProfile2.first_name} ${homeownerProfile2.last_name}`
+                  : 'Homeowner';
+              const emailOk = await EmailService.sendContractSignedEmail(
+                homeownerProfile2.email,
+                {
+                  recipientName: name,
+                  signerName: contractorProfile
+                    ? contractorProfile.first_name &&
+                      contractorProfile.last_name
+                      ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+                      : contractorProfile.company_name || 'Contractor'
+                    : 'Contractor',
+                  jobTitle: updatedContract.title || 'Job',
+                  contractTitle: updatedContract.title || 'Contract',
+                  isFullyAccepted: true,
+                  viewUrl: `${baseUrl}/jobs/${contract.job_id}`,
+                }
+              );
+              if (emailOk && homeownerAcceptedNotifId) {
+                await NotificationService.markEmailSent(
+                  homeownerAcceptedNotifId
+                );
+              }
+            }
+          } catch (emailError) {
+            logger.error(
+              'Failed to send contract accepted emails',
+              emailError,
+              {
+                service: 'contracts',
+                contractId,
+              }
+            );
+          }
+
+          // Update job with contract dates and schedule on both calendars.
+          // Historical note: this used to also set `scheduled_date`, but that
+          // column does not exist on `jobs` — including it caused Supabase to
+          // reject the whole update, so the schedule silently never landed
+          // when a contract was accepted. Calendars were blank as a result.
+          if (updatedContract.start_date || updatedContract.end_date) {
+            const jobUpdateData: {
+              updated_at: string;
+              scheduled_start_date?: string;
+              scheduled_end_date?: string;
+            } = {
+              updated_at: new Date().toISOString(),
+            };
+
+            if (updatedContract.start_date) {
+              jobUpdateData.scheduled_start_date = updatedContract.start_date;
+            }
+            if (updatedContract.end_date) {
+              jobUpdateData.scheduled_end_date = updatedContract.end_date;
+            }
+
+            // Update job with contract dates
+            const { error: jobUpdateError } = await serverSupabase
+              .from('jobs')
+              .update(jobUpdateData)
+              .eq('id', contract.job_id);
+
+            if (jobUpdateError) {
+              logger.error(
+                'Failed to update job with contract dates',
+                jobUpdateError,
+                {
+                  service: 'contracts',
+                  jobId: contract.job_id,
+                  contractId,
+                }
+              );
+              // Don't fail the request, but log the error
+            } else {
+              logger.info('Job scheduled with contract dates', {
+                service: 'contracts',
+                jobId: contract.job_id,
+                contractId,
+                startDate: updatedContract.start_date,
+                endDate: updatedContract.end_date,
+                scheduledDate: updatedContract.start_date,
+              });
+            }
+
+            // Sprint 7 (2.2): appointment creation is now handled atomically by
+            // the `contract_accepted_create_appointment` trigger on
+            // public.contracts (migration 20260417000001). If the trigger
+            // failed, the UPDATE above would have been rolled back and we
+            // wouldn't be in this branch. See create_appointment_from_accepted_contract()
+            // — idempotent, joins jobs + profiles for enrichment, skips if
+            // an appointment already exists for the (job_id, contractor_id) pair.
+          }
+        }
+
+        const responseData = {
+          success: true,
+          contract: updatedContract,
+          message:
+            updatedContract.status === CONTRACT_STATUS.ACCEPTED
+              ? 'Contract accepted! Both parties have signed.'
+              : 'Contract signed. Waiting for other party to sign.',
+        };
+
+        await storeIdempotencyResult(
+          idempotencyKey,
+          'contract_accept',
+          responseData,
+          user.id,
+          { contractId, jobId: contract.job_id },
+          idem?.ownership
+        );
+
+        return NextResponse.json(responseData);
+      },
+      idem?.ownership
+    );
   }
 );
