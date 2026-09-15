@@ -803,3 +803,14 @@ original-local or hosted database was changed. The overall goal remains active.
 
 Required isolated supabase db diff --local completed exit 0 after full migration replay, with no
 schema drift (financial-client-updates-diff.log).
+
+### 2026-09-15 — Proposed retention policy following owner instruction
+
+The owner confirmed there is no existing retention policy and authorised drafting one. Added
+`DATA-RETENTION-POLICY-DRAFT.md`, grounded in ICO storage-limitation/erasure guidance, GOV.UK
+accounting-record guidance and the Limitation Act. It specifies proposed category-specific periods,
+restricted access after account closure, scoped reviewable holds, backup disposal and implementation
+acceptance criteria. Legal/accounting review and technical enforcement are outstanding; this is not
+a claim of compliance or completed account-erasure remediation. No application behavior or database
+state changed in this checkpoint. The empty atomic co-sign/delete migration remains work in progress
+and is excluded from this documentation commit.
