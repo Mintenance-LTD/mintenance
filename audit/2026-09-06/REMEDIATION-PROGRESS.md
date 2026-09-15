@@ -1172,3 +1172,31 @@ Auth/library/manager/API target run: 57 tests passed. Web typecheck and source l
 database boundary remains independently enforced by the already validated refresh insertion trigger
 and mobile session-creation guard; no schema changed in this checkpoint. A full web run is being
 observed separately. Browser/device login and password-reset completion still remain unverified.
+
+### 2026-09-15 — original F15 real isolation suite and strict fixture cleanup
+
+- Full web coverage at `987087919`: **3,457 tests / 312 files passed**
+  (`web-session-boundary-full-coverage.log`). This does not include the separately configured real
+  database suites.
+- Ran the original `apps/web/__tests__/integration-real/cross-user-isolation.integration.test.ts`
+  against the disposable API on port 55321, using five synthetic Auth accounts and the real REST/RLS
+  implementation, with `vitest.integration.config.ts` (no mock setup). Four tests passed. This
+  exercises properties, jobs/discovery/assignment, messages, contractor documents, tenant
+  report/token isolation and administrator access; it is not a browser journey test.
+- Post-run counts exposed a fixture defect: one synthetic contractor survived because
+  `job_audit_log_changed_by_fkey` blocked profile deletion and cleanup ignored errors. Reproduced
+  the constraint failure inside a rolled-back transaction. The fixture now removes only its
+  synthetic actor's audit rows, checks profile/Auth/job cleanup errors and verifies Auth user
+  absence. Removed the exact leftover fixture from the disposable stack.
+- Strengthened negative read checks to require error-free queries, added positive owner
+  message/document reads, required the forged property insert to fail with SQLSTATE 42501, and
+  checked the foreign property remained unchanged.
+- Final real suite: **4/4 passed**, 4.67 seconds (`original-isolation-strengthened.log`); web
+  TypeScript check passed. Post-run database counts: **0 recent synthetic accounts, 0 jobs, 0
+  properties**. No hosted database or production data touched.
+- Added ignored diagnostic launcher `isolated-stack/run-original-isolation.cjs`; it captures local
+  stack credentials in memory, asserts the exact disposable API URL and clears deployment
+  environment values. No credentials logged. Existing unrelated worktree tsconfig parsing warnings
+  remain in Vitest output.
+- Remaining: other real database suites, full browser/device journeys and external payment-provider
+  recovery still require their own evidence. This checkpoint does not establish public readiness.
