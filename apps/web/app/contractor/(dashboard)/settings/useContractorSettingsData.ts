@@ -274,20 +274,18 @@ export function useContractorSettingsData() {
   };
 
   const handleChangePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
+    if (isSaving) return;
     setIsSaving(true);
     try {
-      toast.success('Password changed successfully');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-    } catch {
-      toast.error('Error changing password');
+      const { changeAccountPassword } =
+        await import('@/lib/change-account-password');
+      if (await changeAccountPassword(passwordData)) {
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+      }
     } finally {
       setIsSaving(false);
     }

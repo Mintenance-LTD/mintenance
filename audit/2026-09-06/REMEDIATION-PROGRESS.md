@@ -1114,3 +1114,41 @@ password-change implementation; it is not yet wired to the contractor form.
 GitHub checkpoint: after explicit repository/source authorization, all five prior commits were
 pushed to Mintenance-LTD/mintenance, codex/migrate-next-proxy, and ls-remote confirmed
 e55651171ce3a75ce211b1b4cf68ae47c0bc7254.
+
+### 2026-09-15 — Real password change with durable web-session cleanup
+
+Added authenticated POST /api/auth/change-password. It uses a fresh provider identity for the
+authenticated actor, verifies the current password against that identity, removes the temporary
+local-scope Auth session and requires a fresh TOTP/backup code when MFA is enabled. It validates
+password strength and breached-password status, rejects arbitrary actor fields, and enforces
+per-account and per-IP auth-critical rate budgets. Neither password nor provider token is stored in
+the recovery journal or returned.
+
+CLI migration 20260915155133_durable_password_change_revocation.sql adds internal operation records
+and service-only begin/finish/recovery functions. Begin locks the account and compares its
+revocation cutoff with the pre-verification snapshot, rejecting stale concurrent verification. It
+records durable cleanup and revokes existing custom web sessions before the provider update.
+Confirmed provider updates are followed by a second atomic revocation to catch intermediate
+login/refresh races; completion and revocation commit together. Failed acknowledgement leaves work
+queued. Unknown provider outcomes are not automatically replayed; delayed cleanup is eligible after
+two minutes and a five-minute cron recovers it without retaining passwords. Completed cleanup replay
+does not invalidate later logins. The schedule is repository configuration, not deployed/verified
+hosting behavior; journal retention/disposal remains part of the open retention work.
+
+Both active web settings paths now use the shared server client. The contractor handler no longer
+shows a success toast without a request, and the homeowner helper no longer mutates only the browser
+Supabase session. The shared client sends CSRF, prompts for MFA only when the server requires it,
+preserves caller inputs on failure and distinguishes 200 completed from 202 pending. Both outcomes
+explain sign-in requirements; an ambiguous provider result advises trying the new password or reset
+without claiming success. The reset-email route and direct mobile/provider password updates remain
+separate surfaces requiring equivalent custom-session handling.
+
+Evidence: rollback SQL passed for direct-client denial, stale proof rejection, failed final
+acknowledgement with retained pending work, recovery of an intervening token, and completed replay
+preserving a fresh login. A real two-connection lock test proved concurrent begin calls cannot both
+use the same verification snapshot. Actual local Auth/REST sequence passed current-password
+verification, scoped temporary logout, durable begin, password update, durable finish, old
+password/refresh rejection and new-password login. Final targeted client/route/contractor-hook run:
+14 tests passed; web typecheck and changed-source ESLint passed. Isolated migration replay completed
+exit 0/no drift. Full coverage result follows after completion; no browser/emulator or hosted cron
+was exercised.

@@ -100,46 +100,14 @@ export async function uploadAvatar(
   return null;
 }
 
-/** Change user password via Supabase Auth */
+/** Change password through the actor-bound server operation. */
 export async function changePassword(
   passwordData: PasswordData,
-  userEmail: string
+  _userEmail: string
 ): Promise<boolean> {
-  if (passwordData.newPassword !== passwordData.confirmPassword) {
-    toast.error('Passwords do not match');
-    return false;
-  }
-  if (passwordData.newPassword.length < 8) {
-    toast.error('Password must be at least 8 characters');
-    return false;
-  }
-
-  try {
-    const { supabase } = await import('@/lib/supabase');
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: userEmail,
-      password: passwordData.currentPassword,
-    });
-    if (authError) {
-      toast.error('Current password is incorrect');
-      return false;
-    }
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: passwordData.newPassword,
-    });
-    if (updateError) {
-      toast.error(updateError.message || 'Failed to change password');
-      return false;
-    }
-
-    toast.success('Password changed successfully');
-    return true;
-  } catch {
-    toast.error('Error changing password');
-    return false;
-  }
+  const { changeAccountPassword } =
+    await import('@/lib/change-account-password');
+  return changeAccountPassword(passwordData);
 }
 
 /**
