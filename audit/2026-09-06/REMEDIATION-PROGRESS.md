@@ -1453,3 +1453,17 @@ observed separately. Browser/device login and password-reset completion still re
   signing verification.
 - No database migration, hosted changes or deployment in this checkpoint. Other idempotency consumer
   authorization ordering and broader readiness gates remain open.
+
+### 2026-09-15 — Job start and rework replay authorization
+
+- Moved current assigned-contractor and designated-payer checks before cached idempotency responses
+  in job start and request-changes routes. Missing jobs and former participants cannot recover
+  cached success. Transition checks remain after cache recovery so legitimate retries do not repeat
+  work.
+- Added six controlled-handler regression cases covering both routes: former participant denial
+  before cache lookup, missing job denial, and current participant recovery without RPC/update
+  execution. Authentication and database boundaries are mocked; these are not browser or
+  real-session tests.
+- Targeted job replay/start/rework suites: **28 tests / 3 files passed**, exit 0, 3.38 seconds
+  (`job-replay-access-final.log`). Source ESLint passed. No database migration or hosted mutation.
+  Broader readiness verification remains open.

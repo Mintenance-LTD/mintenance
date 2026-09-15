@@ -60,6 +60,26 @@ export const POST = withApiHandler(
       );
     }
 
+    // 1. Fetch job and verify designated-payer access
+    const { data: job, error } = await serverSupabase
+      .from('jobs')
+      .select('id, homeowner_id, payer_user_id, contractor_id, title, status')
+      .eq('id', jobId)
+      .single();
+
+    if (error || !job) {
+      throw new NotFoundError('Job not found');
+    }
+
+    const isDesignatedPayer =
+      job.payer_user_id === user.id ||
+      (!job.payer_user_id && job.homeowner_id === user.id);
+    if (!isDesignatedPayer) {
+      throw new ForbiddenError(
+        'Only the homeowner or designated payer can request changes'
+      );
+    }
+
     // Idempotency — without it, a network retry would re-fire the
     // contractor notification + the change-request email even though
     // the status flip is already done. Status is checked below
@@ -93,28 +113,6 @@ export const POST = withApiHandler(
       idempotencyKey,
       'request_changes',
       async () => {
-        // 1. Fetch job and verify designated-payer access
-        const { data: job, error } = await serverSupabase
-          .from('jobs')
-          .select(
-            'id, homeowner_id, payer_user_id, contractor_id, title, status'
-          )
-          .eq('id', jobId)
-          .single();
-
-        if (error || !job) {
-          throw new NotFoundError('Job not found');
-        }
-
-        const isDesignatedPayer =
-          job.payer_user_id === user.id ||
-          (!job.payer_user_id && job.homeowner_id === user.id);
-        if (!isDesignatedPayer) {
-          throw new ForbiddenError(
-            'Only the homeowner or designated payer can request changes'
-          );
-        }
-
         const { error: reworkError } = await serverSupabase.rpc(
           'request_job_rework',
           {

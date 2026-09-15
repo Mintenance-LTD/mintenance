@@ -38,6 +38,24 @@ export const POST = withApiHandler(
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const jobId = params.id;
 
+    // 1. Fetch job (user-scoped read)
+    const { data: job, error } = await userDb
+      .from('jobs')
+      .select('id, contractor_id, homeowner_id, status, title')
+      .eq('id', jobId)
+      .single();
+
+    if (error || !job) {
+      throw new NotFoundError('Job not found');
+    }
+
+    // 2. Verify contractor is assigned to this job
+    if (job.contractor_id !== user.id) {
+      throw new ForbiddenError(
+        'Only the assigned contractor can start this job'
+      );
+    }
+
     // 0. Idempotency — guard against double-tap, network retries, or
     //    background-task re-fires. Without this, a retried request
     //    would re-fan out notifications + re-send the job-started
@@ -71,24 +89,6 @@ export const POST = withApiHandler(
       idempotencyKey,
       'job_start',
       async () => {
-        // 1. Fetch job (user-scoped read)
-        const { data: job, error } = await userDb
-          .from('jobs')
-          .select('id, contractor_id, homeowner_id, status, title')
-          .eq('id', jobId)
-          .single();
-
-        if (error || !job) {
-          throw new NotFoundError('Job not found');
-        }
-
-        // 2. Verify contractor is assigned to this job
-        if (job.contractor_id !== user.id) {
-          throw new ForbiddenError(
-            'Only the assigned contractor can start this job'
-          );
-        }
-
         // 3. Validate state transition (assigned → in_progress)
         validateStatusTransition(job.status as JobStatus, 'in_progress');
 
