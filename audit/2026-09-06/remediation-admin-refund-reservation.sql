@@ -15,6 +15,14 @@ INSERT INTO public.user_credits(user_id,balance_pence)
  VALUES('fa140909-0000-4000-8000-000000000201',5000);
 
 UPDATE public.profiles SET role='admin' WHERE id='fa140909-0000-4000-8000-000000000203';
+CREATE FUNCTION pg_temp.fail_admin_notification() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF current_setting('audit.fail_admin_notification',true)='on' THEN
+  RAISE EXCEPTION 'Synthetic notification failure' USING ERRCODE='ZX001'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER audit_fail_admin_notification BEFORE INSERT ON public.notifications
+FOR EACH ROW EXECUTE FUNCTION pg_temp.fail_admin_notification();
 SET LOCAL ROLE service_role;
 DO $$
 DECLARE f public.payment_funding_reservations; e public.escrow_transactions;
@@ -46,8 +54,22 @@ BEGIN
  PERFORM public.record_escrow_refund_outcome(r.id,'re_admin_fixture','pending');
  IF (SELECT status FROM public.escrow_transactions WHERE id=e.id)<>'release_pending' THEN
   RAISE EXCEPTION 'Pending refund lost claim'; END IF;
+ IF EXISTS(SELECT FROM public.notifications WHERE metadata->>'refundOperationId'=r.id::text) THEN
+  RAISE EXCEPTION 'Pending refund notified success'; END IF;
+ PERFORM set_config('audit.fail_admin_notification','on',true);
+ BEGIN
+  PERFORM public.record_escrow_refund_outcome(r.id,'re_admin_fixture','succeeded');
+  RAISE EXCEPTION 'Notification failure did not abort settlement';
+ EXCEPTION WHEN SQLSTATE 'ZX001' THEN NULL; END;
+ IF (SELECT remaining_minor FROM public.escrow_refund_balances WHERE escrow_id=e.id)<>50000 OR
+    (SELECT state FROM public.escrow_refund_operations WHERE id=r.id)<>'pending' THEN
+  RAISE EXCEPTION 'Failed notification left partial settlement'; END IF;
+ PERFORM set_config('audit.fail_admin_notification','off',true);
  PERFORM public.record_escrow_refund_outcome(r.id,'re_admin_fixture','succeeded');
  PERFORM public.record_escrow_refund_outcome(r.id,'re_admin_fixture','succeeded');
+ IF (SELECT count(*) FROM public.notifications WHERE metadata->>'refundOperationId'=r.id::text)<>2 OR
+    (SELECT count(*) FROM public.audit_logs WHERE new_values->>'operation_id'=r.id::text)<>1 THEN
+  RAISE EXCEPTION 'Settlement notification/audit missing or duplicated'; END IF;
  IF (SELECT remaining_minor FROM public.escrow_refund_balances WHERE escrow_id=e.id)<>40000 THEN
   RAISE EXCEPTION 'Partial refund settled incorrectly'; END IF;
  SELECT * INTO r FROM public.reserve_admin_escrow_refund(administrator,job,e.id,'remaining-admin',40000,'Synthetic remaining');

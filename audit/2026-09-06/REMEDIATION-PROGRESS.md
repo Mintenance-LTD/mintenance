@@ -1583,3 +1583,63 @@ observed separately. Browser/device login and password-reset completion still re
 - Commit file-size gate required extracting the existing guarded admin refund action and audit
   writer into AdminRefundAction.ts. After extraction, the same 39 tests passed (1.97 seconds;
   admin-refund-extraction.log); no hook bypass was used.
+
+### 2026-09-15 — Admin refund route/browser durable integration (in progress)
+
+- AdminRefundAction now uses readRefundContext, reserveAdminRefund and recoverRefund instead of
+  direct Stripe/refund escrow updates. Requires a scoped request key, derives omitted amount from
+  remaining principal or original replay amount, rejects excessive amounts rather than clamping,
+  returns 202 success:false for unknown/pending outcomes, and returns actual cash/credit/remaining
+  totals only after confirmed settlement. Current admin authority remains checked at route and
+  reservation boundaries.
+- Admin page supplies authenticated actor identity; browser persists actor/escrow-scoped payload and
+  key before network access, restores saved form values, and offers Check refund for saved actions
+  even after escrow status changes. Pending/network failures retain identity; a confirmed action
+  retires it so another identical partial refund gets a new key. Admin and payer browser slots are
+  separate.
+- Route/recovery/browser request group: **54 tests / 3 files passed**, exit 0, 3.24 seconds
+  (`admin-refund-integration.log`). Web TypeScript and source lint passed. These are mocked-boundary
+  route and persistence tests, not rendered UI or real Stripe tests.
+- Integration remains in progress and uncommitted: replace previous route-level notification fanout
+  with durable settlement notifications, verify rendered recovery UI, test concurrent admin
+  reservations on real DB, and verify full-refund downstream job/contract semantics. No production
+  readiness claim or deployment.
+
+### 2026-09-15 — Transactional admin refund notifications and concurrency
+
+- CLI-created migration 20260915182522_durable_admin_refund_notifications.sql inserts in-app
+  payer/payee notifications and an audit record in the same transaction as admin refund settlement.
+  Replayed success creates neither duplicate notifications nor duplicate audit entries. A
+  notification failure rolls settlement back so provider reconciliation can retry it. Push/email
+  delivery is not established by these inserts.
+- Real DB execution exposed the previous route audit writer using nonexistent audit_logs columns and
+  an invalid action value. Corrected both migration and shared writer to actual
+  table_name/record_id/new_values columns, with action UPDATE and named event metadata. Removed
+  route refund audit duplication; other admin actions retain the corrected writer.
+- Extended rollback SQL passed: pending outcomes send no success notification; repeated confirmation
+  creates two recipient notifications and one audit row; injected notification failure leaves the
+  pending operation and full balance intact. New remediation-admin-refund-race.py passed on separate
+  DB connections: one competing reservation wins; concurrent finalizations deduct once and emit
+  notifications/audit once. Synthetic fixtures cleaned up; no provider calls.
+- Web route/recovery/browser request group remained **54 tests / 3 files passed**, exit 0, 3.10
+  seconds (admin-refund-notifications-web.log). UI rendering and full-refund contract lifecycle
+  semantics remain unverified; broader F1-F15 goal remains open.
+- Isolated migration replay/diff passed with exit 0 and no schema differences
+  (admin-refund-notifications-diff.log). Source lint and web TypeScript passed. Refund form now
+  labels original payment separately and calls the full option Full remaining balance, avoiding a
+  promise to refund the original amount again after partial refunds.
+
+### 2026-09-15 — Admin refund form verification
+
+- Actual ActionModal rendered in test DOM: three tests passed for restored partial refund
+  amount/reason, unchanged submission payload, preserved values/disabled submission while
+  processing, and full remaining balance without a client-selected amount (`admin-refund-form.log`,
+  exit 0, 3.36 seconds). This is component DOM verification, not a live browser/auth/provider
+  journey.
+- Final local advisors exit 1 with the same spatial_ref_sys RLS error and PostGIS extension warning,
+  no new reported item (`admin-refund-final-advisors.log`).
+- Source search confirmed refund recovery is currently invoked by route retries and verified
+  webhooks, with no cron sweep for abandoned reserved/pending refund operations. A bounded durable
+  recovery sweep remains required; do not describe unattended recovery as complete.
+- Full isolated web coverage for the combined integration: **3,525 tests / 319 files passed**,
+  178.15 seconds (admin-refund-final-coverage.log).

@@ -308,6 +308,7 @@ export const POST = withApiHandler(
 
       case 'refund':
         return performAdminRefundAction({
+          requestKey: request.headers.get('Idempotency-Key'),
           escrow,
           job,
           user,

@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-
 const state = vi.hoisted(() => ({
-  refund: vi.fn(),
-  updates: [] as Array<Record<string, unknown>>,
+  reserve: vi.fn(),
+  recover: vi.fn(),
+  context: vi.fn(),
+  admin: vi.fn(),
+  update: vi.fn(),
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler:
@@ -15,89 +17,135 @@ vi.mock('@/lib/api/with-api-handler', () => ({
       handler(request, { user: { id: 'admin' }, params: { id: 'escrow' } }),
 }));
 vi.mock('@/lib/admin-verification', () => ({
-  requireAdminFromDatabase: vi.fn(),
+  requireAdminFromDatabase: state.admin,
 }));
-vi.mock('@/lib/stripe', () => ({
-  stripe: { refunds: { create: state.refund } },
-}));
-vi.mock('@/lib/services/notifications/NotificationService', () => ({
-  NotificationService: { createNotification: vi.fn() },
+vi.mock('@/lib/services/payment/RefundService', () => ({
+  reserveAdminRefund: state.reserve,
+  recoverRefund: state.recover,
+  readRefundContext: state.context,
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: () => {
-      const query = {
-        select: () => query,
-        eq: () => query,
-        in: () => query,
+      const q = {
+        select: () => q,
+        eq: () => q,
         single: async () => ({
           data: {
             id: 'escrow',
+            payer_id: 'payer',
             status: 'held',
             amount: 100,
-            payment_intent_id: 'pi_synthetic',
-            metadata: {},
-            jobs: {
-              id: 'job',
-              homeowner_id: 'payer',
-              contractor_id: 'contractor',
-              status: 'disputed',
-            },
+            jobs: { id: 'job' },
           },
           error: null,
         }),
-        maybeSingle: async () => ({ data: { id: 'escrow' }, error: null }),
-        update: (values: Record<string, unknown>) => {
-          state.updates.push(values);
-          return query;
-        },
-        insert: () => query,
-        then: (resolve: (value: unknown) => unknown) =>
-          Promise.resolve({ data: null, error: null }).then(resolve),
+        update: state.update,
+        insert: async () => ({ error: null }),
       };
-      return query;
+      return q;
     },
   },
 }));
 import { POST } from '@/app/api/admin/refunds/[id]/route';
-
-describe('Admin refund authoritative outcomes', () => {
+const operation = {
+  id: 'operation',
+  actor_id: 'payer',
+  initiated_by: 'admin',
+  escrow_id: 'escrow',
+  gross_minor: 7500,
+  cash_minor: 7000,
+  credit_minor: 500,
+  provider_refund_id: 're_synthetic',
+  state: 'reserved',
+};
+describe('Admin durable refund route', () => {
   beforeEach(() => {
-    state.updates = [];
-    state.refund.mockReset();
+    vi.clearAllMocks();
+    state.admin.mockResolvedValue(undefined);
+    state.context.mockResolvedValue({ existing: null, remainingMinor: 7500 });
+    state.reserve.mockResolvedValue(operation);
   });
-  const send = () =>
+  const send = (key: string | null = 'stable-key', refundAmount?: number) =>
     POST(
       new NextRequest('http://localhost/api/admin/refunds/escrow', {
         method: 'POST',
+        headers: key ? { 'Idempotency-Key': key } : {},
         body: JSON.stringify({
           action: 'refund',
           reason: 'Synthetic dispute resolution',
+          refundAmount,
         }),
       }),
       { params: Promise.resolve({ id: 'escrow' }) }
     );
-
   it.each(['pending', 'requires_action', 'failed', 'canceled'])(
-    'does not finalize an unconfirmed %s refund',
+    'reports %s without finalizing escrow',
     async (status) => {
-      state.refund.mockResolvedValue({ id: 're_synthetic', status });
-      await send().catch(() => undefined);
-      expect(state.refund).toHaveBeenCalledTimes(1);
-      expect(
-        state.updates.filter((value) => value.status === 'refunded')
-      ).toEqual([]);
+      state.recover.mockResolvedValue({ ...operation, state: status });
+      const response = await send();
+      expect(response.status).toBe(
+        ['failed', 'canceled'].includes(status) ? 409 : 202
+      );
+      expect(await response.json()).toMatchObject({
+        success: false,
+        operationId: 'operation',
+        status,
+      });
+      expect(state.update).not.toHaveBeenCalled();
     }
   );
-
-  it('keeps the payment unavailable when provider success may have preceded a timeout', async () => {
-    state.refund.mockRejectedValue(
-      new Error('Connection lost after provider accepted refund')
+  it('keeps the durable operation on an ambiguous provider timeout', async () => {
+    state.recover.mockRejectedValue(new Error('Provider outcome unknown'));
+    const response = await send();
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({
+      success: false,
+      operationId: 'operation',
+      status: 'processing',
+    });
+    expect(state.update).not.toHaveBeenCalled();
+  });
+  it('uses remaining principal and reports actual cash and credit after success', async () => {
+    state.recover.mockResolvedValue({ ...operation, state: 'succeeded' });
+    state.context
+      .mockResolvedValueOnce({ existing: null, remainingMinor: 7500 })
+      .mockResolvedValueOnce({ existing: operation, remainingMinor: 0 });
+    const response = await send();
+    expect(await response.json()).toMatchObject({
+      success: true,
+      amount: 75,
+      cashAmount: 70,
+      creditReturned: 5,
+      remainingAmount: 0,
+    });
+    expect(state.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adminId: 'admin',
+        payerId: 'payer',
+        grossMinor: 7500,
+      })
     );
-    await send().catch(() => undefined);
-    expect(state.updates[0]).toMatchObject({ status: 'release_pending' });
-    expect(state.updates.filter((value) => value.status === 'held')).toEqual(
-      []
+  });
+  it('retains original amount when retrying after settlement changed the balance', async () => {
+    state.context.mockResolvedValue({ existing: operation, remainingMinor: 0 });
+    state.recover.mockResolvedValue({ ...operation, state: 'succeeded' });
+    await send();
+    expect(state.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ grossMinor: 7500 })
     );
+  });
+  it('rejects missing request identity before reservation', async () => {
+    await expect(send(null)).rejects.toMatchObject({ statusCode: 400 });
+    expect(state.reserve).not.toHaveBeenCalled();
+  });
+  it('does not silently clamp an excessive amount to the original escrow', async () => {
+    await expect(send('key', 101)).rejects.toMatchObject({ statusCode: 400 });
+    expect(state.reserve).not.toHaveBeenCalled();
+  });
+  it('rechecks admin authority before reading a previous operation', async () => {
+    state.admin.mockRejectedValue(new Error('Admin revoked'));
+    await expect(send()).rejects.toThrow('Admin revoked');
+    expect(state.context).not.toHaveBeenCalled();
   });
 });
