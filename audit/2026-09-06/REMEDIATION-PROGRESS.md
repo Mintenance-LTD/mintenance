@@ -2273,3 +2273,14 @@ Removed unused import/local computation/query/helper/catch binding responsible f
 changed-file warnings. Strict changed-source ESLint now exits 0. Final replay and normal commit
 hooks are being checked; the prior complete web run was 3633/334 and the prior schema diff was
 empty.
+
+### F11 committed validation checkpoint
+
+Implementation commit `d4e792995` passed all normal commit hooks, including web/mobile types,
+zero-warning staged lint and selected tests. Final focused contract suites passed **81 tests / 6
+files**, 4.63 seconds. The final migration replay (`current-f11-final-db-diff.log`) exited 0 and its
+actual result was `diff:""`, no generated files or drop statements. This supersedes the earlier
+pending final-check notes; full-suite evidence remains 3633 tests / 334 files, followed by the
+focused tests after unused-code cleanup and real SQL checks after the final negotiated-term
+correction. No hosted changes or real-provider actions occurred. Overall remediation remains active;
+next confirmed local follow-up is earnings-query truncation and batched metadata failure handling.
