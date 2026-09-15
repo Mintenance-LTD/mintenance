@@ -1,47 +1,16 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { ConflictError, InternalServerError } from '@/lib/errors/api-error';
+import { ConflictError } from '@/lib/errors/api-error';
 import {
   FeeCalculationService,
   type PaymentType,
 } from './FeeCalculationService';
-import { createEscrowTransfer } from './EscrowTransferService';
-import { verifyEscrowFunding } from './EscrowFundingService';
+import {
+  readAdminReleaseOperation,
+  recoverAdminRelease,
+  type ReleaseOperation,
+} from './AdminReleaseService';
 
-interface ReleaseOperation {
-  id: string;
-  escrow_id: string;
-  principal_minor: number;
-  fee_minor: number;
-  payout_minor: number;
-  destination: string;
-  state: 'reserved' | 'completed';
-  transfer_id: string | null;
-}
-function readOperation(data: unknown): ReleaseOperation {
-  const row = (Array.isArray(data) ? data[0] : data) as
-    | ReleaseOperation
-    | undefined;
-  if (
-    !row?.id ||
-    !row.escrow_id ||
-    !row.destination ||
-    !Number.isSafeInteger(row.principal_minor) ||
-    row.principal_minor <= 0 ||
-    !Number.isSafeInteger(row.fee_minor) ||
-    row.fee_minor < 0 ||
-    !Number.isSafeInteger(row.payout_minor) ||
-    row.payout_minor < 0 ||
-    row.fee_minor + row.payout_minor !== row.principal_minor ||
-    !['reserved', 'completed'].includes(row.state) ||
-    (row.state === 'completed' &&
-      (row.payout_minor > 0
-        ? typeof row.transfer_id !== 'string' || !row.transfer_id.trim()
-        : row.transfer_id !== null))
-  )
-    throw new InternalServerError('Release operation could not be verified');
-  return row;
-}
 function response(op: ReleaseOperation) {
   return NextResponse.json({
     success: true,
@@ -83,45 +52,12 @@ export async function performAdminReleaseAction(input: {
     throw new ConflictError(
       'Release cannot be reserved. Recover any existing payment operation first.'
     );
-  const op = readOperation(data);
+  const op = readAdminReleaseOperation(data);
   if (op.escrow_id !== escrow.id)
     throw new ConflictError('Release reservation belongs to another payment');
   if (op.state === 'completed') return response(op);
   try {
-    let transferId: string | null = null;
-    if (op.payout_minor > 0) {
-      const transfer = await createEscrowTransfer(
-        op.escrow_id,
-        op.payout_minor,
-        op.destination
-      );
-      transferId = transfer.id;
-    } else {
-      await verifyEscrowFunding(op.escrow_id);
-    }
-    const { data: settled, error: settleError } = await serverSupabase.rpc(
-      'finalize_admin_escrow_release',
-      {
-        p_operation_id: op.id,
-        p_transfer_id: transferId,
-      }
-    );
-    if (settleError)
-      throw new InternalServerError('Release finalization needs recovery');
-    const final = readOperation(settled);
-    if (
-      final.id !== op.id ||
-      final.escrow_id !== op.escrow_id ||
-      final.destination !== op.destination ||
-      final.state !== 'completed' ||
-      final.transfer_id !== transferId ||
-      final.principal_minor !== op.principal_minor ||
-      final.fee_minor !== op.fee_minor ||
-      final.payout_minor !== op.payout_minor
-    )
-      throw new InternalServerError(
-        'Release finalization did not match the operation'
-      );
+    const final = await recoverAdminRelease(op);
     return response(final);
   } catch {
     // The provider may have succeeded. The frozen operation remains claimed;

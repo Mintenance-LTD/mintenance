@@ -144,7 +144,8 @@ describe('admin release remaining principal', () => {
     expect(state.transfer).toHaveBeenCalledWith(
       'escrow',
       6160,
-      'acct_synthetic'
+      'acct_synthetic',
+      undefined
     );
     expect(state.transfer.mock.calls[0][1]).toBeLessThanOrEqual(7000);
   });
@@ -202,7 +203,7 @@ describe('admin release remaining principal', () => {
     }));
     const response = await releaseRequest();
     expect(response.status).toBe(200);
-    expect(state.funding).toHaveBeenCalledWith('escrow');
+    expect(state.funding).toHaveBeenCalledWith('escrow', undefined);
     expect(state.transfer).not.toHaveBeenCalled();
     expect(await response.json()).toMatchObject({
       amount: 0.3,

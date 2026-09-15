@@ -1795,3 +1795,33 @@ observed separately. Browser/device login and password-reset completion still re
   supplies bounded provider calls, not the complete worker.
 - Full sanitized web coverage for timeout changes: 3,551 tests / 323 files passed, exit 0, 160.56
   seconds (payment-timeout-full-coverage.log). No database schema changes in this checkpoint.
+
+### 2026-09-15 unattended admin release recovery
+
+- Extracted frozen-operation decoding and provider/settlement recovery into AdminReleaseService; the
+  administrator route and scheduled worker now use the same implementation. The worker never creates
+  a new release authorization or recalculates its amount/destination.
+- Added 20260915193532_lease_admin_release_recovery.sql: only existing reserved operations older
+  than two minutes are claimable; FOR UPDATE SKIP LOCKED assigns a random token with a three-minute
+  lease. Expired leases can be replaced. Acknowledgement requires the current unexpired token and
+  schedules bounded exponential backoff after failure. Internal claim/ack RPCs are service-role
+  only.
+- AdminReleaseRecoveryService handles at most three operations per invocation with a 25-second
+  provider-work budget; failed/uncertain provider outcomes remain reserved. The cron route uses the
+  existing authenticated cron wrapper and returns failure to monitoring when recovery needs
+  attention. vercel.json schedules five-minute runs; nothing was deployed, so hosted
+  scheduling/provider behavior remains unverified.
+- Local migration applied only to supabase_db_mintenance-audit-20260906. Rollback diagnostic
+  remediation-admin-release-recovery-leases.sql passed: fresh-request delay, lease exclusion,
+  wrong/expired/stale token denial, takeover, backoff and client privilege denial.
+  Separate-connection remediation-admin-release-worker-race.py passed under service_role and cleaned
+  its exact synthetic fixtures.
+- Initial targeted route/worker/cron run: 20 tests / 3 files passed, exit 0, 2.01 seconds
+  (admin-release-worker-tests.log). These exercise actual settlement helper and actual cron
+  authentication with mocked database/provider boundaries; real SQL lease behavior is tested
+  separately. Added fee-only worker and total-budget tests before the subsequent full suite.
+- Web TypeScript and changed-source ESLint --max-warnings=0 passed. Separate fee-ledger integration
+  and operator reconciliation for old unknown transfers remain open.
+- Final validation: full sanitized web coverage passed 3,566 tests / 325 files, exit 0, 163.74
+  seconds (admin-release-worker-full-coverage.log). Isolated Supabase migration replay/diff passed
+  with no schema changes (admin-release-worker-diff.log).
