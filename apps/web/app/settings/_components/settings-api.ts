@@ -1,3 +1,4 @@
+import { readAccountDeletionOutcome } from '@/lib/account-deletion-outcome';
 import { logger } from '@mintenance/shared';
 import toast from 'react-hot-toast';
 import type { ProfileData, PasswordData, NotificationPrefs } from './types';
@@ -230,8 +231,15 @@ export async function deleteAccount(
       body: JSON.stringify({ confirmation: 'DELETE' }),
     });
     if (response.ok) {
-      toast.success('Account deleted successfully');
-      window.location.href = '/login?deleted=true';
+      const outcome = readAccountDeletionOutcome(
+        await response.json(),
+        response.status
+      );
+      if (outcome.completed) toast.success('Account deleted successfully');
+      else window.alert(outcome.notice);
+      window.location.href = outcome.completed
+        ? '/login?deleted=true'
+        : '/login';
       return true;
     }
     // 2026-05-27 audit-75 P1: the route returns 409 with

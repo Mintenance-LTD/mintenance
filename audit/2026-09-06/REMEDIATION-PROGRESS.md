@@ -905,3 +905,76 @@ data, explicitly including payment history. The modal and both settings confirma
 restricted signed-contract retention; the success response also makes that exception clear. Removed
 two unused imports and an unused prop binding found by the changed-file lint check. These are
 copy/import changes; archive navigation and full deletion recovery are still outstanding.
+
+### 2026-09-15 — Durable account-deletion provider cleanup
+
+Replaced the request-memory subscription snapshot and one-shot provider calls in
+`/api/user/delete-account` with `delete_account_with_recovery`. The database transaction freezes
+subscription/auth cleanup identifiers in internal tables and calls the existing eligible-data
+deletion routine. A data failure rolls back both the journal and deletion; a lost success response
+leaves recovery work accessible after profile-linked subscription rows disappear. The existing
+active-work/payment/dispute preflight is preserved.
+
+The service-only cleanup worker claims individual immutable-resource steps with SKIP LOCKED,
+two-minute leases and random fencing tokens. Provider outcomes are acknowledged only under a current
+lease. Retryable failures back off; ambiguous provider ownership becomes `needs_review` and does not
+cancel an unrelated subscription. Provider-confirmed cancellation/missing records can reconcile a
+successful side effect after a lost database acknowledgement. The worker verifies Stripe
+subscription IDs and all present owner metadata keys used by the actual contractor, homeowner and
+Home Health creators before cancellation. It validates cancellation status and Auth deletion
+responses instead of treating any HTTP success/error as confirmation. An authenticated cron route
+and five-minute repository schedule use the same bounded worker; scheduling has not been deployed or
+verified on the hosting plan.
+
+Prerequisite found while tracing cancellation: homeowner_subscriptions had authenticated owner
+INSERT/UPDATE policies plus column grants permitting edits to provider identifiers and paid
+entitlements. Revoked client table/column INSERT/UPDATE/DELETE on both subscription mirrors; actual
+server persistence/webhook writers remain supported. Real SQL tests now reject direct owner
+replacement/insertion of another subscription ID. The metadata guard also accounts for references
+persisted before grant revocation. Other subscription mutation consumers still need review for
+legacy substituted references and their own partial-failure semantics; this checkpoint does not
+claim every subscription flow fixed.
+
+The API returns 200/success only when all durable cleanup steps are completed. Pending/review work
+returns 202 with success=false and a request reference. All three web callers distinguish the
+response and show a pending notice before returning to login; mobile validates the response, shows
+an appropriate alert and disables automatic retries for this destructive request. Web/mobile
+deletion copy no longer claims every associated record is immediately erased. The best-effort Redis
+blacklist call, which can swallow errors and do nothing without Redis, is no longer used as evidence
+of successful credential removal. Actual auth-provider removal remains pending until explicitly
+confirmed.
+
+Evidence so far: rollback SQL diagnostic validates atomic snapshot/deletion rollback, frozen
+provider targets surviving source erasure, replay, client grant denial, lease replacement/stale
+acknowledgement denial, backoff and manual-review exclusion. The concurrent diagnostic observed the
+profile-row lock: duplicate erasure produced one operation, and concurrent workers claimed different
+steps. All 24 remediation SQL diagnostics passed. Targeted web recovery/route/response tests: 25
+passed; mobile response tests: 6 passed. Both web and mobile type checks passed. Changed web source
+ESLint passed after removing six unused catch bindings already present in the contractor settings
+file. Isolated migration replay completed exit 0 with no schema changes. Stripe/Auth behavior here
+uses mocks plus the real local database journal, not a real provider trial. Device, hosted cron and
+full session-revocation behavior are unverified.
+
+Still outstanding: retained financial records, full erasure/storage coverage, atomic
+marketplace-state exclusion during deletion, operator review/requeue and retention/disposal of
+cleanup journals, former-user status/export access after a lost response, archive navigation, and
+the previously documented F1–F15 gaps. This is a recoverable provider-cleanup implementation, not a
+completed privacy/readiness claim.
+
+Full isolated web coverage completed exit 0: **3,422 tests / 305 files passed**, duration 162.74s,
+unchanged thresholds (`account-deletion-full-coverage.log`). Web/mobile type checks passed
+separately. No emulator/device, real Stripe/Auth provider operation or deployed cron was exercised.
+
+The first commit attempt was rejected by the existing 500-line source-file hook: contractor settings
+page was 737 lines. Extracted its state/actions into `useContractorSettingsData.ts` and kept the
+view separately, with no hook bypass. The split exposed pre-existing password-change and
+notification-save handlers that only show success toasts without requests; these remain an explicit
+follow-up before public use. Added a real hook-level HTTP 202 regression to verify the pending
+notice and absence of a success toast.
+
+Final settings-split coverage: 3,423 tests / 306 files passed, 155.66s. A subsequent real isolated
+Auth diagnostic exposed successful DELETE returning no user identity. Recovery now verifies
+user_not_found with a fresh admin lookup before acknowledging an empty response; ambiguous lookup
+failures retry. The added regression covers absent, still-present and provider-error results.
+Post-correction targeted suite: 27 tests passed. See account-deletion-auth-final.log for the local
+Auth result; hosted Auth and Stripe remain untested.
