@@ -84,6 +84,31 @@ beforeEach(() => {
   }));
 });
 describe('escrow transfer recovery', () => {
+  it('times out an unknown provider result without saving success or issuing a second request', async () => {
+    vi.useFakeTimers();
+    try {
+      m.create.mockImplementationOnce(() => new Promise(() => {}));
+      const pending = createEscrowTransfer(
+        'one',
+        43000,
+        'acct_one',
+        Date.now() + 5000
+      );
+      const assertion = expect(pending).rejects.toThrow(
+        'timed out after 5000ms'
+      );
+      await vi.advanceTimersByTimeAsync(5000);
+      await assertion;
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(m.create).toHaveBeenCalledTimes(1);
+      expect(persisted).toBeNull();
+      expect(m.from).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not transfer when captured funding verification fails', async () => {
     const { verifyEscrowFunding } =
       await import('@/lib/services/payment/EscrowFundingService');

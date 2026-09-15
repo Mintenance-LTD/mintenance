@@ -21,9 +21,6 @@ vi.mock('@/lib/stripe', () => ({
     paymentIntents: { retrieve: mocks.intent },
   },
 }));
-vi.mock('@/lib/utils/api-timeout', () => ({
-  stripeWithTimeout: (fn: () => unknown) => fn(),
-}));
 import {
   recoverRefund,
   reconcileRefundEvent,
@@ -423,6 +420,24 @@ describe('refund recovery time budget', () => {
   beforeEach(() => {
     mocks.list.mockReset();
     mocks.create.mockReset();
+  });
+  it('bounds an unresponsive provider by the remaining budget without hidden retries', async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.list.mockImplementation(() => new Promise(() => {}));
+      const pending = recoverRefund(operation(), Date.now() + 5000);
+      const assertion = expect(pending).rejects.toThrow(
+        'timed out after 5000ms'
+      );
+      await vi.advanceTimersByTimeAsync(5000);
+      await assertion;
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(mocks.list).toHaveBeenCalledTimes(1);
+      expect(mocks.create).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it('does not start a provider request after the worker budget expires', async () => {
     await expect(

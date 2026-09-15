@@ -1766,3 +1766,32 @@ observed separately. Browser/device login and password-reset completion still re
   Web TypeScript check passed in the preceding validation. The exact migration replay previously
   completed with no schema changes (admin-release-finalization-diff.log); SQL diagnostics added here
   do not alter migrations.
+
+### 2026-09-15 actual provider timeout enforcement
+
+- Found that refundProviderCall passed its remaining worker deadline into stripeWithTimeout, but
+  that helper retried twice with extra delay. A stalled call could exceed the supposed remaining
+  budget by roughly three times. Earlier recovery tests mocked this helper away.
+- Added optional retry-count control to stripeWithTimeout (existing default retained). Durable
+  refund calls explicitly use zero internal retries; their frozen operations and recovery scheduler
+  govern subsequent attempts. Funding verification and escrow transfer create/retrieve now also
+  bound each provider wait and disable hidden retries. Escrow transfer/funding accept an optional
+  shared deadline for worker use.
+- Corrected withTimeout timer lifecycle: the old code cleared an unused AbortController timer but
+  left the actual Promise.race rejection timer alive after success. The actual timer is now cleared
+  on every exit. A timeout bounds waiting; it does not cancel a provider-side operation or imply
+  payment failure.
+- Removed the timeout mock from refund recovery tests. Fake-clock tests with never-resolving
+  provider promises prove a 5-second deadline stops waiting, does not issue another provider
+  request, records no transfer success, and leaves no timeout timers. Sanitized targeted checks: 55
+  tests / 4 files passed, exit 0, 1.85 seconds (payment-real-timeout-tests.log).
+- Web TypeScript emitted no errors. Changed-source ESLint reported zero errors and two existing
+  unused-function warnings in api-timeout.ts (mlWithTimeout/dbWithTimeout); --max-warnings=0
+  therefore exited 1. The normal commit hook also rejected these warnings. Follow-up source
+  inspection confirmed both functions are unexported and have no callers; removed their dead
+  definitions, preserving all reachable timeout behavior, and reran normal hooks without bypassing
+  lint.
+- Unattended admin release scheduling and the separate fee ledger remain unfinished; this change
+  supplies bounded provider calls, not the complete worker.
+- Full sanitized web coverage for timeout changes: 3,551 tests / 323 files passed, exit 0, 160.56
+  seconds (payment-timeout-full-coverage.log). No database schema changes in this checkpoint.
