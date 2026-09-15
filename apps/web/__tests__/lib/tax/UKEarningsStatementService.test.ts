@@ -35,6 +35,78 @@ function chain(result: { data: unknown; error: unknown }) {
 describe('UKEarningsStatementService.getStatement', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('reports only released principal after partial refunds and no platform-borne cost as a contractor deduction', async () => {
+    const row = {
+      payee_id: 'contractor-1',
+      job_id: 'job-1',
+      amount: 500,
+      platform_fee: 48,
+      contractor_payout: 352,
+      stripe_processing_fee: null,
+      refund_balance: {
+        gross_minor: 50000,
+        remaining_minor: 40000,
+        needs_review: false,
+      },
+      released_at: '2025-06-01T10:00:00Z',
+      status: 'completed',
+      jobs: null,
+    };
+    mocks.from.mockImplementation((table: string) =>
+      chain({ data: table === 'escrow_transactions' ? [row] : [], error: null })
+    );
+    const statement = await UKEarningsStatementService.getStatement(
+      'contractor-1',
+      2025
+    );
+    expect(statement.totals).toMatchObject({
+      grossEarnings: 400,
+      platformFees: 48,
+      stripeFees: 0,
+      netPaid: 352,
+    });
+    const earners = await UKEarningsStatementService.listEarners(2025);
+    expect(earners[0]).toMatchObject({
+      grossEarnings: 400,
+      platformFees: 48,
+      stripeFees: 0,
+      netPaid: 352,
+    });
+  });
+
+  it('does not deduct the platform processing-cost estimate from a recorded modern payout', async () => {
+    mocks.from.mockImplementation((table: string) =>
+      chain({
+        data:
+          table === 'escrow_transactions'
+            ? [
+                {
+                  job_id: 'job-1',
+                  amount: 100,
+                  platform_fee: 12,
+                  contractor_payout: 88,
+                  stripe_processing_fee: 1.7,
+                  released_at: '2025-06-01T10:00:00Z',
+                  status: 'completed',
+                  jobs: null,
+                },
+              ]
+            : null,
+        error: null,
+      })
+    );
+    const statement = await UKEarningsStatementService.getStatement(
+      'contractor-1',
+      2025
+    );
+    expect(statement.totals).toMatchObject({
+      grossEarnings: 100,
+      platformFees: 12,
+      stripeFees: 0,
+      netPaid: 88,
+    });
+  });
+
   it('aggregates released escrow rows within the 2025-26 tax year', async () => {
     const escrowRows = [
       {
@@ -103,7 +175,7 @@ describe('UKEarningsStatementService.getStatement', () => {
     expect(statement.contractor?.utrOnFile).toBe(true);
   });
 
-  it('falls back to gross minus fees when contractor_payout is null', async () => {
+  it('refuses to invent a paid amount when contractor_payout is null', async () => {
     mocks.from.mockImplementation((table: string) => {
       if (table === 'escrow_transactions') {
         return chain({
@@ -125,11 +197,8 @@ describe('UKEarningsStatementService.getStatement', () => {
       return chain({ data: null, error: null });
     });
 
-    const statement = await UKEarningsStatementService.getStatement(
-      'contractor-2',
-      2025
-    );
-    expect(statement.totals.netPaid).toBe(172.8); // 200 - 24 - 3.2
-    expect(statement.contractor).toBeNull();
+    await expect(
+      UKEarningsStatementService.getStatement('contractor-2', 2025)
+    ).rejects.toThrow('requires reconciliation');
   });
 });

@@ -1858,3 +1858,30 @@ observed separately. Browser/device login and password-reset completion still re
 - Final checks: full sanitized web coverage passed 3,568 tests / 326 files, exit 0, 165.24 seconds
   (admin-fee-ledger-full-coverage.log). Isolated migration replay/diff exited 0 with no schema
   changes (admin-fee-ledger-diff.log).
+
+### 2026-09-15 earnings statements reconcile to released principal
+
+- Reproduced two statement errors before repair (earnings-settlement-before.log, 2 failures / 4
+  tests): GBP500 original principal with GBP100 refunded was reported as GBP500 gross rather than
+  GBP400; a modern GBP100 payment / GBP12 platform fee / GBP88 payout reported the platform's
+  GBP1.70 processing estimate as a contractor deduction.
+- Added shared earningsSettlement calculation for both contractor statements and admin listEarners.
+  It uses the joined durable refund balance when present, validates gross/remaining/review state,
+  and requires recorded platform fee and payout. Modern processing-cost estimates are not contractor
+  deductions. Historical deductions remain only when the recorded payout difference exactly equals
+  the recorded processing fee. Missing payout, invalid amounts or inconsistent economics require
+  reconciliation instead of a fabricated paid amount.
+- Both source queries now embed escrow_refund_balances. Real local PostgREST verification
+  (remediation-earnings-rest.py) passed after synthetic partial refund and release: original GBP500,
+  remaining GBP400, fee GBP48, payout GBP352 and unknown platform processing cost. The actual
+  relationship and response shape were verified; exact fixtures cleaned; no provider calls or
+  credential output.
+- Initial repaired service tests passed 4 / 1 file, exit 0, 1.48 seconds
+  (earnings-settlement-tests.log), including retained historical deductions and missing-payout
+  rejection. Added nine focused invalid-input/relationship tests before the full suite.
+- This repairs recorded financial arithmetic, not legal suitability or tax filing. Existing
+  statement query pagination and generic reconciliation error presentation remain follow-up
+  concerns; no official filing or real-user statement was generated.
+- Final validation: full sanitized web coverage passed 3,579 tests / 327 files, exit 0, 161.58
+  seconds (earnings-settlement-full-coverage.log). Web TypeScript and changed-source ESLint
+  --max-warnings=0 passed. No schema migration was required for this query/calculation change.

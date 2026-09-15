@@ -31,6 +31,10 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import {
+  earningsSettlement,
+  type EarningsSettlementRow,
+} from './earnings-settlement';
+import {
   ukTaxYearFromStartYear,
   type UKTaxYear,
 } from '@/lib/services/tax/uk-tax';
@@ -83,20 +87,11 @@ export interface UKEarningsStatement {
   generatedAt: string;
 }
 
-interface EscrowRow {
+interface EscrowRow extends EarningsSettlementRow {
   job_id: string | null;
-  amount: number | string | null;
-  platform_fee: number | string | null;
-  stripe_processing_fee: number | string | null;
-  contractor_payout: number | string | null;
   released_at: string | null;
   status: string;
   jobs: { title: string | null } | { title: string | null }[] | null;
-}
-
-function num(v: number | string | null | undefined): number {
-  const n = typeof v === 'string' ? Number(v) : (v ?? 0);
-  return Number.isFinite(n) ? n : 0;
 }
 
 function round2(n: number): number {
@@ -118,7 +113,8 @@ export class UKEarningsStatementService {
       .from('escrow_transactions')
       .select(
         `job_id, amount, platform_fee, stripe_processing_fee, contractor_payout,
-         released_at, status, jobs:job_id ( title )`
+         released_at, status, jobs:job_id ( title ),
+         refund_balance:escrow_refund_balances(gross_minor,remaining_minor,needs_review)`
       )
       .eq('payee_id', contractorId)
       .in('status', RELEASED_STATUSES)
@@ -139,14 +135,7 @@ export class UKEarningsStatementService {
     const escrows = (rawEscrows ?? []) as unknown as EscrowRow[];
 
     const payments: EarningsLine[] = escrows.map((e) => {
-      const gross = round2(num(e.amount));
-      const platformFee = round2(num(e.platform_fee));
-      const stripeFee = round2(num(e.stripe_processing_fee));
-      // Prefer the recorded contractor_payout; fall back to gross - fees.
-      const net =
-        e.contractor_payout != null
-          ? round2(num(e.contractor_payout))
-          : round2(gross - platformFee - stripeFee);
+      const { gross, platformFee, stripeFee, net } = earningsSettlement(e);
       const job = Array.isArray(e.jobs) ? e.jobs[0] : e.jobs;
       return {
         date: e.released_at as string,
@@ -275,7 +264,8 @@ export class UKEarningsStatementService {
       .from('escrow_transactions')
       .select(
         `payee_id, job_id, amount, platform_fee, stripe_processing_fee,
-         contractor_payout, status, released_at`
+         contractor_payout, status, released_at,
+         refund_balance:escrow_refund_balances(gross_minor,remaining_minor,needs_review)`
       )
       .in('status', RELEASED_STATUSES)
       .not('released_at', 'is', null)
@@ -313,17 +303,11 @@ export class UKEarningsStatementService {
         net: 0,
         jobs: new Set<string>(),
       };
-      agg.gross = round2(agg.gross + num(r.amount));
-      agg.platform = round2(agg.platform + num(r.platform_fee));
-      agg.stripe = round2(agg.stripe + num(r.stripe_processing_fee));
-      agg.net = round2(
-        agg.net +
-          (r.contractor_payout != null
-            ? num(r.contractor_payout)
-            : num(r.amount) -
-              num(r.platform_fee) -
-              num(r.stripe_processing_fee))
-      );
+      const settled = earningsSettlement(r);
+      agg.gross = round2(agg.gross + settled.gross);
+      agg.platform = round2(agg.platform + settled.platformFee);
+      agg.stripe = round2(agg.stripe + settled.stripeFee);
+      agg.net = round2(agg.net + settled.net);
       if (r.job_id) agg.jobs.add(r.job_id);
       byContractor.set(r.payee_id, agg);
     }
