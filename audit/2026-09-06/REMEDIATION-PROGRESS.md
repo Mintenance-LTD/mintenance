@@ -1436,3 +1436,20 @@ observed separately. Browser/device login and password-reset completion still re
 - Contract rejection/acceptance group: **21 tests / 2 files passed**, exit 0, 1.99 seconds
   (`contract-cache-final.log`). Web type-check and route lint passed. No schema change, provider
   call or deployment.
+
+### 2026-09-15 — contract signing cached-response authorization
+
+- `contracts/[id]/accept` also returned cached responses before loading the contract and checking
+  current signer membership. Moved the existing contract/job read and role-specific
+  homeowner/payer/contractor checks ahead of idempotency lookup. State-transition validation stays
+  after cache recovery, allowing an authorized retry after a successful signature without signing
+  again.
+- Five new controlled-handler tests verify former-payer denial, missing-contract denial and cached
+  success for each current authorized party. No mutation path is invoked for cached retries.
+  Existing atomic-signing tests remain in the targeted run.
+- Contract signing/rejection access and existing signing group: **26 tests / 3 files passed**, exit
+  0, 2.33 seconds (`contract-signing-cache-access.log`). Web TypeScript and route lint passed. These
+  are handler contract tests with mocked authentication/DB boundaries, not real session/browser
+  signing verification.
+- No database migration, hosted changes or deployment in this checkpoint. Other idempotency consumer
+  authorization ordering and broader readiness gates remain open.

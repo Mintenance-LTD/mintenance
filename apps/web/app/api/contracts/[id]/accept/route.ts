@@ -76,6 +76,43 @@ export const POST = withApiHandler(
       // Body absent / not JSON — legacy click-sign, nothing to do.
     }
 
+    // The contract has no payer_user_id column; the designated payer is
+    // stored on the linked job. Use the service client only with the
+    // explicit contract and job-party checks below, so a payer who is not
+    // the primary homeowner can still sign their authorised contract.
+    const { data: contract, error: contractError } = await serverSupabase
+      .from('contracts')
+      .select(
+        'id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date'
+      )
+      .eq('id', contractId)
+      .single();
+
+    if (contractError || !contract) {
+      // Don't reveal if contract exists or not - return generic error
+      throw new NotFoundError('Contract not found or access denied');
+    }
+
+    const { data: linkedJob } = await serverSupabase
+      .from('jobs')
+      .select('payer_user_id')
+      .eq('id', contract.job_id)
+      .single();
+
+    // Verify user is authorized to sign. A designated payer signs in the
+    // homeowner party's place; the contractor still must match the
+    // contract's contractor_id.
+    const isContractor =
+      user.role === 'contractor' && contract.contractor_id === user.id;
+    const isHomeowner =
+      user.role === 'homeowner' &&
+      (contract.homeowner_id === user.id ||
+        linkedJob?.payer_user_id === user.id);
+
+    if (!isContractor && !isHomeowner) {
+      throw new ForbiddenError('Not authorized to sign this contract');
+    }
+
     const idem = await checkIdempotency<unknown>(
       idempotencyKey,
       'contract_accept',
@@ -96,43 +133,6 @@ export const POST = withApiHandler(
       idempotencyKey,
       'contract_accept',
       async () => {
-        // The contract has no payer_user_id column; the designated payer is
-        // stored on the linked job. Use the service client only with the
-        // explicit contract and job-party checks below, so a payer who is not
-        // the primary homeowner can still sign their authorised contract.
-        const { data: contract, error: contractError } = await serverSupabase
-          .from('contracts')
-          .select(
-            'id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date'
-          )
-          .eq('id', contractId)
-          .single();
-
-        if (contractError || !contract) {
-          // Don't reveal if contract exists or not - return generic error
-          throw new NotFoundError('Contract not found or access denied');
-        }
-
-        const { data: linkedJob } = await serverSupabase
-          .from('jobs')
-          .select('payer_user_id')
-          .eq('id', contract.job_id)
-          .single();
-
-        // Verify user is authorized to sign. A designated payer signs in the
-        // homeowner party's place; the contractor still must match the
-        // contract's contractor_id.
-        const isContractor =
-          user.role === 'contractor' && contract.contractor_id === user.id;
-        const isHomeowner =
-          user.role === 'homeowner' &&
-          (contract.homeowner_id === user.id ||
-            linkedJob?.payer_user_id === user.id);
-
-        if (!isContractor && !isHomeowner) {
-          throw new ForbiddenError('Not authorized to sign this contract');
-        }
-
         // Only pending contracts may be signed. This also prevents a stale
         // read from allowing a signature on a contract that was cancelled or
         // rejected while this request was in flight.
