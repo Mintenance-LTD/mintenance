@@ -1329,3 +1329,28 @@ observed separately. Browser/device login and password-reset completion still re
 - F3 broader completion is not claimed: stale-lease fencing and other callers still require their
   own verification. Existing durable transfer reservations remain the separate money-movement
   protection.
+
+### 2026-09-15 — reproduced open stale-claim fencing defect (F3)
+
+- Added `diagnostic-idempotency-stale-owner.sql`, explicitly an **open-defect reproduction**, not an
+  expected-safe regression. It runs in a rollback transaction on the disposable stack: claim, age
+  claimed_at by two minutes, acquire replacement claim, then submit the old request's
+  completion/release arguments.
+- Actual current database result: **expired completion accepted and replacement pending claim
+  deleted**, reproduction exit 0 with `REPRODUCED OPEN DEFECT`
+  (`idempotency-stale-owner-reproduction.log`). All data rolled back. Unlike the 28 expected-safe
+  suites, this diagnostic succeeding means the defect remains present.
+- Root cause: `try_claim_bound_idempotency_key` preserves actor/payload identity but returns no
+  generation token; `complete_idempotency_claim` and `release_idempotency_claim` match only
+  key/operation/pending state. `lib/idempotency.ts` completion retry exhaustion also invokes the
+  unfenced release RPC. Thus a slow old request cannot be distinguished from the new owner.
+- Scope: internal service-role calls, not publicly executable RPCs; this evidence establishes
+  claim/cache ownership corruption, not a reproduced duplicate provider charge. Payment funding and
+  transfer reservations remain separate mitigations. Consumers include financial routes, contracts,
+  bids and job lifecycle handlers, including the shared releaseOnError wrapper.
+- Required repair remains open: issue an opaque claim-generation token on every
+  acquisition/takeover, require that token plus actor/key/operation for completion/release,
+  propagate it explicitly through every caller and wrapper, retire unfenced internal write entry
+  points, and verify stale completion/release rejection plus valid-owner recovery in SQL and
+  concurrent-request tests. Avoid a process-global key-to-token map: overlapping requests could pick
+  up the replacement token. Do not disable takeover as a substitute for durable recovery.
