@@ -2115,3 +2115,14 @@ observed separately. Browser/device login and password-reset completion still re
   forbidden escrow/signature inserts and valid service inserts all passed (current-\*.sql.log).
   These local results do not change the recorded hosted environment distinction or prove every
   privileged database function safe. Full F1–F15 completion review remains active.
+
+### 15 September 2026 — current acceptance ledger and financial/signing rechecks
+
+- Added CURRENT-ACCEPTANCE.md to keep all F1–F15 requirements explicit and separate current proof
+  from earlier evidence needing completion review. No finding is declared closed by a narrow probe.
+- Reviewed and reran remediation-bound-idempotency.sql, remediation-payment-funding.sql,
+  remediation-rework-tests.sql and remediation-contract-signing-tests.sql against the current
+  disposable schema. All exited 0; all fixtures/triggers rolled back. Outputs: current-\*.sql.log.
+- Proven boundaries include actor/payload replay binding, one cash/credit reservation across keys,
+  exact credit restoration, ledger-failure rollback, atomic rework, unrelated-user denial and atomic
+  signing evidence/acceptance. Provider/browser behavior is not inferred from these database tests.
