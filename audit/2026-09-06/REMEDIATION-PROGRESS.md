@@ -978,3 +978,24 @@ user_not_found with a fresh admin lookup before acknowledging an empty response;
 failures retry. The added regression covers absent, still-present and provider-error results.
 Post-correction targeted suite: 27 tests passed. See account-deletion-auth-final.log for the local
 Auth result; hosted Auth and Stripe remain untested.
+
+### 2026-09-15 — Contractor notification form contract
+
+Replaced the active contractor no-request notification handler and incompatible
+emailJobs/smsJobs/pushJobs state with the shared canonical preference form. Traced the singular API
+through actor-scoped user_notification_preferences storage to
+NotificationService/NotificationPreferenceResolver. Fixed missing CSRF on save, schema validation of
+GET/PATCH responses, failed-load default overwrite risk, retry loading, and protected payment-event
+mute controls. Failed saves preserve edits. Removed the exposed email toggle from this shared form
+because repository-wide consumer inspection found email_enabled is loaded but not consulted by the
+actual senders; copy explicitly limits controls to supported push/in-app delivery. SMS/category
+matrix behavior was never persisted by the replaced contractor handler. Full email/SMS preference
+enforcement and noncanonical notification writers remain outstanding; this is not a claim that every
+sender respects preferences.
+
+React checklist reviewed: effect cleanup prevents late updates after unmount, inputs retain labels,
+retry has an alert, and save failures preserve local values. Four targeted tests passed across the
+form and existing contractor deletion hook: failed load/retry, actual CSRF helper and payload,
+provider failure/edit preservation, protected-type filtering, malformed success response and
+confirmed-save success. Web typecheck passed. No real user notification was sent. The contractor
+password-change fake success handler remains a separate required fix.

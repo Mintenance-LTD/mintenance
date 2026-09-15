@@ -11,6 +11,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
+import { fetchWithCsrf } from '@/lib/csrf-client';
+import { ALWAYS_ON_NOTIFICATION_TYPES } from '@mintenance/types';
+import { z } from 'zod';
+
+const protectedTypes = new Set<string>(ALWAYS_ON_NOTIFICATION_TYPES);
+const preferenceSchema = z.object({
+  push_enabled: z.boolean(),
+  email_enabled: z.boolean(),
+  in_app_enabled: z.boolean(),
+  disabled_types: z.array(z.string()),
+  quiet_hours_start: z.string().nullable(),
+  quiet_hours_end: z.string().nullable(),
+  timezone: z.string(),
+});
 
 interface Prefs {
   push_enabled: boolean;
@@ -72,33 +86,36 @@ export function NotificationPreferencesForm() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const disabledSet = useMemo(
     () => new Set(prefs.disabled_types),
     [prefs.disabled_types]
   );
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError(false);
     (async () => {
       try {
         const res = await fetch('/api/user/notification-preferences', {
           credentials: 'include',
         });
         if (!res.ok) throw new Error(`status ${res.status}`);
-        const body = (await res.json()) as Prefs;
-        setPrefs({
-          ...DEFAULTS,
-          ...body,
-          disabled_types: Array.isArray(body.disabled_types)
-            ? body.disabled_types
-            : [],
-        });
+        const body = preferenceSchema.parse(await res.json());
+        if (active) setPrefs(body);
       } catch (err) {
         logger.warn('Failed to load notification preferences', { err });
+        if (active) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     })();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [loadAttempt]);
 
   const toggleType = (type: string) => {
     setPrefs((prev) => {
@@ -110,17 +127,19 @@ export function NotificationPreferencesForm() {
   };
 
   const save = async () => {
+    if (loading || loadError || saving) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/user/notification-preferences', {
+      const res = await fetchWithCsrf('/api/user/notification-preferences', {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           push_enabled: prefs.push_enabled,
-          email_enabled: prefs.email_enabled,
           in_app_enabled: prefs.in_app_enabled,
-          disabled_types: prefs.disabled_types,
+          disabled_types: prefs.disabled_types.filter(
+            (type) => !protectedTypes.has(type)
+          ),
           quiet_hours_start: prefs.quiet_hours_start || null,
           quiet_hours_end: prefs.quiet_hours_end || null,
           timezone: prefs.timezone || 'UTC',
@@ -130,6 +149,7 @@ export function NotificationPreferencesForm() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `status ${res.status}`);
       }
+      preferenceSchema.parse(await res.json());
       toast.success('Notification preferences saved');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Save failed');
@@ -141,15 +161,34 @@ export function NotificationPreferencesForm() {
   if (loading) {
     return <div className='text-sm text-gray-500'>Loading preferences…</div>;
   }
+  if (loadError) {
+    return (
+      <div role='alert'>
+        <p>
+          Notification preferences could not be loaded. Your saved settings have
+          not changed.
+        </p>
+        <button
+          type='button'
+          onClick={() => setLoadAttempt((value) => value + 1)}
+        >
+          Retry loading preferences
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className='space-y-8 max-w-2xl'>
       <section className='bg-white border border-gray-200 rounded-xl p-6'>
         <h2 className='text-lg font-semibold text-gray-900 mb-4'>Channels</h2>
+        <p className='text-sm text-gray-500 mb-4'>
+          These controls apply to supported push and in-app notifications. Email
+          delivery is not controlled by this form.
+        </p>
         {(
           [
             ['push_enabled', 'Push notifications (mobile app)'],
-            ['email_enabled', 'Email'],
             ['in_app_enabled', 'In-app notifications'],
           ] as const
         ).map(([key, label]) => (
@@ -172,8 +211,8 @@ export function NotificationPreferencesForm() {
           Quiet hours
         </h2>
         <p className='text-sm text-gray-500 mb-4'>
-          During these hours we won&rsquo;t push to your phone; notifications
-          arrive in-app or queue for delivery at the end of the window.
+          Notifications that support scheduling may be queued until this window
+          ends.
         </p>
         <div className='grid grid-cols-2 gap-3 mb-3'>
           <label className='block text-sm'>
@@ -236,11 +275,11 @@ export function NotificationPreferencesForm() {
           Per-event mute
         </h2>
         <p className='text-sm text-gray-500 mb-4'>
-          Turn off specific notifications you don&rsquo;t want to hear about —
-          everything else keeps firing per your channel settings.
+          Choose which events you want to receive. Payment confirmations and
+          contractor arrival alerts cannot be muted by event type.
         </p>
         <div className='space-y-2'>
-          {KNOWN_TYPES.map((t) => (
+          {KNOWN_TYPES.filter((t) => !protectedTypes.has(t.type)).map((t) => (
             <label
               key={t.type}
               className='flex items-center justify-between py-1.5'

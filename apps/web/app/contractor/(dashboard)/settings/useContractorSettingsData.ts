@@ -81,21 +81,6 @@ export function useContractorSettingsData() {
     confirmPassword: '',
   });
 
-  const [notificationPrefs, setNotificationPrefs] = useState({
-    emailJobs: true,
-    emailMessages: true,
-    emailPayments: true,
-    emailMarketing: false,
-    smsJobs: true,
-    smsMessages: true,
-    smsPayments: true,
-    smsMarketing: false,
-    pushJobs: true,
-    pushMessages: true,
-    pushPayments: true,
-    pushMarketing: false,
-  });
-
   interface PaymentMethod {
     id: string;
     type: string;
@@ -309,17 +294,6 @@ export function useContractorSettingsData() {
     }
   };
 
-  const handleSaveNotifications = async () => {
-    setIsSaving(true);
-    try {
-      toast.success('Notification preferences updated');
-    } catch {
-      toast.error('Error updating notification preferences');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -462,8 +436,6 @@ export function useContractorSettingsData() {
     setProfileData,
     passwordData,
     setPasswordData,
-    notificationPrefs,
-    setNotificationPrefs,
     paymentMethods,
     loadingPaymentMethods,
     showAddDialog,
@@ -475,7 +447,6 @@ export function useContractorSettingsData() {
     handleSaveProfile,
     handleAvatarUpload,
     handleChangePassword,
-    handleSaveNotifications,
     handleDeleteAccount,
     handleRemoveMethod,
     handleSetDefault,

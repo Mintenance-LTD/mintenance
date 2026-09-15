@@ -16,7 +16,7 @@ import {
 import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 import { ProfileSection } from './components/ProfileSection';
 import { AccountSecuritySection } from './components/AccountSecuritySection';
-import { NotificationsSection } from './components/NotificationsSection';
+import { NotificationPreferencesForm } from '@/app/settings/notifications/components/NotificationPreferencesForm';
 import { PaymentsSection } from './components/PaymentsSection';
 // 2026-05-12: contractors now get the same Mint Editorial theme
 // toggle homeowners have. Reusing the shared AppearanceSection so
@@ -46,8 +46,6 @@ export default function ContractorSettingsPage() {
     setProfileData,
     passwordData,
     setPasswordData,
-    notificationPrefs,
-    setNotificationPrefs,
     paymentMethods,
     loadingPaymentMethods,
     showAddDialog,
@@ -59,7 +57,6 @@ export default function ContractorSettingsPage() {
     handleSaveProfile,
     handleAvatarUpload,
     handleChangePassword,
-    handleSaveNotifications,
     handleDeleteAccount,
     handleRemoveMethod,
     handleSetDefault,
@@ -232,12 +229,7 @@ export default function ContractorSettingsPage() {
               />
             )}
             {activeSection === 'notifications' && (
-              <NotificationsSection
-                notificationPrefs={notificationPrefs}
-                isSaving={isSaving}
-                onPrefsChange={setNotificationPrefs}
-                onSave={handleSaveNotifications}
-              />
+              <NotificationPreferencesForm />
             )}
             {activeSection === 'payments' && (
               <PaymentsSection
