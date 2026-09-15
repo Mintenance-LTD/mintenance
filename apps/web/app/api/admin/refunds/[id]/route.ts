@@ -1,3 +1,4 @@
+import { performAdminReleaseAction } from '@/lib/services/payment/AdminReleaseAction';
 import {
   performAdminRefundAction,
   writeAuditLog,
@@ -7,12 +8,10 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger, ESCROW_STATUS } from '@mintenance/shared';
-import { stripe } from '@/lib/stripe';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import {
   BadRequestError,
   ConflictError,
-  InternalServerError,
   NotFoundError,
 } from '@/lib/errors/api-error';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -100,211 +99,8 @@ export const POST = withApiHandler(
 
     // Execute the requested action
     switch (action) {
-      case 'release': {
-        // Only allow release from held or release_pending states
-        if (
-          escrow.status !== ESCROW_STATUS.HELD &&
-          escrow.status !== ESCROW_STATUS.PENDING_REVIEW &&
-          escrow.status !== ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL
-        ) {
-          throw new BadRequestError(
-            `Cannot release escrow in "${escrow.status}" status. Must be held, pending_review, or awaiting_homeowner_approval.`
-          );
-        }
-
-        // Get contractor's Stripe Connect account
-        const { data: contractor, error: contractorLookupError } =
-          await serverSupabase
-            .from('profiles')
-            .select('stripe_connect_account_id')
-            .eq('id', job.contractor_id)
-            .single();
-
-        if (contractorLookupError) {
-          logger.error(
-            'Failed to load contractor Stripe account',
-            contractorLookupError,
-            {
-              service: 'admin-refunds',
-              escrowId,
-              contractorId: job.contractor_id,
-            }
-          );
-          throw new InternalServerError(
-            'Unable to verify contractor payment setup'
-          );
-        }
-
-        if (!contractor?.stripe_connect_account_id) {
-          throw new BadRequestError(
-            'Contractor does not have a Stripe Connect account configured. Cannot release payment.'
-          );
-        }
-
-        // Mark as release_pending first
-        const { data: pendingEscrow, error: pendingError } =
-          await serverSupabase
-            .from('escrow_transactions')
-            .update({
-              status: ESCROW_STATUS.RELEASE_PENDING,
-              release_reason: `admin_release: ${reason}`,
-              updated_at: now,
-            })
-            .eq('id', escrowId)
-            .in('status', [
-              ESCROW_STATUS.HELD,
-              ESCROW_STATUS.PENDING_REVIEW,
-              ESCROW_STATUS.AWAITING_HOMEOWNER_APPROVAL,
-            ])
-            .select('id')
-            .maybeSingle();
-
-        if (pendingError || !pendingEscrow) {
-          logger.error(
-            'Failed to mark escrow as release_pending',
-            pendingError,
-            {
-              service: 'admin-refunds',
-              escrowId,
-            }
-          );
-          throw new ConflictError(
-            'This escrow was modified by another request. Refresh and try again.'
-          );
-        }
-
-        // Create Stripe transfer. Idempotency key keyed on escrow+amount so
-        // duplicate admin-release clicks don't issue a second transfer.
-        const amountCents = Math.round(escrow.amount * 100);
-        let transferId: string | null = null;
-        try {
-          const transfer = await stripe.transfers.create(
-            {
-              amount: amountCents,
-              currency: 'gbp',
-              destination: contractor.stripe_connect_account_id,
-              description: `Admin release for job: ${job.title}`,
-              metadata: {
-                escrow_id: escrowId,
-                job_id: job.id,
-                admin_id: user.id,
-                reason,
-              },
-            },
-            {
-              idempotencyKey: `admin_release_${escrowId}_${amountCents}`,
-            }
-          );
-          transferId = transfer.id;
-
-          // Mark as released
-          const { data: releasedEscrow, error: releaseUpdateError } =
-            await serverSupabase
-              .from('escrow_transactions')
-              .update({
-                status: ESCROW_STATUS.RELEASED,
-                transfer_id: transfer.id,
-                released_at: now,
-                updated_at: now,
-              })
-              .eq('id', escrowId)
-              .eq('status', ESCROW_STATUS.RELEASE_PENDING)
-              .select('id')
-              .maybeSingle();
-
-          if (releaseUpdateError || !releasedEscrow) {
-            throw new Error(
-              'Stripe transfer succeeded but escrow finalization failed'
-            );
-          }
-
-          // Notify both parties via NotificationService (handles DB + push + email)
-          // 2026-05-21 Mint Editorial voice \u2014 amount-led title, explicit
-          // about admin involvement so users aren't confused.
-          const fmtAmount = `\u00a3${Number(escrow.amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-          await Promise.allSettled([
-            NotificationService.createNotification({
-              userId: job.contractor_id,
-              type: 'escrow_released',
-              title: `${fmtAmount} released by Mint admin for ${job.title}`,
-              message: `Funds typically land in 1\u20132 business days.`,
-              actionUrl: `/contractor/jobs/${job.id}`,
-              metadata: { jobId: job.id, escrowId },
-            }),
-            NotificationService.createNotification({
-              userId: job.homeowner_id,
-              type: 'escrow_released',
-              title: `${fmtAmount} released to your contractor for ${job.title}`,
-              message: `Mint admin released the funds after review.`,
-              actionUrl: `/jobs/${job.id}`,
-              metadata: { jobId: job.id, escrowId },
-            }),
-          ]);
-
-          // Write audit log
-          await writeAuditLog(user.id, 'ADMIN_ESCROW_RELEASE', escrowId, {
-            job_id: job.id,
-            amount: escrow.amount,
-            transfer_id: transfer.id,
-            reason,
-          });
-
-          return NextResponse.json({
-            success: true,
-            message: 'Escrow released successfully',
-            transferId: transfer.id,
-          });
-        } catch (stripeError) {
-          if (transferId) {
-            // Never move an escrow back to a releasable state after Stripe has
-            // transferred funds. Leave it release_pending for reconciliation;
-            // otherwise a retry could create a second financial operation.
-            logger.error(
-              'Admin transfer succeeded but escrow finalization failed; reconciliation required',
-              stripeError as Error,
-              {
-                service: 'admin-refunds',
-                escrowId,
-                transferId,
-              }
-            );
-            throw new InternalServerError(
-              'Payment transfer succeeded but recording it failed. Support must reconcile this payment.'
-            );
-          }
-
-          // Revert only when Stripe did not create a transfer.
-          const { error: revertError } = await serverSupabase
-            .from('escrow_transactions')
-            .update({
-              status: escrow.status,
-              updated_at: now,
-            })
-            .eq('id', escrowId)
-            .eq('status', ESCROW_STATUS.RELEASE_PENDING);
-
-          if (revertError) {
-            logger.error(
-              'CRITICAL: Failed to revert escrow after admin transfer failure',
-              revertError,
-              { service: 'admin-refunds', escrowId }
-            );
-          }
-
-          logger.error(
-            'Stripe transfer failed during admin release',
-            stripeError as Error,
-            {
-              service: 'admin-refunds',
-              escrowId,
-            }
-          );
-
-          throw new BadRequestError(
-            'Stripe transfer failed. Escrow has been reverted to held status.'
-          );
-        }
-      }
+      case 'release':
+        return performAdminReleaseAction({ escrow, user, reason });
 
       case 'refund':
         return performAdminRefundAction({

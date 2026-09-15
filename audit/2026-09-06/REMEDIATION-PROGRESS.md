@@ -1680,3 +1680,89 @@ observed separately. Browser/device login and password-reset completion still re
 - Full isolated web coverage: **3,538 tests / 321 files passed**, exit 0, 156.24 seconds
   (refund-recovery-full-coverage.log). Hosted scheduling, real Stripe recovery and broader readiness
   remain unverified.
+
+### 2026-09-15 — Admin release overpayment reproduction (open)
+
+- Added expected-safe admin-release-balance.test.ts against the actual admin route with synthetic
+  database/provider boundaries. A GBP 100 escrow with GBP 70 remaining after refund still produced a
+  Stripe transfer request for 10,000 minor units. The safety assertion failed: expected <= 7,000,
+  actual 10,000 (`admin-release-balance-before.log`, one failed test, exit 1, 2.00 seconds). No real
+  payment occurred.
+- The existing shared claim_escrow_release obtains remaining principal under job/escrow locks, and
+  reserve_escrow_transfer binds provider terms and rejects refund conflicts. The admin route
+  currently bypasses both. Repair must integrate atomic claim, frozen provider transfer, fees, and
+  pending recovery together; a standalone balance read would retain a refund/release race. The new
+  safety test is intentionally failing until that implementation is repaired and is not committed in
+  this checkpoint.
+
+### 2026-09-15 — Atomic admin release foundation (not yet connected)
+
+- CLI-created migration 20260915185723_reserve_admin_release_principal.sql adds a service-only admin
+  release operation that freezes remaining principal, fee, payout, recipient and original reason
+  under job/escrow locks. Checks current admin authority, payout setup, payee identity, unresolved
+  refunds and existing payout attempts. Retry retains original economics; changed reason is
+  rejected.
+- Atomic finalization requires a matching durable transfer record for positive payouts, records
+  escrow payout/fee and job payment state, and inserts notifications/audit once. A pending operation
+  blocks job status/reassignment changes to prevent lifecycle code from bypassing the release claim.
+- Real rollback SQL remediation-admin-release-reservation.sql passed: GBP 500 minus GBP 100 refund
+  reserves GBP 400 principal / GBP 48 fee / GBP 352 payout; pending refund and non-admin calls
+  denied; fee-rate change on retry retains original values; missing transfer confirmation denied;
+  reassignment blocked; duplicate confirmation emits exactly two recipient notifications and one
+  audit row. Provider confirmation is synthetic, not a real transfer.
+- API/UI still use the legacy admin release path, so admin-release-balance.test.ts remains
+  intentionally failing until integration. Fee bookkeeping consumers, zero-payout behavior, provider
+  recovery and concurrent release/refund checks still require completion. No hosted mutation or
+  deployment.
+- Expanded isolated migration replay/diff completed: exit 0, no schema differences
+  (admin-release-finalization-diff.log).
+
+### 2026-09-15 admin release recovery validation (uncommitted integration)
+
+- Hardened AdminReleaseAction confirmation decoding: completed positive payouts require a nonempty
+  transfer ID; fee-only settlement requires null; finalization must retain escrow identity and
+  destination as well as frozen amounts.
+- Actual admin route tests (authentication wrapper, database and provider mocked) cover
+  partial-refund principal, provider uncertainty, provider success followed by database failure,
+  completed retry without another transfer, fee-only funding verification, missing transfer evidence
+  and mismatched escrow finalization.
+- Browser request tests cover persistent identical key/reason across network and pending responses,
+  changed-payload rejection, confirmed balanced success cleanup, inconsistent totals and unavailable
+  browser storage. These are DOM-environment helper tests, not a real browser journey.
+- Sanitized targeted run: 11 tests / 2 files passed, exit 0, 2.04 seconds;
+  admin-release-recovery-tests.log. First persistence diagnostic targeted Storage.prototype, but
+  shared test setup supplies a separate localStorage instance; corrected the spy to that actual
+  instance and reran.
+- Admin release integration remains incomplete pending broader validation, real database concurrency
+  coverage, fee-accounting consumer review and unattended recovery. No deployment or real provider
+  operation occurred.
+
+### 2026-09-15 admin release database race and transactional recovery
+
+- remediation-admin-release-race.py passed against supabase_db_mintenance-audit-20260906 using two
+  independent connections and service_role RPC calls. Concurrent matching reservations return one
+  operation with frozen GBP500 principal / GBP60 fee / GBP440 payout. Concurrent finalization writes
+  exactly two participant notifications and one audit event. Provider confirmation is synthetic; no
+  Stripe call occurs. Exact fixture cleanup completed. Initial diagnostic incorrectly selected an id
+  column from reserve_escrow_transfer; corrected to its actual escrow_id return column before
+  passing.
+- remediation-admin-release-reservation.sql passed again after adding injected notification failure.
+  A failed notification insert rolls back the operation, escrow transition and all settlement
+  effects; retry with the same recorded synthetic transfer then settles once. The entire diagnostic
+  rolls back.
+- Fee-accounting follow-through remains open: FeeTransferService.transferPlatformFee writes
+  platform_fee_transfers using recomputed amounts and estimated processing fees, then separately
+  overwrites escrow fee columns. The new admin finalizer correctly freezes escrow fee/payout but
+  does not yet populate that separate accounting table. Calling the existing service naively would
+  undermine the frozen amounts and transactional settlement. Its pending/held consumer is
+  /api/admin/escrow/fee-transfer/pending and /admin/payments/fees; actual-cost accounting and
+  durable ledger integration require a targeted follow-up.
+- Additional fee-only real-database diagnostic remediation-admin-release-fee-only.sql passed
+  (rollback-only): GBP0.30 principal is entirely fee, contractor payout zero, no transfer attempt
+  exists, non-null transfer identity rejected and duplicate finalization emits only two
+  notifications.
+- Full sanitized web coverage: 3,549 tests / 323 files passed; exit 0; 161.32 seconds
+  (admin-release-full-coverage.log). Targeted changed-source ESLint passed with --max-warnings=0.
+  Web TypeScript check passed in the preceding validation. The exact migration replay previously
+  completed with no schema changes (admin-release-finalization-diff.log); SQL diagnostics added here
+  do not alter migrations.

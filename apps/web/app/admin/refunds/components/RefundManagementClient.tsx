@@ -1,9 +1,9 @@
 'use client';
 import {
-  readPendingRefund,
-  submitRefund,
-  type RefundRequestBody,
-} from '@/lib/payments/refund-request';
+  readPendingAdminRelease,
+  submitAdminRelease,
+} from '@/lib/payments/admin-release-request';
+import { readPendingRefund, submitRefund } from '@/lib/payments/refund-request';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
@@ -78,9 +78,11 @@ const STATUS_TABS = [
 
 export function RefundManagementClient({ adminId }: { adminId: string }) {
   const refundActor = `admin:${adminId}`;
-  const [savedRefund, setSavedRefund] = useState<RefundRequestBody | null>(
-    null
-  );
+  const [savedRefund, setSavedRefund] = useState<{
+    reason: string;
+    amount?: number;
+  } | null>(null);
+  const [retryableReleaseIds, setRetryableReleaseIds] = useState<string[]>([]);
   const [retryableIds, setRetryableIds] = useState<string[]>([]);
   const [escrows, setEscrows] = useState<EscrowRecord[]>([]);
   const [stats, setStats] = useState<EscrowStats | null>(null);
@@ -146,6 +148,17 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
   }, [fetchData]);
 
   useEffect(() => {
+    setRetryableReleaseIds(
+      escrows
+        .filter((escrow) => {
+          try {
+            return !!readPendingAdminRelease(adminId, escrow.id);
+          } catch {
+            return false;
+          }
+        })
+        .map((escrow) => escrow.id)
+    );
     setRetryableIds(
       escrows
         .filter((escrow) => {
@@ -157,7 +170,7 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
         })
         .map((escrow) => escrow.id)
     );
-  }, [escrows, refundActor]);
+  }, [escrows, refundActor, adminId]);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -171,7 +184,9 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
       setSavedRefund(
         type === 'refund'
           ? (readPendingRefund(refundActor, escrow.id)?.body ?? null)
-          : null
+          : type === 'release'
+            ? readPendingAdminRelease(adminId, escrow.id)
+            : null
       );
     } catch (error) {
       setToast({
@@ -189,6 +204,18 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
     setActionLoading(true);
     try {
       const csrfHeaders = await getCsrfHeaders();
+      if (actionModal.type === 'release') {
+        await submitAdminRelease(
+          adminId,
+          actionModal.escrow.id,
+          reason,
+          csrfHeaders
+        );
+        setToast({ message: 'Payment release confirmed.', type: 'success' });
+        setActionModal({ open: false, type: 'release', escrow: null });
+        await fetchData();
+        return;
+      }
       if (actionModal.type === 'refund') {
         await submitRefund(
           refundActor,
@@ -236,6 +263,17 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
         type: 'error',
       });
     } finally {
+      setRetryableReleaseIds(
+        escrows
+          .filter((escrow) => {
+            try {
+              return !!readPendingAdminRelease(adminId, escrow.id);
+            } catch {
+              return false;
+            }
+          })
+          .map((escrow) => escrow.id)
+      );
       setRetryableIds(
         escrows
           .filter((escrow) => {
@@ -384,6 +422,7 @@ export function RefundManagementClient({ adminId }: { adminId: string }) {
 
       {/* Table */}
       <EscrowTable
+        retryableReleaseIds={retryableReleaseIds}
         retryableIds={retryableIds}
         escrows={escrows}
         loading={loading}
