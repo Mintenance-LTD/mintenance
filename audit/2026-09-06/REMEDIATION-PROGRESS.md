@@ -1057,3 +1057,32 @@ conditional fresh MFA verification, provider mutation and durable revocation/rec
 cookies and Supabase sessions, truthful failed/uncertain outcomes, and wiring both web settings
 callers. Current contractor no-request password handler remains open until those controls are
 implemented and exercised.
+
+### 2026-09-15 — Mobile refreshed-session revocation
+
+The previous web revocation checkpoint completed full coverage after commit: 3,432 tests / 309 files
+passed, exit 0, 163.84s (session-revocation-full-coverage.log).
+
+A real SQL reproduction found verified_mobile_session_context accepted an Auth session created an
+hour before the revocation cutoff when the supplied verified JWT was newly refreshed. The function
+compared only JWT iat with the cutoff. CLI-generated migration
+20260915153939_bind_mobile_revocation_to_session_creation.sql additionally binds authorization to
+auth.sessions.created_at and excludes soft-deleted profiles. JWT second precision is handled
+separately from the full-resolution session creation time so a genuinely new login in the same
+second as revocation is accepted. Existing ownership, expiry and database-role checks remain.
+
+The new rollback SQL diagnostic passes for refreshed old-session rejection, same-second fresh login,
+and soft-deleted account denial. The original mobile session SQL diagnostic also passes. Existing
+production bearer verifier tests: 4 passed. An actual local Auth/REST diagnostic creates a synthetic
+account, signs in, validates its identity, invokes the service-only session lookup, revokes web
+sessions, refreshes the original Supabase session and checks access again. Both the original and
+refreshed bearer contexts are rejected, and a fresh password login succeeds. Cleanup removes the
+synthetic Auth user, including sessions. No credentials, tokens or real account data are printed.
+
+Scope limit: Supabase itself still issues refreshed credentials for the old Auth session; this
+repair protects routes using verifySupabaseBearer/verified_mobile_session_context. It does not by
+itself revoke direct PostgREST/storage JWT access, nor complete password-change/provider-session
+recovery. Those remain required work. Migration replay result is recorded on completion.
+
+Mobile revocation migration replay completed exit 0 with no schema changes
+(mobile-revocation-db-diff.log).
