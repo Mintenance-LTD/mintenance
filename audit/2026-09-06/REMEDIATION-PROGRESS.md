@@ -1026,3 +1026,34 @@ client and service boundary tests plus real SQL supply the relevant evidence for
 Full TOTP enrollment/login/device enforcement, enrollment concurrency, MFA disable password identity
 binding and contractor password change still need completion; this checkpoint does not establish MFA
 journey readiness.
+
+### 2026-09-15 — Serialize web-session revocation with refresh issuance
+
+Password-change tracing identified a prerequisite: createTokenPair inserts a replacement refresh
+token after rotate_refresh_token finishes its transaction. Existing revokeAllTokens only updated
+currently visible rows and ignored PostgREST errors, while AuthManager.logout swallowed failures and
+could skip cookie clearing. A rollback reproduction inserted an unrevoked refresh token from a
+session started before profiles.tokens_revoked_at; one stale token was accepted.
+
+CLI-generated migration 20260915152927_serialize_web_session_revocation.sql adds a service-only
+atomic cutoff/refresh-token revocation function and a BEFORE INSERT guard. Both lock the account
+profile. A late rotation retaining its original session_started_at is rejected after revocation; a
+token inserted first is included in subsequent revocation. Existing pre-MFA sessions are deleted in
+the same transaction. Fresh login sessions remain allowed. revokeAllTokens now calls the RPC and
+throws on a database failure; AuthManager.logout clears local cookies in finally while propagating
+unsuccessful server revocation. The logout route still has its redundant cutoff update; this
+checkpoint does not claim Supabase bearer sessions or concurrent pre-MFA issuance are fully revoked.
+
+Evidence: real rollback diagnostic covers atomic failure rollback, client RPC denial, stale
+insertion denial and fresh login acceptance. Two-connection diagnostic observed actual lock waits in
+both orderings and left zero unrevoked fixture tokens. Target auth/auth-manager/API suite: 53 tests
+/ 3 files passed; corrected the existing auth test RPC mock to reference the actual mock consumed by
+the imported implementation. Web typecheck and changed-source lint passed. Isolated db diff
+completed exit 0 with no schema changes. Prior MFA migration replay also completed exit 0/no drift
+(mfa-disable-db-diff.log).
+
+Still required for password changes: authenticated current-password verification bound to the actor,
+conditional fresh MFA verification, provider mutation and durable revocation/recovery across custom
+cookies and Supabase sessions, truthful failed/uncertain outcomes, and wiring both web settings
+callers. Current contractor no-request password handler remains open until those controls are
+implemented and exercised.

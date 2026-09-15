@@ -142,7 +142,7 @@ vi.mock('../database', () => ({
 vi.mock('../api/supabaseServer', () => ({
   serverSupabase: {
     from: vi.fn(() => supabaseChain),
-    rpc: vi.fn(() => supabaseChain),
+    rpc: supabaseChain.rpc,
   },
 }));
 
@@ -176,21 +176,21 @@ describe('Auth Library', () => {
   /**
    * Reset the supabase chain mocks to their default (success) behavior.
    * Must be called after vi.clearAllMocks() since that clears all mock implementations.
-    */
-    function resetSupabaseChain() {
-      supabaseChain.single.mockImplementation(() =>
-        Promise.resolve({
-          data: {
-            role: 'homeowner',
-            first_name: 'John',
-            last_name: 'Doe',
-          },
-          error: null,
-        })
-      );
-      supabaseChain.maybeSingle.mockImplementation(() =>
+   */
+  function resetSupabaseChain() {
+    supabaseChain.single.mockImplementation(() =>
+      Promise.resolve({
+        data: {
+          role: 'homeowner',
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+        error: null,
+      })
+    );
+    supabaseChain.maybeSingle.mockImplementation(() =>
       Promise.resolve({ data: { tokens_revoked_at: null }, error: null })
-      );
+    );
     supabaseChain.is.mockImplementation(() => supabaseChain);
     supabaseChain.eq.mockImplementation(() => supabaseChain);
     supabaseChain.select.mockImplementation(() => supabaseChain);
@@ -437,13 +437,21 @@ describe('Auth Library', () => {
 
   describe('revokeAllTokens', () => {
     it('should revoke all tokens for a user', async () => {
-      // revokeAllTokens returns Promise<void> - should not throw
+      supabaseChain.rpc.mockResolvedValueOnce({ error: null });
       await expect(revokeAllTokens(mockUser.id)).resolves.toBeUndefined();
+      expect(supabaseChain.rpc).toHaveBeenLastCalledWith(
+        'revoke_web_sessions_atomic',
+        { p_user_id: mockUser.id }
+      );
     });
 
-    it('should not throw for any user ID', async () => {
-      // revokeAllTokens calls .update().eq().is() and returns void
-      await expect(revokeAllTokens('any-user-id')).resolves.toBeUndefined();
+    it('reports a failed revocation instead of claiming success', async () => {
+      supabaseChain.rpc.mockResolvedValueOnce({
+        error: { message: 'synthetic database failure' },
+      });
+      await expect(revokeAllTokens(mockUser.id)).rejects.toThrow(
+        'Unable to revoke web sessions'
+      );
     });
   });
 

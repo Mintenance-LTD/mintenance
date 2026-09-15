@@ -311,14 +311,10 @@ export async function rotateTokens(
  * Revoke all refresh tokens for a user
  */
 export async function revokeAllTokens(userId: string): Promise<void> {
-  await serverSupabase
-    .from('refresh_tokens')
-    .update({
-      revoked_at: new Date().toISOString(),
-      revoked_reason: 'logout_all',
-    })
-    .eq('user_id', userId)
-    .is('revoked_at', null);
+  const { error } = await serverSupabase.rpc('revoke_web_sessions_atomic', {
+    p_user_id: userId,
+  });
+  if (error) throw new Error('Unable to revoke web sessions');
 }
 
 /**
@@ -363,10 +359,10 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
     if (payload.sub && payload.iat) {
       const { data: profile, error: revocationLookupError } =
         await serverSupabase
-        .from('profiles')
-        .select('tokens_revoked_at')
-        .eq('id', payload.sub)
-        .maybeSingle();
+          .from('profiles')
+          .select('tokens_revoked_at')
+          .eq('id', payload.sub)
+          .maybeSingle();
       if (revocationLookupError) {
         throw revocationLookupError;
       }
