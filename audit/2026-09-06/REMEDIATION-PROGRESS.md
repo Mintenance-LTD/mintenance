@@ -1354,3 +1354,29 @@ observed separately. Browser/device login and password-reset completion still re
   points, and verify stale completion/release rejection plus valid-owner recovery in SQL and
   concurrent-request tests. Avoid a process-global key-to-token map: overlapping requests could pick
   up the replacement token. Do not disable takeover as a substitute for durable recovery.
+
+### 2026-09-15 — fenced idempotency database primitives (caller integration pending)
+
+- CLI-generated migration `20260915170225_fence_idempotency_claim_ownership.sql` adds
+  per-acquisition UUID tokens and expiry timestamps. New service-only claim/complete/release
+  functions require actor plus token for writes. Acquisition retains the existing bound
+  actor/payload validation and transaction lock; each takeover rotates the token. Cached responses
+  do not return an ownership token.
+- Applied only to disposable Supabase. New rollback regression `remediation-idempotency-fencing.sql`
+  passed: expired completion denied before takeover, old completion/release denied after takeover,
+  wrong actor denied, current completion and release succeed, completed replay retains the correct
+  response without exposing token, direct client RPC grants absent (`idempotency-fencing-sql.log`,
+  exit 0).
+- Isolated `supabase db diff --local` replay passed with no schema changes
+  (`idempotency-fencing-db-diff.log`, exit 0).
+- Security advisors ran with `--type security --level warn --fail-on error`: exit **1**, retaining
+  the existing public PostGIS / spatial_ref_sys findings. Explicit effective grants check confirms
+  anon and authenticated SELECT/INSERT/UPDATE/DELETE privileges on spatial_ref_sys remain true. Do
+  not interpret successful migration replay as resolved effective-grant scope; this remains a
+  separate F1 concern.
+- **Not integrated yet:** shared TypeScript helper and its 16 route consumers still invoke the old
+  functions, which remain available for the staged migration. Therefore the original stale-owner
+  defect remains reproducible in active application code. Next required work is explicit
+  request-local token propagation through check/store/release/releaseOnError, retiring old write
+  entry points, updating real helper/route tests and proving concurrent stale-owner rejection. No
+  deployment or hosted mutation occurred.
