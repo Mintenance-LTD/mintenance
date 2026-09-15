@@ -1643,3 +1643,40 @@ observed separately. Browser/device login and password-reset completion still re
   recovery sweep remains required; do not describe unattended recovery as complete.
 - Full isolated web coverage for the combined integration: **3,525 tests / 319 files passed**,
   178.15 seconds (admin-refund-final-coverage.log).
+
+### 2026-09-15 — Bounded unattended refund recovery (in progress)
+
+- Added service-only refund recovery claim/acknowledgement RPCs with a two-minute initial delay,
+  three-minute expiring token lease, SKIP LOCKED selection, sanitized recovery error category and
+  bounded retry backoff. Rollback SQL verified fresh/live claim exclusion, expiry/takeover,
+  wrong/stale-token rejection, backoff and client privilege denial.
+- Added a 25-second total provider deadline to recoverRefund, retaining its existing default
+  behavior for interactive callers. Tests verify no provider request starts after expiry and
+  pagination stops when the total budget expires.
+- Added refund-recovery cron through the existing authenticated withCronHandler, maxDuration 60,
+  configured every five minutes. Worker handles at most three operations, acknowledges exact lease
+  ownership, and reports failures for monitoring. No deployment or real provider calls.
+- Worker/provider recovery group: **40 tests / 2 files passed**, exit 0, 1.97 seconds
+  (`refund-recovery-worker.log`). Real rollback SQL passed; isolated db diff exit 0/no differences
+  (`refund-recovery-leases-diff.log`). Source lint and web TypeScript passed. Separate-worker DB
+  concurrency, cron authentication regression, and full-suite integration remain to be checked
+  before committing this checkpoint.
+
+### 2026-09-15 — Recovery worker concurrency and cron authentication
+
+- remediation-refund-worker-race.py passed using separate real DB connections and service-role RPC
+  execution: one overlapping worker claims due work, expiry rotates the lease token, stale
+  acknowledgement fails, and current acknowledgement succeeds. Exact synthetic fixtures were cleaned
+  up.
+- Actual withCronHandler/cron-auth boundaries tested with synthetic secrets and a mocked worker:
+  missing/wrong bearer credentials, missing configuration, expired HMAC and wrong-path HMAC all
+  rejected before worker/tracking. Valid scheduler credential accepted; worker failures return 503.
+  Targeted recovery group **47 tests / 3 files passed**, exit 0, 2.03 seconds
+  (refund-recovery-final-targeted.log). Web TypeScript passed.
+- Next confirmed source gap: admin release in apps/web/app/api/admin/refunds/[id]/route.ts still
+  derives Stripe transfer from original escrow.amount and bypasses the durable remaining-principal
+  transfer service. It must be integrated before treating admin payment intervention as ready,
+  particularly after partial refunds. No fix to this separate release path claimed here.
+- Full isolated web coverage: **3,538 tests / 321 files passed**, exit 0, 156.24 seconds
+  (refund-recovery-full-coverage.log). Hosted scheduling, real Stripe recovery and broader readiness
+  remain unverified.

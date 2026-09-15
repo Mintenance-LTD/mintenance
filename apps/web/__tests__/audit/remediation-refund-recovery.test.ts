@@ -418,3 +418,34 @@ describe('Administrator refund reservation identity', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
 });
+
+describe('refund recovery time budget', () => {
+  beforeEach(() => {
+    mocks.list.mockReset();
+    mocks.create.mockReset();
+  });
+  it('does not start a provider request after the worker budget expires', async () => {
+    await expect(
+      recoverRefund(operation(), Date.now() - 1)
+    ).rejects.toMatchObject({ statusCode: 503 });
+    expect(mocks.list).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('stops pagination when the total worker budget is exhausted', async () => {
+    const start = Date.now();
+    const now = vi.spyOn(Date, 'now').mockReturnValue(start);
+    try {
+      mocks.list.mockImplementationOnce(async () => {
+        now.mockReturnValue(start + 6000);
+        return { data: [{ id: 're_other', metadata: {} }], has_more: true };
+      });
+      await expect(
+        recoverRefund(operation(), start + 5000)
+      ).rejects.toMatchObject({ statusCode: 503 });
+      expect(mocks.list).toHaveBeenCalledTimes(1);
+      expect(mocks.create).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
+  });
+});

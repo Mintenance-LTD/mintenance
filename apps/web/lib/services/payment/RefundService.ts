@@ -2,7 +2,11 @@ import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { stripe } from '@/lib/stripe';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
-import { ConflictError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  ConflictError,
+  InternalServerError,
+  ServiceUnavailableError,
+} from '@/lib/errors/api-error';
 
 export interface RefundOperation {
   id: string;
@@ -26,7 +30,7 @@ export interface RefundOperation {
   created_at: string;
 }
 
-function operationFrom(data: unknown): RefundOperation {
+export function operationFrom(data: unknown): RefundOperation {
   const row = (Array.isArray(data) ? data[0] : data) as
     | RefundOperation
     | undefined;
@@ -216,8 +220,23 @@ async function recordOutcome(
   return result;
 }
 
+async function refundProviderCall<T>(
+  fn: () => Promise<T>,
+  label: string,
+  deadlineAt?: number
+): Promise<T> {
+  const remaining =
+    deadlineAt === undefined ? 10000 : Math.min(10000, deadlineAt - Date.now());
+  if (remaining <= 0)
+    throw new ServiceUnavailableError('Refund recovery time budget exhausted');
+  return stripeWithTimeout(fn, label, remaining);
+}
+
 /** Verify original cash funding and all previous cash refunds before moving more money. */
-async function verifyRemainingFunding(op: RefundOperation): Promise<void> {
+async function verifyRemainingFunding(
+  op: RefundOperation,
+  deadlineAt?: number
+): Promise<void> {
   const [
     { data: balance, error: balanceError },
     { data: escrow, error: escrowError },
@@ -245,13 +264,13 @@ async function verifyRemainingFunding(op: RefundOperation): Promise<void> {
   ) {
     throw new ConflictError('Refund funding requires reconciliation');
   }
-  const intent = await stripeWithTimeout(
+  const intent = await refundProviderCall(
     () =>
       stripe.paymentIntents.retrieve(op.payment_intent_id, {
         expand: ['latest_charge'],
       }),
     'verify-refund-funding',
-    10000
+    deadlineAt
   );
   const charge =
     typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
@@ -280,22 +299,23 @@ async function verifyRemainingFunding(op: RefundOperation): Promise<void> {
 
 /** Reuses a durable operation after timeouts, process crashes, and lost DB writes. */
 export async function recoverRefund(
-  op: RefundOperation
+  op: RefundOperation,
+  deadlineAt?: number
 ): Promise<RefundOperation> {
   if (op.state === 'reconciliation_required')
     throw new ConflictError('Refund requires reconciliation');
   if (op.provider_refund_id) {
     const providerRefundId = op.provider_refund_id;
-    const refund = await stripeWithTimeout(
+    const refund = await refundProviderCall(
       () => stripe.refunds.retrieve(providerRefundId),
       'retrieve-refund',
-      10000
+      deadlineAt
     );
     return recordOutcome(op, refund);
   }
   if (op.cash_minor === 0) {
     if (op.state === 'succeeded') return op;
-    await verifyRemainingFunding(op);
+    await verifyRemainingFunding(op, deadlineAt);
     return recordOutcome(op, null);
   }
   // Recover the provider ID even when Stripe succeeded but its response or the
@@ -303,7 +323,7 @@ export async function recoverRefund(
   let after: string | undefined;
   let found: Stripe.Refund | undefined;
   for (let page = 0; page < 10; page++) {
-    const refunds = await stripeWithTimeout(
+    const refunds = await refundProviderCall(
       () =>
         stripe.refunds.list({
           payment_intent: op.payment_intent_id,
@@ -311,7 +331,7 @@ export async function recoverRefund(
           ...(after ? { starting_after: after } : {}),
         }),
       'find-refund',
-      10000
+      deadlineAt
     );
     for (const refund of refunds.data) {
       if (refund.metadata?.refundOperationId !== op.id) continue;
@@ -328,10 +348,10 @@ export async function recoverRefund(
   }
   if (found) {
     const refundId = found.id;
-    const current = await stripeWithTimeout(
+    const current = await refundProviderCall(
       () => stripe.refunds.retrieve(refundId),
       'retrieve-refund',
-      10000
+      deadlineAt
     );
     return recordOutcome(op, current);
   }
@@ -352,14 +372,14 @@ export async function recoverRefund(
       'Frozen refund parameters do not match the operation'
     );
   }
-  await verifyRemainingFunding(op);
-  const refund = await stripeWithTimeout(
+  await verifyRemainingFunding(op, deadlineAt);
+  const refund = await refundProviderCall(
     () =>
       stripe.refunds.create(op.stripe_parameters, {
         idempotencyKey: `escrow_refund_${op.id}`,
       }),
     'create-refund',
-    10000
+    deadlineAt
   );
   return recordOutcome(op, refund);
 }

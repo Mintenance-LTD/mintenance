@@ -26,6 +26,7 @@
   },
   "crons": [
     { "path": "/api/cron/password-change-recovery", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/refund-recovery", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/account-deletion-recovery", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/payment-setup-reminders",     "schedule": "0 9 * * *"   },
     { "path": "/api/cron/low-activity-contractor-nudge","schedule": "15 9 * * *"  },
