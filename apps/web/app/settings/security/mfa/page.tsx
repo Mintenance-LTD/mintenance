@@ -91,7 +91,10 @@ export default function MFASettingsPage() {
       const data = await response.json();
 
       if (!response.ok || data.success !== true) {
-        throw new Error(data.error || 'Failed to start enrollment');
+        throw new Error(
+          (typeof data.error === 'string' ? data.error : data.error?.message) ||
+            'Failed to start enrollment'
+        );
       }
 
       if (
@@ -138,7 +141,10 @@ export default function MFASettingsPage() {
       const data = await response.json();
 
       if (!response.ok || data.success !== true) {
-        throw new Error(data.error || 'Verification failed');
+        throw new Error(
+          (typeof data.error === 'string' ? data.error : data.error?.message) ||
+            'Verification failed'
+        );
       }
 
       toast.success('MFA enabled successfully!');
@@ -176,7 +182,10 @@ export default function MFASettingsPage() {
       const data = await response.json();
 
       if (!response.ok || data.success !== true) {
-        throw new Error(data.error || 'Failed to disable MFA');
+        throw new Error(
+          (typeof data.error === 'string' ? data.error : data.error?.message) ||
+            'Failed to disable MFA'
+        );
       }
 
       toast.success('MFA disabled successfully');

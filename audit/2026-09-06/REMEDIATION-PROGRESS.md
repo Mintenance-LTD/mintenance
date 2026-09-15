@@ -1086,3 +1086,31 @@ recovery. Those remain required work. Migration replay result is recorded on com
 
 Mobile revocation migration replay completed exit 0 with no schema changes
 (mobile-revocation-db-diff.log).
+
+### 2026-09-15 — MFA disable password identity and temporary sessions
+
+The MFA disable route previously treated any successful signInWithPassword result for the request
+email as proof for user.id, without comparing the returned Auth identity. It also retained the newly
+created provider session. It now requires a matching Auth user ID and a returned session; any
+temporary session is signed out with scope=local before the MFA mutation, including mismatched
+identities. A cleanup failure prevents the mutation. Invalid JSON and oversized password bodies are
+rejected before provider calls, and the existing user-based rate limiter now explicitly uses auth
+criticality so production fallback is fail-closed. MFA client errors now display structured API
+error messages rather than [object Object].
+
+Twelve targeted route/client/service tests passed, including mismatched identities, absent sessions,
+credential errors, cleanup failure, rate denial, malformed bodies and database mutation failure. Web
+typecheck and changed-source lint passed. An actual local Auth diagnostic created two sessions,
+confirmed reauthentication identity, revoked only the temporary session, rejected its refresh and
+successfully refreshed the pre-existing session. Synthetic cleanup completed; no real account or
+email delivery was used. This verifies the new temporary-session behavior, not a full MFA
+enrollment/login journey.
+
+Password-provider probe (isolated-stack/probe-password-sessions.py, ignored diagnostic scratch): a
+real local admin password update removed existing Auth sessions, old refresh and old password
+returned HTTP 400, and the new password returned HTTP 200. This helps choose the next
+password-change implementation; it is not yet wired to the contractor form.
+
+GitHub checkpoint: after explicit repository/source authorization, all five prior commits were
+pushed to Mintenance-LTD/mintenance, codex/migrate-next-proxy, and ls-remote confirmed
+e55651171ce3a75ce211b1b4cf68ae47c0bc7254.
