@@ -1152,3 +1152,23 @@ password/refresh rejection and new-password login. Final targeted client/route/c
 14 tests passed; web typecheck and changed-source ESLint passed. Isolated migration replay completed
 exit 0/no drift. Full coverage result follows after completion; no browser/emulator or hosted cron
 was exercised.
+
+### 2026-09-15 — Web session-start cutoff verification
+
+Password-change checkpoint full coverage completed exit 0: 3,453 tests / 312 files passed, 173.15s
+(password-change-full-coverage.log).
+
+Production JWT signing includes sessionStart in milliseconds and preserves it during token rotation.
+verifyToken previously compared the database cutoff only with second-resolution JWT iat. Two new
+tests using the real signing/verifying functions reproduced both problems: a genuine login after a
+cutoff within the same second was rejected, while a newly issued access token retaining an older
+revoked sessionStart was accepted. The verifier now compares the signed sessionStart, rejects
+impossible/malformed start times and missing/invalid issuance claims, and retains a conservative iat
+fallback for legacy tokens without that claim. Invalid cutoff data also fails closed. No unsigned
+token metadata is used.
+
+Both reproduction cases now pass, together with future-start rejection and legacy cutoff tests.
+Auth/library/manager/API target run: 57 tests passed. Web typecheck and source lint passed. The
+database boundary remains independently enforced by the already validated refresh insertion trigger
+and mobile session-creation guard; no schema changed in this checkpoint. A full web run is being
+observed separately. Browser/device login and password-reset completion still remain unverified.
