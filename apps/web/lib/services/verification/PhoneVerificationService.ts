@@ -1,6 +1,7 @@
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { serverSupabase, createAnonClient } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import twilio from 'twilio';
+import { verifyPhoneCode } from './verifyPhoneCode';
 
 /**
  * Service for phone number verification via SMS using Supabase Auth
@@ -21,6 +22,13 @@ export class PhoneVerificationService {
       const { data: authUser, error: authUserError } =
         await serverSupabase.auth.admin.getUserById(userId);
 
+      if (authUserError || !authUser?.user) {
+        return {
+          success: false,
+          error: 'Account could not be verified. Please try again.',
+        };
+      }
+
       // If user exists but doesn't have phone in auth.users, update it first
       if (authUser?.user && !authUser.user.phone) {
         await serverSupabase.auth.admin.updateUserById(userId, {
@@ -30,7 +38,7 @@ export class PhoneVerificationService {
 
       // Use Supabase Auth to send OTP via SMS
       // This uses the configured SMS provider (TextLocal, Twilio, etc.) in Supabase
-      const { data, error } = await serverSupabase.auth.signInWithOtp({
+      const { data, error } = await createAnonClient().auth.signInWithOtp({
         phone: phoneNumber,
         options: {
           channel: 'sms',
@@ -183,8 +191,6 @@ export class PhoneVerificationService {
         return await this.sendSMSViaTwilioVerify(phoneNumber);
       }
 
-      const responseData = await response.json().catch(() => ({}));
-
       logger.info('SMS OTP sent via Supabase Admin API', {
         service: 'PhoneVerificationService',
         phoneNumber: phoneNumber.substring(0, 4) + '****',
@@ -319,128 +325,9 @@ export class PhoneVerificationService {
     userId: string,
     code: string
   ): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Get user's phone number
-      const { data: user, error: fetchError } = await serverSupabase
-        .from('profiles')
-        .select('phone, phone_verified')
-        .eq('id', userId)
-        .single();
-
-      if (fetchError || !user) {
-        logger.error('Failed to fetch user for phone verification', {
-          service: 'PhoneVerificationService',
-          userId,
-          error: fetchError?.message,
-        });
-        return { success: false, error: 'User not found' };
-      }
-
-      // Check if already verified
-      if (user.phone_verified) {
-        return { success: true }; // Already verified
-      }
-
-      if (!user.phone) {
-        return {
-          success: false,
-          error: 'Phone number not found. Please request a new code.',
-        };
-      }
-
-      // Try verifying OTP via Supabase Auth first
-      const { data: verifyData, error: verifyError } =
-        await serverSupabase.auth.verifyOtp({
-          phone: user.phone,
-          token: code,
-          type: 'sms',
-        });
-
-      // If Supabase verification fails, try Twilio Verify API as fallback
-      // (in case code was sent via Twilio Verify directly)
-      if (verifyError) {
-        logger.warn(
-          'Supabase OTP verification failed, trying Twilio Verify API',
-          {
-            service: 'PhoneVerificationService',
-            userId,
-            error: verifyError.message,
-          }
-        );
-
-        // Try Twilio Verify API
-        const twilioVerifyResult = await this.verifyCodeViaTwilioVerify(
-          user.phone,
-          code
-        );
-
-        if (!twilioVerifyResult.success) {
-          // Both methods failed - return user-friendly error
-          if (
-            verifyError.message?.includes('expired') ||
-            twilioVerifyResult.error?.includes('expired')
-          ) {
-            return {
-              success: false,
-              error:
-                'Invalid or expired verification code. Please request a new code.',
-            };
-          }
-          return {
-            success: false,
-            error:
-              twilioVerifyResult.error ||
-              verifyError.message ||
-              'Invalid verification code',
-          };
-        }
-
-        // Twilio Verify succeeded - continue with marking phone as verified
-      }
-
-      // Mark phone as verified in our users table
-      const { data: updateData, error: updateError } = await serverSupabase
-        .from('profiles')
-        .update({
-          phone_verified: true,
-          phone_verified_at: new Date().toISOString(),
-        })
-        .eq('id', userId)
-        .select();
-
-      if (updateError) {
-        logger.error('Failed to mark phone as verified', {
-          service: 'PhoneVerificationService',
-          userId,
-          error: updateError.message,
-        });
-        return { success: false, error: 'Failed to verify phone number' };
-      }
-
-      // Verify the update actually happened
-      if (!updateData || updateData.length === 0) {
-        logger.error('No rows updated when marking phone as verified', {
-          service: 'PhoneVerificationService',
-          userId,
-        });
-        return { success: false, error: 'Failed to verify phone number' };
-      }
-
-      logger.info('Phone number verified successfully', {
-        service: 'PhoneVerificationService',
-        userId,
-        phoneNumber: user.phone.substring(0, 4) + '****',
-        phoneVerified: updateData[0].phone_verified,
-      });
-
-      return { success: true };
-    } catch (error) {
-      logger.error('Error verifying phone code', error, {
-        service: 'PhoneVerificationService',
-        userId,
-      });
-      return { success: false, error: 'An unexpected error occurred' };
-    }
+    return verifyPhoneCode(userId, code, (phone, value) =>
+      this.verifyCodeViaTwilioVerify(phone, value)
+    );
   }
 
   /**

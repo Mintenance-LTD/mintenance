@@ -2126,3 +2126,24 @@ observed separately. Browser/device login and password-reset completion still re
 - Proven boundaries include actor/payload replay binding, one cash/credit reservation across keys,
   exact credit restoration, ledger-failure rollback, atomic rework, unrelated-user denial and atomic
   signing evidence/acceptance. Provider/browser behavior is not inferred from these database tests.
+
+### 15 September 2026 — F14 real SDK evidence and remaining phone OTP path
+
+- Traced login/register routes to AuthManager and fresh anonymous clients. Existing constructor
+  mocks alone did not prove installed SDK session behavior. Added auth-client-sdk-isolation.test.ts:
+  real client factory and real Supabase SDK, synthetic intercepted HTTP only, reverse-order user
+  login completion with privileged reads before/between/after. User clients retain their distinct
+  tokens and the singleton retains its service authorization. OTP session establishment is included.
+- Global test setup mocked both the factory and SDK; the first test attempt therefore exercised no
+  actual SDK. Explicitly unmocked both dependencies before running the final evidence.
+- Caller search found active PhoneVerificationService.verifyCode still called verifyOtp on the
+  privileged singleton. Extracted verification to verifyPhoneCode.ts and switched send/verify OTP
+  calls to fresh anonymous clients. Successful proof must match the current user; the profile update
+  additionally matches the proved phone to reject a concurrent phone change. Auth lookup failure now
+  prevents OTP sending. Service methods remain callable through the existing route.
+- Added phone service tests for isolated verification, wrong identity, changed phone and failed Auth
+  lookup. Combined AuthManager/real-SDK/phone regressions: 27 tests / 3 files passed
+  (current-auth-client-isolation.log). Web TypeScript passed; changed-source ESLint passed after
+  handling pre-existing unused results in the touched file. Normal commit hooks check final types.
+- No SMS, hosted Auth request or customer interaction occurred. This proves the local client-session
+  isolation contract; it does not certify the entire phone-change/provider-fallback journey.
