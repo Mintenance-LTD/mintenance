@@ -66,6 +66,16 @@ describe('FeeCalculationService', () => {
       expect(result.platformFee).toBe(10); // 10% of £100
     });
 
+    it.each([0.01, 0.25, 0.49, 0.5])(
+      'never allocates more than the remaining principal %s',
+      (amount) => {
+        const fees = FeeCalculationService.calculateFees(amount);
+        expect(fees.platformFee).toBeLessThanOrEqual(amount);
+        expect(fees.platformFee + fees.contractorAmount).toBeCloseTo(amount, 2);
+        expect(fees.contractorAmount).toBe(0);
+      }
+    );
+
     it('contractor amount is never negative', () => {
       // Very small amount where fees exceed the payment
       const result = FeeCalculationService.calculateFees(0.01);

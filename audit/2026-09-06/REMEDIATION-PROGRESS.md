@@ -728,3 +728,45 @@ payment journeys complete.
 Final full coverage passed exit 0: 3348 tests in 301 files, unchanged thresholds
 (remaining-release-full-coverage-final.log). The new claim migration must be applied before these
 application callers are deployed; only the isolated audit database has received it here.
+
+## 2026-09-15 — Explicit fee-only settlement for tiny remainders
+
+FeeCalculationService now caps the platform fee at available principal, preventing the minimum fee
+from allocating more money than remains. Manual and automatic release (both payout modes) use
+FeeOnlySettlementService when contractor payout is zero. It verifies captured/credit funding, then
+calls a service-only atomic settlement function. The response explicitly has transferId:null,
+settlementType:fee_only, and a separate settlement ID; no fictitious Stripe transfer is created.
+
+Migration 20260915080346 adds escrow_fee_only_settlements and settle_fee_only_escrow. Under job then
+escrow locks, it validates completed work, the release claim, current participants, no prior direct
+or accumulated payout, and an exact remaining principal between 1 and 50 minor units. It atomically
+records the fee, zero payout, terminal escrow/job payment state, actor-role audit record, and two
+in-app notifications explaining that no contractor payout is due. A trigger rejects stale attempts
+to reopen a settled escrow. Manual retries read the settlement only after MFA/role/participant
+gates, so a lost response does not become a second payout or expose another user's record.
+
+remediation-fee-only-settlement.sql passed against only the disposable audit database with complete
+rollback. It exercises changed amount/unrelated actor rejection, direct and accumulated payout
+exclusion, actor-role retention, replay without duplicate audit/notifications, absent transfer ID,
+blocked reopening, and an injected notification failure rolling back all accounting changes.
+remediation-fee-only-race.py passed with observed pg_stat_activity Lock waits: concurrent settlement
+produces one record/audit and two notifications; a waiting stale status reset is rejected. Its first
+cleanup failed on the retained audit actor FK; the two identified synthetic users/audit row were
+removed and cleanup was corrected before the successful rerun. No fixtures from that run remain.
+
+Targeted verification passed 112 tests in four files (fee-only-targeted-final.log), including real
+manual fee calculation/funding verification, both automatic modes, response-loss recovery,
+unrelated-user denial, fee conservation, and service failures. Web type checking and application
+workspace lint passed. Required isolated npx supabase db diff --local completed exit 0 with full
+shadow replay and no schema drift (fee-only-schema-diff.log). The temporary approval-review quota
+rejection was resolved before these final database checks; it was not bypassed.
+
+No hosted/original-local database or real provider was modified. The new migration is required
+before deploying these callers. Overall F1-F15 remediation and real-account/provider/browser
+verification remain incomplete; existing fee-reporting/processing-cost estimates and other recorded
+items are not claimed fixed by this settlement checkpoint.
+
+The full web log reports 3369 passing tests in 302 files and a completed coverage table, with no
+reported threshold failures (fee-only-full-coverage.log). After continuation the process handle was
+unavailable, so its exit code could not be recovered; this is not recorded as an observed exit-0
+result. Normal commit hooks validate the final source snapshot separately.

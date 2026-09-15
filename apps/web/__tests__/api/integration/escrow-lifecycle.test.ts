@@ -1466,6 +1466,7 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     casEqArgs: unknown[][];
     auditInserts: Array<Record<string, unknown>>;
     refundedMinor?: number;
+    feeOnlyCompleted?: boolean;
     finalUpdateResult?: { data: unknown; error: unknown };
   }) {
     mocks.supabaseRpc.mockImplementation(async (name, params) => {
@@ -1481,6 +1482,18 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
           error: null,
         };
       }
+      if (name === 'settle_fee_only_escrow')
+        return {
+          data: [
+            {
+              id: 'settlement-synthetic',
+              escrow_id: params.p_escrow_id,
+              principal_minor: params.p_fee_minor,
+              created_at: new Date().toISOString(),
+            },
+          ],
+          error: null,
+        };
       expect(name).toBe('reserve_escrow_transfer');
       opts.orderLog.push('reserve-transfer');
       return {
@@ -1541,6 +1554,9 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     // the way so the CAS/transfer/final sequence is isolated.
     const escrow = {
       ...baseEscrowRow('held'),
+      ...(opts.feeOnlyCompleted
+        ? { status: 'completed', contractor_payout: 0 }
+        : {}),
       homeowner_approval: true,
       cooling_off_ends_at: null,
       jobs: { ...baseJobRow, status: 'completed' },
@@ -1548,6 +1564,22 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
 
     let escrowCallCount = 0;
     mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'escrow_fee_only_settlements')
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: {
+                  id: 'settlement-synthetic',
+                  escrow_id: ESCROW_ID,
+                  principal_minor: 25,
+                  created_at: new Date().toISOString(),
+                },
+                error: null,
+              }),
+            }),
+          }),
+        };
       if (table === 'escrow_refund_balances')
         return {
           select: () => ({
@@ -1684,6 +1716,82 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
   }
+
+  it('recovers a committed fee-only settlement without claiming or transferring again', async () => {
+    setupFullReleaseMocks({
+      orderLog: [],
+      casEqArgs: [],
+      auditInserts: [],
+      feeOnlyCompleted: true,
+    });
+    const response = await releaseEscrowPOST(
+      createPostRequest('http://localhost/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      settlementType: 'fee_only',
+      transferId: null,
+      settlementId: 'settlement-synthetic',
+    });
+    expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+  });
+  it('does not expose a committed fee-only settlement to an unrelated homeowner', async () => {
+    setupFullReleaseMocks({
+      orderLog: [],
+      casEqArgs: [],
+      auditInserts: [],
+      feeOnlyCompleted: true,
+    });
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...homeownerUser,
+      id: 'unrelated-homeowner',
+    });
+    const response = await releaseEscrowPOST(
+      createPostRequest('http://localhost/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+    expect(response.status).toBe(403);
+    expect(mocks.supabaseFrom).not.toHaveBeenCalledWith(
+      'escrow_fee_only_settlements'
+    );
+  });
+
+  it('settles a fee-exhausted remainder without creating a transfer', async () => {
+    setupFullReleaseMocks({
+      orderLog: [],
+      casEqArgs: [],
+      auditInserts: [],
+      refundedMinor: 24975,
+    });
+    const response = await releaseEscrowPOST(
+      createPostRequest('http://localhost/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      success: true,
+      settlementType: 'fee_only',
+      transferId: null,
+      contractorAmount: 0,
+      platformFee: 0.25,
+    });
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'settle_fee_only_escrow',
+      expect.objectContaining({ p_fee_minor: 25, p_actor_id: homeownerUser.id })
+    );
+  });
 
   it('releases only remaining principal after a reconciled partial refund', async () => {
     setupFullReleaseMocks({

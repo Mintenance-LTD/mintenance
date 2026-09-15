@@ -156,7 +156,7 @@ export class FeeCalculationService {
     // Calculate platform fee with min/max constraints
     let platformFee = amount * effectivePlatformFeeRate;
     platformFee = Math.max(platformFee, minPlatformFee);
-    platformFee = Math.min(platformFee, maxPlatformFee);
+    platformFee = Math.min(platformFee, maxPlatformFee, amount);
     platformFee = this.roundToTwoDecimals(platformFee);
 
     // Calculate Stripe processing fee
