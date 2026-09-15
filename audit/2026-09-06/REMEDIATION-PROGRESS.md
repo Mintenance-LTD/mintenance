@@ -1200,3 +1200,28 @@ observed separately. Browser/device login and password-reset completion still re
   remain in Vitest output.
 - Remaining: other real database suites, full browser/device journeys and external payment-provider
   recovery still require their own evidence. This checkpoint does not establish public readiness.
+
+### 2026-09-15 — F15 financial/job/review assertion repair and real REST validation
+
+- Removed the remaining unsupported mutation `.select(..., {count, head})` assertions from
+  `__tests__/integration-real`: escrow, payments, jobs and contract/review tests. Job/review RLS
+  denial now requires a successful query with an empty returned row array; financial mutation denial
+  requires SQLSTATE 42501. Existing and added persisted-state checks confirm blocked operations did
+  not change or delete records.
+- Expanded real escrow mutation coverage to payer, payee and unrelated actors (UPDATE and DELETE);
+  exact INSERT denial also asserted. **9 escrow tests passed**, 3.04 seconds
+  (`escrow-isolation-final.log`).
+- Real job/payment suites: **22 tests / 2 files passed**, 6.28 seconds
+  (`job-payment-isolation.log`). Service-role payment status writes in this suite validate database
+  constraints and access, not Stripe processing or a complete application state machine.
+- Contract/review setup previously attempted homeowner direct contract INSERT, which is now
+  intentionally forbidden. Seeded the completed-job quote and contract with the service fixture
+  client; renamed the suite/assertion to describe its actual access-boundary scope instead of
+  claiming a complete quote handoff. Added independent homeowner/contractor/outsider INSERT, UPDATE
+  and DELETE denial tests and persisted amount/status checks. **7 contract/review tests passed**,
+  3.50 seconds (`contract-review-isolation-final.log`). Server contract generation/signing remain
+  covered by their separate route/SQL diagnostics, not this fixture setup.
+- All checks used actual synthetic Auth accounts and the disposable API on port 55321, no mocked
+  database and no payment-provider calls. Post-run counts: **0 recent synthetic accounts and jobs**.
+  Added three ignored isolated-stack launchers; no application or schema changes in this checkpoint.
+  Existing unrelated worktree tsconfig warnings persist.

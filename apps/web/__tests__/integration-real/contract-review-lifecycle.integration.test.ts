@@ -14,7 +14,7 @@ import {
   type TestUser,
 } from '../../test/integration/fixtures';
 
-describe('contract and review lifecycle (real DB)', () => {
+describe('contract and review access boundaries (real DB)', () => {
   let homeowner: TestUser;
   let contractor: TestUser;
   let outsider: TestUser;
@@ -58,7 +58,8 @@ describe('contract and review lifecycle (real DB)', () => {
       .eq('id', job.id);
     if (assignError) throw new Error(assignError.message);
 
-    const { data: bid, error: bidError } = await contractorClient
+    // Completed-job fixtures are seeded by the service; bidding is tested separately.
+    const { data: bid, error: bidError } = await service
       .from('bids')
       .insert({
         job_id: job.id,
@@ -86,7 +87,8 @@ describe('contract and review lifecycle (real DB)', () => {
       );
     }
 
-    const { data: contract, error: contractError } = await homeownerClient
+    // Contract creation is server-only; this fixture does not simulate API generation.
+    const { data: contract, error: contractError } = await service
       .from('contracts')
       .insert({
         job_id: job.id,
@@ -149,10 +151,55 @@ describe('contract and review lifecycle (real DB)', () => {
       .select('id')
       .eq('id', contractId)
       .maybeSingle();
+    expect(outsiderRead.error).toBeNull();
     expect(outsiderRead.data).toBeNull();
   });
 
-  it('completes the homeowner-to-contractor quote handoff before contracting', async () => {
+  it.each(['homeowner', 'contractor', 'outsider'] as const)(
+    '%s cannot fabricate or change a contract directly',
+    async (actor) => {
+      const client =
+        actor === 'homeowner'
+          ? homeownerClient
+          : actor === 'contractor'
+            ? contractorClient
+            : outsiderClient;
+      const inserted = await client
+        .from('contracts')
+        .insert({
+          job_id: job.id,
+          homeowner_id: homeowner.id,
+          contractor_id: contractor.id,
+          status: 'accepted',
+          title: 'itest forged contract',
+          amount: 1,
+        })
+        .select('id');
+      expect(inserted.error?.code).toBe('42501');
+      const updated = await client
+        .from('contracts')
+        .update({ status: 'accepted', amount: 1 })
+        .eq('id', contractId)
+        .select('id');
+      expect(updated.error?.code).toBe('42501');
+      const removed = await client
+        .from('contracts')
+        .delete()
+        .eq('id', contractId)
+        .select('id');
+      expect(removed.error?.code).toBe('42501');
+      const persisted = await homeownerClient
+        .from('contracts')
+        .select('status, amount')
+        .eq('id', contractId)
+        .single();
+      expect(persisted.error).toBeNull();
+      expect(persisted.data?.status).toBe('pending_homeowner');
+      expect(Number(persisted.data?.amount)).toBe(450);
+    }
+  );
+
+  it('allows participants to read the completed job and its seeded quote', async () => {
     const contractorJob = await contractorClient
       .from('jobs')
       .select('id, status')
@@ -185,10 +232,16 @@ describe('contract and review lifecycle (real DB)', () => {
       .from('reviews')
       .update({ comment: 'itest forged review' })
       .eq('id', reviewId)
-      .select('id', { count: 'exact', head: true });
-    expect(
-      outsiderUpdate.error === null && (outsiderUpdate.count ?? 0) > 0
-    ).toBe(false);
+      .select('id');
+    expect(outsiderUpdate.error).toBeNull();
+    expect(outsiderUpdate.data).toEqual([]);
+    const persisted = await homeownerClient
+      .from('reviews')
+      .select('comment')
+      .eq('id', reviewId)
+      .single();
+    expect(persisted.error).toBeNull();
+    expect(persisted.data?.comment).toBe('itest updated review');
   });
 
   it('keeps completed-job review eligibility tied to job participants', async () => {
