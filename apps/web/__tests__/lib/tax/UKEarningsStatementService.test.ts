@@ -21,6 +21,16 @@ import { UKEarningsStatementService } from '@/lib/services/tax/UKEarningsStateme
 /** A chain that is awaitable (resolves to `result`) and whose .single() resolves too. */
 function chain(result: { data: unknown; error: unknown }) {
   const obj: Record<string, unknown> = {};
+  let after: string | null = null;
+  let limit = Infinity;
+  obj.gt = vi.fn((_key: string, value: string) => {
+    after = value;
+    return obj;
+  });
+  obj.limit = vi.fn((value: number) => {
+    limit = value;
+    return obj;
+  });
   const passthrough = () => obj;
   for (const m of ['select', 'eq', 'in', 'not', 'gte', 'lte', 'order']) {
     obj[m] = vi.fn(passthrough);
@@ -28,12 +38,175 @@ function chain(result: { data: unknown; error: unknown }) {
   obj.single = vi.fn(() => Promise.resolve(result));
   // Make the chain itself awaitable for queries that don't end in .single().
   (obj as { then: unknown }).then = (resolve: (v: unknown) => unknown) =>
-    Promise.resolve(result).then(resolve);
+    Promise.resolve({
+      ...result,
+      data: Array.isArray(result.data)
+        ? result.data
+            .map((row, index) => ({
+              id: String(index).padStart(8, '0'),
+              ...row,
+            }))
+            .filter((row) => after === null || row.id > after)
+            .slice(0, limit)
+        : result.data,
+    }).then(resolve);
   return obj;
 }
 
 describe('UKEarningsStatementService.getStatement', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('includes all 1205 payments and jobs beyond the API page size', async () => {
+    const rows = Array.from({ length: 1205 }, (_, index) => ({
+      job_id: `job-${index}`,
+      payee_id: 'contractor-1',
+      amount: 100,
+      platform_fee: 12,
+      contractor_payout: 88,
+      stripe_processing_fee: null,
+      released_at: '2025-06-01T10:00:00Z',
+      status: 'completed',
+      jobs: null,
+    }));
+    mocks.from.mockImplementation((table: string) =>
+      chain({
+        data: table === 'escrow_transactions' ? rows : [],
+        error: null,
+      })
+    );
+    const statement = await UKEarningsStatementService.getStatement(
+      'contractor-1',
+      2025
+    );
+    expect(statement.totals).toMatchObject({
+      paymentCount: 1205,
+      jobCount: 1205,
+      grossEarnings: 120500,
+      netPaid: 106040,
+    });
+    const earners = await UKEarningsStatementService.listEarners(2025);
+    expect(earners[0]).toMatchObject({
+      jobCount: 1205,
+      grossEarnings: 120500,
+      netPaid: 106040,
+    });
+  });
+
+  it('rejects incomplete reports when a later contractor metadata batch fails', async () => {
+    const rows = Array.from({ length: 205 }, (_, index) => ({
+      job_id: `job-${index}`,
+      payee_id: `contractor-${index}`,
+      amount: 100,
+      platform_fee: 12,
+      contractor_payout: 88,
+      stripe_processing_fee: null,
+      released_at: '2025-06-01T10:00:00Z',
+      status: 'completed',
+      jobs: null,
+    }));
+    let profileBatches = 0;
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'profiles') profileBatches++;
+      return chain({
+        data: table === 'escrow_transactions' ? rows : [],
+        error:
+          table === 'profiles' && profileBatches === 2
+            ? { message: 'metadata unavailable' }
+            : null,
+      });
+    });
+    await expect(UKEarningsStatementService.listEarners(2025)).rejects.toThrow(
+      'complete earnings metadata'
+    );
+    expect(profileBatches).toBe(2);
+  });
+
+  it('does not disguise an unavailable tax-profile query as missing tax details', async () => {
+    mocks.from.mockImplementation((table: string) =>
+      chain({
+        data: [],
+        error:
+          table === 'contractor_tax_profiles'
+            ? { code: '08006', message: 'connection lost' }
+            : null,
+      })
+    );
+    await expect(
+      UKEarningsStatementService.getStatement('contractor-1', 2025)
+    ).rejects.toThrow('earnings tax profile');
+  });
+
+  it('reports only released principal after partial refunds and no platform-borne cost as a contractor deduction', async () => {
+    const row = {
+      payee_id: 'contractor-1',
+      job_id: 'job-1',
+      amount: 500,
+      platform_fee: 48,
+      contractor_payout: 352,
+      stripe_processing_fee: null,
+      refund_balance: {
+        gross_minor: 50000,
+        remaining_minor: 40000,
+        needs_review: false,
+      },
+      released_at: '2025-06-01T10:00:00Z',
+      status: 'completed',
+      jobs: null,
+    };
+    mocks.from.mockImplementation((table: string) =>
+      chain({ data: table === 'escrow_transactions' ? [row] : [], error: null })
+    );
+    const statement = await UKEarningsStatementService.getStatement(
+      'contractor-1',
+      2025
+    );
+    expect(statement.totals).toMatchObject({
+      grossEarnings: 400,
+      platformFees: 48,
+      stripeFees: 0,
+      netPaid: 352,
+    });
+    const earners = await UKEarningsStatementService.listEarners(2025);
+    expect(earners[0]).toMatchObject({
+      grossEarnings: 400,
+      platformFees: 48,
+      stripeFees: 0,
+      netPaid: 352,
+    });
+  });
+
+  it('does not deduct the platform processing-cost estimate from a recorded modern payout', async () => {
+    mocks.from.mockImplementation((table: string) =>
+      chain({
+        data:
+          table === 'escrow_transactions'
+            ? [
+                {
+                  job_id: 'job-1',
+                  amount: 100,
+                  platform_fee: 12,
+                  contractor_payout: 88,
+                  stripe_processing_fee: 1.7,
+                  released_at: '2025-06-01T10:00:00Z',
+                  status: 'completed',
+                  jobs: null,
+                },
+              ]
+            : null,
+        error: null,
+      })
+    );
+    const statement = await UKEarningsStatementService.getStatement(
+      'contractor-1',
+      2025
+    );
+    expect(statement.totals).toMatchObject({
+      grossEarnings: 100,
+      platformFees: 12,
+      stripeFees: 0,
+      netPaid: 88,
+    });
+  });
 
   it('aggregates released escrow rows within the 2025-26 tax year', async () => {
     const escrowRows = [
@@ -103,7 +276,7 @@ describe('UKEarningsStatementService.getStatement', () => {
     expect(statement.contractor?.utrOnFile).toBe(true);
   });
 
-  it('falls back to gross minus fees when contractor_payout is null', async () => {
+  it('refuses to invent a paid amount when contractor_payout is null', async () => {
     mocks.from.mockImplementation((table: string) => {
       if (table === 'escrow_transactions') {
         return chain({
@@ -125,11 +298,67 @@ describe('UKEarningsStatementService.getStatement', () => {
       return chain({ data: null, error: null });
     });
 
-    const statement = await UKEarningsStatementService.getStatement(
-      'contractor-2',
-      2025
-    );
-    expect(statement.totals.netPaid).toBe(172.8); // 200 - 24 - 3.2
-    expect(statement.contractor).toBeNull();
+    await expect(
+      UKEarningsStatementService.getStatement('contractor-2', 2025)
+    ).rejects.toThrow('requires reconciliation');
   });
+});
+
+describe('earnings filing confirmation', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('does not report a failed database write as filing confirmation', async () => {
+    const query = chain({
+      data: null,
+      error: { message: 'synthetic unavailable database' },
+    });
+    query.update = vi.fn(() => query);
+    query.maybeSingle = vi.fn(async () => ({
+      data: null,
+      error: { message: 'synthetic unavailable database' },
+    }));
+    mocks.from.mockReturnValue(query);
+    await expect(
+      UKEarningsStatementService.markFiled('contractor-1', 2025)
+    ).rejects.toThrow('Failed to record statement filing');
+  });
+
+  it.each(['missing', 'not generated', 'generated'])(
+    'confirms filing only for a generated statement: %s',
+    async (state) => {
+      const filters = new Map<string, unknown>();
+      let filed = false;
+      const query: Record<string, unknown> = {};
+      query.update = vi.fn(() => query);
+      query.select = vi.fn(() => query);
+      query.eq = vi.fn((key: string, value: unknown) => {
+        filters.set(key, value);
+        return query;
+      });
+      const result = () => {
+        const matches =
+          state !== 'missing' &&
+          (filters.get('statement_generated') !== true ||
+            state === 'generated');
+        filed = matches;
+        return {
+          data: matches ? { contractor_id: 'contractor-1' } : null,
+          error: null,
+        };
+      };
+      query.maybeSingle = vi.fn(async () => result());
+      query.then = (resolve: (value: unknown) => unknown) =>
+        Promise.resolve(result()).then(resolve);
+      mocks.from.mockReturnValue(query);
+
+      const confirmed = await UKEarningsStatementService.markFiled(
+        'contractor-1',
+        2025
+      );
+      expect(confirmed).toBe(state === 'generated');
+      expect(filed).toBe(state === 'generated');
+      expect(filters.get('contractor_id')).toBe('contractor-1');
+      expect(filters.get('tax_year')).toBe(2025);
+    }
+  );
 });

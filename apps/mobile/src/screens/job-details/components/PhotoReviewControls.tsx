@@ -38,6 +38,8 @@ export const PhotoReviewControls: React.FC<PhotoReviewControlsProps> = ({
         <TextInput
           style={styles.changesInput}
           value={changesComment}
+          editable={!submitting}
+          maxLength={5000}
           onChangeText={onChangesCommentChange}
           placeholder='Describe what needs to be fixed or improved...'
           placeholderTextColor={me.ink3}
@@ -50,6 +52,7 @@ export const PhotoReviewControls: React.FC<PhotoReviewControlsProps> = ({
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={onCancelChanges}
+            disabled={submitting}
             accessibilityRole='button'
           >
             <Text style={styles.cancelButtonText}>Cancel</Text>

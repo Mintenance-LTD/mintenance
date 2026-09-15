@@ -58,20 +58,19 @@ async function withTimeout<T>(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      // Create AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      // This bounds the caller's wait; it cannot cancel an arbitrary promise.
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
       try {
         // Execute operation with timeout
         const result = await Promise.race([
           operation(),
-          new Promise<never>((_, reject) =>
-            setTimeout(
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(
               () => reject(new TimeoutError(opName, timeoutMs)),
               timeoutMs
-            )
-          ),
+            );
+          }),
         ]);
 
         clearTimeout(timeoutId);
@@ -97,6 +96,8 @@ async function withTimeout<T>(
         }
 
         throw error;
+      } finally {
+        clearTimeout(timeoutId);
       }
     } catch (error) {
       // If this is the last attempt, throw the error
@@ -220,60 +221,13 @@ export async function geocodeWithTimeout(
 export async function stripeWithTimeout<T>(
   operation: () => Promise<T>,
   operationName: string,
-  timeoutMs: number = 10000
+  timeoutMs: number = 10000,
+  retries: number = 2
 ): Promise<T> {
   return withTimeout(operation, {
     timeoutMs,
     operation: `stripe:${operationName}`,
-    retries: 2, // Stripe operations are idempotent, can retry
+    retries,
     retryDelayMs: 1000,
-  });
-}
-
-/**
- * AI/ML model inference with timeout
- *
- * @param operation - ML operation to execute
- * @param modelName - Name of the model for logging
- * @param timeoutMs - Timeout in milliseconds (default: 30000)
- * @returns Model prediction result
- *
- * @example
- * const prediction = await mlWithTimeout(
- *   () => YOLOModel.predict(imageUri),
- *   'yolo-damage-detection',
- *   30000
- * );
- */
-async function mlWithTimeout<T>(
-  operation: () => Promise<T>,
-  modelName: string,
-  timeoutMs: number = 30000
-): Promise<T> {
-  return withTimeout(operation, {
-    timeoutMs,
-    operation: `ml:${modelName}`,
-    retries: 1, // ML operations can be retried once
-    retryDelayMs: 2000,
-  });
-}
-
-/**
- * Database query with timeout
- *
- * @param operation - Database operation to execute
- * @param queryName - Name of the query for logging
- * @param timeoutMs - Timeout in milliseconds (default: 15000)
- * @returns Query result
- */
-async function dbWithTimeout<T>(
-  operation: () => Promise<T>,
-  queryName: string,
-  timeoutMs: number = 15000
-): Promise<T> {
-  return withTimeout(operation, {
-    timeoutMs,
-    operation: `db:${queryName}`,
-    retries: 0, // Don't retry DB operations by default (they may not be idempotent)
   });
 }

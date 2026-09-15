@@ -5,7 +5,10 @@ import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { ConflictError } from '@/lib/errors/api-error';
 
 /** Verify captured provider funds independently of the client-writable legacy escrow state. */
-export async function verifyEscrowFunding(escrowId: string): Promise<string> {
+export async function verifyEscrowFunding(
+  escrowId: string,
+  deadlineAt?: number
+): Promise<string> {
   const { data: escrow, error } = await serverSupabase
     .from('escrow_transactions')
     .select('job_id, payer_id, payee_id, amount, payment_intent_id')
@@ -24,13 +27,18 @@ export async function verifyEscrowFunding(escrowId: string): Promise<string> {
   if (!Number.isSafeInteger(grossMinor) || grossMinor <= 0) {
     throw new ConflictError('Escrow funding amount is invalid');
   }
+  const remaining =
+    deadlineAt === undefined ? 10000 : Math.min(10000, deadlineAt - Date.now());
+  if (remaining <= 0)
+    throw new ConflictError('Funding verification time budget exhausted');
   const intent = await stripeWithTimeout(
     () =>
       stripe.paymentIntents.retrieve(escrow.payment_intent_id, {
         expand: ['latest_charge'],
       }),
     'verify-escrow-funding',
-    10000
+    remaining,
+    0
   );
   const metadata = intent.metadata;
   const expectedMinor = await getEscrowCashRequirement(

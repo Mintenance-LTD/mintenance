@@ -75,6 +75,7 @@ export const GET = withApiHandler(
         .from('contracts')
         .select('id, amount, title, description, terms, status')
         .eq('job_id', jobId)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(1),
       serverSupabase

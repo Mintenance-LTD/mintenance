@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 // Audit P2 (2026-05-10): consolidated to the canonical shared component.
 // Was importing a near-duplicate at './BeforeAfterSlider' (now deleted).
@@ -83,6 +83,8 @@ export function HomeownerPhotoReview({
   const [isApproved, setIsApproved] = useState(isConfirmed);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const reworkRequests = useRef(new Map<string, string>());
+  const reworkInFlight = useRef(false);
 
   const pairCount = Math.min(beforePhotos.length, afterPhotos.length);
   const hasPhotoPairs = pairCount > 0;
@@ -114,30 +116,52 @@ export function HomeownerPhotoReview({
   };
 
   const handleRequestChanges = async () => {
+    if (reworkInFlight.current) return;
     if (!comments.trim()) {
       setError('Please describe what changes are needed');
       return;
     }
 
+    reworkInFlight.current = true;
     setIsSubmitting(true);
     setError(null);
 
     try {
+      // Reuse the request identity after a lost response, including when the
+      // user edits the comments and then returns to the original feedback.
+      const identity = JSON.stringify([jobId, completedAt, comments.trim()]);
+      let requestKey = reworkRequests.current.get(identity);
+      if (!requestKey) {
+        requestKey = crypto.randomUUID();
+        reworkRequests.current.set(identity, requestKey);
+      }
       const res = await fetchWithCsrf(`/api/jobs/${jobId}/request-changes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': requestKey,
+        },
         body: JSON.stringify({ comments: comments.trim() }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send request');
+      if (!res.ok || data.success !== true) {
+        throw new Error(
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message ||
+                'Unable to confirm the change request. Please retry.'
+        );
+      }
 
       setSuccessMessage('Change request sent to the contractor.');
       setShowChangesForm(false);
       setComments('');
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send request');
     } finally {
+      reworkInFlight.current = false;
       setIsSubmitting(false);
     }
   };
@@ -256,6 +280,9 @@ export function HomeownerPhotoReview({
                 What changes are needed?
               </p>
               <textarea
+                aria-label='Changes needed'
+                maxLength={5000}
+                disabled={isSubmitting}
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder='Describe what needs to be fixed or improved...'

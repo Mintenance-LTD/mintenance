@@ -229,7 +229,9 @@ async function refundProviderCall<T>(
     deadlineAt === undefined ? 10000 : Math.min(10000, deadlineAt - Date.now());
   if (remaining <= 0)
     throw new ServiceUnavailableError('Refund recovery time budget exhausted');
-  return stripeWithTimeout(fn, label, remaining);
+  // Durable recovery schedules the retry; hidden per-call retries would exceed
+  // the worker deadline and may overlap an in-flight provider request.
+  return stripeWithTimeout(fn, label, remaining, 0);
 }
 
 /** Verify original cash funding and all previous cash refunds before moving more money. */

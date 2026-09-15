@@ -11,8 +11,9 @@ interface FeeTransfer {
   job_id: string;
   contractor_id: string;
   amount: number;
-  stripe_processing_fee: number;
-  net_revenue: number;
+  stripe_processing_fee: number | null;
+  net_revenue: number | null;
+  metadata?: { processingFeeStatus?: string };
   status: 'pending' | 'transferred' | 'held' | 'failed';
   hold_reason?: string;
   held_by?: string;
@@ -200,7 +201,9 @@ function FeeTransferRow({
         {formatCurrency(transfer.amount)}
       </td>
       <td style={{ padding: theme.spacing.md, textAlign: 'right' }}>
-        {formatCurrency(transfer.net_revenue)}
+        {transfer.net_revenue === null
+          ? 'Pending reconciliation'
+          : `${transfer.metadata?.processingFeeStatus === 'estimated' ? 'Estimate' : 'Unverified'}: ${formatCurrency(transfer.net_revenue)}`}
       </td>
       <td style={tdStyle}>
         <span

@@ -166,6 +166,7 @@ export class FeeTransferService {
         net_revenue: feeBreakdown.netPlatformRevenue,
         stripe_payment_intent_id: paymentIntentId,
         stripe_charge_id: chargeId,
+        metadata: { processingFeeStatus: 'estimated' },
         status: 'pending',
       })
       .select()

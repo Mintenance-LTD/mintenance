@@ -1680,3 +1680,774 @@ observed separately. Browser/device login and password-reset completion still re
 - Full isolated web coverage: **3,538 tests / 321 files passed**, exit 0, 156.24 seconds
   (refund-recovery-full-coverage.log). Hosted scheduling, real Stripe recovery and broader readiness
   remain unverified.
+
+### 2026-09-15 — Admin release overpayment reproduction (open)
+
+- Added expected-safe admin-release-balance.test.ts against the actual admin route with synthetic
+  database/provider boundaries. A GBP 100 escrow with GBP 70 remaining after refund still produced a
+  Stripe transfer request for 10,000 minor units. The safety assertion failed: expected <= 7,000,
+  actual 10,000 (`admin-release-balance-before.log`, one failed test, exit 1, 2.00 seconds). No real
+  payment occurred.
+- The existing shared claim_escrow_release obtains remaining principal under job/escrow locks, and
+  reserve_escrow_transfer binds provider terms and rejects refund conflicts. The admin route
+  currently bypasses both. Repair must integrate atomic claim, frozen provider transfer, fees, and
+  pending recovery together; a standalone balance read would retain a refund/release race. The new
+  safety test is intentionally failing until that implementation is repaired and is not committed in
+  this checkpoint.
+
+### 2026-09-15 — Atomic admin release foundation (not yet connected)
+
+- CLI-created migration 20260915185723_reserve_admin_release_principal.sql adds a service-only admin
+  release operation that freezes remaining principal, fee, payout, recipient and original reason
+  under job/escrow locks. Checks current admin authority, payout setup, payee identity, unresolved
+  refunds and existing payout attempts. Retry retains original economics; changed reason is
+  rejected.
+- Atomic finalization requires a matching durable transfer record for positive payouts, records
+  escrow payout/fee and job payment state, and inserts notifications/audit once. A pending operation
+  blocks job status/reassignment changes to prevent lifecycle code from bypassing the release claim.
+- Real rollback SQL remediation-admin-release-reservation.sql passed: GBP 500 minus GBP 100 refund
+  reserves GBP 400 principal / GBP 48 fee / GBP 352 payout; pending refund and non-admin calls
+  denied; fee-rate change on retry retains original values; missing transfer confirmation denied;
+  reassignment blocked; duplicate confirmation emits exactly two recipient notifications and one
+  audit row. Provider confirmation is synthetic, not a real transfer.
+- API/UI still use the legacy admin release path, so admin-release-balance.test.ts remains
+  intentionally failing until integration. Fee bookkeeping consumers, zero-payout behavior, provider
+  recovery and concurrent release/refund checks still require completion. No hosted mutation or
+  deployment.
+- Expanded isolated migration replay/diff completed: exit 0, no schema differences
+  (admin-release-finalization-diff.log).
+
+### 2026-09-15 admin release recovery validation (uncommitted integration)
+
+- Hardened AdminReleaseAction confirmation decoding: completed positive payouts require a nonempty
+  transfer ID; fee-only settlement requires null; finalization must retain escrow identity and
+  destination as well as frozen amounts.
+- Actual admin route tests (authentication wrapper, database and provider mocked) cover
+  partial-refund principal, provider uncertainty, provider success followed by database failure,
+  completed retry without another transfer, fee-only funding verification, missing transfer evidence
+  and mismatched escrow finalization.
+- Browser request tests cover persistent identical key/reason across network and pending responses,
+  changed-payload rejection, confirmed balanced success cleanup, inconsistent totals and unavailable
+  browser storage. These are DOM-environment helper tests, not a real browser journey.
+- Sanitized targeted run: 11 tests / 2 files passed, exit 0, 2.04 seconds;
+  admin-release-recovery-tests.log. First persistence diagnostic targeted Storage.prototype, but
+  shared test setup supplies a separate localStorage instance; corrected the spy to that actual
+  instance and reran.
+- Admin release integration remains incomplete pending broader validation, real database concurrency
+  coverage, fee-accounting consumer review and unattended recovery. No deployment or real provider
+  operation occurred.
+
+### 2026-09-15 admin release database race and transactional recovery
+
+- remediation-admin-release-race.py passed against supabase_db_mintenance-audit-20260906 using two
+  independent connections and service_role RPC calls. Concurrent matching reservations return one
+  operation with frozen GBP500 principal / GBP60 fee / GBP440 payout. Concurrent finalization writes
+  exactly two participant notifications and one audit event. Provider confirmation is synthetic; no
+  Stripe call occurs. Exact fixture cleanup completed. Initial diagnostic incorrectly selected an id
+  column from reserve_escrow_transfer; corrected to its actual escrow_id return column before
+  passing.
+- remediation-admin-release-reservation.sql passed again after adding injected notification failure.
+  A failed notification insert rolls back the operation, escrow transition and all settlement
+  effects; retry with the same recorded synthetic transfer then settles once. The entire diagnostic
+  rolls back.
+- Fee-accounting follow-through remains open: FeeTransferService.transferPlatformFee writes
+  platform_fee_transfers using recomputed amounts and estimated processing fees, then separately
+  overwrites escrow fee columns. The new admin finalizer correctly freezes escrow fee/payout but
+  does not yet populate that separate accounting table. Calling the existing service naively would
+  undermine the frozen amounts and transactional settlement. Its pending/held consumer is
+  /api/admin/escrow/fee-transfer/pending and /admin/payments/fees; actual-cost accounting and
+  durable ledger integration require a targeted follow-up.
+- Additional fee-only real-database diagnostic remediation-admin-release-fee-only.sql passed
+  (rollback-only): GBP0.30 principal is entirely fee, contractor payout zero, no transfer attempt
+  exists, non-null transfer identity rejected and duplicate finalization emits only two
+  notifications.
+- Full sanitized web coverage: 3,549 tests / 323 files passed; exit 0; 161.32 seconds
+  (admin-release-full-coverage.log). Targeted changed-source ESLint passed with --max-warnings=0.
+  Web TypeScript check passed in the preceding validation. The exact migration replay previously
+  completed with no schema changes (admin-release-finalization-diff.log); SQL diagnostics added here
+  do not alter migrations.
+
+### 2026-09-15 actual provider timeout enforcement
+
+- Found that refundProviderCall passed its remaining worker deadline into stripeWithTimeout, but
+  that helper retried twice with extra delay. A stalled call could exceed the supposed remaining
+  budget by roughly three times. Earlier recovery tests mocked this helper away.
+- Added optional retry-count control to stripeWithTimeout (existing default retained). Durable
+  refund calls explicitly use zero internal retries; their frozen operations and recovery scheduler
+  govern subsequent attempts. Funding verification and escrow transfer create/retrieve now also
+  bound each provider wait and disable hidden retries. Escrow transfer/funding accept an optional
+  shared deadline for worker use.
+- Corrected withTimeout timer lifecycle: the old code cleared an unused AbortController timer but
+  left the actual Promise.race rejection timer alive after success. The actual timer is now cleared
+  on every exit. A timeout bounds waiting; it does not cancel a provider-side operation or imply
+  payment failure.
+- Removed the timeout mock from refund recovery tests. Fake-clock tests with never-resolving
+  provider promises prove a 5-second deadline stops waiting, does not issue another provider
+  request, records no transfer success, and leaves no timeout timers. Sanitized targeted checks: 55
+  tests / 4 files passed, exit 0, 1.85 seconds (payment-real-timeout-tests.log).
+- Web TypeScript emitted no errors. Changed-source ESLint reported zero errors and two existing
+  unused-function warnings in api-timeout.ts (mlWithTimeout/dbWithTimeout); --max-warnings=0
+  therefore exited 1. The normal commit hook also rejected these warnings. Follow-up source
+  inspection confirmed both functions are unexported and have no callers; removed their dead
+  definitions, preserving all reachable timeout behavior, and reran normal hooks without bypassing
+  lint.
+- Unattended admin release scheduling and the separate fee ledger remain unfinished; this change
+  supplies bounded provider calls, not the complete worker.
+- Full sanitized web coverage for timeout changes: 3,551 tests / 323 files passed, exit 0, 160.56
+  seconds (payment-timeout-full-coverage.log). No database schema changes in this checkpoint.
+
+### 2026-09-15 unattended admin release recovery
+
+- Extracted frozen-operation decoding and provider/settlement recovery into AdminReleaseService; the
+  administrator route and scheduled worker now use the same implementation. The worker never creates
+  a new release authorization or recalculates its amount/destination.
+- Added 20260915193532_lease_admin_release_recovery.sql: only existing reserved operations older
+  than two minutes are claimable; FOR UPDATE SKIP LOCKED assigns a random token with a three-minute
+  lease. Expired leases can be replaced. Acknowledgement requires the current unexpired token and
+  schedules bounded exponential backoff after failure. Internal claim/ack RPCs are service-role
+  only.
+- AdminReleaseRecoveryService handles at most three operations per invocation with a 25-second
+  provider-work budget; failed/uncertain provider outcomes remain reserved. The cron route uses the
+  existing authenticated cron wrapper and returns failure to monitoring when recovery needs
+  attention. vercel.json schedules five-minute runs; nothing was deployed, so hosted
+  scheduling/provider behavior remains unverified.
+- Local migration applied only to supabase_db_mintenance-audit-20260906. Rollback diagnostic
+  remediation-admin-release-recovery-leases.sql passed: fresh-request delay, lease exclusion,
+  wrong/expired/stale token denial, takeover, backoff and client privilege denial.
+  Separate-connection remediation-admin-release-worker-race.py passed under service_role and cleaned
+  its exact synthetic fixtures.
+- Initial targeted route/worker/cron run: 20 tests / 3 files passed, exit 0, 2.01 seconds
+  (admin-release-worker-tests.log). These exercise actual settlement helper and actual cron
+  authentication with mocked database/provider boundaries; real SQL lease behavior is tested
+  separately. Added fee-only worker and total-budget tests before the subsequent full suite.
+- Web TypeScript and changed-source ESLint --max-warnings=0 passed. Separate fee-ledger integration
+  and operator reconciliation for old unknown transfers remain open.
+- Final validation: full sanitized web coverage passed 3,566 tests / 325 files, exit 0, 163.74
+  seconds (admin-release-worker-full-coverage.log). Isolated Supabase migration replay/diff passed
+  with no schema changes (admin-release-worker-diff.log).
+
+### 2026-09-15 atomic admin-release fee ledger and honest reporting
+
+- Added 20260915194629_record_admin_release_fees_atomically.sql. Admin release finalization now
+  inserts exactly one platform_fee_transfers row in the same transaction, using the frozen operation
+  ID/fee and GBP currency. Processing cost and net revenue are NULL with pending provenance until
+  provider reconciliation; no zero or formula-derived cost is invented. The legacy net_revenue
+  column now permits NULL.
+- Existing fee accounting prevents a new admin release reservation before provider activity. A fee
+  conflict arising before finalization also fails settlement closed, retaining the recoverable
+  operation. The ledger represents a retained platform fee, not a separate bank transfer. The
+  existing administrative fee interface lists pending/held records; this change does not add a
+  completed-ledger explorer or a provider-cost reconciliation worker.
+- Existing FeeTransferService estimates now carry explicit estimated provenance. Fee-report rows
+  display Pending reconciliation, Estimate or Unverified instead of presenting every number as
+  confirmed. Pending and held metric totals now use their own records (previous pending was
+  hardcoded zero and held included all loaded fees). Unknown net revenue prevents a misleading
+  aggregate number. These are loaded-record totals, not global reporting totals.
+- Real isolated SQL passed: reservation rejects preexisting fee accounting; injected notification
+  failure rolls back the fee row too; successful retry records one fee with unknown cost; concurrent
+  finalization produces exactly one fee row. Fee-only settlement SQL also passed. No provider calls
+  occurred; all SQL fixtures rolled back or were cleaned exactly.
+- Actual component tests with synthetic API data: 2 passed / 1 file, exit 0, 2.40 seconds
+  (admin-fee-ui-tests.log). Web TypeScript passed. Changed-source ESLint passed after removing three
+  unused catch bindings; no lint rule was weakened.
+- Follow-through found a separate unfinished reporting issue: UKEarningsStatementService still
+  treats null processing costs as zero and uses original escrow gross even after partial refunds.
+  Recorded contractor_payout is preferred for paid totals, but statement gross/fee semantics need
+  correction before calling financial reporting complete. Payment history itself preserves null
+  processing cost as undefined.
+- Final checks: full sanitized web coverage passed 3,568 tests / 326 files, exit 0, 165.24 seconds
+  (admin-fee-ledger-full-coverage.log). Isolated migration replay/diff exited 0 with no schema
+  changes (admin-fee-ledger-diff.log).
+
+### 2026-09-15 earnings statements reconcile to released principal
+
+- Reproduced two statement errors before repair (earnings-settlement-before.log, 2 failures / 4
+  tests): GBP500 original principal with GBP100 refunded was reported as GBP500 gross rather than
+  GBP400; a modern GBP100 payment / GBP12 platform fee / GBP88 payout reported the platform's
+  GBP1.70 processing estimate as a contractor deduction.
+- Added shared earningsSettlement calculation for both contractor statements and admin listEarners.
+  It uses the joined durable refund balance when present, validates gross/remaining/review state,
+  and requires recorded platform fee and payout. Modern processing-cost estimates are not contractor
+  deductions. Historical deductions remain only when the recorded payout difference exactly equals
+  the recorded processing fee. Missing payout, invalid amounts or inconsistent economics require
+  reconciliation instead of a fabricated paid amount.
+- Both source queries now embed escrow_refund_balances. Real local PostgREST verification
+  (remediation-earnings-rest.py) passed after synthetic partial refund and release: original GBP500,
+  remaining GBP400, fee GBP48, payout GBP352 and unknown platform processing cost. The actual
+  relationship and response shape were verified; exact fixtures cleaned; no provider calls or
+  credential output.
+- Initial repaired service tests passed 4 / 1 file, exit 0, 1.48 seconds
+  (earnings-settlement-tests.log), including retained historical deductions and missing-payout
+  rejection. Added nine focused invalid-input/relationship tests before the full suite.
+- This repairs recorded financial arithmetic, not legal suitability or tax filing. Existing
+  statement query pagination and generic reconciliation error presentation remain follow-up
+  concerns; no official filing or real-user statement was generated.
+- Final validation: full sanitized web coverage passed 3,579 tests / 327 files, exit 0, 161.58
+  seconds (earnings-settlement-full-coverage.log). Web TypeScript and changed-source ESLint
+  --max-warnings=0 passed. No schema migration was required for this query/calculation change.
+
+### 2026-09-15 durable job-exit database foundation (integration incomplete)
+
+- Re-inspected contractor-withdraw and terminate-contractor: both still call Stripe directly, select
+  one held escrow, do not use the credit/refund ledger, and independently update contracts, bids and
+  jobs. Those routes are NOT fixed by this database-only checkpoint and must be replaced before
+  readiness can be claimed.
+- Added draft migration 20260915200910_durable_job_exit_operations.sql. A service-only reservation
+  validates the current actor/assignment and immutable request identity, records a durable exit, and
+  reserves remaining cash/credit refunds against each held escrow for its original payer. Private
+  financial/finalization helpers are not executable by service clients. Pending-exit guards block
+  assignment/contract/bid changes and new funding inserts while refunds are unresolved.
+- Refund confirmation now preserves the assignment for exit-linked operations. Once every linked
+  refund succeeds, a database trigger atomically finalizes the exit: cancel applicable contracts,
+  withdraw/reject the accepted bid, reopen the job, persist two participant notifications and an
+  audit row. Ordinary refunds retain their existing behavior. The existing refund recovery worker
+  can process these ledger operations once routes are integrated.
+- remediation-job-exit-transactions.sql passed on the isolated audit database with full rollback:
+  unauthorized actor denial, stable request replay, payload mismatch denial, pending-refund
+  assignment protection, original-payer GBP50 credit restoration, atomic rollback on notification
+  failure, exactly-once completion, historical actor replay and unfunded homeowner termination.
+- remediation-job-exit-race.py passed with independent service-role connections: one exit operation
+  under competing requests; concurrent refund confirmation restores credit and finalizes the
+  assignment once. Exact synthetic fixtures cleaned. Existing admin-refund and admin-release
+  rollback SQL also passed with the new recorder/guards.
+- Remaining required work: wire both routes and responses to durable exits; handle terminal provider
+  refund failures/retry; expand multi-escrow and competing-transition coverage; validate interface
+  recovery. This is a foundation, not a claim that the active withdrawal/termination journeys are
+  repaired. No external payments or deployment occurred.
+- Isolated migration replay/diff passed with no schema changes (job-exit-foundation-diff.log),
+  exit 0. Foundation remains uncommitted while route integration and remaining concurrency/retry
+  cases are completed. Contract/bid INSERT coordination also needs review before integration.
+
+### 2026-09-15 job-exit foundation follow-through (still not routed)
+
+- Extended pending-exit guards to contract/bid inserts and ownership changes
+  (homeowner/payer/contractor). The original duplicate-contract probe was already blocked by
+  contracts_job_id_key, so this was not reported as a confirmed exploitable contract-insert flaw.
+- Confirmed failed/canceled refund attempts can now be replaced on explicit retry of the same exit;
+  uncertain/pending attempts retain their existing provider identity. Historical failed rows remain
+  for audit; finalization still requires every escrow to be refunded. The expanded rollback SQL
+  passed a failed attempt, replacement, injected settlement rollback and eventual exactly-once
+  credit restoration.
+- Preserved designated-payer termination authority from requireJobOwnership. Completion
+  notifications include affected payer identities. The payer regression passed after giving
+  synthetic profiles required names; an initial attempt was blocked by contractor_clients.first_name
+  NOT NULL during fixture reassignment, not by a changed production control.
+- Important scope correction: uq_escrow_active_per_job already prevents two active escrows for one
+  job. The attempted multi-active fixture failed correctly. Replaced that diagnostic with
+  remediation-job-exit-escrow-history.sql, proving the active-escrow uniqueness invariant and
+  ignoring historical refunded escrows. Do not treat the old route limit(1) alone as a confirmed
+  multi-active-escrow defect.
+- Updated job-exit transaction, independent-connection race, historical escrow and ordinary
+  admin-refund SQL checks passed on the isolated database. The earlier job-exit-retries-diff.log
+  replay passed, then payer/ownership changes required another replay (job-exit-payer-diff.log).
+- Both live routes still use the legacy direct-refund implementation. This draft migration and
+  diagnostics remain uncommitted until route integration and end-to-end recovery validation are
+  finished.
+- The payer/ownership migration replay completed successfully (job-exit-payer-diff.log, exit 0). A
+  subsequent transaction assertion then reproduced an active funding reservation remaining after
+  exit, which would block the next contractor's funding. Corrected the draft to use the actual
+  cancelled state (the prior released spelling is not in its enum) and retire attached funding only
+  after settled refunds, without calling a second credit-restoration path. Updated transaction and
+  independent-connection race diagnostics passed. The final funding-retirement adjustment still
+  needs replay validation with the eventual route integration; no commit or deployment has occurred.
+
+### 2026-09-15 durable job-exit route integration
+
+- Replaced both contractor-withdraw and terminate-contractor legacy direct Stripe/refund and
+  sequential contract/bid/job updates with JobExitService and reserve_job_exit. Database
+  role/ownership checks preserve contractor, homeowner and designated-payer authority. Both
+  endpoints now require an explicit stable Idempotency-Key; the key is scoped by actor, job and
+  action. No active web/mobile caller was found by source search; UI reachability remains unverified
+  rather than assumed.
+- Route recovery uses existing frozen refund operations with original-payer cash/credit allocations
+  and a shared provider deadline. Pending/uncertain recovery returns 202 success:false, confirmed
+  terminal failure returns a retryable 409, and reconciliation-required outcomes direct the caller
+  to support. Success requires the durable exit to be completed. Completed replay avoids another
+  provider call and does not claim the job is still open after a later reassignment.
+- Replaced old route tests that mocked direct Stripe writes with actual route/helper tests covering
+  durable completion, pending/failure statuses, provider uncertainty, required retry identity,
+  database ownership denial and completed replay. Initial targeted run: 18 tests / 1 file passed,
+  exit 0, 2.65 seconds (job-exit-route-tests.log). Auth middleware is mocked in these route tests;
+  actual SQL actor restrictions are covered separately.
+- A new real SQL probe reproduced a competing admin refund reservation after the exit refund failed.
+  Added guard_job_exit_financial_claim to reject unrelated refund/transfer reservations and admin
+  payout claims while the exit remains pending. Matching exit refund retries still proceed. Final
+  transaction/race tests passed with competing admin refund and payout denial, and ordinary admin
+  refund/release plus historical-escrow diagnostics passed.
+- Web TypeScript and changed-source ESLint --max-warnings=0 passed. Full sanitized web coverage:
+  3,587 tests / 327 files passed, exit 0, 197.35 seconds (job-exit-integrated-full-coverage.log). A
+  later response-wording refinement avoids stale current-job claims on historical replay and is
+  checked by normal commit tests.
+- Remaining external scope: no real Stripe outcome, authenticated browser/device journey, hosted
+  migration or deployment was exercised. Local SQL foundation is now connected to both routes;
+  previous notes describing them as still legacy are superseded by this entry.
+- Final corrected migration replay/diff completed with no schema changes
+  (job-exit-corrected-diff.log), exit 0. This includes funding retirement, designated-payer
+  authorization, explicit failed-refund retry, and competing financial-claim guards.
+
+- The earlier job-exit-final-diff.log exited 0 but reported a function difference; exit status alone
+  was insufficient. Restored the intended unconditional terminal-reconciliation return and verified
+  the corrected replay explicitly returned an empty diff and No schema changes found.
+
+### 15 September 2026 — confirmed earnings filing updates
+
+- Followed admin tax page handleMarkFiled through POST /api/admin/tax/mark-filed to
+  UKEarningsStatementService.markFiled. Existing admin/fresh-MFA checks remain intact. The old
+  update accepted zero affected rows and allowed ungenerated statements to be filed.
+- The update now atomically filters statement_generated=true, returns contractor_id, and reports
+  confirmation only for the requested contractor. No matching generated statement returns HTTP 409;
+  the existing UI error path displays it instead of the success toast.
+- Added service cases for missing, ungenerated, generated and database-failure responses. Final
+  selected suite: 8 tests / 1 file passed (filing-after.log). Web TypeScript and changed source
+  ESLint --max-warnings=0 passed. Initial sandbox runs failed before test startup; those failures
+  are not regression reproductions.
+- Added remediation-filing-rest.py. Real isolated local PostgREST reproduced the old ungenerated
+  update, then verified zero changes for missing/ungenerated rows and returned/persisted generated
+  state (filing-rest.log, exit 0). Exact synthetic records cleaned up in finally.
+- No schema change, hosted mutation or external filing occurred. This is bookkeeping confirmation,
+  not proof of submission to a tax authority. Reporting pagination and broader journey checks
+  remain.
+
+### 15 September 2026 — reconciliation consumer repair (in progress)
+
+- Current worker writes boolean reconciliation_flag, but administrator GET called .includes on it.
+  Added reconciliation-dashboard.test.ts: actual route reproduces TypeError plus false HTTP 200 for
+  failed records/count queries (3 failed, reconciliation-dashboard-before.log).
+- Route now handles boolean/legacy string flags, reads mismatch_type and reconciliation_date, does
+  not infer resolved from refunded/released status, and returns 503 on unavailable queries. Three
+  route tests passed (reconciliation-dashboard-after.log). Types and changed-source lint passed
+  before the final conditional table-render refinement.
+- Followed actual admin/payments/reconciliation page: reads previously swallowed failures; Run
+  Reconciliation POST has no implementation. Added visible errors/retry and suppress empty table on
+  error. This does not implement manual execution; DOM/browser verification remains.
+- Required next work: durable bounded worker traversal beyond newest 100, canonical funding cash
+  comparison (current worker compares gross escrow to Stripe cash), safe metadata persistence,
+  explicit run history and meaningful manual execution. Existing Last Run is inferred from flagged
+  record time, not authoritative execution history. Do not mark this flow complete or publish this
+  partial change as complete remediation. No provider/hosted request was made.
+
+### 15 September 2026 — durable bounded payment reconciliation
+
+- Replaced the newest-100 worker with service-only claim/acknowledge RPCs and persistent per-escrow
+  work records. Selection prioritizes unchecked/oldest checked payments, skips live leases, rotates
+  expired claim tokens, and rechecks lease state after acquiring the escrow lock. Each invocation
+  handles at most three records with a 25-second provider-call budget (8 seconds/call, no helper
+  retries). Unknown provider failures retry after 15 minutes; completed comparisons after one day.
+- Claims snapshot authoritative escrow, funding reservation and refund-balance fields. A changed
+  snapshot requeues without writing a conclusion. Acknowledgement merges only reconciliation keys
+  into escrow metadata in the same transaction; stale tokens cannot overwrite newer work.
+- Cash comparison now uses the trusted funding reservation, verifies provider metadata identity,
+  currency, received/captured amount and recorded refunds, and handles completed/release-pending/
+  approval states plus refunded retired reservations. Resource-missing is distinct from other
+  provider errors. These are reconciliation observations, not new payment or release authorizations.
+- Durable run records expose started/completed/failed states. Manual POST now uses the same worker
+  behind administrator role, fresh MFA and one request/minute. Cron is configured every five
+  minutes; provider/storage errors surface as failure. No scheduler or application was deployed.
+- Dashboard handles boolean flags, unavailable queries and failed manual requests, distinguishes
+  batch completion from complete backlog coverage, and labels capped record counts as the current
+  view. Run history comes from recorded executions, not a flagged payment's update timestamp.
+- Added migration 20260915210327_durable_payment_reconciliation.sql, worker/funding comparison,
+  reconciliation-dashboard/worker/page regression tests, remediation-reconciliation-queue.sql and
+  remediation-reconciliation-race.py. SQL diagnostics roll back; race fixtures are precisely
+  deleted.
+- Real local SQL processed 105 oldest records; tested lease expiry/reclaim, stale snapshot
+  rejection, metadata preservation, client grants and rollback of acknowledgement after an injected
+  write failure (reconciliation-queue.log). Two service-role connections claimed distinct payments
+  concurrently (reconciliation-race.log). Both exited 0.
+- Final targeted tests: 21 tests / 3 files passed, 7.20 seconds (reconciliation-final-targeted.log).
+  Web TypeScript and changed-source ESLint passed. Exact isolated migration replay/diff returned
+  empty diff, No schema changes found, exit 0 (reconciliation-diff.log).
+- Limits: Stripe responses in tests are synthetic; no real provider reconciliation, authenticated
+  browser session or deployed scheduler was exercised. The three-record/five-minute schedule has
+  finite throughput (at most 864 attempts/day); production backlog metrics and capacity validation
+  remain necessary. Latest 100 flagged records are still a capped view, explicitly labeled; complete
+  dashboard pagination remains local follow-up. Goal remains active.
+
+- Combined sanitized full web coverage passed: 3,612 tests / 330 files, exit 0, 218.01 seconds
+  (reconciliation-full-coverage.log). Final worker/API/page cases are included. No mobile behavior
+  was changed or device verification claimed by this reconciliation increment.
+
+### 15 September 2026 — complete reconciliation review pagination
+
+- Replaced the capped latest-100 API with 50-record cursor pages. Unresolved filtering occurs in
+  PostgreSQL before limiting; total/result/unresolved counts cover the full dataset. Cursor ordering
+  uses creation timestamp plus UUID, preserving microsecond precision and handling missing dates.
+  Cursor/filter input is validated before constructing query predicates.
+- Added previous/next controls and reset navigation on filter changes. Request epochs prevent slow
+  responses from a previous page/filter replacing current results. Manual runs disable navigation
+  while their result is being handled. Removed capped-view labels; counts now represent all rows.
+- Regression tests cover 105 unresolved records behind 100 resolved records, malformed navigation,
+  next/previous/filter reset and delayed responses. Final 14 tests / 2 files passed, 6.23 seconds
+  (reconciliation-pagination-tests.log). Web TypeScript passed. Changed-source ESLint passed after
+  moving request invalidation into a stable cleanup callback; initial warning is not claimed as
+  pass.
+- Added remediation-reconciliation-pagination.py. Real isolated PostgREST traversed all 105
+  unresolved rows once, excluded 100 resolved rows, and exercised microsecond timestamp ties plus 55
+  missing dates (including continuation within that group). Exact fixture cleanup completed;
+  reconciliation-pagination-rest.log exit 0. No schema changes or hosted/provider requests.
+- This closes the capped dashboard view follow-up recorded above. Cursor pages remain live views,
+  not a transactionally frozen financial export. Authenticated browser/device and production-scale
+  operational verification remain outside this increment; the wider remediation goal is active.
+
+### 15 September 2026 — F12 location fallback and native permission validation
+
+- Traced LocationPromptModal through geocode-proxy and withApiHandler. Both forward/reverse
+  geocoding POSTs omitted required CSRF headers. Manual entry therefore failed for cookie sessions;
+  reverse lookup silently lost its address result. Added getCsrfHeaders to both requests, preserving
+  route controls. Accepted finite zero coordinates instead of treating them as missing.
+- Extracted request/state logic into useLocationPrompt.ts so the existing 678-line modal and the new
+  hook both fit repository file-size checks. No provider/auth bypass was added.
+- Added six actual-component tests for protected manual lookup, denied/unavailable browser location,
+  granted location, zero coordinates, and retained manual text on failed save. All six passed
+  (location-prompt-after.log). Initial failures included three incorrect button selectors, corrected
+  to the actual label; only missing headers and zero-coordinate rejection were code defects.
+- Added location-policy-browser.cjs plus its sanitized run-location-policy-browser.cjs launcher.
+  Actual Next /login returned 200 with geolocation=(self). Headless Chromium with synthetic
+  coordinates succeeded when permitted and returned permission-denied after denial. External browser
+  requests were blocked, no login/provider call was made, and browser/server shut down
+  (location-policy-browser.log, exit 0). This is a real policy check, not a full authenticated flow.
+- Changed-source ESLint passed. A malformed ignored .next/dev/types/routes.d.ts initially blocked
+  TypeScript; it contained duplicate trailing content. Removed only that generated file, regenerated
+  route definitions using supported next typegen under sanitized credentials, then web TypeScript
+  passed (location-typegen.log and location-types-final.log). No type-check exclusions were changed.
+- Also reran reviewed rollback-only F1/F2 probes against the current isolated schema: sensitive RPC
+  and default grants, allowed owner/denied cross-user profile writes, role/verification forgery,
+  forbidden escrow/signature inserts and valid service inserts all passed (current-\*.sql.log).
+  These local results do not change the recorded hosted environment distinction or prove every
+  privileged database function safe. Full F1–F15 completion review remains active.
+
+### 15 September 2026 — current acceptance ledger and financial/signing rechecks
+
+- Added CURRENT-ACCEPTANCE.md to keep all F1–F15 requirements explicit and separate current proof
+  from earlier evidence needing completion review. No finding is declared closed by a narrow probe.
+- Reviewed and reran remediation-bound-idempotency.sql, remediation-payment-funding.sql,
+  remediation-rework-tests.sql and remediation-contract-signing-tests.sql against the current
+  disposable schema. All exited 0; all fixtures/triggers rolled back. Outputs: current-\*.sql.log.
+- Proven boundaries include actor/payload replay binding, one cash/credit reservation across keys,
+  exact credit restoration, ledger-failure rollback, atomic rework, unrelated-user denial and atomic
+  signing evidence/acceptance. Provider/browser behavior is not inferred from these database tests.
+
+### 15 September 2026 — F14 real SDK evidence and remaining phone OTP path
+
+- Traced login/register routes to AuthManager and fresh anonymous clients. Existing constructor
+  mocks alone did not prove installed SDK session behavior. Added auth-client-sdk-isolation.test.ts:
+  real client factory and real Supabase SDK, synthetic intercepted HTTP only, reverse-order user
+  login completion with privileged reads before/between/after. User clients retain their distinct
+  tokens and the singleton retains its service authorization. OTP session establishment is included.
+- Global test setup mocked both the factory and SDK; the first test attempt therefore exercised no
+  actual SDK. Explicitly unmocked both dependencies before running the final evidence.
+- Caller search found active PhoneVerificationService.verifyCode still called verifyOtp on the
+  privileged singleton. Extracted verification to verifyPhoneCode.ts and switched send/verify OTP
+  calls to fresh anonymous clients. Successful proof must match the current user; the profile update
+  additionally matches the proved phone to reject a concurrent phone change. Auth lookup failure now
+  prevents OTP sending. Service methods remain callable through the existing route.
+- Added phone service tests for isolated verification, wrong identity, changed phone and failed Auth
+  lookup. Combined AuthManager/real-SDK/phone regressions: 27 tests / 3 files passed
+  (current-auth-client-isolation.log). Web TypeScript passed; changed-source ESLint passed after
+  handling pre-existing unused results in the touched file. Normal commit hooks check final types.
+- No SMS, hosted Auth request or customer interaction occurred. This proves the local client-session
+  isolation contract; it does not certify the entire phone-change/provider-fallback journey.
+
+### 15 September 2026 — F11 current capacity proof and confirmed contract durability gap
+
+- Reviewed and reran remediation-capacity-race.py: withdrawn bid denied; two concurrent acceptances
+  for one remaining slot yielded exactly one winner and three active jobs. Fixture cleanup ran.
+- Followed the active bid-accept route: it commits accept_bid_with_capacity before contract
+  creation. The existing retry-at-cap test passes by skipping the transition and rerunning follow-up
+  work. The current bid-accept test file passed (current-bid-accept-tests.log); this is not
+  unattended recovery.
+- Added audit-only remediation-contract-durability-gap.py. It preserves the capacity checks then
+  asserts the winning committed assignment has a contract. It currently FAILS that criterion
+  (current-contract-durability-gap.log, exit 1), with exact fixture cleanup in finally. This
+  deliberate failing diagnostic is not part of the web test suite and must become passing when F11
+  is fixed.
+- Current source has no durable contract recovery queued by acceptance. Required next change is an
+  atomic contract/acceptance operation or a durable transactionally created recovery obligation,
+  preserving proposal, dates, warranty/materials, contractor identity/insurance and quote linkage.
+  Do not substitute a bare contract or claim client retry alone satisfies this requirement.
+
+### F11 in-progress atomic-contract regression (2026-09-15)
+
+The uncommitted `20260915220535_atomic_bid_acceptance_contract.sql` was confirmed installed on the
+isolated `supabase_db_mintenance-audit-20260906` database. Running
+`python audit/2026-09-06/remediation-contract-durability-gap.py` exited 0: an injected contract
+INSERT exception rolled back both job assignment and bid acceptance; a withdrawn bid was rejected;
+two independent connections competed for one capacity slot and exactly one succeeded; the winning
+transaction included one contract; repeating it at capacity returned success with the same contract
+and exactly two contract notifications. All new-run synthetic fixtures were cleaned. The first run
+exposed an outdated diagnostic cleanup assumption (job DELETE blocked by the new contract FK);
+cleanup now deletes synthetic contracts first, and the exact earlier synthetic fixture was removed
+after validating its job description and example.invalid accounts.
+
+This is a partial F11 result, not completion: the HTTP retry path still bypasses the RPC, the legacy
+follow-up contract block remains, reopened jobs with retained cancelled contracts need coherent
+agreement-history handling, full contract-field preservation and authorization tests remain, and
+migration replay/diff plus route regression checks are outstanding. No hosted database or payment
+provider was touched.
+
+### F11 API integration and expanded checks (2026-09-15)
+
+The acceptance route now always invokes `accept_bid_with_capacity`, including already-applied
+retries, and requires its successful result before returning/caching success. Removed the separate
+HTTP contract-creation block; its proposal/identity/schedule work now belongs to the transaction.
+Added a route regression for an already-applied retry whose contract operation fails: returns 500
+and caches no success. All 24 bid-accept route tests passed (1 file, 1.82s); web `tsc --noEmit` and
+route ESLint `--max-warnings=0` exited 0. Initial sandboxed Vitest startup could not read the
+config; the same sanitized launcher passed with filesystem escalation.
+
+Expanded real-database diagnostic exited 0: denies null and unrelated actor IDs, denies
+anon/authenticated execution, preserves proposal/schedule/warranty/materials/company/license, and
+retains rollback/concurrency/retry assertions. The transaction actor check now matches the API:
+designated payer when present, otherwise homeowner. First expanded fixture used an unsupported
+license type; corrected to actual schema value `trade`, without changing the constraint. Fixtures
+were cleaned on both attempts.
+
+Remaining F11 work is recorded in CURRENT-ACCEPTANCE.md; do not treat these subset checks as closure
+or public readiness.
+
+### F11 migration replay, payer and contract-field proof (2026-09-15)
+
+`npx --offline supabase db diff --local --workdir audit/2026-09-06/isolated-stack` completed with
+exit 0 after copying the pending migration into the isolated replay directory. Inspected actual
+output: `No schema changes found` and JSON `diff:""`, `files:[]`, `dropStatements:[]` (pg-delta).
+This proves replay matched the isolated live schema at this point; no hosted operation occurred. The
+expanded durability diagnostic then exited 0, additionally proving designated payer acceptance and
+owner denial when designated, correct contract party, quote linkage and insurance
+provider/policy/expiry snapshot. Existing capacity race exited 0 after its synthetic cleanup was
+updated to delete newly created contracts before jobs. Formatted API regression rerun: 24 tests
+passed.
+
+Reassignment consumer review: the single-contract constraint is `contracts_job_id_key`; homeowner
+and contractor job pages use job-filtered `.single()` without status; scheduling and jobs-as-payer
+build per-job results from unfiltered contract lists; contract POST uses job/contractor
+`.maybeSingle()`; payment/start queries already filter accepted status. Real isolated FK inspection
+confirmed `payment_funding_reservations.contract_id` references contracts without delete cascade,
+while signature/evidence children cascade. Thus deleting/replacing a cancelled agreement is not a
+valid repair, and merely dropping uniqueness would break active-contract consumers. Next required
+implementation is retained cancelled agreements plus one current agreement per job, with
+corresponding consumer selection and mutation protections tested. No such history schema change has
+been applied yet.
+
+### F11 contract history implementation and full-suite verification (2026-09-15)
+
+The pending migration now replaces job-wide contract uniqueness with a partial unique index for
+non-cancelled contracts. Cancelled rows remain in place with signature/funding references intact; a
+database trigger denies rewriting them. Acceptance selects only the current agreement. Updated job
+pages, scheduling, jobs-as-payer, preparation/details and contract creation lookups to exclude
+cancelled history. Job-filtered contract GET defaults to the current agreement; explicit cancelled
+status and participant document lists retain history. Document/PDF routes using contract IDs remain
+available.
+
+Real isolated diagnostic exited 0 after independently signing a former contractor agreement,
+cancelling it, and accepting another contractor: both agreements persisted, original signature
+timestamps and complete acceptance snapshots stayed unchanged, and the new contract used the new
+contractor. History rewrite denial, injected rollback, concurrent capacity, payer/actor denial,
+quote/insurance fields and retry invariants also passed. Diagnostic transactions rolled back and
+committed synthetic fixtures were cleaned.
+
+Second isolated migration replay/diff exited 0 and actual JSON contained an empty diff, no files and
+no drop statements (`current-f11-history-db-diff.log`). Full sanitized web run passed **3,633 tests
+/ 334 files**, 157.77 seconds (`current-f11-full-web-tests.log`). Web types exited 0. Changed
+production-file lint found 0 errors and 4 unused-variable warnings in contracts/route.ts and
+scheduling.ts, so the strict zero-warning command exited 1; not reported as passing. Three new API
+selection tests cover current-vs-history responses and contractor isolation with deliberately
+history-first mock ordering; these complement, not replace, real SQL verification.
+
+Still required before F11 closure/commit: review acceptance retry after negotiated contract edits,
+integration with the actual job-exit finalizer rather than a synthetic status change, and final
+changed-file/hook validation. The wider F1-F15 completion ledger remains active.
+
+### F11 final interaction checks (2026-09-15)
+
+Expanded the signed-history test to call the real `reserve_job_exit` withdrawal/finalization
+operation, then accept the replacement contractor. It passed with job reopening and original
+signature snapshots intact. An initial diagnostic used reversed actor/job arguments and was
+corrected to the actual function signature; no authorization control was changed. A separate
+regression reproduced retry failure after allowed unsigned-contract amount/scope edits. Fixed the
+wrapper to compare the original bid amount only for a new acceptance, while an already-applied
+assignment still requires the correct parties and valid current contract status. The revised
+diagnostic passed with amount 550 and negotiated scope preserved, no new contract or duplicate
+notifications.
+
+Removed unused import/local computation/query/helper/catch binding responsible for the four
+changed-file warnings. Strict changed-source ESLint now exits 0. Final replay and normal commit
+hooks are being checked; the prior complete web run was 3633/334 and the prior schema diff was
+empty.
+
+### F11 committed validation checkpoint
+
+Implementation commit `d4e792995` passed all normal commit hooks, including web/mobile types,
+zero-warning staged lint and selected tests. Final focused contract suites passed **81 tests / 6
+files**, 4.63 seconds. The final migration replay (`current-f11-final-db-diff.log`) exited 0 and its
+actual result was `diff:""`, no generated files or drop statements. This supersedes the earlier
+pending final-check notes; full-suite evidence remains 3633 tests / 334 files, followed by the
+focused tests after unused-code cleanup and real SQL checks after the final negotiated-term
+correction. No hosted changes or real-provider actions occurred. Overall remediation remains active;
+next confirmed local follow-up is earnings-query truncation and batched metadata failure handling.
+
+### Earnings completeness and metadata failures (2026-09-15)
+
+Both `getStatement` and `listEarners` now read escrow rows in ascending-ID cursor pages, continuing
+until an empty page rather than assuming a short server-capped page is final. Errors discard the
+incomplete result, and a missing/non-advancing ID fails instead of looping or double-counting.
+Contractor statements restore chronological presentation after loading. Contractor metadata queries
+use batches of 100 IDs and reject provider errors instead of presenting missing names/filing state;
+statement tax-profile errors are distinguished from a missing record. No schema changes.
+
+`remediation-earnings-pagination-rest.py` on the isolated stack reproduced the old request
+truncating **1205 synthetic payments to 1000**. Actual PostgREST cursor queries returned all 1205
+IDs once, principal 120500 and recorded payout 106040. Synthetic rows/users were cleaned and service
+credentials stayed in memory. This verifies real query behavior; unit tests separately execute the
+TypeScript service/helper. The focused run passed **14 tests / 2 files**, including totals above
+1000, a lower 137-row server cap, later-page failure, ignored cursor, second metadata-batch failure
+and unavailable tax-profile handling. Web types and zero-warning source lint exited 0.
+
+This repair proves pagination completeness for stable records, not a database snapshot across
+concurrent settlement changes. Point-in-time reporting under concurrent financial changes,
+tax-policy/legal suitability and broader real-provider verification are not established by these
+tests. The overall F1-F15 objective remains active.
+
+### F6 current webhook review: two reproduced guards repaired, atomic job transition still open
+
+New synthetic handler regressions reproduced four failing cases: failed/cancelled PaymentIntent
+lookup errors were swallowed, and succeeded events for `pending_review` /
+`awaiting_homeowner_approval` attempted to reset escrow to held. The lookup now throws on database
+error; failed/cancelled and charge-failed callers share that behavior. Traced active POST through
+StripeWebhookService: a handler exception marks the event failed and returns an API error instead of
+marking it processed. Added both post-funding states to the success guard. Updated the pre-existing
+lookup-error test to require rejection as well as no mutations.
+
+After repairs, **46 tests / 4 files passed**, covering the new cases, existing handler state tests,
+success CAS diagnostic and webhook idempotency. Web type check completed with an empty error log;
+changed-source zero-warning lint exited 0. No provider calls or database mutations were used for
+this subset. Changes remain uncommitted.
+
+F6 is NOT closed. Current failure/cancellation handlers still log escrow UPDATE errors and fall back
+to a stale selected row before writing jobs. Success and terminal handlers also persist escrow and
+job payment status in separate statements, leaving a cross-statement race with refunds/releases/new
+funding. The remaining repair must make authoritative escrow/job transitions atomic (with existing
+job-before-escrow lock order) and test concurrent processing, losing compare-and-set, missing rows
+and injected write failure. This confirmed source path is distinct from the narrower lookup/state
+guards fixed here.
+
+### F6 atomic persistence in progress (16 September 2026)
+
+CLI-created migration `20260915225551_atomic_webhook_payment_transition.sql` adds a service-only
+`apply_payment_intent_state` RPC. It locks job then escrow, rechecks actual state/funding and
+obsolete attempts, validates succeeded amount/currency against the trusted funding ledger, and
+updates escrow plus job in one transaction. PaymentIntent success/failure/legacy cancellation and
+charge failure now call it; split job writes and stale-row update fallbacks were removed.
+Reserved-credit cancellation still uses its existing dedicated credit-restoration transaction and
+requires lock-order review.
+
+Real rollback-only SQL (`remediation-webhook-atomic.sql`) passed injected job-write failure (escrow
+also rolls back), funding both records, late failure no-op, seven post-funding states, amount
+rejection, cancellation and client EXECUTE denial. Initial diagnostic fixture description was
+corrected to satisfy the existing length constraint. More importantly, real SQL exposed
+schema/implementation drift: escrow permitted `cancelled`, not `canceled`, and neither escrow nor
+jobs permitted the `disputed` state used by active dispute handlers. The pending migration preserves
+canonical escrow cancellation, maps provider cancellation to it, and explicitly admits disputed in
+both applicable constraints. No existing constraint was disabled.
+
+Handler tests now assert the atomic RPC and absence of metadata-driven/separate job writes.
+Corrected an old concurrency diagnostic that could pass on any thrown error: it now requires the
+actual RPC call and no side effects on an ignored transaction result. The focused suites pass,
+changed-source lint exits 0, and the web type check passed after initial RPC integration.
+Protected-state checks precede credit lookup so retired funding does not turn an obsolete success
+event into endless retries.
+
+Still uncommitted and not F6 closure: actual concurrent-connection races,
+missing/newer/funded-credit cases, reserved-cancellation lock order, full affected webhook suites,
+current types and isolated migration replay/diff remain required. No hosted schema or payment
+provider was touched.
+
+### F6 concurrency and funding regression results (16 September 2026)
+
+Attachment and cancellation now acquire the job lock before their funding/escrow locks, matching
+webhook/refund/release/job-exit ordering. Real two-connection diagnostics
+(`remediation-webhook-races.py`) wait until pg_stat_activity confirms the leading connection is
+sleeping while holding its job lock, then start the competitor: success-first ignores late failure;
+failure-first is followed by valid success; both end held/paid. Missing and older intents cannot
+alter a newer paid job. A cancellation-first race on a 50000-gross/45000-cash/5000-credit
+reservation ends cancelled/canceled with 5000 credits restored; waiting success returns no row and
+cannot revive it. Committed synthetic fixtures were explicitly cleaned.
+
+Extended `remediation-payment-funding.sql` passed: gross 50000 is rejected as the provider cash leg,
+45000 funds the full 50000 principal and paid job, cancellation remains exactly-once, and late
+success cannot revive cancelled credit funding. Its fixtures and fault injection roll back. The full
+sanitized web suite passed **3646 tests / 336 files**, 153.75 seconds
+(`current-webhook-atomic-full-tests.log`). Migration replay is running; final types/hooks/diff
+results will be recorded separately. No provider or hosted database requests occurred.
+
+### F6 committed validation checkpoint
+
+Implementation commit `c8f318686` passed normal hooks (web/mobile types, staged lint, selected tests
+and repository checks). Final `supabase db diff --local --workdir audit/2026-09-06/isolated-stack`
+exited 0 and actual output was `No schema changes found`, JSON empty diff, no files/drop statements
+(`current-webhook-atomic-db-diff.log`). Current web type-check log was empty with exit 0. Combined
+evidence: 3646/336 full web tests, real rollback SQL, controlled two-connection races, cash/credit
+invariants and replayed migration. This supersedes prior pending replay/commit notes for F6. Actual
+Stripe delivery and deployed schema parity are outside these isolated results; no readiness claim
+for unverified provider journeys is made.
+
+### F7 rework review-state mismatch and durable notification (16 September 2026)
+
+Traced enhanced photo verification to HomeownerApprovalService.requestHomeownerApproval, which
+persists `awaiting_homeowner_approval`. The rework RPC only accepted `held`. A rollback-only copy of
+the current diagnostic using that reachable status reproduced `Escrow is not available for rework`.
+CLI-created pending migration `20260915231739_durable_rework_review_transition.sql` accepts
+held/awaiting approval, returns escrow to held, resets approval/inspection flags plus auto-release,
+auto-approval and cooling-off deadlines, and persists the contractor notification in the same
+transaction as the rework record/job reopening. Other financial states remain excluded;
+administrative hold flags are preserved.
+
+Both `remediation-rework-tests.sql` and new `remediation-rework-awaiting.sql` passed on the isolated
+DB: injected job failure and injected notification failure roll back the transition; valid requests
+reopen work and clear all deadlines; replay preserves exactly one notification; unrelated actors are
+denied. Route now confirms the RPC boolean, skips supplementary email on replay and does not
+independently create another in-app notification. **28 tests / 2 files passed**, 3.36 seconds; web
+type log is empty. No external email or SMS was sent.
+
+Still required before F7 closure/commit: web/mobile callers omit stable Idempotency-Key headers
+(server fallback is generated), so response-loss retry can hit a new key after the job is already
+reopened. Client retry identity, visible UI behavior, remaining concurrency with approval/release
+and migration replay are pending. Email remains best-effort; the durable guarantee is the in-app
+notification. Changes are uncommitted.
+
+### F7 client response-loss regression checkpoint (16 September 2026)
+
+Both active photo-review screens now keep per-attempt keys across retries while mounted, scoped to
+job/completion timestamp/trimmed feedback (mobile also includes current actor). Edited feedback gets
+a different key; returning to original feedback reuses its original key. Synchronous refs prevent
+concurrent submissions before state rerenders. Both clients require `success: true`, keep feedback
+on failure, and disable editing while sending. Web displays structured API messages and refreshes
+job data after confirmed success. Mobile cancellation is disabled while sending.
+
+`rework-review.test.tsx` tests lost responses, key/payload reuse, feedback changes, pending
+duplicate clicks, malformed HTTP-success responses and structured errors. Combined with route and
+replay-access tests: **32 tests / 3 files passed**, 3.41 seconds
+(`current-rework-final-web-tests.log`). Mobile `HomeownerPhotoReviewScreen.test.tsx` renders the
+real screen and controls with network/photo-data boundaries mocked: response-loss retry and missing
+confirmation both pass, **2 tests / 1 file**, 8.256 seconds (`current-rework-mobile-tests.log`).
+These are component tests, not device evidence. Web/mobile type checks exited 0 with empty logs;
+affected web/mobile source lint exited 0. The two rollback-only SQL fixtures were rerun successfully
+against the isolated audit DB.
+
+Remaining concrete F7 work is not waived: key maps do not survive remount/restart, the unused
+`JobCRUDService.requestJobChanges` helper still has no explicit key contract, and approval writes
+must serialize with rework. Current `HomeownerApprovalService.approveCompletion` reads parties and
+photos then claims escrow by status/approval only, without a locked completed-job check; its history
+write follows separately. `confirm-completion/route.ts` separately sets the job flag then escrow
+approval, with only preflight state checks. These paths require atomic decision/recovery work and
+real race tests before F7 closure. The existing countdown/approval UI promises also need comparison
+with the authoritative release policy. Migration replay and new `remediation-rework-races.py` are
+pending at this checkpoint; no hosted/provider operations occurred.
+
+Final local database results for this checkpoint: isolated migration replay/diff exited 0 with
+`No schema changes found` and actual JSON `diff: ""`, no files or drop statements
+(`current-rework-db-diff.log`). `remediation-rework-races.py` passed both real two-connection cases
+after observing the leading transaction holding the job lock in `pg_stat_activity`: same-key retry
+returns false, different-key request is rejected after reopening. Both cases leave one rework
+record, one notification and in_progress/held with cleared auto-approval date. All committed
+synthetic fixture records were explicitly cleaned. This supersedes the pending replay/race note
+above, but does not close the separate approval/release and restart work.
