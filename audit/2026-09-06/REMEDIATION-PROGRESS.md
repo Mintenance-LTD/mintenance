@@ -2378,3 +2378,14 @@ success cannot revive cancelled credit funding. Its fixtures and fault injection
 sanitized web suite passed **3646 tests / 336 files**, 153.75 seconds
 (`current-webhook-atomic-full-tests.log`). Migration replay is running; final types/hooks/diff
 results will be recorded separately. No provider or hosted database requests occurred.
+
+### F6 committed validation checkpoint
+
+Implementation commit `c8f318686` passed normal hooks (web/mobile types, staged lint, selected tests
+and repository checks). Final `supabase db diff --local --workdir audit/2026-09-06/isolated-stack`
+exited 0 and actual output was `No schema changes found`, JSON empty diff, no files/drop statements
+(`current-webhook-atomic-db-diff.log`). Current web type-check log was empty with exit 0. Combined
+evidence: 3646/336 full web tests, real rollback SQL, controlled two-connection races, cash/credit
+invariants and replayed migration. This supersedes prior pending replay/commit notes for F6. Actual
+Stripe delivery and deployed schema parity are outside these isolated results; no readiness claim
+for unverified provider journeys is made.
