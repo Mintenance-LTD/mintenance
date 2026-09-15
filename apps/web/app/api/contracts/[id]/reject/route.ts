@@ -47,6 +47,31 @@ export const POST = withApiHandler(
     }
     const reason = (parsed.data.reason ?? '').trim();
 
+    // The contract stores the primary homeowner, while delegated payment
+    // authority lives on the linked job. Fetch both and enforce the
+    // complete party check before returning or mutating anything.
+    const { data: contract, error: contractError } = await serverSupabase
+      .from('contracts')
+      .select('id, job_id, contractor_id, homeowner_id, status, title')
+      .eq('id', contractId)
+      .single();
+
+    if (contractError || !contract) {
+      throw new NotFoundError('Contract not found or access denied');
+    }
+
+    const { data: linkedJob } = await serverSupabase
+      .from('jobs')
+      .select('payer_user_id')
+      .eq('id', contract.job_id)
+      .single();
+
+    const isAuthorizedPayer =
+      contract.homeowner_id === user.id || linkedJob?.payer_user_id === user.id;
+    if (!isAuthorizedPayer) {
+      throw new NotFoundError('Contract not found or access denied');
+    }
+
     // Idempotency — without this, a network retry would re-send the
     // contractor notification + the system message in the thread,
     // even though the status flip is already done. AUDIT_PUNCH_LIST
@@ -77,32 +102,6 @@ export const POST = withApiHandler(
       idempotencyKey,
       'contract_reject',
       async () => {
-        // The contract stores the primary homeowner, while delegated payment
-        // authority lives on the linked job. Fetch both and enforce the
-        // complete party check before returning or mutating anything.
-        const { data: contract, error: contractError } = await serverSupabase
-          .from('contracts')
-          .select('id, job_id, contractor_id, homeowner_id, status, title')
-          .eq('id', contractId)
-          .single();
-
-        if (contractError || !contract) {
-          throw new NotFoundError('Contract not found or access denied');
-        }
-
-        const { data: linkedJob } = await serverSupabase
-          .from('jobs')
-          .select('payer_user_id')
-          .eq('id', contract.job_id)
-          .single();
-
-        const isAuthorizedPayer =
-          contract.homeowner_id === user.id ||
-          linkedJob?.payer_user_id === user.id;
-        if (!isAuthorizedPayer) {
-          throw new NotFoundError('Contract not found or access denied');
-        }
-
         // Only allow rejecting contracts pending homeowner signature
         if (contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER) {
           throw new BadRequestError(

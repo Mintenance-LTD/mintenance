@@ -1416,3 +1416,23 @@ observed separately. Browser/device login and password-reset completion still re
   slow request's business work or replace operation-specific database/provider idempotency and
   durable recovery. Other F3 caller authorization ordering and broader readiness checks remain in
   scope. No hosted writes, deployment or real payment occurred.
+
+### 2026-09-15 — contract rejection cache access and extension-owner recheck
+
+- Rechecked disposable PostGIS ownership: spatial_ref_sys belongs to supabase_admin; postgres is not
+  superuser or a member of supabase_admin. This confirms the earlier provider/owner authority
+  limitation; did not attempt ownership escalation or install an owner-only migration. F1
+  extension-grant remediation remains open under the existing scope restriction against hosted
+  mutation.
+- Found another cache-before-access path in `contracts/[id]/reject`: a former designated payer could
+  receive their prior cached contract response before current party checks. Moved contract existence
+  and homeowner/designated-payer reads before claiming/returning idempotency results. Current
+  authorized retries still recover success even after the original state transition, without
+  repeating it.
+- Four handler regressions cover revoked payer access, deleted contract, current homeowner and
+  current designated payer. Denied requests never call the cache; successful retries do not update
+  the contract. Auth wrapper and DB are controlled test boundaries, not end-to-end authentication
+  evidence.
+- Contract rejection/acceptance group: **21 tests / 2 files passed**, exit 0, 1.99 seconds
+  (`contract-cache-final.log`). Web type-check and route lint passed. No schema change, provider
+  call or deployment.
