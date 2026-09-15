@@ -1885,3 +1885,106 @@ observed separately. Browser/device login and password-reset completion still re
 - Final validation: full sanitized web coverage passed 3,579 tests / 327 files, exit 0, 161.58
   seconds (earnings-settlement-full-coverage.log). Web TypeScript and changed-source ESLint
   --max-warnings=0 passed. No schema migration was required for this query/calculation change.
+
+### 2026-09-15 durable job-exit database foundation (integration incomplete)
+
+- Re-inspected contractor-withdraw and terminate-contractor: both still call Stripe directly, select
+  one held escrow, do not use the credit/refund ledger, and independently update contracts, bids and
+  jobs. Those routes are NOT fixed by this database-only checkpoint and must be replaced before
+  readiness can be claimed.
+- Added draft migration 20260915200910_durable_job_exit_operations.sql. A service-only reservation
+  validates the current actor/assignment and immutable request identity, records a durable exit, and
+  reserves remaining cash/credit refunds against each held escrow for its original payer. Private
+  financial/finalization helpers are not executable by service clients. Pending-exit guards block
+  assignment/contract/bid changes and new funding inserts while refunds are unresolved.
+- Refund confirmation now preserves the assignment for exit-linked operations. Once every linked
+  refund succeeds, a database trigger atomically finalizes the exit: cancel applicable contracts,
+  withdraw/reject the accepted bid, reopen the job, persist two participant notifications and an
+  audit row. Ordinary refunds retain their existing behavior. The existing refund recovery worker
+  can process these ledger operations once routes are integrated.
+- remediation-job-exit-transactions.sql passed on the isolated audit database with full rollback:
+  unauthorized actor denial, stable request replay, payload mismatch denial, pending-refund
+  assignment protection, original-payer GBP50 credit restoration, atomic rollback on notification
+  failure, exactly-once completion, historical actor replay and unfunded homeowner termination.
+- remediation-job-exit-race.py passed with independent service-role connections: one exit operation
+  under competing requests; concurrent refund confirmation restores credit and finalizes the
+  assignment once. Exact synthetic fixtures cleaned. Existing admin-refund and admin-release
+  rollback SQL also passed with the new recorder/guards.
+- Remaining required work: wire both routes and responses to durable exits; handle terminal provider
+  refund failures/retry; expand multi-escrow and competing-transition coverage; validate interface
+  recovery. This is a foundation, not a claim that the active withdrawal/termination journeys are
+  repaired. No external payments or deployment occurred.
+- Isolated migration replay/diff passed with no schema changes (job-exit-foundation-diff.log),
+  exit 0. Foundation remains uncommitted while route integration and remaining concurrency/retry
+  cases are completed. Contract/bid INSERT coordination also needs review before integration.
+
+### 2026-09-15 job-exit foundation follow-through (still not routed)
+
+- Extended pending-exit guards to contract/bid inserts and ownership changes
+  (homeowner/payer/contractor). The original duplicate-contract probe was already blocked by
+  contracts_job_id_key, so this was not reported as a confirmed exploitable contract-insert flaw.
+- Confirmed failed/canceled refund attempts can now be replaced on explicit retry of the same exit;
+  uncertain/pending attempts retain their existing provider identity. Historical failed rows remain
+  for audit; finalization still requires every escrow to be refunded. The expanded rollback SQL
+  passed a failed attempt, replacement, injected settlement rollback and eventual exactly-once
+  credit restoration.
+- Preserved designated-payer termination authority from requireJobOwnership. Completion
+  notifications include affected payer identities. The payer regression passed after giving
+  synthetic profiles required names; an initial attempt was blocked by contractor_clients.first_name
+  NOT NULL during fixture reassignment, not by a changed production control.
+- Important scope correction: uq_escrow_active_per_job already prevents two active escrows for one
+  job. The attempted multi-active fixture failed correctly. Replaced that diagnostic with
+  remediation-job-exit-escrow-history.sql, proving the active-escrow uniqueness invariant and
+  ignoring historical refunded escrows. Do not treat the old route limit(1) alone as a confirmed
+  multi-active-escrow defect.
+- Updated job-exit transaction, independent-connection race, historical escrow and ordinary
+  admin-refund SQL checks passed on the isolated database. The earlier job-exit-retries-diff.log
+  replay passed, then payer/ownership changes required another replay (job-exit-payer-diff.log).
+- Both live routes still use the legacy direct-refund implementation. This draft migration and
+  diagnostics remain uncommitted until route integration and end-to-end recovery validation are
+  finished.
+- The payer/ownership migration replay completed successfully (job-exit-payer-diff.log, exit 0). A
+  subsequent transaction assertion then reproduced an active funding reservation remaining after
+  exit, which would block the next contractor's funding. Corrected the draft to use the actual
+  cancelled state (the prior released spelling is not in its enum) and retire attached funding only
+  after settled refunds, without calling a second credit-restoration path. Updated transaction and
+  independent-connection race diagnostics passed. The final funding-retirement adjustment still
+  needs replay validation with the eventual route integration; no commit or deployment has occurred.
+
+### 2026-09-15 durable job-exit route integration
+
+- Replaced both contractor-withdraw and terminate-contractor legacy direct Stripe/refund and
+  sequential contract/bid/job updates with JobExitService and reserve_job_exit. Database
+  role/ownership checks preserve contractor, homeowner and designated-payer authority. Both
+  endpoints now require an explicit stable Idempotency-Key; the key is scoped by actor, job and
+  action. No active web/mobile caller was found by source search; UI reachability remains unverified
+  rather than assumed.
+- Route recovery uses existing frozen refund operations with original-payer cash/credit allocations
+  and a shared provider deadline. Pending/uncertain recovery returns 202 success:false, confirmed
+  terminal failure returns a retryable 409, and reconciliation-required outcomes direct the caller
+  to support. Success requires the durable exit to be completed. Completed replay avoids another
+  provider call and does not claim the job is still open after a later reassignment.
+- Replaced old route tests that mocked direct Stripe writes with actual route/helper tests covering
+  durable completion, pending/failure statuses, provider uncertainty, required retry identity,
+  database ownership denial and completed replay. Initial targeted run: 18 tests / 1 file passed,
+  exit 0, 2.65 seconds (job-exit-route-tests.log). Auth middleware is mocked in these route tests;
+  actual SQL actor restrictions are covered separately.
+- A new real SQL probe reproduced a competing admin refund reservation after the exit refund failed.
+  Added guard_job_exit_financial_claim to reject unrelated refund/transfer reservations and admin
+  payout claims while the exit remains pending. Matching exit refund retries still proceed. Final
+  transaction/race tests passed with competing admin refund and payout denial, and ordinary admin
+  refund/release plus historical-escrow diagnostics passed.
+- Web TypeScript and changed-source ESLint --max-warnings=0 passed. Full sanitized web coverage:
+  3,587 tests / 327 files passed, exit 0, 197.35 seconds (job-exit-integrated-full-coverage.log). A
+  later response-wording refinement avoids stale current-job claims on historical replay and is
+  checked by normal commit tests.
+- Remaining external scope: no real Stripe outcome, authenticated browser/device journey, hosted
+  migration or deployment was exercised. Local SQL foundation is now connected to both routes;
+  previous notes describing them as still legacy are superseded by this entry.
+- Final corrected migration replay/diff completed with no schema changes
+  (job-exit-corrected-diff.log), exit 0. This includes funding retirement, designated-payer
+  authorization, explicit failed-refund retry, and competing financial-claim guards.
+
+- The earlier job-exit-final-diff.log exited 0 but reported a function difference; exit status alone
+  was insufficient. Restored the intended unconditional terminal-reconciliation return and verified
+  the corrected replay explicitly returned an empty diff and No schema changes found.
