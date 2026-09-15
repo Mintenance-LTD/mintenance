@@ -87,6 +87,50 @@ export async function reserveRefund(input: {
   return op;
 }
 
+/** Route calls this after current ownership checks; reservation rechecks under lock. */
+export async function readRefundContext(input: {
+  escrowId: string;
+  actorId: string;
+  requestKey: string;
+  originalAmount: number;
+}): Promise<{ existing: RefundOperation | null; remainingMinor: number }> {
+  const [
+    { data: existing, error: operationError },
+    { data: balance, error: balanceError },
+  ] = await Promise.all([
+    serverSupabase
+      .from('escrow_refund_operations')
+      .select('*')
+      .eq('request_key', input.requestKey)
+      .maybeSingle(),
+    serverSupabase
+      .from('escrow_refund_balances')
+      .select('remaining_minor,needs_review')
+      .eq('escrow_id', input.escrowId)
+      .maybeSingle(),
+  ]);
+  if (operationError || balanceError)
+    throw new InternalServerError('Refund status could not be loaded');
+  const op = existing ? operationFrom(existing) : null;
+  if (
+    op &&
+    (op.actor_id !== input.actorId || op.escrow_id !== input.escrowId)
+  ) {
+    throw new ConflictError('Refund request belongs to a different operation');
+  }
+  const remainingMinor = balance
+    ? balance.remaining_minor
+    : Math.round(Number(input.originalAmount) * 100);
+  if (
+    balance?.needs_review ||
+    !Number.isSafeInteger(remainingMinor) ||
+    remainingMinor < 0
+  ) {
+    throw new ConflictError('Refund balance requires reconciliation');
+  }
+  return { existing: op, remainingMinor };
+}
+
 async function recordOutcome(
   op: RefundOperation,
   refund: Stripe.Refund | null

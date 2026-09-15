@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { readPendingRefund, submitRefund } from '@/lib/payments/refund-request';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -10,10 +11,8 @@ import {
   Clock,
   CreditCard,
   Building2,
-  User,
   Calendar,
   FileText,
-  PoundSterling,
   RefreshCw,
   Mail,
   Phone,
@@ -32,24 +31,19 @@ const fadeIn = {
   visible: { opacity: 1, y: 0 },
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0 },
-};
-
 interface Transaction {
   id: string;
   type: 'payment' | 'refund' | 'payout' | 'fee';
-  status: 'completed' | 'pending' | 'failed' | 'refunded';
+  status:
+    | 'completed'
+    | 'pending'
+    | 'failed'
+    | 'refunded'
+    | 'held'
+    | 'released'
+    | 'release_pending';
   amount: number;
+  remainingAmount: number;
   currency: string;
   date: string;
   description: string;
@@ -100,9 +94,12 @@ export default function TransactionDetailPage2025() {
 
   // Fetch transaction data
   useEffect(() => {
+    if (!user) return;
     const fetchTransaction = async () => {
       try {
-        const response = await fetch(`/api/payments/history`);
+        const response = await fetch(
+          `/api/payments/history?transactionId=${encodeURIComponent(transactionId)}`
+        );
         if (!response.ok) throw new Error('Failed to fetch');
 
         const { payments } = await response.json();
@@ -122,13 +119,14 @@ export default function TransactionDetailPage2025() {
           type: 'payment',
           status: found.status as Transaction['status'],
           amount: found.amount,
+          remainingAmount: found.remainingAmount,
           currency: 'GBP',
-          date: found.created_at,
+          date: found.createdAt,
           description: `Payment for ${found.job?.title || 'Service'}`,
-          jobId: found.job_id,
+          jobId: found.jobId,
           jobTitle: found.job?.title || 'Service',
           contractor: {
-            id: found.payee_id || 'unknown',
+            id: found.payeeId || 'unknown',
             name:
               `${found.payee?.first_name || ''} ${found.payee?.last_name || ''}`.trim() ||
               'Contractor',
@@ -150,11 +148,14 @@ export default function TransactionDetailPage2025() {
             url: `/receipts/${found.id}.pdf`,
           },
           refundable:
-            found.status === 'completed' || found.status === 'released',
+            found.payerId === user.id &&
+            !found.refundNeedsReview &&
+            ((found.status === 'held' && found.remainingAmount > 0) ||
+              !!readPendingRefund(user.id, found.id)),
           timeline: [
             {
               status: 'Payment initiated',
-              date: found.created_at,
+              date: found.createdAt,
               description: 'Payment request created',
             },
             {
@@ -162,7 +163,7 @@ export default function TransactionDetailPage2025() {
                 found.status === 'completed'
                   ? 'Payment completed'
                   : 'Payment in progress',
-              date: found.updated_at || found.created_at,
+              date: found.updatedAt || found.createdAt,
               description: `Transaction ${found.status}`,
             },
           ],
@@ -177,7 +178,7 @@ export default function TransactionDetailPage2025() {
               found.vat_amount ?? computeVat(found.amount / 1.2, 'standard'),
           },
         });
-      } catch (error) {
+      } catch {
         toast.error('Failed to load transaction details');
         router.push('/payments');
       } finally {
@@ -189,6 +190,7 @@ export default function TransactionDetailPage2025() {
   }, [user, transactionId, router]);
 
   const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundLimit, setRefundLimit] = useState(0);
   const [refundAmount, setRefundAmount] = useState(
     transaction?.amount?.toString() || '0'
   );
@@ -196,8 +198,11 @@ export default function TransactionDetailPage2025() {
 
   const getStatusIcon = (status: Transaction['status']) => {
     switch (status) {
+      case 'released':
       case 'completed':
         return <CheckCircle className='w-6 h-6 text-green-500' />;
+      case 'held':
+      case 'release_pending':
       case 'pending':
         return <Clock className='w-6 h-6 text-yellow-500' />;
       case 'failed':
@@ -209,8 +214,11 @@ export default function TransactionDetailPage2025() {
 
   const getStatusColor = (status: Transaction['status']) => {
     switch (status) {
+      case 'released':
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-200';
+      case 'held':
+      case 'release_pending':
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'failed':
@@ -233,8 +241,10 @@ export default function TransactionDetailPage2025() {
     window.print();
   };
 
+  const refundInFlight = useRef(false);
+  const [submittingRefund, setSubmittingRefund] = useState(false);
   const handleRefund = async () => {
-    if (!transaction) return;
+    if (!transaction || !user || refundInFlight.current) return;
 
     if (!refundReason.trim()) {
       toast.error('Please provide a reason for the refund');
@@ -245,12 +255,14 @@ export default function TransactionDetailPage2025() {
     if (
       isNaN(parsedRefundAmount) ||
       parsedRefundAmount <= 0 ||
-      parsedRefundAmount > transaction.amount
+      parsedRefundAmount > refundLimit
     ) {
       toast.error('Invalid refund amount');
       return;
     }
 
+    refundInFlight.current = true;
+    setSubmittingRefund(true);
     try {
       // Fetch CSRF token
       const csrfRes = await fetch('/api/csrf', {
@@ -262,34 +274,39 @@ export default function TransactionDetailPage2025() {
         : { token: '' };
       if (csrfToken) await new Promise((r) => setTimeout(r, 50));
 
-      const response = await fetch('/api/payments/refund', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
-        },
-        body: JSON.stringify({
-          jobId: transaction.jobId,
+      if (!csrfToken)
+        throw new Error('Could not validate your session. Please retry.');
+      const pending = readPendingRefund(user.id, transaction.id);
+      const result = await submitRefund(
+        user.id,
+        {
+          jobId: transaction.jobId ?? '',
           escrowTransactionId: transaction.id,
-          amount: parsedRefundAmount,
+          amount:
+            pending && pending.body.amount === undefined
+              ? undefined
+              : parsedRefundAmount,
           reason: refundReason,
-        }),
+        },
+        csrfToken
+      );
+      setTransaction({
+        ...transaction,
+        remainingAmount: result.remainingAmount,
+        status: result.remainingAmount === 0 ? 'refunded' : 'held',
+        refundable: result.remainingAmount > 0,
       });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to process refund');
-      }
-
-      toast.success('Refund request submitted successfully');
+      toast.success('Refund confirmed');
       setShowRefundModal(false);
-      setRefundAmount(transaction.amount.toString());
+      setRefundAmount(result.remainingAmount.toString());
       setRefundReason('');
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : 'Failed to process refund'
       );
+    } finally {
+      refundInFlight.current = false;
+      setSubmittingRefund(false);
     }
   };
 
@@ -583,16 +600,35 @@ export default function TransactionDetailPage2025() {
                     Download Invoice
                   </button>
 
-                  {transaction.refundable &&
-                    transaction.status === 'completed' && (
-                      <button
-                        onClick={() => setShowRefundModal(true)}
-                        className='w-full px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2'
-                      >
-                        <RefreshCw className='w-4 h-4' />
-                        Request Refund
-                      </button>
-                    )}
+                  {transaction.refundable && (
+                    <button
+                      onClick={() => {
+                        try {
+                          const pending = readPendingRefund(
+                            user!.id,
+                            transaction.id
+                          );
+                          setRefundReason(pending?.body.reason ?? '');
+                          const available = pending
+                            ? (pending.body.amount ?? transaction.amount)
+                            : transaction.remainingAmount;
+                          setRefundLimit(available);
+                          setRefundAmount(String(available));
+                          setShowRefundModal(true);
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : 'Could not recover refund request'
+                          );
+                        }
+                      }}
+                      className='w-full px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2'
+                    >
+                      <RefreshCw className='w-4 h-4' />
+                      Request Refund
+                    </button>
+                  )}
                 </div>
               </MotionDiv>
             </div>
@@ -627,13 +663,13 @@ export default function TransactionDetailPage2025() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setRefundAmount(e.target.value)
                     }
-                    max={transaction.amount}
+                    max={refundLimit}
                     step='0.01'
                     className='w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
                   />
                 </div>
                 <p className='text-xs text-gray-500 mt-1'>
-                  Maximum: £{transaction.amount.toFixed(2)}
+                  Maximum: £{refundLimit.toFixed(2)}
                 </p>
               </div>
 
@@ -665,6 +701,7 @@ export default function TransactionDetailPage2025() {
 
             <div className='flex gap-3'>
               <button
+                disabled={submittingRefund}
                 onClick={() => setShowRefundModal(false)}
                 className='flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
               >
@@ -672,9 +709,10 @@ export default function TransactionDetailPage2025() {
               </button>
               <button
                 onClick={handleRefund}
+                disabled={submittingRefund}
                 className='flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
               >
-                Submit Refund
+                {submittingRefund ? 'Checking refund…' : 'Submit Refund'}
               </button>
             </div>
           </MotionDiv>

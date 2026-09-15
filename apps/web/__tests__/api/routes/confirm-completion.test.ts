@@ -92,71 +92,6 @@ vi.mock('@/lib/email-service', () => ({
   },
 }));
 
-vi.mock('@/lib/errors/api-error', async () => {
-  class APIError extends Error {
-    constructor(
-      public code: string,
-      public userMessage: string,
-      public statusCode: number = 500,
-      public details?: unknown
-    ) {
-      super(userMessage);
-      this.name = 'APIError';
-    }
-    toResponse() {
-      return {
-        error: { code: this.code, message: this.userMessage },
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
-  class UnauthorizedError extends APIError {
-    constructor(m = 'Unauthorized') {
-      super('UNAUTHORIZED', m, 401);
-    }
-  }
-  class ForbiddenError extends APIError {
-    constructor(m = 'Forbidden') {
-      super('FORBIDDEN', m, 403);
-    }
-  }
-  class NotFoundError extends APIError {
-    constructor(m = 'Resource not found') {
-      super('NOT_FOUND', m, 404);
-    }
-  }
-  class BadRequestError extends APIError {
-    constructor(m = 'Bad Request', d?: unknown) {
-      super('BAD_REQUEST', m, 400, d);
-    }
-  }
-  return {
-    APIError,
-    UnauthorizedError,
-    ForbiddenError,
-    NotFoundError,
-    BadRequestError,
-    handleAPIError: vi.fn((error: unknown) => {
-      if (error instanceof APIError) {
-        const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), {
-          status: error.statusCode,
-        });
-      }
-      const { NextResponse } = require('next/server');
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'An unexpected error occurred',
-          },
-        },
-        { status: 500 }
-      );
-    }),
-  };
-});
-
 vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 
 // ---------------------------------------------------------------------------
@@ -527,6 +462,12 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
     function setupHandoffMocks(opts: {
       escrowData?: Record<string, unknown> | null;
       photoCount?: number;
+      secondPhotoCount?: number;
+      escrowReadError?: unknown;
+      jobWriteError?: unknown;
+      releaseError?: unknown;
+      rollbackError?: unknown;
+      casRows?: unknown[];
       jobUpdates?: Array<Record<string, unknown>>;
       escrowUpdates?: Array<Record<string, unknown>>;
     }) {
@@ -535,8 +476,9 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
           opts.escrowData === undefined
             ? { id: 'escrow-1', status: 'held', amount: 25000 }
             : opts.escrowData,
-        error: null,
+        error: opts.escrowReadError ?? null,
       };
+      let photoCalls = 0;
       mocks.supabaseFrom.mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
@@ -549,16 +491,20 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
             }),
             update: vi.fn().mockImplementation((payload) => {
               opts.jobUpdates?.push(payload as Record<string, unknown>);
-              return {
-                eq: vi.fn().mockReturnValue({
-                  eq: vi.fn().mockReturnValue({
-                    select: vi.fn().mockResolvedValue({
-                      data: [{ id: 'job-1' }],
-                      error: null,
-                    }),
-                  }),
-                }),
+              const result = payload.completion_confirmed_by_homeowner
+                ? {
+                    data: opts.casRows ?? [{ id: 'job-1' }],
+                    error: opts.jobWriteError ?? null,
+                  }
+                : { error: opts.rollbackError ?? null };
+              const promise = Promise.resolve(result);
+              const query = {
+                eq: vi.fn(),
+                select: vi.fn(() => promise),
+                then: promise.then.bind(promise),
               };
+              query.eq.mockReturnValue(query);
+              return query;
             }),
           };
         }
@@ -580,7 +526,11 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
             }),
             update: vi.fn().mockImplementation((payload) => {
               opts.escrowUpdates?.push(payload as Record<string, unknown>);
-              return { eq: vi.fn().mockResolvedValue({ error: null }) };
+              return {
+                eq: vi
+                  .fn()
+                  .mockResolvedValue({ error: opts.releaseError ?? null }),
+              };
             }),
           };
         }
@@ -602,12 +552,16 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
           };
         }
         if (table === 'job_photos_metadata') {
+          photoCalls++;
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
                   eq: vi.fn().mockResolvedValue({
-                    count: opts.photoCount ?? 3,
+                    count:
+                      photoCalls > 1
+                        ? (opts.secondPhotoCount ?? opts.photoCount ?? 3)
+                        : (opts.photoCount ?? 3),
                     error: null,
                   }),
                 }),
@@ -621,6 +575,80 @@ describe('POST /api/jobs/[id]/confirm-completion', () => {
         };
       });
     }
+
+    it.each([
+      { escrowReadError: new Error('Escrow unavailable') },
+      { jobWriteError: new Error('Job write unavailable') },
+      { casRows: [] },
+    ])(
+      'fails closed before releasing escrow when preflight/CAS fails: %j',
+      async (options) => {
+        const escrowUpdates: Record<string, unknown>[] = [];
+        setupHandoffMocks({ ...options, escrowUpdates });
+        const res = await POST(
+          createPostRequest(
+            'http://localhost:3000/api/jobs/job-1/confirm-completion'
+          ),
+          segmentData('job-1')
+        );
+        expect([409, 500]).toContain(res.status);
+        expect(escrowUpdates).toEqual([]);
+        expect(mocks.notifyJobConfirmed).not.toHaveBeenCalled();
+      }
+    );
+    it.each([false, true])(
+      'rolls back its confirmation when escrow preparation fails (rollback error=%s)',
+      async (failRollback) => {
+        const jobUpdates: Record<string, unknown>[] = [];
+        setupHandoffMocks({
+          jobUpdates,
+          releaseError: new Error('Escrow write unavailable'),
+          rollbackError: failRollback
+            ? new Error('Rollback unavailable')
+            : undefined,
+        });
+        const res = await POST(
+          createPostRequest(
+            'http://localhost:3000/api/jobs/job-1/confirm-completion'
+          ),
+          segmentData('job-1')
+        );
+        expect(res.status).toBe(500);
+        expect(
+          jobUpdates.map((row) => row.completion_confirmed_by_homeowner)
+        ).toEqual([true, false]);
+        expect(mocks.notifyJobConfirmed).not.toHaveBeenCalled();
+        expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+        if (failRollback)
+          expect(mocks.logger.error).toHaveBeenCalledWith(
+            'Failed to roll back job confirmation after escrow failure',
+            expect.any(Error),
+            expect.any(Object)
+          );
+      }
+    );
+    it('rolls back if evidence disappears between preflight and release preparation', async () => {
+      const jobUpdates: Record<string, unknown>[] = [];
+      const escrowUpdates: Record<string, unknown>[] = [];
+      setupHandoffMocks({
+        jobUpdates,
+        escrowUpdates,
+        photoCount: 3,
+        secondPhotoCount: 0,
+      });
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/confirm-completion'
+        ),
+        segmentData('job-1')
+      );
+      expect(res.status).toBe(400);
+      expect(
+        jobUpdates.map((row) => row.completion_confirmed_by_homeowner)
+      ).toEqual([true, false]);
+      expect(escrowUpdates).toEqual([]);
+      expect(mocks.notifyJobConfirmed).not.toHaveBeenCalled();
+    });
 
     it('stamps the held escrow with EXACTLY the cron-pickup fields and does NOT flip status', async () => {
       const escrowUpdates: Array<Record<string, unknown>> = [];

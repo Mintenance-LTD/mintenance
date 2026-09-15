@@ -13,6 +13,7 @@ const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
   cursor: z.string().optional(),
   status: z.string().optional(),
+  transactionId: z.string().uuid().optional(),
 });
 
 const selectFields = `
@@ -137,13 +138,14 @@ export const GET = withApiHandler(
       limit: url.searchParams.get('limit') ?? undefined,
       cursor: url.searchParams.get('cursor') ?? undefined,
       status: url.searchParams.get('status') ?? undefined,
+      transactionId: url.searchParams.get('transactionId') ?? undefined,
     });
 
     if (!parsed.success) {
       throw new BadRequestError('Invalid query parameters');
     }
 
-    const { limit, cursor, status } = parsed.data;
+    const { limit, cursor, status, transactionId } = parsed.data;
 
     let cursorIso: string | undefined;
     if (cursor) {
@@ -165,6 +167,8 @@ export const GET = withApiHandler(
       query = query.lt('created_at', cursorIso);
     }
 
+    if (transactionId) query = query.eq('id', transactionId);
+
     if (status) {
       query = query.eq('status', status);
     }
@@ -181,7 +185,43 @@ export const GET = withApiHandler(
     const rows = (data ?? []) as EscrowRow[];
     const hasMore = rows.length > limit;
     const limitedRows = rows.slice(0, limit);
-    const payments = limitedRows.map(mapEscrowRow);
+    // The service-only refund ledger is read only for IDs already constrained
+    // to the current payer/payee above, including the service-role fallback.
+    const { data: balances, error: balanceError } = limitedRows.length
+      ? await serverSupabase
+          .from('escrow_refund_balances')
+          .select('escrow_id,remaining_minor,needs_review')
+          .in(
+            'escrow_id',
+            limitedRows.map((row) => row.id)
+          )
+      : { data: [], error: null };
+    if (balanceError)
+      throw new InternalServerError('Failed to load current payment balances');
+    const balanceById = new Map(
+      (balances ?? []).map((balance) => [balance.escrow_id, balance])
+    );
+    const payments = limitedRows.map((row) => {
+      const balance = balanceById.get(row.id);
+      if (
+        balance &&
+        (!Number.isSafeInteger(balance.remaining_minor) ||
+          balance.remaining_minor < 0)
+      ) {
+        throw new InternalServerError(
+          'Payment balance requires reconciliation'
+        );
+      }
+      return {
+        ...mapEscrowRow(row),
+        remainingAmount: balance
+          ? balance.remaining_minor / 100
+          : row.status === 'refunded'
+            ? 0
+            : Number(row.amount),
+        refundNeedsReview: balance?.needs_review ?? false,
+      };
+    });
     const nextCursorValue = hasMore
       ? limitedRows[limitedRows.length - 1]?.created_at
       : undefined;

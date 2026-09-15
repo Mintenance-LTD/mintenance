@@ -1,15 +1,4 @@
-/**
- * Tests for POST /api/payments/refund
- * Route: apps/web/app/api/payments/refund/route.ts
- *
- * Covers: authentication, rate limiting, validation (Zod schema),
- * idempotency (duplicate + lock contention), job not found, authorization
- * (homeowner only can refund), escrow not found, escrow not held,
- * job status check (only refundable statuses), missing payment intent ID,
- * MFA requirements for high-risk refunds, anomaly detection blocking,
- * Stripe refund success, escrow DB update with retry, job cancellation,
- * idempotency result storage.
- */
+/** Route boundary tests; accounting/provider recovery is tested in the real service and isolated SQL diagnostics. */
 import { NextRequest } from 'next/server';
 
 // ---------------------------------------------------------------------------
@@ -29,6 +18,9 @@ const mocks = vi.hoisted(() => ({
   storeIdempotencyResult: vi.fn(),
   validateRequest: vi.fn(),
   stripeRefundsCreate: vi.fn(),
+  context: vi.fn(),
+  reserve: vi.fn(),
+  recover: vi.fn(),
   requiresMFA: vi.fn(),
   validateMFAForPayment: vi.fn(),
   detectAnomalies: vi.fn(),
@@ -104,670 +96,327 @@ vi.mock('@/lib/monitoring/payment-monitor', () => ({
 
 vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function createPostRequest(
-  url: string,
-  body?: Record<string, unknown>
-): NextRequest {
-  return new NextRequest(new URL(url, 'http://localhost:3000'), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-forwarded-for': '127.0.0.1',
-      'x-csrf-token': 'test-csrf-token',
-      'x-real-ip': '127.0.0.1',
-    },
-    body: body ? JSON.stringify(body) : JSON.stringify({}),
-  });
-}
+vi.mock('@/lib/services/payment/RefundService', () => ({
+  readRefundContext: mocks.context,
+  reserveRefund: mocks.reserve,
+  recoverRefund: mocks.recover,
+}));
+import { ConflictError, ForbiddenError } from '@/lib/errors/api-error';
+import { POST } from '@/app/api/payments/refund/route';
 
-// This route has no [id] param, just body data
-function segmentData() {
-  return { params: Promise.resolve({}) };
-}
-
-const homeownerUser = {
+let job: Record<string, unknown> | null;
+let escrow: Record<string, unknown> | null;
+const user = {
   id: 'homeowner-1',
-  email: 'homeowner@test.com',
-  role: 'homeowner' as const,
-  first_name: 'Test',
-  last_name: 'Homeowner',
+  role: 'homeowner',
+  email: 'synthetic@example.invalid',
 };
-
-const validRefundData = {
+const input = {
   jobId: 'job-1',
   escrowTransactionId: 'escrow-1',
   amount: 250,
   reason: 'Job cancelled',
 };
-
-function setupDefaultMocks() {
-  mocks.getCurrentUserFromCookies.mockResolvedValue(homeownerUser);
+const operation = {
+  id: 'operation-1',
+  escrow_id: 'escrow-1',
+  actor_id: 'homeowner-1',
+  gross_minor: 25000,
+  cash_minor: 25000,
+  credit_minor: 0,
+  state: 'reserved',
+  provider_refund_id: null,
+};
+function request(mfa?: string) {
+  return new NextRequest('http://localhost:3000/api/payments/refund', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(mfa ? { 'x-mfa-token': mfa } : {}),
+    },
+    body: JSON.stringify(input),
+  });
+}
+const run = (mfa?: string) =>
+  POST(request(mfa), { params: Promise.resolve({}) });
+beforeEach(() => {
+  vi.resetAllMocks();
+  job = {
+    id: 'job-1',
+    homeowner_id: user.id,
+    contractor_id: 'contractor-1',
+    status: 'cancelled',
+  };
+  escrow = {
+    id: 'escrow-1',
+    job_id: 'job-1',
+    payer_id: user.id,
+    amount: 250,
+    status: 'held',
+    payment_intent_id: 'pi_synthetic',
+  };
+  mocks.getCurrentUserFromCookies.mockResolvedValue(user);
+  mocks.checkApiRateLimit.mockResolvedValue({ allowed: true });
   mocks.requireCSRF.mockResolvedValue(undefined);
-  // withApiHandler rate limit is disabled (rateLimit: false), route uses custom
-  mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true,
-    remaining: 19,
-    resetTime: Date.now() + 60000,
-    retryAfter: 0,
-  });
-  mocks.checkApiRateLimit.mockResolvedValue({
-    allowed: true,
-    remaining: 10,
-    resetTime: Date.now() + 60000,
-    retryAfter: 0,
-  });
-  mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-123');
-  mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
-  mocks.storeIdempotencyResult.mockResolvedValue(undefined);
-  mocks.validateRequest.mockResolvedValue({ data: validRefundData });
-  mocks.stripeRefundsCreate.mockResolvedValue({
-    id: 'refund-1',
-    status: 'succeeded',
-    amount: 25000,
-  });
+  mocks.getIdempotencyKeyFromRequest.mockReturnValue('client-key');
+  mocks.validateRequest.mockResolvedValue({ data: input });
   mocks.requiresMFA.mockResolvedValue({ required: false });
-  mocks.detectAnomalies.mockResolvedValue({
-    riskScore: 10,
-    blockedReasons: [],
-  });
-}
-
-function setupRefundMocks(
-  overrides: {
-    jobData?: unknown;
-    jobError?: unknown;
-    escrowData?: unknown;
-    escrowError?: unknown;
-    escrowUpdateError?: unknown;
-  } = {}
-) {
-  const jobResult = {
-    data: overrides.jobData ?? {
-      id: 'job-1',
-      homeowner_id: 'homeowner-1',
-      contractor_id: 'contractor-1',
-      status: 'cancelled',
-    },
-    error: overrides.jobError ?? null,
-  };
-  const escrowResult = {
-    data: overrides.escrowData ?? {
-      id: 'escrow-1',
-      job_id: 'job-1',
-      payer_id:
-        (jobResult.data as { payer_user_id?: string }).payer_user_id ||
-        'homeowner-1',
-      amount: 250,
-      status: 'held',
-      payment_intent_id: 'pi_test_123',
-      stripe_payment_intent_id: null,
-      created_at: '2026-01-01T00:00:00Z',
-      released_at: null,
-      refunded_at: null,
-    },
-    error: overrides.escrowError ?? null,
-  };
-  const escrowUpdateError = overrides.escrowUpdateError ?? null;
-
-  mocks.supabaseFrom.mockImplementation((table: string) => {
-    if (table === 'jobs') {
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue(jobResult),
-          }),
-        }),
-        update: mocks.jobUpdate.mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: 'job-1' },
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      };
-    }
-    if (table === 'escrow_transactions') {
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue(escrowResult),
-            }),
-          }),
-        }),
-        update: mocks.escrowUpdate.mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: escrowUpdateError
-                    ? null
-                    : { ...escrowResult.data, status: 'refunded' },
-                  error: escrowUpdateError,
-                }),
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: escrowUpdateError ? null : { id: 'escrow-1' },
-                  error: escrowUpdateError,
-                }),
-              }),
-            }),
-          }),
-        }),
-      };
-    }
-    return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-describe('POST /api/payments/refund', () => {
-  let POST: typeof import('@/app/api/payments/refund/route').POST;
-
-  beforeEach(async () => {
-    setupDefaultMocks();
-    const mod = await import('@/app/api/payments/refund/route');
-    POST = mod.POST;
-  });
-
-  // ---- Authentication ----
-  it('should return 401 when user is not authenticated', async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue(null);
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(401);
-  });
-
-  // ---- Custom rate limiting ----
-  it('should return 429 when custom rate limit is exceeded', async () => {
-    mocks.checkApiRateLimit.mockResolvedValue({
-      allowed: false,
-      remaining: 0,
-      resetTime: Date.now() + 60000,
-      retryAfter: 30,
-    });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(429);
-  });
-
-  // ---- Validation error ----
-  it('should return 400 when request body fails validation', async () => {
-    const { NextResponse } = await import('next/server');
-    mocks.validateRequest.mockResolvedValue(
-      NextResponse.json(
-        {
-          error: 'Validation failed',
-          errors: [{ field: 'jobId', message: 'Invalid job ID' }],
-        },
-        { status: 400 }
-      )
-    );
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      {}
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(400);
-  });
-
-  // ---- Idempotency: duplicate request ----
-  it('should return cached result for duplicate refund request', async () => {
-    const cachedResult = {
-      success: true,
-      refundId: 'refund-1',
-      amount: 250,
-      status: 'succeeded',
+  mocks.detectAnomalies.mockResolvedValue({ riskScore: 0, blockedReasons: [] });
+  mocks.context.mockResolvedValue({ existing: null, remainingMinor: 25000 });
+  mocks.reserve.mockImplementation(async (params) => ({
+    ...operation,
+    actor_id: params.actorId,
+    gross_minor: params.grossMinor,
+    cash_minor: params.grossMinor,
+  }));
+  mocks.recover.mockImplementation(async (op) => ({
+    ...op,
+    state: 'succeeded',
+    provider_refund_id: 'refund-1',
+  }));
+  mocks.supabaseFrom.mockImplementation((table) => {
+    const chain = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      single: vi.fn(),
+      update: table === 'jobs' ? mocks.jobUpdate : mocks.escrowUpdate,
     };
-    mocks.checkIdempotency.mockResolvedValue({
-      isDuplicate: true,
-      cachedResult,
+    chain.select.mockReturnValue(chain);
+    chain.eq.mockReturnValue(chain);
+    chain.single.mockResolvedValue({
+      data: table === 'jobs' ? job : escrow,
+      error: null,
     });
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.refundId).toBe('refund-1');
+    return chain;
   });
+});
 
-  it('rejects a former payer before reading a cached refund response', async () => {
-    mocks.checkIdempotency.mockResolvedValue({
-      isDuplicate: true,
-      cachedResult: { refundId: 'private-result' },
-    });
-    setupRefundMocks({
-      jobData: {
-        id: 'job-1',
-        homeowner_id: 'homeowner-1',
-        payer_user_id: 'new-payer',
-        contractor_id: 'contractor-1',
-        status: 'cancelled',
-      },
-    });
-    const response = await POST(
-      createPostRequest(
-        'http://localhost/api/payments/refund',
-        validRefundData
-      ),
-      segmentData()
-    );
-    expect(response.status).toBe(403);
-    expect(mocks.checkIdempotency).not.toHaveBeenCalled();
-    expect(mocks.stripeRefundsCreate).not.toHaveBeenCalled();
+describe('refund route authority and validation', () => {
+  it('requires authentication', async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue(null);
+    expect((await run()).status).toBe(401);
+    expect(mocks.reserve).not.toHaveBeenCalled();
   });
-
-  it('requires the escrow funding payer as well as current job authority', async () => {
-    setupRefundMocks({
-      escrowData: {
-        id: 'escrow-1',
-        job_id: 'job-1',
-        payer_id: 'different-funder',
-        amount: 250,
-        status: 'held',
-        payment_intent_id: 'pi_other',
-      },
-    });
-    const response = await POST(
-      createPostRequest(
-        'http://localhost/api/payments/refund',
-        validRefundData
-      ),
-      segmentData()
-    );
-    expect(response.status).toBe(403);
-    expect(mocks.checkIdempotency).not.toHaveBeenCalled();
-    expect(mocks.stripeRefundsCreate).not.toHaveBeenCalled();
-  });
-
-  // 2026-05-21: removed "should return 409 when idempotency lock contention
-  // occurs". With the claim-then-complete redesign, checkIdempotency THROWS
-  // IdempotencyStoreUnavailableError (extends ServiceUnavailableError → 503)
-  // on real contention; it never returns null for that case. The previous
-  // null-return code path is dead. The 503 mapping is now structurally
-  // enforced via the class hierarchy + handleAPIError and is covered by
-  // unit tests on lib/idempotency.ts directly.
-
-  // ---- Job not found ----
-  it('should return 404 when job does not exist', async () => {
-    setupRefundMocks({ jobData: null, jobError: { message: 'not found' } });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(404);
-  });
-
-  // ---- Authorization: contractor cannot refund ----
-  it('should return 403 when a contractor tries to refund (not job owner)', async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue({
-      id: 'other-user',
-      email: 'other@test.com',
-      role: 'homeowner',
-      first_name: 'Other',
-      last_name: 'User',
-    });
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(403);
-  });
-
-  // ---- Non-homeowner (contractor on the job) cannot refund ----
-  it('should return 403 when the contractor on the job tries to request refund', async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue({
-      id: 'contractor-1',
-      email: 'contractor@test.com',
-      role: 'contractor',
-      first_name: 'Test',
-      last_name: 'Contractor',
-    });
-    setupRefundMocks({
-      jobData: {
-        id: 'job-1',
-        homeowner_id: 'homeowner-1',
-        contractor_id: 'contractor-1',
-        status: 'cancelled',
-      },
-    });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    // Contractor is on the job (passes first ownership check) but not homeowner -> 403
-    expect(res.status).toBe(403);
-  });
-
-  it('should allow the designated payer to request a refund', async () => {
-    mocks.getCurrentUserFromCookies.mockResolvedValue({
-      ...homeownerUser,
-      id: 'payer-1',
-      email: 'payer@test.com',
-    });
-    setupRefundMocks({
-      jobData: {
-        id: 'job-1',
-        homeowner_id: 'homeowner-1',
-        payer_user_id: 'payer-1',
-        contractor_id: 'contractor-1',
-        status: 'cancelled',
-      },
-    });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-
-    expect(res.status).toBe(200);
-    expect(mocks.stripeRefundsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: expect.objectContaining({ requestedBy: 'payer-1' }),
-      }),
-      expect.anything()
-    );
-  });
-
-  // ---- Non-refundable job status ----
-  it('should return 400 when job status is not refundable (in_progress)', async () => {
-    setupRefundMocks({
-      jobData: {
-        id: 'job-1',
-        homeowner_id: 'homeowner-1',
-        contractor_id: 'contractor-1',
-        status: 'in_progress',
-      },
-    });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(400);
-
-    const body = await res.json();
-    expect(body.error).toContain('Cannot refund');
-  });
-
-  // ---- Escrow not found ----
-  it('should return 404 when escrow transaction does not exist', async () => {
-    setupRefundMocks({
-      escrowData: null,
-      escrowError: { message: 'not found' },
-    });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(404);
-  });
-
-  // ---- Escrow not held ----
-  it('should return 400 when escrow status is not held (already released)', async () => {
-    setupRefundMocks({
-      escrowData: {
-        id: 'escrow-1',
-        job_id: 'job-1',
-        payer_id: 'homeowner-1',
-        amount: 250,
-        status: 'released',
-        payment_intent_id: 'pi_test_123',
-      },
-    });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(400);
-
-    const body = await res.json();
-    expect(body.error).toContain('released');
-  });
-
-  // ---- Missing payment intent ID ----
-  it('should return 400 when no payment intent ID is found on escrow', async () => {
-    setupRefundMocks({
-      escrowData: {
-        id: 'escrow-1',
-        job_id: 'job-1',
-        payer_id: 'homeowner-1',
-        amount: 250,
-        status: 'held',
-        payment_intent_id: null,
-        stripe_payment_intent_id: null,
-      },
-    });
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(400);
-
-    const body = await res.json();
-    expect(body.error).toContain('payment intent');
-  });
-
-  // ---- MFA required but no token ----
-  it('should return 403 when MFA is required but no token provided', async () => {
-    mocks.requiresMFA.mockResolvedValue({
-      required: true,
-      reason: 'High value refund',
-      riskScore: 85,
-    });
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(403);
-
-    const body = await res.json();
-    expect(body.mfaRequired).toBe(true);
-  });
-
-  // ---- Anomaly detection blocks refund ----
-  it('should return 403 when anomaly detection blocks the refund', async () => {
-    mocks.detectAnomalies.mockResolvedValue({
-      riskScore: 95,
-      blockedReasons: ['Unusual refund pattern detected'],
-    });
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(403);
-
-    const body = await res.json();
-    expect(body.error).toContain('security');
-    expect(body.reasons).toContain('Unusual refund pattern detected');
-  });
-
-  // ---- Success ----
-  it('does not call Stripe when the database rejects a refund claim for an existing payout attempt', async () => {
-    setupRefundMocks({
-      escrowUpdateError: {
-        code: '23514',
-        message: 'A payout attempt exists; reconcile it before refunding',
-      },
-    });
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const response = await POST(req, segmentData());
-    expect(response.status).toBe(409);
-    expect(mocks.stripeRefundsCreate).not.toHaveBeenCalled();
-  });
-
-  it('keeps escrow locked after an uncertain provider outcome', async () => {
-    setupRefundMocks();
-    mocks.stripeRefundsCreate.mockRejectedValue(
-      new Error('Network timeout after request was sent')
-    );
-    const response = await POST(
-      createPostRequest(
-        'http://localhost/api/payments/refund',
-        validRefundData
-      ),
-      segmentData()
-    );
-    expect(response.status).toBe(500);
-    expect(mocks.escrowUpdate).toHaveBeenCalledTimes(1);
-    expect(mocks.escrowUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'release_pending',
-        release_reason: 'refund_pending',
-      })
-    );
-    expect(mocks.jobUpdate).not.toHaveBeenCalled();
-    expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
-  });
-
-  it.each(['pending', 'requires_action', 'failed', 'canceled'])(
-    'does not report %s provider refunds as completed',
-    async (status) => {
-      setupRefundMocks();
-      mocks.stripeRefundsCreate.mockResolvedValue({
-        id: 're_synthetic',
-        status,
-        amount: 25000,
-      });
-      const response = await POST(
-        createPostRequest(
-          'http://localhost/api/payments/refund',
-          validRefundData
-        ),
-        segmentData()
-      );
-      expect(response.status).toBe(503);
-      expect(await response.json()).toMatchObject({ success: false, status });
-      expect(mocks.escrowUpdate).toHaveBeenCalledTimes(1);
-      expect(mocks.jobUpdate).not.toHaveBeenCalled();
-      expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+  it.each(['contractor', 'admin'])(
+    'rejects %s role at the framework boundary',
+    async (role) => {
+      mocks.getCurrentUserFromCookies.mockResolvedValue({ ...user, role });
+      expect((await run()).status).toBe(403);
+      expect(mocks.context).not.toHaveBeenCalled();
     }
   );
-
-  it('should process refund successfully and return refund details', async () => {
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.refundId).toBe('refund-1');
-    expect(body.status).toBe('succeeded');
-    expect(body.amount).toBeGreaterThan(0);
+  it('enforces CSRF before financial work', async () => {
+    mocks.requireCSRF.mockRejectedValue(new ForbiddenError('CSRF rejected'));
+    expect((await run()).status).toBe(403);
+    expect(mocks.reserve).not.toHaveBeenCalled();
   });
-
-  // ---- Stripe refund is called with correct params ----
-  it('should call Stripe with correct refund parameters', async () => {
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    await POST(req, segmentData());
-
-    expect(mocks.stripeRefundsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payment_intent: 'pi_test_123',
-        metadata: expect.objectContaining({
-          jobId: 'job-1',
-          escrowTransactionId: 'escrow-1',
-          requestedBy: 'homeowner-1',
-        }),
-      }),
-      expect.objectContaining({
-        idempotencyKey: expect.stringMatching(/^refund_escrow-1_pi_test_123_/),
-      })
-    );
+  it('rate limits requests', async () => {
+    mocks.checkApiRateLimit.mockResolvedValue({ allowed: false });
+    expect((await run()).status).toBe(429);
+    expect(mocks.reserve).not.toHaveBeenCalled();
   });
-
-  // ---- Stores idempotency result ----
-  it('should store idempotency result after successful refund', async () => {
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
+  it('returns schema validation failures without reading financial records', async () => {
+    const { NextResponse } = await import('next/server');
+    mocks.validateRequest.mockResolvedValue(
+      NextResponse.json({ error: 'Invalid body' }, { status: 400 })
     );
-    await POST(req, segmentData());
-
-    expect(mocks.storeIdempotencyResult).toHaveBeenCalledWith(
-      'idem-key-123',
-      'refund_payment',
-      expect.objectContaining({ success: true, refundId: 'refund-1' }),
-      'homeowner-1',
-      expect.objectContaining({
-        jobId: 'job-1',
-        escrowTransactionId: 'escrow-1',
-      })
+    expect((await run()).status).toBe(400);
+    expect(mocks.supabaseFrom).not.toHaveBeenCalled();
+  });
+  it.each(['job', 'escrow'])('requires an existing %s', async (kind) => {
+    if (kind === 'job') job = null;
+    else escrow = null;
+    expect((await run()).status).toBe(404);
+    expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it('rejects the former payer before reading durable refund results', async () => {
+    job!.payer_user_id = 'another-payer';
+    expect((await run()).status).toBe(403);
+    expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it('also requires the escrow funding payer', async () => {
+    escrow!.payer_id = 'former-payer';
+    expect((await run()).status).toBe(403);
+    expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it('accepts the designated payer rather than assuming the homeowner pays', async () => {
+    job!.payer_user_id = 'payer-2';
+    escrow!.payer_id = 'payer-2';
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...user,
+      id: 'payer-2',
+    });
+    expect((await run()).status).toBe(200);
+    expect(mocks.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: 'payer-2' })
     );
   });
-  it('does not cancel the job for a partial refund', async () => {
-    setupRefundMocks();
+  it.each(['completed', 'in_progress', 'assigned'])(
+    'rejects new refund for %s job',
+    async (status) => {
+      job!.status = status;
+      expect((await run()).status).toBe(400);
+      expect(mocks.reserve).not.toHaveBeenCalled();
+    }
+  );
+  it.each(['released', 'refunded', 'release_pending'])(
+    'rejects unowned %s escrow operation',
+    async (status) => {
+      escrow!.status = status;
+      expect((await run()).status).toBe(400);
+      expect(mocks.reserve).not.toHaveBeenCalled();
+    }
+  );
+  it('requires a provider payment identity', async () => {
+    escrow!.payment_intent_id = null;
+    expect((await run()).status).toBe(400);
+  });
+  it.each([0, -1, 251, NaN])(
+    'rejects invalid/excess amount %s instead of silently refunding a different amount',
+    async (amount) => {
+      mocks.validateRequest.mockResolvedValue({ data: { ...input, amount } });
+      expect((await run()).status).toBe(400);
+      expect(mocks.reserve).not.toHaveBeenCalled();
+    }
+  );
+  it('uses remaining principal for an omitted amount', async () => {
     mocks.validateRequest.mockResolvedValue({
-      data: { ...validRefundData, amount: 100 },
+      data: { ...input, amount: undefined },
     });
-    mocks.stripeRefundsCreate.mockResolvedValue({
-      id: 'refund-partial',
-      status: 'succeeded',
-      amount: 10000,
+    mocks.context.mockResolvedValue({ existing: null, remainingMinor: 10000 });
+    expect((await run()).status).toBe(200);
+    expect(mocks.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ grossMinor: 10000 })
+    );
+  });
+});
+
+describe('refund security and durable recovery', () => {
+  it('requires MFA when risk rules require it', async () => {
+    mocks.requiresMFA.mockResolvedValue({ required: true });
+    expect((await run()).status).toBe(403);
+    expect(mocks.reserve).not.toHaveBeenCalled();
+  });
+  it('rejects invalid MFA', async () => {
+    mocks.requiresMFA.mockResolvedValue({ required: true });
+    mocks.validateMFAForPayment.mockResolvedValue({ valid: false });
+    expect((await run('invalid')).status).toBe(403);
+    expect(mocks.reserve).not.toHaveBeenCalled();
+  });
+  it('accepts validated MFA', async () => {
+    mocks.requiresMFA.mockResolvedValue({ required: true });
+    mocks.validateMFAForPayment.mockResolvedValue({ valid: true });
+    expect((await run('valid')).status).toBe(200);
+    expect(mocks.validateMFAForPayment).toHaveBeenCalledWith(
+      user.id,
+      'valid',
+      'REFUND'
+    );
+  });
+  it('honors anomaly blocks', async () => {
+    mocks.detectAnomalies.mockResolvedValue({
+      blockedReasons: ['High risk'],
+      riskScore: 99,
     });
-    const req = new NextRequest('http://localhost:3000/api/payments/refund', {
-      method: 'POST',
-    });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
+    expect((await run()).status).toBe(403);
+    expect(mocks.reserve).not.toHaveBeenCalled();
+  });
+  it('does not call provider recovery after a rejected reservation', async () => {
+    mocks.reserve.mockRejectedValue(
+      new ConflictError('Payout already claimed')
+    );
+    expect((await run()).status).toBe(409);
+    expect(mocks.recover).not.toHaveBeenCalled();
+  });
+  it('does not unlock money after an unknown provider result', async () => {
+    mocks.recover.mockRejectedValue(new Error('Provider timeout'));
+    expect((await run()).status).toBe(500);
+    expect(mocks.escrowUpdate).not.toHaveBeenCalled();
     expect(mocks.jobUpdate).not.toHaveBeenCalled();
+  });
+  it.each(['pending', 'requires_action', 'failed', 'canceled'])(
+    'does not report %s as success',
+    async (state) => {
+      mocks.recover.mockResolvedValue({
+        ...operation,
+        state,
+        provider_refund_id: 'refund-1',
+      });
+      const response = await run();
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({
+        success: false,
+        status: state,
+      });
+    }
+  );
+  it('returns cash, credit, and remaining totals from the operation and ledger', async () => {
+    mocks.recover.mockResolvedValue({
+      ...operation,
+      state: 'succeeded',
+      cash_minor: 20000,
+      credit_minor: 5000,
+      provider_refund_id: 'refund-1',
+    });
+    mocks.context
+      .mockResolvedValueOnce({ existing: null, remainingMinor: 25000 })
+      .mockResolvedValueOnce({ existing: operation, remainingMinor: 0 });
+    const response = await run();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      success: true,
+      amount: 250,
+      cashAmount: 200,
+      creditReturned: 50,
+      remainingAmount: 0,
+    });
+    expect(mocks.checkIdempotency).not.toHaveBeenCalled();
+    expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+  });
+  it('recovers the same full-refund operation after escrow becomes terminal', async () => {
+    escrow!.status = 'refunded';
+    job!.status = 'completed';
+    mocks.validateRequest.mockResolvedValue({
+      data: { ...input, amount: undefined },
+    });
+    mocks.context.mockResolvedValue({
+      existing: { ...operation, state: 'succeeded' },
+      remainingMinor: 0,
+    });
+    expect((await run()).status).toBe(200);
+    expect(mocks.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ grossMinor: 25000 })
+    );
+  });
+  it('binds the caller key to actor and escrow while preserving exact retries', async () => {
+    await run();
+    await run();
+    const first = mocks.reserve.mock.calls[0][0].requestKey;
+    expect(mocks.reserve.mock.calls[1][0].requestKey).toBe(first);
+    mocks.validateRequest.mockResolvedValue({
+      data: { ...input, escrowTransactionId: 'escrow-2' },
+    });
+    await run();
+    expect(mocks.reserve.mock.calls[2][0].requestKey).not.toBe(first);
+    mocks.validateRequest.mockResolvedValue({ data: input });
+    job!.payer_user_id = 'payer-2';
+    escrow!.payer_id = 'payer-2';
+    mocks.getCurrentUserFromCookies.mockResolvedValue({
+      ...user,
+      id: 'payer-2',
+    });
+    await run();
+    expect(mocks.reserve.mock.calls[3][0].requestKey).not.toBe(first);
+  });
+  it('passes changed payloads to the reservation authority instead of using a stale cache', async () => {
+    mocks.reserve.mockRejectedValue(new ConflictError('Refund terms changed'));
+    mocks.context.mockResolvedValue({ existing: operation, remainingMinor: 0 });
+    mocks.validateRequest.mockResolvedValue({
+      data: { ...input, amount: 100, reason: 'Changed reason' },
+    });
+    expect((await run()).status).toBe(409);
+    expect(mocks.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ grossMinor: 10000, reason: 'Changed reason' })
+    );
   });
 });
