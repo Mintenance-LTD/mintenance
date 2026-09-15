@@ -999,3 +999,30 @@ form and existing contractor deletion hook: failed load/retry, actual CSRF helpe
 provider failure/edit preservation, protected-type filtering, malformed success response and
 confirmed-save success. Web typecheck passed. No real user notification was sent. The contractor
 password-change fake success handler remains a separate required fix.
+
+### 2026-09-15 — MFA settings and disable recovery
+
+Replaced the contractor local-only two-factor toggle with a link to the implemented MFA settings
+flow. The destination used data.csrfToken while /api/csrf returns token; its three mutations now use
+the shared CSRF fetch helper. Failed/malformed status reads show an unavailable state with retry
+instead of falsely displaying Disabled. Mutation responses require success=true; enrollment checks
+its response shape before presenting the QR image and recovery codes. Failed code verification
+preserves input.
+
+Following disable through the service exposed a second error: disableMFA ignored Supabase RPC
+errors. The actual local disable_user_mfa function targeted public.users, whose view omits
+mfa_enabled and the other MFA columns. A synthetic local call reproduced undefined_column.
+CLI-generated migration 20260915152316_repair_mfa_disable_profile_target.sql targets profiles,
+preserves transactional removal of backup/trusted/pending records, fails on a missing account and
+explicitly restricts EXECUTE to service_role. The service now propagates RPC failures; status
+counter reads also fail instead of substituting misleading zeroes on database errors.
+
+Real rollback SQL diagnostic passed: direct authenticated RPC denied, injected backup cleanup
+failure rolls back the profile change, successful disable removes credentials/recovery data, missing
+profile rejected. Web typecheck and changed-source ESLint passed. Target run: 36 tests / 4 files
+passed. Evidence caveat: the tests in the existing mfa-service.test.ts define a substitute service
+inside the test rather than import production behavior; they do NOT verify production MFA. The new
+client and service boundary tests plus real SQL supply the relevant evidence for this checkpoint.
+Full TOTP enrollment/login/device enforcement, enrollment concurrency, MFA disable password identity
+binding and contractor password change still need completion; this checkpoint does not establish MFA
+journey readiness.

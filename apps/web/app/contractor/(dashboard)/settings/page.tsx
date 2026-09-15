@@ -52,8 +52,6 @@ export default function ContractorSettingsPage() {
     setShowAddDialog,
     removingId,
     settingDefaultId,
-    twoFactorEnabled,
-    setTwoFactorEnabled,
     handleSaveProfile,
     handleAvatarUpload,
     handleChangePassword,
@@ -218,11 +216,9 @@ export default function ContractorSettingsPage() {
                     .email_verified as boolean) ?? false
                 }
                 passwordData={passwordData}
-                twoFactorEnabled={twoFactorEnabled}
                 showDeleteConfirm={showDeleteConfirm}
                 isSaving={isSaving}
                 onPasswordDataChange={setPasswordData}
-                onTwoFactorChange={setTwoFactorEnabled}
                 onChangePassword={handleChangePassword}
                 onShowDeleteConfirm={setShowDeleteConfirm}
                 onDeleteAccount={handleDeleteAccount}

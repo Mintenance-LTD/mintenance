@@ -68,7 +68,10 @@ export async function verifyPendingCode(
  */
 export async function disableMFA(userId: string): Promise<void> {
   try {
-    await serverSupabase.rpc('disable_user_mfa', { p_user_id: userId });
+    const { error } = await serverSupabase.rpc('disable_user_mfa', {
+      p_user_id: userId,
+    });
+    if (error) throw new Error('Unable to disable MFA');
 
     logger.info('MFA disabled', {
       service: 'mfa',
@@ -102,17 +105,21 @@ export async function getMFAStatus(userId: string) {
     }
 
     // Get backup codes count
-    const { data: backupCodesCount } = await serverSupabase.rpc(
-      'get_unused_backup_codes_count',
-      { p_user_id: userId }
-    );
+    const { data: backupCodesCount, error: backupError } =
+      await serverSupabase.rpc('get_unused_backup_codes_count', {
+        p_user_id: userId,
+      });
 
     // Get trusted devices count
-    const { count: trustedDevicesCount } = await serverSupabase
-      .from('trusted_devices')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gt('expires_at', new Date().toISOString());
+    const { count: trustedDevicesCount, error: devicesError } =
+      await serverSupabase
+        .from('trusted_devices')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gt('expires_at', new Date().toISOString());
+
+    if (backupError || devicesError)
+      throw new Error('Unable to load MFA recovery status');
 
     return {
       enabled: user.mfa_enabled,

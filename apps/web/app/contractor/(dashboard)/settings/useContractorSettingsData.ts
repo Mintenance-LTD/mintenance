@@ -100,7 +100,6 @@ export function useContractorSettingsData() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -442,8 +441,6 @@ export function useContractorSettingsData() {
     setShowAddDialog,
     removingId,
     settingDefaultId,
-    twoFactorEnabled,
-    setTwoFactorEnabled,
     handleSaveProfile,
     handleAvatarUpload,
     handleChangePassword,
