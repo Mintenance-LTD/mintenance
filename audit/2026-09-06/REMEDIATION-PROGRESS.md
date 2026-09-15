@@ -2066,3 +2066,25 @@ observed separately. Browser/device login and password-reset completion still re
 - Combined sanitized full web coverage passed: 3,612 tests / 330 files, exit 0, 218.01 seconds
   (reconciliation-full-coverage.log). Final worker/API/page cases are included. No mobile behavior
   was changed or device verification claimed by this reconciliation increment.
+
+### 15 September 2026 — complete reconciliation review pagination
+
+- Replaced the capped latest-100 API with 50-record cursor pages. Unresolved filtering occurs in
+  PostgreSQL before limiting; total/result/unresolved counts cover the full dataset. Cursor ordering
+  uses creation timestamp plus UUID, preserving microsecond precision and handling missing dates.
+  Cursor/filter input is validated before constructing query predicates.
+- Added previous/next controls and reset navigation on filter changes. Request epochs prevent slow
+  responses from a previous page/filter replacing current results. Manual runs disable navigation
+  while their result is being handled. Removed capped-view labels; counts now represent all rows.
+- Regression tests cover 105 unresolved records behind 100 resolved records, malformed navigation,
+  next/previous/filter reset and delayed responses. Final 14 tests / 2 files passed, 6.23 seconds
+  (reconciliation-pagination-tests.log). Web TypeScript passed. Changed-source ESLint passed after
+  moving request invalidation into a stable cleanup callback; initial warning is not claimed as
+  pass.
+- Added remediation-reconciliation-pagination.py. Real isolated PostgREST traversed all 105
+  unresolved rows once, excluded 100 resolved rows, and exercised microsecond timestamp ties plus 55
+  missing dates (including continuation within that group). Exact fixture cleanup completed;
+  reconciliation-pagination-rest.log exit 0. No schema changes or hosted/provider requests.
+- This closes the capped dashboard view follow-up recorded above. Cursor pages remain live views,
+  not a transactionally frozen financial export. Authenticated browser/device and production-scale
+  operational verification remain outside this increment; the wider remediation goal is active.

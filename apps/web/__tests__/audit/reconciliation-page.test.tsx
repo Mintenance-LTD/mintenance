@@ -1,6 +1,7 @@
 import React from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -83,4 +84,57 @@ it('reports only the confirmed batch size, then reloads persistent run history',
     await screen.findByText(/Batch checked 3 payments/)
   ).toBeInTheDocument();
   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
+});
+
+it('navigates forward/back and resets the cursor when switching filters', async () => {
+  const first = { ...dashboard, pagination: { next_cursor: 'next-token' } };
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(ok(first))
+    .mockResolvedValueOnce(ok(dashboard))
+    .mockResolvedValueOnce(ok(first))
+    .mockResolvedValueOnce(ok(dashboard));
+  vi.stubGlobal('fetch', fetcher);
+  render(<Page />);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+  await waitFor(() =>
+    expect(fetcher.mock.calls[1][0]).toContain('cursor=next-token')
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
+  await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
+  expect(fetcher.mock.calls[2][0]).not.toContain('cursor=');
+  fireEvent.click(screen.getByRole('button', { name: 'Filter all records' }));
+  await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(4));
+  expect(fetcher.mock.calls[3][0]).toBe('/api/admin/reconciliation?filter=all');
+});
+it('ignores a delayed response from the previous filter', async () => {
+  let resolveOld!: (value: unknown) => void;
+  const fetcher = vi
+    .fn()
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+    )
+    .mockResolvedValueOnce(ok(dashboard));
+  vi.stubGlobal('fetch', fetcher);
+  render(<Page />);
+  fireEvent.click(screen.getByRole('button', { name: 'Filter all records' }));
+  await screen.findByText(/Batch completed/);
+  await act(async () =>
+    resolveOld(
+      ok({
+        ...dashboard,
+        stats: { ...dashboard.stats, total_transactions: 999 },
+      })
+    )
+  );
+  expect(screen.queryByText('999')).not.toBeInTheDocument();
 });
