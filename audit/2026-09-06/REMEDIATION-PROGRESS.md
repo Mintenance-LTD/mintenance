@@ -1290,3 +1290,24 @@ observed separately. Browser/device login and password-reset completion still re
   2.05 seconds (`payment-quote-final.log`). Web TypeScript and changed route lint passed. No schema
   changes, provider calls or deployments. Full quote eligibility (including already funded states),
   credit presentation and real device/provider journeys remain separate unfinished checks.
+
+### 2026-09-15 — combined validation at e239322d5
+
+- Full sanitized web coverage: **3,466 tests / 313 files passed**, exit 0, 160.49 seconds
+  (`quote-final-full-coverage.log`). This includes the new server quote tests and existing
+  payment/auth regressions. Real database suites remain separate from this mocked/unit
+  configuration.
+- Executed all **28** current `audit/2026-09-06/remediation-*.sql` suites through psql with
+  ON_ERROR_STOP against `supabase_db_mintenance-audit-20260906`: **28/28 passed**, exit 0
+  (`final-rollback-sql-check.log`). Each diagnostic ends in ROLLBACK. Coverage includes effective
+  grants, client mutation restrictions, funding/credit reservations, refunds and payout claims,
+  signing/co-sign/retained evidence, deletion recovery, mobile/web revocation and password-change
+  recovery. This run does not repeat the separate multi-connection race scripts or external Auth
+  HTTP probes.
+- Required command executed using cached CLI v2.116.0:
+  `npx --offline supabase db diff --local --workdir audit/2026-09-06/isolated-stack`. Fresh shadow
+  migration replay completed; exit **0**, **No schema changes found** (`final-local-db-diff.log`).
+  No CLI upgrade, hosted mutation, original local database mutation or deployment performed.
+- These results strengthen current local evidence but do not satisfy the complete readiness gate:
+  hosted upgrade/permission parity, real provider challenge/webhook/recovery journeys, device
+  behavior, and identified remaining local flow concerns still need resolution. Goal remains active.
