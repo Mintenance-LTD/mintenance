@@ -899,3 +899,9 @@ actions were taken.
 
 Final isolated migration replay after the minimisation correction completed exit 0 with no schema
 changes (`contract-retention-db-diff-final.log`).
+
+Follow-up customer-copy correction: the deletion modal previously promised removal of all associated
+data, explicitly including payment history. The modal and both settings confirmations now disclose
+restricted signed-contract retention; the success response also makes that exception clear. Removed
+two unused imports and an unused prop binding found by the changed-file lint check. These are
+copy/import changes; archive navigation and full deletion recovery are still outstanding.

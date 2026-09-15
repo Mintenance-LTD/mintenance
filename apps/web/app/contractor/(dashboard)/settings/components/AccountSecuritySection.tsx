@@ -158,8 +158,8 @@ export function AccountSecuritySection({
               Danger Zone
             </h2>
             <p className='text-sm text-red-700'>
-              Once you delete your account, there is no going back. Please be
-              certain.
+              Account deletion cannot be undone. Signed contract evidence
+              remains under restricted access for legal claims.
             </p>
           </div>
         </div>
