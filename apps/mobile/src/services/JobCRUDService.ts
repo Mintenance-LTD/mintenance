@@ -307,10 +307,12 @@ export class JobCRUDService {
    * Routes through web API to trigger escrow release, notifications, and emails.
    */
   static async confirmJobCompletion(
-    jobId: string
+    jobId: string,
+    completedAt: string
   ): Promise<{ success: boolean; message: string }> {
     return mobileApiClient.post<{ success: boolean; message: string }>(
-      `/api/jobs/${jobId}/confirm-completion`
+      `/api/jobs/${jobId}/confirm-completion`,
+      { completedAt }
     );
   }
 

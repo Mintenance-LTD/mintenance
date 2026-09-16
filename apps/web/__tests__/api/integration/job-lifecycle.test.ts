@@ -2006,7 +2006,8 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
     });
     const res = await confirmCompletionPOST(
       createPostRequest(
-        `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+        `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`,
+        { completedAt: '2026-09-15T10:00:00Z' }
       ),
       segmentData(JOB_ID)
     );
@@ -2052,7 +2053,8 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
     });
 
     const req = createPostRequest(
-      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`,
+      { completedAt: '2026-09-15T10:00:00Z' }
     );
     const res = await confirmCompletionPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(403);
@@ -2083,7 +2085,8 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
     });
 
     const req = createPostRequest(
-      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`,
+      { completedAt: '2026-09-15T10:00:00Z' }
     );
     const res = await confirmCompletionPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(400);

@@ -71,6 +71,7 @@ const send = () =>
     new NextRequest('http://localhost/api/jobs/job/confirm-completion', {
       method: 'POST',
       headers: { 'x-csrf-token': 'synthetic' },
+      body: JSON.stringify({ completedAt }),
     }),
     { params: Promise.resolve({ id: 'job' }) }
   );
@@ -278,3 +279,21 @@ it('passes the client-reviewed completion version rather than silently approving
   );
   expect(mocks.email).not.toHaveBeenCalled();
 });
+
+it.each([undefined, {}, { completedAt: null }, { completedAt: 'invalid' }])(
+  'rejects missing or invalid displayed completion before reads or replay',
+  async (body) => {
+    const response = await POST(
+      new NextRequest('http://localhost/api/jobs/job/confirm-completion', {
+        method: 'POST',
+        headers: { 'x-csrf-token': 'synthetic' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ id: 'job' }) }
+    );
+    expect(response.status).toBe(400);
+    expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.cache).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  }
+);

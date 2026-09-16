@@ -60,6 +60,7 @@ vi.mock('@/lib/api/supabaseServer', () => {
   };
   return { serverSupabase: db, createRequestScopedClient: () => db };
 });
+import { POST as dispute } from '@/app/api/jobs/[id]/dispute/route';
 import { POST as start } from '@/app/api/jobs/[id]/start/route';
 import { POST as rework } from '@/app/api/jobs/[id]/request-changes/route';
 
@@ -73,6 +74,7 @@ describe.each([
   { name: 'after photos', route: afterPhotos, actor: 'contractor' },
   { name: 'confirm completion', route: confirm, actor: 'payer' },
   { name: 'start', route: start, actor: 'contractor' },
+  { name: 'job dispute', route: dispute, actor: 'payer' },
   { name: 'request changes', route: rework, actor: 'payer' },
 ])('$name replay access', ({ route, actor }) => {
   const send = () =>
@@ -82,12 +84,17 @@ describe.each([
         body: [beforePhotos, afterPhotos].includes(route)
           ? new FormData()
           : JSON.stringify(
-              route === confirm
-                ? {}
-                : {
-                    completedAt: '2026-09-15T10:00:00Z',
-                    comments: 'Please finish the repair',
+              route === dispute
+                ? {
+                    reason: 'The repair is not complete and needs review',
+                    category: 'incomplete',
                   }
+                : route === confirm
+                  ? { completedAt: '2026-09-15T10:00:00Z' }
+                  : {
+                      completedAt: '2026-09-15T10:00:00Z',
+                      comments: 'Please finish the repair',
+                    }
             ),
       }),
       { params: Promise.resolve({ id: 'job' }) }

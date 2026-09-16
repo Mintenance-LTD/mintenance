@@ -130,19 +130,26 @@ export function MintEditorialJobReview({ job }: Props) {
 
     setSubmitting(true);
     try {
-      // 1. Confirm completion (skip if already done from the legacy
-      //    HomeownerPhotoReview surface). The API is idempotent on
-      //    `completion_confirmed_by_homeowner === true` but we avoid
-      //    the round-trip when we already know it's set.
-      if (!job.completion_confirmed_by_homeowner) {
-        const confirmRes = await fetchWithCsrf(
-          `/api/jobs/${job.id}/confirm-completion`,
-          { method: 'POST' }
-        );
-        if (!confirmRes.ok) {
-          const data = await confirmRes.json().catch(() => ({}));
-          throw new Error(data.error || 'Failed to confirm completion');
+      // Bind approval to the completion actually displayed, even when a prior
+      // response or an old page says approval was already recorded.
+      if (!job.completed_at) {
+        throw new Error('Reload the job to review its current completion.');
+      }
+      const confirmRes = await fetchWithCsrf(
+        `/api/jobs/${job.id}/confirm-completion`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completedAt: job.completed_at }),
         }
+      );
+      const confirmation = await confirmRes.json().catch(() => null);
+      if (!confirmRes.ok || confirmation?.success !== true) {
+        throw new Error(
+          typeof confirmation?.error === 'string'
+            ? confirmation.error
+            : 'Completion approval is not confirmed. Refresh and try again.'
+        );
       }
 
       // 2. Submit the review. Tags + tip are stashed at the top of

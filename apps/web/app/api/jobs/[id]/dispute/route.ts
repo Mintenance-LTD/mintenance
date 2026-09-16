@@ -54,6 +54,25 @@ export const POST = withApiHandler(
     if ('headers' in validation) return validation;
     const { reason, category } = validation.data;
 
+    // The primary homeowner is stored on the job, while delegated payment
+    // authority is stored as payer_user_id. Fetch both and enforce the
+    // complete customer authorization before changing job state.
+    const { data: job, error: jobError } = await serverSupabase
+      .from('jobs')
+      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
+      .eq('id', jobId)
+      .single();
+
+    if (jobError || !job) {
+      throw new NotFoundError('Job not found');
+    }
+
+    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+      throw new ForbiddenError(
+        'Only the homeowner or designated payer can file a dispute'
+      );
+    }
+
     // Idempotency — without it, a network retry would create
     // duplicate `disputes` rows (no unique constraint by job_id +
     // raised_by) and re-fan out two notifications to the contractor.
@@ -87,27 +106,6 @@ export const POST = withApiHandler(
       idempotencyKey,
       'job_dispute',
       async () => {
-        // The primary homeowner is stored on the job, while delegated payment
-        // authority is stored as payer_user_id. Fetch both and enforce the
-        // complete customer authorization before changing job state.
-        const { data: job, error: jobError } = await serverSupabase
-          .from('jobs')
-          .select(
-            'id, homeowner_id, payer_user_id, contractor_id, status, title'
-          )
-          .eq('id', jobId)
-          .single();
-
-        if (jobError || !job) {
-          throw new NotFoundError('Job not found');
-        }
-
-        if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
-          throw new ForbiddenError(
-            'Only the homeowner or designated payer can file a dispute'
-          );
-        }
-
         // Validate state machine transition
         validateStatusTransition(
           job.status as JobStatus,

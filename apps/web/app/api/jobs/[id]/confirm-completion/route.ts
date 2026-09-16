@@ -35,11 +35,7 @@ export const POST = withApiHandler(
     }
     const parsed = z
       .object({
-        completedAt: z
-          .string()
-          .datetime({ offset: true })
-          .nullable()
-          .optional(),
+        completedAt: z.string().datetime({ offset: true }),
       })
       .strict()
       .safeParse(body);
@@ -79,10 +75,7 @@ export const POST = withApiHandler(
         'Contractor must complete the current work before approval'
       );
     }
-    const completedAt =
-      parsed.data.completedAt === undefined
-        ? (job.completed_at ?? null)
-        : parsed.data.completedAt;
+    const completedAt = parsed.data.completedAt;
 
     // Scope cached decisions to the completion cycle, not just the job.
     const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(

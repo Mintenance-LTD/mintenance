@@ -1,96 +1,16 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { ConflictError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { EscrowStatusService } from '../escrow/EscrowStatusService';
 
-// Type definitions for escrow data
-interface EscrowUpdateData {
-  admin_hold_status: string;
-  admin_approved_at?: string;
-  admin_hold_reason?: string;
-  admin_hold_at?: string;
-  admin_hold_by: string;
-  updated_at: string;
-  status?: string;
-  release_blocked_reason?: string | null;
-}
-
-interface UserInfo {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface JobInfo {
-  id: string;
-  title: string;
-  contractor_id: string;
-  homeowner_id: string;
-  contractor?: UserInfo;
-  homeowner?: UserInfo;
-}
-
-interface EscrowRecordFromQuery {
-  id: string;
-  job_id: string;
-  payer_id: string;
-  payee_id: string;
-  amount: number;
-  admin_hold_status: string;
-  admin_hold_reason: string | null;
-  admin_hold_at: string | null;
-  admin_hold_by: string | null;
-  photo_verification_status: string | null;
-  homeowner_approval: boolean;
-  created_at: string;
-  jobs: JobInfo;
-}
-
-interface PhotoUrl {
-  photo_url: string;
-}
-
-interface ApprovalHistoryRecord {
-  action: string;
-  comments: string | null;
-  created_at: string;
-}
-
-interface EscrowReview {
-  id: string;
-  escrowId: string;
-  jobId: string;
-  jobTitle: string;
-  contractorId: string;
-  contractorName: string;
-  homeownerId: string;
-  homeownerName: string;
-  amount: number;
-  adminHoldStatus: 'pending_review' | 'admin_hold' | 'admin_approved';
-  adminHoldReason: string | null;
-  adminHoldAt: string | null;
-  adminHoldBy: string | null;
-  photoVerificationStatus: string | null;
-  homeownerApproval: boolean;
-  createdAt: string;
-}
-
-interface EscrowReviewDetails extends EscrowReview {
-  beforePhotos: string[];
-  afterPhotos: string[];
-  photoVerificationScore: number | null;
-  beforeAfterComparisonScore: number | null;
-  geolocationVerified: boolean;
-  timestampVerified: boolean;
-  photoQualityPassed: boolean;
-  homeownerApprovalHistory: Array<{
-    action: string;
-    comments: string | null;
-    createdAt: string;
-  }>;
-  trustScore: number | null;
-  releaseBlockedReason: string | null;
-  estimatedReleaseDate: string | null;
-}
+import type {
+  EscrowUpdateData,
+  EscrowRecordFromQuery,
+  PhotoUrl,
+  ApprovalHistoryRecord,
+  EscrowReview,
+  EscrowReviewDetails,
+} from './admin-escrow-types';
 
 /**
  * Service for admin escrow hold and review workflows
@@ -105,7 +25,7 @@ export class AdminEscrowHoldService {
     reason: string
   ): Promise<void> {
     try {
-      const { error } = await serverSupabase
+      const { data: changed, error } = await serverSupabase
         .from('escrow_transactions')
         .update({
           admin_hold_status: 'admin_hold',
@@ -116,11 +36,25 @@ export class AdminEscrowHoldService {
           release_blocked_reason: `Admin hold: ${reason}`,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', escrowId);
+        .eq('id', escrowId)
+        .in('status', [
+          'held',
+          'awaiting_homeowner_approval',
+          'disputed',
+          'admin_review',
+          'admin_hold',
+        ])
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         throw new Error(`Failed to hold escrow: ${error.message}`);
       }
+
+      if (!changed)
+        throw new ConflictError(
+          'Payment state changed. Refresh before applying an admin decision.'
+        );
 
       // Log status change
       await EscrowStatusService.updateStatusLog(
@@ -188,14 +122,28 @@ export class AdminEscrowHoldService {
           'Waiting for homeowner approval and photo verification';
       }
 
-      const { error } = await serverSupabase
+      const { data: changed, error } = await serverSupabase
         .from('escrow_transactions')
         .update(updateData)
-        .eq('id', escrowId);
+        .eq('id', escrowId)
+        .in('status', [
+          'held',
+          'awaiting_homeowner_approval',
+          'disputed',
+          'admin_review',
+          'admin_hold',
+        ])
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         throw new Error(`Failed to approve escrow: ${error.message}`);
       }
+
+      if (!changed)
+        throw new ConflictError(
+          'Payment state changed. Refresh before applying an admin decision.'
+        );
 
       // Log status change
       await EscrowStatusService.updateStatusLog(
@@ -229,7 +177,7 @@ export class AdminEscrowHoldService {
     reason: string
   ): Promise<void> {
     try {
-      const { error } = await serverSupabase
+      const { data: changed, error } = await serverSupabase
         .from('escrow_transactions')
         .update({
           admin_hold_status: 'admin_hold',
@@ -240,11 +188,25 @@ export class AdminEscrowHoldService {
           release_blocked_reason: `Admin rejection: ${reason}`,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', escrowId);
+        .eq('id', escrowId)
+        .in('status', [
+          'held',
+          'awaiting_homeowner_approval',
+          'disputed',
+          'admin_review',
+          'admin_hold',
+        ])
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         throw new Error(`Failed to reject escrow: ${error.message}`);
       }
+
+      if (!changed)
+        throw new ConflictError(
+          'Payment state changed. Refresh before applying an admin decision.'
+        );
 
       // Log status change
       await EscrowStatusService.updateStatusLog(
@@ -422,7 +384,7 @@ export class AdminEscrowHoldService {
         .order('created_at', { ascending: false });
 
       // Get estimated release date
-      const statusInfo = await EscrowStatusService.getCurrentStatus(escrowId);
+      await EscrowStatusService.getCurrentStatus(escrowId);
       const estimatedReleaseDate =
         await EscrowStatusService.getEstimatedReleaseDate(escrowId);
 

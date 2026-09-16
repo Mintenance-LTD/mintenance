@@ -2728,3 +2728,214 @@ tests and five real ordering cases apply. Affected web source lint passed; mobil
 pre-existing array-style warning in the edited JobCRUDService file, corrected without behavior
 change. Normal commit hooks still run. No real user/device/provider journey or hosted deployment is
 claimed.
+
+## 16 September 2026: F2 authority acceptance recheck
+
+At source commit 7705c9b26, expanded `remediation-bid-tests.sql` passed on the isolated database:
+authenticated accepted insert denied; pending amount update actually persisted at 550; trusted
+accepted amount mutation denied; client accepted withdrawal and deletion denied; persisted accepted
+amount/status/contractor remained intact. The transaction rolled back all synthetic fixtures.
+`remediation-trusted-inserts-tests.sql` also reran successfully, exit 0, covering forged
+escrow/signature inserts and legitimate trusted operations.
+
+Caller trace: mobile BidService.acceptBid POSTs the same protected acceptance API used by web;
+server acceptance invokes accept_bid_with_capacity. PATCH bid ownership is checked and its mutation
+includes status=pending, while the database trigger protects accepted financial terms even for
+trusted racing edits. Active mobile BidSubmissionScreen uses direct PATCH with amount, message,
+estimated_duration_days and proposed_start_date, matching the strict route schema. Its comments
+about old wrapper behavior are stale and were not treated as proof. BidService.updateBid's
+availability type differs from the schema but no production callers were found; this is not counted
+as a verified failing screen.
+
+F2 local authority/caller review now has current evidence in CURRENT-ACCEPTANCE.md. This does not
+claim authenticated browser/device bid-to-contract completion or close the separate F11 concurrency
+and overall launch acceptance gates.
+
+## 16 September 2026: F3 dispute replay authorization
+
+Caller inventory found `api/disputes/create` reading cached success before escrow participant
+authorization. Actor-bound keys prevented a cross-user cache leak, but a removed participant could
+recover stale success without a fresh access check. The escrow lookup and payer/payee check now
+precede idempotency acquisition/replay. The existing database transition still performs its own
+participant check.
+
+Three regressions passed (1.40 seconds): former participant denied before cache, missing escrow
+denied before cache, current participant recovers success without mutation. Tests isolate the
+handler with mocked auth/cache/database boundaries. Affected route lint passed. This fixes one
+identified ordering gap; it does not close the caller-by-caller F3 inventory. Contract rejection and
+invoice payment were also inspected and already perform their resource authorization before cache.
+
+### Job-dispute replay and newly traced recovery gap
+
+The job-specific dispute route had the same authorization-after-cache ordering. Its job
+owner/designated-payer lookup now precedes replay. Combined job and escrow dispute replay
+regressions passed: 21 tests / 2 files, 3.25 seconds. Existing claim ownership is passed to both
+completion and releaseOnError in the escrow dispute and bid-submission routes.
+
+Further trace found an unresolved job-dispute recovery defect: job status is updated separately,
+then disputes.insert is awaited without checking its returned error; the catch also treats failure
+as nonfatal. The response can claim a filed dispute without a durable record. Caller reachability
+and the existing create_dispute_atomic contract need full review before repair; do not close F3/F9
+on the replay tests.
+
+## 16 September 2026: dispute/settlement serialization in progress
+
+Mobile DisputeScreen calls the escrow dispute API. Its existing atomic function blocked only
+disputed/refunded/completed states, leaving release_pending eligible. CLI-created migration
+20260916010643 now locks job before escrow, repeats participant checks, accepts only
+held/awaiting_homeowner_approval, clears automatic deadlines, and recognizes exact open-dispute
+replay. The route maps state conflicts to conflict responses instead of generic server failures.
+
+Applied only to the isolated audit database. Rollback-only remediation-dispute-settlement.sql
+passed: claimed release cannot be overwritten, persisted release state remains intact, eligible
+dispute succeeds, exact retry returns the same canonical record with one row. Pending: true
+concurrent release and refund races, injected insert failure, route/recovery tests, job-dispute
+transaction repair, migration replay and final checks. This is unfinished local work; no hosted
+changes or real payments occurred.
+
+### Dispute insert failure and settlement races
+
+Expanded rollback SQL passed an injected disputes INSERT failure: escrow remained held, with no
+partial disputed transition. `remediation-dispute-release-races.py` passed both real lock-order
+cases: release first leaves release_pending and rejects dispute; dispute first leaves disputed and
+release returns zero claimed rows. The first diagnostic incorrectly expected an exception in the
+latter case; source inspection confirmed claim_escrow_release intentionally returns no rows when
+status is not held. The corrected assertion checks zero claims plus persisted state; no production
+control was changed to make the test pass. Fixtures were cleaned.
+
+Additional recovery issue still open: setDisputePriority returns false on failure but its route
+ignores the result, and replay can reset SLA/escalation. Automatic resolution is launched without
+durable scheduling. These require final workflow review together with job-specific dispute creation
+before claiming completion.
+
+### Atomic dispute priority/deadline
+
+The escrow creation route now calls private create_dispute_with_priority, which wraps creation and
+initializes priority/SLA/escalation in the same transaction. The previous ignored boolean from a
+separate priority write is removed. Replays with an existing SLA preserve its deadline, priority and
+escalation instead of resetting them. The rollback SQL passed a 72-hour high-priority deadline check
+and preserved escalation=2 and that deadline on a replay with different priority. The existing
+access regressions also passed. Automatic-resolution scheduling is still nondurable and requires
+further review; this checkpoint is not complete.
+
+### Removed false automatic refunds; durable human review
+
+Worker tracing found the automatic low-value/high-rating branch wrote escrow status refunded and
+sent refund-confirmation notifications without any provider refund. It also left the canonical
+dispute unresolved. Creation no longer launches that unawaited branch; the agent cannot mutate
+settlement or claim a refund. The atomic creation transaction now sets
+admin_hold_status=pending_review so the existing admin disputes query includes the record.
+Resolution must use the authorized provider-backed workflow, not contractor rating as a substitute
+for a refund. This deliberately changes automatic behavior to pending administrator review; no
+automatic refund is claimed or silently simulated.
+
+Local rollback SQL passed after the hold change, and four agent/access regressions passed (2 files,
+1.36 seconds). Remaining: admin resolution consumer verification, updated race run, job-route atomic
+repair, full checks and migration replay.
+
+### Administrator consumer trace
+
+The admin disputes GET selects non-none admin_hold_status and filters open records by
+pending_review. The expanded local SQL asserts new disputes have exactly that hold and cleared
+automatic dates. Updated real release/dispute races both passed, including disputed/pending_review
+persisted state.
+
+Do not infer working admin resolution from this queue visibility. The separate admin/refunds route
+calls performAdminRefundAction, which reserves a durable operation and invokes recoverRefund
+(provider refunds.create), but DisputesClient actually posts to admin/escrow/reject or approve. Its
+split_50_50 option currently uses approve, and requests are raw fetch. Those actual endpoint
+contracts and CSRF behavior require review next. Queue visibility is supported; end-to-end
+resolution is not yet verified.
+
+### Admin dialog correction and settlement write guards
+
+Full handler inspection corrects the earlier CSRF suspicion: DisputesClient obtains getCsrfHeaders
+and includes them in its raw fetch requests. CSRF absence is not a confirmed defect. The outcome
+mapping is confirmed wrong: refund_homeowner invokes rejectEscrowRelease (a hold, no provider
+refund), and split_50_50 invokes the same approve endpoint as pay_contractor. The dialog must be
+repaired against actual provider-backed resolution contracts before it can be called working.
+
+The three AdminEscrowHoldService mutation paths also lacked settlement-state predicates. They now
+update only eligible held/review/disputed states and require a returned row, rejecting a lost claim
+as 409 before logging success. Three unit regressions passed (1.94 seconds), and web types passed.
+These are mocked update boundary tests, not real database concurrency proof. Actual outcome
+orchestration, canonical dispute resolution, audit durability and UI state remain open.
+
+### 2026-09-16 — dispute client confirmation and CSRF checkpoint
+
+- Administrator resolution response handling now requires explicit `success: true` and terminal
+  `succeeded` or `completed`; 202, missing status, failed/canceled/pending results cannot dismiss
+  the resolution dialog as success. Related focused authorization, settlement guard, agent and
+  response tests: 35 passed across 5 files (3.47s).
+- Both dispute creation themes now use the existing `fetchWithCsrf` helper. A rendered editorial
+  form regression uses the real helper with synthetic transport responses: token acquisition
+  precedes POST, token and same-origin credentials are sent, and a 409 preserves the statement,
+  displays the error, avoids navigation and enables retry. 1 test passed (2.17s). Web TypeScript
+  check passed after both client edits (before the new test file).
+- This does not complete administrator resolution: the dashboard still calls approve/reject hold
+  endpoints, which do not execute refunds or split settlements. Existing durable refund/release
+  reservation RPCs exclude disputed status. A durable resolution record must freeze the decision and
+  amounts, coordinate refund then remaining release for splits, bind retries, and finalize the
+  canonical dispute only after provider-confirmed outcomes. Merely changing URLs or allowing
+  disputed status globally is insufficient.
+- The administrator dashboard already sends CSRF headers; the missing-header defect was confirmed in
+  the two dispute creation forms, not in the administrator actions. No provider or hosted database
+  calls were made.
+
+### 2026-09-16 — new-dispute SLA isolation
+
+- Reproduced against the isolated PostgreSQL database: a new dispute after a resolved one retained
+  the previous expired `sla_deadline` and escalation. The extended rollback-only
+  `remediation-dispute-settlement.sql` failed with
+  `New dispute inherited prior deadline or escalation` before the change.
+- New dispute creation now clears the previous priority/deadline/escalation before atomic priority
+  initialization. Exact replay returns before this reset. The same SQL diagnostic passed after
+  applying the migration via psql, including prior insert-failure rollback, settlement exclusion and
+  replay assertions.
+- Isolated migration shadow replay completed:
+  `supabase db diff --local --use-pg-delta --workdir audit/2026-09-06/isolated-stack --output-format json`
+  returned empty diff and no drop statements. Web TypeScript check including the new rendered CSRF
+  test passed.
+- Additional active caller requiring remediation: the editorial job-review branch
+  (`MintEditorialJobReview.tsx`, selected by review/page.tsx) still submits completion approval
+  without displayed completion version, describes approval/review as released money, and records a
+  tip only in review text. Its right-column dispute link sends job ID as escrow ID. These are not
+  covered by the separate completion-review page repairs; trace and repair this reachable theme
+  before closing UI/payment gates.
+
+### 2026-09-16 — editorial approval completion binding
+
+- The reachable editorial review client now sends the displayed `completed_at` verbatim (including
+  microseconds) and always revalidates approval, rather than trusting an old local approved flag.
+  Missing completion versions prevent submission; unconfirmed 2xx responses prevent review
+  submission.
+- Rendered component regressions passed: 4 tests covering prior-approved/unapproved stale screens,
+  missing version and false-success approval response. Stale rejection preserves review text and
+  never sends the downstream review POST.
+- Payment/tip claims, dispute reference and full review retry recovery in this theme remain open;
+  this checkpoint only establishes completion binding.
+
+### 2026-09-16 — require displayed completion at API boundary
+
+- Removed the confirm-completion route's fallback from missing client version to current database
+  version. `completedAt` is now required and non-null; old clients must refresh/update rather than
+  approve work they did not display.
+- Traced production callers: web photo review and mobile photo review already send the displayed
+  version; editorial now does too. Updated the unused mobile JobCRUD wrapper to require and send the
+  same argument.
+- Updated valid integration/replay fixtures to the explicit request contract. Combined route,
+  replay, job lifecycle and rendered editorial checks: 66 passed across 4 files (3.55s), followed by
+  four additional API rejection cases for absent/null/invalid versions. Broader web/mobile types and
+  suites remain required after this checkpoint.
+
+### 2026-09-16 — broad dispute/approval validation checkpoint
+
+- Full sanitized web suite: **349 files, 3716 tests passed**, 158.53s, exit 0
+  (`current-dispute-full-web.log`). This is unit/component/mocked integration coverage, not proof of
+  real provider or device journeys.
+- Web and mobile TypeScript checks passed. Targeted ESLint for all ten changed web production files
+  passed with zero warnings after unused-binding cleanup (the existing status-read call was
+  retained).
+- Isolated schema diff and dispute SQL results above remain current; no schema edits occurred after
+  that empty diff. Unfinished administrator settlement and editorial payment semantics remain
+  explicit blockers despite green tests.
