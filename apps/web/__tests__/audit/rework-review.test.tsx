@@ -21,6 +21,7 @@ const show = () => {
   render(
     <HomeownerPhotoReview
       jobId='synthetic-job'
+      completedAt='2026-09-15T10:00:00Z'
       beforePhotos={[{ id: 'before', photo_url: '/before' }]}
       afterPhotos={[{ id: 'after', photo_url: '/after' }]}
       isConfirmed={false}
@@ -42,10 +43,10 @@ it('does not turn an unconfirmed approval response into visible success', async 
   render(
     <HomeownerPhotoReview
       jobId='synthetic-job'
+      completedAt='2026-09-15T10:00:00Z'
       beforePhotos={[{ id: 'before', photo_url: '/before' }]}
       afterPhotos={[{ id: 'after', photo_url: '/after' }]}
       isConfirmed={false}
-      completedAt='2026-09-15T10:00:00Z'
     />
   );
   fireEvent.click(screen.getByRole('button', { name: 'Approve Work' }));
@@ -76,7 +77,10 @@ it('recovers a lost response using the original key and preserves feedback until
   expect(second.headers['Idempotency-Key']).toBe(
     first.headers['Idempotency-Key']
   );
-  expect(JSON.parse(second.body)).toEqual({ comments: 'Repair the seal' });
+  expect(JSON.parse(second.body)).toEqual({
+    comments: 'Repair the seal',
+    completedAt: '2026-09-15T10:00:00Z',
+  });
   expect(mocks.refresh).toHaveBeenCalledTimes(1);
 });
 

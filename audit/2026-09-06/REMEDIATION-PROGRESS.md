@@ -2659,3 +2659,72 @@ review includes restart recovery, reminder/countdown semantics, provider configu
 authenticated browser/device journeys, alongside the full F1-F15 acceptance ledger. Historical
 in-progress notes above describe the sequence; this paragraph records the final local validation
 state for this checkpoint.
+
+## 16 September 2026: reachable completion deadline copy
+
+Source tracing found no production callers of `sendReminderNotifications`; its legacy helpers must
+not be represented as a verified active delivery path. The reachable web homeowner review page and
+mobile job-details escrow modal did still promise automatic payment release after seven days. Their
+wording now distinguishes conditional automatic approval from subsequent cooling-off/release checks.
+The web label is “Review deadline” and uses a date-fns suffix so past deadlines read “ago” instead
+of suggesting a future countdown.
+
+Web and mobile type checks passed (exit 0), as did lint of both changed components with zero
+warnings. This is source/type/lint validation of a presentation change; no browser or
+physical-device rendering is claimed. Full F7 restart/recovery and remaining audit acceptance
+requirements remain open.
+
+## 16 September 2026: rework completion-version fencing in progress
+
+Restart-recovery tracing found a missing prerequisite: rework POSTs carried only comments, so stale
+screens could reopen a later completion. Web/mobile now send the displayed completedAt; the route
+requires it and binds it into idempotency payload matching. New private
+`request_job_rework_for_completion` locks the job, checks payer and version, delegates the existing
+atomic transition, and records completion_version with the durable request. Replay checks that
+stored version before returning without mutation. The original internal four-argument RPC remains
+for existing trusted callers and diagnostics; production caller inventory must be rechecked before
+this checkpoint is complete.
+
+CLI-created migration `20260916005125_fence_rework_completion_version.sql` applied only to the
+isolated audit database. Rollback-only `remediation-rework-version.sql` passed stale-version
+rejection, valid transition, exact replay and persisted version. Pending: API/client test contract
+updates, concurrency checks, migration replay, restart-persistent retry identity and final
+lint/types. This unfinished work is local and uncommitted. Prior deadline-copy edits remain in the
+worktree.
+
+### Rework replay across new transport keys
+
+The versioned rework RPC now recognizes the same actor/job/completion/comments decision even with a
+new transport key. The job lock serializes this lookup with the transition. The real rollback
+diagnostic passed stale-version rejection, exact replay and new-key replay with only one durable
+rework record. This removes reliance on an in-memory key for server-side duplicate prevention; it
+does not by itself prove recovery of unsent draft text or the complete restarted UI journey.
+
+Updated route/replay tests carry the displayed completion version and continue to assert actor
+authorization before cached success: 28 tests / 2 files passed in 3.28 seconds. The otherwise unused
+mobile JobCRUDService wrapper now requires and sends completedAt rather than retaining an
+incompatible API signature. Still needed: client/type checks, versioned concurrency tests, migration
+replay and completion of the broader restart/recovery acceptance review. No hosted mutation
+occurred.
+
+### Versioned rework clients and real ordering checks
+
+Web review tests: 5 passed / 1 file, 2.37 seconds. Mobile review tests: 3 passed / 1 suite, 7.953
+seconds. Fixtures now include a real completion timestamp and assert that exact version in the
+request; mobile provider/native boundaries remain mocked. Web and mobile type checks both exited 0.
+
+`remediation-rework-version-races.py` passed five real lock-order cases with the versioned RPC:
+approval/rework in both orders, duplicate approval, release/rework in both orders. It checks
+persisted job/escrow/history and cleans exact synthetic fixtures. Isolated migration replay is now
+running in `current-rework-version-db-diff.log`; do not mutate that schema until terminal.
+
+### Versioned rework checkpoint
+
+Isolated migration replay exited 0 with actual empty JSON diff and no drops
+(`current-rework-version-db-diff.log`). Final combined API/access/web review tests passed, including
+missing-version rejection before mutation and exact version passed to the RPC
+(`current-rework-version-final-tests.log`). Earlier web/mobile type checks, three mobile screen
+tests and five real ordering cases apply. Affected web source lint passed; mobile lint found a
+pre-existing array-style warning in the edited JobCRUDService file, corrected without behavior
+change. Normal commit hooks still run. No real user/device/provider journey or hosted deployment is
+claimed.

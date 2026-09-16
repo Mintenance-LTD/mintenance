@@ -20,7 +20,10 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('../../services/JobService', () => ({
   JobService: {
-    getJobById: async () => ({ title: 'Synthetic rework', completed_at: null }),
+    getJobById: async () => ({
+      title: 'Synthetic rework',
+      completed_at: '2026-09-15T10:00:00Z',
+    }),
   },
 }));
 jest.mock('../../services/PhotoUploadService', () => ({
@@ -62,7 +65,7 @@ it('keeps approval pending when the response does not confirm it', async () => {
   );
   expect(post).toHaveBeenCalledWith(
     '/api/jobs/synthetic-job/confirm-completion',
-    { completedAt: null }
+    { completedAt: '2026-09-15T10:00:00Z' }
   );
   expect(Alert.alert).toHaveBeenCalledTimes(1);
 });
@@ -89,7 +92,10 @@ it('keeps feedback and request identity after a lost response, then confirms rep
   );
   expect(post).toHaveBeenCalledTimes(2);
   expect(post.mock.calls[1]).toEqual(post.mock.calls[0]);
-  expect(post.mock.calls[0][1]).toEqual({ comments: 'Repair the seal' });
+  expect(post.mock.calls[0][1]).toEqual({
+    comments: 'Repair the seal',
+    completedAt: '2026-09-15T10:00:00Z',
+  });
   expect(post.mock.calls[0][2].headers['Idempotency-Key']).toEqual(
     expect.any(String)
   );

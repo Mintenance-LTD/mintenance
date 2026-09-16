@@ -147,7 +147,7 @@ export function HomeownerPhotoReview({
           'Content-Type': 'application/json',
           'Idempotency-Key': requestKey,
         },
-        body: JSON.stringify({ comments: comments.trim() }),
+        body: JSON.stringify({ comments: comments.trim(), completedAt }),
       });
 
       const data = await res.json();

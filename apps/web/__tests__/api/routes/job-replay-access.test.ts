@@ -82,7 +82,12 @@ describe.each([
         body: [beforePhotos, afterPhotos].includes(route)
           ? new FormData()
           : JSON.stringify(
-              route === confirm ? {} : { comments: 'Please finish the repair' }
+              route === confirm
+                ? {}
+                : {
+                    completedAt: '2026-09-15T10:00:00Z',
+                    comments: 'Please finish the repair',
+                  }
             ),
       }),
       { params: Promise.resolve({ id: 'job' }) }

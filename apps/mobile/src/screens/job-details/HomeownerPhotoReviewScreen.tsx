@@ -222,7 +222,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       }
       const result = await mobileApiClient.post<{ success: boolean }>(
         `/api/jobs/${jobId}/request-changes`,
-        { comments: changesComment.trim() },
+        { comments: changesComment.trim(), completedAt },
         { headers: { 'Idempotency-Key': requestKey } }
       );
       if (result?.success !== true) {

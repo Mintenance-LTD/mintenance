@@ -70,13 +70,15 @@ export const EscrowInfoModal: React.FC<EscrowInfoModalProps> = ({
           <View style={styles.escrowStepContent}>
             <Text style={styles.escrowStepTitle}>Payment Released</Text>
             <Text style={styles.escrowStepDescription}>
-              Funds are released to the contractor after your approval
+              After approval, payment release remains subject to the cooling-off
+              period and release checks
             </Text>
           </View>
         </View>
 
         <Text style={styles.escrowFooterNote}>
-          If you don't respond within 7 days, payment is automatically released.
+          After the 7-day review deadline, automatic approval may apply if all
+          checks pass. This does not mean payment has been released.
         </Text>
 
         <TouchableOpacity

@@ -29,6 +29,7 @@ import {
 // replaces the inline cast.
 const requestChangesSchema = z
   .object({
+    completedAt: z.string().datetime({ offset: true }),
     comments: z
       .string()
       .min(1, 'Please provide details about what changes are needed')
@@ -93,7 +94,7 @@ export const POST = withApiHandler(
       message: string;
     }>(idempotencyKey, 'request_changes', true, {
       userId: user.id,
-      request: { jobId, comments },
+      request: { jobId, comments, completedAt: parsed.data.completedAt },
     });
     if (idem?.isDuplicate && idem.cachedResult) {
       logger.info('Duplicate request_changes — returning cached result', {
@@ -110,11 +111,12 @@ export const POST = withApiHandler(
       'request_changes',
       async () => {
         const { data: reworkApplied, error: reworkError } =
-          await serverSupabase.rpc('request_job_rework', {
+          await serverSupabase.rpc('request_job_rework_for_completion', {
             p_job_id: jobId,
             p_actor_id: user.id,
             p_request_key: idempotencyKey,
             p_comments: comments,
+            p_expected_completed_at: parsed.data.completedAt,
           });
         if (reworkError) {
           if (reworkError.code === '23514') {

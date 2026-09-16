@@ -136,11 +136,15 @@ export function HomeownerApprovalClient() {
               color: theme.colors.warning,
             }}
           >
-            <strong>Auto-approval in:</strong>{' '}
-            {formatDistanceToNow(new Date(approvalData.autoApprovalDate))}
+            <strong>Review deadline:</strong>{' '}
+            {formatDistanceToNow(new Date(approvalData.autoApprovalDate), {
+              addSuffix: true,
+            })}
             <br />
             <small>
-              If you don't respond, payment will be automatically released.
+              After this deadline, automatic approval may apply if all checks
+              pass. Payment release remains subject to the cooling-off period
+              and release checks.
             </small>
           </div>
         )}
