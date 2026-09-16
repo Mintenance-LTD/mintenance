@@ -2451,3 +2451,65 @@ returns false, different-key request is rejected after reopening. Both cases lea
 record, one notification and in_progress/held with cleared auto-approval date. All committed
 synthetic fixture records were explicitly cleaned. This supersedes the pending replay/race note
 above, but does not close the separate approval/release and restart work.
+
+### Atomic completion approval and release decision checkpoint (16 September 2026)
+
+CLI-created migration `20260915233945_atomic_completion_approval.sql` adds service-only
+`approve_job_completion`. Both the job confirm route and HomeownerApprovalService now use it. It
+locks job then latest escrow; verifies the designated payer and exact completed_at version; rejects
+protected financial states, active disputes and administrative holds; and requires verified=true
+after-photos created after the latest rework. Automatic approvals recheck their deadline, enabled
+flag and verification score inside the transaction, rather than trusting an older service read. Job
+confirmation, escrow approval, history, status log and contractor notice commit together. A replay
+returns the existing decision without changing the deadline or resending email. Explicit approvals
+consistently use the existing 48-hour cooling-off rule; the existing explicit approve-and-release
+waiver remains the only waiver path. Disabling automatic release is not overridden. A waiver attempt
+cannot silently change an already approved cooling-off decision.
+
+The rollback diagnostic exposed another real trigger conflict: rework after an actual confirmation
+raised `Cannot unconfirm job completion once confirmed`. The reversal trigger now permits only the
+existing postgres-owned, job-specific rework transaction marker on completed -> in_progress.
+Ordinary reversal remains denied. `claim_escrow_release` now rechecks approval, cooling-off, holds,
+disputes and automatic-release scheduling under the shared locks; prior API/agent reads cannot
+substitute for the claim-time checks. Existing remaining-principal/refund guards are preserved.
+
+The confirm route binds idempotency to the completion version, checks current authorization/status,
+and still invokes the idempotent transaction on cached responses to detect intervening rework.
+Web/mobile review screens submit the version they displayed and require explicit success before
+showing approval. UI and approval email now describe pending release checks, not an already-sent
+transfer. The alternate escrow approval route uses the same designated-payer rule and bounds
+comments at 5000 characters. Supplementary email failure does not undo a committed approval; durable
+in-app notice/history are the required atomic records.
+
+Executed evidence:
+
+- `remediation-completion-approval.sql` passed on the isolated database. Rollback-only tests cover
+  private function ACL, owner-versus-designated-payer authorization, null-verified photo rejection,
+  seven protected escrow states, eligible automatic approval, injected history/notification
+  failures, unchanged cooling-off on replay, one notice/history, approved -> rework, stale
+  completion version, old-photo rejection after rework, fresh-cycle waiver, and release refusal
+  during cooling-off or without new approval.
+- `remediation-approval-races.py` passed five real two-connection cases. It observes both the
+  leader's held job lock and follower's lock wait. Approval -> rework and rework -> approval end
+  in_progress/ held/unapproved; duplicate approval ends completed/held/approved with one history
+  row; release -> rework preserves release_pending; rework -> release blocks the transfer claim.
+  Exact synthetic records are cleaned. Log: `current-approval-races.log`.
+- `remediation-remaining-release-claim.sql`, `remediation-fee-only-settlement.sql`,
+  `remediation-remaining-release-race.py` and `remediation-fee-only-race.py` all passed. Their
+  fixtures now establish approval through the real RPC and synthetic verified evidence; release
+  controls were not weakened for these tests. Remaining-refund principal and fee-only settlement
+  invariants hold.
+- Full sanitized web suite: **3650 tests / 337 files passed**, 154.94 seconds
+  (`current-approval-full-web-tests.log`). After adding final service/client/version regressions,
+  **55 tests / 5 files passed**, 4.14 seconds (`current-approval-final-tests.log`). Old route tests
+  that asserted independent writes were replaced with current API contract/recovery assertions;
+  database invariants are exercised by the real SQL/race diagnostics above.
+- Mobile screen: **3 tests / 1 file passed**, 9.124 seconds (`current-approval-mobile-tests.log`).
+  Native modules/network boundaries are mocked; this is not device/provider verification.
+- Current web/mobile types exited 0 with empty logs. Affected web/mobile source lint exited 0. Final
+  isolated migration replay/diff exited 0: `No schema changes found`, actual JSON empty diff, no
+  files/drop statements (`current-approval-db-diff.log`).
+
+F7 is still open for restart recovery, review of other request/reject/inspection/photo-verification
+writers and countdown behavior against the actual policy. The broader F1-F15 completion gates remain
+intact. No hosted mutation, external email, real payment or deployment occurred.

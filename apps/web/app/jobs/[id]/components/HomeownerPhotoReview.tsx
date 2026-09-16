@@ -97,15 +97,21 @@ export function HomeownerPhotoReview({
       const res = await fetchWithCsrf(`/api/jobs/${jobId}/confirm-completion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ completedAt }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to approve');
+      if (!res.ok || data.success !== true) {
+        throw new Error(
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message || 'Unable to confirm approval. Please retry.'
+        );
+      }
 
       setIsApproved(true);
       setSuccessMessage(
-        'Work approved! Payment will be released to the contractor.'
+        'Work approved. Payment release is subject to the cooling-off period and final checks.'
       );
       router.refresh();
     } catch (err) {
@@ -181,7 +187,8 @@ export function HomeownerPhotoReview({
           <div>
             <p className='text-sm font-medium text-green-800'>Work Approved</p>
             <p className='text-sm text-green-600'>
-              Payment is being processed for the contractor.
+              Payment release is subject to the cooling-off period and final
+              checks.
             </p>
           </div>
         </div>

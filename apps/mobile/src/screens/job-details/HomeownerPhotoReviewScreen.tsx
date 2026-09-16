@@ -174,10 +174,15 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     if (!user?.id || submitting) return;
     setSubmitting(true);
     try {
-      await mobileApiClient.post(`/api/jobs/${jobId}/confirm-completion`, {});
+      const result = await mobileApiClient.post<{ success: boolean }>(
+        `/api/jobs/${jobId}/confirm-completion`,
+        { completedAt }
+      );
+      if (result?.success !== true)
+        throw new Error('Unable to confirm approval. Please retry.');
       Alert.alert(
         'Work Approved',
-        'Payment will be released to the contractor. Thank you!',
+        'Work approved. Payment release is subject to the cooling-off period and final checks.',
         [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
       );
     } catch (err) {

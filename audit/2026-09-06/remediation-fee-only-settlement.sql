@@ -38,6 +38,8 @@ BEGIN
  UPDATE public.jobs SET status='assigned' WHERE id=job;
  UPDATE public.jobs SET status='in_progress' WHERE id=job;
  UPDATE public.jobs SET status='completed' WHERE id=job;
+ INSERT INTO public.job_photos_metadata(job_id,photo_url,photo_type,verified) VALUES(job,'https://example.invalid/synthetic-after','after',true);
+ PERFORM public.approve_job_completion(job,actor,NULL,e.id,NULL,false,true);
  PERFORM public.claim_escrow_release(e.id,'manual_release',gen_random_uuid());
  BEGIN
   PERFORM public.settle_fee_only_escrow(e.id,50,actor);

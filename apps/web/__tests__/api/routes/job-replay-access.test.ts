@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   cache: vi.fn(),
   rpc: vi.fn(),
   update: vi.fn(),
+  status: 'in_progress',
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler:
@@ -26,7 +27,11 @@ vi.mock('@/lib/idempotency', () => ({
   getDeterministicIdempotencyKeyFromRequest: () => 'key',
   checkIdempotency: state.cache,
   storeIdempotencyResult: vi.fn(),
-  releaseOnError: vi.fn(),
+  releaseOnError: (
+    _key: string,
+    _operation: string,
+    fn: () => Promise<unknown>
+  ) => fn(),
 }));
 vi.mock('@/lib/api/supabaseServer', () => {
   const db = {
@@ -44,7 +49,7 @@ vi.mock('@/lib/api/supabaseServer', () => {
                 contractor_id: 'contractor',
                 homeowner_id: 'owner',
                 payer_user_id: state.payer,
-                status: 'in_progress',
+                status: state.status,
                 title: 'Repair',
               },
           error: null,
@@ -76,7 +81,9 @@ describe.each([
         method: 'POST',
         body: [beforePhotos, afterPhotos].includes(route)
           ? new FormData()
-          : JSON.stringify({ comments: 'Please finish the repair' }),
+          : JSON.stringify(
+              route === confirm ? {} : { comments: 'Please finish the repair' }
+            ),
       }),
       { params: Promise.resolve({ id: 'job' }) }
     );
@@ -84,7 +91,17 @@ describe.each([
     state.actor = actor;
     state.missing = false;
     state.payer = 'payer';
-    state.rpc.mockReset();
+    state.status = route === confirm ? 'completed' : 'in_progress';
+    state.rpc.mockReset().mockResolvedValue({
+      data: {
+        applied: false,
+        escrowId: 'fb160906-0000-4000-8000-000000000020',
+        amount: 500,
+        coolingOffEndsAt: null,
+        notificationId: null,
+      },
+      error: null,
+    });
     state.update.mockReset();
     state.cache.mockReset().mockResolvedValue({
       isDuplicate: true,
@@ -105,7 +122,12 @@ describe.each([
   it('allows current participants to recover success without repeating transitions', async () => {
     expect(await (await send()).json()).toMatchObject({ success: true });
     expect(state.cache).toHaveBeenCalled();
-    expect(state.rpc).not.toHaveBeenCalled();
+    if (route === confirm)
+      expect(state.rpc).toHaveBeenCalledWith(
+        'approve_job_completion',
+        expect.objectContaining({ p_actor_id: 'payer' })
+      );
+    else expect(state.rpc).not.toHaveBeenCalled();
     expect(state.update).not.toHaveBeenCalled();
   });
 });

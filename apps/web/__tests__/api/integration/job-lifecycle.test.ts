@@ -1968,153 +1968,61 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
     confirmCompletionPOST = mod.POST;
   });
 
-  it('should confirm completion and trigger escrow release to release_pending', async () => {
-    const escrowUpdates: unknown[] = [];
-
+  it('commits approval through the transaction and reports release as pending checks', async () => {
+    mocks.supabaseRpc.mockResolvedValue({
+      data: {
+        applied: true,
+        escrowId: 'fb160906-0000-4000-8000-000000000020',
+        amount: 150,
+        coolingOffEndsAt: '2026-09-17T10:00:00Z',
+        notificationId: 'fb160906-0000-4000-8000-000000000030',
+      },
+      error: null,
+    });
     mocks.supabaseFrom.mockImplementation((table: string) => {
-      if (table === 'jobs') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: {
+      // Mutations, photo authorization, history and notices belong to the RPC.
+      if (!['jobs', 'profiles', 'notifications'].includes(table))
+        throw new Error('Unexpected separate table operation: ' + table);
+      const query = {
+        select: vi.fn(() => query),
+        eq: vi.fn(() => query),
+        update: vi.fn(() => query),
+        single: vi.fn().mockResolvedValue({
+          data:
+            table === 'jobs'
+              ? {
                   id: JOB_ID,
                   homeowner_id: homeownerUser.id,
                   contractor_id: contractorUser.id,
                   status: 'completed',
                   title: 'Fix leaking tap',
-                  completion_confirmed_by_homeowner: false,
-                },
-                error: null,
-              }),
-            }),
-          }),
-          update: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                select: vi.fn().mockResolvedValue({
-                  data: [{ id: JOB_ID }],
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === 'escrow_transactions') {
-        // 2026-05-24 audit-33 P1: confirm-completion now pre-flights the
-        // escrow row via .eq('job_id').order(...).limit(1).maybeSingle()
-        // before any mutating write, then (for held rows) stamps the
-        // homeowner-approval + auto_release_date fields and leaves
-        // status='held' for the auto-release cron (it deliberately no
-        // longer flips status to release_pending here).
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              // Legacy held lookup (kept for safety)
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: ESCROW_ID, status: 'held', amount: 15000 },
-                  error: null,
-                }),
-              }),
-              // preEscrow pre-flight: latest escrow row for the job
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({
-                    data: { id: ESCROW_ID, status: 'held', amount: 15000 },
-                    error: null,
-                  }),
-                }),
-              }),
-              // Escrow amount lookup for the work-approved email
-              in: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: { amount: 15000 },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-          update: vi.fn((data: unknown) => {
-            escrowUpdates.push(data);
-            return {
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            };
-          }),
-        };
-      }
-      if (table === 'job_photos_metadata') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                eq: vi
-                  .fn()
-                  .mockResolvedValue({ count: 3, data: null, error: null }),
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === 'profiles') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: {
-                  first_name: 'Bob',
-                  last_name: 'Contractor',
-                  email: 'contractor@test.com',
-                  company_name: null,
-                },
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }
-      return {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+                  completed_at: '2026-09-15T10:00:00Z',
+                }
+              : null,
+          error: null,
+        }),
       };
+      return query;
     });
-
-    const req = createPostRequest(
-      `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+    const res = await confirmCompletionPOST(
+      createPostRequest(
+        `http://localhost:3000/api/jobs/${JOB_ID}/confirm-completion`
+      ),
+      segmentData(JOB_ID)
     );
-    const res = await confirmCompletionPOST(req, segmentData(JOB_ID));
     expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.message).toContain('confirmed');
-
-    // 2026-05-13 funds-in-limbo audit fix: the route no longer flips the
-    // escrow row to status='release_pending' itself. It keeps status='held'
-    // (the daily auto-release cron is the canonical processor) and instead
-    // stamps the homeowner-approval + auto_release_date fields so the cron
-    // picks the row up on its next pass. Assert the approval stamp rather
-    // than the dropped status write.
-    expect(escrowUpdates.length).toBeGreaterThanOrEqual(1);
-    const escrowUpdate = escrowUpdates[0] as Record<string, unknown>;
-    expect(escrowUpdate.homeowner_approval).toBe(true);
-    expect(escrowUpdate.auto_release_date).toBeTruthy();
-    expect(escrowUpdate.release_reason).toBe('homeowner_approved');
-    // status is intentionally NOT written here anymore
-    expect(escrowUpdate.status).toBeUndefined();
-
-    // The route still sanity-checks the held -> release_pending transition
-    // (a guard against racing releases) even though it doesn't perform it.
-    expect(mocks.validateEscrowTransition).toHaveBeenCalledWith(
-      'held',
-      'release_pending'
+    expect(await res.json()).toMatchObject({
+      success: true,
+      coolingOffEndsAt: '2026-09-17T10:00:00Z',
+    });
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'approve_job_completion',
+      expect.objectContaining({
+        p_job_id: JOB_ID,
+        p_actor_id: homeownerUser.id,
+        p_expected_completed_at: '2026-09-15T10:00:00Z',
+      })
     );
-
-    // Verify idempotency result was stored
     expect(mocks.storeIdempotencyResult).toHaveBeenCalled();
   });
 

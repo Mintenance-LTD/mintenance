@@ -105,18 +105,19 @@ export function workApprovedTemplate(
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
   const fmtAmount = `£${data.amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-  const subject = `${data.homeownerName} signed off — ${fmtAmount} releasing.`;
-  const preview = `${data.jobTitle} approved. Funds typically land in 1–2 business days.`;
+  const subject = `${data.homeownerName} approved ${data.jobTitle}.`;
+  const preview =
+    'Work approved. Payment release is subject to the cooling-off period and final checks.';
   const html = mintEmailShell(
     subject,
     preview,
     `<p>Hi ${e(data.contractorName)},</p>
-     <p><strong>${e(data.homeownerName)}</strong> approved the work on <strong>${e(data.jobTitle)}</strong>. Your <strong>${fmtAmount}</strong> is releasing from escrow now.</p>
-     <div class="note">Funds typically reach your bank in 1–2 business days. You'll get a second email with the full receipt once Stripe confirms the transfer.</div>
+     <p><strong>${e(data.homeownerName)}</strong> approved the work on <strong>${e(data.jobTitle)}</strong>. The escrow amount is <strong>${fmtAmount}</strong>.</p>
+     <div class="note">Payment release is subject to the cooling-off period and final checks. Approval does not confirm that a transfer has been sent. Check the job for the current payment status.</div>
      <a href="${e(data.viewUrl)}" class="cta">See breakdown →</a>`,
     unsubscribeFooter
   );
-  const text = `Hi ${data.contractorName},\n\n${data.homeownerName} signed off on "${data.jobTitle}". ${fmtAmount} is releasing from escrow — typically lands in 1–2 business days.\n\nBreakdown: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  const text = `Hi ${data.contractorName},\n\n${data.homeownerName} approved "${data.jobTitle}". The escrow amount is ${fmtAmount}. Payment release is subject to the cooling-off period and final checks. Approval does not confirm that a transfer has been sent.\n\nPayment status: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
   return { subject, html, text };
 }
 

@@ -37,6 +37,26 @@ const response = (body: unknown, ok = true) => ({ ok, json: async () => body });
 beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
+it('does not turn an unconfirmed approval response into visible success', async () => {
+  mocks.request.mockResolvedValue(response({}));
+  render(
+    <HomeownerPhotoReview
+      jobId='synthetic-job'
+      beforePhotos={[{ id: 'before', photo_url: '/before' }]}
+      afterPhotos={[{ id: 'after', photo_url: '/after' }]}
+      isConfirmed={false}
+      completedAt='2026-09-15T10:00:00Z'
+    />
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Approve Work' }));
+  await screen.findByText('Unable to confirm approval. Please retry.');
+  expect(mocks.refresh).not.toHaveBeenCalled();
+  expect(JSON.parse(mocks.request.mock.calls[0][1].body)).toEqual({
+    completedAt: '2026-09-15T10:00:00Z',
+  });
+  expect(screen.queryByText('Work Approved')).toBeNull();
+});
+
 it('recovers a lost response using the original key and preserves feedback until confirmed', async () => {
   mocks.request
     .mockRejectedValueOnce(new Error('Connection interrupted'))

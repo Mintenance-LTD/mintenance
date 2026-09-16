@@ -57,7 +57,7 @@ try:
 
 
     refund=sql(f"SELECT id FROM public.reserve_escrow_refund('{owner}','{job}','{escrow}','tiny-{job}',49975,'Synthetic')")
-    sql(f"SELECT id FROM public.record_escrow_refund_outcome('{refund}','re_synthetic_{job}','succeeded'); UPDATE public.jobs SET status='assigned' WHERE id='{job}'; UPDATE public.jobs SET status='in_progress' WHERE id='{job}'; UPDATE public.jobs SET status='completed' WHERE id='{job}'; SELECT remaining_minor FROM public.claim_escrow_release('{escrow}','auto_release',gen_random_uuid())")
+    sql(f"SELECT id FROM public.record_escrow_refund_outcome('{refund}','re_synthetic_{job}','succeeded'); UPDATE public.jobs SET status='assigned' WHERE id='{job}'; UPDATE public.jobs SET status='in_progress' WHERE id='{job}'; UPDATE public.jobs SET status='completed' WHERE id='{job}'; INSERT INTO public.job_photos_metadata(job_id,photo_url,photo_type,verified) VALUES('{job}','https://example.invalid/synthetic-after','after',true); SELECT public.approve_job_completion('{job}','{owner}',NULL,'{escrow}',NULL,false,true); SELECT remaining_minor FROM public.claim_escrow_release('{escrow}','auto_release',gen_random_uuid())")
     held_transaction(
         f"SELECT principal_minor FROM public.settle_fee_only_escrow('{escrow}',25,'{owner}')",
         f"SELECT principal_minor FROM public.settle_fee_only_escrow('{escrow}',25,NULL)",

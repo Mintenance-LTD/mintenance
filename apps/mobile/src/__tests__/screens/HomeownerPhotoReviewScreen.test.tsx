@@ -50,6 +50,23 @@ const show = async () => {
   return view;
 };
 
+it('keeps approval pending when the response does not confirm it', async () => {
+  post.mockResolvedValue({});
+  const view = render(<HomeownerPhotoReviewScreen />);
+  fireEvent.press(await view.findByLabelText('Approve the completed work'));
+  await waitFor(() =>
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Error',
+      'Unable to confirm approval. Please retry.'
+    )
+  );
+  expect(post).toHaveBeenCalledWith(
+    '/api/jobs/synthetic-job/confirm-completion',
+    { completedAt: null }
+  );
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+});
+
 it('keeps feedback and request identity after a lost response, then confirms replay', async () => {
   post
     .mockRejectedValueOnce(new Error('Connection interrupted'))
