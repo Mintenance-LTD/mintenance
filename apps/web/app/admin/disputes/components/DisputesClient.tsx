@@ -16,11 +16,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { requireConfirmedDisputeAction } from './dispute-action-response';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
 import {
   DisputesTable,
-  formatCurrency,
   type Dispute,
   type Stats,
   type Pagination,
@@ -157,12 +157,7 @@ export function DisputesClient() {
         body: JSON.stringify(body),
       });
 
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: 'Action failed' }));
-        throw new Error(errorData.error || 'Failed to resolve dispute');
-      }
+      await requireConfirmedDisputeAction(response);
 
       setResolveDialog(false);
       setSelectedDispute(null);

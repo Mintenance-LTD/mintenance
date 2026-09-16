@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 DO $$ DECLARE routine record; relation record; role_name text; BEGIN
- FOR routine IN SELECT p.oid,p.oid::regprocedure AS identity FROM pg_proc p
+ FOR routine IN SELECT p.oid,p.proname,p.oid::regprocedure AS identity FROM pg_proc p
  JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef
  AND p.prorettype <> 'trigger'::regtype
  AND p.proname NOT IN ('has_org_management_access','is_active_group_member','is_admin',
@@ -12,7 +12,10 @@ DO $$ DECLARE routine record; relation record; role_name text; BEGIN
    IF has_function_privilege(role_name,routine.oid,'EXECUTE') THEN
     RAISE EXCEPTION '% can execute %',role_name,routine.identity; END IF;
   END LOOP;
-  IF NOT has_function_privilege('service_role',routine.oid,'EXECUTE') THEN
+  IF routine.proname IN ('try_claim_idempotency_key','try_claim_bound_idempotency_key','complete_idempotency_claim','release_idempotency_claim') THEN
+   IF has_function_privilege('service_role',routine.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Retired unfenced RPC remains executable: %',routine.identity; END IF;
+  ELSIF NOT has_function_privilege('service_role',routine.oid,'EXECUTE') THEN
    RAISE EXCEPTION 'Service lost access to %',routine.identity; END IF;
  END LOOP;
  FOR relation IN SELECT c.oid,c.relname FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='m' LOOP

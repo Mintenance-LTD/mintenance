@@ -1,78 +1,38 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import {
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-} from '@/lib/errors/api-error';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { recordCompletionReview } from '@/lib/services/escrow/homeowner-approval/record-review';
 
-/** Type for escrow with job relation (Supabase !inner join returns jobs as array) */
-interface EscrowHomeownerJob {
-  id: string;
-  homeowner_id: string;
-  payer_user_id?: string | null;
-}
-
-interface EscrowWithHomeownerJob {
-  id: string;
-  jobs: EscrowHomeownerJob | EscrowHomeownerJob[];
-}
-
-/**
- * POST /api/escrow/:id/homeowner/inspect
- * Mark inspection completed
- */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
-  async (_request, { user, params }) => {
-    const { id: escrowId } = params as { id: string };
-
-    const { data: escrow, error: escrowError } = await serverSupabase
-      .from('escrow_transactions')
-      .select(
-        `
-      id,
-      jobs!inner (
-        id,
-        homeowner_id,
-        payer_user_id
-      )
-    `
-      )
-      .eq('id', escrowId)
-      .single();
-
-    if (escrowError || !escrow) {
-      throw new NotFoundError('Escrow not found');
+  { roles: ['homeowner'], rateLimit: { maxRequests: 20 } },
+  async (request, { user, params }) => {
+    let body: unknown;
+    try {
+      const text = await request.text();
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
     }
-
-    const typedEscrow = escrow as unknown as EscrowWithHomeownerJob;
-    const job = Array.isArray(typedEscrow.jobs)
-      ? typedEscrow.jobs[0]
-      : typedEscrow.jobs;
-    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
-      throw new ForbiddenError('Unauthorized');
-    }
-
-    const { data: updatedEscrow, error: updateError } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        homeowner_inspection_completed: true,
-        homeowner_inspection_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+    const parsed = z
+      .object({
+        completedAt: z
+          .string()
+          .datetime({ offset: true })
+          .nullable()
+          .optional(),
       })
-      .eq('id', escrowId)
-      .in('status', ['held', 'awaiting_homeowner_approval'])
-      .select('id')
-      .maybeSingle();
-
-    if (updateError || !updatedEscrow) {
-      throw new ConflictError(
-        'This escrow is no longer available for homeowner inspection.'
-      );
-    }
-
+      .strict()
+      .safeParse(body);
+    if (!parsed.success)
+      throw new BadRequestError('Invalid completion version');
+    const escrowId = params.id;
+    await recordCompletionReview({
+      escrowId,
+      actorId: user.id,
+      action: 'inspect',
+      completedAt: parsed.data.completedAt,
+    });
     return NextResponse.json({ success: true, escrowId });
   }
 );

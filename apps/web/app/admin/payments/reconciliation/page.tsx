@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { theme } from '@/lib/theme';
@@ -25,6 +25,8 @@ interface ReconciliationStats {
   mismatches_found: number;
   unresolved_count: number;
   last_run: string | null;
+  last_run_status: string | null;
+  last_run_checked: number | null;
 }
 
 /**
@@ -36,45 +38,76 @@ export default function ReconciliationDashboard() {
   const [stats, setStats] = useState<ReconciliationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [runNotice, setRunNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unresolved'>('unresolved');
+  const [cursors, setCursors] = useState<Array<string | null>>([null]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const cursor = cursors[cursors.length - 1];
+  const requestEpoch = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const epoch = ++requestEpoch.current;
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/admin/reconciliation');
+      const res = await fetch(
+        `/api/admin/reconciliation?filter=${filter}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`
+      );
+      if (!res.ok)
+        throw new Error(
+          'Reconciliation records could not be loaded. Please retry.'
+        );
       if (res.ok) {
         const data = await res.json();
+        if (epoch !== requestEpoch.current) return;
+        setNextCursor(data.pagination?.next_cursor ?? null);
         setRecords(data.records || []);
         setStats(data.stats || null);
       }
     } catch {
-      // Silently fail — will show empty state
+      if (epoch !== requestEpoch.current) return;
+      setError('Reconciliation records could not be loaded. Please retry.');
+      setStats(null);
+      setRecords([]);
     } finally {
-      setLoading(false);
+      if (epoch === requestEpoch.current) setLoading(false);
     }
-  }, []);
+  }, [filter, cursor]);
 
+  const invalidateRequests = useCallback(() => {
+    requestEpoch.current++;
+  }, []);
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    return invalidateRequests;
+  }, [fetchData, invalidateRequests]);
 
   const runReconciliation = async () => {
     setRunning(true);
+    setRunNotice(null);
     try {
       const csrfHeaders = await getCsrfHeaders();
-      await fetch('/api/admin/reconciliation', {
+      const response = await fetch('/api/admin/reconciliation', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders },
       });
+      if (!response.ok)
+        throw new Error(
+          'Reconciliation did not complete successfully. Please retry.'
+        );
+      const result = await response.json();
+      setRunNotice(
+        `Batch checked ${result.checked} payments. Scheduled runs continue through the remaining payments.`
+      );
       await fetchData();
+    } catch {
+      setError('Reconciliation did not complete successfully. Please retry.');
     } finally {
       setRunning(false);
     }
   };
-
-  const filteredRecords =
-    filter === 'unresolved' ? records.filter((r) => !r.resolved) : records;
 
   return (
     <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
@@ -100,10 +133,19 @@ export default function ReconciliationDashboard() {
           variant='primary'
           className='bg-[#565e74] hover:bg-[#4a5268] text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-[#565e74]/20 transition-all'
         >
-          {running ? 'Running...' : 'Run Reconciliation'}
+          {running ? 'Running...' : 'Run Reconciliation Batch'}
         </Button>
       </div>
 
+      {error && (
+        <div role='alert'>
+          {error}
+          <Button onClick={fetchData} disabled={loading}>
+            Retry loading records
+          </Button>
+        </div>
+      )}
+      {runNotice && <p role='status'>{runNotice}</p>}
       {/* Stats Cards */}
       {stats && (
         <div
@@ -148,7 +190,7 @@ export default function ReconciliationDashboard() {
                   letterSpacing: '0.05em',
                 }}
               >
-                Mismatches Found
+                Payments with Results
               </div>
               <div
                 style={{
@@ -197,10 +239,18 @@ export default function ReconciliationDashboard() {
                   letterSpacing: '0.05em',
                 }}
               >
-                Last Run
+                Last Run Started
               </div>
               {stats.last_run ? (
                 <div style={{ marginTop: 8 }}>
+                  <p>
+                    {stats.last_run_status === 'running'
+                      ? 'Started; completion not confirmed'
+                      : stats.last_run_status === 'failed'
+                        ? 'Run needs retry'
+                        : 'Batch completed'}{' '}
+                    ({stats.last_run_checked ?? 0} checked)
+                  </p>
                   <div
                     style={{
                       fontSize: 14,
@@ -249,7 +299,7 @@ export default function ReconciliationDashboard() {
                         marginTop: 2,
                       }}
                     >
-                      Click &apos;Run Reconciliation&apos; to start
+                      Run a reconciliation batch to start
                     </div>
                   </div>
                 </div>
@@ -270,7 +320,11 @@ export default function ReconciliationDashboard() {
         {(['unresolved', 'all'] as const).map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            disabled={running}
+            onClick={() => {
+              setFilter(f);
+              setCursors([null]);
+            }}
             aria-label={`Filter ${f === 'unresolved' ? 'unresolved records' : 'all records'}`}
             aria-pressed={filter === f}
             style={{
@@ -291,12 +345,34 @@ export default function ReconciliationDashboard() {
         ))}
       </div>
 
+      {!error && (
+        <nav aria-label='Reconciliation pages'>
+          <Button
+            disabled={loading || running || cursors.length === 1}
+            onClick={() => setCursors((previous) => previous.slice(0, -1))}
+          >
+            Previous page
+          </Button>
+          <span>Page {cursors.length}</span>
+          <Button
+            disabled={loading || running || !nextCursor}
+            onClick={() => {
+              if (nextCursor)
+                setCursors((previous) => [...previous, nextCursor]);
+            }}
+          >
+            Next page
+          </Button>
+        </nav>
+      )}
       {/* Records Table */}
-      <ReconciliationTable
-        records={filteredRecords}
-        loading={loading}
-        filter={filter}
-      />
+      {!error && (
+        <ReconciliationTable
+          records={records}
+          loading={loading}
+          filter={filter}
+        />
+      )}
     </div>
   );
 }

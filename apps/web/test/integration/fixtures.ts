@@ -74,8 +74,35 @@ export async function createTestUser(opts: {
     password,
     role: opts.role,
     cleanup: async () => {
-      await admin.from('profiles').delete().eq('id', userId);
-      await admin.auth.admin.deleteUser(userId).catch(() => {});
+      // Job audit rows intentionally retain their actor after job deletion.
+      // Remove only this synthetic actor's evidence during fixture teardown.
+      const auditCleanup = await admin
+        .from('job_audit_log')
+        .delete()
+        .eq('changed_by', userId);
+      if (auditCleanup.error)
+        throw new Error(
+          `Test audit cleanup failed: ${auditCleanup.error.message}`
+        );
+      const profileCleanup = await admin
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+      if (profileCleanup.error)
+        throw new Error(
+          `Test profile cleanup failed: ${profileCleanup.error.message}`
+        );
+      const authCleanup = await admin.auth.admin.deleteUser(userId);
+      if (authCleanup.error && authCleanup.error.code !== 'user_not_found') {
+        throw new Error(
+          `Test Auth cleanup failed: ${authCleanup.error.message}`
+        );
+      }
+      const remaining = await admin.auth.admin.getUserById(userId);
+      if (remaining.error?.code !== 'user_not_found')
+        throw new Error(
+          'Test Auth user still exists or cleanup could not be verified'
+        );
     },
   };
 }
@@ -118,7 +145,9 @@ export async function createTestJob(opts: {
     id: jobId,
     homeowner_id: opts.homeowner_id,
     cleanup: async () => {
-      await admin.from('jobs').delete().eq('id', jobId);
+      const result = await admin.from('jobs').delete().eq('id', jobId);
+      if (result.error)
+        throw new Error(`Test job cleanup failed: ${result.error.message}`);
     },
   };
 }

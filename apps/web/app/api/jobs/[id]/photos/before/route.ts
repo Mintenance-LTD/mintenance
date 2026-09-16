@@ -38,6 +38,21 @@ export const POST = withApiHandler(
   async (request, { user, params }) => {
     const jobId = params.id as string;
 
+    // Verify user is contractor for this job (include location for geolocation check)
+    const { data: job, error: jobError } = await serverSupabase
+      .from('jobs')
+      .select('id, contractor_id, latitude, longitude')
+      .eq('id', jobId)
+      .single();
+
+    if (jobError || !job) {
+      throw new NotFoundError('Job not found');
+    }
+
+    if (job.contractor_id !== user.id && user.role !== 'admin') {
+      throw new ForbiddenError('Not authorized to upload photos for this job');
+    }
+
     // Idempotency — opt-in via the `Idempotency-Key` header. Without
     // a client-supplied key, every request gets a unique generated
     // key (no caching). With a key, a network retry that ships the
@@ -70,244 +85,239 @@ export const POST = withApiHandler(
       return NextResponse.json(idem.cachedResult);
     }
 
-    return await releaseOnError(idempotencyKey, 'photos_before', async () => {
-      // Verify user is contractor for this job (include location for geolocation check)
-      const { data: job, error: jobError } = await serverSupabase
-        .from('jobs')
-        .select('id, contractor_id, latitude, longitude')
-        .eq('id', jobId)
-        .single();
-
-      if (jobError || !job) {
-        throw new NotFoundError('Job not found');
-      }
-
-      if (job.contractor_id !== user.id && user.role !== 'admin') {
-        throw new ForbiddenError(
-          'Not authorized to upload photos for this job'
-        );
-      }
-
-      const formData = await request.formData();
-      // Accept both 'photos' (web) and 'photo' (mobile) field names
-      let photoFiles = formData
-        .getAll('photos')
-        .filter(
-          (value): value is File =>
-            typeof value === 'object' &&
-            value !== null &&
-            'size' in value &&
-            'arrayBuffer' in value
-        );
-      if (photoFiles.length === 0) {
-        const singlePhoto = formData.get('photo');
-        if (
-          typeof singlePhoto === 'object' &&
-          singlePhoto !== null &&
-          'size' in singlePhoto &&
-          'arrayBuffer' in singlePhoto
-        ) {
-          photoFiles = [singlePhoto];
+    return await releaseOnError(
+      idempotencyKey,
+      'photos_before',
+      async () => {
+        const formData = await request.formData();
+        // Accept both 'photos' (web) and 'photo' (mobile) field names
+        let photoFiles = formData
+          .getAll('photos')
+          .filter(
+            (value): value is File =>
+              typeof value === 'object' &&
+              value !== null &&
+              'size' in value &&
+              'arrayBuffer' in value
+          );
+        if (photoFiles.length === 0) {
+          const singlePhoto = formData.get('photo');
+          if (
+            typeof singlePhoto === 'object' &&
+            singlePhoto !== null &&
+            'size' in singlePhoto &&
+            'arrayBuffer' in singlePhoto
+          ) {
+            photoFiles = [singlePhoto];
+          }
         }
-      }
 
-      // Accept geolocation from 'geolocation' field (web) or 'metadata' JSON (mobile)
-      let geolocationStr = formData.get('geolocation') as string | null;
-      if (!geolocationStr) {
-        const metadataStr = formData.get('metadata') as string | null;
-        if (metadataStr) {
+        // Accept geolocation from 'geolocation' field (web) or 'metadata' JSON (mobile)
+        let geolocationStr = formData.get('geolocation') as string | null;
+        if (!geolocationStr) {
+          const metadataStr = formData.get('metadata') as string | null;
+          if (metadataStr) {
+            try {
+              const metadata = JSON.parse(metadataStr);
+              if (metadata.geolocation) {
+                // Normalize mobile format { latitude, longitude } to { lat, lng }
+                const geo = metadata.geolocation;
+                geolocationStr = JSON.stringify({
+                  lat: geo.lat ?? geo.latitude,
+                  lng: geo.lng ?? geo.longitude,
+                });
+              }
+            } catch {
+              /* ignore invalid metadata */
+            }
+          }
+        }
+
+        if (photoFiles.length === 0) {
+          throw new BadRequestError('At least one photo is required');
+        }
+
+        if (photoFiles.length > MAX_FILES) {
+          throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
+        }
+
+        let geolocation:
+          | { lat: number; lng: number; accuracy?: number }
+          | undefined;
+        if (geolocationStr) {
           try {
-            const metadata = JSON.parse(metadataStr);
-            if (metadata.geolocation) {
-              // Normalize mobile format { latitude, longitude } to { lat, lng }
-              const geo = metadata.geolocation;
-              geolocationStr = JSON.stringify({
-                lat: geo.lat ?? geo.latitude,
-                lng: geo.lng ?? geo.longitude,
-              });
+            const parsedGeolocation = parseJobPhotoGeolocation(
+              JSON.parse(geolocationStr)
+            );
+            if (parsedGeolocation) {
+              geolocation = parsedGeolocation;
+            } else {
+              logger.warn('Invalid geolocation values');
             }
           } catch {
-            /* ignore invalid metadata */
+            logger.warn('Invalid geolocation format');
           }
         }
-      }
 
-      if (photoFiles.length === 0) {
-        throw new BadRequestError('At least one photo is required');
-      }
-
-      if (photoFiles.length > MAX_FILES) {
-        throw new BadRequestError(`Maximum ${MAX_FILES} photos allowed`);
-      }
-
-      let geolocation:
-        | { lat: number; lng: number; accuracy?: number }
-        | undefined;
-      if (geolocationStr) {
-        try {
-          const parsedGeolocation = parseJobPhotoGeolocation(
-            JSON.parse(geolocationStr)
+        // Verify geolocation against job location if both are available.
+        // ENFORCEMENT: if geolocation IS provided and job has coordinates, the
+        // contractor MUST be within 100m. If no geolocation was captured (user
+        // denied permission) we fall through — geolocation is best-effort.
+        let geolocationVerified = false;
+        if (geolocation && job.latitude && job.longitude) {
+          const geoResult = await PhotoVerificationService.verifyGeolocation(
+            '',
+            { lat: job.latitude, lng: job.longitude },
+            geolocation
           );
-          if (parsedGeolocation) {
-            geolocation = parsedGeolocation;
-          } else {
-            logger.warn('Invalid geolocation values');
+          geolocationVerified = geoResult.withinThreshold;
+          if (!geoResult.withinThreshold) {
+            logger.warn('Photo uploaded outside job location threshold', {
+              service: 'jobs',
+              jobId,
+              distance: geoResult.distance,
+              threshold: 100,
+            });
+            throw new BadRequestError(
+              `You must be at the job location to upload before photos. ` +
+                `You are approximately ${Math.round(geoResult.distance)}m away ` +
+                `(maximum allowed: 100m).`
+            );
           }
-        } catch {
-          logger.warn('Invalid geolocation format');
-        }
-      }
-
-      // Verify geolocation against job location if both are available.
-      // ENFORCEMENT: if geolocation IS provided and job has coordinates, the
-      // contractor MUST be within 100m. If no geolocation was captured (user
-      // denied permission) we fall through — geolocation is best-effort.
-      let geolocationVerified = false;
-      if (geolocation && job.latitude && job.longitude) {
-        const geoResult = await PhotoVerificationService.verifyGeolocation(
-          '',
-          { lat: job.latitude, lng: job.longitude },
-          geolocation
-        );
-        geolocationVerified = geoResult.withinThreshold;
-        if (!geoResult.withinThreshold) {
-          logger.warn('Photo uploaded outside job location threshold', {
-            service: 'jobs',
-            jobId,
-            distance: geoResult.distance,
-            threshold: 100,
-          });
-          throw new BadRequestError(
-            `You must be at the job location to upload before photos. ` +
-              `You are approximately ${Math.round(geoResult.distance)}m away ` +
-              `(maximum allowed: 100m).`
-          );
-        }
-      }
-
-      const uploadedPhotos: Array<{ url: string; qualityScore: number }> = [];
-      const rejectedPhotos: Array<{ url: string; reason: string }> = [];
-
-      for (const file of photoFiles) {
-        // Validate file
-        if (file.size > MAX_FILE_SIZE) {
-          throw new BadRequestError('Each photo must be less than 10MB');
         }
 
-        // SECURITY: Validate actual file bytes (magic numbers), not just client-declared MIME
-        const magicValidation = await validateImageUpload(file);
-        if (!magicValidation.valid) {
-          throw new BadRequestError(
-            magicValidation.error ?? 'Invalid image file'
-          );
-        }
+        const uploadedPhotos: Array<{ url: string; qualityScore: number }> = [];
+        const rejectedPhotos: Array<{ url: string; reason: string }> = [];
 
-        const fileExt = magicValidation.detectedType?.split('/')[1] || 'jpg';
+        for (const file of photoFiles) {
+          // Validate file
+          if (file.size > MAX_FILE_SIZE) {
+            throw new BadRequestError('Each photo must be less than 10MB');
+          }
 
-        // Upload to storage
-        const fileName = `job-photos/${jobId}/before/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { error: uploadError } = await serverSupabase.storage
-          .from('Job-storage')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            contentType: magicValidation.detectedType,
-            upsert: false,
-          });
+          // SECURITY: Validate actual file bytes (magic numbers), not just client-declared MIME
+          const magicValidation = await validateImageUpload(file);
+          if (!magicValidation.valid) {
+            throw new BadRequestError(
+              magicValidation.error ?? 'Invalid image file'
+            );
+          }
 
-        if (uploadError) {
-          logger.error('Upload error', uploadError);
-          continue;
-        }
+          const fileExt = magicValidation.detectedType?.split('/')[1] || 'jpg';
 
-        // Phase 2 storage hardening: issue a signed URL (1yr TTL) instead of a
-        // public URL so the object stays reachable once `Job-storage` flips to
-        // `public=false`. See apps/web/lib/api/job-storage.ts for context.
-        const photoUrl = await signJobStoragePath(fileName);
-        if (!photoUrl) {
-          await serverSupabase.storage.from('Job-storage').remove([fileName]);
-          continue;
-        }
+          // Upload to storage
+          const fileName = `job-photos/${jobId}/before/${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const { error: uploadError } = await serverSupabase.storage
+            .from('Job-storage')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              contentType: magicValidation.detectedType,
+              upsert: false,
+            });
 
-        // Validate photo quality (brightness, sharpness, resolution)
-        const qualityResult =
-          await PhotoVerificationService.validatePhotoQuality(photoUrl);
+          if (uploadError) {
+            logger.error('Upload error', uploadError);
+            continue;
+          }
 
-        // ENFORCEMENT: reject photos that fail quality check.
-        // Delete the uploaded file from storage so we don't accumulate garbage.
-        if (!qualityResult.passed) {
-          await serverSupabase.storage.from('Job-storage').remove([fileName]);
-          rejectedPhotos.push({
+          // Phase 2 storage hardening: issue a signed URL (1yr TTL) instead of a
+          // public URL so the object stays reachable once `Job-storage` flips to
+          // `public=false`. See apps/web/lib/api/job-storage.ts for context.
+          const photoUrl = await signJobStoragePath(fileName);
+          if (!photoUrl) {
+            await serverSupabase.storage.from('Job-storage').remove([fileName]);
+            continue;
+          }
+
+          // Validate photo quality (brightness, sharpness, resolution)
+          const qualityResult =
+            await PhotoVerificationService.validatePhotoQuality(photoUrl);
+
+          // ENFORCEMENT: reject photos that fail quality check.
+          // Delete the uploaded file from storage so we don't accumulate garbage.
+          if (!qualityResult.passed) {
+            await serverSupabase.storage.from('Job-storage').remove([fileName]);
+            rejectedPhotos.push({
+              url: photoUrl,
+              reason:
+                qualityResult.issues.join('; ') || 'Photo quality too low',
+            });
+            logger.warn('Photo rejected: quality check failed', {
+              service: 'jobs',
+              jobId,
+              qualityScore: qualityResult.qualityScore,
+              issues: qualityResult.issues,
+            });
+            continue;
+          }
+
+          // Save metadata
+          const { error: metadataError } = await serverSupabase
+            .from('job_photos_metadata')
+            .insert({
+              job_id: jobId,
+              photo_url: photoUrl,
+              storage_path: fileName,
+              photo_type: 'before',
+              geolocation: geolocation || null,
+              geolocation_verified: geolocation ? geolocationVerified : null,
+              timestamp: new Date().toISOString(),
+              verified: qualityResult.passed,
+              quality_score: qualityResult.qualityScore,
+              created_by: user.id,
+            });
+
+          if (metadataError) {
+            await serverSupabase.storage.from('Job-storage').remove([fileName]);
+            logger.error(
+              'Failed to save before-photo metadata',
+              metadataError,
+              {
+                service: 'jobs',
+                jobId,
+                userId: user.id,
+              }
+            );
+            continue;
+          }
+
+          uploadedPhotos.push({
             url: photoUrl,
-            reason: qualityResult.issues.join('; ') || 'Photo quality too low',
-          });
-          logger.warn('Photo rejected: quality check failed', {
-            service: 'jobs',
-            jobId,
             qualityScore: qualityResult.qualityScore,
-            issues: qualityResult.issues,
           });
-          continue;
         }
 
-        // Save metadata
-        const { error: metadataError } = await serverSupabase
-          .from('job_photos_metadata')
-          .insert({
-            job_id: jobId,
-            photo_url: photoUrl,
-            photo_type: 'before',
-            geolocation: geolocation || null,
-            geolocation_verified: geolocation ? geolocationVerified : null,
-            timestamp: new Date().toISOString(),
-            verified: qualityResult.passed,
-            quality_score: qualityResult.qualityScore,
-            created_by: user.id,
-          });
-
-        if (metadataError) {
-          await serverSupabase.storage.from('Job-storage').remove([fileName]);
-          logger.error('Failed to save before-photo metadata', metadataError, {
-            service: 'jobs',
-            jobId,
-            userId: user.id,
-          });
-          continue;
+        if (uploadedPhotos.length === 0) {
+          if (rejectedPhotos.length > 0) {
+            throw new BadRequestError(
+              `All ${rejectedPhotos.length} photo(s) were rejected. ` +
+                `Reasons: ${rejectedPhotos.map((p) => p.reason).join(' | ')}. ` +
+                `Please retake photos with better lighting, focus, and resolution (min 800x600).`
+            );
+          }
+          throw new Error('Failed to upload photos');
         }
 
-        uploadedPhotos.push({
-          url: photoUrl,
-          qualityScore: qualityResult.qualityScore,
-        });
-      }
+        const responseData = {
+          success: true,
+          photos: uploadedPhotos,
+          count: uploadedPhotos.length,
+          rejected: rejectedPhotos.length,
+          ...(rejectedPhotos.length > 0 && { rejectedPhotos }),
+        };
 
-      if (uploadedPhotos.length === 0) {
-        if (rejectedPhotos.length > 0) {
-          throw new BadRequestError(
-            `All ${rejectedPhotos.length} photo(s) were rejected. ` +
-              `Reasons: ${rejectedPhotos.map((p) => p.reason).join(' | ')}. ` +
-              `Please retake photos with better lighting, focus, and resolution (min 800x600).`
-          );
-        }
-        throw new Error('Failed to upload photos');
-      }
+        await storeIdempotencyResult(
+          idempotencyKey,
+          'photos_before',
+          responseData,
+          user.id,
+          { jobId, count: uploadedPhotos.length },
+          idem?.ownership
+        );
 
-      const responseData = {
-        success: true,
-        photos: uploadedPhotos,
-        count: uploadedPhotos.length,
-        rejected: rejectedPhotos.length,
-        ...(rejectedPhotos.length > 0 && { rejectedPhotos }),
-      };
-
-      await storeIdempotencyResult(
-        idempotencyKey,
-        'photos_before',
-        responseData,
-        user.id,
-        { jobId, count: uploadedPhotos.length }
-      );
-
-      return NextResponse.json(responseData);
-    });
+        return NextResponse.json(responseData);
+      },
+      idem?.ownership
+    );
   }
 );

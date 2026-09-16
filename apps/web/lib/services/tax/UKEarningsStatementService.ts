@@ -28,8 +28,13 @@
  * Producing and submitting the annual report (due 31 January) is a separate
  * piece of work that reads this same data.
  */
+import { readEarningsPages } from './read-earnings-pages';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import {
+  earningsSettlement,
+  type EarningsSettlementRow,
+} from './earnings-settlement';
 import {
   ukTaxYearFromStartYear,
   type UKTaxYear,
@@ -83,20 +88,11 @@ export interface UKEarningsStatement {
   generatedAt: string;
 }
 
-interface EscrowRow {
+interface EscrowRow extends EarningsSettlementRow {
   job_id: string | null;
-  amount: number | string | null;
-  platform_fee: number | string | null;
-  stripe_processing_fee: number | string | null;
-  contractor_payout: number | string | null;
   released_at: string | null;
   status: string;
   jobs: { title: string | null } | { title: string | null }[] | null;
-}
-
-function num(v: number | string | null | undefined): number {
-  const n = typeof v === 'string' ? Number(v) : (v ?? 0);
-  return Number.isFinite(n) ? n : 0;
 }
 
 function round2(n: number): number {
@@ -114,18 +110,26 @@ export class UKEarningsStatementService {
   ): Promise<UKEarningsStatement> {
     const taxYear: UKTaxYear = ukTaxYearFromStartYear(startYear);
 
-    const { data: rawEscrows, error } = await serverSupabase
-      .from('escrow_transactions')
-      .select(
-        `job_id, amount, platform_fee, stripe_processing_fee, contractor_payout,
-         released_at, status, jobs:job_id ( title )`
-      )
-      .eq('payee_id', contractorId)
-      .in('status', RELEASED_STATUSES)
-      .not('released_at', 'is', null)
-      .gte('released_at', taxYear.start.toISOString())
-      .lte('released_at', taxYear.end.toISOString())
-      .order('released_at', { ascending: true });
+    const { data: rawEscrows, error } = await readEarningsPages(
+      async (after) => {
+        let query = serverSupabase
+          .from('escrow_transactions')
+          .select(
+            `id, job_id, amount, platform_fee, stripe_processing_fee, contractor_payout,
+         released_at, status, jobs:job_id ( title ),
+         refund_balance:escrow_refund_balances(gross_minor,remaining_minor,needs_review)`
+          )
+          .eq('payee_id', contractorId)
+          .in('status', RELEASED_STATUSES)
+          .not('released_at', 'is', null)
+          .gte('released_at', taxYear.start.toISOString())
+          .lte('released_at', taxYear.end.toISOString())
+          .order('id', { ascending: true })
+          .limit(500);
+        if (after) query = query.gt('id', after);
+        return query;
+      }
+    );
 
     if (error) {
       logger.error('Failed to load escrow rows for earnings statement', error, {
@@ -136,17 +140,12 @@ export class UKEarningsStatementService {
       throw new Error('Failed to build earnings statement');
     }
 
-    const escrows = (rawEscrows ?? []) as unknown as EscrowRow[];
+    const escrows = ((rawEscrows ?? []) as unknown as EscrowRow[]).sort(
+      (a, b) => (a.released_at ?? '').localeCompare(b.released_at ?? '')
+    );
 
     const payments: EarningsLine[] = escrows.map((e) => {
-      const gross = round2(num(e.amount));
-      const platformFee = round2(num(e.platform_fee));
-      const stripeFee = round2(num(e.stripe_processing_fee));
-      // Prefer the recorded contractor_payout; fall back to gross - fees.
-      const net =
-        e.contractor_payout != null
-          ? round2(num(e.contractor_payout))
-          : round2(gross - platformFee - stripeFee);
+      const { gross, platformFee, stripeFee, net } = earningsSettlement(e);
       const job = Array.isArray(e.jobs) ? e.jobs[0] : e.jobs;
       return {
         date: e.released_at as string,
@@ -172,7 +171,7 @@ export class UKEarningsStatementService {
 
     const jobCount = new Set(payments.map((p) => p.jobId).filter(Boolean)).size;
 
-    const { data: profile } = await serverSupabase
+    const { data: profile, error: profileError } = await serverSupabase
       .from('contractor_tax_profiles')
       .select(
         `tax_name, business_name, vat_registered, vat_number, company_number,
@@ -180,6 +179,10 @@ export class UKEarningsStatementService {
       )
       .eq('contractor_id', contractorId)
       .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      throw new Error('Failed to load earnings tax profile');
+    }
 
     return {
       contractorId,
@@ -271,16 +274,25 @@ export class UKEarningsStatementService {
   > {
     const taxYear = ukTaxYearFromStartYear(startYear);
 
-    const { data: rawEscrows, error } = await serverSupabase
-      .from('escrow_transactions')
-      .select(
-        `payee_id, job_id, amount, platform_fee, stripe_processing_fee,
-         contractor_payout, status, released_at`
-      )
-      .in('status', RELEASED_STATUSES)
-      .not('released_at', 'is', null)
-      .gte('released_at', taxYear.start.toISOString())
-      .lte('released_at', taxYear.end.toISOString());
+    const { data: rawEscrows, error } = await readEarningsPages(
+      async (after) => {
+        let query = serverSupabase
+          .from('escrow_transactions')
+          .select(
+            `id, payee_id, job_id, amount, platform_fee, stripe_processing_fee,
+         contractor_payout, status, released_at,
+         refund_balance:escrow_refund_balances(gross_minor,remaining_minor,needs_review)`
+          )
+          .in('status', RELEASED_STATUSES)
+          .not('released_at', 'is', null)
+          .gte('released_at', taxYear.start.toISOString())
+          .lte('released_at', taxYear.end.toISOString())
+          .order('id', { ascending: true })
+          .limit(500);
+        if (after) query = query.gt('id', after);
+        return query;
+      }
+    );
 
     if (error) {
       logger.error('Failed to list earners for tax year', error, {
@@ -291,7 +303,7 @@ export class UKEarningsStatementService {
     }
 
     const rows = (rawEscrows ?? []) as Array<
-      EscrowRow & { payee_id: string | null }
+      Omit<EscrowRow, 'jobs'> & { payee_id: string | null }
     >;
 
     const byContractor = new Map<
@@ -313,17 +325,11 @@ export class UKEarningsStatementService {
         net: 0,
         jobs: new Set<string>(),
       };
-      agg.gross = round2(agg.gross + num(r.amount));
-      agg.platform = round2(agg.platform + num(r.platform_fee));
-      agg.stripe = round2(agg.stripe + num(r.stripe_processing_fee));
-      agg.net = round2(
-        agg.net +
-          (r.contractor_payout != null
-            ? num(r.contractor_payout)
-            : num(r.amount) -
-              num(r.platform_fee) -
-              num(r.stripe_processing_fee))
-      );
+      const settled = earningsSettlement(r);
+      agg.gross = round2(agg.gross + settled.gross);
+      agg.platform = round2(agg.platform + settled.platformFee);
+      agg.stripe = round2(agg.stripe + settled.stripeFee);
+      agg.net = round2(agg.net + settled.net);
       if (r.job_id) agg.jobs.add(r.job_id);
       byContractor.set(r.payee_id, agg);
     }
@@ -331,24 +337,34 @@ export class UKEarningsStatementService {
     const contractorIds = [...byContractor.keys()];
     if (contractorIds.length === 0) return [];
 
-    const [{ data: profiles }, { data: summaries }, { data: taxProfiles }] =
-      await Promise.all([
+    const metadata = [];
+    for (let offset = 0; offset < contractorIds.length; offset += 100) {
+      const batch = contractorIds.slice(offset, offset + 100);
+      const results = await Promise.all([
         serverSupabase
           .from('profiles')
           .select('id, first_name, last_name, email')
-          .in('id', contractorIds),
+          .in('id', batch),
         serverSupabase
           .from('tax_year_summaries')
           .select(
             'contractor_id, statement_generated, statement_generated_at, statement_filed, statement_filed_at'
           )
           .eq('tax_year', startYear)
-          .in('contractor_id', contractorIds),
+          .in('contractor_id', batch),
         serverSupabase
           .from('contractor_tax_profiles')
           .select('contractor_id, tax_name, utr_encrypted, nino_encrypted')
-          .in('contractor_id', contractorIds),
+          .in('contractor_id', batch),
       ]);
+      if (results.some((result) => result.error)) {
+        throw new Error('Failed to load complete earnings metadata');
+      }
+      metadata.push(results);
+    }
+    const profiles = metadata.flatMap((result) => result[0].data ?? []);
+    const summaries = metadata.flatMap((result) => result[1].data ?? []);
+    const taxProfiles = metadata.flatMap((result) => result[2].data ?? []);
 
     const profileMap = new Map(
       (profiles ?? []).map((p) => [p.id as string, p])
@@ -396,9 +412,9 @@ export class UKEarningsStatementService {
   static async markFiled(
     contractorId: string,
     startYear: number
-  ): Promise<void> {
+  ): Promise<boolean> {
     const now = new Date().toISOString();
-    const { error } = await serverSupabase
+    const { data, error } = await serverSupabase
       .from('tax_year_summaries')
       .update({
         statement_filed: true,
@@ -406,7 +422,10 @@ export class UKEarningsStatementService {
         updated_at: now,
       })
       .eq('contractor_id', contractorId)
-      .eq('tax_year', startYear);
+      .eq('tax_year', startYear)
+      .eq('statement_generated', true)
+      .select('contractor_id')
+      .maybeSingle();
     if (error) {
       logger.error('Failed to mark statement filed', error, {
         service: 'uk-earnings',
@@ -415,5 +434,6 @@ export class UKEarningsStatementService {
       });
       throw new Error('Failed to record statement filing');
     }
+    return data?.contractor_id === contractorId;
   }
 }

@@ -53,7 +53,7 @@ describe('jobs table RLS (real DB)', () => {
     if (!available) {
       throw new Error(
         'INTEGRATION_TESTS=1 was set but Supabase is not reachable at ' +
-          'http://localhost:54321. Run `supabase start` first.',
+          'http://localhost:54321. Run `supabase start` first.'
       );
     }
     homeownerA = await createTestUser({ role: 'homeowner' });
@@ -67,15 +67,15 @@ describe('jobs table RLS (real DB)', () => {
 
     homeownerAClient = await createAuthenticatedClient(
       homeownerA.email,
-      homeownerA.password,
+      homeownerA.password
     );
     homeownerBClient = await createAuthenticatedClient(
       homeownerB.email,
-      homeownerB.password,
+      homeownerB.password
     );
     contractorClient = await createAuthenticatedClient(
       contractor.email,
-      contractor.password,
+      contractor.password
     );
   }, 30_000);
 
@@ -104,10 +104,7 @@ describe('jobs table RLS (real DB)', () => {
     // status to assert the strict isolation case. Adjust status if the
     // schema uses a different visibility model.
     const admin = createServiceClient();
-    await admin
-      .from('jobs')
-      .update({ status: 'draft' })
-      .eq('id', jobA.id);
+    await admin.from('jobs').update({ status: 'draft' }).eq('id', jobA.id);
 
     const { data, error } = await homeownerBClient
       .from('jobs')
@@ -121,10 +118,7 @@ describe('jobs table RLS (real DB)', () => {
     expect(error === null ? data : null).toBeNull();
 
     // Restore for other tests
-    await admin
-      .from('jobs')
-      .update({ status: 'posted' })
-      .eq('id', jobA.id);
+    await admin.from('jobs').update({ status: 'posted' }).eq('id', jobA.id);
   });
 
   it('contractor can read posted jobs (marketplace visibility)', async () => {
@@ -171,16 +165,14 @@ describe('jobs table RLS (real DB)', () => {
   });
 
   it('different homeowner CANNOT update another homeowner job', async () => {
-    const { error, count } = await homeownerBClient
+    const { error, data: affectedRows } = await homeownerBClient
       .from('jobs')
       .update({ title: 'hacked' })
       .eq('id', jobA.id)
-      .select('id', { count: 'exact', head: true });
+      .select('id');
 
-    // RLS makes the UPDATE affect zero rows (no error, but count===0)
-    // OR returns a policy error. Either outcome means the hack failed.
-    const hackSucceeded = error === null && count !== null && count > 0;
-    expect(hackSucceeded).toBe(false);
+    expect(error).toBeNull();
+    expect(affectedRows).toEqual([]);
 
     // Verify the title is unchanged
     const admin = createServiceClient();

@@ -29,12 +29,6 @@ interface JobWithRelations {
   contract: ContractInfo | ContractInfo[] | null;
 }
 
-// Helper to normalize joined data (Supabase can return object or array)
-const getFirst = <T>(data: T | T[] | null | undefined): T | null => {
-  if (!data) return null;
-  return Array.isArray(data) ? data[0] || null : data;
-};
-
 /**
  * Fetch jobs with all related data in a single optimized query
  * Uses Supabase joins to avoid N+1 query problems
@@ -198,7 +192,8 @@ export async function fetchContractsForJobs(jobIds: string[]): Promise<
     .select(
       'job_id, start_date, end_date, status, contractor_signed_at, homeowner_signed_at'
     )
-    .in('job_id', jobIds);
+    .in('job_id', jobIds)
+    .neq('status', 'cancelled');
 
   if (error) {
     logger.error('Error fetching contracts:', error);
@@ -222,9 +217,7 @@ export async function fetchContractsForJobs(jobIds: string[]): Promise<
 /**
  * Fetch meetings for a user with joins
  */
-export async function fetchMeetingsForUser(
-  userId: string
-): Promise<
+export async function fetchMeetingsForUser(userId: string): Promise<
   {
     id: string;
     scheduled_datetime: string;
@@ -261,7 +254,7 @@ export async function fetchMeetingsForUser(
       .order('scheduled_datetime', { ascending: true });
 
     return data || [];
-  } catch (error) {
+  } catch {
     // Table might not exist
     logger.info(
       'contractor_meetings table not found, using jobs scheduled_date instead'

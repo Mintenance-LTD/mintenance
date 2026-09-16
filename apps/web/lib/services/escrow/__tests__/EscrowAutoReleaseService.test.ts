@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   resolveContractorTier: vi.fn(),
   calculateFees: vi.fn(),
   claim: vi.fn(),
+  settleFeeOnly: vi.fn(),
   transferPlatformFee: vi.fn(),
   accumulateEarnings: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -45,21 +46,23 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     ) =>
       _name === 'claim_escrow_release'
         ? mocks.claim(args)
-        : {
-            data: [
-              {
-                created_at: new Date().toISOString(),
-                transfer_id: null,
-                idempotency_key: `escrow_release_${args.p_escrow_id}`,
-                stripe_parameters: {
-                  amount: args.p_amount,
-                  currency: 'gbp',
-                  destination: args.p_destination,
+        : _name === 'settle_fee_only_escrow'
+          ? mocks.settleFeeOnly(args)
+          : {
+              data: [
+                {
+                  created_at: new Date().toISOString(),
+                  transfer_id: null,
+                  idempotency_key: `escrow_release_${args.p_escrow_id}`,
+                  stripe_parameters: {
+                    amount: args.p_amount,
+                    currency: 'gbp',
+                    destination: args.p_destination,
+                  },
                 },
-              },
-            ],
-            error: null,
-          },
+              ],
+              error: null,
+            },
     from: (table: string) =>
       table === 'escrow_transfer_attempts'
         ? chain({ data: [{ escrow_id: 'escrow-1' }], error: null })
@@ -216,6 +219,17 @@ function makeEscrow(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.settleFeeOnly.mockImplementation(async (args) => ({
+    data: [
+      {
+        id: 'settlement-1',
+        escrow_id: args.p_escrow_id,
+        principal_minor: args.p_fee_minor,
+        created_at: new Date().toISOString(),
+      },
+    ],
+    error: null,
+  }));
   mocks.claim.mockResolvedValue({
     data: [{ escrow_id: 'escrow-1', remaining_minor: 10000 }],
     error: null,
@@ -360,6 +374,36 @@ describe('EscrowAutoReleaseService.processAutoReleases', () => {
           expect.objectContaining({ amount: 5280 }),
           expect.any(Object)
         );
+    }
+  );
+
+  it.each([false, true])(
+    'settles without a payout or accumulation when fees consume the remainder (accumulation=%s)',
+    async (accumulated) => {
+      if (accumulated) process.env.ESCROW_USE_PAYOUT_ACCUMULATION = 'true';
+      configureSupabase({
+        eligible: [makeEscrow()],
+        profiles: [{ id: 'contractor-1', stripe_connect_account_id: 'acct_1' }],
+      });
+      mocks.claim.mockResolvedValue({
+        data: [{ escrow_id: 'escrow-1', remaining_minor: 25 }],
+        error: null,
+      });
+      mocks.calculateFees.mockReturnValue({
+        platformFee: 0.25,
+        contractorAmount: 0,
+        stripeFee: 0.2,
+      });
+      const result = await EscrowAutoReleaseService.processAutoReleases();
+      expect(result.released).toBe(1);
+      expect(mocks.settleFeeOnly).toHaveBeenCalledWith({
+        p_escrow_id: 'escrow-1',
+        p_fee_minor: 25,
+        p_actor_id: null,
+      });
+      expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+      expect(mocks.accumulateEarnings).not.toHaveBeenCalled();
+      expect(mocks.notifyAutoRelease).not.toHaveBeenCalled();
     }
   );
 

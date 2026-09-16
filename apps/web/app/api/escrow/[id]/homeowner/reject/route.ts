@@ -5,7 +5,12 @@ import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const rejectCompletionSchema = z.object({
-  reason: z.string().min(10, 'Reason must be at least 10 characters'),
+  reason: z
+    .string()
+    .trim()
+    .min(10, 'Reason must be at least 10 characters')
+    .max(5000),
+  completedAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 /**
@@ -22,9 +27,14 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { reason } = validation.data;
+    const { reason, completedAt } = validation.data;
 
-    await HomeownerApprovalService.rejectCompletion(escrowId, user.id, reason);
+    await HomeownerApprovalService.rejectCompletion(
+      escrowId,
+      user.id,
+      reason,
+      completedAt
+    );
 
     return NextResponse.json({ success: true, escrowId });
   }

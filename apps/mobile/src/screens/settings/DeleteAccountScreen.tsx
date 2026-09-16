@@ -7,6 +7,7 @@
  * @filesize Target: <200 lines
  */
 
+import { readAccountDeletionOutcome } from '../../utils/accountDeletionOutcome';
 import React, { useState } from 'react';
 import {
   View,
@@ -41,7 +42,7 @@ import { me } from '../../design-system/mint-editorial';
 const HOMEOWNER_CONSEQUENCES = [
   {
     icon: 'person-remove-outline',
-    text: 'Your profile and all personal data will be permanently removed',
+    text: 'Your profile will be removed. Signed contract evidence is retained with restricted access for legal claims',
   },
   {
     icon: 'briefcase-outline',
@@ -57,14 +58,14 @@ const HOMEOWNER_CONSEQUENCES = [
   },
   {
     icon: 'time-outline',
-    text: 'This action takes effect immediately and cannot be undone',
+    text: 'Profile removal cannot be undone. Login removal and subscription cancellation may continue processing',
   },
 ] as const;
 
 const CONTRACTOR_CONSEQUENCES = [
   {
     icon: 'person-remove-outline',
-    text: 'Your profile and all personal data will be permanently removed',
+    text: 'Your profile will be removed. Signed contract evidence is retained with restricted access for legal claims',
   },
   {
     icon: 'document-text-outline',
@@ -86,7 +87,7 @@ const CONTRACTOR_CONSEQUENCES = [
   },
   {
     icon: 'time-outline',
-    text: 'This action takes effect immediately and cannot be undone',
+    text: 'Profile removal cannot be undone. Login removal and subscription cancellation may continue processing',
   },
 ] as const;
 
@@ -104,17 +105,18 @@ export const DeleteAccountScreen: React.FC = () => {
       : HOMEOWNER_CONSEQUENCES;
 
   const deleteMutation = useMutation({
-    mutationFn: () =>
-      mobileApiClient.post('/api/user/delete-account', {
-        confirmation: 'DELETE',
-      }),
-    onSuccess: () => {
-      // 2026-05-23: previously this said "scheduled for deletion" but
-      // the API hard-deletes immediately (data + auth.users in a single
-      // transaction). Aligned the copy to match reality.
+    mutationFn: async () =>
+      readAccountDeletionOutcome(
+        await mobileApiClient.post<unknown>(
+          '/api/user/delete-account',
+          { confirmation: 'DELETE' },
+          { retries: 0, timeout: 60000 }
+        )
+      ),
+    onSuccess: (outcome) => {
       Alert.alert(
-        'Account Deleted',
-        'Your account and all associated data have been permanently deleted. You will be signed out.',
+        outcome.completed ? 'Account Deleted' : 'Account Cleanup Pending',
+        outcome.notice,
         [{ text: 'OK', onPress: () => signOut?.() }]
       );
     },

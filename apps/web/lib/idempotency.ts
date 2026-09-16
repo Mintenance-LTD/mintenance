@@ -1,25 +1,9 @@
 /**
- * Idempotency Utility
- *
- * Claim-then-complete pattern (2026-05-21 redesign).
- *
- * Previous design called pg_try_advisory_lock and pg_advisory_unlock as two
- * separate PostgREST requests; in Supabase's transaction-pool mode the unlock
- * can hit a different backend than the lock, so locks leaked. The window
- * between checkIdempotency and storeIdempotencyResult was effectively
- * unprotected — two concurrent requests with the same key could both pass
- * the cache check and both execute the protected operation.
- *
- * New design uses three SQL RPCs:
- *   try_claim_idempotency_key  — atomic INSERT … ON CONFLICT DO NOTHING.
- *                                Caller owns the operation iff it inserted.
- *   complete_idempotency_claim — UPDATE the row to status='completed' with
- *                                the result.
- *   release_idempotency_claim  — DELETE a pending claim (use on failure so
- *                                future retries can succeed).
- *
- * The public surface of this module (checkIdempotency / storeIdempotencyResult)
- * is preserved; callers do not need to change.
+ * Request-bound idempotency with per-acquisition ownership fencing.
+ * The database returns an opaque token on claim/takeover. Every completion
+ * and failure cleanup carries that request's token; old requests cannot
+ * alter a replacement claim. Actor and payload identity remain bound.
+ * Callers must pass result.ownership to store/release/releaseOnError.
  */
 
 import { createHash } from 'node:crypto';
@@ -27,7 +11,13 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ConflictError, ServiceUnavailableError } from '@/lib/errors/api-error';
 
+export interface ClaimOwnership {
+  userId: string;
+  claimToken: string;
+}
+
 interface IdempotencyResult<T> {
+  ownership?: ClaimOwnership;
   isDuplicate: boolean;
   cachedResult?: T;
   idempotencyKey: string;
@@ -55,6 +45,7 @@ export class IdempotencyStoreUnavailableError extends ServiceUnavailableError {
 }
 
 interface ClaimRow {
+  claim_token?: string;
   claimed: boolean;
   is_duplicate: boolean;
   is_pending: boolean;
@@ -72,8 +63,8 @@ const STALE_CLAIM_SECONDS = 60;
  *   - { isDuplicate: true, cachedResult } when the key has already been
  *     processed (completed). Caller should return this result directly
  *     instead of executing the operation again.
- *   - null when the key has NOT been seen (caller now owns the claim and
- *     should proceed with the operation, then call storeIdempotencyResult).
+ *   - a nonduplicate result carrying ownership for a newly acquired claim.
+ *     Pass that request-local ownership to completion and cleanup.
  *
  * Throws `IdempotencyStoreUnavailableError` when:
  *   - the RPC errored,
@@ -88,7 +79,6 @@ const STALE_CLAIM_SECONDS = 60;
 export async function checkIdempotency<T>(
   idempotencyKey: string,
   operation: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _useLocking: boolean = true,
   context: { userId: string; request: unknown }
 ): Promise<IdempotencyResult<T> | null> {
@@ -96,17 +86,14 @@ export async function checkIdempotency<T>(
   // inside the same transaction as the claim attempt. Avoids the previous
   // recursion path (release_idempotency_claim only deleted status='pending'
   // rows so an expired-completed row would loop forever).
-  const { data, error } = await serverSupabase.rpc(
-    'try_claim_bound_idempotency_key',
-    {
-      p_idempotency_key: idempotencyKey,
-      p_operation: operation,
-      p_user_id: context.userId,
-      p_request_fingerprint: fingerprintRequest(context.request),
-      p_stale_after_seconds: STALE_CLAIM_SECONDS,
-      p_ttl_seconds: IDEMPOTENCY_TTL_HOURS * 3600,
-    }
-  );
+  const { data, error } = await serverSupabase.rpc('claim_fenced_idempotency', {
+    p_idempotency_key: idempotencyKey,
+    p_operation: operation,
+    p_user_id: context.userId,
+    p_request_fingerprint: fingerprintRequest(context.request),
+    p_stale_after_seconds: STALE_CLAIM_SECONDS,
+    p_ttl_seconds: IDEMPOTENCY_TTL_HOURS * 3600,
+  });
 
   if (error?.code === '22023') {
     throw new ConflictError(
@@ -147,8 +134,17 @@ export async function checkIdempotency<T>(
   }
 
   if (row.claimed) {
-    // We own the operation. Caller proceeds.
-    return null;
+    if (!row.claim_token)
+      throw new IdempotencyStoreUnavailableError(
+        'Claim ownership token missing',
+        idempotencyKey,
+        operation
+      );
+    return {
+      isDuplicate: false,
+      idempotencyKey,
+      ownership: { userId: context.userId, claimToken: row.claim_token },
+    };
   }
 
   if (row.is_duplicate) {
@@ -213,19 +209,23 @@ export async function storeIdempotencyResult<T>(
   operation: string,
   result: T,
   userId?: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  ownership?: ClaimOwnership
 ): Promise<void> {
+  if (!ownership || (userId && userId !== ownership.userId))
+    throw new ConflictError('Idempotency claim ownership is required');
   const MAX_ATTEMPTS = 5;
   let lastError: unknown = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const { data, error } = await serverSupabase.rpc(
-      'complete_idempotency_claim',
+      'complete_fenced_idempotency',
       {
         p_idempotency_key: idempotencyKey,
         p_operation: operation,
         p_result: result as unknown,
-        p_user_id: userId ?? null,
+        p_user_id: ownership.userId,
+        p_claim_token: ownership.claimToken,
         p_metadata: metadata ?? null,
       }
     );
@@ -255,10 +255,7 @@ export async function storeIdempotencyResult<T>(
   // Release failures are intentionally swallowed — the stale-takeover
   // backstop still kicks in.
   try {
-    await serverSupabase.rpc('release_idempotency_claim', {
-      p_idempotency_key: idempotencyKey,
-      p_operation: operation,
-    });
+    await releaseIdempotencyClaim(idempotencyKey, operation, ownership);
   } catch {
     /* intentional */
   }
@@ -267,7 +264,7 @@ export async function storeIdempotencyResult<T>(
   // persistent stream — the idempotency cache is broken and downstream
   // side-effect duplication becomes possible.
   logger.error(
-    'Idempotency completion RPC failed after retries — claim released for retry',
+    'Idempotency completion RPC failed after retries — fenced cleanup attempted',
     lastError,
     {
       service: 'idempotency',
@@ -290,9 +287,14 @@ export async function storeIdempotencyResult<T>(
  */
 export async function releaseIdempotencyClaim(
   idempotencyKey: string,
-  operation: string
+  operation: string,
+  ownership?: ClaimOwnership
 ): Promise<void> {
-  const { error } = await serverSupabase.rpc('release_idempotency_claim', {
+  if (!ownership)
+    throw new ConflictError('Idempotency claim ownership is required');
+  const { error } = await serverSupabase.rpc('release_fenced_idempotency', {
+    p_user_id: ownership.userId,
+    p_claim_token: ownership.claimToken,
     p_idempotency_key: idempotencyKey,
     p_operation: operation,
   });
@@ -326,13 +328,14 @@ export async function releaseIdempotencyClaim(
 export async function releaseOnError<T>(
   idempotencyKey: string,
   operation: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
+  ownership?: ClaimOwnership
 ): Promise<T> {
   try {
     return await fn();
   } catch (err) {
     try {
-      await releaseIdempotencyClaim(idempotencyKey, operation);
+      await releaseIdempotencyClaim(idempotencyKey, operation, ownership);
     } catch {
       // intentional: don't let release failure mask the original error
     }

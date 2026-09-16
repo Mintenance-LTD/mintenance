@@ -8,7 +8,8 @@ import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const approveCompletionSchema = z.object({
-  comments: z.string().optional(),
+  comments: z.string().max(5000).optional(),
+  completedAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 /**
@@ -36,15 +37,17 @@ export const POST = withApiHandler(
       throw new NotFoundError('Escrow not found');
     }
 
-    const jobs = escrow.jobs as unknown as {
-      homeowner_id: string;
-      payer_user_id?: string | null;
-    } | {
-      homeowner_id: string;
-      payer_user_id?: string | null;
-    }[];
+    const jobs = escrow.jobs as unknown as
+      | {
+          homeowner_id: string;
+          payer_user_id?: string | null;
+        }
+      | {
+          homeowner_id: string;
+          payer_user_id?: string | null;
+        }[];
     const job = Array.isArray(jobs) ? jobs[0] : jobs;
-    if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
+    if ((job.payer_user_id ?? job.homeowner_id) !== user.id) {
       logger.warn('Unauthorized escrow approval attempt', {
         service: 'homeowner-approve',
         userId: user.id,
@@ -59,10 +62,15 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { comments } = validation.data;
+    const { comments, completedAt } = validation.data;
 
-    await HomeownerApprovalService.approveCompletion(escrowId, user.id, comments);
+    await HomeownerApprovalService.approveCompletion(
+      escrowId,
+      user.id,
+      comments,
+      ...(completedAt === undefined ? [] : [{ completedAt }])
+    );
 
     return NextResponse.json({ success: true, escrowId });
-  },
+  }
 );

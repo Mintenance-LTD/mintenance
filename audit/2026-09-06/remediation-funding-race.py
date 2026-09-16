@@ -23,4 +23,4 @@ try:
     assert sql(f"SELECT count(*) FROM public.user_credit_ledger WHERE user_id='{owner}' AND delta_pence=-5000") == '1'
     print('PASS: concurrent different request keys reuse one reservation and debit credit once')
 finally:
-    sql(f"DELETE FROM public.payment_funding_reservations WHERE job_id='{job}'; DELETE FROM public.contracts WHERE id='{contract}'; DELETE FROM public.bids WHERE id='{bid}'; DELETE FROM public.jobs WHERE id='{job}'; DELETE FROM auth.users WHERE id IN ('{owner}','{contractor}');")
+    sql(f"DELETE FROM public.payment_funding_reservations WHERE job_id='{job}'; DELETE FROM public.contracts WHERE id='{contract}'; DELETE FROM public.retained_contract_records WHERE contract_id='{contract}'; DELETE FROM public.bids WHERE id='{bid}'; DELETE FROM public.jobs WHERE id='{job}'; DELETE FROM auth.users WHERE id IN ('{owner}','{contractor}');")

@@ -1,5 +1,8 @@
 import React from 'react';
-import { render, waitFor } from '../../__tests__/test-utils';
+import { render, waitFor, fireEvent } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { PaymentService } from '../../services/PaymentService';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { PaymentScreen } from '../PaymentScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,11 +13,13 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+  jest.requireActual(
+    '@react-native-async-storage/async-storage/jest/async-storage-mock'
+  )
 );
 
 // expo-screen-capture pulls expo-modules-core's native EventEmitter (undefined
-// under jest) — crashes the whole import graph via useScreenCaptureGuard.
+// under Jest, the native dependency crashes the screen import.
 jest.mock('expo-screen-capture', () => ({
   preventScreenCaptureAsync: jest.fn(() => Promise.resolve()),
   allowScreenCaptureAsync: jest.fn(() => Promise.resolve()),
@@ -28,6 +33,25 @@ jest.mock('../../contexts/AuthContext', () => ({
     loading: false,
   }),
 }));
+
+jest.mock('../../services/PaymentService', () => ({
+  PaymentService: {
+    getPaymentMethods: jest.fn(),
+    calculateFees: jest.fn(() => ({ platformFee: 20, contractorAmount: 330 })),
+    createPaymentIntent: jest.fn(),
+    confirmPayment: jest.fn(),
+  },
+}));
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: { get: jest.fn(), post: jest.fn() },
+}));
+const method = {
+  id: 'pm_test',
+  type: 'card',
+  card: { brand: 'visa', last4: '4242', expiryMonth: 12, expiryYear: 2030 },
+  isDefault: true,
+  createdAt: '2026-01-01',
+};
 
 // Mock navigation
 const mockNavigation = {
@@ -101,36 +125,128 @@ const renderScreen = (props = {}) => {
 describe('PaymentScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (PaymentService.getPaymentMethods as jest.Mock).mockResolvedValue({
+      methods: [method],
+    });
+    (mobileApiClient.get as jest.Mock).mockResolvedValue({
+      fees: { platformFee: 20, contractorPayout: 330, totalAmount: 350 },
+    });
+    (PaymentService.createPaymentIntent as jest.Mock).mockResolvedValue({
+      clientSecret: 'pi_test_secret',
+      paymentIntentId: 'pi_test',
+    });
+    (PaymentService.confirmPayment as jest.Mock).mockResolvedValue({
+      status: 'Succeeded',
+    });
+    (mobileApiClient.post as jest.Mock).mockResolvedValue({
+      success: true,
+      status: 'held',
+    });
+    (Alert.alert as jest.Mock).mockImplementation(() => {});
   });
   afterEach(() => {
-    jest.clearAllMocks();
+    queryClient.clear();
   });
 
-  it('should render without crashing', async () => {
-    const { queryAllByText } = renderScreen();
+  it('shows loading until payment methods resolve', async () => {
+    (PaymentService.getPaymentMethods as jest.Mock).mockReturnValue(
+      new Promise(() => {})
+    );
+    const view = renderScreen();
+    expect(view.getByText('Loading payment options…')).toBeTruthy();
+    expect(view.queryByLabelText('Pay £350.00')).toBeNull();
+  });
 
-    await waitFor(() => {
-      expect(queryAllByText(/./i).length).toBeGreaterThan(0);
+  it('disables payment when no method exists', async () => {
+    (PaymentService.getPaymentMethods as jest.Mock).mockResolvedValue({
+      methods: [],
     });
+    const view = renderScreen();
+    await waitFor(() =>
+      expect(view.getByLabelText('Add payment method')).toBeTruthy()
+    );
+    expect(
+      view.getByLabelText('Pay £350.00').props.accessibilityState.disabled
+    ).toBe(true);
+    expect(PaymentService.createPaymentIntent).not.toHaveBeenCalled();
   });
 
-  it('should handle navigation', () => {
-    renderScreen();
-
-    // Verify navigation prop was passed
-    expect(mockNavigation).toBeDefined();
-  });
-
-  it('should handle user interactions', async () => {
-    const { queryByTestId, queryAllByTestId } = renderScreen();
-
-    await waitFor(() => {
-      // Look for any interactive elements
-      const buttons = queryAllByTestId(/button/i);
-      const touchables = queryAllByTestId(/touchable/i);
-
-      // At minimum, screen should render
-      expect(buttons.length + touchables.length).toBeGreaterThanOrEqual(0);
+  it('shows a method-load failure instead of a payable screen', async () => {
+    (PaymentService.getPaymentMethods as jest.Mock).mockResolvedValue({
+      error: 'Unable to load cards',
     });
+    const view = renderScreen();
+    await waitFor(() =>
+      expect(view.getByText('Unable to load cards')).toBeTruthy()
+    );
+    expect(view.queryByLabelText('Pay £350.00')).toBeNull();
+  });
+
+  it('hides the pay action after quote failure and retries the quote', async () => {
+    (mobileApiClient.get as jest.Mock).mockRejectedValueOnce(
+      new Error('offline')
+    );
+    const view = renderScreen();
+    await waitFor(() =>
+      expect(
+        view.getByText('Unable to load the payment amount. Please retry.')
+      ).toBeTruthy()
+    );
+    expect(view.queryByLabelText('Pay \u00a3350.00')).toBeNull();
+    fireEvent.press(view.getByText('Try Again'));
+    await waitFor(() =>
+      expect(view.getByLabelText('Pay \u00a3350.00')).toBeTruthy()
+    );
+    expect(mobileApiClient.get).toHaveBeenCalledTimes(2);
+    expect(PaymentService.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('confirms the selected payment and requires held escrow before success', async () => {
+    const view = renderScreen();
+    await waitFor(() =>
+      expect(view.getByLabelText('Pay £350.00')).toBeTruthy()
+    );
+    fireEvent.press(view.getByLabelText('Pay £350.00'));
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Payment Successful',
+        expect.any(String),
+        expect.any(Array)
+      )
+    );
+    expect(PaymentService.createPaymentIntent).toHaveBeenCalledWith(
+      'job-1',
+      350,
+      'pm_test',
+      'contractor-1'
+    );
+    expect(mobileApiClient.post).toHaveBeenCalledWith(
+      '/api/payments/confirm-intent',
+      { paymentIntentId: 'pi_test', jobId: 'job-1' }
+    );
+  });
+
+  it('shows pending confirmation without false payment success', async () => {
+    (mobileApiClient.post as jest.Mock).mockResolvedValue({
+      success: false,
+      status: 'pending',
+    });
+    const view = renderScreen();
+    await waitFor(() =>
+      expect(view.getByLabelText('Pay £350.00')).toBeTruthy()
+    );
+    fireEvent.press(view.getByLabelText('Pay £350.00'));
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Payment Received',
+        expect.stringContaining('pending'),
+        expect.any(Array)
+      )
+    );
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      'Payment Successful',
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

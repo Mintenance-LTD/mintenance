@@ -373,8 +373,8 @@ export function AccountSecuritySection({
             color: 'var(--me-ink-2)',
           }}
         >
-          Once you delete your account, there is no going back. Please be
-          certain.
+          Account deletion cannot be undone. Signed contract evidence remains
+          under restricted access for legal claims.
         </p>
         {!showDeleteConfirm ? (
           <button

@@ -3,10 +3,12 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
-import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { validateRequest } from '@/lib/validation/validator';
 import { InternalServerError } from '@/lib/errors/api-error';
-import { stripe } from '@/lib/services/subscription/stripe-client';
+import {
+  runAccountDeletionCleanup,
+  getAccountDeletionStatus,
+} from '@/lib/services/account/AccountDeletionRecoveryService';
 import { z } from 'zod';
 
 const deleteAccountSchema = z.object({
@@ -17,14 +19,17 @@ const deleteAccountSchema = z.object({
 /**
  * POST /api/user/delete-account — GDPR Right to Erasure (HARD delete).
  *
- * Deletes user account AND all associated data (messages / bids / jobs /
- * properties / payment history where legally permitted to drop).
+ * Deletes eligible account data. Signed contract evidence is archived before
+ * contract cascades. Provider cleanup is durably queued; financial retention
+ * remains separate remediation work.
  *
  * Sprint 7 (1.6): narrowed sibling endpoint DELETE /api/account/delete
  * to a "deactivate" (soft-delete only — sets deleted_at). Call this one
  * for irreversible GDPR erasure. Idempotent on an already-soft-deleted
  * profile (still hard-deletes it).
  */
+export const maxDuration = 60;
+
 export const POST = withApiHandler(
   { rateLimit: false },
   async (request, { user }) => {
@@ -232,228 +237,50 @@ export const POST = withApiHandler(
       );
     }
 
-    // 2026-05-27 audit-68 P1: reordered Stripe cancellation to AFTER
-    // delete_user_data succeeds, and snapshot the subscription ids
-    // BEFORE the DB delete (the cascade wipes contractor_subscriptions
-    // + homeowner_subscriptions along with the profile, so we'd lose
-    // the stripe_subscription_id link otherwise).
-    //
-    // Previous order (Stripe → DB) had a destructive failure mode:
-    // if delete_user_data tripped a FK constraint (e.g. an audit-style
-    // NOT NULL pointer surfaced from a new code path — see audit-68 P1
-    // for the four columns we just nullified in v5), the user kept
-    // their account but lost the Stripe billing linkage entirely. New
-    // order (DB → Stripe → auth.users) keeps Stripe live until the DB
-    // commits, so a DB failure is fully recoverable: the user can
-    // retry, their subscription is still billing, no money in limbo.
-    //
-    // Failure modes under the new ordering:
-    //   - delete_user_data fails → return 500, nothing else touched.
-    //     User can retry; Stripe still billing.
-    //   - Stripe cancel fails AFTER successful DB delete → return 500
-    //     with a "data is gone but billing may continue" message so
-    //     the user contacts support. Operator manually cancels the
-    //     orphan Stripe subscription via the dashboard using the
-    //     snapshot ids we logged. Rare (Stripe ~99.99% uptime), and
-    //     the worst case is a few extra days of billing vs the
-    //     previous worst case of losing the entire subscription link.
-    //   - auth.users delete fails → existing behaviour (return 500
-    //     with caveat; orphan credential needs operator cleanup).
-    const [contractorSubsRes, homeownerSubsRes] = await Promise.all([
-      serverSupabase
-        .from('contractor_subscriptions')
-        .select('id, stripe_subscription_id, status')
-        .eq('contractor_id', user.id),
-      serverSupabase
-        .from('homeowner_subscriptions')
-        .select('id, stripe_subscription_id, status')
-        .eq('homeowner_id', user.id),
-    ]);
-
-    if (contractorSubsRes.error || homeownerSubsRes.error) {
-      logger.error(
-        'Subscription snapshot failed; refusing to delete account',
-        contractorSubsRes.error ?? homeownerSubsRes.error,
-        { service: 'user', userId: user.id }
-      );
-      throw new InternalServerError(
-        'Unable to verify subscription state. Please try again.'
-      );
-    }
-
-    const subscriptionIds = [
-      ...(contractorSubsRes.data ?? []),
-      ...(homeownerSubsRes.data ?? []),
-    ]
-      .map((s) => s.stripe_subscription_id as string | null)
-      .filter((id): id is string => !!id);
-
-    // Log the deletion request for GDPR compliance.
-    //
-    // audit-76 follow-up Suggestion #8: capture the insert error so a
-    // silent audit-log failure is observable. Don't block the
-    // deletion (audit-log gap shouldn't trap a user mid-erasure) but
-    // surface it loudly so we can reconcile manually via the
-    // operator's audit dashboard.
-    const { error: auditError } = await serverSupabase
-      .from('gdpr_audit_log')
-      .insert({
-        user_id: user.id,
-        action: 'data_deletion',
-        table_name: 'users',
-        record_id: user.id,
-        performed_by: user.id,
-      });
-    if (auditError) {
-      logger.warn('Failed to write gdpr_audit_log for deletion request', {
-        service: 'user',
-        userId: user.id,
-        code: auditError.code,
-        message: auditError.message,
-      });
-    }
-
-    // Delete user data first. If the RPC errors we surface a 500 and
-    // Stripe is still live — the user can retry or contact support
-    // without losing their subscription. The fallback that the old
-    // version ran here is gone; partial failures are not OK.
-    const { error: deleteError } = await serverSupabase.rpc(
-      'delete_user_data',
+    // Snapshot cleanup identifiers and erase eligible data in one database transaction.
+    // The journal survives profile deletion and is consumed by the same worker used by cron.
+    const { data: operationId, error: deleteError } = await serverSupabase.rpc(
+      'delete_account_with_recovery',
       { p_user_id: user.id }
     );
-
-    if (deleteError) {
-      logger.error('delete_user_data RPC failed', deleteError, {
+    if (deleteError || typeof operationId !== 'string') {
+      logger.error('Account data deletion failed', {
         service: 'user',
         userId: user.id,
-        code: deleteError.code,
-        details: deleteError.details,
+        code: deleteError?.code,
       });
       throw new InternalServerError(
-        'Account deletion could not be completed. Your data has not been removed and subscription billing is unchanged. Please contact support.'
+        'Account deletion could not be completed. Please try again or contact support.'
       );
     }
-
-    // DB delete succeeded — now cancel the Stripe subscriptions we
-    // snapshot above. resource_missing / 404 errors are tolerated
-    // (already-cancelled is the desired terminal state). Any other
-    // failure is logged + collected so we can surface them at the
-    // end with a "data deleted but billing may continue" message
-    // instead of pretending success.
-    const stripeFailures: { id: string; message: string }[] = [];
-    for (const subId of subscriptionIds) {
-      try {
-        await stripe.subscriptions.cancel(subId);
-        logger.info('Cancelled Stripe subscription after account delete', {
-          service: 'user',
-          userId: user.id,
-          subscriptionId: subId,
-        });
-      } catch (err) {
-        const stripeErr = err as {
-          code?: string;
-          message?: string;
-          statusCode?: number;
-        };
-        if (
-          stripeErr?.code === 'resource_missing' ||
-          stripeErr?.statusCode === 404
-        ) {
-          logger.warn(
-            'Stripe subscription already cancelled/missing, skipping',
-            {
-              service: 'user',
-              userId: user.id,
-              subscriptionId: subId,
-            }
-          );
-          continue;
-        }
-        logger.error('Stripe subscription cancellation failed', err, {
-          service: 'user',
-          userId: user.id,
-          subscriptionId: subId,
-        });
-        stripeFailures.push({
-          id: subId,
-          message: stripeErr?.message ?? 'unknown error',
-        });
-      }
-    }
-
-    // 2026-05-23 (v2): drop the auth.users row so the credential stops
-    // working. public.profiles does NOT have an ON DELETE CASCADE FK to
-    // auth.users (verified via information_schema query 2026-05-23) so
-    // these two deletions are independent — both must succeed for the
-    // account to actually be gone.
-    //
-    // Previous version logged the failure but returned success anyway.
-    // That left the user able to log back in after a "successful"
-    // deletion (only public data was gone). Now this is a hard failure
-    // — if auth.users deletion errors, we return 500 with an explicit
-    // message so the caller (modal / settings UI) can show the user
-    // what happened. The data is already gone at this point; an
-    // operator follow-up is needed to remove the orphan auth row.
-    let authDeleteFailed = false;
+    let status: 'completed' | 'pending' | 'needs_review' = 'pending';
     try {
-      const { error: authDeleteError } =
-        await serverSupabase.auth.admin.deleteUser(user.id);
-      if (authDeleteError) {
-        authDeleteFailed = true;
-        logger.error(
-          'Failed to delete auth.users row after data deletion',
-          authDeleteError,
-          { userId: user.id }
-        );
-      } else {
-        logger.info('Auth user deleted', { userId: user.id });
-      }
-    } catch (error) {
-      authDeleteFailed = true;
-      logger.error('auth.admin.deleteUser threw', error, { userId: user.id });
-    }
-
-    // SECURITY: Blacklist all tokens for this user. Runs even when
-    // auth.users deletion failed so any in-flight sessions are
-    // invalidated immediately — that at least keeps the orphan
-    // credential from being usable until an operator cleans up.
-    try {
-      await tokenBlacklist.blacklistUserTokens(user.id);
-      logger.info('User tokens blacklisted after account deletion', {
-        userId: user.id,
+      await runAccountDeletionCleanup({
+        operationId,
+        maxSteps: 3,
+        budgetMs: 25000,
       });
-    } catch (error) {
-      logger.error('Failed to blacklist user tokens after deletion', error, {
-        userId: user.id,
+      status = await getAccountDeletionStatus(operationId);
+    } catch {
+      // Even a lost provider/database response is recoverable from the committed journal.
+      logger.error('Account cleanup remains pending', {
+        service: 'user',
+        operationId,
       });
     }
-
-    if (authDeleteFailed) {
-      // 2026-05-23: data is gone but the credential survives. The user
-      // would otherwise see "Account deleted successfully" and still be
-      // able to sign in. Surface the failure so they know — and so we
-      // see it in monitoring instead of silently leaving orphan rows.
-      throw new InternalServerError(
-        'Account data was deleted but the login credential could not be removed. Please contact support.'
-      );
-    }
-
-    // 2026-05-27 audit-68 P1: Stripe failures collected during the
-    // reordered cancellation block surface here. Data is gone, auth
-    // credential is gone — but if any Stripe sub failed to cancel,
-    // billing continues until ops manually cancels via the dashboard.
-    // Return a support-safe 500; subscription ids remain server-side only.
-    if (stripeFailures.length > 0) {
-      throw new InternalServerError(
-        'Account data and credentials were deleted, but subscription cancellation requires support. Please contact support.'
-      );
-    }
-
-    logger.info('User account deleted', { userId: user.id });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Account deleted successfully',
-    });
+    const completed = status === 'completed';
+    return NextResponse.json(
+      {
+        success: completed,
+        status,
+        requestId: operationId,
+        message: completed
+          ? 'Account deleted. Signed contract evidence is retained with restricted access where applicable.'
+          : status === 'needs_review'
+            ? 'Your profile has been removed. Some account cleanup requires support review. Keep this request reference.'
+            : 'Your profile has been removed. Login removal or subscription cancellation is still processing and will be retried automatically.',
+      },
+      { status: completed ? 200 : 202 }
+    );
   }
 );

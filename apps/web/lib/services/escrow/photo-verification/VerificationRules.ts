@@ -64,14 +64,14 @@ export class VerificationRules {
       let qualityScore = 1.0;
 
       // Check brightness
-      const brightness = imageInfo.brightness || 0.5;
+      const brightness = imageInfo.brightness ?? 0;
       if (brightness < MIN_BRIGHTNESS) {
         issues.push(`Photo too dark (brightness: ${brightness.toFixed(2)})`);
         qualityScore -= 0.3;
       }
 
       // Check sharpness (blur detection)
-      const sharpness = imageInfo.sharpness || 0.7;
+      const sharpness = imageInfo.sharpness ?? 0;
       if (sharpness < MIN_SHARPNESS) {
         issues.push(`Photo too blurry (sharpness: ${sharpness.toFixed(2)})`);
         qualityScore -= 0.3;
@@ -126,7 +126,8 @@ export class VerificationRules {
   static async compareBeforeAfter(
     beforeUrls: string[],
     afterUrls: string[],
-    jobLocation: Location
+    jobLocation: Location,
+    metadataUrls?: { before: string[]; after: string[] }
   ): Promise<ComparisonResult> {
     try {
       if (beforeUrls.length === 0 || afterUrls.length === 0) {
@@ -148,8 +149,8 @@ export class VerificationRules {
       // Check geolocation consistency
       const geolocationMatch =
         await GeoVerification.checkGeolocationConsistency(
-          beforeUrls,
-          afterUrls,
+          metadataUrls?.before ?? beforeUrls,
+          metadataUrls?.after ?? afterUrls,
           jobLocation
         );
 

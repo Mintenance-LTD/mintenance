@@ -307,10 +307,12 @@ export class JobCRUDService {
    * Routes through web API to trigger escrow release, notifications, and emails.
    */
   static async confirmJobCompletion(
-    jobId: string
+    jobId: string,
+    completedAt: string
   ): Promise<{ success: boolean; message: string }> {
     return mobileApiClient.post<{ success: boolean; message: string }>(
-      `/api/jobs/${jobId}/confirm-completion`
+      `/api/jobs/${jobId}/confirm-completion`,
+      { completedAt }
     );
   }
 
@@ -320,11 +322,12 @@ export class JobCRUDService {
    */
   static async requestJobChanges(
     jobId: string,
-    comments: string
+    comments: string,
+    completedAt: string
   ): Promise<{ success: boolean; message: string }> {
     return mobileApiClient.post<{ success: boolean; message: string }>(
       `/api/jobs/${jobId}/request-changes`,
-      { comments }
+      { comments, completedAt }
     );
   }
 
@@ -344,7 +347,7 @@ export class JobCRUDService {
   ): Promise<Record<string, unknown> | null> {
     try {
       const { contracts } = await mobileApiClient.get<{
-        contracts: Array<Record<string, unknown>>;
+        contracts: Record<string, unknown>[];
       }>(`/api/contracts?job_id=${encodeURIComponent(jobId)}`);
       if (!Array.isArray(contracts) || contracts.length === 0) return null;
       return contracts[0] ?? null;

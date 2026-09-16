@@ -108,7 +108,7 @@ describe('escrow_transactions RLS (real DB)', () => {
   });
 
   it('third party CANNOT read someone else escrow record', async () => {
-    const { data } = await thirdPartyClient
+    const { data, error } = await thirdPartyClient
       .from('escrow_transactions')
       .select('id')
       .eq('id', escrow.id)
@@ -156,26 +156,41 @@ describe('escrow_transactions RLS (real DB)', () => {
       .select('id');
 
     // Insert should fail (RLS policy rejects non-service-role writes)
-    const inserted = error === null && data !== null && data.length > 0;
-    expect(inserted).toBe(false);
+    expect(error?.code).toBe('42501');
+    expect(data).toBeNull();
   });
 
-  it('payee CANNOT update escrow status to released (service-role only)', async () => {
-    const { error, count } = await contractorClient
-      .from('escrow_transactions')
-      .update({ status: 'released' })
-      .eq('id', escrow.id)
-      .select('id', { count: 'exact', head: true });
-
-    const updated = error === null && count !== null && count > 0;
-    expect(updated).toBe(false);
-
-    // Verify status unchanged
-    const { data } = await contractorClient
-      .from('escrow_transactions')
-      .select('status')
-      .eq('id', escrow.id)
-      .single();
-    expect(data?.status).toBe('held');
-  });
+  it.each(['payer', 'payee', 'unrelated'] as const)(
+    '%s cannot mutate or delete escrow through REST',
+    async (actor) => {
+      const client =
+        actor === 'payer'
+          ? homeownerClient
+          : actor === 'payee'
+            ? contractorClient
+            : thirdPartyClient;
+      const update = await client
+        .from('escrow_transactions')
+        .update({ status: 'released', amount: 1 })
+        .eq('id', escrow.id)
+        .select('id');
+      expect(update.error?.code).toBe('42501');
+      expect(update.data).toBeNull();
+      const remove = await client
+        .from('escrow_transactions')
+        .delete()
+        .eq('id', escrow.id)
+        .select('id');
+      expect(remove.error?.code).toBe('42501');
+      expect(remove.data).toBeNull();
+      const persisted = await homeownerClient
+        .from('escrow_transactions')
+        .select('status, amount')
+        .eq('id', escrow.id)
+        .single();
+      expect(persisted.error).toBeNull();
+      expect(persisted.data?.status).toBe('held');
+      expect(Number(persisted.data?.amount)).toBe(500);
+    }
+  );
 });

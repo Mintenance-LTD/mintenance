@@ -8,6 +8,7 @@ import {
   UnauthorizedError,
   BadRequestError,
   RateLimitError,
+  InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logAuditEvent, getClientIp } from '@/lib/audit';
@@ -20,7 +21,10 @@ export const runtime = 'nodejs';
 // future schema-extension. Pattern matched across all auth/MFA routes.
 const disableMFASchema = z
   .object({
-    password: z.string().min(1, 'Password is required for verification'),
+    password: z
+      .string()
+      .min(1, 'Password is required for verification')
+      .max(1024),
   })
   .strict();
 
@@ -35,6 +39,7 @@ export const POST = withApiHandler(
       windowMs: 3600000,
       maxRequests: 3,
       identifier: `mfa-disable:${user.id}`,
+      criticality: 'auth',
     });
 
     if (!rateLimitResult.allowed) {
@@ -45,7 +50,7 @@ export const POST = withApiHandler(
       throw new RateLimitError();
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const validation = disableMFASchema.safeParse(body);
     if (!validation.success) {
       throw new BadRequestError('Invalid request');
@@ -57,11 +62,23 @@ export const POST = withApiHandler(
     // which never actually verified passwords). createAnonClient wraps
     // @supabase/supabase-js with the project's canonical config.
     const supabaseAuth = createAnonClient();
-    const { error: authError } = await supabaseAuth.auth.signInWithPassword({
-      email: user.email,
-      password,
-    });
-    if (authError) {
+    const { data: authData, error: authError } =
+      await supabaseAuth.auth.signInWithPassword({
+        email: user.email,
+        password,
+      });
+    // Password verification creates a temporary provider session. Remove only
+    // that session before mutating MFA; never sign out the account globally.
+    if (authData?.session) {
+      const { error: cleanupError } = await supabaseAuth.auth.signOut({
+        scope: 'local',
+      });
+      if (cleanupError)
+        throw new InternalServerError(
+          'Password verification could not be completed. Please retry.'
+        );
+    }
+    if (authError || authData?.user?.id !== user.id || !authData?.session) {
       logger.warn('Failed password verification for MFA disable', {
         service: 'mfa',
         userId: user.id,

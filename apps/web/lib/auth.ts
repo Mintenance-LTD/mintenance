@@ -311,14 +311,10 @@ export async function rotateTokens(
  * Revoke all refresh tokens for a user
  */
 export async function revokeAllTokens(userId: string): Promise<void> {
-  await serverSupabase
-    .from('refresh_tokens')
-    .update({
-      revoked_at: new Date().toISOString(),
-      revoked_reason: 'logout_all',
-    })
-    .eq('user_id', userId)
-    .is('revoked_at', null);
+  const { error } = await serverSupabase.rpc('revoke_web_sessions_atomic', {
+    p_user_id: userId,
+  });
+  if (error) throw new Error('Unable to revoke web sessions');
 }
 
 /**
@@ -350,23 +346,38 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 
   const secret = getConfig().getRequired('JWT_SECRET');
   const payload = await verifyJWT(token, secret);
-  if (!payload) return null;
+  if (
+    !payload ||
+    !payload.sub ||
+    !Number.isSafeInteger(payload.iat) ||
+    payload.iat <= 0
+  )
+    return null;
+  // Modern signed tokens preserve the original session start in milliseconds.
+  // JWT iat is rounded to seconds and changes on refresh, so it cannot identify
+  // whether the session itself predates a revocation. Legacy tokens fail closed
+  // at the less precise iat boundary until the user signs in again.
+  const sessionStartedAt = payload.sessionStart ?? payload.iat * 1000;
+  if (
+    !Number.isSafeInteger(sessionStartedAt) ||
+    sessionStartedAt <= 0 ||
+    sessionStartedAt > payload.iat * 1000 + 999
+  )
+    return null;
 
   // 2026-05-26 audit-56 P0: durable per-user revocation backstop.
   // The in-memory blacklist doesn't survive serverless cold starts /
   // horizontal scaling. profiles.tokens_revoked_at is bumped on every
-  // logout (and any future password-reset / admin-revoke path); any
-  // JWT issued strictly before that cutoff is rejected regardless of
-  // blacklist state. JWT iat is in SECONDS per RFC 7519; the DB
-  // timestamp is in milliseconds, so compare in the same unit.
+  // logout and secured password change. Sessions established before
+  // that cutoff are rejected regardless of blacklist state or refresh.
   try {
     if (payload.sub && payload.iat) {
       const { data: profile, error: revocationLookupError } =
         await serverSupabase
-        .from('profiles')
-        .select('tokens_revoked_at')
-        .eq('id', payload.sub)
-        .maybeSingle();
+          .from('profiles')
+          .select('tokens_revoked_at')
+          .eq('id', payload.sub)
+          .maybeSingle();
       if (revocationLookupError) {
         throw revocationLookupError;
       }
@@ -380,9 +391,10 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       const revokedAt = profile?.tokens_revoked_at
         ? new Date(profile.tokens_revoked_at as string).getTime()
         : 0;
-      if (revokedAt > 0 && payload.iat * 1000 < revokedAt) {
+      if (!Number.isFinite(revokedAt)) return null;
+      if (revokedAt > 0 && sessionStartedAt < revokedAt) {
         logger.warn(
-          'Token verification failed: issued before tokens_revoked_at',
+          'Token verification failed: session started before tokens_revoked_at',
           {
             service: 'auth',
             userId: payload.sub,

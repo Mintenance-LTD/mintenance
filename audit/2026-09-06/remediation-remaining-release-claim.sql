@@ -34,6 +34,8 @@ BEGIN
  UPDATE public.jobs SET status='assigned' WHERE id=job;
  UPDATE public.jobs SET status='in_progress' WHERE id=job;
  UPDATE public.jobs SET status='completed' WHERE id=job;
+ INSERT INTO public.job_photos_metadata(job_id,photo_url,photo_type,verified) VALUES(job,'https://example.invalid/synthetic-after','after',true);
+ PERFORM public.approve_job_completion(job,actor,NULL,e.id,NULL,false,true);
  IF (SELECT remaining_minor FROM public.claim_escrow_release(e.id,'manual_release',gen_random_uuid())) IS DISTINCT FROM 40000 THEN
   RAISE EXCEPTION 'Claim did not return remaining principal'; END IF;
  IF EXISTS(SELECT 1 FROM public.claim_escrow_release(e.id,'auto_release',gen_random_uuid())) THEN

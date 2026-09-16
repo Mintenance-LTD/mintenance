@@ -1,3 +1,4 @@
+import { applyPaymentIntentState } from './payment-state-transition';
 import {
   getEscrowCashRequirement,
   reconcileReservedFundingIntent,
@@ -54,7 +55,6 @@ export async function lookupEscrowForTerminalEvent(
 ): Promise<
   | { id: string; job_id: string | null; payer_id: string | null }
   | null
-  | 'error'
   | 'blocked'
 > {
   const { data: existing, error } = await serverSupabase
@@ -72,7 +72,7 @@ export async function lookupEscrowForTerminalEvent(
     // A lookup failure is distinct from a missing escrow. Callers must not
     // fall back to metadata-driven mutations while the authoritative state
     // is unknown.
-    return 'error';
+    throw new Error('Failed to look up escrow for terminal payment event');
   }
   if (!existing) return null;
   if (!PRE_MONEY_STATUSES.includes(existing.status)) {
@@ -144,6 +144,28 @@ export async function handlePaymentIntentSucceeded(
       return;
     }
 
+    const TERMINAL_OR_RELEASING = [
+      'pending_review',
+      'awaiting_homeowner_approval',
+      'release_pending',
+      'released',
+      'completed',
+      'refunded',
+      'disputed',
+    ];
+    if (TERMINAL_OR_RELEASING.includes(existing.status)) {
+      logger.warn(
+        'Ignoring payment_intent.succeeded for escrow already past held',
+        {
+          service: 'stripe-webhook',
+          paymentIntentId: paymentIntent.id,
+          escrowId: existing.id,
+          currentStatus: existing.status,
+        }
+      );
+      return;
+    }
+
     const escrowAmountCents = await getEscrowCashRequirement(
       existing.id,
       Number(existing.amount),
@@ -166,54 +188,13 @@ export async function handlePaymentIntentSucceeded(
       return;
     }
 
-    const TERMINAL_OR_RELEASING = [
-      'release_pending',
-      'released',
-      'completed',
-      'refunded',
-      'disputed',
-    ];
-    if (TERMINAL_OR_RELEASING.includes(existing.status)) {
-      logger.warn(
-        'Ignoring payment_intent.succeeded for escrow already past held',
-        {
-          service: 'stripe-webhook',
-          paymentIntentId: paymentIntent.id,
-          escrowId: existing.id,
-          currentStatus: existing.status,
-        }
-      );
-      return;
-    }
-
-    const { data: escrowTransaction, error: escrowError } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        status: 'held',
-        payment_intent_id: paymentIntent.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id)
-      // Compare-and-set: a release/refund/dispute may have won after our read.
-      .eq('status', existing.status)
-      .select()
-      .single();
-
-    if (escrowError) {
-      logger.error('Failed to update escrow transaction', escrowError, {
-        service: 'stripe-webhook',
-        paymentIntentId: paymentIntent.id,
-      });
-      throw new Error('Failed to persist funded escrow transaction');
-    }
-
-    if (!escrowTransaction) {
-      logger.warn('No escrow transaction found for payment intent', {
-        service: 'stripe-webhook',
-        paymentIntentId: paymentIntent.id,
-      });
-      throw new Error('Escrow transaction missing for successful payment');
-    }
+    const escrowTransaction = await applyPaymentIntentState(
+      paymentIntent.id,
+      'succeeded',
+      paymentIntent.amount,
+      paymentIntent.currency
+    );
+    if (!escrowTransaction) return;
 
     await reconcileInvoicePayment(paymentIntent);
 
@@ -285,22 +266,6 @@ export async function handlePaymentIntentSucceeded(
       escrowId: escrowTransaction.id,
     });
 
-    const { error: jobError } = await serverSupabase
-      .from('jobs')
-      .update({
-        payment_status: 'paid',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', escrowTransaction.job_id);
-
-    if (jobError) {
-      logger.error('Failed to update job payment status', jobError, {
-        service: 'stripe-webhook',
-        jobId: escrowTransaction.job_id,
-      });
-      throw new Error('Failed to persist job payment status');
-    }
-
     // R6 #5 deferred: tell every stakeholder the job is funded. This is
     // where the 'payment_secured' canonical event fires — homeowner,
     // payer (landlord), contractor, and tenants (on rental properties)
@@ -363,50 +328,15 @@ export async function handlePaymentIntentFailed(
       paymentIntent.id,
       'payment_intent.payment_failed'
     );
-    if (existing === 'blocked' || existing === 'error') return;
+    if (existing === 'blocked') return;
 
-    let escrowTransaction: {
-      id: string;
-      job_id: string | null;
-      payer_id: string | null;
-    } | null = null;
-    if (existing) {
-      const { data: updated, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: 'failed',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        // Re-assert the guard at write time so a concurrent
-        // payment_intent.succeeded can't interleave between lookup and update.
-        .in('status', PRE_MONEY_STATUSES)
-        .select()
-        .single();
-
-      if (escrowError) {
-        logger.error(
-          'Failed to update escrow transaction status',
-          escrowError,
-          {
-            service: 'stripe-webhook',
-            paymentIntentId: paymentIntent.id,
-          }
-        );
-      }
-      escrowTransaction = updated ?? existing;
-    }
-
-    const jobId = escrowTransaction?.job_id || paymentIntent.metadata?.jobId;
+    const escrowTransaction = await applyPaymentIntentState(
+      paymentIntent.id,
+      'failed'
+    );
+    if (!escrowTransaction) return;
+    const jobId = escrowTransaction.job_id;
     if (jobId) {
-      await serverSupabase
-        .from('jobs')
-        .update({
-          payment_status: 'failed',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', jobId);
-
       const homeownerId =
         escrowTransaction?.payer_id ||
         paymentIntent.metadata?.payerId ||
@@ -456,40 +386,9 @@ export async function handlePaymentIntentCanceled(
       paymentIntent.id,
       'payment_intent.canceled'
     );
-    if (existing === 'blocked' || existing === 'error') return;
+    if (existing === 'blocked') return;
 
-    let escrowTransaction: { id: string; job_id: string | null } | null = null;
-    if (existing) {
-      const { data: updated, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: 'canceled',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        .in('status', PRE_MONEY_STATUSES)
-        .select()
-        .single();
-
-      if (escrowError) {
-        logger.error('Failed to update canceled payment status', escrowError, {
-          service: 'stripe-webhook',
-          paymentIntentId: paymentIntent.id,
-        });
-      }
-      escrowTransaction = updated ?? existing;
-    }
-
-    const jobId = escrowTransaction?.job_id || paymentIntent.metadata?.jobId;
-    if (jobId) {
-      await serverSupabase
-        .from('jobs')
-        .update({
-          payment_status: 'canceled',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', jobId);
-    }
+    await applyPaymentIntentState(paymentIntent.id, 'canceled');
 
     logger.info('Payment marked as canceled', {
       service: 'stripe-webhook',

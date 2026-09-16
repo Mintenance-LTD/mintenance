@@ -190,188 +190,196 @@ export const POST = withApiHandler(
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
-    return await releaseOnError(idempotencyKey, 'pay_invoice', async () => {
-      const { data: existingPayment } = await serverSupabase
-        .from('payments')
-        .select('id, status, stripe_payment_intent_id')
-        .eq('invoice_id', invoice.id)
-        .eq('payer_id', user.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    return await releaseOnError(
+      idempotencyKey,
+      'pay_invoice',
+      async () => {
+        const { data: existingPayment } = await serverSupabase
+          .from('payments')
+          .select('id, status, stripe_payment_intent_id')
+          .eq('invoice_id', invoice.id)
+          .eq('payer_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      const REUSABLE_STRIPE_STATUSES = new Set([
-        'requires_payment_method',
-        'requires_confirmation',
-        'requires_action',
-        'processing',
-      ]);
+        const REUSABLE_STRIPE_STATUSES = new Set([
+          'requires_payment_method',
+          'requires_confirmation',
+          'requires_action',
+          'processing',
+        ]);
 
-      if (existingPayment?.stripe_payment_intent_id) {
-        try {
-          const existingIntent = await stripe.paymentIntents.retrieve(
-            existingPayment.stripe_payment_intent_id
-          );
-          if (REUSABLE_STRIPE_STATUSES.has(existingIntent.status)) {
-            const { data: existingEscrow } = await serverSupabase
-              .from('escrow_transactions')
-              .select('id, status')
-              .eq('payment_intent_id', existingIntent.id)
-              .maybeSingle();
-            logger.info('Re-using existing pending invoice payment intent', {
-              invoiceId: invoice.id,
-              paymentId: existingPayment.id,
-              paymentIntentId: existingIntent.id,
-              intentStatus: existingIntent.status,
-            });
-            const responseData = {
-              success: true,
-              paymentIntent: {
-                id: existingIntent.id,
-                clientSecret: existingIntent.client_secret,
-                amount: existingIntent.amount,
-                currency: existingIntent.currency,
-              },
-              escrow: existingEscrow
-                ? { id: existingEscrow.id, status: existingEscrow.status }
-                : null,
-              payment: {
-                id: existingPayment.id,
-                status: existingPayment.status,
-              },
-              invoice: {
-                id: invoice.id,
-                number: invoice.invoice_number,
-                amount: invoice.total_amount,
-              },
-              redirectUrl:
-                safeReturnUrl || `/payments/${existingPayment.id}/confirm`,
-              reused: true,
-            };
-            await storeIdempotencyResult(
-              idempotencyKey,
-              'pay_invoice',
-              responseData,
-              user.id,
-              { invoiceId: invoice.id, paymentId: existingPayment.id }
+        if (existingPayment?.stripe_payment_intent_id) {
+          try {
+            const existingIntent = await stripe.paymentIntents.retrieve(
+              existingPayment.stripe_payment_intent_id
             );
-            return NextResponse.json(responseData);
+            if (REUSABLE_STRIPE_STATUSES.has(existingIntent.status)) {
+              const { data: existingEscrow } = await serverSupabase
+                .from('escrow_transactions')
+                .select('id, status')
+                .eq('payment_intent_id', existingIntent.id)
+                .maybeSingle();
+              logger.info('Re-using existing pending invoice payment intent', {
+                invoiceId: invoice.id,
+                paymentId: existingPayment.id,
+                paymentIntentId: existingIntent.id,
+                intentStatus: existingIntent.status,
+              });
+              const responseData = {
+                success: true,
+                paymentIntent: {
+                  id: existingIntent.id,
+                  clientSecret: existingIntent.client_secret,
+                  amount: existingIntent.amount,
+                  currency: existingIntent.currency,
+                },
+                escrow: existingEscrow
+                  ? { id: existingEscrow.id, status: existingEscrow.status }
+                  : null,
+                payment: {
+                  id: existingPayment.id,
+                  status: existingPayment.status,
+                },
+                invoice: {
+                  id: invoice.id,
+                  number: invoice.invoice_number,
+                  amount: invoice.total_amount,
+                },
+                redirectUrl:
+                  safeReturnUrl || `/payments/${existingPayment.id}/confirm`,
+                reused: true,
+              };
+              await storeIdempotencyResult(
+                idempotencyKey,
+                'pay_invoice',
+                responseData,
+                user.id,
+                { invoiceId: invoice.id, paymentId: existingPayment.id },
+                idempotencyCheck?.ownership
+              );
+              return NextResponse.json(responseData);
+            }
+          } catch (retrieveErr) {
+            logger.warn('Failed to retrieve existing payment intent', {
+              paymentIntentId: existingPayment.stripe_payment_intent_id,
+              error:
+                retrieveErr instanceof Error
+                  ? retrieveErr.message
+                  : String(retrieveErr),
+            });
           }
-        } catch (retrieveErr) {
-          logger.warn('Failed to retrieve existing payment intent', {
-            paymentIntentId: existingPayment.stripe_payment_intent_id,
-            error:
-              retrieveErr instanceof Error
-                ? retrieveErr.message
-                : String(retrieveErr),
-          });
         }
-      }
 
-      const contractorTier = await FeeCalculationService.resolveContractorTier(
-        invoice.contractor_id
-      );
-      const feeBreakdown = FeeCalculationService.calculateFees(
-        invoice.total_amount,
-        { contractorTier }
-      );
-
-      const paymentIntent = await createInvoicePaymentIntent(
-        invoice,
-        user.id,
-        idempotencyKey
-      );
-
-      const escrow = await createEscrowTransaction(
-        invoice,
-        user.id,
-        paymentIntent.id
-      );
-
-      const { data: payment, error: paymentError } = await serverSupabase
-        .from('payments')
-        .insert({
-          invoice_id: invoice.id,
-          job_id: invoice.job_id,
-          payer_id: user.id,
-          payee_id: invoice.contractor_id,
-          amount: invoice.total_amount,
-          currency: 'GBP',
-          payment_method: 'stripe',
-          stripe_payment_intent_id: paymentIntent.id,
-          status: 'pending',
-          description: `Payment for invoice ${invoice.invoice_number}`,
-          platform_fee: feeBreakdown.platformFee,
-          processing_fee: feeBreakdown.stripeFee,
-          net_amount: feeBreakdown.contractorAmount,
-        })
-        .select()
-        .single();
-
-      if (paymentError) {
-        logger.error('Error creating payment record', paymentError);
-        throw new InternalServerError(
-          'Payment was created but could not be recorded. Please contact support.'
+        const contractorTier =
+          await FeeCalculationService.resolveContractorTier(
+            invoice.contractor_id
+          );
+        const feeBreakdown = FeeCalculationService.calculateFees(
+          invoice.total_amount,
+          { contractorTier }
         );
-      }
 
-      await serverSupabase
-        .from('invoices')
-        .update({
-          status: 'viewed',
-          viewed_at: new Date().toISOString(),
-        })
-        .eq('id', invoice.id);
+        const paymentIntent = await createInvoicePaymentIntent(
+          invoice,
+          user.id,
+          idempotencyKey
+        );
 
-      const fmtAmount = `£${Number(invoice.total_amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-      await NotificationService.createNotification({
-        userId: invoice.contractor_id,
-        type: 'payment_initiated',
-        title: `${fmtAmount} on the way for ${invoice.invoice_number}`,
-        message: `Payment is in flight — typically lands in 1–2 business days.`,
-        metadata: {
-          invoice_id: invoice.id,
-          payment_id: payment?.id,
-          amount: invoice.total_amount,
-        },
-      });
+        const escrow = await createEscrowTransaction(
+          invoice,
+          user.id,
+          paymentIntent.id
+        );
 
-      logger.info('Payment initiated for invoice', {
-        invoiceId: invoice.id,
-        paymentIntentId: paymentIntent.id,
-        escrowId: escrow.id,
-        payerId: user.id,
-      });
+        const { data: payment, error: paymentError } = await serverSupabase
+          .from('payments')
+          .insert({
+            invoice_id: invoice.id,
+            job_id: invoice.job_id,
+            payer_id: user.id,
+            payee_id: invoice.contractor_id,
+            amount: invoice.total_amount,
+            currency: 'GBP',
+            payment_method: 'stripe',
+            stripe_payment_intent_id: paymentIntent.id,
+            status: 'pending',
+            description: `Payment for invoice ${invoice.invoice_number}`,
+            platform_fee: feeBreakdown.platformFee,
+            processing_fee: feeBreakdown.stripeFee,
+            net_amount: feeBreakdown.contractorAmount,
+          })
+          .select()
+          .single();
 
-      const responseData = {
-        success: true,
-        paymentIntent: {
-          id: paymentIntent.id,
-          clientSecret: paymentIntent.client_secret,
-          amount: paymentIntent.amount,
-          currency: paymentIntent.currency,
-        },
-        escrow: { id: escrow.id, status: escrow.status },
-        payment: payment ? { id: payment.id, status: payment.status } : null,
-        invoice: {
-          id: invoice.id,
-          number: invoice.invoice_number,
-          amount: invoice.total_amount,
-        },
-        redirectUrl:
-          safeReturnUrl ||
-          `/payments/${payment?.id || paymentIntent.id}/confirm`,
-      };
-      await storeIdempotencyResult(
-        idempotencyKey,
-        'pay_invoice',
-        responseData,
-        user.id,
-        { invoiceId: invoice.id, paymentIntentId: paymentIntent.id }
-      );
-      return NextResponse.json(responseData);
-    });
+        if (paymentError) {
+          logger.error('Error creating payment record', paymentError);
+          throw new InternalServerError(
+            'Payment was created but could not be recorded. Please contact support.'
+          );
+        }
+
+        await serverSupabase
+          .from('invoices')
+          .update({
+            status: 'viewed',
+            viewed_at: new Date().toISOString(),
+          })
+          .eq('id', invoice.id);
+
+        const fmtAmount = `£${Number(invoice.total_amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+        await NotificationService.createNotification({
+          userId: invoice.contractor_id,
+          type: 'payment_initiated',
+          title: `${fmtAmount} on the way for ${invoice.invoice_number}`,
+          message: `Payment is in flight — typically lands in 1–2 business days.`,
+          metadata: {
+            invoice_id: invoice.id,
+            payment_id: payment?.id,
+            amount: invoice.total_amount,
+          },
+        });
+
+        logger.info('Payment initiated for invoice', {
+          invoiceId: invoice.id,
+          paymentIntentId: paymentIntent.id,
+          escrowId: escrow.id,
+          payerId: user.id,
+        });
+
+        const responseData = {
+          success: true,
+          paymentIntent: {
+            id: paymentIntent.id,
+            clientSecret: paymentIntent.client_secret,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+          },
+          escrow: { id: escrow.id, status: escrow.status },
+          payment: payment ? { id: payment.id, status: payment.status } : null,
+          invoice: {
+            id: invoice.id,
+            number: invoice.invoice_number,
+            amount: invoice.total_amount,
+          },
+          redirectUrl:
+            safeReturnUrl ||
+            `/payments/${payment?.id || paymentIntent.id}/confirm`,
+        };
+        await storeIdempotencyResult(
+          idempotencyKey,
+          'pay_invoice',
+          responseData,
+          user.id,
+          { invoiceId: invoice.id, paymentIntentId: paymentIntent.id },
+          idempotencyCheck?.ownership
+        );
+        return NextResponse.json(responseData);
+      },
+      idempotencyCheck?.ownership
+    );
   }
 );
 

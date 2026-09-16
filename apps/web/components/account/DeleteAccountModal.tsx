@@ -1,9 +1,8 @@
 'use client';
 
+import { readAccountDeletionOutcome } from '@/lib/account-deletion-outcome';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   Dialog,
@@ -34,7 +33,6 @@ interface DeleteAccountModalProps {
 export function DeleteAccountModal({
   isOpen,
   onClose,
-  userId,
 }: DeleteAccountModalProps) {
   const router = useRouter();
   const [confirmationText, setConfirmationText] = useState('');
@@ -51,14 +49,8 @@ export function DeleteAccountModal({
     setError(null);
 
     try {
-      // 2026-05-23: previously hit DELETE /api/account/delete, which is
-      // a SOFT delete that only sets `deleted_at` + anonymizes the
-      // profile row and leaves the auth credential intact — so the
-      // user could log back in immediately. The modal copy promises
-      // "permanently remove your profile and all associated data",
-      // which is the hard-delete contract. Point at the GDPR erasure
-      // endpoint instead.
-      //
+      // Use the account-erasure endpoint; the sibling account/delete route
+      // only deactivates a profile. Signed evidence is retained separately.
       // 2026-05-27 audit-86 P1: /api/user/delete-account goes through
       // withApiHandler which requires CSRF on mutating cookie-auth
       // requests. The previous fetch sent only Content-Type, so the
@@ -81,8 +73,13 @@ export function DeleteAccountModal({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete account');
+        throw new Error(
+          data.error?.message || data.error || 'Failed to delete account'
+        );
       }
+
+      const outcome = readAccountDeletionOutcome(data, response.status);
+      if (!outcome.completed) window.alert(outcome.notice);
 
       // Clear any auth cookies/tokens
       document.cookie.split(';').forEach((c) => {
@@ -92,7 +89,7 @@ export function DeleteAccountModal({
       });
 
       // Redirect to login page
-      router.push('/login?message=Account deleted successfully');
+      router.push(outcome.completed ? '/login?deleted=true' : '/login');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setLoading(false);
@@ -132,14 +129,13 @@ export function DeleteAccountModal({
         <Alert variant='destructive' className='mb-4'>
           <AlertTriangle className='h-4 w-4' />
           <AlertDescription>
-            <strong>Warning:</strong> Deleting your account will permanently
-            remove your profile and all associated data. This includes:
-            <ul className='mt-2 ml-5 list-disc space-y-1'>
-              <li>Your profile information</li>
-              <li>Job postings and bids</li>
-              <li>Messages and conversations</li>
-              <li>Payment and transaction history</li>
-            </ul>
+            <strong>Warning:</strong> Deleting your account removes your profile
+            and login access. This action cannot be undone.
+            <p className='mt-2'>
+              Signed contract evidence is retained with restricted access for
+              legal claims. Deletion does not erase the other party's agreement.
+              Active jobs, payments or disputes may need to be resolved first.
+            </p>
           </AlertDescription>
         </Alert>
 

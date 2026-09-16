@@ -7,9 +7,10 @@ const state = vi.hoisted(() => ({
   status: 'held',
   writes: [] as string[],
   from: vi.fn(),
+  rpc: vi.fn(),
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: { from: state.from },
+  serverSupabase: { from: state.from, rpc: state.rpc },
 }));
 vi.mock('@/lib/services/notifications/JobStakeholderNotifier', () => ({
   notifyStakeholders: vi.fn(),
@@ -37,6 +38,7 @@ it('AUDIT: cookie HS256 verifier used by proxy rejects an otherwise valid ES256 
 
 it('preserves a concurrent release claim when processing a success webhook', async () => {
   state.status = 'held';
+  state.rpc.mockResolvedValue({ data: [], error: null });
   state.writes = [];
   state.from.mockImplementation((table: string) => {
     let update: Record<string, unknown> | undefined;
@@ -96,7 +98,11 @@ it('preserves a concurrent release claim when processing a success webhook', asy
       } as never,
       vi.fn()
     )
-  ).rejects.toThrow();
+  ).resolves.toBeUndefined();
+  expect(state.rpc).toHaveBeenCalledWith(
+    'apply_payment_intent_state',
+    expect.objectContaining({ p_outcome: 'succeeded' })
+  );
   expect(state.status).toBe('release_pending');
   expect(state.writes).toEqual([]);
 });

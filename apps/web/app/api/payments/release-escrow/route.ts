@@ -1,3 +1,8 @@
+import {
+  settleFeeOnlyEscrow,
+  readFeeOnlySettlement,
+  feeOnlyReleaseResponse,
+} from '@/lib/services/payment/FeeOnlySettlementService';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
@@ -73,28 +78,8 @@ export const POST = withApiHandler(
       escrowTransactionId
     );
 
-    const idempotencyCheck = await checkIdempotency(
-      idempotencyKey,
-      'release_escrow',
-      true,
-      { userId: user.id, request: validation.data }
-    );
-    if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
-      logger.info(
-        'Duplicate escrow release detected, returning cached result',
-        {
-          service: 'payments',
-          idempotencyKey,
-          userId: user.id,
-          escrowTransactionId,
-        }
-      );
-      return NextResponse.json(idempotencyCheck.cachedResult);
-    }
-
-    // Past the duplicate path. We own the claim — release on failure so
-    // the user can retry without waiting for the 60s stale takeover.
-    // (checkIdempotency now throws on real contention; null = new request.)
+    let ownsIdempotencyClaim = false;
+    let claimOwnership: import('@/lib/idempotency').ClaimOwnership | undefined;
     try {
       const { data: escrowTransaction, error: escrowError } =
         await serverSupabase
@@ -173,6 +158,44 @@ export const POST = withApiHandler(
           userRole: user.role,
         });
         throw new ForbiddenError('Unauthorized to release this escrow');
+      }
+
+      const idempotencyCheck = await checkIdempotency(
+        idempotencyKey,
+        'release_escrow',
+        true,
+        { userId: user.id, request: validation.data }
+      );
+      if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
+        logger.info(
+          'Duplicate escrow release detected, returning cached result',
+          {
+            service: 'payments',
+            idempotencyKey,
+            userId: user.id,
+            escrowTransactionId,
+          }
+        );
+        return NextResponse.json(idempotencyCheck.cachedResult);
+      }
+      ownsIdempotencyClaim = true;
+      claimOwnership = idempotencyCheck?.ownership;
+
+      // Recover a committed settlement after a lost response, only after the
+      // same MFA/role/participant gates used for a new release.
+      if (
+        escrowTransaction.status === 'completed' &&
+        escrowTransaction.contractor_payout === 0
+      ) {
+        const settlement = await readFeeOnlySettlement(escrowTransactionId);
+        if (settlement)
+          return NextResponse.json(
+            feeOnlyReleaseResponse(
+              settlement,
+              escrowTransaction.amount,
+              job.contractor_id
+            )
+          );
       }
 
       // Validate current state allows release
@@ -408,6 +431,28 @@ export const POST = withApiHandler(
         feeBreakdown.contractorAmount * 100
       );
 
+      if (contractorAmountCents === 0) {
+        const settlement = await settleFeeOnlyEscrow(
+          escrowTransactionId,
+          remainingMinor,
+          user.id
+        );
+        const responseData = feeOnlyReleaseResponse(
+          settlement,
+          escrowTransaction.amount,
+          job.contractor_id
+        );
+        await storeIdempotencyResult(
+          idempotencyKey,
+          'release_escrow',
+          responseData,
+          user.id,
+          { escrowTransactionId, settlementId: settlement.id, releaseReason },
+          claimOwnership
+        );
+        return NextResponse.json(responseData);
+      }
+
       // Step 2: Create Stripe transfer (DB already locked as release_pending)
       const transfer = await performStripeTransfer(
         contractorAmountCents,
@@ -613,7 +658,8 @@ export const POST = withApiHandler(
         'release_escrow',
         responseData,
         user.id,
-        { escrowTransactionId, transferId: transfer.id, releaseReason }
+        { escrowTransactionId, transferId: transfer.id, releaseReason },
+        claimOwnership
       );
 
       return NextResponse.json(responseData);
@@ -621,7 +667,12 @@ export const POST = withApiHandler(
       // Release the claim so the user can retry now. Swallow release
       // failures — the 60s backstop still applies.
       try {
-        await releaseIdempotencyClaim(idempotencyKey, 'release_escrow');
+        if (ownsIdempotencyClaim)
+          await releaseIdempotencyClaim(
+            idempotencyKey,
+            'release_escrow',
+            claimOwnership
+          );
       } catch {
         // intentional: don't let release failure mask the original error
       }

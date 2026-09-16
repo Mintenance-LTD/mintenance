@@ -142,7 +142,7 @@ vi.mock('../database', () => ({
 vi.mock('../api/supabaseServer', () => ({
   serverSupabase: {
     from: vi.fn(() => supabaseChain),
-    rpc: vi.fn(() => supabaseChain),
+    rpc: supabaseChain.rpc,
   },
 }));
 
@@ -176,21 +176,21 @@ describe('Auth Library', () => {
   /**
    * Reset the supabase chain mocks to their default (success) behavior.
    * Must be called after vi.clearAllMocks() since that clears all mock implementations.
-    */
-    function resetSupabaseChain() {
-      supabaseChain.single.mockImplementation(() =>
-        Promise.resolve({
-          data: {
-            role: 'homeowner',
-            first_name: 'John',
-            last_name: 'Doe',
-          },
-          error: null,
-        })
-      );
-      supabaseChain.maybeSingle.mockImplementation(() =>
+   */
+  function resetSupabaseChain() {
+    supabaseChain.single.mockImplementation(() =>
+      Promise.resolve({
+        data: {
+          role: 'homeowner',
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+        error: null,
+      })
+    );
+    supabaseChain.maybeSingle.mockImplementation(() =>
       Promise.resolve({ data: { tokens_revoked_at: null }, error: null })
-      );
+    );
     supabaseChain.is.mockImplementation(() => supabaseChain);
     supabaseChain.eq.mockImplementation(() => supabaseChain);
     supabaseChain.select.mockImplementation(() => supabaseChain);
@@ -283,6 +283,83 @@ describe('Auth Library', () => {
   });
 
   describe('verifyToken', () => {
+    it('accepts a fresh login after revocation within the same JWT second', async () => {
+      const second = Math.floor(Date.now() / 1000) * 1000;
+      vi.useFakeTimers();
+      vi.setSystemTime(second + 900);
+      try {
+        supabaseChain.maybeSingle.mockResolvedValueOnce({
+          data: { tokens_revoked_at: new Date(second + 500).toISOString() },
+          error: null,
+        });
+        const token = await createToken(mockUser);
+        expect(await verifyToken(token)).not.toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('rejects a newly issued JWT that still belongs to a revoked older session', async () => {
+      const now = Date.now();
+      supabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: { tokens_revoked_at: new Date(now - 30000).toISOString() },
+        error: null,
+      });
+      const pair = await createTokenPair(
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        now - 60000
+      );
+      expect(await verifyToken(pair.accessToken)).toBeNull();
+    });
+
+    it('rejects an impossible future session start', async () => {
+      const pair = await createTokenPair(
+        mockUser,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        Date.now() + 10000
+      );
+      expect(await verifyToken(pair.accessToken)).toBeNull();
+    });
+
+    it('retains a conservative cutoff for legacy signed tokens without sessionStart', async () => {
+      const { SignJWT } = await import('jose');
+      const issuedAt = Math.floor(Date.now() / 1000);
+      const token = await new SignJWT({
+        sub: mockUser.id,
+        email: mockUser.email,
+        role: mockUser.role,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt(issuedAt)
+        .setExpirationTime('1h')
+        .sign(
+          new TextEncoder().encode(
+            'test-secret-key-that-is-long-enough-for-security'
+          )
+        );
+      supabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: {
+          tokens_revoked_at: new Date(issuedAt * 1000 + 100).toISOString(),
+        },
+        error: null,
+      });
+      expect(await verifyToken(token)).toBeNull();
+      supabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: {
+          tokens_revoked_at: new Date(issuedAt * 1000 - 100).toISOString(),
+        },
+        error: null,
+      });
+      expect(await verifyToken(token)).not.toBeNull();
+    });
+
     it('should verify valid JWT token', async () => {
       const token = await createToken(mockUser);
       const payload = await verifyToken(token);
@@ -437,13 +514,21 @@ describe('Auth Library', () => {
 
   describe('revokeAllTokens', () => {
     it('should revoke all tokens for a user', async () => {
-      // revokeAllTokens returns Promise<void> - should not throw
+      supabaseChain.rpc.mockResolvedValueOnce({ error: null });
       await expect(revokeAllTokens(mockUser.id)).resolves.toBeUndefined();
+      expect(supabaseChain.rpc).toHaveBeenLastCalledWith(
+        'revoke_web_sessions_atomic',
+        { p_user_id: mockUser.id }
+      );
     });
 
-    it('should not throw for any user ID', async () => {
-      // revokeAllTokens calls .update().eq().is() and returns void
-      await expect(revokeAllTokens('any-user-id')).resolves.toBeUndefined();
+    it('reports a failed revocation instead of claiming success', async () => {
+      supabaseChain.rpc.mockResolvedValueOnce({
+        error: { message: 'synthetic database failure' },
+      });
+      await expect(revokeAllTokens(mockUser.id)).rejects.toThrow(
+        'Unable to revoke web sessions'
+      );
     });
   });
 

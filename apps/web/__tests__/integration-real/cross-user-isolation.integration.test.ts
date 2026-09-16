@@ -207,6 +207,7 @@ describe('cross-user data isolation (real DB)', () => {
       .select('id')
       .eq('id', propertyBId)
       .maybeSingle();
+    expect(foreign.error).toBeNull();
     expect(foreign.data).toBeNull();
 
     const update = await homeownerAClient
@@ -229,7 +230,14 @@ describe('cross-user data isolation (real DB)', () => {
       property_type: 'residential',
       address: 'forged',
     });
-    expect(forgedInsert.error).not.toBeNull();
+    expect(forgedInsert.error?.code).toBe('42501');
+    const unchanged = await homeownerBClient
+      .from('properties')
+      .select('property_name')
+      .eq('id', propertyBId)
+      .single();
+    expect(unchanged.error).toBeNull();
+    expect(unchanged.data?.property_name).toBe('itest_property_b');
   });
 
   it('isolates private jobs and keeps marketplace visibility contractor-only', async () => {
@@ -238,6 +246,7 @@ describe('cross-user data isolation (real DB)', () => {
       .select('id')
       .eq('id', jobB.id)
       .maybeSingle();
+    expect(homeownerRead.error).toBeNull();
     expect(homeownerRead.data).toBeNull();
 
     const homeownerWrite = await homeownerAClient
@@ -254,6 +263,7 @@ describe('cross-user data isolation (real DB)', () => {
       .select('id')
       .eq('id', jobB.id)
       .maybeSingle();
+    expect(contractorRead.error).toBeNull();
     expect(contractorRead.data).toBeNull();
 
     const posted = await createServiceClient()
@@ -309,6 +319,7 @@ describe('cross-user data isolation (real DB)', () => {
       .select('id')
       .eq('id', jobA.id)
       .maybeSingle();
+    expect(otherContractorRead.error).toBeNull();
     expect(otherContractorRead.data).toBeNull();
 
     const assignedContractorWrite = await contractorAClient
@@ -341,11 +352,26 @@ describe('cross-user data isolation (real DB)', () => {
   });
 
   it('isolates messages and contractor documents across users', async () => {
+    const ownMessage = await homeownerBClient
+      .from('messages')
+      .select('id')
+      .eq('id', messageBId)
+      .single();
+    expect(ownMessage.error).toBeNull();
+    expect(ownMessage.data?.id).toBe(messageBId);
+    const ownDocument = await contractorBClient
+      .from('contractor_documents')
+      .select('id')
+      .eq('id', documentBId)
+      .single();
+    expect(ownDocument.error).toBeNull();
+    expect(ownDocument.data?.id).toBe(documentBId);
     const messageRead = await homeownerAClient
       .from('messages')
       .select('id')
       .eq('id', messageBId)
       .maybeSingle();
+    expect(messageRead.error).toBeNull();
     expect(messageRead.data).toBeNull();
     const messageUpdate = await homeownerAClient
       .from('messages')
@@ -369,6 +395,7 @@ describe('cross-user data isolation (real DB)', () => {
       .select('id')
       .eq('id', documentBId)
       .maybeSingle();
+    expect(documentRead.error).toBeNull();
     expect(documentRead.data).toBeNull();
     const documentUpdate = await contractorAClient
       .from('contractor_documents')
@@ -394,12 +421,14 @@ describe('cross-user data isolation (real DB)', () => {
       .select('id')
       .eq('id', tokenBId)
       .maybeSingle();
+    expect(tokenRead.error).toBeNull();
     expect(tokenRead.data).toBeNull();
     const reportRead = await homeownerAClient
       .from('anonymous_reports')
       .select('id')
       .eq('id', reportBId)
       .maybeSingle();
+    expect(reportRead.error).toBeNull();
     expect(reportRead.data).toBeNull();
 
     const adminToken = await adminClient

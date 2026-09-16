@@ -128,6 +128,7 @@ export default async function ContractorJobDetailPage({
       'id, status, contractor_signed_at, homeowner_signed_at, start_date, end_date'
     )
     .eq('job_id', resolvedParams.id)
+    .neq('status', 'cancelled')
     .single();
 
   const contractStatus = !contract

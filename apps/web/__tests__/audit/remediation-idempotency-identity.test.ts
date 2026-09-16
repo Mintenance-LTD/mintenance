@@ -8,6 +8,8 @@ vi.mock('@mintenance/shared', () => ({
 import { fingerprintMultipartRequest } from '@/lib/api/request-fingerprint';
 import {
   checkIdempotency,
+  storeIdempotencyResult,
+  releaseIdempotencyClaim,
   fingerprintRequest,
   getDeterministicIdempotencyKeyFromRequest,
 } from '@/lib/idempotency';
@@ -59,20 +61,85 @@ describe('request-bound idempotency', () => {
     expect(a).toBe(b); // The claim RPC must reject the changed amount under this same address.
   });
   it('sends the actor and digest, without raw input, to the trusted RPC', async () => {
-    rpc.mockResolvedValue({ data: [{ claimed: true }], error: null });
+    rpc.mockResolvedValue({
+      data: [{ claimed: true, claim_token: 'token-one' }],
+      error: null,
+    });
     expect(
       await checkIdempotency('key', 'refund', true, {
         userId: 'actor',
         request: { reason: 'private input', amount: 100 },
       })
-    ).toBeNull();
+    ).toMatchObject({
+      ownership: { userId: 'actor', claimToken: 'token-one' },
+    });
     const [name, args] = rpc.mock.calls[0];
-    expect(name).toBe('try_claim_bound_idempotency_key');
+    expect(name).toBe('claim_fenced_idempotency');
     expect(args.p_user_id).toBe('actor');
     expect(args.p_request_fingerprint).toBe(
       fingerprintRequest({ amount: 100, reason: 'private input' })
     );
     expect(JSON.stringify(args)).not.toContain('private input');
+  });
+  it('carries separate ownership through overlapping requests and cleanup', async () => {
+    rpc
+      .mockResolvedValueOnce({
+        data: [{ claimed: true, claim_token: 'old-token' }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ claimed: true, claim_token: 'new-token' }],
+        error: null,
+      });
+    const first = await checkIdempotency('key', 'op', true, {
+      userId: 'actor',
+      request: {},
+    });
+    const next = await checkIdempotency('key', 'op', true, {
+      userId: 'actor',
+      request: {},
+    });
+    rpc.mockResolvedValue({ data: false, error: null });
+    await storeIdempotencyResult(
+      'key',
+      'op',
+      {},
+      'actor',
+      undefined,
+      first?.ownership
+    );
+    await releaseIdempotencyClaim('key', 'op', first?.ownership);
+    expect(rpc).toHaveBeenLastCalledWith(
+      'release_fenced_idempotency',
+      expect.objectContaining({
+        p_user_id: 'actor',
+        p_claim_token: 'old-token',
+      })
+    );
+    await storeIdempotencyResult(
+      'key',
+      'op',
+      {},
+      'actor',
+      undefined,
+      next?.ownership
+    );
+    expect(rpc).toHaveBeenLastCalledWith(
+      'complete_fenced_idempotency',
+      expect.objectContaining({ p_claim_token: 'new-token' })
+    );
+  });
+  it('rejects successful acquisition without an ownership token', async () => {
+    rpc.mockResolvedValue({ data: [{ claimed: true }], error: null });
+    await expect(
+      checkIdempotency('key', 'op', true, { userId: 'actor', request: {} })
+    ).rejects.toMatchObject({ statusCode: 503 });
+  });
+  it('does not call a write RPC without ownership', async () => {
+    await expect(releaseIdempotencyClaim('key', 'op')).rejects.toMatchObject({
+      statusCode: 409,
+    });
+    expect(rpc).not.toHaveBeenCalled();
   });
   it('reports a conflict on an actor or payload mismatch, never a cached result', async () => {
     rpc.mockResolvedValue({

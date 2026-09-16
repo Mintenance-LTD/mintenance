@@ -1,3 +1,4 @@
+import { applyPaymentIntentState } from './payment-state-transition';
 /**
  * Charge-event webhook handlers.
  *
@@ -19,10 +20,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { reconcileLedgerRefundCharge } from '@/lib/services/payment/RefundWebhookService';
 import type { SendNotificationFn } from './webhook-helpers';
-import {
-  lookupEscrowForTerminalEvent,
-  PRE_MONEY_STATUSES,
-} from './payment-intent-handlers';
+import { lookupEscrowForTerminalEvent } from './payment-intent-handlers';
 
 /**
  * Charge refunded — mark escrow as refunded, update job, record refund, notify users.
@@ -308,32 +306,13 @@ export async function handleChargeFailed(
       paymentIntentId,
       'charge.failed'
     );
-    if (existing === 'blocked' || existing === 'error') return;
+    if (existing === 'blocked') return;
 
-    let escrowTransaction: { payer_id: string | null } | null = null;
-    if (existing) {
-      const { data: updated, error: escrowUpdateError } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: 'failed',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        .in('status', PRE_MONEY_STATUSES)
-        .select()
-        .single();
-
-      if (escrowUpdateError) {
-        logger.error('Failed to mark failed charge escrow', escrowUpdateError, {
-          service: 'stripe-webhook',
-          chargeId: charge.id,
-          paymentIntentId,
-          escrowId: existing.id,
-        });
-        throw new Error('Failed to persist failed charge status');
-      }
-      escrowTransaction = updated ?? existing;
-    }
+    const escrowTransaction = await applyPaymentIntentState(
+      paymentIntentId,
+      'failed'
+    );
+    if (!escrowTransaction) return;
 
     const homeownerId =
       escrowTransaction?.payer_id ||
