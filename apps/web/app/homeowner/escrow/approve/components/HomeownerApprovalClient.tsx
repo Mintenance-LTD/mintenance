@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
+import { useCompletionReview } from './useCompletionReview';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { theme } from '@/lib/theme';
@@ -11,139 +12,29 @@ import { Spinner } from '@/components/ui/Spinner';
 import { BeforeAfterSlider } from '@/components/ui/BeforeAfterSlider';
 import { RejectCompletionDialog } from './RejectCompletionDialog';
 import { InspectionChecklist } from './InspectionChecklist';
-import { format, formatDistanceToNow } from 'date-fns';
-import toast from 'react-hot-toast';
-import { logger } from '@mintenance/shared';
-
-interface ApprovalData {
-  escrowId: string;
-  amount: number;
-  jobTitle: string;
-  homeownerApproval: boolean;
-  autoApprovalDate: string | null;
-  beforePhotos: Array<{
-    url: string;
-    angleType?: string;
-    qualityScore?: number;
-  }>;
-  afterPhotos: Array<{
-    url: string;
-    angleType?: string;
-    qualityScore?: number;
-  }>;
-}
+import { formatDistanceToNow } from 'date-fns';
 
 export function HomeownerApprovalClient() {
   const searchParams = useSearchParams();
   const escrowId = searchParams.get('escrowId');
-
-  const [approvalData, setApprovalData] = useState<ApprovalData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [comments, setComments] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [inspectionCompleted, setInspectionCompleted] = useState(false);
-
-  const fetchApprovalData = useCallback(async () => {
-    if (!escrowId) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/escrow/${escrowId}/homeowner/pending-approval`
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch approval data');
-      }
-      const data = await response.json();
-      setApprovalData(data.data);
-      setInspectionCompleted(false); // Reset inspection status
-    } catch (error) {
-      logger.error('Error fetching approval data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [escrowId]);
-
-  useEffect(() => {
-    fetchApprovalData();
-  }, [fetchApprovalData]);
-
-  const handleApprove = async () => {
-    if (!escrowId) return;
-    setActionLoading(true);
-    try {
-      const response = await fetch(
-        `/api/escrow/${escrowId}/homeowner/approve`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comments: comments || undefined }),
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to approve');
-      }
-      toast.success(
-        'Completion approved successfully! Funds will be released after a 48-hour cooling-off period.'
-      );
-      await fetchApprovalData();
-    } catch (error) {
-      logger.error('Error approving:', error);
-      toast.error('Failed to approve: ' + (error as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!escrowId || !rejectionReason.trim()) return;
-    setActionLoading(true);
-    try {
-      const response = await fetch(`/api/escrow/${escrowId}/homeowner/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: rejectionReason }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reject');
-      }
-      toast.success('Completion rejected. An admin will review.');
-      setShowRejectDialog(false);
-      setRejectionReason('');
-      await fetchApprovalData();
-    } catch (error) {
-      logger.error('Error rejecting:', error);
-      toast.error('Failed to reject: ' + (error as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleMarkInspection = async () => {
-    if (!escrowId) return;
-    setActionLoading(true);
-    try {
-      const response = await fetch(
-        `/api/escrow/${escrowId}/homeowner/inspect`,
-        {
-          method: 'POST',
-        }
-      );
-      if (!response.ok) {
-        throw new Error('Failed to mark inspection');
-      }
-      setInspectionCompleted(true);
-    } catch (error) {
-      logger.error('Error marking inspection:', error);
-      toast.error('Failed to mark inspection');
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  const {
+    approvalData,
+    loading,
+    loadError,
+    actionLoading,
+    comments,
+    setComments,
+    rejectionReason,
+    setRejectionReason,
+    showRejectDialog,
+    setShowRejectDialog,
+    inspectionCompleted,
+    setInspectionCompleted,
+    retry,
+    handleApprove,
+    handleReject,
+    handleMarkInspection,
+  } = useCompletionReview(escrowId);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -183,8 +74,9 @@ export function HomeownerApprovalClient() {
       <div style={{ padding: theme.spacing.xl }}>
         <Card style={{ padding: theme.spacing.lg }}>
           <p style={{ color: theme.colors.textSecondary }}>
-            Approval data not found.
+            {loadError || 'Approval data not found.'}
           </p>
+          <Button onClick={retry}>Retry</Button>
         </Card>
       </div>
     );
@@ -204,8 +96,8 @@ export function HomeownerApprovalClient() {
             Already Approved
           </h1>
           <p style={{ color: theme.colors.textSecondary }}>
-            You have already approved this completion. Funds will be released
-            after the cooling-off period.
+            You have already approved this completion. Payment release remains
+            subject to the cooling-off period and final checks.
           </p>
         </Card>
       </div>
@@ -412,11 +304,17 @@ export function HomeownerApprovalClient() {
 
       <InspectionChecklist
         completed={inspectionCompleted}
-        actionLoading={actionLoading}
+        actionLoading={actionLoading || !approvalData.canReview}
         onInspectionChange={setInspectionCompleted}
         onMarkCompleted={handleMarkInspection}
       />
 
+      {!approvalData.canReview && (
+        <p role='status'>
+          This completion is not available for your review. The designated payer
+          can act when work is completed and payment is available.
+        </p>
+      )}
       {/* Approval Actions */}
       <Card style={{ padding: theme.spacing.lg }}>
         <h2
@@ -440,6 +338,9 @@ export function HomeownerApprovalClient() {
             Comments (optional):
           </label>
           <Input
+            aria-label='Completion comments'
+            maxLength={5000}
+            disabled={actionLoading || !approvalData.canReview}
             placeholder='Add any comments about the completion...'
             value={comments}
             onChange={(e) => setComments(e.target.value)}
@@ -450,14 +351,16 @@ export function HomeownerApprovalClient() {
         <div style={{ display: 'flex', gap: theme.spacing.md }}>
           <Button
             onClick={handleApprove}
-            disabled={actionLoading || !inspectionCompleted}
+            disabled={
+              actionLoading || !inspectionCompleted || !approvalData.canReview
+            }
           >
             {actionLoading ? <Spinner size='sm' /> : 'Approve Completion'}
           </Button>
           <Button
             variant='secondary'
             onClick={() => setShowRejectDialog(true)}
-            disabled={actionLoading}
+            disabled={actionLoading || !approvalData.canReview}
           >
             Reject Completion
           </Button>

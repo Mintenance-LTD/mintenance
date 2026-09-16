@@ -2513,3 +2513,38 @@ Executed evidence:
 F7 is still open for restart recovery, review of other request/reject/inspection/photo-verification
 writers and countdown behavior against the actual policy. The broader F1-F15 completion gates remain
 intact. No hosted mutation, external email, real payment or deployment occurred.
+
+## 16 September 2026: completion review actions and review-page recovery
+
+The service-only `record_completion_review` RPC serializes request, inspection and rejection with
+approval/rework using job then escrow locks. It binds the completion version, enforces
+designated-payer access, preserves replay deadlines, and commits required history and notifications
+atomically. The actual photo-verification caller now supplies the actor and captured completion
+version.
+
+The separate homeowner review page now sends CSRF-protected requests, requires an explicit success
+result, retains failed input, prevents duplicate submissions, and shows load errors with retry. Its
+data route uses the actual job relationship and explicit photo types, signs authorized storage
+paths, and reads every metadata page. The database timestamp predicate preserves microsecond
+precision after rework.
+
+Executed validation:
+
+- Rollback-only `remediation-review-actions.sql` passed on the isolated database: actor
+  restrictions, replay, stale version, notification/history failure rollback.
+- `remediation-review-races.py`: eight real two-connection ordering cases passed; the diagnostic
+  observes lock waits, not just sequential calls.
+- `remediation-review-data-rest.py`: actual local PostgREST join and pagination returned 205 fresh
+  after-photos plus one before-photo and excluded old evidence across a microsecond boundary. This
+  uses service-role REST, not an authenticated browser-to-Next journey. Synthetic records were
+  cleaned.
+- Full sanitized web suite: 3668 tests / 340 files passed in 154.70 seconds. Final focused checks:
+  29 tests / 4 files passed in 2.23 seconds.
+- Web type check and affected-source lint were rerun successfully, exit 0.
+- Isolated migration replay completed with actual JSON empty diff and no drop statements
+  (`current-review-db-diff.log`). No hosted schema was changed.
+
+F7 remains open: the enhanced verification route still has separate photo-status writes requiring
+completion-version fencing; restart recovery, reminder/countdown behavior, and browser/device
+verification remain. This checkpoint does not establish public readiness or close the other F1-F15
+acceptance gates.

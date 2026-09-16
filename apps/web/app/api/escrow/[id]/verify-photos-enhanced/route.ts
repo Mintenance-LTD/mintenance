@@ -21,7 +21,9 @@ interface PhotoRecord {
 const verifyPhotosEnhancedSchema = z.object({
   escrowId: z.string().uuid('Invalid escrow ID'),
   jobId: z.string().uuid('Invalid job ID'),
-  afterPhotoUrls: z.array(z.string().url('Invalid photo URL')).min(1, 'At least one photo is required'),
+  afterPhotoUrls: z
+    .array(z.string().url('Invalid photo URL'))
+    .min(1, 'At least one photo is required'),
 });
 
 /**
@@ -33,7 +35,10 @@ export const POST = withApiHandler(
   async (request, { user, params }) => {
     const escrowId = params.id as string;
 
-    const validation = await validateRequest(request, verifyPhotosEnhancedSchema);
+    const validation = await validateRequest(
+      request,
+      verifyPhotosEnhancedSchema
+    );
     if ('headers' in validation) return validation;
 
     const { jobId: bodyJobId, afterPhotoUrls } = validation.data;
@@ -73,15 +78,25 @@ export const POST = withApiHandler(
     // SECURITY: Validate photo URLs to prevent SSRF attacks
     const urlValidation = await validateURLs(afterPhotoUrls, true);
     if (urlValidation.invalid.length > 0) {
-      logger.warn('Invalid photo URLs rejected in photo verification', { service: 'escrow-verify-photos-enhanced', userId: user.id, escrowId, invalidUrls: urlValidation.invalid });
-      return NextResponse.json({ error: `Invalid photo URLs: ${urlValidation.invalid.map((i: { error: string }) => i.error).join(', ')}` }, { status: 400 });
+      logger.warn('Invalid photo URLs rejected in photo verification', {
+        service: 'escrow-verify-photos-enhanced',
+        userId: user.id,
+        escrowId,
+        invalidUrls: urlValidation.invalid,
+      });
+      return NextResponse.json(
+        {
+          error: `Invalid photo URLs: ${urlValidation.invalid.map((i: { error: string }) => i.error).join(', ')}`,
+        },
+        { status: 400 }
+      );
     }
 
     const validatedAfterPhotoUrls = urlValidation.valid;
 
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, title, description, category, location')
+      .select('id, title, description, category, location, completed_at')
       .eq('id', jobId)
       .single();
 
@@ -93,26 +108,53 @@ export const POST = withApiHandler(
       .eq('job_id', jobId)
       .eq('photo_type', 'before');
 
-    const beforeUrls = (beforePhotos || []).map((p: PhotoRecord) => p.photo_url);
+    const beforeUrls = (beforePhotos || []).map(
+      (p: PhotoRecord) => p.photo_url
+    );
     const jobLocation = job.location as { lat?: number; lng?: number } | null;
-    const location = jobLocation?.lat && jobLocation?.lng ? { lat: jobLocation.lat, lng: jobLocation.lng } : { lat: 0, lng: 0 };
+    const location =
+      jobLocation?.lat && jobLocation?.lng
+        ? { lat: jobLocation.lat, lng: jobLocation.lng }
+        : { lat: 0, lng: 0 };
 
-    const qualityResults = await Promise.all(validatedAfterPhotoUrls.map(url => PhotoVerificationService.validatePhotoQuality(url)));
-    const allQualityPassed = qualityResults.every(r => r.passed);
-    const averageQualityScore = qualityResults.reduce((sum, r) => sum + r.qualityScore, 0) / qualityResults.length;
+    const qualityResults = await Promise.all(
+      validatedAfterPhotoUrls.map((url) =>
+        PhotoVerificationService.validatePhotoQuality(url)
+      )
+    );
+    const allQualityPassed = qualityResults.every((r) => r.passed);
+    const averageQualityScore =
+      qualityResults.reduce((sum, r) => sum + r.qualityScore, 0) /
+      qualityResults.length;
 
     let comparisonResult = null;
     if (beforeUrls.length > 0) {
-      comparisonResult = await PhotoVerificationService.compareBeforeAfter(beforeUrls, validatedAfterPhotoUrls, location);
+      comparisonResult = await PhotoVerificationService.compareBeforeAfter(
+        beforeUrls,
+        validatedAfterPhotoUrls,
+        location
+      );
     }
 
-    const geolocationResults = await Promise.all(validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyGeolocation(url, location)));
-    const allGeolocationVerified = geolocationResults.every(r => r.verified);
+    const geolocationResults = await Promise.all(
+      validatedAfterPhotoUrls.map((url) =>
+        PhotoVerificationService.verifyGeolocation(url, location)
+      )
+    );
+    const allGeolocationVerified = geolocationResults.every((r) => r.verified);
 
-    const timestampResults = await Promise.all(validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyTimestamp(url)));
-    const allTimestampVerified = timestampResults.every(r => r.verified);
+    const timestampResults = await Promise.all(
+      validatedAfterPhotoUrls.map((url) =>
+        PhotoVerificationService.verifyTimestamp(url)
+      )
+    );
+    const allTimestampVerified = timestampResults.every((r) => r.verified);
 
-    const verified = allQualityPassed && allGeolocationVerified && allTimestampVerified && (comparisonResult?.matches ?? true);
+    const verified =
+      allQualityPassed &&
+      allGeolocationVerified &&
+      allTimestampVerified &&
+      (comparisonResult?.matches ?? true);
 
     // Do not let a late verification request mutate or reopen a payment that
     // is already being released, refunded, disputed, or completed. The
@@ -141,7 +183,11 @@ export const POST = withApiHandler(
     }
 
     if (verified) {
-      await HomeownerApprovalService.requestHomeownerApproval(escrowId, validatedAfterPhotoUrls);
+      await HomeownerApprovalService.requestHomeownerApproval(
+        escrowId,
+        user.id,
+        job.completed_at
+      );
     }
 
     return NextResponse.json({

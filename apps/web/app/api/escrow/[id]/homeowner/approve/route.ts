@@ -9,6 +9,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const approveCompletionSchema = z.object({
   comments: z.string().max(5000).optional(),
+  completedAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 /**
@@ -61,12 +62,13 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { comments } = validation.data;
+    const { comments, completedAt } = validation.data;
 
     await HomeownerApprovalService.approveCompletion(
       escrowId,
       user.id,
-      comments
+      comments,
+      ...(completedAt === undefined ? [] : [{ completedAt }])
     );
 
     return NextResponse.json({ success: true, escrowId });
