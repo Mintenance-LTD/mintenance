@@ -1,19 +1,13 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { EscrowStatusService } from './EscrowStatusService';
 import {
-  sendApprovalRequestNotification,
-  sendApprovalNotification,
-  sendRejectionNotification,
   sendReminderNotification,
   sendFinalWarningNotification,
 } from './homeowner-approval/notifications';
 import { checkAutoApprovalEligibility } from './homeowner-approval/auto-approval';
-import { fetchAfterPhotoGate } from './homeowner-approval/photo-gate';
-import { logAuditEvent } from '@/lib/audit';
-import { ConflictError } from '@/lib/errors/api-error';
+import { commitCompletionApproval } from './homeowner-approval/commit-approval';
+import { recordCompletionReview } from './homeowner-approval/record-review';
 
-const AUTO_APPROVAL_DAYS = 7;
 const REMINDER_DAYS = 3;
 
 // Type definitions for escrow queries
@@ -39,413 +33,74 @@ const getJob = (jobs: JobInfo | JobInfo[] | undefined): JobInfo | undefined => {
   return Array.isArray(jobs) ? jobs[0] : jobs;
 };
 
-interface PhotoMetadata {
-  photo_url: string;
-}
-
 /**
  * Service for homeowner approval workflow with auto-approval and reminders
  */
 export class HomeownerApprovalService {
-  /**
-   * Request homeowner approval for completion photos
-   */
+  /** Open review only for the completion version whose photos were verified. */
   static async requestHomeownerApproval(
     escrowId: string,
-    photoUrls: string[]
+    actorId: string,
+    completedAt: string | null
   ): Promise<void> {
-    try {
-      // Get escrow and job details
-      const { data: escrow, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .select(
-          `
-          id,
-          job_id,
-          status,
-          jobs!inner (
-            id,
-            homeowner_id,
-            payer_user_id
-          )
-        `
-        )
-        .eq('id', escrowId)
-        .single();
-
-      if (escrowError || !escrow) {
-        throw new Error('Escrow not found');
-      }
-
-      const typedEscrow = escrow as EscrowWithJob;
-      // Verification retries must not restart the homeowner's deadline or
-      // send duplicate approval requests once the workflow is already open.
-      if (typedEscrow.status === 'awaiting_homeowner_approval') {
-        return;
-      }
-      if (typedEscrow.status !== 'held') {
-        throw new ConflictError(
-          'Escrow is no longer available to request homeowner approval'
-        );
-      }
-      const job = getJob(typedEscrow.jobs);
-      const homeownerId = job?.homeowner_id;
-
-      if (!homeownerId) {
-        throw new Error('Homeowner not found');
-      }
-
-      // Calculate auto-approval date (7 days from now)
-      const autoApprovalDate = new Date();
-      autoApprovalDate.setDate(autoApprovalDate.getDate() + AUTO_APPROVAL_DAYS);
-
-      // Update escrow status
-      const { data: requestedEscrow, error: requestUpdateError } =
-        await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: 'awaiting_homeowner_approval',
-          auto_approval_date: autoApprovalDate.toISOString(),
-          release_blocked_reason: 'Waiting for homeowner approval',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowId)
-        .eq('status', 'held')
-        .select('id')
-        .maybeSingle();
-
-      if (requestUpdateError || !requestedEscrow) {
-        throw new ConflictError(
-          'Escrow was modified while requesting homeowner approval'
-        );
-      }
-
-      // Log status change
-      await EscrowStatusService.updateStatusLog(
-        escrowId,
-        'awaiting_homeowner_approval',
-        'Homeowner approval requested'
-      );
-
-      // Send notification to homeowner
-      await sendApprovalRequestNotification(escrowId, homeownerId, photoUrls);
-
-      logger.info('Homeowner approval requested', {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-        autoApprovalDate: autoApprovalDate.toISOString(),
-      });
-    } catch (error) {
-      logger.error('Error requesting homeowner approval', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-      });
-      throw error;
-    }
+    await recordCompletionReview({
+      escrowId,
+      actorId,
+      completedAt,
+      action: 'request',
+    });
   }
 
-  /** Approve completion. internal=true skips photo gate (auto-release path). */
+  /** Approve the current completion, with the decision and evidence committed together. */
   static async approveCompletion(
     escrowId: string,
     homeownerId: string,
     comments?: string,
-    options: { internal?: boolean; waiveCoolingOff?: boolean } = {}
+    options: {
+      internal?: boolean;
+      waiveCoolingOff?: boolean;
+      completedAt?: string | null;
+    } = {}
   ): Promise<void> {
-    try {
-      // Verify homeowner has permission
-      const { data: escrow, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .select(
-          `
-          id,
-          job_id,
-          homeowner_approval,
-          jobs!inner (
-            id,
-          homeowner_id,
-          payer_user_id
-          )
-        `
-        )
-        .eq('id', escrowId)
-        .single();
-
-      if (escrowError || !escrow) {
-        throw new Error('Escrow not found');
-      }
-
-      const typedEscrow = escrow as EscrowWithJob;
-      const job = getJob(typedEscrow.jobs);
-      if (
-        !job ||
-        (job.homeowner_id !== homeownerId && job.payer_user_id !== homeownerId)
-      ) {
-        throw new Error('Unauthorized: Not the homeowner for this escrow');
-      }
-
-      // LFC-P0-1: require verified after-photos for the explicit path.
-      const { photoUrls, hasVerifiedAfterPhotos } = await fetchAfterPhotoGate(
-        job.id
-      );
-      if (!options.internal && !hasVerifiedAfterPhotos) {
-        logger.warn(
-          'Homeowner approval blocked: no verified after-photos on file',
-          {
-            service: 'HomeownerApprovalService',
-            escrowId,
-            homeownerId,
-            jobId: job.id,
-          }
-        );
-        throw new Error(
-          'Cannot approve completion: contractor has not uploaded verified after-photos yet.'
-        );
-      }
-
-      // 48h cooling-off unless waived (homeowner's explicit waiver; null = waived).
-      const coolingOffEndsAt = new Date();
-      coolingOffEndsAt.setHours(coolingOffEndsAt.getHours() + 48);
-      const waived = options.waiveCoolingOff === true;
-      const coolingOffValue = waived ? null : coolingOffEndsAt.toISOString();
-
-      // Claim the decision atomically. Approval must win only while the
-      // escrow is still awaiting a decision (or is a legacy held row). This
-      // prevents a retry or a concurrent reject/release from overwriting a
-      // terminal or in-flight payment state. Moving the row back to `held`
-      // is required because the release endpoint claims only held escrows.
-      const { data: approvedEscrow, error: approvalUpdateError } =
-        await serverSupabase
-          .from('escrow_transactions')
-          .update({
-            homeowner_approval: true,
-            homeowner_approval_at: new Date().toISOString(),
-            cooling_off_ends_at: coolingOffValue,
-            auto_approval_date: null,
-            release_blocked_reason: waived
-              ? null
-              : 'Cooling-off period active (48 hours)',
-            status: 'held',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', escrowId)
-          .in('status', ['awaiting_homeowner_approval', 'held'])
-          .or('homeowner_approval.eq.false,homeowner_approval.is.null')
-          .select('id')
-          .maybeSingle();
-
-      if (approvalUpdateError || !approvedEscrow) {
-        throw new ConflictError(
-          'This escrow has already been approved or is no longer awaiting homeowner approval.'
-        );
-      }
-
-      // Record approval in history after the state claim succeeds.
-      const { error: approvalHistoryError } = await serverSupabase
-        .from('homeowner_approval_history')
-        .insert({
-          escrow_transaction_id: escrowId,
-          homeowner_id: homeownerId,
-          action: 'approved',
-          comments: comments || null,
-          photos_reviewed: photoUrls,
-          created_at: new Date().toISOString(),
-        });
-
-      if (approvalHistoryError) {
-        logger.error('Approval state committed but history insert failed', {
-          service: 'HomeownerApprovalService',
-          escrowId,
-          homeownerId,
-          error: approvalHistoryError.message,
-        });
-        throw new Error('Approval history could not be recorded');
-      }
-
-      await EscrowStatusService.updateStatusLog(
-        escrowId,
-        waived ? 'approved' : 'cooling_off',
-        `Homeowner approved${comments ? `: ${comments}` : ''}`
-      );
-
-      if (job.contractor_id) {
-        await sendApprovalNotification(escrowId, job.contractor_id);
-      }
-
-      // Sprint 5.7: central audit log. Distinct action verbs (auto/waived/normal).
-      const isAutoApproval = comments?.startsWith('auto_approved_') ?? false;
-      await logAuditEvent({
-        actorId: homeownerId,
-        category: 'escrow_decision',
-        action: isAutoApproval
-          ? 'auto_approve_completion'
-          : waived
-            ? 'approve_completion_cooling_off_waived'
-            : 'approve_completion',
-        targetId: escrowId,
-        before: { homeowner_approval: false },
-        after: {
-          homeowner_approval: true,
-          cooling_off_ends_at: coolingOffValue,
-          cooling_off_waived: waived,
-          comments: comments || null,
-          job_id: job.id,
-        },
-      });
-
-      logger.info('Homeowner approved completion', {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-        comments,
-      });
-    } catch (error) {
-      logger.error('Error approving completion', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-      });
-      throw error;
-    }
+    const { data: escrow, error } = await serverSupabase
+      .from('escrow_transactions')
+      .select('job_id, jobs!inner(id, completed_at)')
+      .eq('id', escrowId)
+      .single();
+    if (error || !escrow) throw new Error('Escrow not found');
+    const joined = escrow.jobs as unknown as
+      | { id: string; completed_at: string | null }
+      | { id: string; completed_at: string | null }[];
+    const job = Array.isArray(joined) ? joined[0] : joined;
+    if (!job) throw new Error('Job not found');
+    await commitCompletionApproval({
+      jobId: job.id,
+      actorId: homeownerId,
+      completedAt:
+        options.completedAt === undefined
+          ? job.completed_at
+          : options.completedAt,
+      escrowId,
+      comments,
+      automatic: options.internal,
+      waiveCoolingOff: options.waiveCoolingOff,
+    });
   }
 
-  /**
-   * Homeowner rejects completion
-   */
+  /** Persist rejection, payment hold, history and notification together. */
   static async rejectCompletion(
     escrowId: string,
     homeownerId: string,
-    reason: string
+    reason: string,
+    completedAt?: string | null
   ): Promise<void> {
-    try {
-      // Verify homeowner has permission
-      const { data: escrow, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .select(
-          `
-          id,
-          job_id,
-          jobs!inner (
-            id,
-            homeowner_id,
-            payer_user_id,
-            contractor_id
-          )
-        `
-        )
-        .eq('id', escrowId)
-        .single();
-
-      if (escrowError || !escrow) {
-        throw new Error('Escrow not found');
-      }
-
-      const typedEscrow = escrow as EscrowWithJob & {
-        jobs: JobInfo & { contractor_id: string };
-      };
-      const job = getJob(typedEscrow.jobs) as
-        | (JobInfo & { contractor_id: string })
-        | undefined;
-      if (
-        job?.homeowner_id !== homeownerId &&
-        job?.payer_user_id !== homeownerId
-      ) {
-        throw new Error('Unauthorized: Not the homeowner for this escrow');
-      }
-
-      // Get photo URLs
-      const { data: photos } = await serverSupabase
-        .from('job_photos_metadata')
-        .select('photo_url')
-        .eq('job_id', job?.id || '')
-        .eq('photo_type', 'after');
-
-      const photoUrls = (photos || []).map((p: PhotoMetadata) => p.photo_url);
-
-      // Claim the rejection before writing history. The compare-and-swap
-      // prevents a concurrent approval, release, or prior rejection from
-      // changing the payment decision after this request was read.
-      const { data: rejectedEscrow, error: rejectionUpdateError } =
-        await serverSupabase
-          .from('escrow_transactions')
-          .update({
-            homeowner_approval: false,
-            admin_hold_status: 'pending_review',
-            release_blocked_reason: `Homeowner rejected: ${reason}`,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', escrowId)
-          .in('status', ['awaiting_homeowner_approval', 'held'])
-          .or('homeowner_approval.eq.false,homeowner_approval.is.null')
-          .select('id')
-          .maybeSingle();
-
-      if (rejectionUpdateError || !rejectedEscrow) {
-        throw new ConflictError(
-          'This escrow has already been decided or is no longer awaiting homeowner approval.'
-        );
-      }
-
-      // Record rejection in history after the state claim succeeds.
-      const { error: rejectionHistoryError } = await serverSupabase
-        .from('homeowner_approval_history')
-        .insert({
-          escrow_transaction_id: escrowId,
-          homeowner_id: homeownerId,
-          action: 'rejected',
-          comments: reason,
-          photos_reviewed: photoUrls,
-          created_at: new Date().toISOString(),
-        });
-
-      if (rejectionHistoryError) {
-        logger.error('Rejection state committed but history insert failed', {
-          service: 'HomeownerApprovalService',
-          escrowId,
-          homeownerId,
-          error: rejectionHistoryError.message,
-        });
-        throw new Error('Rejection history could not be recorded');
-      }
-
-      // Log status change
-      await EscrowStatusService.updateStatusLog(
-        escrowId,
-        'admin_review',
-        `Homeowner rejected: ${reason}`
-      );
-
-      // Send notification to contractor and admin
-      await sendRejectionNotification(escrowId, job.contractor_id, reason);
-
-      // Sprint 5.7: central audit log for rejection decisions
-      await logAuditEvent({
-        actorId: homeownerId,
-        category: 'escrow_decision',
-        action: 'reject_completion',
-        targetId: escrowId,
-        before: { admin_hold_status: 'none' },
-        after: {
-          admin_hold_status: 'pending_review',
-          reason,
-          job_id: job.id,
-        },
-      });
-
-      logger.info('Homeowner rejected completion', {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-        reason,
-      });
-    } catch (error) {
-      logger.error('Error rejecting completion', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-      });
-      throw error;
-    }
+    await recordCompletionReview({
+      escrowId,
+      actorId: homeownerId,
+      reason,
+      completedAt,
+      action: 'reject',
+    });
   }
 
   /**
@@ -537,7 +192,8 @@ export class HomeownerApprovalService {
           id,
           jobs!inner (
             id,
-            homeowner_id
+            homeowner_id,
+            payer_user_id
           )
         `
         )
@@ -550,14 +206,14 @@ export class HomeownerApprovalService {
 
       const typedEscrow = escrow as EscrowWithJob;
       const job = getJob(typedEscrow.jobs);
-      const homeownerId = job?.homeowner_id;
+      const homeownerId = job?.payer_user_id ?? job?.homeowner_id;
 
       if (!homeownerId) {
         return false;
       }
 
-      // Auto-approve safety-net path. internal=true skips the photo gate
-      // because checkAutoApprovalEligibility already verified quality >=0.7.
+      // The transaction rechecks the deadline, score, current completion and
+      // fresh verified evidence; this preflight cannot authorize a stale decision.
       await this.approveCompletion(
         escrowId,
         homeownerId,

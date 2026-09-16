@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, Plus, Loader2 } from 'lucide-react';
 import { StepStrip } from '../components/StepStrip';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 
 const REASONS: {
   id: string;
@@ -102,7 +103,7 @@ export function MintEditorialDisputeCreate({
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch('/api/disputes/create', {
+      const res = await fetchWithCsrf('/api/disputes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -932,7 +932,38 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
         segmentData('job-1', 'bid-1')
       );
       expect(res.status).toBe(200);
-      expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+      expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+        'accept_bid_with_capacity',
+        expect.objectContaining({
+          p_active_job_limit: 3,
+          p_job_id: 'job-1',
+          p_bid_id: 'bid-1',
+        })
+      );
+    });
+
+    it('does not report a successful retry when the atomic contract operation fails', async () => {
+      setupAcceptMocks({
+        jobData: {
+          ...postedJob,
+          status: 'assigned',
+          contractor_id: pendingBid.contractor_id,
+        },
+        bidData: { ...pendingBid, status: 'accepted' },
+        acceptError: { message: 'contract write failed', code: '23514' },
+      });
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(500);
+      expect(mocks.supabaseRpc).toHaveBeenCalled();
+      expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+      expect(
+        mocks.supabaseFrom.mock.calls.some(([table]) => table === 'contracts')
+      ).toBe(false);
     });
 
     it('blocks acceptance at the Free/Basic active-jobs cap with 409', async () => {

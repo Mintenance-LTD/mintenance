@@ -105,6 +105,7 @@ export const GET = withApiHandler(
         .from('contracts')
         .select('id, status, homeowner_signed_at')
         .eq('job_id', jobId)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),

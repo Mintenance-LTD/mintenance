@@ -78,7 +78,8 @@ export const GET = withApiHandler(
       serverSupabase
         .from('contracts')
         .select('job_id, status')
-        .in('job_id', jobIds),
+        .in('job_id', jobIds)
+        .neq('status', 'cancelled'),
     ]);
 
     const profileById = new Map<string, ProfileMini>(

@@ -26,6 +26,10 @@ INSERT INTO public.bids(id,job_id,contractor_id,amount,description,status)
 VALUES ('fa060906-0000-4000-8000-000000000050','fa060906-0000-4000-8000-000000000010','fa060906-0000-4000-8000-000000000002',500,'Synthetic bid','pending');
 UPDATE public.bids SET amount=550 WHERE id='fa060906-0000-4000-8000-000000000050';
 RESET ROLE;
+DO $$ BEGIN
+ IF (SELECT amount FROM public.bids WHERE id='fa060906-0000-4000-8000-000000000050') IS DISTINCT FROM 550::numeric THEN
+  RAISE EXCEPTION 'Legitimate pending bid edit did not persist'; END IF;
+END $$;
 UPDATE public.bids SET status='accepted' WHERE id='fa060906-0000-4000-8000-000000000050';
 DO $$ BEGIN
   BEGIN
@@ -42,5 +46,16 @@ DO $$ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END $$;
+DO $$ BEGIN
+ BEGIN
+  DELETE FROM public.bids WHERE id='fa060906-0000-4000-8000-000000000050';
+  RAISE EXCEPTION 'Client deleted accepted bid';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
 RESET ROLE;
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT FROM public.bids WHERE id='fa060906-0000-4000-8000-000000000050'
+  AND status='accepted' AND amount=550 AND contractor_id='fa060906-0000-4000-8000-000000000002') THEN
+  RAISE EXCEPTION 'Accepted bid state changed after denied operations'; END IF;
+END $$;
 ROLLBACK;

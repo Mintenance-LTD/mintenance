@@ -61,24 +61,65 @@ vi.mock('@/lib/services/escrow/HomeownerApprovalService', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -88,7 +129,10 @@ vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function createPostRequest(url: string, body: Record<string, unknown> = {}): NextRequest {
+function createPostRequest(
+  url: string,
+  body: Record<string, unknown> = {}
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
     headers: {
@@ -116,17 +160,22 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(homeownerUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.approveCompletion.mockResolvedValue(undefined);
   // validateRequest returns parsed data (no 'headers' property)
   mocks.validateRequest.mockResolvedValue({ data: { comments: undefined } });
 }
 
-function setupEscrowMock(overrides: {
-  escrowData?: unknown;
-  escrowError?: unknown;
-} = {}) {
+function setupEscrowMock(
+  overrides: {
+    escrowData?: unknown;
+    escrowError?: unknown;
+  } = {}
+) {
   const escrowResult = {
     data: overrides.escrowData ?? {
       jobs: { homeowner_id: 'homeowner-1' },
@@ -164,16 +213,23 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-1/homeowner/approve');
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve'
+    );
     const res = await POST(req, segmentData('escrow-1'));
     expect(res.status).toBe(401);
   });
 
   // ---- Escrow not found ----
   it('should return 404 when escrow does not exist', async () => {
-    setupEscrowMock({ escrowData: null, escrowError: { message: 'not found' } });
+    setupEscrowMock({
+      escrowData: null,
+      escrowError: { message: 'not found' },
+    });
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/bad-id/homeowner/approve');
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/bad-id/homeowner/approve'
+    );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
 
@@ -192,7 +248,9 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
     });
     setupEscrowMock();
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-1/homeowner/approve');
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve'
+    );
     const res = await POST(req, segmentData('escrow-1'));
     expect(res.status).toBe(403);
 
@@ -208,13 +266,16 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
     mocks.validateRequest.mockResolvedValue(
       NextResponse.json(
         { error: { code: 'BAD_REQUEST', message: 'Invalid comments field' } },
-        { status: 400 },
-      ),
+        { status: 400 }
+      )
     );
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-1/homeowner/approve', {
-      comments: 12345, // invalid type
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve',
+      {
+        comments: 12345, // invalid type
+      }
+    );
     const res = await POST(req, segmentData('escrow-1'));
     expect(res.status).toBe(400);
   });
@@ -223,7 +284,10 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
   it('should approve escrow and return success', async () => {
     setupEscrowMock();
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-1/homeowner/approve', {});
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve',
+      {}
+    );
     const res = await POST(req, segmentData('escrow-1'));
     expect(res.status).toBe(200);
 
@@ -231,7 +295,11 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
     expect(body.success).toBe(true);
     expect(body.escrowId).toBe('escrow-1');
 
-    expect(mocks.approveCompletion).toHaveBeenCalledWith('escrow-1', 'homeowner-1', undefined);
+    expect(mocks.approveCompletion).toHaveBeenCalledWith(
+      'escrow-1',
+      'homeowner-1',
+      undefined
+    );
   });
 
   // ---- Success: approve with comments ----
@@ -241,13 +309,20 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
       data: { comments: 'Looks great, well done!' },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-1/homeowner/approve', {
-      comments: 'Looks great, well done!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve',
+      {
+        comments: 'Looks great, well done!',
+      }
+    );
     const res = await POST(req, segmentData('escrow-1'));
     expect(res.status).toBe(200);
 
-    expect(mocks.approveCompletion).toHaveBeenCalledWith('escrow-1', 'homeowner-1', 'Looks great, well done!');
+    expect(mocks.approveCompletion).toHaveBeenCalledWith(
+      'escrow-1',
+      'homeowner-1',
+      'Looks great, well done!'
+    );
   });
 
   it('allows the designated payer to approve the escrow', async () => {
@@ -278,11 +353,32 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
   });
 
   // ---- Approval service throws ----
+  it('rejects the property owner when a different payer controls approval', async () => {
+    setupEscrowMock({
+      escrowData: {
+        jobs: { homeowner_id: homeownerUser.id, payer_user_id: 'payer-2' },
+      },
+    });
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/escrow/escrow-1/homeowner/approve'
+      ),
+      segmentData('escrow-1')
+    );
+    expect(res.status).toBe(403);
+    expect(mocks.approveCompletion).not.toHaveBeenCalled();
+  });
+
   it('should return 500 when approval service fails', async () => {
     setupEscrowMock();
-    mocks.approveCompletion.mockRejectedValue(new Error('Approval service unavailable'));
+    mocks.approveCompletion.mockRejectedValue(
+      new Error('Approval service unavailable')
+    );
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-1/homeowner/approve', {});
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve',
+      {}
+    );
     const res = await POST(req, segmentData('escrow-1'));
     expect(res.status).toBe(500);
   });
@@ -295,7 +391,10 @@ describe('POST /api/escrow/[id]/homeowner/approve', () => {
       },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/escrow/escrow-1/homeowner/approve', {});
+    const req = createPostRequest(
+      'http://localhost:3000/api/escrow/escrow-1/homeowner/approve',
+      {}
+    );
     const res = await POST(req, segmentData('escrow-1'));
     expect(res.status).toBe(200);
 

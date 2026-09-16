@@ -14,7 +14,7 @@
  * land here. Do not re-introduce a parallel sign-off screen.
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -95,6 +95,8 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const [changesComment, setChangesComment] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [completedAt, setCompletedAt] = useState<string | null>(null);
+  const reworkRequests = useRef(new Map<string, string>());
+  const reworkInFlight = useRef(false);
   const autoRelease = computeAutoReleaseInfo(completedAt);
 
   const fetchPhotos = useCallback(async () => {
@@ -172,10 +174,15 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     if (!user?.id || submitting) return;
     setSubmitting(true);
     try {
-      await mobileApiClient.post(`/api/jobs/${jobId}/confirm-completion`, {});
+      const result = await mobileApiClient.post<{ success: boolean }>(
+        `/api/jobs/${jobId}/confirm-completion`,
+        { completedAt }
+      );
+      if (result?.success !== true)
+        throw new Error('Unable to confirm approval. Please retry.');
       Alert.alert(
         'Work Approved',
-        'Payment will be released to the contractor. Thank you!',
+        'Work approved. Payment release is subject to the cooling-off period and final checks.',
         [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
       );
     } catch (err) {
@@ -190,12 +197,37 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   };
 
   const handleRequestChanges = async () => {
-    if (!user?.id || submitting || !changesComment.trim()) return;
+    if (
+      !user?.id ||
+      submitting ||
+      reworkInFlight.current ||
+      !changesComment.trim()
+    )
+      return;
+    reworkInFlight.current = true;
     setSubmitting(true);
     try {
-      await mobileApiClient.post(`/api/jobs/${jobId}/request-changes`, {
-        comments: changesComment.trim(),
-      });
+      const identity = JSON.stringify([
+        user.id,
+        jobId,
+        completedAt,
+        changesComment.trim(),
+      ]);
+      let requestKey = reworkRequests.current.get(identity);
+      if (!requestKey) {
+        // Hermes does not expose crypto.randomUUID. This is an operation
+        // identifier, not a credential; the server binds it to actor and job.
+        requestKey = `rework:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
+        reworkRequests.current.set(identity, requestKey);
+      }
+      const result = await mobileApiClient.post<{ success: boolean }>(
+        `/api/jobs/${jobId}/request-changes`,
+        { comments: changesComment.trim(), completedAt },
+        { headers: { 'Idempotency-Key': requestKey } }
+      );
+      if (result?.success !== true) {
+        throw new Error('Unable to confirm the change request. Please retry.');
+      }
       Alert.alert(
         'Changes Requested',
         'The contractor has been notified and will review your feedback.',
@@ -208,6 +240,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           : 'Failed to submit. Please try again.';
       Alert.alert('Error', msg);
     } finally {
+      reworkInFlight.current = false;
       setSubmitting(false);
     }
   };

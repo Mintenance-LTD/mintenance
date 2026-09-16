@@ -4,20 +4,20 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui';
-import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { theme } from '@/lib/theme';
 import { DisputeDocumentationService } from '@/lib/services/disputes/DisputeDocumentationService';
 import { Loader2 } from 'lucide-react';
 import { PageLoader } from '@/components/LoadingButton';
 import { MintEditorialDisputeCreate } from './MintEditorialDisputeCreate';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 
 function CreateDisputeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const escrowId = searchParams.get('escrowId');
   const { user, loading } = useCurrentUser();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep] = useState(1);
 
   // Mint Editorial theme detection — when active, swap the entire
   // form for the canonical "Open dispute" surface from
@@ -56,7 +56,7 @@ function CreateDisputeContent() {
     setError('');
 
     try {
-      const response = await fetch('/api/disputes/create', {
+      const response = await fetchWithCsrf('/api/disputes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

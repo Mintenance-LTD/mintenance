@@ -18,8 +18,9 @@ interface FeeTransfer {
   job_id: string;
   contractor_id: string;
   amount: number;
-  stripe_processing_fee: number;
-  net_revenue: number;
+  stripe_processing_fee: number | null;
+  net_revenue: number | null;
+  metadata?: { processingFeeStatus?: string };
   status: 'pending' | 'transferred' | 'held' | 'failed';
   hold_reason?: string;
   held_by?: string;
@@ -108,7 +109,7 @@ export function FeeTransferManagementClient() {
       setHoldDialog({ open: false });
       setHoldReason('');
       fetchPendingTransfers();
-    } catch (error) {
+    } catch {
       setErrorDialog({ open: true, message: 'Failed to hold fee transfer' });
     }
   };
@@ -128,7 +129,7 @@ export function FeeTransferManagementClient() {
       }
 
       fetchPendingTransfers();
-    } catch (error) {
+    } catch {
       setErrorDialog({ open: true, message: 'Failed to release fee transfer' });
     }
   };
@@ -151,7 +152,7 @@ export function FeeTransferManagementClient() {
 
       setSelectedTransfers([]);
       fetchPendingTransfers();
-    } catch (error) {
+    } catch {
       setErrorDialog({
         open: true,
         message: 'Failed to batch release fee transfers',
@@ -194,7 +195,17 @@ export function FeeTransferManagementClient() {
   const pendingCount = transfers.filter((t) => t.status === 'pending').length;
   const heldCount = transfers.filter((t) => t.status === 'held').length;
   const totalAmount = transfers.reduce((sum, t) => sum + t.amount, 0);
-  const totalNetRevenue = transfers.reduce((sum, t) => sum + t.net_revenue, 0);
+  const pendingAmount = transfers
+    .filter((t) => t.status === 'pending')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const heldAmount = transfers
+    .filter((t) => t.status === 'held')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const hasUnknownRevenue = transfers.some((t) => t.net_revenue === null);
+  const totalNetRevenue = transfers.reduce(
+    (sum, t) => sum + (t.net_revenue ?? 0),
+    0
+  );
 
   return (
     <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto space-y-8'>
@@ -219,14 +230,14 @@ export function FeeTransferManagementClient() {
       <div className='grid grid-cols-1 md:grid-cols-4 gap-6'>
         <AdminMetricCard
           label='Pending Transfers'
-          value={formatCurrency(0)}
+          value={formatCurrency(pendingAmount)}
           icon='clock'
           iconColor='#565e74'
-          subtitle='No pending transfers today'
+          subtitle={`${pendingCount} pending records loaded`}
         />
         <AdminMetricCard
           label='On Hold'
-          value={formatCurrency(totalAmount)}
+          value={formatCurrency(heldAmount)}
           icon='lock'
           iconColor='#605c78'
           subtitle={`${heldCount} active security holds`}
@@ -236,11 +247,16 @@ export function FeeTransferManagementClient() {
           value={formatCurrency(totalAmount)}
           icon='currencyPound'
           iconColor='#506076'
-          subtitle='Aggregate platform volume'
+          subtitle='Total fees in loaded records'
         />
         <AdminMetricCard
-          label='Net Revenue'
-          value={formatCurrency(totalNetRevenue)}
+          label='Unreconciled Net Revenue'
+          value={
+            hasUnknownRevenue
+              ? 'Pending reconciliation'
+              : formatCurrency(totalNetRevenue)
+          }
+          subtitle='Processing costs are estimates or unverified'
           icon='trendingUp'
           iconColor='#565e74'
           className='bg-[#565e74] text-white [&_p]:text-white/70 [&_p:first-of-type]:text-white/60'

@@ -295,6 +295,16 @@ function setupRequestChangesMocks(
         }),
       };
     }
+    if (table === 'notifications') {
+      const query = {
+        select: vi.fn(() => query),
+        eq: vi.fn(() => query),
+        maybeSingle: vi
+          .fn()
+          .mockResolvedValue({ data: { id: 'notification-1' }, error: null }),
+      };
+      return query;
+    }
     if (table === 'profiles') {
       return {
         select: vi.fn().mockReturnValue({
@@ -334,7 +344,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Fix the grout' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: 'Fix the grout' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(401);
@@ -352,7 +362,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Fix the grout' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: 'Fix the grout' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
@@ -364,7 +374,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: '' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: '' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
@@ -378,7 +388,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: '   ' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: '   ' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
@@ -393,7 +403,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/bad-id/request-changes',
-      { comments: 'Fix it' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: 'Fix it' }
     );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
@@ -412,7 +422,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Fix it' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: 'Fix it' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
@@ -430,7 +440,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Fix it' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: 'Fix it' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(409);
@@ -445,7 +455,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Grout needs redo' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: 'Grout needs redo' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
@@ -454,7 +464,7 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     expect(body.success).toBe(true);
     expect(body.message).toContain('reopened');
     expect(mocks.supabaseRpc).toHaveBeenCalledWith(
-      'request_job_rework',
+      'request_job_rework_for_completion',
       expect.objectContaining({
         p_job_id: 'job-1',
         p_comments: 'Grout needs redo',
@@ -477,7 +487,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Please address the remaining leak' }
+      {
+        completedAt: '2026-09-15T10:00:00Z',
+        comments: 'Please address the remaining leak',
+      }
     );
     const res = await POST(req, segmentData('job-1'));
 
@@ -485,26 +498,53 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     expect((await res.json()).success).toBe(true);
   });
 
-  it('should create a notification for the contractor', async () => {
+  it('uses the transaction notification without creating a duplicate in the route', async () => {
     setupRequestChangesMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Grout needs redo' }
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/request-changes',
+        { completedAt: '2026-09-15T10:00:00Z', comments: 'Grout needs redo' }
+      ),
+      segmentData('job-1')
     );
-    await POST(req, segmentData('job-1'));
-
-    // 2026-05-21 Mint Editorial voice: title now names the homeowner's ask
-    // (`${job.title} — homeowner asked for a tweak`) and the message body is
-    // the verbatim comment. Realigned from the old static 'Changes Requested'.
-    expect(mocks.createNotification).toHaveBeenCalledWith(
+    expect(res.status).toBe(200);
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'request_job_rework_for_completion',
       expect.objectContaining({
-        userId: 'contractor-1',
-        title: 'Fix leaking pipe — homeowner asked for a tweak',
-        message: 'Grout needs redo',
-        type: 'changes_requested',
+        p_comments: 'Grout needs redo',
+        p_expected_completed_at: '2026-09-15T10:00:00Z',
       })
     );
+    expect(mocks.createNotification).not.toHaveBeenCalled();
+  });
+
+  it('recovers an applied request without repeating email or notifications', async () => {
+    setupRequestChangesMocks();
+    mocks.supabaseRpc.mockResolvedValue({ data: false, error: null });
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/request-changes',
+        { completedAt: '2026-09-15T10:00:00Z', comments: 'Grout needs redo' }
+      ),
+      segmentData('job-1')
+    );
+    expect(res.status).toBe(200);
+    expect(mocks.createNotification).not.toHaveBeenCalled();
+    expect(mocks.sendChangesRequestedEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not return success when the transaction result is missing', async () => {
+    setupRequestChangesMocks();
+    mocks.supabaseRpc.mockResolvedValue({ data: null, error: null });
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/request-changes',
+        { completedAt: '2026-09-15T10:00:00Z', comments: 'Grout needs redo' }
+      ),
+      segmentData('job-1')
+    );
+    expect(res.status).toBe(500);
+    expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
   });
 
   // ---- Update failure ----
@@ -513,11 +553,23 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
     const req = createPostRequest(
       'http://localhost:3000/api/jobs/job-1/request-changes',
-      { comments: 'Fix it' }
+      { completedAt: '2026-09-15T10:00:00Z', comments: 'Fix it' }
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(500);
     expect(mocks.createNotification).not.toHaveBeenCalled();
     expect(mocks.sendChangesRequestedEmail).not.toHaveBeenCalled();
+  });
+  it('rejects a request without the displayed completion version before mutation', async () => {
+    setupRequestChangesMocks();
+    const res = await POST(
+      createPostRequest(
+        'http://localhost:3000/api/jobs/job-1/request-changes',
+        { comments: 'Repair seal' }
+      ),
+      segmentData('job-1')
+    );
+    expect(res.status).toBe(400);
+    expect(mocks.supabaseRpc).not.toHaveBeenCalled();
   });
 });

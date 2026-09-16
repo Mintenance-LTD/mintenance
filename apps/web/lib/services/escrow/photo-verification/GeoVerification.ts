@@ -1,4 +1,5 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { extractJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import type {
   GeolocationResult,
@@ -79,7 +80,15 @@ export class GeoVerification {
   ): Promise<TimestampResult> {
     try {
       const metadata = await this.getPhotoMetadata(photoUrl);
-      const timestamp = metadata.timestamp || new Date();
+      const timestamp = metadata.timestamp;
+      if (!timestamp || !Number.isFinite(timestamp.getTime())) {
+        return {
+          verified: false,
+          timestamp: new Date(0),
+          isRecent: false,
+          timeDifference: Infinity,
+        };
+      }
 
       let isRecent = true;
       let timeDifference = 0;
@@ -175,13 +184,24 @@ export class GeoVerification {
     // In a real implementation, this would extract EXIF data from images
     // For now, check if metadata exists in database
     try {
-      const { data } = await serverSupabase
+      const path = extractJobStoragePath(photoUrl);
+      const query = serverSupabase
         .from('job_photos_metadata')
-        .select('geolocation, timestamp')
-        .eq('photo_url', photoUrl)
+        .select('geolocation, timestamp');
+      let { data, error } = await query
+        .eq(path ? 'storage_path' : 'photo_url', path ?? photoUrl)
         .single();
 
-      if (data) {
+      if (path && !data && (!error || error.code === 'PGRST116')) {
+        const legacy = await serverSupabase
+          .from('job_photos_metadata')
+          .select('geolocation, timestamp')
+          .eq('photo_url', photoUrl)
+          .single();
+        data = legacy.data;
+        error = legacy.error;
+      }
+      if (!error && data) {
         return {
           geolocation: data.geolocation as
             | { lat: number; lng: number; accuracy?: number }
@@ -189,7 +209,7 @@ export class GeoVerification {
           timestamp: data.timestamp ? new Date(data.timestamp) : undefined,
         };
       }
-    } catch (error) {
+    } catch {
       logger.warn('Could not fetch photo metadata from database', {
         service: 'PhotoVerificationService',
         photoUrl,

@@ -58,7 +58,19 @@ export const POST = withApiHandler(
     });
 
     try {
-      await UKEarningsStatementService.markFiled(contractorId, year);
+      const confirmed = await UKEarningsStatementService.markFiled(
+        contractorId,
+        year
+      );
+      if (!confirmed) {
+        return NextResponse.json(
+          {
+            error:
+              'Generate this earnings statement before marking it as filed.',
+          },
+          { status: 409 }
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return NextResponse.json(

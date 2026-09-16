@@ -73,18 +73,21 @@ export function RejectCompletionDialog({
           review your concerns.
         </p>
         <Input
+          aria-label='Reason for rejection'
+          maxLength={5000}
+          disabled={actionLoading}
           placeholder='Reason for rejection (required)'
           value={rejectionReason}
           onChange={(e) => onReasonChange(e.target.value)}
           style={{ marginBottom: theme.spacing.md }}
         />
         <div style={{ display: 'flex', gap: theme.spacing.md }}>
-          <Button variant='outline' onClick={onCancel}>
+          <Button variant='outline' onClick={onCancel} disabled={actionLoading}>
             Cancel
           </Button>
           <Button
             onClick={onSubmit}
-            disabled={!rejectionReason.trim() || actionLoading}
+            disabled={rejectionReason.trim().length < 10 || actionLoading}
           >
             {actionLoading ? <Spinner size='sm' /> : 'Submit Rejection'}
           </Button>
