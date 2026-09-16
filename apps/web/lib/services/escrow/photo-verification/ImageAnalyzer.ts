@@ -1,6 +1,7 @@
 import { logger } from '@mintenance/shared';
 import { validateURL } from '@/lib/security/url-validation';
 import sharp from 'sharp';
+import { z } from 'zod';
 import type { ImageInfo, Location, ChatMessage } from './types';
 
 export class ImageAnalyzer {
@@ -96,7 +97,7 @@ export class ImageAnalyzer {
   ): Promise<{ score: number; differences: string[] }> {
     if (!process.env.OPENAI_API_KEY) {
       logger.warn('OpenAI API key not configured, using fallback comparison');
-      return { score: 0.5, differences: ['AI comparison unavailable'] };
+      return { score: 0, differences: ['AI comparison unavailable'] };
     }
 
     try {
@@ -180,17 +181,22 @@ export class ImageAnalyzer {
 
       const data = await response.json();
       const content = data.choices[0]?.message?.content || '{}';
-      const result = JSON.parse(content);
+      const result = z
+        .object({
+          score: z.number().finite().min(0).max(1),
+          differences: z.array(z.string().max(2000)).max(20),
+        })
+        .parse(JSON.parse(content));
 
       return {
-        score: result.score || 0.5,
-        differences: result.differences || [],
+        score: result.score,
+        differences: result.differences,
       };
     } catch (error) {
       logger.error('Error in AI comparison', error, {
         service: 'PhotoVerificationService',
       });
-      return { score: 0.5, differences: ['AI comparison failed'] };
+      return { score: 0, differences: ['AI comparison failed'] };
     }
   }
 }

@@ -27,12 +27,14 @@ export class PhotoVerificationService {
   static async compareBeforeAfter(
     beforeUrls: string[],
     afterUrls: string[],
-    jobLocation: Location
+    jobLocation: Location,
+    metadataUrls?: { before: string[]; after: string[] }
   ): Promise<ComparisonResult> {
     return VerificationRules.compareBeforeAfter(
       beforeUrls,
       afterUrls,
-      jobLocation
+      jobLocation,
+      metadataUrls
     );
   }
 

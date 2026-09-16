@@ -2548,3 +2548,114 @@ F7 remains open: the enhanced verification route still has separate photo-status
 completion-version fencing; restart recovery, reminder/countdown behavior, and browser/device
 verification remain. This checkpoint does not establish public readiness or close the other F1-F15
 acceptance gates.
+
+## 16 September 2026: measured photo-quality regression
+
+Tracing enhanced verification through the shared analyzer exposed a separate active quality-gate
+defect: `VerificationRules.validatePhotoQuality` replaced measured zero brightness/sharpness with
+0.5/0.7 using truthiness defaults. The same helper is used by the before/after photo upload routes.
+A new diagnostic generates real 1200x1200 black and white PNGs with Sharp and runs the real analyzer
+and quality rules; only the HTTP/URL boundary is stubbed. Both cases failed before the fix with
+sharpness 0.7 instead of the actual zero. The fix preserves zero and treats absent measurements as
+zero, so blank photos cannot pass this gate.
+
+After the fix, the image regressions plus before/after upload route and job-lifecycle tests passed:
+54 tests / 4 files, 2.24 seconds. Those route tests mock provider and database boundaries; the new
+two-image test exercises actual image processing. This is boundary evidence, not an accuracy
+evaluation of the overall verification model.
+
+Further source tracing confirms the enhanced endpoint still needs resource-owned current-cycle
+evidence and atomic completion-version-fenced writes. Its broad URL allowlist is not proof that
+submitted photos belong to the job. The mobile `PhotoUploadService.verifyPhotos` wrapper sends no
+required payload, but a full source search found no production callers (only its own tests), so it
+is not evidence of a currently reachable failing screen. Do not close F7 based on the quality fix.
+
+### In-progress completion photo fencing
+
+CLI-created migration `20260916003207_fence_completion_photo_verification.sql` was applied only to
+the disposable audit database. The new private RPC locks job then current escrow, validates
+actor/completion version and bound current-cycle photo IDs, and saves verification plus review
+request in one transaction. The rollback-only `remediation-photo-verification.sql` passed (exit 0),
+exercising client execute denial, wrong actor, stale version, unbound evidence and successful atomic
+review/notification creation. This is not yet concurrency/rollback-complete coverage.
+
+The route now binds supplied paths to verified job photo metadata before analysis, limits input to
+20 distinct photos, signs the stored paths for quality analysis, and uses the RPC instead of
+separate escrow/review writes. It reads actual latitude and longitude, preserving zero coordinates
+and preventing absent location from passing geolocation. Still required before this work is
+committed: route regressions, current-cycle and rollback/race cases, migration replay, and
+signed-URL/metadata identity reconciliation in before/after comparison. This is an unfinished local
+checkpoint, not a readiness claim.
+
+### Photo metadata identity and unavailable-verification handling
+
+Metadata lookup now uses the exact-origin extracted storage path when available, so a renewed
+signing token does not sever geolocation/timestamp identity. Missing or invalid timestamps no longer
+become the current time. Before-photo queries now fail on database error and renew bound storage
+URLs before comparison.
+
+Tracing the comparison arithmetic found another concrete false-positive path: AI unavailable/error
+previously returned score 0.5, which combined with matching geolocation produced 0.65 and passed the
+0.6 threshold. Unavailable/failed AI now returns zero; parsed model scores must be finite and within
+[0,1], and measured zero is preserved. This prevents an unavailable provider from supplying positive
+evidence. The configured provider model and complete provider integration still need review; these
+changes do not establish model accuracy or successful external delivery.
+
+Six new image/metadata regressions passed; combined with before/after upload and job-lifecycle
+checks, 58 tests / 5 files passed in 2.72 seconds. Web type checking passed, exit 0. Still pending:
+enhanced-route tests, full RPC concurrency/rollback coverage, migration replay, final lint and
+commit.
+
+### Photo-verification transaction recovery and races
+
+The expanded rollback-only SQL diagnostic passed with an injected notification failure: neither
+verification status nor review deadline survived the failure.
+`remediation-photo-verification-races.py` passed four actual two-connection cases:
+verification/rework in both orders and verification/approval in both orders. It observes the
+follower waiting on the job lock and checks persisted final states; synthetic records are cleaned.
+Migration replay is running separately in the isolated stack; do not mutate its schema until that
+process is terminal.
+
+Migration replay subsequently completed with empty actual JSON diff and no drop statements
+(`current-photo-verification-db-diff.log`). Affected source lint passed with zero warnings after
+removing an unused catch binding. Enhanced-route regressions and remaining verification integration
+review are still pending.
+
+### Enhanced endpoint regression boundary
+
+Six enhanced-route regressions passed (1.31 seconds): wrong contractor, foreign Supabase origin,
+missing bound evidence, exact actor/photo/version RPC payload, stale-completion error and absent
+commit result. These isolate the handler; auth wrapper and database/provider boundaries are mocked,
+while earlier SQL diagnostics exercise the real transaction. Web types passed after these additions.
+
+Integration tracing found before/after upload writers did not populate the existing `storage_path`
+column. Both now save their server-generated object path. Their 29 tests / 2 files passed in 2.33
+seconds. Existing null-path records still require compatibility/backfill validation; do not treat
+the new lookup as fully integrated until that is resolved. The full sanitized web suite is running
+separately in `current-photo-full-web-tests.log`; its outcome is not yet asserted here.
+
+### Full-suite result and legacy compatibility
+
+The full sanitized web run completed successfully: 3684 tests / 343 files, 154.84 seconds
+(`current-photo-full-web-tests.log`). This run preceded the final legacy lookup changes. Those
+changes paginate same-job verified after-photo metadata, resolve old exact-origin stored URLs to
+object paths, and compare against submitted object identity. They never accept a foreign-origin URL
+or a photo from another job. Comparison receives renewed image URLs separately from persisted
+metadata URLs; legacy exact-URL metadata fallback remains available when no path row exists. Eleven
+focused endpoint/metadata tests passed in 1.87 seconds and web types passed. A final
+pagination-failure regression was then added for the next focused run. No hosted backfill or
+production data mutation was performed.
+
+### Photo-verification checkpoint validation
+
+Final focused run after legacy compatibility and pagination-error checks: 43 tests / 5 files passed,
+2.79 seconds (`current-photo-final-tests.log`). Affected route/service lint passed with zero
+warnings. Web types passed after legacy integration. Earlier real SQL rollback, four concurrent
+ordering cases, and empty migration replay remain applicable: no schema changes followed that
+replay. Normal commit hooks are required.
+
+This checkpoint does not close all F7 requirements or establish provider/model accuracy. Remaining
+review includes restart recovery, reminder/countdown semantics, provider configuration/timeouts and
+authenticated browser/device journeys, alongside the full F1-F15 acceptance ledger. Historical
+in-progress notes above describe the sequence; this paragraph records the final local validation
+state for this checkpoint.

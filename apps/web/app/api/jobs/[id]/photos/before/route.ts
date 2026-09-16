@@ -257,6 +257,7 @@ export const POST = withApiHandler(
             .insert({
               job_id: jobId,
               photo_url: photoUrl,
+              storage_path: fileName,
               photo_type: 'before',
               geolocation: geolocation || null,
               geolocation_verified: geolocation ? geolocationVerified : null,
