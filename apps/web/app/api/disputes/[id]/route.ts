@@ -1,3 +1,4 @@
+import { readRetainedDispute } from '@/lib/services/disputes/retained';
 import { readDisputeEvidence } from '@/lib/services/disputes/evidence';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -50,6 +51,8 @@ export const GET = withApiHandler(
         'Unable to load the dispute. Please retry.'
       );
     if (!escrow) {
+      const retained = await readRetainedDispute(disputeId, user.id);
+      if (retained) return NextResponse.json(retained);
       // Return generic error to avoid leaking dispute existence
       throw new NotFoundError('Dispute not found or access denied');
     }
@@ -112,6 +115,11 @@ export const GET = withApiHandler(
       if (drows && drows.length > 0) {
         disputeRecord = drows[0];
       }
+    }
+
+    if (!disputeRecord) {
+      const retained = await readRetainedDispute(disputeId, user.id);
+      if (retained) return NextResponse.json(retained);
     }
 
     return NextResponse.json({

@@ -24,6 +24,9 @@ export default function DisputeDetailPage() {
   const { loading } = useCurrentUser();
   const [dispute, setDispute] = useState<{
     status: string;
+    archived?: boolean;
+    archived_at?: string;
+    description?: string | null;
     priority: string;
     sla_deadline?: string;
     dispute_reason?: string;
@@ -122,6 +125,28 @@ export default function DisputeDetailPage() {
         <p>{loadError || 'Dispute not found'}</p>
         <Button onClick={refresh}>Retry</Button>
       </div>
+    );
+  }
+
+  if (dispute.archived) {
+    return (
+      <main className='mx-auto max-w-3xl p-6 space-y-4'>
+        <h1 className='text-2xl font-semibold'>Retained dispute record</h1>
+        <p>
+          This is a read-only record preserved after account or job deletion.
+          Its retention is subject to review.
+        </p>
+        <h2 className='text-lg font-semibold'>Reason</h2>
+        <p>{dispute.dispute_reason || 'No reason recorded'}</p>
+        {dispute.description && (
+          <p className='whitespace-pre-wrap'>
+            {dispute.description.split('\n\nEvidence:\n')[0]}
+          </p>
+        )}
+        {dispute.resolution && <p>Recorded outcome: {dispute.resolution}</p>}
+        <DisputeEvidenceLinks items={dispute.dispute_evidence} />
+        <Button onClick={refresh}>Refresh evidence links</Button>
+      </main>
     );
   }
 

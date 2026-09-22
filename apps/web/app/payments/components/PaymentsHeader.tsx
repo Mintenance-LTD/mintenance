@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { Download, Wallet } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
@@ -35,6 +36,9 @@ export function PaymentsHeader({ onExport }: PaymentsHeaderProps) {
           <p className='t-body'>
             Manage your payments and view transaction history.
           </p>
+          <Link href='/disputes' className='underline'>
+            Retained dispute records
+          </Link>
         </div>
         <button
           type='button'
@@ -65,6 +69,9 @@ export function PaymentsHeader({ onExport }: PaymentsHeaderProps) {
             <p className='text-gray-500 mt-0.5'>
               Manage your payments and view transaction history
             </p>
+            <Link href='/disputes' className='underline'>
+              Retained dispute records
+            </Link>
           </div>
         </div>
         <button

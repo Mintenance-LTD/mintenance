@@ -3644,3 +3644,40 @@ exact additional same-origin path. Token-bearing page uses no-index/no-referrer 
 32 focused tests passed across four files; changed-source lint passed. This checkpoint does not
 verify actual email delivery, the full provider verification/browser journey, or native
 universal-link handling. No SQL changes or live messages were needed.
+
+## 2026-09-22 — Deletion archive and retention review controls
+
+Disputes are now snapshotted before parent cascades remove payment links and participants. The
+restricted archive has no foreign keys back to erasable accounts/jobs. Participant-only reads are
+audited; evidence download URLs are renewed for 600 seconds only for the original scoped objects.
+The web has a retained-record list and read-only view; mobile payment history links to the same
+authenticated website. This browser hand-off is not a native-device verification claim.
+
+Real local HTTP verification passed with three synthetic accounts, real cookie authentication, the
+full /api/user/delete-account endpoint, actual Auth deletion, surviving-party listing/read,
+byte-identical private Storage download, and unrelated-user denial. Cleanup removed only generated
+fixtures. An earlier attempt hit the normal login rate limit; the successful run waited for its
+window rather than changing or bypassing it. Rolled-back SQL also covers contractor/owner/job
+deletion, denied unrelated administrator access, and unbound legacy records.
+
+Added a staff evidence-review queue for both archive types. Decisions require fresh MFA and a
+database administrator check, serialize against the source record, reject stale revisions, and
+append a protected history. Holds require review within 90 days; other review dates are bounded to
+one year. These are review dates, not automatic deletion deadlines. Seven route tests and two
+component tests cover identity binding, errors, MFA payload preservation and input after failure;
+real SQL checks cover privileges, both record types, hold/release history and stale decisions.
+
+Before these latest review additions, full isolated web coverage passed 388 files / 3,952 tests. The
+earlier archive-focused run passed 17 tests; the combined archive/review-service run passed 12.
+Current review type checking and strict changed-source lint passed. Final build, migration replay,
+hosted rollout and final commit evidence are recorded separately when completed.
+
+Still unfinished: durable disposal and hold/disposal race checks, unbound legacy reconciliation,
+identity-verified access after the requesting party closes their own account, provider email and
+Stripe test journeys, broader management acceptance and physical-device checks. Neither the
+retention policy draft nor these passing subsets establish launch readiness.
+
+Final checkpoint verification: sanitized production build completed successfully (512 generated
+pages); 14 final focused retention tests passed. Final isolated schema replay/diff was empty. Both
+migrations are hosted and MCP metadata checks passed. Actual concurrent first reviews produced
+exactly one winner. No real payments, messages or native device tests were performed.

@@ -21,6 +21,7 @@
 
 const ALLOWED_PATH_PREFIXES = [
   '/dashboard',
+  '/disputes',
   '/contractor',
   '/jobs',
   '/profile',

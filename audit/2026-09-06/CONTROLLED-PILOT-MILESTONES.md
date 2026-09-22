@@ -39,9 +39,9 @@ restrictions are not a complete retention implementation.
 
 ## Active next slice
 
-Repair the registration-to-verified-invitation hand-off, which currently ignores failed acceptance
-before redirecting away. Then continue archived evidence retrieval and manager workflow
-completeness.
+Finish retention disposal/reconciliation and invitation delivery concurrency, then complete the
+remaining manager role journeys. Provider test payments and native-device acceptance remain blocked
+by unavailable Stripe test credentials and no connected device; neither is a passing gate.
 
 ### Invitation hand-off checkpoint
 
@@ -51,3 +51,16 @@ confirms server success before linking to the property. New outgoing invite link
 prior register?invite links remain supported. 32 focused tests across invitation identity, contact
 delivery, redirect security and the new page passed. This is not a full
 email-provider/browser/native-device acceptance proof.
+
+### Evidence archive and review checkpoint
+
+The complete local HTTP account-deletion journey now passes with synthetic accounts: confirmed
+account removal, surviving-party archive listing/read, fresh private download with byte-identical
+evidence, and unrelated-user denial. Separate rolled-back database checks cover homeowner,
+contractor and job deletion, including unbound legacy dispute preservation. Unbound legacy records
+are deliberately excluded from payment-linked participant lists pending reconciliation.
+
+Staff review controls cover both signed-contract and dispute archives: database-verified admin,
+fresh MFA for decisions, revision-checked updates, hold/release audit history, and bounded future
+review dates (90 days for holds). Review deadlines do not erase records. Durable disposal, processor
+copies/backups, closed-account identity verification and full native acceptance remain unfinished.
