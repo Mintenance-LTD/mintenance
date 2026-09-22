@@ -140,8 +140,9 @@ export class RecurringJobCreatorService {
           {
             title: schedule.title,
             description:
-              schedule.description ||
-              `Recurring maintenance: ${schedule.title}`,
+              (schedule.description?.trim().length ?? 0) >= 20
+                ? schedule.description.trim()
+                : `Recurring maintenance: ${schedule.title}`,
             category: schedule.category || undefined,
             property_id: schedule.property_id,
             requirements: {

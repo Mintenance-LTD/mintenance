@@ -1,3 +1,4 @@
+import { isOpenPropertyJob } from '@mintenance/shared';
 import type { Metadata } from 'next';
 import React from 'react';
 import { cookies } from 'next/headers';
@@ -89,9 +90,7 @@ export default async function PropertyDetailPage({
   const completedJobs =
     jobs?.filter((job) => job.status === 'completed').length || 0;
   const activeJobs =
-    jobs?.filter((job) =>
-      ['posted', 'assigned', 'in_progress'].includes(job.status || '')
-    ).length || 0;
+    jobs?.filter((job) => isOpenPropertyJob(job.status || '')).length || 0;
   const totalSpent =
     jobs?.reduce((sum, job) => {
       if (job.status === 'completed') {

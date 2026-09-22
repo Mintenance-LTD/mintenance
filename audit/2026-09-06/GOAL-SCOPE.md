@@ -102,3 +102,11 @@ project. This supersedes earlier no-hosted-mutation wording for that purpose. Pr
 prohibitions on live payments, unrelated production data edits, destructive resets, real-user
 contact and application deployment. See HOSTED-ROLLOUT-2026-09-22.md for the completed 53-migration
 production rollout and remaining limitations.
+
+## Mobile parity requirement — 22 September 2026
+
+The user explicitly requires mobile to match applicable web management changes and audit repairs.
+For each new workflow, trace both clients against the same server permissions, statuses, dates, and
+response contract. Include failure states and account-scoped caches in acceptance tests. A web-only
+checkpoint does not establish mobile completion. Native component tests do not replace
+physical-device checks for navigation, interruptions, uploads, accessibility, and payment hand-offs.

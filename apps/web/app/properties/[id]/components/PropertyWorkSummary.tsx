@@ -1,4 +1,8 @@
 'use client';
+import {
+  PROPERTY_JOB_STATUS_LABELS,
+  isOpenPropertyJob,
+} from '@mintenance/shared';
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -7,21 +11,9 @@ interface WorkItem {
   title: string;
   status: string;
 }
-const labels: Record<string, string> = {
-  draft: 'Draft',
-  posted: 'Awaiting bids',
-  assigned: 'Assigned',
-  in_progress: 'In progress',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  disputed: 'Disputed',
-  pending: 'Pending',
-};
 export function PropertyWorkSummary({ jobs }: { jobs: WorkItem[] }) {
   const [filter, setFilter] = useState('open');
-  const open = jobs.filter(
-    (job) => !['completed', 'cancelled', 'draft'].includes(job.status)
-  );
+  const open = jobs.filter((job) => isOpenPropertyJob(job.status));
   const visible = filter === 'all' ? jobs : open;
   return (
     <section
@@ -73,7 +65,8 @@ export function PropertyWorkSummary({ jobs }: { jobs: WorkItem[] }) {
               >
                 <span>{job.title}</span>
                 <span className='shrink-0 text-sm text-gray-600'>
-                  {labels[job.status] ?? 'Status unavailable'}
+                  {PROPERTY_JOB_STATUS_LABELS[job.status] ??
+                    'Status unavailable'}
                 </span>
               </Link>
             </li>

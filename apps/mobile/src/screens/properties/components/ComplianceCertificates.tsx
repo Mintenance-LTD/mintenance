@@ -1,9 +1,15 @@
 /**
  * ComplianceCertificates - Track compliance certificates for a property
  */
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { me } from '../../../design-system/mint-editorial';
@@ -49,135 +55,118 @@ const CERT_LABELS: Record<string, string> = {
   pat_testing: 'PAT Testing',
 };
 
-const STATUS_CONFIG: Record<
-  string,
-  { color: string; icon: keyof typeof Ionicons.glyphMap; bg: string }
-> = {
-  valid: { color: '#10B981', icon: 'checkmark-circle', bg: '#D1FAE5' },
-  expiring: { color: '#F59E0B', icon: 'alert-circle', bg: '#FEF3C7' },
-  expired: { color: '#EF4444', icon: 'close-circle', bg: '#FEE2E2' },
-  missing: { color: '#9CA3AF', icon: 'help-circle', bg: '#F3F4F6' },
-};
-
 export const ComplianceCertificates: React.FC<Props> = ({ propertyId }) => {
-  const { data: certificates = [] } = useQuery({
-    queryKey: ['compliance', propertyId],
+  const { user } = useAuth();
+  const [query, setQuery] = useState('');
+  const {
+    data: certificates = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['compliance', propertyId, user?.id],
+    enabled: !!user,
     queryFn: async () => {
-      try {
-        const res = await mobileApiClient.get<
-          { certificates: Certificate[] } | Certificate[]
-        >(`/api/properties/${propertyId}/compliance`);
-        return Array.isArray(res) ? res : res?.certificates || [];
-      } catch {
-        return [];
-      }
+      const response = await mobileApiClient.get<
+        { certificates: Certificate[] } | Certificate[]
+      >(`/api/properties/${propertyId}/compliance`);
+      const rows = Array.isArray(response) ? response : response?.certificates;
+      if (
+        !Array.isArray(rows) ||
+        rows.some(
+          (row) =>
+            !row ||
+            typeof row.id !== 'string' ||
+            typeof row.cert_type !== 'string'
+        )
+      )
+        throw new Error('Certificate response was incomplete');
+      return rows;
     },
   });
-
-  // Build a full list with all cert types
-  const allCertTypes = Object.keys(CERT_LABELS);
-  const certMap = new Map(certificates.map((c) => [c.cert_type, c]));
-  const fullList = allCertTypes.map((type) => {
-    const existing = certMap.get(type);
-    if (existing) return existing;
-    return { id: type, cert_type: type, status: 'missing' as const };
-  });
-
-  const validCount = fullList.filter((c) => c.status === 'valid').length;
-  const expiringCount = fullList.filter((c) => c.status === 'expiring').length;
-  const expiredCount = fullList.filter((c) => c.status === 'expired').length;
-
+  const visible = certificates.filter((cert) =>
+    [
+      cert.cert_type,
+      cert.certificate_number,
+      cert.issuer_name,
+      CERT_LABELS[cert.cert_type],
+    ].some((value) => value?.toLowerCase().includes(query.trim().toLowerCase()))
+  );
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>COMPLIANCE</Text>
-
-      {/* Summary badges */}
-      <View style={styles.summaryRow}>
-        <View style={[styles.summaryBadge, { backgroundColor: '#D1FAE5' }]}>
-          <Text style={[styles.summaryCount, { color: '#10B981' }]}>
-            {validCount}
+      <Text style={styles.sectionTitle}>CERTIFICATE RECORDS</Text>
+      {isLoading ? (
+        <Text>Loading certificate records...</Text>
+      ) : error ? (
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessibilityLabel='Retry loading certificates'
+          onPress={() => refetch()}
+        >
+          <Text>Could not load certificates. Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : (
+        <>
+          <Text>
+            {certificates.length} recorded for this property. Applicability has
+            not been assessed.
           </Text>
-          <Text style={[styles.summaryLabel, { color: '#10B981' }]}>Valid</Text>
-        </View>
-        <View style={[styles.summaryBadge, { backgroundColor: '#FEF3C7' }]}>
-          <Text style={[styles.summaryCount, { color: '#F59E0B' }]}>
-            {expiringCount}
-          </Text>
-          <Text style={[styles.summaryLabel, { color: '#F59E0B' }]}>
-            Expiring
-          </Text>
-        </View>
-        <View style={[styles.summaryBadge, { backgroundColor: '#FEE2E2' }]}>
-          <Text style={[styles.summaryCount, { color: '#EF4444' }]}>
-            {expiredCount}
-          </Text>
-          <Text style={[styles.summaryLabel, { color: '#EF4444' }]}>
-            Expired
-          </Text>
-        </View>
-      </View>
-
-      {fullList.map((cert) => {
-        const config = STATUS_CONFIG[cert.status] ??
-          STATUS_CONFIG.missing ?? {
-            color: '#9CA3AF',
-            icon: 'help-circle' as keyof typeof Ionicons.glyphMap,
-            bg: '#F3F4F6',
-          };
-        return (
-          <View key={cert.id} style={styles.certRow}>
-            <View style={[styles.statusDot, { backgroundColor: config.bg }]}>
-              <Ionicons name={config.icon} size={18} color={config.color} />
-            </View>
-            <View style={styles.certInfo}>
-              <Text style={styles.certType}>
-                {CERT_LABELS[cert.cert_type] || cert.cert_type}
-                {/* Property Rooms Slice 4 — surface the linked room
-                    inline so the row reads "EICR · Kitchen" when
-                    scoped. Missing-scope certs render unchanged. */}
-                {cert.property_room ? (
-                  <Text style={styles.certRoom}>
-                    {'  ·  '}
-                    {cert.property_room.name}
+          <TextInput
+            accessibilityLabel='Search certificates'
+            value={query}
+            onChangeText={setQuery}
+            placeholder='Type, number or issuer'
+            style={styles.search}
+          />
+          {visible.length === 0 ? (
+            <Text>
+              {certificates.length
+                ? 'No certificates match your search.'
+                : 'No certificate records have been added.'}
+            </Text>
+          ) : (
+            visible.map((cert) => (
+              <View key={cert.id} style={styles.certRow}>
+                <View style={styles.certInfo}>
+                  <Text style={styles.certType}>
+                    {CERT_LABELS[cert.cert_type] || cert.cert_type}
                   </Text>
-                ) : null}
-              </Text>
-              {cert.expiry_date ? (
-                <Text style={styles.certDate}>
-                  Expires{' '}
-                  {new Date(cert.expiry_date).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </Text>
-              ) : (
-                <Text style={styles.certMissing}>Not on file</Text>
-              )}
-            </View>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: config?.bg ?? '#F3F4F6' },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  { color: config?.color ?? '#9CA3AF' },
-                ]}
-              >
-                {cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
-              </Text>
-            </View>
-          </View>
-        );
-      })}
+                  <Text style={styles.certDate}>
+                    Number: {cert.certificate_number || 'Not recorded'}
+                  </Text>
+                  <Text style={styles.certDate}>
+                    Issuer: {cert.issuer_name || 'Not recorded'}
+                  </Text>
+                  <Text style={styles.certDate}>
+                    Issued: {cert.issued_date || 'Not recorded'}
+                  </Text>
+                  <Text style={styles.certDate}>
+                    Expiry: {cert.expiry_date || 'Not recorded'}
+                  </Text>
+                  {cert.property_room?.name ? (
+                    <Text style={styles.certRoom}>
+                      Room: {cert.property_room.name}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ))
+          )}
+        </>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  search: {
+    borderWidth: 1,
+    borderColor: me.line,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 12,
+    color: me.ink,
+  },
   container: {
     backgroundColor: me.surface,
     borderRadius: 16,

@@ -25,7 +25,10 @@ import { goBackSafe } from '../../navigation/hooks';
 import { Badge } from '../../components/ui/Badge/Badge';
 import { me } from '../../design-system/mint-editorial';
 import { styles, CATEGORY_ICONS } from './PropertyDetailStyles';
-import { PropertyHealthScore } from './components/PropertyHealthScore';
+import {
+  isOpenPropertyJob,
+  PROPERTY_JOB_STATUS_LABELS,
+} from '@mintenance/shared';
 import { SpendingAnalytics } from './components/SpendingAnalytics';
 import { RecurringMaintenance } from './components/RecurringMaintenance';
 import { TenantContacts } from './components/TenantContacts';
@@ -119,6 +122,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [jobFilter, setJobFilter] = useState<'open' | 'all'>('open');
 
   const {
     data: property,
@@ -126,7 +130,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     error,
     refetch,
   } = useQuery({
-    queryKey: ['property', propertyId],
+    queryKey: ['property', propertyId, user?.id],
     queryFn: async () => {
       // 2026-05-23 audit: previously read properties directly via
       // supabase. The properties RLS policy only grants
@@ -141,14 +145,20 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       );
       const raw =
         (res as { property?: Property })?.property ?? (res as Property);
-      if (!raw) throw new Error('Property not found');
+      if (!raw || raw.id !== propertyId)
+        throw new Error('Property response could not be confirmed');
       return raw as Property;
     },
     enabled: !!user && !!propertyId,
   });
 
-  const { data: jobsData, error: jobsError } = useQuery({
-    queryKey: ['property-jobs', propertyId],
+  const {
+    data: jobsData,
+    error: jobsError,
+    isLoading: jobsLoading,
+    refetch: refetchJobs,
+  } = useQuery({
+    queryKey: ['property-jobs', propertyId, user?.id],
     queryFn: async () => {
       // 2026-05-23 audit: previously direct-queried supabase. Live
       // jobs RLS is broad (non-draft visibility) — any authenticated
@@ -180,7 +190,9 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       >(`/api/properties/${propertyId}/jobs`);
       const rows = Array.isArray(res)
         ? res
-        : ((res as { jobs?: ApiJobRow[] }).jobs ?? []);
+        : (res as { jobs?: ApiJobRow[] })?.jobs;
+      if (!Array.isArray(rows))
+        throw new Error('Property jobs response was incomplete');
       // Coerce into the shared Job shape so downstream consumers
       // (PropertyHealthScore, SpendingAnalytics) typecheck. budget
       // is NUMERIC from Postgres — arrives as a string via
@@ -226,10 +238,12 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const caps = capsForRole(propertyRole);
 
   const propertyJobs = jobsData || [];
+  const visibleJobs =
+    jobFilter === 'open'
+      ? propertyJobs.filter((job) => isOpenPropertyJob(job.status))
+      : propertyJobs;
   const completedJobs = propertyJobs.filter((j) => j.status === 'completed');
-  const activeJobs = propertyJobs.filter(
-    (j) => j.status === 'in_progress' || j.status === 'assigned'
-  );
+  const activeJobs = propertyJobs.filter((j) => isOpenPropertyJob(j.status));
   // 2026-05-22 audit C5: jobs.budget is Postgres NUMERIC, serialised
   // as a string by supabase-js. `sum + (j.budget || 0)` with a string
   // budget silently concatenates and the "Total Spent" tile renders
@@ -262,12 +276,12 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           status?: number;
           data?: {
             error?: string;
-            blockers?: Array<{ message?: string }>;
+            blockers?: { message?: string }[];
           };
         };
         data?: {
           error?: string;
-          blockers?: Array<{ message?: string }>;
+          blockers?: { message?: string }[];
         };
       };
       const e = err as ApiErr;
@@ -371,8 +385,18 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        refetch(),
+        refetchJobs(),
+        queryClient.invalidateQueries({ queryKey: ['compliance', propertyId] }),
+        queryClient.invalidateQueries({
+          queryKey: ['recurring-maintenance', propertyId],
+        }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -425,81 +449,104 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     return <ErrorView message='Property not found' onRetry={refetch} />;
 
   const formatType = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-  const renderOverviewTab = () => (
-    <>
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{completedJobs.length}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: '#3B82F6' }]}>
-            {activeJobs.length}
-          </Text>
-          <Text style={styles.statLabel}>Active</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: me.brand }]}>
-            {'\u00A3'}
-            {totalSpent >= 1000
-              ? `${(totalSpent / 1000).toFixed(1)}k`
-              : totalSpent}
-          </Text>
-          <Text style={styles.statLabel}>Spent</Text>
-        </View>
-      </View>
-
-      <PropertyHealthScore jobs={propertyJobs} />
-
-      <SpendingAnalytics jobs={propertyJobs} />
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>PROPERTY INFORMATION</Text>
-        <View style={styles.specGrid}>
-          <View style={styles.specTile}>
-            <View style={[styles.specTileIcon, { backgroundColor: '#DBEAFE' }]}>
-              <Ionicons name='business-outline' size={16} color='#3B82F6' />
-            </View>
-            <Text style={styles.specTileValue}>
-              {formatType(property.property_type ?? 'N/A')}
+  const renderOverviewTab = () =>
+    jobsLoading ? (
+      <LoadingSpinner message='Loading property jobs...' />
+    ) : jobsError ? (
+      <ErrorView
+        message='Could not load property jobs. Please retry.'
+        onRetry={refetchJobs}
+      />
+    ) : (
+      <>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{completedJobs.length}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statNumber, { color: '#3B82F6' }]}>
+              {activeJobs.length}
             </Text>
-            <Text style={styles.specTileLabel}>Type</Text>
+            <Text style={styles.statLabel}>Active</Text>
           </View>
-          <View style={styles.specTile}>
-            <View style={[styles.specTileIcon, { backgroundColor: '#EDE9FE' }]}>
-              <Ionicons name='bed-outline' size={16} color='#8B5CF6' />
-            </View>
-            <Text style={styles.specTileValue}>{property.bedrooms ?? '-'}</Text>
-            <Text style={styles.specTileLabel}>Bedrooms</Text>
-          </View>
-          <View style={styles.specTile}>
-            <View style={[styles.specTileIcon, { backgroundColor: '#D1FAE5' }]}>
-              <Ionicons name='water-outline' size={16} color='#10B981' />
-            </View>
-            <Text style={styles.specTileValue}>
-              {property.bathrooms ?? '-'}
+          <View style={styles.statCard}>
+            <Text style={[styles.statNumber, { color: me.brand }]}>
+              {'\u00A3'}
+              {totalSpent >= 1000
+                ? `${(totalSpent / 1000).toFixed(1)}k`
+                : totalSpent}
             </Text>
-            <Text style={styles.specTileLabel}>Bathrooms</Text>
-          </View>
-          <View style={styles.specTile}>
-            <View style={[styles.specTileIcon, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name='calendar-outline' size={16} color='#F59E0B' />
-            </View>
-            <Text style={styles.specTileValue}>
-              {property.year_built ?? '-'}
-            </Text>
-            <Text style={styles.specTileLabel}>Year Built</Text>
+            <Text style={styles.statLabel}>Completed job budgets</Text>
           </View>
         </View>
-        {property.square_footage != null && (
-          <View style={styles.sizeRow}>
-            <Ionicons name='resize-outline' size={16} color={me.ink2} />
-            <Text style={styles.sizeText}>{property.square_footage} sq ft</Text>
-          </View>
-        )}
-      </View>
 
-      {/* 2026-06-08 audit: removed the dead "NOTES" block. `Property.notes`
+        <Text style={styles.statLabel}>
+          Job records describe maintenance activity. They do not establish the
+          physical condition or safety of this property.
+        </Text>
+
+        <SpendingAnalytics jobs={propertyJobs} />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>PROPERTY INFORMATION</Text>
+          <View style={styles.specGrid}>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#DBEAFE' }]}
+              >
+                <Ionicons name='business-outline' size={16} color='#3B82F6' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {formatType(property.property_type ?? 'N/A')}
+              </Text>
+              <Text style={styles.specTileLabel}>Type</Text>
+            </View>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#EDE9FE' }]}
+              >
+                <Ionicons name='bed-outline' size={16} color='#8B5CF6' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {property.bedrooms ?? '-'}
+              </Text>
+              <Text style={styles.specTileLabel}>Bedrooms</Text>
+            </View>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#D1FAE5' }]}
+              >
+                <Ionicons name='water-outline' size={16} color='#10B981' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {property.bathrooms ?? '-'}
+              </Text>
+              <Text style={styles.specTileLabel}>Bathrooms</Text>
+            </View>
+            <View style={styles.specTile}>
+              <View
+                style={[styles.specTileIcon, { backgroundColor: '#FEF3C7' }]}
+              >
+                <Ionicons name='calendar-outline' size={16} color='#F59E0B' />
+              </View>
+              <Text style={styles.specTileValue}>
+                {property.year_built ?? '-'}
+              </Text>
+              <Text style={styles.specTileLabel}>Year Built</Text>
+            </View>
+          </View>
+          {property.square_footage != null && (
+            <View style={styles.sizeRow}>
+              <Ionicons name='resize-outline' size={16} color={me.ink2} />
+              <Text style={styles.sizeText}>
+                {property.square_footage} sq ft
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* 2026-06-08 audit: removed the dead "NOTES" block. `Property.notes`
           is flagged "Not in DB but kept for backward compat" in
           @mintenance/types and live `public.properties` has no `notes`
           column (only `access_notes`, which the PropertyAccessSection below
@@ -508,133 +555,145 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           rendered. Matches audit-74's removal of the dead notes field from
           AddProperty/EditProperty. */}
 
-      <PropertyRoomsSection
-        propertyId={propertyId}
-        editable={property.owner_id === user?.id}
-      />
+        <PropertyRoomsSection
+          propertyId={propertyId}
+          editable={property.owner_id === user?.id}
+        />
 
-      <View style={styles.section}>
-        <View style={styles.jobHistoryHeader}>
-          <Text style={styles.sectionTitle}>JOB HISTORY</Text>
-          {totalSpent > 0 && (
-            <View style={styles.totalSpentBadge}>
-              <Text style={styles.totalSpentText}>
-                {'\u00A3'}
-                {totalSpent.toLocaleString('en-GB')} spent
+        <View style={styles.section}>
+          <View style={styles.jobHistoryHeader}>
+            <Text style={styles.sectionTitle}>JOB HISTORY</Text>
+            {totalSpent > 0 && (
+              <View style={styles.totalSpentBadge}>
+                <Text style={styles.totalSpentText}>
+                  {'\u00A3'}
+                  {totalSpent.toLocaleString('en-GB')} budgeted
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.statsRow}>
+            {(['open', 'all'] as const).map((filter) => (
+              <TouchableOpacity
+                key={filter}
+                accessibilityRole='button'
+                accessibilityState={{ selected: jobFilter === filter }}
+                onPress={() => setJobFilter(filter)}
+              >
+                <Text>{filter === 'open' ? 'Open jobs' : 'All jobs'}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {jobsError ? (
+            // 2026-05-26 audit-57 P2: render a real failure state so a
+            // permissions mismatch / backend error doesn't read as "no
+            // jobs". Tap retries the query.
+            <TouchableOpacity
+              style={styles.emptyJobsWrap}
+              onPress={() =>
+                queryClient.invalidateQueries({
+                  queryKey: ['property-jobs', propertyId, user?.id],
+                })
+              }
+              accessibilityRole='button'
+              accessibilityLabel='Retry loading jobs'
+            >
+              <View style={styles.emptyJobsIcon}>
+                <Ionicons
+                  name='alert-circle-outline'
+                  size={20}
+                  color={me.errFg}
+                />
+              </View>
+              <Text style={[styles.emptyJobsText, { color: me.errFg }]}>
+                Could not load jobs for this property. Tap to retry.
+              </Text>
+            </TouchableOpacity>
+          ) : visibleJobs.length === 0 ? (
+            <View style={styles.emptyJobsWrap}>
+              <View style={styles.emptyJobsIcon}>
+                <Ionicons name='briefcase-outline' size={20} color={me.ink3} />
+              </View>
+              <Text style={styles.emptyJobsText}>
+                {jobFilter === 'open'
+                  ? 'No open jobs recorded.'
+                  : 'No jobs for this property yet.'}
               </Text>
             </View>
+          ) : (
+            visibleJobs.map((job) => {
+              const cat =
+                CATEGORY_ICONS[(job.category ?? '').toLowerCase()] ??
+                CATEGORY_ICONS.general;
+              return (
+                <TouchableOpacity
+                  key={job.id}
+                  style={styles.jobCard}
+                  onPress={() =>
+                    (navigation as ReturnType<typeof Object>).navigate(
+                      'JobsTab',
+                      {
+                        screen: 'JobDetails',
+                        params: { jobId: job.id },
+                      }
+                    )
+                  }
+                  accessibilityRole='button'
+                  accessibilityLabel={`View ${job.title}`}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.jobCatIcon,
+                      { backgroundColor: cat?.bg ?? '#F5F5F5' },
+                    ]}
+                  >
+                    <Ionicons
+                      name={cat?.icon ?? 'construct-outline'}
+                      size={18}
+                      color={cat?.color ?? '#616161'}
+                    />
+                  </View>
+                  <View style={styles.jobRowInfo}>
+                    <Text style={styles.jobRowTitle} numberOfLines={1}>
+                      {job.title}
+                    </Text>
+                    <Text style={styles.jobRowDate}>
+                      {new Date(job.created_at).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                  <View style={styles.jobRowRight}>
+                    {job.budget ? (
+                      <Text style={styles.jobRowBudget}>
+                        {'\u00A3'}
+                        {job.budget.toLocaleString()}
+                      </Text>
+                    ) : null}
+                    <Badge
+                      variant={
+                        job.status === 'completed'
+                          ? 'success'
+                          : job.status === 'in_progress'
+                            ? 'primary'
+                            : 'warning'
+                      }
+                      size='sm'
+                    >
+                      {PROPERTY_JOB_STATUS_LABELS[job.status] ??
+                        'Status unavailable'}
+                    </Badge>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
           )}
         </View>
-        {jobsError ? (
-          // 2026-05-26 audit-57 P2: render a real failure state so a
-          // permissions mismatch / backend error doesn't read as "no
-          // jobs". Tap retries the query.
-          <TouchableOpacity
-            style={styles.emptyJobsWrap}
-            onPress={() =>
-              queryClient.invalidateQueries({
-                queryKey: ['property-jobs', propertyId],
-              })
-            }
-            accessibilityRole='button'
-            accessibilityLabel='Retry loading jobs'
-          >
-            <View style={styles.emptyJobsIcon}>
-              <Ionicons
-                name='alert-circle-outline'
-                size={20}
-                color={me.errFg}
-              />
-            </View>
-            <Text style={[styles.emptyJobsText, { color: me.errFg }]}>
-              Could not load jobs for this property. Tap to retry.
-            </Text>
-          </TouchableOpacity>
-        ) : propertyJobs.length === 0 ? (
-          <View style={styles.emptyJobsWrap}>
-            <View style={styles.emptyJobsIcon}>
-              <Ionicons name='briefcase-outline' size={20} color={me.ink3} />
-            </View>
-            <Text style={styles.emptyJobsText}>
-              No jobs for this property yet.
-            </Text>
-          </View>
-        ) : (
-          propertyJobs.map((job) => {
-            const cat =
-              CATEGORY_ICONS[(job.category ?? '').toLowerCase()] ??
-              CATEGORY_ICONS.general;
-            return (
-              <TouchableOpacity
-                key={job.id}
-                style={styles.jobCard}
-                onPress={() =>
-                  (navigation as ReturnType<typeof Object>).navigate(
-                    'JobsTab',
-                    {
-                      screen: 'JobDetails',
-                      params: { jobId: job.id },
-                    }
-                  )
-                }
-                accessibilityRole='button'
-                accessibilityLabel={`View ${job.title}`}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.jobCatIcon,
-                    { backgroundColor: cat?.bg ?? '#F5F5F5' },
-                  ]}
-                >
-                  <Ionicons
-                    name={cat?.icon ?? 'construct-outline'}
-                    size={18}
-                    color={cat?.color ?? '#616161'}
-                  />
-                </View>
-                <View style={styles.jobRowInfo}>
-                  <Text style={styles.jobRowTitle} numberOfLines={1}>
-                    {job.title}
-                  </Text>
-                  <Text style={styles.jobRowDate}>
-                    {new Date(job.created_at).toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </View>
-                <View style={styles.jobRowRight}>
-                  {job.budget ? (
-                    <Text style={styles.jobRowBudget}>
-                      {'\u00A3'}
-                      {job.budget.toLocaleString()}
-                    </Text>
-                  ) : null}
-                  <Badge
-                    variant={
-                      job.status === 'completed'
-                        ? 'success'
-                        : job.status === 'in_progress'
-                          ? 'primary'
-                          : 'warning'
-                    }
-                    size='sm'
-                  >
-                    {job.status === 'in_progress'
-                      ? 'In Progress'
-                      : (job.status ?? '').charAt(0).toUpperCase() +
-                        (job.status ?? '').slice(1)}
-                  </Badge>
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </View>
-    </>
-  );
+      </>
+    );
 
   // 2026-05-23 audit: surface the homeowner-side Access editor.
   // Reads existing access fields off the property record (which

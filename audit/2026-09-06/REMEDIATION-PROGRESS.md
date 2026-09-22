@@ -3367,3 +3367,41 @@ committed and rolled out. Current schema frequencies are monthly, quarterly, bia
 helper weekly support is not evidence that weekly schedules are enabled. Notification delivery
 remains best-effort and full scheduler/provider/browser journeys remain unverified. This checkpoint
 is not overall goal completion.
+
+## 22 September 2026 — mobile property management and shared permission contract
+
+Mobile now uses shared open-job predicates and status labels with the web property summary. Its
+property/job/certificate/schedule caches include the signed-in user. Job query failures stop the
+summary from presenting empty counts; refresh reloads jobs and invalidates management records.
+Removed the rendered heuristic physical-health score. Spending is labelled completed-job budgets,
+with creation-month grouping stated explicitly. The property job list defaults to open work and
+provides an all-jobs filter.
+
+Native certificates show actual saved records, preserve separate room certificates, search metadata,
+and show a retry state on failed or malformed responses. They no longer fabricate missing
+certificate requirements from a fixed list. Recurring scheduling accepts an explicit first due date,
+validates calendar dates, prevents same-tick duplicate taps, preserves input on failure, and
+requires a returned record before clearing the form. Failed subscription navigation is visible. This
+does not provide server-side idempotency for schedule creation after an ambiguous network outcome.
+
+Certificate and recurring APIs now use accepted property-team permissions: viewers read, managers
+manage the corresponding records, and revoked/unrelated users are denied. Platform administrators
+are rechecked against the database. Writes retain the property owner and plan checks use that owner,
+not the invited manager. Membership lookup failures fail closed. Generated recurring descriptions
+also meet the job minimum-length constraint, including legacy short schedule descriptions.
+
+Validation: web and mobile TypeScript passed; changed mobile and web source lint passed. The role
+and tier-gate regression tests passed (13 tests); the administrator tier-gate mock was updated for
+the additional database-backed check, and asserts that it occurs. Six native component tests passed
+with --detectOpenHandles and exited normally. The earlier full mobile run reported 457 suites,
+12,280 assertions and 87 snapshots passed, five tests skipped, in 401.227 seconds; it retained open
+asynchronous handles after reporting results and was stopped only after identifying its process. The
+two later negative native tests were checked separately. Full web coverage is recorded below when
+its final rerun completes.
+
+No SQL was added in this checkpoint; no hosted mutation or application deployment was required.
+Real-device navigation/interruption/accessibility, browser journeys, owner-only web property-page
+access, certificate upload/applicability, durable schedule-create retries, and the broader property
+operations redesign remain open. This checkpoint is not overall goal completion.
+
+Final full web coverage rerun: 3,853 tests / 373 files passed in 225.80 seconds; exit code 0.

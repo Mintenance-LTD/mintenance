@@ -1,3 +1,4 @@
+import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -64,18 +65,7 @@ export const GET = withApiHandler(
   async (_req, { user, params }) => {
     const propertyId = params.id;
 
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
+    await getPropertyForManagement(user, propertyId, 'view');
 
     const { data: schedules, error } = await serverSupabase
       .from('recurring_schedules')
@@ -101,21 +91,14 @@ export const POST = withApiHandler(
     const propertyId = params.id;
     const body = await req.json();
 
-    const tierBlock = await requireLandlordTier(user.id, user.role);
+    const property = await getPropertyForManagement(
+      user,
+      propertyId,
+      'manage_maintenance'
+    );
+
+    const tierBlock = await requireLandlordTier(property.owner_id, user.role);
     if (tierBlock) return tierBlock;
-
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
 
     const { title, category, frequency, next_due_date } = body;
 
@@ -145,9 +128,9 @@ export const POST = withApiHandler(
         // (homeowner_id = owner_id). For an admin acting on behalf of a
         // homeowner, fall back to the property owner so auto-created
         // jobs still attach to the right person.
-        owner_id: user.role === 'admin' ? property.owner_id : user.id,
+        owner_id: property.owner_id,
         title,
-        description: title,
+        description: `Recurring maintenance: ${title}`,
         task_type: 'general',
         category: category || 'general',
         frequency: normalizedFrequency,
@@ -188,18 +171,7 @@ export const DELETE = withApiHandler(
       );
     }
 
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
+    await getPropertyForManagement(user, propertyId, 'manage_maintenance');
 
     const { error } = await serverSupabase
       .from('recurring_schedules')
@@ -238,22 +210,16 @@ export const PATCH = withApiHandler(
     // schedules here indefinitely. Gate the re-activation direction only —
     // switching a schedule OFF must stay available to every tier, or a
     // downgraded user is stuck with jobs they can no longer stop.
+
+    const property = await getPropertyForManagement(
+      user,
+      propertyId,
+      'manage_maintenance'
+    );
+
     if (is_active) {
-      const tierBlock = await requireLandlordTier(user.id, user.role);
+      const tierBlock = await requireLandlordTier(property.owner_id, user.role);
       if (tierBlock) return tierBlock;
-    }
-
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
     }
 
     const { data: schedule, error } = await serverSupabase
