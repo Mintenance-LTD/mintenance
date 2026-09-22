@@ -3340,3 +3340,30 @@ journey testing remains outstanding. Remaining property work includes portfolio 
 across manager flows, financial read models, complete document access/upload, compliance
 applicability, recurring operations, pagination and responsive browser proof. Overall goal remains
 incomplete.
+
+## 22 September 2026 — exact recurring occurrences and calendar recovery
+
+Removed the 14-day recurring-job lookback. The worker now checks the exact schedule/due-date pair
+and fails closed when that lookup is unavailable. Existing occurrences recover date advancement
+without creating another job. Advancement is conditional on unchanged due date, frequency, owner,
+property and enabled state; errors or no affected rows are surfaced rather than reported as success.
+Calendar advancement validates input and clamps month/year boundaries (including leap years). The
+maintenance UI now describes due-date job creation rather than promising approval-gated rebooking of
+the same contractor two weeks early.
+
+Migration 20260922155753 adds homeowner/schedule/cycle uniqueness and a before-insert trigger that
+locks and validates the current active schedule, owner, property and due date. Two observed
+overlapping local transactions produced exactly one job; duplicate-cycle, paused-schedule and
+distinct-cycle SQL checks passed with synthetic fixtures cleaned up. Eleven service/calendar tests
+passed. Full web suite: 3,849 tests / 372 files, 201.76 seconds. The final additional
+owner/property/frequency comparison was checked by rerunning the targeted service tests after the
+full run started. Local migration replay produced an empty diff; security advisors retained only the
+two existing PostGIS findings. TypeScript and strict lint passed before that additional comparison;
+normal commit hooks validate final staged source.
+
+Production metadata preflight found zero duplicate cycle groups. The observed live commit 015c1b0
+already writes both required cycle fields. Migration remains pending until this checkpoint is
+committed and rolled out. Current schema frequencies are monthly, quarterly, biannual and annual;
+helper weekly support is not evidence that weekly schedules are enabled. Notification delivery
+remains best-effort and full scheduler/provider/browser journeys remain unverified. This checkpoint
+is not overall goal completion.

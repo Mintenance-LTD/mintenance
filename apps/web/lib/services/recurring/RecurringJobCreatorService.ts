@@ -1,3 +1,4 @@
+import { advanceRecurringDate } from './advance-recurring-date';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobCreationService } from '@/lib/services/job-creation-service';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -10,52 +11,36 @@ interface RecurringResult {
   errors: number;
 }
 
-function advanceDate(date: string, frequency: string): string {
-  const d = new Date(date);
-  switch (frequency) {
-    case 'weekly':
-      d.setDate(d.getDate() + 7);
-      break;
-    case 'monthly':
-      d.setMonth(d.getMonth() + 1);
-      break;
-    case 'quarterly':
-      d.setMonth(d.getMonth() + 3);
-      break;
-    case 'biannual':
-      d.setMonth(d.getMonth() + 6);
-      break;
-    case 'annual':
-    case 'yearly':
-      d.setFullYear(d.getFullYear() + 1);
-      break;
-    default:
-      d.setMonth(d.getMonth() + 1);
-  }
-  return d.toISOString().split('T')[0];
-}
-
-/**
- * Idempotency window — how far back to look for a job already created
- * from this same schedule. 14 days covers cron retries within a billing
- * cycle without bleeding into the next cycle for weekly schedules.
- */
-const IDEMPOTENCY_WINDOW_DAYS = 14;
-
 export class RecurringJobCreatorService {
-  /**
-   * Process all due recurring schedules that have auto_create_job enabled.
-   * Creates jobs and advances next_due_date.
-   *
-   * Idempotency: each created job carries `requirements.from_schedule_id`
-   * pointing back at the recurring_schedules row. Before creating a new
-   * job we look back IDEMPOTENCY_WINDOW_DAYS for any job already linked
-   * to this schedule; if one exists we skip the create but still advance
-   * next_due_date. This protects against the race where createJob
-   * succeeds but the next_due_date update fails (or the cron is
-   * triggered twice in a window) — without it, every retry would
-   * silently double-up the homeowner's job list.
-   */
+  private static async advanceSchedule(
+    id: string,
+    due: string,
+    next: string,
+    frequency: string,
+    ownerId: string,
+    propertyId: string
+  ) {
+    const { data, error } = await serverSupabase
+      .from('recurring_schedules')
+      .update({ next_due_date: next })
+      .eq('id', id)
+      .eq('next_due_date', due)
+      .eq('is_active', true)
+      .eq('auto_create_job', true)
+      .eq('frequency', frequency)
+      .eq('owner_id', ownerId)
+      .eq('property_id', propertyId)
+      .select('id');
+    if (error)
+      throw new Error(
+        'Job exists but schedule advancement failed; retry this cycle.'
+      );
+    if (!data?.length)
+      throw new Error(
+        'Schedule changed during processing; refresh before retrying.'
+      );
+  }
+
   static async processSchedules(): Promise<RecurringResult> {
     const result: RecurringResult = {
       checked: 0,
@@ -64,10 +49,6 @@ export class RecurringJobCreatorService {
       errors: 0,
     };
     const now = new Date().toISOString().split('T')[0];
-    const idempotencyCutoff = new Date(
-      Date.now() - IDEMPOTENCY_WINDOW_DAYS * 24 * 60 * 60 * 1000
-    ).toISOString();
-
     // `property_id` may be NULL on schedules whose property has been
     // hard-deleted (FK is `ON DELETE SET NULL` after migration
     // 20260520000002 to preserve compliance retention rows). Those
@@ -105,35 +86,39 @@ export class RecurringJobCreatorService {
     result.checked = schedules.length;
 
     for (const schedule of schedules) {
-      const nextDate = advanceDate(schedule.next_due_date, schedule.frequency);
       try {
-        // Idempotency check — has a job already been created from this
-        // schedule in the last 14 days? If so we skip the create but
-        // still advance next_due_date so we don't loop forever on the
-        // same row.
+        const nextDate = advanceRecurringDate(
+          schedule.next_due_date,
+          schedule.frequency
+        );
+        // Exact-cycle lookup; the database unique index also protects concurrent inserts.
         const { data: existing, error: existingErr } = await serverSupabase
           .from('jobs')
           .select('id')
           .eq('homeowner_id', schedule.owner_id)
-          .gte('created_at', idempotencyCutoff)
           .filter('requirements->>from_schedule_id', 'eq', schedule.id)
+          .filter(
+            'requirements->>schedule_cycle_due',
+            'eq',
+            schedule.next_due_date
+          )
           .limit(1);
 
-        if (existingErr) {
-          // Don't block on a query failure — log + proceed with create
-          logger.warn('Idempotency lookup failed, proceeding with create', {
-            service: 'recurring-job-creator',
-            scheduleId: schedule.id,
-            error: existingErr.message,
-          });
-        }
+        if (existingErr)
+          throw new Error(
+            'Unable to check the recurring cycle; no job was created.'
+          );
 
         if (existing && existing.length > 0) {
           // Already covered this cycle — just advance the date.
-          await serverSupabase
-            .from('recurring_schedules')
-            .update({ next_due_date: nextDate })
-            .eq('id', schedule.id);
+          await this.advanceSchedule(
+            schedule.id,
+            schedule.next_due_date,
+            nextDate,
+            schedule.frequency,
+            schedule.owner_id,
+            schedule.property_id
+          );
           result.skipped++;
           continue;
         }
@@ -168,10 +153,14 @@ export class RecurringJobCreatorService {
         );
 
         // Advance the next_due_date.
-        await serverSupabase
-          .from('recurring_schedules')
-          .update({ next_due_date: nextDate })
-          .eq('id', schedule.id);
+        await this.advanceSchedule(
+          schedule.id,
+          schedule.next_due_date,
+          nextDate,
+          schedule.frequency,
+          schedule.owner_id,
+          schedule.property_id
+        );
 
         // Notify the owner. Non-fatal if it fails — the job + date
         // advance are already persisted.

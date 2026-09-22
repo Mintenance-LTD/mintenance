@@ -370,15 +370,15 @@ export function MintEditorialPropertyMaintenancePlan({ schedules }: Props) {
                 strokeWidth={1.75}
                 style={{ color: 'var(--me-brand)' }}
               />
-              <h4 className='t-h4'>Auto-rebook</h4>
+              <h4 className='t-h4'>Automatic job creation</h4>
             </div>
             <p
               className='t-body'
               style={{ fontSize: 13, lineHeight: 1.55, marginBottom: 12 }}
             >
-              When auto-job is on, Mint sends each recurring task out to the
-              same pro 2 weeks before it&apos;s due — only if you tap approve.
-              You&apos;re never charged automatically.
+              When auto-job is on, Mint creates a job when a task becomes due.
+              Review bids and choose a contractor through the job. Creating the
+              job does not charge you or book the previous contractor.
             </p>
             <Link href='/landlord/recurring' className='btn btn-primary btn-sm'>
               Configure auto-job
