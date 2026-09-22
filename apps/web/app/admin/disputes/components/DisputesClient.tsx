@@ -16,8 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { requireConfirmedDisputeAction } from './dispute-action-response';
-import { getCsrfHeaders } from '@/lib/csrf-client';
+import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
+import { useDisputeActions } from './useDisputeActions';
 import { logger } from '@mintenance/shared';
 import {
   DisputesTable,
@@ -78,7 +78,6 @@ export function DisputesClient() {
   const [resolveDialog, setResolveDialog] = useState(false);
   const [resolution, setResolution] = useState<Resolution>('pay_contractor');
   const [resolveNotes, setResolveNotes] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     message: string;
@@ -133,79 +132,46 @@ export function DisputesClient() {
     setPage(1);
   }, []);
 
-  const handleResolve = async () => {
-    if (!selectedDispute) return;
-    setActionLoading(true);
-    try {
-      const csrfHeaders = await getCsrfHeaders();
+  const actions = useDisputeActions({
+    onConfirmed: (kind) => {
+      if (kind === 'resolve') {
+        setResolveDialog(false);
+        setSelectedDispute(null);
+        setResolveNotes('');
+      }
+      invalidateDisputes();
+    },
+    onError: (message) => {
+      invalidateDisputes();
+      setErrorDialog({ open: true, message });
+    },
+  });
+  const actionLoading = actions.loading || actions.requiresVerification;
 
-      const endpoint = '/api/admin/disputes/resolve';
-      const body = {
+  const handleResolve = () => {
+    if (!selectedDispute || isError) return;
+    void actions.submit({
+      kind: 'resolve',
+      body: {
         escrowId: selectedDispute.id,
         decision: currentSelection?.resolution?.decision ?? resolution,
         reason:
           currentSelection?.resolution?.reason ??
           (resolveNotes.trim() ||
             `Dispute resolved: ${resolution.replace(/_/g, ' ')}`),
-      };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...csrfHeaders,
-        },
-        body: JSON.stringify(body),
-      });
-
-      await requireConfirmedDisputeAction(response);
-
-      setResolveDialog(false);
-      setSelectedDispute(null);
-      setResolveNotes('');
-      invalidateDisputes();
-    } catch (error) {
-      logger.error('Error resolving dispute:', error);
-      invalidateDisputes();
-      setErrorDialog({ open: true, message: (error as Error).message });
-    } finally {
-      setActionLoading(false);
-    }
+      },
+    });
   };
 
-  const handleHoldForReview = async (dispute: Dispute) => {
-    setActionLoading(true);
-    try {
-      const csrfHeaders = await getCsrfHeaders();
-
-      const response = await fetch('/api/admin/escrow/hold', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...csrfHeaders,
-        },
-        body: JSON.stringify({
-          escrowId: dispute.id,
-          reason: 'Escalated from disputes dashboard for detailed review',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: 'Action failed' }));
-        throw new Error(errorData.error || 'Failed to hold escrow');
-      }
-
-      invalidateDisputes();
-    } catch (error) {
-      logger.error('Error holding dispute:', error);
-      setErrorDialog({ open: true, message: (error as Error).message });
-    } finally {
-      setActionLoading(false);
-    }
+  const handleHoldForReview = (dispute: Dispute) => {
+    if (isError) return;
+    void actions.submit({
+      kind: 'hold',
+      body: {
+        escrowId: dispute.id,
+        reason: 'Escalated from disputes dashboard for detailed review',
+      },
+    });
   };
 
   return (
@@ -356,7 +322,9 @@ export function DisputesClient() {
 
       {/* Resolve Dialog */}
       <ResolveDisputeDialog
-        open={resolveDialog}
+        open={
+          resolveDialog && !actions.requiresVerification && !errorDialog.open
+        }
         selectedDispute={currentSelection}
         resolution={currentSelection?.resolution?.decision ?? resolution}
         resolveNotes={currentSelection?.resolution?.reason ?? resolveNotes}
@@ -372,6 +340,13 @@ export function DisputesClient() {
         onNotesChange={setResolveNotes}
         onResolve={handleResolve}
       />
+
+      {actions.requiresVerification ? (
+        <MfaStepUpDialog
+          onCancel={actions.cancelVerification}
+          onSuccess={actions.resumeAfterVerification}
+        />
+      ) : null}
 
       {/* Error Dialog */}
       <AlertDialog

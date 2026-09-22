@@ -3213,3 +3213,30 @@ orchestration, canonical dispute resolution, audit durability and UI state remai
   labelled as receipt PDFs without document lookup, and a job-count health grade asserting critical
   condition without inspection evidence. Property implementation tracing and P0 work remain in
   progress; the new property experience is not yet implemented.
+
+### 2026-09-22 — Administrator MFA action recovery
+
+- Current source showed dispute settlement and hold routes correctly require recent MFA, but the
+  dashboard surfaced the challenge as a generic error. Added `useDisputeActions` to preserve the
+  exact selected escrow/decision/reason, open verification only for a 403 `requiresStepUp`
+  challenge, and resume once after confirmed verification. Cancellation retains the decision without
+  resubmitting; in-flight guards prevent double taps.
+- Added shared `MfaStepUpDialog` with the existing Radix dialog primitives, labelled code input,
+  TOTP/backup-code choice, CSRF helper, visible verification failures and explicit-success checks.
+  It does not weaken the existing server-side MFA/role/CSRF controls or fabricate successful
+  verification.
+- Reused it in review moderation, replacing the inline dialog that expected `csrfToken` while the
+  actual CSRF endpoint returns `token`. The moderation mutation now also uses the shared CSRF fetch
+  helper.
+- Rendered testing exposed overlapping resolution/error dialogs hiding all accessible controls after
+  an unconfirmed payment. Only one dialog is now open at a time; dismissing the error returns to the
+  preserved decision.
+- Seven focused files passed **32 tests**, 9.26s (`current-admin-mfa-tests.log`): real React
+  Query/Radix/CSRF helper flow with synthetic responses; successful verification and exact-request
+  retry; cancellation; invalid verification; pending settlement; hold replay; moderation retry;
+  same-tick double submissions; unconfirmed/mismatched responses; existing actual route-wrapper/HMAC
+  security tests. Payment/provider transport and auth identity remain mocked where stated in those
+  tests.
+- Web TypeScript and targeted application-source ESLint passed. No schema change. Real
+  browser/native interaction and external MFA/provider verification remain outside this checkpoint's
+  evidence; the original remediation and property-operations goals remain active.
