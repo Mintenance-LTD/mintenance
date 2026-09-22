@@ -210,8 +210,11 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   };
 
   const handleCreate = () => {
-    if (!title.trim()) {
-      Alert.alert('Required', 'Please enter a title.');
+    if (title.trim().length < 5 || title.trim().length > 200) {
+      Alert.alert(
+        'Check the title',
+        'Enter a title between 5 and 200 characters.'
+      );
       return;
     }
     const parsed = new Date(`${firstDueDate}T00:00:00Z`);

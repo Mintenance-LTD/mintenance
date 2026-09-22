@@ -1,3 +1,5 @@
+import { propertyScheduleInput } from '@/lib/services/recurring/schedule-input';
+import { validateRequest } from '@/lib/validation/validator';
 import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -50,15 +52,6 @@ async function requireLandlordTier(userId: string, role: string) {
  * still coerced to 'annual' on input so any older client cache
  * doesn't break (same end-state, just the canonical column value).
  */
-const VALID_FREQUENCIES = ['monthly', 'quarterly', 'biannual', 'annual'];
-
-function normalizeFrequency(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const v = raw.trim().toLowerCase();
-  if (v === 'yearly') return 'annual';
-  return VALID_FREQUENCIES.includes(v) ? v : null;
-}
-
 // GET /api/properties/[id]/recurring-maintenance
 export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'], csrf: false },
@@ -89,7 +82,6 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
 
     const property = await getPropertyForManagement(
       user,
@@ -100,24 +92,9 @@ export const POST = withApiHandler(
     const tierBlock = await requireLandlordTier(property.owner_id, user.role);
     if (tierBlock) return tierBlock;
 
-    const { title, category, frequency, next_due_date } = body;
-
-    if (!title || !frequency || !next_due_date) {
-      return NextResponse.json(
-        { error: 'title, frequency, and next_due_date are required' },
-        { status: 400 }
-      );
-    }
-
-    const normalizedFrequency = normalizeFrequency(frequency);
-    if (!normalizedFrequency) {
-      return NextResponse.json(
-        {
-          error: `Invalid frequency. Allowed: ${VALID_FREQUENCIES.join(', ')}`,
-        },
-        { status: 400 }
-      );
-    }
+    const validation = await validateRequest(req, propertyScheduleInput);
+    if ('headers' in validation) return validation;
+    const { title, category, frequency, next_due_date } = validation.data;
 
     const { data: schedule, error } = await serverSupabase
       .from('recurring_schedules')
@@ -133,7 +110,7 @@ export const POST = withApiHandler(
         description: `Recurring maintenance: ${title}`,
         task_type: 'general',
         category: category || 'general',
-        frequency: normalizedFrequency,
+        frequency,
         next_due_date,
         // Mobile / property flow assumes auto-creation: the whole UI
         // promises "next visit on …" and the homeowner expects the job
@@ -145,7 +122,7 @@ export const POST = withApiHandler(
       .select()
       .single();
 
-    if (error) {
+    if (error || !schedule?.id) {
       return NextResponse.json(
         { error: 'Failed to create schedule' },
         { status: 500 }

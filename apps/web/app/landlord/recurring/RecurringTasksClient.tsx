@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Plus,
   RefreshCw,
-  Calendar,
-  Building2,
   CheckCircle2,
   Clock,
   X,
@@ -69,6 +67,8 @@ export function RecurringTasksClient({
 }) {
   const [schedules, setSchedules] = useState(initialSchedules);
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const [formData, setFormData] = useState({
     property_id: '',
@@ -88,10 +88,20 @@ export function RecurringTasksClient({
     if (
       !formData.property_id ||
       !formData.title.trim() ||
-      !formData.next_due_date
+      !formData.next_due_date ||
+      savingRef.current
     )
       return;
 
+    if (
+      formData.title.trim().length < 5 ||
+      formData.title.trim().length > 200
+    ) {
+      toast.error('Enter a title between 5 and 200 characters.');
+      return;
+    }
+    savingRef.current = true;
+    setSaving(true);
     try {
       // /api/landlord/recurring uses the default `csrf: true` on
       // withApiHandler — without an X-CSRF-Token the POST 403s in
@@ -108,9 +118,16 @@ export function RecurringTasksClient({
         }),
       });
 
-      if (!res.ok) throw new Error('Failed');
-
-      const { schedule } = await res.json();
+      const body = await res.json();
+      if (!res.ok)
+        throw new Error(
+          body.errors?.[0]?.message || body.message || 'Failed to create task'
+        );
+      const { schedule } = body;
+      if (!schedule?.id || schedule.property_id !== formData.property_id)
+        throw new Error(
+          'Task creation could not be confirmed. Refresh before retrying.'
+        );
       setSchedules((prev) =>
         [...prev, schedule].sort(
           (a, b) =>
@@ -129,8 +146,13 @@ export function RecurringTasksClient({
         auto_create_job: false,
       });
       toast.success('Recurring task created');
-    } catch {
-      toast.error('Failed to create task');
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create task'
+      );
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -203,10 +225,15 @@ export function RecurringTasksClient({
               <X className='w-5 h-5' />
             </button>
           </div>
-          <form onSubmit={handleSubmit} className='space-y-3'>
+          <form
+            aria-label='New recurring task'
+            onSubmit={handleSubmit}
+            className='space-y-3'
+          >
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
               <select
                 required
+                aria-label='Property'
                 value={formData.property_id}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, property_id: e.target.value }))
@@ -221,6 +248,7 @@ export function RecurringTasksClient({
                 ))}
               </select>
               <select
+                aria-label='Task type'
                 value={formData.task_type}
                 onChange={(e) =>
                   setFormData((p) => ({
@@ -242,6 +270,7 @@ export function RecurringTasksClient({
               required
               type='text'
               placeholder='Task title'
+              aria-label='Task title'
               value={formData.title}
               onChange={(e) =>
                 setFormData((p) => ({ ...p, title: e.target.value }))
@@ -250,6 +279,7 @@ export function RecurringTasksClient({
             />
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
               <select
+                aria-label='Frequency'
                 value={formData.frequency}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, frequency: e.target.value }))
@@ -265,6 +295,7 @@ export function RecurringTasksClient({
               <input
                 required
                 type='date'
+                aria-label='First due date'
                 value={formData.next_due_date}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, next_due_date: e.target.value }))
@@ -288,6 +319,7 @@ export function RecurringTasksClient({
             </label>
             <button
               type='submit'
+              disabled={saving}
               className='px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors'
             >
               Create Task

@@ -3405,3 +3405,34 @@ access, certificate upload/applicability, durable schedule-create retries, and t
 operations redesign remain open. This checkpoint is not overall goal completion.
 
 Final full web coverage rerun: 3,853 tests / 373 files passed in 225.80 seconds; exit code 0.
+
+## 22 September 2026 — recurring save contracts and read-only Edge verification
+
+Both portfolio and property/mobile recurring create APIs now share validation for bounded titles,
+real calendar dates and supported frequencies. Unknown frequencies no longer silently become annual.
+Older mobile ISO dates and yearly aliases remain supported. Portfolio writes use the current
+property management permission helper, property owner's plan and owner_id. A missing returned
+schedule no longer produces a successful create response. Native titles use the same 5–200 character
+rule as future generated jobs. Web controls have accessible names, duplicate synchronous submits are
+guarded, and missing confirmation preserves input rather than displaying success.
+
+Targeted tests: 34 web tests across three files passed; six native component tests passed. Web
+TypeScript and changed web source strict lint passed before final formatting; normal commit hooks
+check final staged web/mobile types, lint and tests. Earlier full-suite evidence belongs to the
+prior checkpoint and has not been represented as a full run of this additional patch.
+
+Read-only live Edge evidence is in EDGE-VERIFICATION-2026-09-22.md. The deployed property UI still
+shows earlier misleading claims that committed source fixes replace. No SQL change or hosted write
+was needed for this patch. No application deployment occurred. Durable schedule-create idempotency,
+the broader property operations redesign and native-device verification remain incomplete.
+
+### Recurring caller follow-through
+
+Traced the theme switch and property Manage card after the preceding checkpoint. The alternate
+RecurringTasksClient is still active and now has matching duplicate-submit protection, validation,
+accessible field names and unconfirmed-save handling. The property card now offers monthly,
+quarterly, biannual and annual (removing unsupported weekly), displays load errors with retry, and
+preserves input on an unconfirmed create. Kept compatibility with its empty optional category, which
+maps to general. Added regression coverage for all three active web forms and this payload. Final
+targeted web result: 38 tests / three files passed. Removed two unused imports reported by strict
+lint. Final staged source is checked by normal commit hooks. No migration or deployment.
