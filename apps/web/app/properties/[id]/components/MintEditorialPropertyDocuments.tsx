@@ -11,8 +11,10 @@ export interface PropertyCertificateRecord {
 }
 export function MintEditorialPropertyDocuments({
   certificates,
+  canManage = true,
 }: {
   certificates: PropertyCertificateRecord[];
+  canManage?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const filtered = certificates.filter((cert) =>
@@ -30,9 +32,11 @@ export function MintEditorialPropertyDocuments({
             not proof of payment or a receipt.
           </p>
         </div>
-        <Link href='/properties/compliance' className='btn btn-secondary'>
-          Manage certificates
-        </Link>
+        {canManage ? (
+          <Link href='/properties/compliance' className='btn btn-secondary'>
+            Manage certificates
+          </Link>
+        ) : null}
       </div>
       <label className='mt-5 block'>
         Search certificates

@@ -3436,3 +3436,36 @@ preserves input on an unconfirmed create. Kept compatibility with its empty opti
 maps to general. Added regression coverage for all three active web forms and this payload. Final
 targeted web result: 38 tests / three files passed. Removed two unused imports reported by strict
 lint. Final staged source is checked by normal commit hooks. No migration or deployment.
+
+## 22 September 2026 — discoverable shared properties and restricted web view
+
+The web property loader now recognizes accepted team membership before querying jobs, schedules or
+certificates. Related records remain scoped to the property and its owner, not the invited user.
+Owners retain their existing page. Non-owners receive a separate explicit read model without entry
+codes or owner access fields: viewers see recorded work, certificate metadata and schedules;
+managers and team administrators additionally get the existing authorized recurring-maintenance
+control. Owner-only edit/delete/entry-code and unsupported job/finance links are not rendered in
+this view.
+
+Accepted shares are linked separately on both web property-list themes, without changing owned
+property quota calculations. Shared-list lookup failures render a server-refresh retry control.
+Mobile now requests the existing includeShared=view contract. The API fails visibly if membership
+cannot be loaded instead of returning a misleading owner-only success. Mobile refreshes the list on
+mount and no longer carries previous-account placeholder data into another user's pending request.
+Malformed list responses are errors, not empty success.
+
+Evidence: 41 focused web assertions across five files passed. Full isolated web coverage passed
+3,890 tests / 377 files in 335.99 seconds. The subsequently added shared-list refresh-button
+assertion passed in its two-test file. Web/mobile types and changed source lint were checked; one
+existing unused mobile queryClient was removed after strict lint reported it. Normal commit hooks
+check final staged source. Six existing mobile management tests and the new account-isolation
+assertion passed. The new test initially left its deliberately pending request unresolved; after
+completing that request in cleanup, its focused rerun passed and exited normally (34.049 seconds).
+This test observes the project's mocked FlatList data boundary, not pixels on a physical device.
+
+No SQL migration, hosted mutation, live invitation, real-user contact, or application deployment was
+performed. Authorization tests use synthetic role/database fixtures; this is not a live
+multi-account journey verification. The shared web view deliberately exposes only the supported
+records and maintenance flow: complete manager editing, compliance upload, work-order actions,
+inbox/portfolio redesign and native-device verification remain unfinished. Do not mark the overall
+goal complete.
