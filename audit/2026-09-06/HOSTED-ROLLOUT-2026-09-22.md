@@ -140,3 +140,11 @@ duplicate service_areas index findings; none concern the new archive/review obje
 
 Retention disposal and legacy reconciliation remain unimplemented. Review dates do not authorize
 automatic deletion. Hosted schema verification is not proof of the live web/native journey.
+
+## Invitation concurrency rollout — 22 September, 20:56 UTC
+
+Applied 20260922204117 alone after local concurrent tests and empty replay/diff. No seeds, roles,
+vault changes or backfills. Read-only MCP confirmed migration history, the valid active-email unique
+index, invitation-attempt RLS, denied authenticated claim execution and allowed service execution.
+Full web coverage: 391 files / 3,966 tests; native contact recovery: four tests. Provider delivery
+after an ambiguous response still cannot be claimed exactly once across a later explicit retry.

@@ -3681,3 +3681,30 @@ Final checkpoint verification: sanitized production build completed successfully
 pages); 14 final focused retention tests passed. Final isolated schema replay/diff was empty. Both
 migrations are hosted and MCP metadata checks passed. Actual concurrent first reviews produced
 exactly one winner. No real payments, messages or native device tests were performed.
+
+# 2026-09-22 — Concurrent contact creation and invitation delivery
+
+The database now enforces one active case/whitespace-normalized email per property. Both contact
+creation paths return conflict for a lost insertion race. Inactive historical contacts do not block
+a new active record. Hosted preflight found zero conflicting groups; no records were altered to make
+the index fit.
+
+Invitation sending reserves a durable, private attempt before calling the provider. Concurrent and
+recent attempts are denied for 15 minutes; finalization matches the attempt ID. Invitation network
+requests time out after 10 seconds. An interrupted/declined response is tracked as unknown, and
+web/mobile describe unconfirmed delivery and the retry window. No automatic resend is performed.
+This prevents concurrent duplicate sends; it does not promise provider exactly-once delivery after
+an explicit later retry of an uncertain outcome.
+
+Verification: full isolated web coverage passed 391 files / 3,966 tests in 188.59 seconds. Four
+native contact tests passed, including server retry guidance without duplicate creation. Web/native
+types and changed-source strict lint passed. Real independent PostgreSQL connections produced one
+normalized contact and one invitation claim; stale finalization and immediate retry were denied, and
+retry recovered beyond the documented boundary. Full local migration replay/diff was empty. Advisors
+retain the existing PostGIS and duplicate service_areas index findings only.
+
+The new property-management HTTP diagnostic uses five synthetic cookie-authenticated roles and a
+local subscription fixture. Its first run confirmed owner/manager/team-admin contact and schedule
+writes but stopped at a mistaken viewer-contact expectation: private contact access is correctly
+denied to viewers. The expectation was corrected; the remaining viewer/unrelated checks must still
+be rerun after the normal login window. No production fixtures, messages or payments were used.

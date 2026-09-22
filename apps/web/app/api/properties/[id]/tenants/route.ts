@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
+import { deliverTenantInvitation } from '@/lib/services/notifications/tenant-invitation-delivery';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { logger } from '@mintenance/shared';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
@@ -189,6 +190,7 @@ export const POST = withApiHandler(
         .select('id')
         .eq('property_id', propertyId)
         .eq('email', normalizedEmail)
+        .eq('is_active', true)
         .maybeSingle();
 
       if (existing) {
@@ -235,6 +237,14 @@ export const POST = withApiHandler(
           .select()
           .single();
 
+        if (error?.code === '23505')
+          return NextResponse.json(
+            {
+              error:
+                'An active contact with this email already exists for this property',
+            },
+            { status: 409 }
+          );
         if (error) {
           logger.error('Failed to create tenant', { error });
           return NextResponse.json(
@@ -280,6 +290,14 @@ export const POST = withApiHandler(
       .select()
       .single();
 
+    if (error?.code === '23505')
+      return NextResponse.json(
+        {
+          error:
+            'An active contact with this email already exists for this property',
+        },
+        { status: 409 }
+      );
     if (error) {
       logger.error('Failed to create tenant', { error });
       return NextResponse.json(
@@ -294,26 +312,19 @@ export const POST = withApiHandler(
       try {
         const baseUrl =
           process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
-        invitationSent = await EmailService.sendTenantInviteEmail(
-          normalizedEmail,
-          {
-            tenantName: name,
-            propertyAddress:
-              property.address || property.name || 'your property',
-            landlordName: 'Your property manager',
-            inviteUrl: `${baseUrl}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
-          }
+        const delivery = await deliverTenantInvitation(
+          tenant.id,
+          propertyId,
+          () =>
+            EmailService.sendTenantInviteEmail(normalizedEmail, {
+              tenantName: name,
+              propertyAddress:
+                property.address || property.name || 'your property',
+              landlordName: 'Your property manager',
+              inviteUrl: `${baseUrl}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
+            })
         );
-        if (invitationSent) {
-          const { error: trackingError } = await serverSupabase
-            .from('property_tenants')
-            .update({ invitation_sent_at: new Date().toISOString() })
-            .eq('id', tenant.id);
-          if (trackingError)
-            logger.warn('Tenant invitation tracking unavailable', {
-              tenantId: tenant.id,
-            });
-        }
+        invitationSent = delivery.sent;
       } catch {
         logger.warn('Tenant saved; invitation delivery unavailable', {
           tenantId: tenant.id,
@@ -328,7 +339,7 @@ export const POST = withApiHandler(
           ? 'not_requested'
           : invitationSent
             ? 'sent'
-            : 'not_sent',
+            : 'unconfirmed',
       },
       { status: 201 }
     );
@@ -443,24 +454,39 @@ export const PATCH = withApiHandler(
       );
     let sent = false;
     try {
-      sent = await EmailService.sendTenantInviteEmail(tenant.email, {
-        tenantName: tenant.name,
-        propertyAddress: 'your property',
-        landlordName: 'Your property manager',
-        inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk'}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
-      });
-      if (sent)
-        await serverSupabase
-          .from('property_tenants')
-          .update({ invitation_sent_at: new Date().toISOString() })
-          .eq('id', tenant.id);
+      const delivery = await deliverTenantInvitation(tenant.id, params.id, () =>
+        EmailService.sendTenantInviteEmail(tenant.email!, {
+          tenantName: tenant.name,
+          propertyAddress: 'your property',
+          landlordName: 'Your property manager',
+          inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk'}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
+        })
+      );
+      if (!delivery.reserved)
+        return NextResponse.json(
+          {
+            invitation_sent: false,
+            error:
+              'An invitation was attempted recently or is no longer needed. Wait 15 minutes before retrying; check whether it already arrived.',
+          },
+          { status: 409 }
+        );
+      sent = delivery.sent;
     } catch {
       logger.warn('Tenant invitation retry unavailable', {
         tenantId: tenant.id,
       });
     }
     return NextResponse.json(
-      { invitation_sent: sent },
+      {
+        invitation_sent: sent,
+        ...(!sent
+          ? {
+              error:
+                'Invitation delivery was not confirmed. Check whether it arrived before retrying in 15 minutes.',
+            }
+          : {}),
+      },
       { status: sent ? 200 : 503 }
     );
   }
