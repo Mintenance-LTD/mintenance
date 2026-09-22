@@ -2939,3 +2939,263 @@ orchestration, canonical dispute resolution, audit durability and UI state remai
 - Isolated schema diff and dispute SQL results above remain current; no schema edits occurred after
   that empty diff. Unfinished administrator settlement and editorial payment semantics remain
   explicit blockers despite green tests.
+
+### 2026-09-16 — editorial payment claims
+
+- Editorial completion review now describes approval and review publication, with release subject to
+  cooling-off and final checks. Removed fabricated budget-based escrow totals, next-morning payout
+  guarantee and the tip selector that only wrote text and never charged or paid a tip. Tipping is
+  not implemented by this change.
+- Five rendered component tests pass, including success copy, no phantom tip metadata and
+  stale/missing completion rejection. Full current layout/browser verification, correct dispute-link
+  binding and interrupted review recovery remain open. Source changes are uncommitted after
+  9c7e910af.
+
+### 2026-09-16 — review-to-dispute payment reference
+
+- Replaced the editorial link that passed job ID as escrow ID with an explicit lookup through the
+  existing authenticated `/api/jobs/[id]/escrow` route. It checks returned job binding, uses the
+  actual escrow ID, prevents overlapping clicks and displays retryable lookup errors without
+  navigating.
+- Reviewed the existing endpoint's participant/administrator authorization before using it.
+  Missing/mismatched data never becomes a guessed reference. The endpoint currently represents
+  database errors as null escrow; this remains a distinct API error-reporting weakness.
+- Rendered navigation and editorial approval regressions: 9 passed across 2 files, 2.63s. Actual
+  authenticated browser creation and payment settlement remain unverified at this checkpoint.
+
+### 2026-09-16 — payment lookup failure semantics
+
+- Job escrow GET now returns a generic retryable server error when the escrow query fails; only a
+  successful empty lookup returns `escrow: null`. Raw database diagnostics are not returned.
+- Route regression checks status, message, absent false-empty payload and no diagnostic leakage.
+  Existing participant access/null/success checks plus dispute navigation tests passed: 12 tests
+  across 2 files, 1.93s. This closes the escrow-read error weakness identified in the preceding
+  checkpoint, not the independent aggregate job-details endpoint's error handling.
+
+### 2026-09-16 — persisted review retry recovery
+
+- Review POST now returns the existing review ID for an identical authorized replay (reviewee,
+  rating, trimmed comment and recommendation must match). Different content remains rejected. A
+  unique-insert conflict rereads the persisted review instead of reporting an unrecoverable generic
+  failure; replays do not repeat notifications.
+- Existing SQL migration defines the job/reviewer uniqueness constraint. The new route tests
+  simulate both preexisting review and concurrent 23505 recovery; these are not real database race
+  evidence yet. 17 review route tests passed; prior combined route/lifecycle check passed 37 tests
+  before the three new cases.
+- Approval and review remain separate operations. Full UI interruption/reload recovery and
+  notification durability require further verification; the overall goal is not complete.
+
+### 2026-09-16 — real review uniqueness and lost-response UI check
+
+- Added/executed `remediation-review-uniqueness-race.py` against the disposable audit database.
+  Observed the first insert sleeping within its open transaction and the second connection waiting
+  on a lock; after commit the duplicate failed, and exactly one review with the expected payload
+  remained. Synthetic fixtures were cleaned. This proves database uniqueness, separately from mocked
+  route recovery tests.
+- Editorial success now requires explicit publication success plus review ID. A rendered component
+  test loses the first review response after successful approval, preserves entered text, retries
+  the identical payload and reaches confirmed success. Six editorial tests passed (2.64s).
+  Reload/draft recovery and notification durability remain distinct outstanding checks.
+
+### 2026-09-16 — administrator hold state/schema mismatch
+
+- Read actual isolated PostgreSQL constraints: payment statuses exclude `admin_hold` and
+  `admin_review`; hold statuses exclude `admin_approved`. Existing AdminEscrowHoldService writes
+  would fail those checks. Corrected hold/reject to preserve payment status and set valid hold
+  metadata; generic approval clears hold to `none` and returns held funds to ordinary release gates.
+- Generic approval excludes disputed escrows, so the incomplete dispute resolution path cannot
+  release a dispute merely by clearing its hold. Hold/reject continue to accept disputed state
+  without overwriting it.
+- Three service guard tests passed. New rollback-only `remediation-admin-hold-states.sql` passed
+  against real constraints and confirms held/disputed status preservation and rejection of generic
+  disputed approval. This is separate SQL predicate/schema evidence, not a full authenticated admin
+  route test. Durable dispute settlement and atomic status logging remain open.
+
+### 2026-09-16 — exact dispute/payment association
+
+- Added CLI-created migration `20260916015015_bind_disputes_to_escrow.sql`: private RLS-enabled
+  dispute/escrow association table, explicit client privilege revocation, and atomic association
+  insertion inside dispute creation. Replay now joins the exact escrow binding rather than selecting
+  any matching same-job dispute.
+- Applied via psql only to the disposable audit database. Expanded rollback SQL passed: two escrows
+  on one job with identical dispute text retain different dispute IDs; replay of the first resolves
+  its original ID; authenticated users cannot insert/update associations and anonymous users cannot
+  read them. Previous settlement/SLA/rollback checks also passed.
+- Legacy disputes are deliberately not guessed into a payment relationship. They require
+  reconciliation before automated settlement. Migration shadow diff, association-insert failure
+  injection and broader effective-grant checks remain required before committing this schema change.
+
+### 2026-09-16 — association rollback and checkpoint validation
+
+- Injected a failing association-table INSERT trigger in a rollback transaction. Atomic dispute
+  creation left no dispute record, retained held payment state and did not initialize SLA. Expanded
+  dispute diagnostic passed.
+- Isolated migration shadow replay completed with empty diff and no drop statements for the
+  association migration. Web TypeScript and targeted source ESLint passed; combined relevant
+  review/navigation/admin-hold/API/lifecycle regressions passed **61 tests across 6 files**, 2.83s
+  (`current-review-recovery-tests.log`).
+- This validates the local checkpoint only. Durable administrator settlement, legacy-dispute
+  reconciliation, full review reload/draft recovery and remaining F1-F15 acceptance gates stay open.
+
+### 2026-09-16 — durable dispute decision reservation (integration incomplete)
+
+- Added CLI-created `20260916015424_reserve_dispute_resolution_decisions.sql` and applied only to
+  the disposable audit DB. The service-only reservation validates current admin authority, locks job
+  then escrow, requires one exact linked active dispute, rejects unsettled payment operations and
+  freezes remaining principal, decision, reason and fee rate. Disputed funds remain held;
+  reservation alone does not invoke or create provider operations.
+- Rollback diagnostic `remediation-dispute-resolution.sql` passed: non-admin denied; GBP 500.01
+  split freezes 25000 refund pence and 25001 release principal pence; replay retains the same ID and
+  fee rate; changed decision rejected; hold retained; client function/table mutation privileges
+  denied.
+- This is an intermediate implementation, not an operational resolution flow. Still required:
+  reservation/finalization of the linked refund and release, exclusion of competing payment paths,
+  durable recovery and notifications, administrative UI/API wiring, full failure/concurrency tests
+  and migration replay/advisors. No readiness claim follows from the reservation test.
+
+### 2026-09-16 — bind dispute refund reservations (integration incomplete)
+
+- CLI-created `20260916015705_bind_dispute_refund_operations.sql` adds service-only refund
+  reservation through the existing durable refund primitive, atomically linking the operation to the
+  frozen resolution. The temporary held state remains inside the locked transaction; committed state
+  is the existing durable refund claim.
+- Added insert guards rejecting refund/release operations that do not match a reserved dispute
+  decision; a split release requires its linked refund to be succeeded. These guards require further
+  direct/concurrent bypass testing before sign-off.
+- Expanded rollback diagnostic passed: GBP 250.00 refund is frozen from the prior GBP 500.01 split,
+  two reservations return one operation, the association is persisted and the payment retains admin
+  hold plus refund-pending claim. No provider invocation occurred.
+- Release reservation/finalization, provider recovery integration, UI/API wiring, terminal refund
+  failure handling and migration replay remain unfinished. New migrations are local and uncommitted.
+
+### 2026-09-16 — split release reservation and finalization boundary
+
+- Extended the uncommitted operation-binding migration with `reserve_dispute_release`: current admin
+  validation, job/escrow/resolution locks, confirmed linked refund prerequisite for splits, frozen
+  principal/fee rate and atomic linked release operation. Repeated calls reuse its operation.
+- Added service-only finalization that requires confirmed linked refund/release outcomes and correct
+  terminal escrow state before atomically resolving the canonical dispute, clearing hold, and
+  inserting notifications/audit evidence. Successful finalization and injected-failure recovery
+  still require testing.
+- Expanded rollback SQL passed: pending refund blocks release; simulated trusted refund outcome
+  enables the exact 25001-pence remaining release with 2500-pence fee and 22501-pence payout;
+  competing generic admin refund/release rejected; unconfirmed release cannot close the dispute. The
+  provider outcome was simulated in SQL, not verified against Stripe.
+- UI/service/worker integration, success-path finalization tests, terminal failure recovery,
+  concurrency, bypass guards and migration replay remain open.
+
+### 2026-09-16 — settlement finalization recovery and service orchestration
+
+- Expanded real-DB rollback test through synthetic recorded transfer evidence and existing release
+  finalization. Injected dispute-notification failure rolls back resolution status, dispute status
+  and hold clearing while preserving already-settled payment. Retry resolves once with two
+  participant notifications, one audit record, one refund and one transfer operation. All assertions
+  passed; provider evidence remains simulated, not an external Stripe test.
+- Added `DisputeSettlementService` to reserve/refund, require succeeded refund, reserve/release,
+  then finalize. Eight mocked orchestration tests passed (1.26s): order,
+  pending/action-required/failed/canceled/reconciliation refund stops, transfer-recovery failure and
+  mismatched reservation rejection. These mock the underlying operation parsers/provider services;
+  their coverage is service sequencing, not provider verification.
+- Service is not yet wired to admin API/UI or a recovery worker. Remaining work includes those
+  consumers, terminal failure intervention, stronger schema/response tests, concurrent bypass tests
+  and migration replay.
+
+### 2026-09-16 — admin dispute API/UI connection
+
+- Added `/api/admin/disputes/resolve` with admin role, fresh 15-minute MFA, default CSRF and
+  database admin verification. Server derives the fee rate, reserves the immutable decision, and
+  invokes ordered settlement recovery. Confirmed completion returns 200/success; pending or
+  uncertain execution returns 202/false; terminal refund reconciliation returns 409/false.
+- Dashboard now submits refund/pay/split decisions to this route instead of mapping them to
+  non-settling hold approve/reject endpoints. Existing confirmation helper keeps the dialog open for
+  unconfirmed responses.
+- 24 focused tests across service, route and response helper passed (1.28s). The new route tests
+  mock the wrapper: they verify declared policy and explicit database-role check, not live MFA/CSRF
+  enforcement. Actual middleware, rendered dialog retry/reload, provider test mode, worker recovery,
+  full migration replay and broader checks remain required.
+
+### 2026-09-16 — actual settlement wrapper/MFA checks
+
+- Added security tests using the real withApiHandler and real HMAC step-up cookie implementation
+  with a synthetic secret. Nine cases passed (1.23s): unauthenticated, homeowner, contractor,
+  revoked DB admin, missing/wrong-user/expired MFA proof, propagated CSRF rejection, and fresh admin
+  proof reaching input validation. Rejected calls never reach payment reservation.
+- Auth identity/DB role lookups, rate limiting and CSRF verification are mocked in these tests; MFA
+  signature/age/user binding and wrapper enforcement are real. This strengthens route-policy
+  evidence but does not claim live login, CSRF token issuance or MFA enrollment/end-to-end
+  verification.
+
+### 2026-09-16 — saved admin decision recovery UI
+
+- Admin list loads persisted resolutions only for the current page and fails the response if that
+  lookup fails. Reopening or refreshing a pending decision uses its saved outcome/reason; dialog
+  controls are read-only and retry uses the same saved payload. Unconfirmed attempts invalidate list
+  data to recover server state after response loss.
+- Dialog wording now distinguishes remaining principal, refund, platform fee and odd-penny split
+  rounding. A real rendered-dialog test passed (1 test, 2.58s) verifying locked saved inputs and
+  enabled settlement recovery. Web TypeScript passed before adding this test file.
+- This does not yet prove full browser reload/transport-loss behavior. List error presentation,
+  worker recovery, terminal-failure intervention, legacy dispute reconciliation and final
+  schema/regression gates remain open.
+
+### 2026-09-16 — admin list error/retry state
+
+- Dispute list now displays a retryable error on failed lookup, avoids false empty-state success
+  without data, warns when cached data may be stale and disables settlement actions until current
+  decisions are available.
+- The initial regression exposed the repository's global React Query mock rather than executing a
+  fetch. Explicitly unmocked that dependency; the real QueryClient rendered test then passed (1
+  test, 2.95s), proving failed fetch -> visible error -> retry -> confirmed empty state. Cosmetic
+  test-render warnings remain; no provider or database was contacted by this test.
+
+### 2026-09-22 — Dispute decision allocation validation
+
+- Settlement parsing now rejects missing/multiple reservation rows and allocations inconsistent with
+  the saved decision (including reversed odd-penny splits). Recovery validates the input before any
+  database reservation or provider call.
+- Synthetic regression tests cover full refund, full release, valid split, inconsistent decisions
+  and ambiguous rows. Settlement service and resolution route: 23 tests passed in 2 files. Provider
+  operations remain mocked; this is not live payment evidence.
+- Durable recovery of the overall dispute resolution remains unfinished; existing refund/release
+  workers only recover their individual operations. Goal remains active.
+
+### 2026-09-22 — Durable dispute resolution recovery
+
+- Added a service-only leased queue on saved dispute decisions, with three-minute ownership,
+  expired-worker takeover, token-checked acknowledgement, retry backoff and a bounded due-work
+  index. Existing decision reservation and settlement routines remain authoritative; the worker does
+  not select a different decision or administrator.
+- Added the authenticated `/api/cron/dispute-resolution-recovery` route and five-minute schedule.
+  One execution processes at most three decisions within a shared 25-second provider budget,
+  persists pending/failure outcomes and reports failures through the existing cron monitoring
+  wrapper. Refund confirmation remains a prerequisite for split payout. Current administrator
+  revocation/invariant conflicts require intervention, not false processing/success.
+- Recovery tests use the real settlement coordinator with mocked lower payment services/database
+  transport. Initial four-file run passed 38 tests in 3.13s, including real cron credential/HMAC
+  checks, stale acknowledgement, pending/failed refund, continued batch processing after one failure
+  and shared deadline enforcement. Additional revoked-admin regressions are included in the
+  full-suite run below.
+- Docker was stopped at the start of validation; started Docker Desktop successfully. Applied only
+  CLI-created migration `20260922135151_lease_dispute_resolution_recovery.sql` to
+  `supabase_db_mintenance-audit-20260906`. No hosted changes or deployment.
+- Expanded rollback-only `remediation-dispute-resolution.sql` passed against the real database:
+  delayed first claim, no double claim, expired takeover, stale/wrong token rejection, backoff,
+  service/client execution privileges and revoked-admin reservation rejection, followed by the
+  split/finalization/notification rollback/retry assertions.
+- `remediation-dispute-worker-race.py` passed with two real connections and an observed first-worker
+  lock: the second worker skipped the locked decision; expired takeover rejected the old
+  acknowledgement. Synthetic fixtures were cleaned up.
+- All pending migrations replayed in the isolated shadow database with an empty diff and no drop
+  statements (`current-dispute-resolution-db-diff.log`). Security advisors returned only the
+  previously documented `public.spatial_ref_sys` RLS error and `postgis` public-schema warning; no
+  new dispute findings (`current-dispute-security-advisors.log`). This is not a blanket clean
+  advisor result.
+- Web TypeScript and all pending application-source ESLint checks passed. External provider
+  test-mode verification, deployed scheduling/monitoring, administrator reconciliation of
+  legacy/unbound disputes and terminal payment failures, full browser/device journeys and other
+  F1–F15 acceptance gates remain open.
+
+- Full isolated web coverage run completed successfully: **357 test files, 3,777 tests passed**,
+  235.66s (current-dispute-complete-web-coverage.log). This includes the previously reported escrow
+  lifecycle failures and the new dispute worker/route/security/review regressions. Coverage executes
+  configured web tests; it is not external-provider or device certification.

@@ -25,6 +25,17 @@ DO $$ BEGIN
  RAISE EXCEPTION 'Failed dispute left escrow disputed'; END IF;
 END $$;
 DROP TRIGGER audit_dispute_insert_failure ON public.disputes;
+CREATE TRIGGER audit_dispute_link_failure BEFORE INSERT ON public.dispute_escrow_links FOR EACH ROW EXECUTE FUNCTION public.audit_dispute_insert_failure();
+DO $$ BEGIN
+ BEGIN
+ PERFORM public.create_dispute_with_priority('fc160906-0000-4000-8000-000000000020','fc160906-0000-4000-8000-000000000003','fc160906-0000-4000-8000-000000000002','Incomplete repair','Synthetic dispute','high');
+ RAISE EXCEPTION 'Association failure not reached';
+ EXCEPTION WHEN SQLSTATE 'ZX001' THEN NULL; END;
+ IF EXISTS(SELECT FROM public.disputes WHERE job_id='fc160906-0000-4000-8000-000000000010') THEN RAISE EXCEPTION 'Unbound dispute survived failed association'; END IF;
+ IF NOT EXISTS(SELECT FROM public.escrow_transactions WHERE id='fc160906-0000-4000-8000-000000000020' AND status='held' AND sla_deadline IS NULL) THEN RAISE EXCEPTION 'Failed association mutated payment'; END IF;
+END $$;
+DROP TRIGGER audit_dispute_link_failure ON public.dispute_escrow_links;
+
 DO $$ DECLARE first_id uuid; second_id uuid; BEGIN
  UPDATE public.escrow_transactions SET status='release_pending' WHERE id='fc160906-0000-4000-8000-000000000020';
  BEGIN
@@ -57,5 +68,20 @@ DO $$ BEGIN
  IF NOT EXISTS(SELECT FROM public.escrow_transactions WHERE id='fc160906-0000-4000-8000-000000000020'
   AND sla_deadline=now()+interval '24 hours' AND escalation_level=0 AND dispute_priority='critical') THEN
  RAISE EXCEPTION 'New dispute inherited prior deadline or escalation'; END IF;
+END $$;
+DO $$ DECLARE original_id uuid; second_id uuid; replay_id uuid; BEGIN
+ SELECT d.id INTO original_id FROM public.disputes d JOIN public.dispute_escrow_links l ON l.dispute_id=d.id
+ WHERE l.escrow_id='fc160906-0000-4000-8000-000000000020' AND d.status='open';
+ IF original_id IS NULL THEN RAISE EXCEPTION 'New dispute missing escrow binding'; END IF;
+ INSERT INTO public.escrow_transactions(id,job_id,payer_id,payee_id,amount,status)
+ VALUES('fc160906-0000-4000-8000-000000000021','fc160906-0000-4000-8000-000000000010',
+ 'fc160906-0000-4000-8000-000000000003','fc160906-0000-4000-8000-000000000002',100,'held');
+ SELECT dispute_id INTO second_id FROM public.create_dispute_atomic('fc160906-0000-4000-8000-000000000021','fc160906-0000-4000-8000-000000000003','fc160906-0000-4000-8000-000000000002','New issue','Another synthetic dispute');
+ SELECT dispute_id INTO replay_id FROM public.create_dispute_atomic('fc160906-0000-4000-8000-000000000020','fc160906-0000-4000-8000-000000000003','fc160906-0000-4000-8000-000000000002','New issue','Another synthetic dispute');
+ IF original_id IS DISTINCT FROM replay_id OR original_id=second_id THEN RAISE EXCEPTION 'Replay crossed escrow identity'; END IF;
+ IF has_table_privilege('authenticated','public.dispute_escrow_links','INSERT') OR
+    has_table_privilege('authenticated','public.dispute_escrow_links','UPDATE') OR
+    has_table_privilege('anon','public.dispute_escrow_links','SELECT') THEN
+ RAISE EXCEPTION 'Dispute payment association exposed to client roles'; END IF;
 END $$;
 ROLLBACK;

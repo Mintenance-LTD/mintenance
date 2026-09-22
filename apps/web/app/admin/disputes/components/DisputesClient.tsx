@@ -86,7 +86,13 @@ export function DisputesClient() {
 
   const queryKey = ['admin', 'disputes', { page, statusFilter }];
 
-  const { data, isLoading: loading } = useQuery<DisputesResponse>({
+  const {
+    data,
+    isLoading: loading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery<DisputesResponse>({
     queryKey,
     queryFn: () => fetchDisputes({ page, statusFilter }),
     refetchInterval: 30000,
@@ -100,6 +106,10 @@ export function DisputesClient() {
   });
 
   const disputes = data?.data ?? [];
+  const currentSelection = selectedDispute
+    ? (disputes.find((dispute) => dispute.id === selectedDispute.id) ??
+      selectedDispute)
+    : null;
   const stats: Stats = data?.stats ?? {
     open: 0,
     reviewing: 0,
@@ -129,23 +139,15 @@ export function DisputesClient() {
     try {
       const csrfHeaders = await getCsrfHeaders();
 
-      const endpoint =
-        resolution === 'refund_homeowner'
-          ? '/api/admin/escrow/reject'
-          : '/api/admin/escrow/approve';
-
-      const body =
-        resolution === 'refund_homeowner'
-          ? {
-              escrowId: selectedDispute.id,
-              reason: resolveNotes || 'Dispute resolved: refund to homeowner',
-            }
-          : {
-              escrowId: selectedDispute.id,
-              notes:
-                resolveNotes ||
-                `Dispute resolved: ${resolution.replace(/_/g, ' ')}`,
-            };
+      const endpoint = '/api/admin/disputes/resolve';
+      const body = {
+        escrowId: selectedDispute.id,
+        decision: currentSelection?.resolution?.decision ?? resolution,
+        reason:
+          currentSelection?.resolution?.reason ??
+          (resolveNotes.trim() ||
+            `Dispute resolved: ${resolution.replace(/_/g, ' ')}`),
+      };
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -165,6 +167,7 @@ export function DisputesClient() {
       invalidateDisputes();
     } catch (error) {
       logger.error('Error resolving dispute:', error);
+      invalidateDisputes();
       setErrorDialog({ open: true, message: (error as Error).message });
     } finally {
       setActionLoading(false);
@@ -221,6 +224,17 @@ export function DisputesClient() {
       />
 
       {/* Disputes Table */}
+      {isError ? (
+        <div role='alert'>
+          <p>
+            Unable to load current disputes and settlement decisions. Any
+            displayed data may be out of date.
+          </p>
+          <Button onClick={() => void refetch()} disabled={isFetching}>
+            Retry loading disputes
+          </Button>
+        </div>
+      ) : null}
       <AdminCard padding='none' className='overflow-hidden'>
         {loading ? (
           <div
@@ -232,7 +246,7 @@ export function DisputesClient() {
           >
             <Spinner size='lg' />
           </div>
-        ) : disputes.length === 0 ? (
+        ) : isError && !data ? null : disputes.length === 0 ? (
           <div
             role='status'
             style={{
@@ -284,10 +298,12 @@ export function DisputesClient() {
           <>
             <DisputesTable
               disputes={disputes}
-              actionLoading={actionLoading}
+              actionLoading={actionLoading || isError}
               onHoldForReview={handleHoldForReview}
               onResolve={(dispute) => {
                 setSelectedDispute(dispute);
+                setResolution(dispute.resolution?.decision ?? 'pay_contractor');
+                setResolveNotes(dispute.resolution?.reason ?? '');
                 setResolveDialog(true);
               }}
             />
@@ -341,10 +357,10 @@ export function DisputesClient() {
       {/* Resolve Dialog */}
       <ResolveDisputeDialog
         open={resolveDialog}
-        selectedDispute={selectedDispute}
-        resolution={resolution}
-        resolveNotes={resolveNotes}
-        actionLoading={actionLoading}
+        selectedDispute={currentSelection}
+        resolution={currentSelection?.resolution?.decision ?? resolution}
+        resolveNotes={currentSelection?.resolution?.reason ?? resolveNotes}
+        actionLoading={actionLoading || isError}
         onOpenChange={(open) => {
           setResolveDialog(open);
           if (!open) {

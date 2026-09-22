@@ -121,18 +121,44 @@ export const POST = withApiHandler(
     // Determine who is being reviewed
     const revieweeId = isHomeowner ? job.contractor_id : job.homeowner_id;
 
-    // Check for duplicate review
-    const { data: existingReview } = await userDb
-      .from('reviews')
-      .select('id')
-      .eq('job_id', jobId)
-      .eq('reviewer_id', user.id)
-      .limit(1)
-      .single();
-
-    if (existingReview) {
-      throw new BadRequestError('You have already reviewed this job');
-    }
+    const readExisting = async () => {
+      const result = await userDb
+        .from('reviews')
+        .select('id, reviewee_id, rating, comment, would_recommend')
+        .eq('job_id', jobId)
+        .eq('reviewer_id', user.id)
+        .limit(1)
+        .single();
+      if (result.error && result.error.code !== 'PGRST116') {
+        throw new Error('Unable to check existing review');
+      }
+      return result.data;
+    };
+    const recoverExisting = (stored: {
+      id: string;
+      reviewee_id: string;
+      rating: number;
+      comment: string | null;
+      would_recommend: boolean | null;
+    }) => {
+      if (
+        stored.reviewee_id !== revieweeId ||
+        stored.rating !== rating ||
+        stored.comment !== comment ||
+        stored.would_recommend !== (wouldRecommend ?? null)
+      ) {
+        throw new BadRequestError(
+          'You have already reviewed this job with different content'
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        reviewId: stored.id,
+        message: 'Review submitted successfully',
+      });
+    };
+    const existingReview = await readExisting();
+    if (existingReview) return recoverExisting(existingReview);
 
     // Insert review.
     // 2026-05-09: persist `would_recommend` (column added by
@@ -150,6 +176,13 @@ export const POST = withApiHandler(
       })
       .select('id')
       .single();
+
+    // The database unique job/reviewer constraint resolves concurrent requests.
+    // Recover the persisted payload after a lost response or concurrent insert.
+    if (insertError?.code === '23505') {
+      const stored = await readExisting();
+      if (stored) return recoverExisting(stored);
+    }
 
     if (insertError) {
       logger.error('Failed to insert review', {

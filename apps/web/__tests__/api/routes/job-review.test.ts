@@ -184,6 +184,7 @@ function setupReviewMocks(
     jobData?: unknown;
     jobError?: unknown;
     existingReview?: unknown;
+    reviewReads?: Array<{ data: unknown; error: unknown }>;
     insertReturn?: { data: unknown; error: unknown };
     fiveStarCount?: number;
   } = {}
@@ -236,7 +237,12 @@ function setupReviewMocks(
               eq: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
                   limit: vi.fn().mockReturnValue({
-                    single: vi.fn().mockResolvedValue(existingReviewResult),
+                    single: vi
+                      .fn()
+                      .mockImplementation(
+                        async () =>
+                          overrides.reviewReads?.shift() ?? existingReviewResult
+                      ),
                   }),
                 }),
               }),
@@ -409,6 +415,68 @@ describe('POST /api/jobs/[id]/review', () => {
 
     const body = await res.json();
     expect(body.error.message).toContain('participants');
+  });
+
+  it.each([false, true])(
+    'recovers an identical persisted review without repeating notifications (race %s)',
+    async (race) => {
+      const comment = 'This is a long enough review comment for testing.';
+      const stored = {
+        id: 'persisted-review',
+        reviewee_id: 'contractor-1',
+        rating: 5,
+        comment,
+        would_recommend: true,
+      };
+      setupReviewMocks({
+        existingReview: race ? undefined : stored,
+        reviewReads: race
+          ? [
+              { data: null, error: null },
+              { data: stored, error: null },
+            ]
+          : undefined,
+        insertReturn: race
+          ? { data: null, error: { code: '23505', message: 'duplicate' } }
+          : undefined,
+      });
+      mocks.createNotification.mockClear();
+      const res = await POST(
+        createPostRequest('/api/jobs/job-1/review', {
+          rating: 5,
+          comment,
+          wouldRecommend: true,
+        }),
+        segmentData('job-1')
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchObject({
+        success: true,
+        reviewId: 'persisted-review',
+      });
+      expect(mocks.createNotification).not.toHaveBeenCalled();
+    }
+  );
+
+  it('does not accept changed review content as a successful replay', async () => {
+    setupReviewMocks({
+      existingReview: {
+        id: 'persisted-review',
+        reviewee_id: 'contractor-1',
+        rating: 5,
+        comment: 'A different persisted review comment.',
+        would_recommend: true,
+      },
+    });
+    const res = await POST(
+      createPostRequest('/api/jobs/job-1/review', {
+        rating: 5,
+        comment: 'This is a long enough review comment for testing.',
+        wouldRecommend: true,
+      }),
+      segmentData('job-1')
+    );
+    expect(res.status).toBe(400);
   });
 
   // ---- Duplicate review ----

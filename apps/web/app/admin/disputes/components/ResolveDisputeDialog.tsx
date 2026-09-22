@@ -34,17 +34,17 @@ const RESOLUTION_OPTIONS: {
   {
     value: 'pay_contractor',
     label: 'Pay Contractor',
-    desc: 'Release escrow funds to the contractor',
+    desc: 'Release remaining principal to the contractor, less the platform fee',
   },
   {
     value: 'refund_homeowner',
     label: 'Refund Homeowner',
-    desc: 'Refund the full amount back to the homeowner',
+    desc: 'Refund the remaining available balance to the payer',
   },
   {
     value: 'split_50_50',
     label: 'Split 50/50',
-    desc: 'Split the escrow amount equally between both parties',
+    desc: 'Refund half the remaining balance; release the rest less the platform fee. An odd penny stays with the release principal.',
   },
 ];
 
@@ -85,6 +85,12 @@ export function ResolveDisputeDialog({
             gap: theme.spacing[3],
           }}
         >
+          {selectedDispute?.resolution ? (
+            <p role='status'>
+              This decision is saved. Retry checks the same settlement; it does
+              not create a new payment.
+            </p>
+          ) : null}
           <label
             style={{
               fontSize: theme.typography.fontSize.sm,
@@ -122,6 +128,7 @@ export function ResolveDisputeDialog({
                   name='resolution'
                   value={option.value}
                   checked={resolution === option.value}
+                  disabled={actionLoading || !!selectedDispute?.resolution}
                   onChange={() => onResolutionChange(option.value)}
                   style={{
                     marginTop: 2,
@@ -162,6 +169,7 @@ export function ResolveDisputeDialog({
             Notes
           </label>
           <Input
+            disabled={actionLoading || !!selectedDispute?.resolution}
             placeholder='Add resolution notes (optional)...'
             value={resolveNotes}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -173,7 +181,13 @@ export function ResolveDisputeDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <Button onClick={onResolve} disabled={actionLoading}>
-            {actionLoading ? <Spinner size='sm' /> : 'Confirm Resolution'}
+            {actionLoading ? (
+              <Spinner size='sm' />
+            ) : selectedDispute?.resolution ? (
+              'Check settlement'
+            ) : (
+              'Confirm Resolution'
+            )}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
