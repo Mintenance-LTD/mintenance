@@ -3579,3 +3579,17 @@ goal complete.
   execution and metadata verification.
 - No real invitations, emails, contacts, payments, or synthetic customer records were created
   remotely. Full browser/native-device journey checks and evidence retention remain open.
+
+### Team-management checkpoint verification and rollout
+
+- Full isolated web coverage run: **384 files / 3,929 tests passed**, 195.15 seconds. The initial
+  run exposed four stale reporting-token fixtures using a non-UUID ID; corrected those fixtures and
+  added explicit invalid-ID rejection coverage without weakening production validation.
+- Normal implementation commit hooks passed. Local security advisors returned only the existing
+  PostGIS public-extension and spatial_ref_sys RLS findings; these remain open.
+- Applied migration 20260922182831 to the authorized hosted project using linked CLI push with vault
+  changes skipped. Only this migration ran; no seeds or roles ran. Read-only MCP verification
+  confirmed migration history, enabled capacity trigger, denied anon/authenticated function
+  execution, and allowed service-role execution.
+- This is a completed checkpoint, not overall readiness: broader management workflows, evidence
+  retention, browser checks, and physical-device journeys remain outstanding.

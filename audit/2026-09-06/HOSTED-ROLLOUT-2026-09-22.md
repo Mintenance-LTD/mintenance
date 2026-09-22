@@ -99,3 +99,16 @@ customer records were changed. The observed deployed application already supplie
 cycle fields; the new scheduler recovery and UI copy still need the application deployment. This is
 the 56th migration in the recorded rollout. Full web suite: 3,849 tests / 372 files passed; local
 overlapping transactions produced one job and all synthetic fixtures were removed.
+
+## Team administration serialization
+
+Applied `20260922182831_serialize_property_team_management.sql` to MintEnance
+(`ukrjudtlvapiajkjbcrd`) after local concurrency diagnostics, migration replay/diff, type checks,
+focused native tests, and 3,929 passing web tests. Dry-run and execution listed only this migration,
+with no seeds or roles; vault changes skipped.
+
+Read-only MCP verification: migration recorded=true; property_team_capacity enabled=true;
+manage_property_team EXECUTE for anon=false, authenticated=false, service_role=true. No real team
+invitations, emails, or synthetic hosted records were created. The trigger protects legacy direct
+inserts while the new application uses the serialized function. No application deployment or
+promotion command was run.
