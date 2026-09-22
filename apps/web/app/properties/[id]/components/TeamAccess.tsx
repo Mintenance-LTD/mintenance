@@ -68,19 +68,14 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
       });
       if (res.ok) {
         const data = await res.json();
+        if (!data.member?.id)
+          throw new Error('Invitation could not be confirmed');
         setMembers((prev) => [data.member, ...prev]);
         setForm({ email: '', role: 'viewer' });
         setShowForm(false);
-        // 2026-05-23 audit: the API now returns
-        // { invitation: { activated: false, message } } because
-        // there's no email-send or accept-page yet. Surface the
-        // honest message so the homeowner doesn't think the
-        // invitee can log in and see the property — they can't,
-        // until activation ships. Falls back to a clear "saved
-        // but pending" line for older API responses.
         toast.success(
           data?.invitation?.message ??
-            'Invite recorded — activation pathway pending'
+            'Invitation saved. Ask the invitee to sign in and accept it from Properties. No email has been sent.'
         );
       } else if (res.status === 402) {
         const err = await res.json();

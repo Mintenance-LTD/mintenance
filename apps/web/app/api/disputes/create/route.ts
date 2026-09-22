@@ -1,3 +1,4 @@
+import { disputeEvidencePath } from '@/lib/services/disputes/evidence';
 import { NextResponse } from 'next/server';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
@@ -5,6 +6,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import {
+  BadRequestError,
   ForbiddenError,
   ConflictError,
   NotFoundError,
@@ -74,6 +76,16 @@ export const POST = withApiHandler(
       );
     }
 
+    const durableEvidence = evidence?.map((value) => {
+      const path = disputeEvidencePath(value, escrow.job_id, user.id);
+      if (value.startsWith('job-attachments:') && !path) {
+        throw new BadRequestError(
+          'Evidence must belong to this job and your account'
+        );
+      }
+      return path ? `job-attachments:${path}` : value;
+    });
+
     const idempotencyKey = getDeterministicIdempotencyKeyFromRequest(
       request,
       'create_dispute',
@@ -101,8 +113,8 @@ export const POST = withApiHandler(
         // dedicated evidence column, so we append a numbered evidence list
         // to `description` to avoid silently dropping client-provided URLs.
         const evidenceSummary =
-          evidence && evidence.length > 0
-            ? `\n\nEvidence:\n${evidence.map((e, i) => `${i + 1}. ${e}`).join('\n')}`
+          durableEvidence && durableEvidence.length > 0
+            ? `\n\nEvidence:\n${durableEvidence.map((e, i) => `${i + 1}. ${e}`).join('\n')}`
             : '';
 
         // Atomically lock the escrow, validate the participants again, update

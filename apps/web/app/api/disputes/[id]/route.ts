@@ -1,3 +1,4 @@
+import { readDisputeEvidence } from '@/lib/services/disputes/evidence';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID } from '@/lib/validation/uuid';
@@ -131,7 +132,11 @@ export const GET = withApiHandler(
       // Frontend-facing aliases (apps/web/app/disputes/[id]/page.tsx)
       dispute_reason: disputeRecord?.reason ?? null,
       description: disputeRecord?.description ?? null,
-      dispute_evidence: [] as unknown[],
+      dispute_evidence: await readDisputeEvidence(
+        disputeRecord?.description ?? null,
+        escrow.job_id,
+        disputeRecord?.raised_by ?? null
+      ),
       resolution: disputeRecord?.resolution ?? null,
       resolved_at: disputeRecord?.resolved_at ?? null,
       dispute_record_id: disputeRecord?.id ?? null,

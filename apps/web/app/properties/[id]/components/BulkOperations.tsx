@@ -76,7 +76,13 @@ export default function BulkOperations({
         return;
       }
 
-      const headers = ['Title', 'Category', 'Amount (GBP)', 'Date', 'Status'];
+      const headers = [
+        'Title',
+        'Category',
+        'Job budget (GBP)',
+        'Date',
+        'Status',
+      ];
       const rows = completedJobs.map((j) => [
         `"${j.title.replace(/"/g, '""')}"`,
         j.category,
@@ -94,7 +100,7 @@ export default function BulkOperations({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `property-${propertyId}-compliance-report.csv`;
+      link.download = `property-${propertyId}-completed-job-history.csv`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success('Compliance report downloaded');
@@ -161,7 +167,7 @@ export default function BulkOperations({
     <div className='p-4 border border-gray-200 rounded-xl'>
       <div className='flex items-center gap-2 mb-3'>
         <Layers className='w-4 h-4 text-teal-600' />
-        <h4 className='text-sm font-semibold text-gray-900'>Bulk Operations</h4>
+        <h4 className='text-sm font-semibold text-gray-900'>Work planning</h4>
       </div>
       <div className='space-y-2'>
         <Link

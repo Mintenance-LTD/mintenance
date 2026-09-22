@@ -33,6 +33,7 @@ import { SpendingAnalytics } from './components/SpendingAnalytics';
 import { RecurringMaintenance } from './components/RecurringMaintenance';
 import { TenantContacts } from './components/TenantContacts';
 import { PropertyContacts } from './components/PropertyContacts';
+import { TenantReportingLinks } from './components/TenantReportingLinks';
 import { TeamAccess } from './components/TeamAccess';
 import { ComplianceCertificates } from './components/ComplianceCertificates';
 import { PropertyRoomsSection } from './components/PropertyRoomsSection';
@@ -79,6 +80,7 @@ function capsForRole(role: PropertyRoleApi) {
   return {
     canEdit: isOwnerOrAdmin || isOrgAdmin || isManager,
     canDelete: isOwnerOrAdmin,
+    canManageReporting: isOwnerOrAdmin || isOrgAdmin || isManager,
     canManageTeam: isOwnerOrAdmin || isOrgAdmin,
     canManageMaintenance: isOwnerOrAdmin || isOrgAdmin || isManager,
     canManageContacts: isOwnerOrAdmin || isOrgAdmin || isManager,
@@ -744,6 +746,33 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderManageTab = () => (
     <>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>MANAGE THIS PROPERTY</Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          onPress={() => setActiveTab('overview')}
+        >
+          <Text style={styles.actionText}>Review property jobs</Text>
+        </TouchableOpacity>
+        <Text>
+          Use Maintenance for due work and certificates, Access for arrival
+          instructions, and the tools below for people and reporting.
+        </Text>
+        {caps.canManageMaintenance && (
+          <TouchableOpacity
+            accessibilityRole='button'
+            onPress={() => setActiveTab('maintenance')}
+          >
+            <Text style={styles.actionText}>
+              Open maintenance and compliance
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {caps.canManageReporting && (
+        <TenantReportingLinks propertyId={propertyId} />
+      )}
+      <Text style={styles.sectionTitle}>PEOPLE AND ACCESS</Text>
       {/* 2026-05-24 audit-30 P1: PropertyContacts surfaces the 4-role
           (tenant / keyholder / emergency / managing agent) collection
           that the web /landlord/contacts page writes to, so the

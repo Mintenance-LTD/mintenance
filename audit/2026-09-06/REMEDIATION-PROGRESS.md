@@ -3436,3 +3436,118 @@ preserves input on an unconfirmed create. Kept compatibility with its empty opti
 maps to general. Added regression coverage for all three active web forms and this payload. Final
 targeted web result: 38 tests / three files passed. Removed two unused imports reported by strict
 lint. Final staged source is checked by normal commit hooks. No migration or deployment.
+
+## 22 September 2026 — discoverable shared properties and restricted web view
+
+The web property loader now recognizes accepted team membership before querying jobs, schedules or
+certificates. Related records remain scoped to the property and its owner, not the invited user.
+Owners retain their existing page. Non-owners receive a separate explicit read model without entry
+codes or owner access fields: viewers see recorded work, certificate metadata and schedules;
+managers and team administrators additionally get the existing authorized recurring-maintenance
+control. Owner-only edit/delete/entry-code and unsupported job/finance links are not rendered in
+this view.
+
+Accepted shares are linked separately on both web property-list themes, without changing owned
+property quota calculations. Shared-list lookup failures render a server-refresh retry control.
+Mobile now requests the existing includeShared=view contract. The API fails visibly if membership
+cannot be loaded instead of returning a misleading owner-only success. Mobile refreshes the list on
+mount and no longer carries previous-account placeholder data into another user's pending request.
+Malformed list responses are errors, not empty success.
+
+Evidence: 41 focused web assertions across five files passed. Full isolated web coverage passed
+3,890 tests / 377 files in 335.99 seconds. The subsequently added shared-list refresh-button
+assertion passed in its two-test file. Web/mobile types and changed source lint were checked; one
+existing unused mobile queryClient was removed after strict lint reported it. Normal commit hooks
+check final staged source. Six existing mobile management tests and the new account-isolation
+assertion passed. The new test initially left its deliberately pending request unresolved; after
+completing that request in cleanup, its focused rerun passed and exited normally (34.049 seconds).
+This test observes the project's mocked FlatList data boundary, not pixels on a physical device.
+
+No SQL migration, hosted mutation, live invitation, real-user contact, or application deployment was
+performed. Authorization tests use synthetic role/database fixtures; this is not a live
+multi-account journey verification. The shared web view deliberately exposes only the supported
+records and maintenance flow: complete manager editing, compliance upload, work-order actions,
+inbox/portfolio redesign and native-device verification remain unfinished. Do not mark the overall
+goal complete.
+
+### 2026-09-22 — Native dispute submission confirmation and evidence retry
+
+- Mobile dispute submission now fails visibly if a selected evidence image cannot upload or receive
+  a usable signed link; no dispute request is sent with silently missing evidence. Completed uploads
+  are cached within the mounted form, scoped to actor/job/image, so an interrupted API response can
+  be retried with the same evidence payload.
+- A synchronous guard prevents duplicate taps while the request is pending. Success requires the
+  server contract's matching escrow identifier and a dispute record identifier. Failed submissions
+  preserve description and selected images. Description length matches the API's 10,000-character
+  maximum. Removed the unsupported 48-hour review promise.
+- Three synthetic native regression tests passed: malformed response without false success,
+  duplicate taps, and evidence failure followed by an uncertain response and identical retry. Mobile
+  type checking passed. No real dispute, upload, notification, or payment was created.
+- Scope limits: mounted-form retry only; process-death recovery and durable evidence references
+  remain unverified. Existing 30-day signed evidence URLs remain and require a separate durable
+  evidence-access design. This checkpoint is not end-to-end native-device or hosted storage-policy
+  verification. No SQL changes.
+
+### 2026-09-22 — Property management work queue and durable dispute links
+
+- Reorganised the editorial Manage tab into Plan work, People and access, and Records and
+  compliance, with in-page navigation and responsive single-column defaults. Added a searchable
+  open-work queue with status/contractor filters, job links, and incremental list disclosure. This
+  uses recorded job status, not inferred risk or SLA scores.
+- Reporting links now show loading/error/retry states, all returned links and their labels, guard
+  concurrent mutations, and verify mutation responses before changing visible status. Added native
+  reporting-link listing/generation/toggling and sharing through the OS share sheet. Native controls
+  remain owner/platform-admin only, matching the current API; broader delegated-manager permissions
+  are not claimed.
+- Corrected misleading labels: the compliance card describes certificates, and the CSV is completed
+  job history with job budgets, not proof of compliance or actual spend. Native Manage provides
+  direct navigation to existing jobs and maintenance/compliance surfaces.
+- New mobile dispute evidence stores stable private `job-attachments:<path>` references. The
+  existing atomic dispute record stores these in its evidence section; no schema change is required.
+  The authorised exact-escrow detail route generates 10-minute links. Legacy signed URLs from the
+  exact configured Supabase origin are renewable; foreign origins, other jobs/claimants, traversal
+  and nested encoded paths are not signed. Both web dispute themes show evidence links and an
+  unavailable/retry message when signing fails. Existing unrelated-reader rejection occurs before
+  any signing.
+- Validation: 19 focused web tests across six files passed, plus four queue/management tests across
+  two files (two management tests overlap the prior run). Five native tests across two files passed.
+  Web and native type checks passed before the final queue/shortcut additions; normal commit hooks
+  validate the final state. Changed production web sources passed strict lint; the explicit
+  test-file lint invocation produced only repository-ignore warnings. Native changed source/tests
+  passed strict lint.
+- Limitations: no physical-device, hosted upload, or new browser layout verification in this
+  checkpoint. Storage objects still need retention lifecycle verification; this change renews access
+  to existing objects and cannot restore deleted files. Retry upload caching remains mounted-form
+  only. The broader manager workflow, structured evidence records/admin tooling, and portfolio
+  operations remain incomplete. No SQL migration or application deployment performed.
+
+### 2026-09-22 — Delegated reporting and verified invitation acceptance
+
+- Accepted property managers/team administrators can now list/create/disable reporting links on
+  web/shared-property and native detail screens. Server authorization uses `manage_contacts`,
+  verifies current accepted membership, and charges feature entitlement to the property owner.
+  Tokens remain owned by that owner. Viewers/unrelated/revoked users cannot read bearer links.
+  Downgrade still permits disabling; creation/reactivation require the owner plan. Added input
+  validation and missing-write-result failure handling.
+- Extracted a shared reporting-link card so owner and delegated web surfaces use the same
+  request/recovery controls.
+- Invitation email matching now uses the auth provider's verified address, with no profile/session
+  fallback. GET uses separate user-id and escaped literal-email filters, avoiding email
+  interpolation into a PostgREST OR expression. Acceptance returns conflict if its conditional
+  pending-row update loses a race; lookup errors fail closed.
+- Added native invitation accept/decline controls in the property list, including accounts with no
+  owned properties. Confirmation must match the requested property/status; success refreshes the
+  account-scoped property list. Web confirmation checks now match that contract. Corrected old
+  invite copy: acceptance exists, invitations are available in Properties, and no email is sent by
+  the recording route.
+- Validation: 34 manager/shared/maintenance authorization tests passed, 13 invitation route tests
+  passed, and final 25 targeted web tests (overlapping those groups) passed. Five native
+  invitation/reporting/account-isolation tests passed. Web/mobile type checks passed before final
+  reusable-card extraction; normal hooks verify final staged sources. Changed web sources passed
+  strict lint; native lint found an existing dynamic require in the touched team component, replaced
+  with the existing React Native static import pattern.
+- No hosted data changes, email sends, SQL migrations, or application deployment. Remaining
+  limitations include team-invite capacity concurrency and delegated team administration,
+  contact-form recovery, full native/device and browser verification, and evidence-retention
+  lifecycle testing. This is another completed implementation checkpoint, not completion of the
+  overall goal.

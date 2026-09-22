@@ -9,6 +9,7 @@ import {
   TextInput,
   StyleSheet,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -51,10 +52,15 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      await mobileApiClient.post(`/api/properties/${propertyId}/team`, {
-        email: email.trim().toLowerCase(),
-        role,
-      });
+      const result = await mobileApiClient.post<{ member: { id: string } }>(
+        `/api/properties/${propertyId}/team`,
+        {
+          email: email.trim().toLowerCase(),
+          role,
+        }
+      );
+      if (!result.member?.id)
+        throw new Error('Invitation could not be confirmed');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -62,15 +68,9 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
       });
       setEmail('');
       setShowForm(false);
-      // 2026-05-23 audit: the API now responds with
-      // { invitation: { activated: false, message } } because the
-      // accept/email flow isn't built yet. Tell the homeowner the
-      // truth instead of letting them think the invitee can log in
-      // and see the property — they can't, until the activation
-      // pathway ships.
       Alert.alert(
         'Invite recorded',
-        "We've saved the invite. Activation (email + accept page) is still being built, so the invitee can't see the property yet. We'll notify you when it's ready.",
+        'Ask the invitee to sign in with this email address and accept it from Properties. No email has been sent.',
         [{ text: 'OK' }]
       );
     },
@@ -115,8 +115,6 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
                 // Soft-fail if for any reason the route can't be
                 // resolved (older app build / web embed).
                 try {
-                  type LinkingMod = { openURL: (url: string) => void };
-                  const Linking = require('react-native').Linking as LinkingMod;
                   Linking.openURL('mintenance://profile/subscription');
                 } catch {
                   // no-op — user can navigate manually
