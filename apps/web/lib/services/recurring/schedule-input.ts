@@ -37,7 +37,7 @@ export const propertyScheduleInput = z.object({
   title: z.string().trim().min(5).max(200),
   frequency,
   next_due_date: dueDate,
-  category: z.string().trim().min(1).max(100).optional(),
+  category: z.string().trim().max(100).optional(),
 });
 
 export const portfolioScheduleInput = propertyScheduleInput.extend({

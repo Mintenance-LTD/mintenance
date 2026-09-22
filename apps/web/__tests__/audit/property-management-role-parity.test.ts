@@ -202,3 +202,23 @@ for (const [name, handler] of [
     expect(m.insert).not.toHaveBeenCalled();
   });
 }
+
+it('accepts the empty optional category sent by the existing property form', async () => {
+  const response = await POST(
+    new NextRequest('http://localhost/api/recurring', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Boiler inspection',
+        frequency: 'monthly',
+        next_due_date: '2026-12-15',
+        category: '',
+      }),
+    }),
+    context
+  );
+  expect(response.status).toBe(201);
+  expect(m.insert).toHaveBeenCalledWith(
+    'recurring_schedules',
+    expect.objectContaining({ category: 'general' })
+  );
+});

@@ -3425,3 +3425,14 @@ Read-only live Edge evidence is in EDGE-VERIFICATION-2026-09-22.md. The deployed
 shows earlier misleading claims that committed source fixes replace. No SQL change or hosted write
 was needed for this patch. No application deployment occurred. Durable schedule-create idempotency,
 the broader property operations redesign and native-device verification remain incomplete.
+
+### Recurring caller follow-through
+
+Traced the theme switch and property Manage card after the preceding checkpoint. The alternate
+RecurringTasksClient is still active and now has matching duplicate-submit protection, validation,
+accessible field names and unconfirmed-save handling. The property card now offers monthly,
+quarterly, biannual and annual (removing unsupported weekly), displays load errors with retry, and
+preserves input on an unconfirmed create. Kept compatibility with its empty optional category, which
+maps to general. Added regression coverage for all three active web forms and this payload. Final
+targeted web result: 38 tests / three files passed. Removed two unused imports reported by strict
+lint. Final staged source is checked by normal commit hooks. No migration or deployment.

@@ -1,46 +1,110 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { MintEditorialRecurringTasks } from '@/app/landlord/recurring/MintEditorialRecurringTasks';
+import { RecurringTasksClient } from '@/app/landlord/recurring/RecurringTasksClient';
+import PropertyRecurringMaintenance from '@/app/properties/[id]/components/RecurringMaintenance';
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: toast }));
-vi.mock('@/lib/csrf-client', () => ({ getCsrfHeaders: async () => ({}) }));
+vi.mock('@/lib/csrf-client', () => ({
+  getCsrfHeaders: async () => ({}),
+  getCsrfToken: async () => 'test-token',
+}));
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
-it('preserves input and rejects false success on an incomplete server confirmation', async () => {
-  const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+it.each([MintEditorialRecurringTasks, RecurringTasksClient])(
+  'preserves input and rejects false success on an incomplete server confirmation (%#)',
+  async (Component) => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetch);
+    render(
+      <Component
+        properties={[
+          { id: 'property', property_name: 'Synthetic property', address: '' },
+        ]}
+        schedules={[]}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^New task$/i }));
+    fireEvent.change(screen.getByLabelText('Property', { exact: true }), {
+      target: { value: 'property' },
+    });
+    fireEvent.change(screen.getByLabelText('Task title'), {
+      target: { value: 'Synthetic boiler inspection' },
+    });
+    fireEvent.change(screen.getByLabelText('First due date'), {
+      target: { value: '2027-12-15' },
+    });
+    const form = screen.getByRole('form', { name: 'New recurring task' });
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('could not be confirmed')
+      )
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(
+      screen.getByDisplayValue('Synthetic boiler inspection')
+    ).toBeTruthy();
+    expect(screen.getByDisplayValue('2027-12-15')).toBeTruthy();
+  }
+);
+
+it('shows a property schedule read failure with retry rather than an empty list', async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: false })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ schedules: [] }) });
   vi.stubGlobal('fetch', fetch);
-  render(
-    <MintEditorialRecurringTasks
-      properties={[
-        { id: 'property', property_name: 'Synthetic property', address: '' },
-      ]}
-      schedules={[]}
-    />
+  render(<PropertyRecurringMaintenance propertyId='property' />);
+  await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+  expect(screen.queryByText(/No recurring schedules yet/)).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry schedules' }));
+  await waitFor(() =>
+    expect(screen.getByText(/No recurring schedules yet/)).toBeTruthy()
   );
   fireEvent.click(
-    screen.getByRole('button', { name: 'New task', exact: true })
+    screen.getByRole('button', { name: 'Add recurring schedule' })
   );
-  fireEvent.change(screen.getByLabelText('Property', { exact: true }), {
-    target: { value: 'property' },
-  });
+  expect(screen.queryByRole('option', { name: 'Weekly' })).toBeNull();
+  expect(screen.getByRole('option', { name: 'Every 6 months' })).toBeTruthy();
+  expect(screen.getByRole('option', { name: 'Annually' })).toBeTruthy();
+});
+
+it('preserves the property form after an unconfirmed save and prevents double taps', async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ schedules: [] }) })
+    .mockResolvedValue({ ok: true, json: async () => ({}) });
+  vi.stubGlobal('fetch', fetch);
+  render(<PropertyRecurringMaintenance propertyId='property' />);
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Add recurring schedule' })
+    ).toBeTruthy()
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Add recurring schedule' })
+  );
   fireEvent.change(screen.getByLabelText('Task title'), {
-    target: { value: 'Synthetic boiler inspection' },
+    target: { value: 'Synthetic maintenance' },
   });
   fireEvent.change(screen.getByLabelText('First due date'), {
     target: { value: '2027-12-15' },
   });
-  const form = screen.getByRole('form', { name: 'New recurring task' });
-  fireEvent.submit(form);
-  fireEvent.submit(form);
+  fireEvent.click(screen.getByRole('button', { name: 'Add Schedule' }));
+  fireEvent.click(screen.getByRole('button', { name: /Add Schedule|Adding/ }));
   await waitFor(() =>
     expect(toast.error).toHaveBeenCalledWith(
       expect.stringContaining('could not be confirmed')
     )
   );
-  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(2);
   expect(toast.success).not.toHaveBeenCalled();
-  expect(screen.getByDisplayValue('Synthetic boiler inspection')).toBeTruthy();
-  expect(screen.getByDisplayValue('2027-12-15')).toBeTruthy();
+  expect(screen.getByDisplayValue('Synthetic maintenance')).toBeTruthy();
 });
