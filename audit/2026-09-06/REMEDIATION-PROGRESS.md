@@ -3469,3 +3469,21 @@ multi-account journey verification. The shared web view deliberately exposes onl
 records and maintenance flow: complete manager editing, compliance upload, work-order actions,
 inbox/portfolio redesign and native-device verification remain unfinished. Do not mark the overall
 goal complete.
+
+### 2026-09-22 — Native dispute submission confirmation and evidence retry
+
+- Mobile dispute submission now fails visibly if a selected evidence image cannot upload or receive
+  a usable signed link; no dispute request is sent with silently missing evidence. Completed uploads
+  are cached within the mounted form, scoped to actor/job/image, so an interrupted API response can
+  be retried with the same evidence payload.
+- A synchronous guard prevents duplicate taps while the request is pending. Success requires the
+  server contract's matching escrow identifier and a dispute record identifier. Failed submissions
+  preserve description and selected images. Description length matches the API's 10,000-character
+  maximum. Removed the unsupported 48-hour review promise.
+- Three synthetic native regression tests passed: malformed response without false success,
+  duplicate taps, and evidence failure followed by an uncertain response and identical retry. Mobile
+  type checking passed. No real dispute, upload, notification, or payment was created.
+- Scope limits: mounted-form retry only; process-death recovery and durable evidence references
+  remain unverified. Existing 30-day signed evidence URLs remain and require a separate durable
+  evidence-access design. This checkpoint is not end-to-end native-device or hosted storage-policy
+  verification. No SQL changes.

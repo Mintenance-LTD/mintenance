@@ -1,7 +1,7 @@
 /**
  * DisputeScreen - Create and manage job disputes
  */
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -37,18 +37,22 @@ interface Props {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'Dispute'>;
 }
 
-// 2026-05-24 audit-27 P1 — upload picked images to job-attachments and
-// return 30-day signed URLs. Per-file errors are swallowed so one bad
-// image doesn't block submission; fallback `job-attachments:<path>` is
-// pushed when signing itself fails so the row still preserves a pointer.
+// Keep completed uploads stable when a submission must be retried.
 async function uploadDisputeEvidence(
   jobId: string,
   userId: string,
-  assets: ImagePicker.ImagePickerAsset[]
+  assets: ImagePicker.ImagePickerAsset[],
+  uploaded: Map<string, string>
 ): Promise<string[]> {
   const evidence: string[] = [];
   for (let i = 0; i < assets.length; i++) {
     const asset = assets[i]!;
+    const cacheKey = `${userId}:${jobId}:${asset.uri}`;
+    const cached = uploaded.get(cacheKey);
+    if (cached) {
+      evidence.push(cached);
+      continue;
+    }
     try {
       const rawExt = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
       const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : 'jpg';
@@ -61,15 +65,20 @@ async function uploadDisputeEvidence(
           upsert: false,
         });
       if (upErr) {
-        logger.warn('Dispute evidence upload failed', { error: upErr, i });
-        continue;
+        throw new Error('Evidence upload failed');
       }
-      const { data: signed } = await supabase.storage
+      const { data: signed, error: signError } = await supabase.storage
         .from('job-attachments')
         .createSignedUrl(filePath, 60 * 60 * 24 * 30);
-      evidence.push(signed?.signedUrl ?? `job-attachments:${filePath}`);
-    } catch (err) {
-      logger.warn('Dispute evidence upload error', { error: err, i });
+      if (signError || !signed?.signedUrl)
+        throw new Error('Evidence link failed');
+      uploaded.set(cacheKey, signed.signedUrl);
+      evidence.push(signed.signedUrl);
+    } catch {
+      logger.warn('Dispute evidence upload failed', { index: i });
+      throw new Error(
+        'Some evidence could not be uploaded. Your dispute has not been submitted. Please retry.'
+      );
     }
   }
   return evidence;
@@ -130,6 +139,8 @@ const DISPUTE_REASONS = [
 export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, jobTitle } = route.params;
   const { user } = useAuth();
+  const inFlight = useRef(false);
+  const uploadedEvidence = useRef(new Map<string, string>());
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -162,6 +173,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
+    if (inFlight.current) return;
     setFormError(null);
     if (!selectedReason) {
       setFormError('Please select a reason for the dispute.');
@@ -174,6 +186,15 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
+    if (!user?.id) {
+      setFormError('Please sign in again before submitting a dispute.');
+      return;
+    }
+    if (description.trim().length > 10000) {
+      setFormError('Please keep the description within 10,000 characters.');
+      return;
+    }
+    inFlight.current = true;
     setSubmitting(true);
     try {
       const escrowResponse = await apiClient.get<{
@@ -196,24 +217,43 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
       // route's Zod) of local file:// URIs (unusable for admin review).
       // Now uploads to job-attachments and sends signed URLs as `evidence`.
       const evidence = user?.id
-        ? await uploadDisputeEvidence(jobId, user.id, attachments)
+        ? await uploadDisputeEvidence(
+            jobId,
+            user.id,
+            attachments,
+            uploadedEvidence.current
+          )
         : [];
-      await apiClient.post('/api/disputes/create', {
+      const result = await apiClient.post<{
+        disputeId: string;
+        disputeRecordId: string;
+      }>('/api/disputes/create', {
         escrowId: escrowResponse.escrow.id,
         reason: selectedReason,
         description: description.trim(),
         priority: 'medium',
         evidence,
       });
+      if (
+        result?.disputeId !== escrowResponse.escrow.id ||
+        !result?.disputeRecordId
+      ) {
+        throw new Error('The dispute could not be confirmed. Please retry.');
+      }
       Alert.alert(
         'Dispute Submitted',
-        'Your dispute has been submitted. Our team will review it within 48 hours.',
+        'Your dispute has been submitted. It is awaiting review.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       logger.error('Failed to submit dispute', error);
-      setFormError('Failed to submit dispute. Please try again.');
+      setFormError(
+        error instanceof Error && error.message.startsWith('Some evidence')
+          ? error.message
+          : 'The dispute could not be confirmed. Please retry.'
+      );
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };
@@ -238,7 +278,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           </Text>
         </View>
 
-        <Text style={styles.sectionTitle}>What's the issue?</Text>
+        <Text style={styles.sectionTitle}>What is the issue?</Text>
         <View style={styles.reasonGrid}>
           {DISPUTE_REASONS.map((reason) => (
             <TouchableOpacity
@@ -247,6 +287,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
                 styles.reasonCard,
                 selectedReason === reason.id && styles.reasonCardSelected,
               ]}
+              disabled={submitting}
               onPress={() => setSelectedReason(reason.id)}
               accessibilityRole='button'
               accessibilityLabel={`Dispute reason: ${reason.label}`}
@@ -280,6 +321,9 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text style={styles.sectionTitle}>Describe the issue</Text>
         <TextInput
           style={styles.descriptionInput}
+          accessibilityLabel='Describe the dispute'
+          maxLength={10000}
+          editable={!submitting}
           multiline
           numberOfLines={6}
           placeholder='Please describe the issue in detail. Include any relevant dates, communications, or evidence...'
@@ -289,7 +333,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           textAlignVertical='top'
         />
         <Text style={styles.charCount}>
-          {description.length}/500 characters (min 20)
+          {description.length}/10,000 characters (min 20)
         </Text>
 
         {/* Evidence Attachment */}
@@ -306,6 +350,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Image source={{ uri: item.uri }} style={styles.thumb} />
                 <TouchableOpacity
                   style={styles.thumbRemove}
+                  disabled={submitting}
                   onPress={() => removeAttachment(item.uri)}
                   accessibilityRole='button'
                   accessibilityLabel='Remove attached photo'
@@ -319,7 +364,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.evidenceButton}
           onPress={handleAddEvidence}
-          disabled={attachments.length >= 6}
+          disabled={submitting || attachments.length >= 6}
           accessibilityRole='button'
           accessibilityLabel={
             attachments.length === 0
@@ -357,9 +402,8 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          Disputes are reviewed by our team within 48 hours. Both parties will
-          be notified and given the opportunity to respond. Payment will remain
-          in escrow until the dispute is resolved.
+          Submitted disputes await review. Keep your supporting evidence and
+          check the dispute status for updates.
         </Text>
       </ScrollView>
     </SafeAreaView>
