@@ -12,6 +12,12 @@ vi.mock('@/app/properties/[id]/components/RecurringMaintenance', () => ({
 vi.mock('@/app/properties/[id]/components/TenantReportingCard', () => ({
   TenantReportingCard: () => <button>Manage tenant reporting links</button>,
 }));
+vi.mock('@/app/properties/[id]/components/TeamAccess', () => ({
+  default: () => <button>Manage property team</button>,
+}));
+vi.mock('@/app/properties/[id]/components/TenantContacts', () => ({
+  default: () => <button>Manage tenant contacts</button>,
+}));
 const data = {
   property: { id: 'property', name: 'Synthetic property', address: '' },
   jobs: [{ id: 'job', title: 'Inspect boiler', status: 'assigned' }],
@@ -32,11 +38,17 @@ it.each(['manager', 'admin'] as const)(
   (role) => {
     render(<SharedPropertyDetail {...data} role={role} />);
     expect(
+      screen.getByRole('button', { name: 'Manage tenant contacts' })
+    ).toBeTruthy();
+    expect(
       screen.getByRole('button', { name: 'Manage recurring maintenance' })
     ).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Manage tenant reporting links' })
     ).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Manage property team' }) !== null
+    ).toBe(role === 'admin');
     expect(
       screen.queryByRole('link', {
         name: /Edit|Post a job|Manage certificates/,

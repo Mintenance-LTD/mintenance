@@ -1,7 +1,7 @@
 /**
  * TeamAccess - Manage team member access to a property
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { useAuth } from '../../../contexts/AuthContext';
 import { me } from '../../../design-system/mint-editorial';
 
 interface TeamMember {
@@ -36,21 +37,33 @@ const ROLE_COLORS: Record<string, string> = {
 
 export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const saving = useRef(false);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'admin' | 'manager' | 'viewer'>('viewer');
 
-  const { data: members = [] } = useQuery({
-    queryKey: ['property-team', propertyId],
+  const {
+    data: members = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['property-team', user?.id, propertyId],
     queryFn: async () => {
       const res = await mobileApiClient.get<
         { members: TeamMember[] } | TeamMember[]
       >(`/api/properties/${propertyId}/team`);
-      return Array.isArray(res) ? res : res?.members || [];
+      const rows = Array.isArray(res) ? res : res?.members;
+      if (!Array.isArray(rows)) throw new Error('Records could not be loaded');
+      return rows;
     },
   });
 
   const inviteMutation = useMutation({
+    onSettled: () => {
+      saving.current = false;
+    },
     mutationFn: async () => {
       const result = await mobileApiClient.post<{ member: { id: string } }>(
         `/api/properties/${propertyId}/team`,
@@ -64,7 +77,7 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['property-team', propertyId],
+        queryKey: ['property-team', user?.id, propertyId],
       });
       setEmail('');
       setShowForm(false);
@@ -133,14 +146,21 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
   });
 
   const removeMutation = useMutation({
+    onError: () =>
+      Alert.alert(
+        'Removal failed',
+        'The record could not be removed. Please retry.'
+      ),
     mutationFn: async (memberId: string) => {
-      await mobileApiClient.delete(
+      const result = await mobileApiClient.delete<{ success: boolean }>(
         `/api/properties/${propertyId}/team?memberId=${memberId}`
       );
+      if (result.success !== true)
+        throw new Error('Removal could not be confirmed');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['property-team', propertyId],
+        queryKey: ['property-team', user?.id, propertyId],
       });
     },
   });
@@ -150,6 +170,8 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
       Alert.alert('Required', 'Please enter an email address.');
       return;
     }
+    if (saving.current) return;
+    saving.current = true;
     inviteMutation.mutate();
   };
 
@@ -163,6 +185,25 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
       },
     ]);
   };
+
+  if (isLoading)
+    return (
+      <View style={styles.container}>
+        <Text>Loading members…</Text>
+      </View>
+    );
+  if (isError)
+    return (
+      <View style={styles.container}>
+        <Text>Could not load members.</Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          onPress={() => void refetch()}
+        >
+          <Text>Retry members</Text>
+        </TouchableOpacity>
+      </View>
+    );
 
   return (
     <View style={styles.container}>

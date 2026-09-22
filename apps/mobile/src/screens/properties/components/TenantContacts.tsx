@@ -1,7 +1,7 @@
 /**
  * TenantContacts - Manage tenant contacts for a property
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { useAuth } from '../../../contexts/AuthContext';
 import { me } from '../../../design-system/mint-editorial';
 
 interface Tenant {
@@ -36,31 +37,53 @@ interface Props {
 
 export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const saving = useRef(false);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
-  const { data: tenants = [] } = useQuery({
-    queryKey: ['tenants', propertyId],
+  const {
+    data: tenants = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['tenants', user?.id, propertyId],
     queryFn: async () => {
       const res = await mobileApiClient.get<{ tenants: Tenant[] } | Tenant[]>(
         `/api/properties/${propertyId}/tenants`
       );
-      return Array.isArray(res) ? res : res?.tenants || [];
+      const rows = Array.isArray(res) ? res : res?.tenants;
+      if (!Array.isArray(rows)) throw new Error('Records could not be loaded');
+      return rows;
     },
   });
 
   const createMutation = useMutation({
+    onSettled: () => {
+      saving.current = false;
+    },
     mutationFn: async () => {
-      await mobileApiClient.post(`/api/properties/${propertyId}/tenants`, {
+      const result = await mobileApiClient.post<{
+        tenant: { id: string };
+        invitation_status?: string;
+      }>(`/api/properties/${propertyId}/tenants`, {
         name: name.trim(),
         email: email.trim() || undefined,
         phone: phone.trim() || undefined,
       });
+      if (!result.tenant?.id)
+        throw new Error('Tenant save could not be confirmed');
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', propertyId] });
+    onSuccess: (result) => {
+      if (result.invitation_status === 'not_sent')
+        Alert.alert('Contact saved', 'The invitation was not sent.');
+      queryClient.invalidateQueries({
+        queryKey: ['tenants', user?.id, propertyId],
+      });
       setName('');
       setEmail('');
       setPhone('');
@@ -73,14 +96,36 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       ),
   });
 
-  const deleteMutation = useMutation({
+  const invitationMutation = useMutation({
     mutationFn: async (tenantId: string) => {
-      await mobileApiClient.delete(
+      const result = await mobileApiClient.patch<{ invitation_sent: boolean }>(
+        `/api/properties/${propertyId}/tenants`,
+        { tenantId }
+      );
+      if (result.invitation_sent !== true)
+        throw new Error('Invitation was not sent');
+    },
+    onSuccess: () => Alert.alert('Invitation sent'),
+    onError: () => Alert.alert('Invitation was not sent', 'Please retry.'),
+  });
+
+  const deleteMutation = useMutation({
+    onError: () =>
+      Alert.alert(
+        'Removal failed',
+        'The record could not be removed. Please retry.'
+      ),
+    mutationFn: async (tenantId: string) => {
+      const result = await mobileApiClient.delete<{ success: boolean }>(
         `/api/properties/${propertyId}/tenants?tenantId=${tenantId}`
       );
+      if (result.success !== true)
+        throw new Error('Removal could not be confirmed');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ['tenants', user?.id, propertyId],
+      });
     },
   });
 
@@ -100,14 +145,39 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       Alert.alert('Required', 'Please enter a name.');
       return;
     }
+    if (saving.current) return;
+    saving.current = true;
     createMutation.mutate();
   };
+
+  if (isLoading)
+    return (
+      <View style={styles.container}>
+        <Text>Loading tenants…</Text>
+      </View>
+    );
+  if (isError)
+    return (
+      <View style={styles.container}>
+        <Text>Could not load tenants.</Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          onPress={() => void refetch()}
+        >
+          <Text>Retry tenants</Text>
+        </TouchableOpacity>
+      </View>
+    );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>TENANTS</Text>
-        <TouchableOpacity onPress={() => setShowForm(!showForm)}>
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessibilityLabel='Add tenant'
+          onPress={() => setShowForm(!showForm)}
+        >
           <Ionicons
             name={showForm ? 'close' : 'person-add-outline'}
             size={22}
@@ -185,6 +255,15 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
               </View>
               {t.email && !t.invitation_accepted_at && t.invitation_sent_at && (
                 <Text style={styles.inviteStatus}>Invitation sent</Text>
+              )}
+              {t.email && !t.user_id && !t.invitation_accepted_at && (
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  disabled={invitationMutation.isPending}
+                  onPress={() => invitationMutation.mutate(t.id)}
+                >
+                  <Text style={styles.contactLink}>Send invitation</Text>
+                </TouchableOpacity>
               )}
               {t.invitation_accepted_at && (
                 <Text style={styles.inviteAccepted}>Account linked</Text>

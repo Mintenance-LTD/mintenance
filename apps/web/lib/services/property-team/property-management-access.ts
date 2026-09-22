@@ -11,6 +11,7 @@ export async function getPropertyForManagement(
     | 'manage_maintenance'
     | 'manage_compliance'
     | 'manage_contacts'
+    | 'manage_team'
 ) {
   if (user.role === 'admin') await requireAdminFromDatabase(user.id);
   else {

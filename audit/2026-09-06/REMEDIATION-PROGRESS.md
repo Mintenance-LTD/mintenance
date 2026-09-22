@@ -3551,3 +3551,80 @@ goal complete.
   contact-form recovery, full native/device and browser verification, and evidence-retention
   lifecycle testing. This is another completed implementation checkpoint, not completion of the
   overall goal.
+
+### 2026-09-22 — Atomic team administration and contact recovery
+
+- Added a database trigger that serializes property-team inserts against the property row, enforces
+  the existing ten-record cap, and rejects normalized-email duplicates. It also protects the old
+  application's direct insert path. Existing records are not rewritten.
+- Added service-role-only `manage_property_team` for invite/remove. It locks the property and
+  rechecks owner/platform-admin/accepted team-admin authorization inside the transaction; delegated
+  membership is locked while authorizing. Managers/viewers cannot administer teams. Routes validate
+  payloads, check the owner subscription, and require confirmed mutation results. Shared web
+  properties now expose team administration only to team administrators; native existing
+  capabilities now match the API.
+- Web/native tenant and team cards distinguish failed loads from empty lists and provide retries.
+  Tenant creation preserves inputs on missing confirmation, duplicate-tap guards protect creation,
+  and failed removals are visible. Native query keys include the signed-in account.
+- Local verification: isolated Docker role/grant/duplicate/revocation diagnostics passed. Observed
+  overlapping RPC and legacy direct-insert transactions competing for the tenth slot: one succeeded,
+  one was rejected, final count exactly ten. Synthetic fixtures were removed. Full migration replay
+  through local `db diff --local --use-pg-delta` returned no schema changes.
+- Tests: 17 focused web tests and three native contact-recovery tests passed; changed-source strict
+  lint passed. Web/native type checks produced no errors. Normal commit hooks and a broader web
+  coverage run follow.
+- Hosted read-only preflight returned zero over-capacity properties and zero normalized duplicate
+  groups. Hosted dry-run lists only 20260922182831_serialize_property_team_management.sql, no
+  seeds/roles, and vault changes are skipped. Hosted application is recorded separately after
+  execution and metadata verification.
+- No real invitations, emails, contacts, payments, or synthetic customer records were created
+  remotely. Full browser/native-device journey checks and evidence retention remain open.
+
+### Team-management checkpoint verification and rollout
+
+- Full isolated web coverage run: **384 files / 3,929 tests passed**, 195.15 seconds. The initial
+  run exposed four stale reporting-token fixtures using a non-UUID ID; corrected those fixtures and
+  added explicit invalid-ID rejection coverage without weakening production validation.
+- Normal implementation commit hooks passed. Local security advisors returned only the existing
+  PostGIS public-extension and spatial_ref_sys RLS findings; these remain open.
+- Applied migration 20260922182831 to the authorized hosted project using linked CLI push with vault
+  changes skipped. Only this migration ran; no seeds or roles ran. Read-only MCP verification
+  confirmed migration history, enabled capacity trigger, denied anon/authenticated function
+  execution, and allowed service-role execution.
+- This is a completed checkpoint, not overall readiness: broader management workflows, evidence
+  retention, browser checks, and physical-device journeys remain outstanding.
+
+## 2026-09-22 — Contact delivery recovery and evidence immutability
+
+- Tenant creation now validates contact fields and lease date ordering; email-provider failure does
+  not turn a saved contact into a failed creation. Delivery is awaited and reported truthfully.
+  Web/native users can retry delivery against the existing record rather than creating a second
+  contact. Shared-property managers and administrators can reach web contact controls; viewers
+  cannot.
+- Automatic account linkage verifies the candidate against the authoritative, confirmed Auth email.
+  Invitation acceptance also verifies Auth email, conditionally claims an active/unaccepted/unlinked
+  row, reports lost races, and preserves successful acceptance when notification delivery fails.
+  Repeating an already accepted invitation as the same verified account returns success. Removed
+  email hints from mismatch logging.
+- Contact deletion requires a returned row before reporting success.
+- New restrictive storage policies constrain dispute uploads to the actor folder and job
+  participants and deny client updates/deletes of dispute evidence. They preserve service-role
+  retention operations. This protects original objects but does NOT implement archival access after
+  account/job deletion, scheduled retention review, or orphan-upload cleanup. Existing missing
+  objects cannot be recovered by this change.
+- Verification: 19 focused web tests across four files; three native contact tests; web/native
+  TypeScript and changed-source strict lint passed. Initial test-run sandbox startup and incorrect
+  native test-path failures were corrected; one new retry mock fixture was corrected before the
+  final passing run. Full web coverage was not rerun for this checkpoint.
+- Real local storage RLS diagnostics used synthetic users and rolled-back transactions: valid
+  participant upload succeeded, unrelated-job and foreign-folder uploads failed, and UPDATE/DELETE
+  affected no evidence rows. The diagnostic uses the Storage API deletion transaction setting, with
+  RLS enabled; it does not test object bytes through the HTTP Storage API. Full isolated migration
+  replay/diff returned no changes. Advisors still report the existing PostGIS findings only.
+- Hosted migration 20260922190036 applied alone with vault changes skipped, no seeds/roles.
+  Read-only MCP confirmed all three restrictive authenticated policies. No live contacts, messages,
+  invitations, or payments were exercised.
+- Remaining: invitation deep-link experience after email verification/login and delivery
+  deduplication under concurrent requests; broader property work queues/actions; archived dispute
+  evidence access and retention review; browser and physical-device validation. These areas are not
+  marked complete.
