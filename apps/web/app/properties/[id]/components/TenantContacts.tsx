@@ -14,6 +14,8 @@ interface Tenant {
   lease_end: string | null;
   notes: string | null;
   is_active: boolean;
+  invitation_accepted_at?: string | null;
+  user_id?: string | null;
 }
 
 export default function TenantContacts({ propertyId }: { propertyId: string }) {
@@ -22,6 +24,8 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const inviting = useRef(false);
+  const [sendingInvite, setSendingInvite] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -84,7 +88,11 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
           notes: '',
         });
         setShowForm(false);
-        toast.success('Tenant added');
+        toast.success(
+          data.invitation_status === 'not_sent'
+            ? 'Contact saved. Invitation was not sent.'
+            : 'Tenant added'
+        );
       } else {
         const err = await res.json();
         toast.error(err.error || 'Failed to add');
@@ -94,6 +102,31 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
     } finally {
       savingRef.current = false;
       setSaving(false);
+    }
+  };
+
+  const retryInvitation = async (id: string) => {
+    if (inviting.current) return;
+    inviting.current = true;
+    setSendingInvite(true);
+    try {
+      const res = await fetch(`/api/properties/${propertyId}/tenants`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': await getCsrfToken(),
+        },
+        body: JSON.stringify({ tenantId: id }),
+      });
+      const body = await res.json();
+      if (!res.ok || body.invitation_sent !== true)
+        throw new Error('Delivery failed');
+      toast.success('Invitation sent');
+    } catch {
+      toast.error('Invitation was not sent. Please retry.');
+    } finally {
+      inviting.current = false;
+      setSendingInvite(false);
     }
   };
 
@@ -293,6 +326,16 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
                   </span>
                 )}
               </div>
+              {t.email && !t.user_id && !t.invitation_accepted_at && (
+                <button
+                  type='button'
+                  disabled={sendingInvite}
+                  onClick={() => retryInvitation(t.id)}
+                  className='mt-2 text-teal-700 underline'
+                >
+                  Send invitation
+                </button>
+              )}
               {(t.lease_start || t.lease_end) && (
                 <div className='mt-1 text-[10px] text-gray-400'>
                   Lease: {formatDate(t.lease_start)} — {formatDate(t.lease_end)}

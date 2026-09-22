@@ -3593,3 +3593,38 @@ goal complete.
   execution, and allowed service-role execution.
 - This is a completed checkpoint, not overall readiness: broader management workflows, evidence
   retention, browser checks, and physical-device journeys remain outstanding.
+
+## 2026-09-22 — Contact delivery recovery and evidence immutability
+
+- Tenant creation now validates contact fields and lease date ordering; email-provider failure does
+  not turn a saved contact into a failed creation. Delivery is awaited and reported truthfully.
+  Web/native users can retry delivery against the existing record rather than creating a second
+  contact. Shared-property managers and administrators can reach web contact controls; viewers
+  cannot.
+- Automatic account linkage verifies the candidate against the authoritative, confirmed Auth email.
+  Invitation acceptance also verifies Auth email, conditionally claims an active/unaccepted/unlinked
+  row, reports lost races, and preserves successful acceptance when notification delivery fails.
+  Repeating an already accepted invitation as the same verified account returns success. Removed
+  email hints from mismatch logging.
+- Contact deletion requires a returned row before reporting success.
+- New restrictive storage policies constrain dispute uploads to the actor folder and job
+  participants and deny client updates/deletes of dispute evidence. They preserve service-role
+  retention operations. This protects original objects but does NOT implement archival access after
+  account/job deletion, scheduled retention review, or orphan-upload cleanup. Existing missing
+  objects cannot be recovered by this change.
+- Verification: 19 focused web tests across four files; three native contact tests; web/native
+  TypeScript and changed-source strict lint passed. Initial test-run sandbox startup and incorrect
+  native test-path failures were corrected; one new retry mock fixture was corrected before the
+  final passing run. Full web coverage was not rerun for this checkpoint.
+- Real local storage RLS diagnostics used synthetic users and rolled-back transactions: valid
+  participant upload succeeded, unrelated-job and foreign-folder uploads failed, and UPDATE/DELETE
+  affected no evidence rows. The diagnostic uses the Storage API deletion transaction setting, with
+  RLS enabled; it does not test object bytes through the HTTP Storage API. Full isolated migration
+  replay/diff returned no changes. Advisors still report the existing PostGIS findings only.
+- Hosted migration 20260922190036 applied alone with vault changes skipped, no seeds/roles.
+  Read-only MCP confirmed all three restrictive authenticated policies. No live contacts, messages,
+  invitations, or payments were exercised.
+- Remaining: invitation deep-link experience after email verification/login and delivery
+  deduplication under concurrent requests; broader property work queues/actions; archived dispute
+  evidence access and retention review; browser and physical-device validation. These areas are not
+  marked complete.

@@ -15,6 +15,9 @@ vi.mock('@/app/properties/[id]/components/TenantReportingCard', () => ({
 vi.mock('@/app/properties/[id]/components/TeamAccess', () => ({
   default: () => <button>Manage property team</button>,
 }));
+vi.mock('@/app/properties/[id]/components/TenantContacts', () => ({
+  default: () => <button>Manage tenant contacts</button>,
+}));
 const data = {
   property: { id: 'property', name: 'Synthetic property', address: '' },
   jobs: [{ id: 'job', title: 'Inspect boiler', status: 'assigned' }],
@@ -34,6 +37,9 @@ it.each(['manager', 'admin'] as const)(
   'gives %s the supported maintenance action without owner controls',
   (role) => {
     render(<SharedPropertyDetail {...data} role={role} />);
+    expect(
+      screen.getByRole('button', { name: 'Manage tenant contacts' })
+    ).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Manage recurring maintenance' })
     ).toBeTruthy();

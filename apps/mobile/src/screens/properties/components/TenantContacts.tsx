@@ -66,18 +66,21 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       saving.current = false;
     },
     mutationFn: async () => {
-      const result = await mobileApiClient.post<{ tenant: { id: string } }>(
-        `/api/properties/${propertyId}/tenants`,
-        {
-          name: name.trim(),
-          email: email.trim() || undefined,
-          phone: phone.trim() || undefined,
-        }
-      );
+      const result = await mobileApiClient.post<{
+        tenant: { id: string };
+        invitation_status?: string;
+      }>(`/api/properties/${propertyId}/tenants`, {
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+      });
       if (!result.tenant?.id)
         throw new Error('Tenant save could not be confirmed');
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.invitation_status === 'not_sent')
+        Alert.alert('Contact saved', 'The invitation was not sent.');
       queryClient.invalidateQueries({
         queryKey: ['tenants', user?.id, propertyId],
       });
@@ -91,6 +94,19 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
         'Error',
         err instanceof Error ? err.message : 'Failed to add tenant.'
       ),
+  });
+
+  const invitationMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const result = await mobileApiClient.patch<{ invitation_sent: boolean }>(
+        `/api/properties/${propertyId}/tenants`,
+        { tenantId }
+      );
+      if (result.invitation_sent !== true)
+        throw new Error('Invitation was not sent');
+    },
+    onSuccess: () => Alert.alert('Invitation sent'),
+    onError: () => Alert.alert('Invitation was not sent', 'Please retry.'),
   });
 
   const deleteMutation = useMutation({
@@ -239,6 +255,15 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
               </View>
               {t.email && !t.invitation_accepted_at && t.invitation_sent_at && (
                 <Text style={styles.inviteStatus}>Invitation sent</Text>
+              )}
+              {t.email && !t.user_id && !t.invitation_accepted_at && (
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  disabled={invitationMutation.isPending}
+                  onPress={() => invitationMutation.mutate(t.id)}
+                >
+                  <Text style={styles.contactLink}>Send invitation</Text>
+                </TouchableOpacity>
               )}
               {t.invitation_accepted_at && (
                 <Text style={styles.inviteAccepted}>Account linked</Text>

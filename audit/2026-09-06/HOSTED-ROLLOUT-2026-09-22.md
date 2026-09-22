@@ -112,3 +112,12 @@ manage_property_team EXECUTE for anon=false, authenticated=false, service_role=t
 invitations, emails, or synthetic hosted records were created. The trigger protects legacy direct
 inserts while the new application uses the serialized function. No application deployment or
 promotion command was run.
+
+## Dispute evidence object protection
+
+Applied `20260922190036_protect_dispute_evidence_objects.sql` to the authorized MintEnance project
+after isolated storage-role diagnostics and full migration replay/diff. Dry-run and execution listed
+only this migration, no seeds/roles, with vault updates skipped. MCP confirmed restrictive INSERT,
+UPDATE and DELETE policies for authenticated clients. No objects were created, changed or removed
+remotely during verification. Service-role retention remains possible; archival retrieval and
+retention review are still open work.
