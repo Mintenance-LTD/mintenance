@@ -88,3 +88,14 @@ The mediation checkpoint passed 3,829 tests across 366 files (192.93 seconds), p
 administrator exact-payment diagnostic added after suite discovery; web types, changed-source lint
 and normal commit hooks passed. Local security advisors still report the existing PostGIS issues.
 This is not overall launch approval.
+
+### Recurring-cycle rollout verified
+
+Applied migration 20260922155753_enforce_recurring_job_cycle_uniqueness from commit 750ab0f62 after
+a dry-run listed only that migration (no seeds/roles). Hosted push exited 0. Supabase MCP verified
+the original migration version, a valid unique cycle index, an enabled validation trigger, and
+denied direct execution of the trigger function to authenticated clients. No production fixtures or
+customer records were changed. The observed deployed application already supplies both required
+cycle fields; the new scheduler recovery and UI copy still need the application deployment. This is
+the 56th migration in the recorded rollout. Full web suite: 3,849 tests / 372 files passed; local
+overlapping transactions produced one job and all synthetic fixtures were removed.
