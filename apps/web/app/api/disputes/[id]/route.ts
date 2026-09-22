@@ -90,13 +90,14 @@ export const GET = withApiHandler(
       status: string | null;
       raised_by: string | null;
       against: string | null;
+      created_at: string | null;
     } | null = null;
 
     if (escrow.job_id) {
       const { data: drows, error: recordError } = await serverSupabase
         .from('disputes')
         .select(
-          'id, reason, description, resolution, resolved_at, status, raised_by, against, dispute_escrow_links!inner(escrow_id)'
+          'id, reason, description, resolution, resolved_at, status, raised_by, against, created_at, dispute_escrow_links!inner(escrow_id)'
         )
         .eq('job_id', escrow.job_id)
         .eq('dispute_escrow_links.escrow_id', escrow.id)
@@ -125,7 +126,7 @@ export const GET = withApiHandler(
       mediation_requested_at: escrow.mediation_requested_at,
       mediation_status: escrow.mediation_status,
       mediation_outcome: escrow.mediation_outcome,
-      created_at: escrow.created_at,
+      created_at: disputeRecord?.created_at ?? null,
       updated_at: escrow.updated_at,
       // Frontend-facing aliases (apps/web/app/disputes/[id]/page.tsx)
       dispute_reason: disputeRecord?.reason ?? null,

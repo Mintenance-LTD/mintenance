@@ -1,136 +1,47 @@
+import {
+  mediationResponseSchema,
+  type MediationAction,
+} from '@/lib/disputes/mediation-contract';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import {
+  ConflictError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 
-type MediationStatus =
-  | 'pending'
-  | 'scheduled'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled';
-
-/**
- * Service for mediation coordination
- */
 export class MediationService {
-  /**
-   * Request mediation
-   */
-  static async requestMediation(
+  static async transition(
     escrowId: string,
-    requestedBy: string
-  ): Promise<boolean> {
-    try {
-      const { error } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          mediation_requested: true,
-          mediation_requested_by: requestedBy,
-          mediation_requested_at: new Date().toISOString(),
-          mediation_status: 'pending',
-        })
-        .eq('id', escrowId)
-        .eq('status', 'disputed');
-
-      if (error) {
-        logger.error('Failed to request mediation', {
-          service: 'MediationService',
-          escrowId,
-          error: error.message,
-        });
-        return false;
+    actorId: string,
+    action: MediationAction
+  ) {
+    const { data, error } = await serverSupabase.rpc(
+      'transition_dispute_mediation',
+      {
+        p_escrow_id: escrowId,
+        p_actor_id: actorId,
+        p_action: action.action,
+        p_scheduled_at:
+          action.action === 'schedule' ? action.scheduledAt : null,
+        p_mediator_id: action.action === 'schedule' ? action.mediatorId : null,
+        p_outcome: action.action === 'complete' ? action.outcome : null,
       }
-
-      // Notify admin
-      await NotificationService.createNotification({
-        userId: 'admin', // Would need actual admin user IDs
-        title: 'Mediation Requested',
-        message: `Mediation has been requested for dispute ${escrowId}`,
-        type: 'mediation_request',
-        actionUrl: `/admin/disputes/${escrowId}/mediation`,
-      });
-
-      return true;
-    } catch (error) {
-      logger.error('Error requesting mediation', error, {
-        service: 'MediationService',
-        escrowId,
-      });
-      return false;
-    }
-  }
-
-  /**
-   * Schedule mediation session
-   */
-  static async scheduleMediation(
-    escrowId: string,
-    scheduledAt: Date,
-    mediatorId: string
-  ): Promise<boolean> {
-    try {
-      const { error } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          mediation_scheduled_at: scheduledAt.toISOString(),
-          mediation_mediator_id: mediatorId,
-          mediation_status: 'scheduled',
-        })
-        .eq('id', escrowId)
-        .eq('mediation_requested', true);
-
-      if (error) {
-        logger.error('Failed to schedule mediation', {
-          service: 'MediationService',
-          escrowId,
-          error: error.message,
-        });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      logger.error('Error scheduling mediation', error, {
-        service: 'MediationService',
-        escrowId,
-      });
-      return false;
-    }
-  }
-
-  /**
-   * Record mediation outcome
-   */
-  static async recordOutcome(
-    escrowId: string,
-    outcome: string
-  ): Promise<boolean> {
-    try {
-      const { error } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          mediation_status: 'completed',
-          mediation_outcome: outcome,
-          mediation_completed_at: new Date().toISOString(),
-        })
-        .eq('id', escrowId);
-
-      if (error) {
-        logger.error('Failed to record mediation outcome', {
-          service: 'MediationService',
-          escrowId,
-          error: error.message,
-        });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      logger.error('Error recording mediation outcome', error, {
-        service: 'MediationService',
-        escrowId,
-      });
-      return false;
-    }
+    );
+    if (error?.code === '42501')
+      throw new ForbiddenError('Not authorized to change this mediation.');
+    if (error?.code === 'P0002') throw new NotFoundError('Dispute not found.');
+    if (error?.code === '23514')
+      throw new ConflictError(
+        'Mediation could not be updated in its current state. Refresh the dispute and check the details.'
+      );
+    if (error)
+      throw new InternalServerError('Unable to save mediation. Please retry.');
+    const result = mediationResponseSchema.safeParse(data);
+    if (!result.success || result.data.escrowId !== escrowId)
+      throw new InternalServerError(
+        'Mediation confirmation was incomplete. Please retry.'
+      );
+    return result.data;
   }
 }

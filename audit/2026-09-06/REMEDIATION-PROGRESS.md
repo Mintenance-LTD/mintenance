@@ -3288,3 +3288,28 @@ distinction and unfinished goal. No live payment or business mutation RPC was te
   use a placeholder admin notification. Repair is next. Detail-page loading/error and timestamp
   presentation also require completion review. No claim of full dispute journey or overall goal
   completion is made.
+
+## 22 September 2026 — mediation transaction and exact dispute views
+
+Implemented a service-only atomic mediation operation. Current actors and exact escrow parties are
+checked in SQL; scheduling/completion also require a current administrator and recent signed MFA
+proof at the API. Notification and audit writes share the transaction, exact retries preserve state,
+and mediation does not settle payments. Both dispute themes use one guarded request hook with
+visible failures and confirmed-state refresh. Removed unsupported turnaround promises. Customer
+dispute timestamps now come from the canonical dispute, and the administrator detail joins the
+canonical record through the exact escrow link instead of selecting the latest dispute on a job.
+
+Evidence: 16 service/customer-view tests, 5 rendered-hook tests, 9 actual-wrapper mediation security
+tests and 1 administrator-view diagnostic passed. Web TypeScript and changed-source lint passed.
+Rollback SQL diagnostics passed for unrelated actors, role revocation, state ordering, exact
+retries, failed notification/audit writes and unchanged money state. Full isolated migration replay
+produced an empty schema diff. Local advisors retain the two existing PostGIS findings. Full web
+suite result is recorded in the subsequent checkpoint.
+
+Hosted verification via Supabase MCP confirms migration 20260922145716 is present and the
+customer-dispute RPC is not executable by anon or authenticated. Migration 20260922151331 remains
+local pending final checkpoint, commit and authorized rollout. No application deployment or real
+payments were performed. Overall audit/property goal remains incomplete.
+
+Full isolated web coverage checkpoint passed: 366 test files, 192.93 seconds, exit 0. The
+administrator exact-payment diagnostic added after suite discovery also passed separately.
