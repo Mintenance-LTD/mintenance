@@ -67,13 +67,9 @@ async function uploadDisputeEvidence(
       if (upErr) {
         throw new Error('Evidence upload failed');
       }
-      const { data: signed, error: signError } = await supabase.storage
-        .from('job-attachments')
-        .createSignedUrl(filePath, 60 * 60 * 24 * 30);
-      if (signError || !signed?.signedUrl)
-        throw new Error('Evidence link failed');
-      uploaded.set(cacheKey, signed.signedUrl);
-      evidence.push(signed.signedUrl);
+      const reference = `job-attachments:${filePath}`;
+      uploaded.set(cacheKey, reference);
+      evidence.push(reference);
     } catch {
       logger.warn('Dispute evidence upload failed', { index: i });
       throw new Error(
@@ -215,7 +211,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
 
       // 2026-05-24 audit-27 P1: was `evidenceUris` (silently dropped by
       // route's Zod) of local file:// URIs (unusable for admin review).
-      // Now uploads to job-attachments and sends signed URLs as `evidence`.
+      // Store private object references; authorized readers receive fresh links.
       const evidence = user?.id
         ? await uploadDisputeEvidence(
             jobId,

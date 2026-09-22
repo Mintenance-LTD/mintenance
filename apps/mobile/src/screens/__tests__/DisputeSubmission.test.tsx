@@ -129,5 +129,8 @@ it('does not submit after evidence fails and reuses uploaded evidence after an u
   expect(mockPost).toHaveBeenCalledTimes(2);
   expect(mockPost.mock.calls[1]).toEqual(mockPost.mock.calls[0]);
   expect(mockUpload).toHaveBeenCalledTimes(2);
-  expect(mockSign).toHaveBeenCalledTimes(1);
+  expect(mockSign).not.toHaveBeenCalled();
+  expect(mockPost.mock.calls[0][1].evidence[0]).toMatch(
+    /^job-attachments:job\/disputes\/actor\//
+  );
 });

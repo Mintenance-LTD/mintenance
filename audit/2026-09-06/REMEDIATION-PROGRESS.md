@@ -3487,3 +3487,36 @@ goal complete.
   remain unverified. Existing 30-day signed evidence URLs remain and require a separate durable
   evidence-access design. This checkpoint is not end-to-end native-device or hosted storage-policy
   verification. No SQL changes.
+
+### 2026-09-22 — Property management work queue and durable dispute links
+
+- Reorganised the editorial Manage tab into Plan work, People and access, and Records and
+  compliance, with in-page navigation and responsive single-column defaults. Added a searchable
+  open-work queue with status/contractor filters, job links, and incremental list disclosure. This
+  uses recorded job status, not inferred risk or SLA scores.
+- Reporting links now show loading/error/retry states, all returned links and their labels, guard
+  concurrent mutations, and verify mutation responses before changing visible status. Added native
+  reporting-link listing/generation/toggling and sharing through the OS share sheet. Native controls
+  remain owner/platform-admin only, matching the current API; broader delegated-manager permissions
+  are not claimed.
+- Corrected misleading labels: the compliance card describes certificates, and the CSV is completed
+  job history with job budgets, not proof of compliance or actual spend. Native Manage provides
+  direct navigation to existing jobs and maintenance/compliance surfaces.
+- New mobile dispute evidence stores stable private `job-attachments:<path>` references. The
+  existing atomic dispute record stores these in its evidence section; no schema change is required.
+  The authorised exact-escrow detail route generates 10-minute links. Legacy signed URLs from the
+  exact configured Supabase origin are renewable; foreign origins, other jobs/claimants, traversal
+  and nested encoded paths are not signed. Both web dispute themes show evidence links and an
+  unavailable/retry message when signing fails. Existing unrelated-reader rejection occurs before
+  any signing.
+- Validation: 19 focused web tests across six files passed, plus four queue/management tests across
+  two files (two management tests overlap the prior run). Five native tests across two files passed.
+  Web and native type checks passed before the final queue/shortcut additions; normal commit hooks
+  validate the final state. Changed production web sources passed strict lint; the explicit
+  test-file lint invocation produced only repository-ignore warnings. Native changed source/tests
+  passed strict lint.
+- Limitations: no physical-device, hosted upload, or new browser layout verification in this
+  checkpoint. Storage objects still need retention lifecycle verification; this change renews access
+  to existing objects and cannot restore deleted files. Retry upload caching remains mounted-form
+  only. The broader manager workflow, structured evidence records/admin tooling, and portfolio
+  operations remain incomplete. No SQL migration or application deployment performed.

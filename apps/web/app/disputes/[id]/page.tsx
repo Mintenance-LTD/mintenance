@@ -1,5 +1,6 @@
 'use client';
 
+import { DisputeEvidenceLinks } from '@/components/disputes/DisputeEvidenceLinks';
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -292,15 +293,7 @@ export default function DisputeDetailPage() {
             <div>
               <strong>Reason:</strong> {dispute.dispute_reason}
             </div>
-            {dispute.dispute_evidence && (
-              <div>
-                <strong>Evidence:</strong>{' '}
-                {Array.isArray(dispute.dispute_evidence)
-                  ? dispute.dispute_evidence.length
-                  : 0}{' '}
-                items
-              </div>
-            )}
+            <DisputeEvidenceLinks items={dispute.dispute_evidence} />
           </div>
         </Card>
       </div>

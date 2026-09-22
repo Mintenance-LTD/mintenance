@@ -9,6 +9,7 @@
  * proposed-resolution panel + status checklist on the right.
  */
 
+import { DisputeEvidenceLinks } from '@/components/disputes/DisputeEvidenceLinks';
 import React from 'react';
 import Link from 'next/link';
 import { Check, Loader2 } from 'lucide-react';
@@ -231,14 +232,7 @@ export function MintEditorialDisputeDetail({
               >
                 {dispute.dispute_reason}
               </div>
-              {Array.isArray(dispute.dispute_evidence) &&
-              dispute.dispute_evidence.length > 0 ? (
-                <div className='t-meta' style={{ marginTop: 8 }}>
-                  {dispute.dispute_evidence.length} evidence{' '}
-                  {dispute.dispute_evidence.length === 1 ? 'item' : 'items'}{' '}
-                  attached
-                </div>
-              ) : null}
+              <DisputeEvidenceLinks items={dispute.dispute_evidence} />
             </div>
           ) : null}
         </div>
