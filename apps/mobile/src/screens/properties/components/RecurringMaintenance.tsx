@@ -7,7 +7,6 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  StyleSheet,
   Alert,
   Linking,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { me } from '../../../design-system/mint-editorial';
+import { styles } from './recurring-maintenance.styles';
 
 interface Schedule {
   id: string;
@@ -24,6 +24,7 @@ interface Schedule {
   frequency: string;
   next_due_date: string;
   is_active: boolean;
+  updated_at: string;
 }
 
 interface Props {
@@ -58,6 +59,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   const creating = useRef(false);
   const [firstDueDate, setFirstDueDate] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Schedule | null>(null);
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('monthly');
 
@@ -82,14 +84,23 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const result = await mobileApiClient.post<{
+      if (editing && !editing.updated_at)
+        throw new Error('Reload schedules before editing.');
+      const result = await mobileApiClient[editing ? 'patch' : 'post']<{
         schedule?: { id?: string; property_id?: string };
       }>(`/api/properties/${propertyId}/recurring-maintenance`, {
         title: title.trim(),
         frequency,
         next_due_date: firstDueDate,
+        ...(editing
+          ? { scheduleId: editing.id, expected_updated_at: editing.updated_at }
+          : {}),
       });
-      if (!result?.schedule?.id || result.schedule.property_id !== propertyId)
+      if (
+        !result?.schedule?.id ||
+        result.schedule.property_id !== propertyId ||
+        (editing && result.schedule.id !== editing.id)
+      )
         throw new Error(
           'Schedule creation could not be confirmed. Refresh before retrying.'
         );
@@ -101,6 +112,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
       setTitle('');
       setFirstDueDate('');
       setShowForm(false);
+      setEditing(null);
     },
     onError: (err: unknown) => {
       // 2026-05-28 T2: the server returns 402 with
@@ -160,13 +172,19 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
       id: string;
       is_active: boolean;
     }) => {
-      await mobileApiClient.patch(
-        `/api/properties/${propertyId}/recurring-maintenance`,
-        {
-          scheduleId: id,
-          is_active: !is_active,
-        }
-      );
+      const result = await mobileApiClient.patch<{
+        schedule?: { id: string; is_active: boolean };
+      }>(`/api/properties/${propertyId}/recurring-maintenance`, {
+        scheduleId: id,
+        is_active: !is_active,
+      });
+      if (
+        result.schedule?.id !== id ||
+        result.schedule.is_active !== !is_active
+      )
+        throw new Error(
+          'Schedule update was not confirmed. Refresh before retrying.'
+        );
     },
     onError: (error: unknown) =>
       Alert.alert(
@@ -182,9 +200,16 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (scheduleId: string) => {
-      await mobileApiClient.delete(
+      const result = await mobileApiClient.delete<{
+        success?: boolean;
+        scheduleId?: string;
+      }>(
         `/api/properties/${propertyId}/recurring-maintenance?scheduleId=${scheduleId}`
       );
+      if (result.success !== true || result.scheduleId !== scheduleId)
+        throw new Error(
+          'Schedule removal was not confirmed. Refresh before retrying.'
+        );
     },
     onError: (error: unknown) =>
       Alert.alert(
@@ -248,7 +273,14 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
           accessibilityLabel={
             showForm ? 'Close schedule form' : 'Add recurring schedule'
           }
-          onPress={() => setShowForm(!showForm)}
+          disabled={createMutation.isPending}
+          onPress={() => {
+            setEditing(null);
+            setTitle('');
+            setFirstDueDate('');
+            setFrequency('monthly');
+            setShowForm(!showForm);
+          }}
         >
           <Ionicons
             name={showForm ? 'close' : 'add-circle-outline'}
@@ -307,7 +339,11 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
             disabled={createMutation.isPending}
           >
             <Text style={styles.createBtnText}>
-              {createMutation.isPending ? 'Adding...' : 'Add Schedule'}
+              {createMutation.isPending
+                ? 'Saving...'
+                : editing
+                  ? 'Save Changes'
+                  : 'Add Schedule'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -391,7 +427,26 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
                 )}
               </View>
             </View>
-            <TouchableOpacity onPress={() => handleDelete(s.id, s.title)}>
+            <TouchableOpacity
+              accessibilityRole='button'
+              accessibilityLabel={`Edit ${s.title}`}
+              disabled={createMutation.isPending}
+              onPress={() => {
+                setEditing(s);
+                setTitle(s.title);
+                setFrequency(s.frequency);
+                setFirstDueDate(s.next_due_date.slice(0, 10));
+                setShowForm(true);
+              }}
+            >
+              <Text style={styles.dueDate}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole='button'
+              accessibilityLabel={`Remove ${s.title}`}
+              disabled={deleteMutation.isPending}
+              onPress={() => handleDelete(s.id, s.title)}
+            >
               <Ionicons name='trash-outline' size={18} color={me.errFg} />
             </TouchableOpacity>
           </View>
@@ -400,88 +455,3 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: me.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    ...me.shadow.card,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: me.ink3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  form: {
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: me.bg2,
-    borderRadius: 12,
-  },
-  input: {
-    backgroundColor: me.surface,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: me.ink,
-    marginBottom: 10,
-  },
-  freqRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
-  freqChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: me.bg2,
-  },
-  freqText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: me.ink2,
-  },
-  freqTextActive: { color: me.onBrand },
-  createBtn: {
-    backgroundColor: me.brand,
-    borderRadius: 20,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  createBtnText: { color: me.onBrand, fontSize: 14, fontWeight: '600' },
-  emptyWrap: { alignItems: 'center', paddingVertical: 16, gap: 8 },
-  emptyText: { fontSize: 14, color: me.ink3 },
-  scheduleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
-  },
-  scheduleInactive: { opacity: 0.5 },
-  toggleBtn: { marginRight: 10 },
-  scheduleInfo: { flex: 1 },
-  scheduleTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: me.ink,
-  },
-  textInactive: { textDecorationLine: 'line-through' },
-  scheduleMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  freqBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  freqBadgeText: { fontSize: 11, fontWeight: '600' },
-  dueDate: { fontSize: 12, color: me.ink3 },
-});

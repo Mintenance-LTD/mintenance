@@ -11,11 +11,13 @@ import {
 } from '@mintenance/shared';
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockPatch = jest.fn();
 const mockUser = { id: 'owner' };
 jest.mock('../../../utils/mobileApiClient', () => ({
   mobileApiClient: {
     get: (...args: unknown[]) => mockGet(...args),
     post: (...args: unknown[]) => mockPost(...args),
+    patch: (...args: unknown[]) => mockPatch(...args),
   },
 }));
 jest.mock('../../../contexts/AuthContext', () => ({
@@ -35,9 +37,57 @@ function wrap(node: React.ReactElement) {
 beforeEach(() => {
   mockGet.mockReset();
   mockPost.mockReset();
+  mockPatch.mockReset();
   mockUser.id = 'owner';
 });
 afterEach(() => clients.splice(0).forEach((client) => client.clear()));
+it('preserves a native schedule edit after a revision conflict and sends the loaded version', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  mockGet.mockResolvedValue({
+    schedules: [
+      {
+        id: 'schedule',
+        title: 'Boiler service',
+        frequency: 'annual',
+        next_due_date: '2027-01-01',
+        is_active: true,
+        updated_at: '2026-09-22T12:00:00Z',
+      },
+    ],
+  });
+  mockPatch.mockRejectedValue(
+    new Error('Schedule changed. Reload before editing.')
+  );
+  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  await waitFor(() =>
+    expect(view.getByLabelText('Edit Boiler service')).toBeTruthy()
+  );
+  fireEvent.press(view.getByLabelText('Edit Boiler service'));
+  fireEvent.changeText(
+    view.getByLabelText('Schedule title'),
+    'Updated boiler service'
+  );
+  await act(async () => fireEvent.press(view.getByText('Save Changes')));
+  await waitFor(() =>
+    expect(alert).toHaveBeenCalledWith(
+      'Error',
+      'Schedule changed. Reload before editing.'
+    )
+  );
+  expect(mockPatch).toHaveBeenCalledWith(
+    '/api/properties/property/recurring-maintenance',
+    expect.objectContaining({
+      scheduleId: 'schedule',
+      expected_updated_at: '2026-09-22T12:00:00Z',
+      title: 'Updated boiler service',
+    })
+  );
+  expect(view.getByLabelText('Schedule title').props.value).toBe(
+    'Updated boiler service'
+  );
+  expect(mockPost).not.toHaveBeenCalled();
+  alert.mockRestore();
+});
 it('shows a certificate connection failure with retry, not invented missing certificates', async () => {
   mockGet
     .mockRejectedValueOnce(new Error('offline'))

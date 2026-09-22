@@ -40,6 +40,33 @@ export const propertyScheduleInput = z.object({
   category: z.string().trim().max(100).optional(),
 });
 
+export const propertyScheduleUpdate = propertyScheduleInput
+  .partial()
+  .extend({
+    scheduleId: z.string().uuid(),
+    is_active: z.boolean().optional(),
+    expected_updated_at: z.string().datetime({ offset: true }).optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.is_active !== undefined ||
+      value.title !== undefined ||
+      value.frequency !== undefined ||
+      value.next_due_date !== undefined ||
+      value.category !== undefined,
+    'Provide a change'
+  )
+  .refine(
+    (value) =>
+      value.expected_updated_at !== undefined ||
+      (value.title === undefined &&
+        value.frequency === undefined &&
+        value.next_due_date === undefined &&
+        value.category === undefined),
+    'Reload the schedule before editing'
+  );
+
 export const portfolioScheduleInput = propertyScheduleInput.extend({
   property_id: z.string().uuid(),
   task_type: z.string().trim().min(1).max(100).optional(),

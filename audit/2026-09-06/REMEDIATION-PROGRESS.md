@@ -3708,3 +3708,26 @@ local subscription fixture. Its first run confirmed owner/manager/team-admin con
 writes but stopped at a mistaken viewer-contact expectation: private contact access is correctly
 denied to viewers. The expectation was corrected; the remaining viewer/unrelated checks must still
 be rerun after the normal login window. No production fixtures, messages or payments were used.
+
+# 2026-09-22 — Editable recurring maintenance and truthful mutations
+
+Property owners and delegated managers can edit a recurring task's title, frequency and next due
+date from both web and mobile. Edits include the loaded updated_at value and condition the database
+update on it; stale or removed records return conflict rather than overwriting another decision.
+Dates and identifiers are validated. Editing/reactivation use the property owner's entitlement;
+pausing and deletion remain available after downgrade.
+
+Schedule deletion now requires a returned record before confirming success. Both clients check
+mutation confirmations; the web reports non-success pause/delete responses and preserves the visible
+record and edit input. Mobile uses the same API contract. Native styles were extracted to keep the
+component within the repository's size convention.
+
+45 relevant web tests and seven native property tests passed. New coverage includes version-bound
+edits, retained input on conflict, invalid dates, downgrade behavior and missing-record deletion.
+The existing tier test fixture was corrected to use a UUID. Web/native type checks and strict lint
+passed. Real role HTTP verification and final production build are recorded after completion.
+
+Final schedule verification: production build completed successfully. The corrected five-role real
+HTTP test passed all reads/writes and version conflicts, with viewer tenant-contact reads denied as
+intended. Synthetic fixtures were removed and no provider messages/payments were used. No database
+migration was required; existing updated_at triggers supply edit versions.

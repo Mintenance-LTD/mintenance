@@ -98,7 +98,7 @@ it('preserves the property form after an unconfirmed save and prevents double ta
     target: { value: '2027-12-15' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Add Schedule' }));
-  fireEvent.click(screen.getByRole('button', { name: /Add Schedule|Adding/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Add Schedule|Saving/ }));
   await waitFor(() =>
     expect(toast.error).toHaveBeenCalledWith(
       expect.stringContaining('could not be confirmed')
@@ -107,4 +107,80 @@ it('preserves the property form after an unconfirmed save and prevents double ta
   expect(fetch).toHaveBeenCalledTimes(2);
   expect(toast.success).not.toHaveBeenCalled();
   expect(screen.getByDisplayValue('Synthetic maintenance')).toBeTruthy();
+});
+
+it('sends the original schedule version and preserves edits when another manager changed it', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      schedules: [
+        {
+          id: 'schedule',
+          title: 'Boiler service',
+          frequency: 'annual',
+          next_due_date: '2027-01-01',
+          is_active: true,
+          updated_at: '2026-09-22T12:00:00Z',
+        },
+      ],
+    }),
+  });
+  vi.stubGlobal('fetch', fetch);
+  render(<PropertyRecurringMaintenance propertyId='property' />);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Edit Boiler service' })
+  );
+  fireEvent.change(screen.getByLabelText('Task title'), {
+    target: { value: 'Updated boiler service' },
+  });
+  fetch.mockResolvedValueOnce({
+    ok: false,
+    json: async () => ({ error: 'Schedule changed. Reload before editing.' }),
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+  await waitFor(() =>
+    expect(toast.error).toHaveBeenCalledWith(
+      'Schedule changed. Reload before editing.'
+    )
+  );
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toMatchObject({
+    scheduleId: 'schedule',
+    expected_updated_at: '2026-09-22T12:00:00Z',
+    title: 'Updated boiler service',
+  });
+  expect(fetch.mock.calls[1][1].method).toBe('PATCH');
+  expect(screen.getByDisplayValue('Updated boiler service')).toBeTruthy();
+  expect(toast.success).not.toHaveBeenCalled();
+});
+
+it('keeps a schedule visible and reports a failed delete', async () => {
+  const fetch = vi.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      schedules: [
+        {
+          id: 'schedule',
+          title: 'Boiler service',
+          frequency: 'annual',
+          next_due_date: '2027-01-01',
+          is_active: true,
+        },
+      ],
+    }),
+  });
+  vi.stubGlobal('fetch', fetch);
+  render(<PropertyRecurringMaintenance propertyId='property' />);
+  const remove = await screen.findByRole('button', {
+    name: 'Remove Boiler service',
+  });
+  fetch.mockResolvedValueOnce({
+    ok: false,
+    json: async () => ({ error: 'Removal failed. Retry.' }),
+  });
+  fireEvent.click(remove);
+  await waitFor(() =>
+    expect(toast.error).toHaveBeenCalledWith('Removal failed. Retry.')
+  );
+  expect(screen.getByText('Boiler service')).toBeTruthy();
+  expect(toast.success).not.toHaveBeenCalled();
 });

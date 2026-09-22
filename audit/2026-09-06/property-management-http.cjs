@@ -39,6 +39,14 @@ async function account() {
   check(canWrite ? contact.status === 201 && contact.data.tenant?.id : [403,404].includes(contact.status), `${role} contact write mismatch: ${contact.status}`);
   const schedule = await actor.request(`${base}/recurring-maintenance`, 'POST', { title: 'Synthetic recurring task', frequency: 'annual', next_due_date: '2030-01-01' });
   check(canWrite ? schedule.status === 201 && schedule.data.schedule?.owner_id === owner.id : [403,404].includes(schedule.status), `${role} schedule write mismatch: ${schedule.status}`);
+  if (canWrite) {
+   const original = schedule.data.schedule;
+   const edit = { scheduleId: original.id, expected_updated_at: original.updated_at, title: 'Edited synthetic task', frequency: 'quarterly', next_due_date: '2030-02-01' };
+   const updated = await actor.request(`${base}/recurring-maintenance`, 'PATCH', edit);
+   check(updated.status === 200 && updated.data.schedule?.title === edit.title, `${role} schedule edit mismatch: ${updated.status}`);
+   const stale = await actor.request(`${base}/recurring-maintenance`, 'PATCH', edit);
+   check(stale.status === 409, `${role} stale schedule edit allowed: ${stale.status}`);
+  }
  }
  const schedules = db(await service.from('recurring_schedules').select('owner_id').eq('property_id', property));
  check(schedules.length === 3 && schedules.every(row => row.owner_id === owner.id), 'Delegated schedules do not belong to property owner');

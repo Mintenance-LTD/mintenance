@@ -20,6 +20,7 @@ interface Schedule {
   next_due_date: string;
 
   is_active: boolean;
+  updated_at: string;
 }
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -52,6 +53,7 @@ export default function RecurringMaintenance({
   const [loading, setLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Schedule | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -97,6 +99,10 @@ export default function RecurringMaintenance({
 
   const handleAdd = async () => {
     if (savingRef.current) return;
+    if (editing && !editing.updated_at) {
+      toast.error('Reload schedules before editing.');
+      return;
+    }
 
     if (
       form.title.trim().length < 5 ||
@@ -118,7 +124,7 @@ export default function RecurringMaintenance({
       const res = await fetch(
         `/api/properties/${propertyId}/recurring-maintenance`,
         {
-          method: 'POST',
+          method: editing ? 'PATCH' : 'POST',
 
           headers: {
             'Content-Type': 'application/json',
@@ -126,19 +132,35 @@ export default function RecurringMaintenance({
             'X-CSRF-Token': csrfToken,
           },
 
-          body: JSON.stringify(form),
+          body: JSON.stringify({
+            ...form,
+            ...(editing
+              ? {
+                  scheduleId: editing.id,
+                  expected_updated_at: editing.updated_at,
+                }
+              : {}),
+          }),
         }
       );
 
       if (res.ok) {
         const data = await res.json();
 
-        if (!data.schedule?.id || data.schedule.property_id !== propertyId)
+        if (
+          !data.schedule?.id ||
+          data.schedule.property_id !== propertyId ||
+          (editing && data.schedule.id !== editing.id)
+        )
           throw new Error(
             'Schedule creation could not be confirmed. Refresh before retrying.'
           );
 
-        setSchedules((prev) => [...prev, data.schedule]);
+        setSchedules((prev) =>
+          editing
+            ? prev.map((row) => (row.id === editing.id ? data.schedule : row))
+            : [...prev, data.schedule]
+        );
 
         setForm({
           title: '',
@@ -148,8 +170,8 @@ export default function RecurringMaintenance({
         });
 
         setShowForm(false);
-
-        toast.success('Schedule added');
+        setEditing(null);
+        toast.success(editing ? 'Schedule updated' : 'Schedule added');
       } else {
         const err = await res.json();
 
@@ -172,6 +194,9 @@ export default function RecurringMaintenance({
   };
 
   const handleDelete = async (id: string) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     try {
       const csrfToken = await getCsrfToken();
 
@@ -184,17 +209,26 @@ export default function RecurringMaintenance({
         }
       );
 
+      const data = await res.json();
+      if (!res.ok || data.success !== true || data.scheduleId !== id)
+        throw new Error(data.error || 'Removal was not confirmed.');
       if (res.ok) {
         setSchedules((prev) => prev.filter((s) => s.id !== id));
 
         toast.success('Schedule removed');
       }
-    } catch {
-      toast.error('Failed to remove');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
   const handleToggle = async (id: string, currentActive: boolean) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     try {
       const csrfToken = await getCsrfToken();
 
@@ -213,15 +247,23 @@ export default function RecurringMaintenance({
         }
       );
 
+      const data = await res.json();
+      if (
+        !res.ok ||
+        data.schedule?.id !== id ||
+        data.schedule.is_active !== !currentActive
+      )
+        throw new Error(data.error || 'Update was not confirmed.');
       if (res.ok) {
         setSchedules((prev) =>
-          prev.map((s) =>
-            s.id === id ? { ...s, is_active: !currentActive } : s
-          )
+          prev.map((s) => (s.id === id ? data.schedule : s))
         );
       }
-    } catch {
-      toast.error('Failed to update');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -276,7 +318,17 @@ export default function RecurringMaintenance({
 
         <button
           aria-label='Add recurring schedule'
-          onClick={() => setShowForm(!showForm)}
+          disabled={saving}
+          onClick={() => {
+            setEditing(null);
+            setForm({
+              title: '',
+              category: '',
+              frequency: 'monthly',
+              next_due_date: '',
+            });
+            setShowForm(!showForm);
+          }}
           className='p-1 hover:bg-gray-100 rounded transition-colors'
         >
           <Plus className='w-4 h-4 text-gray-500' />
@@ -340,11 +392,15 @@ export default function RecurringMaintenance({
               disabled={saving}
               className='flex-1 px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 disabled:opacity-50'
             >
-              {saving ? 'Adding...' : 'Add Schedule'}
+              {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Schedule'}
             </button>
 
             <button
-              onClick={() => setShowForm(false)}
+              disabled={saving}
+              onClick={() => {
+                setShowForm(false);
+                setEditing(null);
+              }}
               className='px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg'
             >
               Cancel
@@ -369,6 +425,24 @@ export default function RecurringMaintenance({
 
                 <div className='flex items-center gap-1'>
                   <button
+                    disabled={saving}
+                    aria-label={`Edit ${s.title}`}
+                    onClick={() => {
+                      setEditing(s);
+                      setForm({
+                        title: s.title,
+                        category: s.category || '',
+                        frequency: s.frequency,
+                        next_due_date: s.next_due_date.slice(0, 10),
+                      });
+                      setShowForm(true);
+                    }}
+                    className='text-xs text-teal-700 underline'
+                  >
+                    Edit
+                  </button>
+                  <button
+                    disabled={saving}
                     onClick={() => handleToggle(s.id, s.is_active)}
                     className='text-[10px] text-gray-400 hover:text-gray-600'
                   >
@@ -376,6 +450,8 @@ export default function RecurringMaintenance({
                   </button>
 
                   <button
+                    disabled={saving}
+                    aria-label={`Remove ${s.title}`}
                     onClick={() => handleDelete(s.id)}
                     className='p-0.5 hover:bg-red-100 rounded'
                   >
