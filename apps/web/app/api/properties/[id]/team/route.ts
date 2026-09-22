@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -28,131 +31,72 @@ async function requireAgencyTier(userId: string, role: string) {
   return null;
 }
 
-// GET /api/properties/[id]/team
-// csrf:false — this is an idempotent read. withApiHandler's default enables
-// CSRF only for mutating methods, but we set it explicitly so the intent is
-// obvious and stays aligned with sibling GET handlers.
+function teamWriteError(code?: string) {
+  const [message, status] =
+    code === '23505'
+      ? ['This email has already been invited', 409]
+      : code === '23514'
+        ? ['Team member limit reached or invalid invitation', 422]
+        : code === '42501'
+          ? ['Team administration is not permitted', 403]
+          : code === 'P0002'
+            ? ['Property or team member not found', 404]
+            : ['Team change could not be confirmed. Please retry.', 500];
+  return NextResponse.json({ error: message }, { status: status as number });
+}
+
 export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'], csrf: false },
   async (_req, { user, params }) => {
-    const propertyId = params.id;
-
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
-
+    await getPropertyForManagement(user, params.id, 'manage_team');
     const { data: members, error } = await serverSupabase
       .from('property_team_members')
-      .select('*')
-      .eq('property_id', propertyId)
+      .select('id, email, role, status, created_at')
+      .eq('property_id', params.id)
       .order('created_at', { ascending: false });
-
-    if (error) {
+    if (error)
       return NextResponse.json(
         { error: 'Failed to fetch team members' },
         { status: 500 }
       );
-    }
-
     return NextResponse.json({ members: members || [] });
   }
 );
 
-// POST /api/properties/[id]/team — invite a team member
 export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
-    const propertyId = params.id;
-    const body = await req.json();
-
-    const tierBlock = await requireAgencyTier(user.id, user.role);
-    if (tierBlock) return tierBlock;
-
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
-
-    const { email, role } = body;
-
-    if (!email || !role) {
-      return NextResponse.json(
-        { error: 'email and role are required' },
-        { status: 400 }
-      );
-    }
-
-    const validRoles = ['admin', 'manager', 'viewer'];
-    if (!validRoles.includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
-    }
-
-    // Check if already invited
-    const { data: existing } = await serverSupabase
-      .from('property_team_members')
-      .select('id')
-      .eq('property_id', propertyId)
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'This email has already been invited' },
-        { status: 409 }
-      );
-    }
-
-    // Enforce 10-member cap
-    const { count: memberCount } = await serverSupabase
-      .from('property_team_members')
-      .select('id', { count: 'exact', head: true })
-      .eq('property_id', propertyId);
-
-    if ((memberCount ?? 0) >= 10) {
-      return NextResponse.json(
-        { error: 'Team member limit reached (maximum 10 per property)' },
-        { status: 422 }
-      );
-    }
-
-    // Invitees find pending invitations after signing in with the matching
-    // verified address. This route records the invite; it does not send email.
-    const { data: member, error } = await serverSupabase
-      .from('property_team_members')
-      .insert({
-        property_id: propertyId,
-        invited_by: user.id,
-        email,
-        role,
-        status: 'pending',
+    const parsed = await validateRequest(
+      req,
+      z.object({
+        email: z
+          .string()
+          .trim()
+          .email()
+          .max(254)
+          .transform((value) => value.toLowerCase()),
+        role: z.enum(['admin', 'manager', 'viewer']),
       })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Failed to invite team member' },
-        { status: 500 }
-      );
-    }
-
+    );
+    if ('headers' in parsed) return parsed;
+    const property = await getPropertyForManagement(
+      user,
+      params.id,
+      'manage_team'
+    );
+    const tierBlock = await requireAgencyTier(property.owner_id, user.role);
+    if (tierBlock) return tierBlock;
+    const { data: member, error } = await serverSupabase.rpc(
+      'manage_property_team',
+      {
+        p_property_id: params.id,
+        p_actor_id: user.id,
+        p_action: 'invite',
+        p_email: parsed.data.email,
+        p_role: parsed.data.role,
+      }
+    );
+    if (error || !member?.id) return teamWriteError(error?.code);
     return NextResponse.json(
       {
         member,
@@ -168,47 +112,27 @@ export const POST = withApiHandler(
   }
 );
 
-// DELETE /api/properties/[id]/team — remove a team member
 export const DELETE = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
-    const propertyId = params.id;
-    const { searchParams } = new URL(req.url);
-    const memberId = searchParams.get('memberId');
-
-    if (!memberId) {
+    const parsed = z
+      .string()
+      .uuid()
+      .safeParse(new URL(req.url).searchParams.get('memberId'));
+    if (!parsed.success)
       return NextResponse.json(
-        { error: 'memberId is required' },
+        { error: 'A valid memberId is required' },
         { status: 400 }
       );
-    }
-
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
-
-    const { error } = await serverSupabase
-      .from('property_team_members')
-      .delete()
-      .eq('id', memberId)
-      .eq('property_id', propertyId);
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Failed to remove member' },
-        { status: 500 }
-      );
-    }
-
+    await getPropertyForManagement(user, params.id, 'manage_team');
+    const { data, error } = await serverSupabase.rpc('manage_property_team', {
+      p_property_id: params.id,
+      p_actor_id: user.id,
+      p_action: 'remove',
+      p_member_id: parsed.data,
+    });
+    if (error || data?.removed !== true || data?.id !== parsed.data)
+      return teamWriteError(error?.code);
     return NextResponse.json({ success: true });
   }
 );

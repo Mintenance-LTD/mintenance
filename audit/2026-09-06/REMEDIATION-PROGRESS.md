@@ -3551,3 +3551,31 @@ goal complete.
   contact-form recovery, full native/device and browser verification, and evidence-retention
   lifecycle testing. This is another completed implementation checkpoint, not completion of the
   overall goal.
+
+### 2026-09-22 — Atomic team administration and contact recovery
+
+- Added a database trigger that serializes property-team inserts against the property row, enforces
+  the existing ten-record cap, and rejects normalized-email duplicates. It also protects the old
+  application's direct insert path. Existing records are not rewritten.
+- Added service-role-only `manage_property_team` for invite/remove. It locks the property and
+  rechecks owner/platform-admin/accepted team-admin authorization inside the transaction; delegated
+  membership is locked while authorizing. Managers/viewers cannot administer teams. Routes validate
+  payloads, check the owner subscription, and require confirmed mutation results. Shared web
+  properties now expose team administration only to team administrators; native existing
+  capabilities now match the API.
+- Web/native tenant and team cards distinguish failed loads from empty lists and provide retries.
+  Tenant creation preserves inputs on missing confirmation, duplicate-tap guards protect creation,
+  and failed removals are visible. Native query keys include the signed-in account.
+- Local verification: isolated Docker role/grant/duplicate/revocation diagnostics passed. Observed
+  overlapping RPC and legacy direct-insert transactions competing for the tenth slot: one succeeded,
+  one was rejected, final count exactly ten. Synthetic fixtures were removed. Full migration replay
+  through local `db diff --local --use-pg-delta` returned no schema changes.
+- Tests: 17 focused web tests and three native contact-recovery tests passed; changed-source strict
+  lint passed. Web/native type checks produced no errors. Normal commit hooks and a broader web
+  coverage run follow.
+- Hosted read-only preflight returned zero over-capacity properties and zero normalized duplicate
+  groups. Hosted dry-run lists only 20260922182831_serialize_property_team_management.sql, no
+  seeds/roles, and vault changes are skipped. Hosted application is recorded separately after
+  execution and metadata verification.
+- No real invitations, emails, contacts, payments, or synthetic customer records were created
+  remotely. Full browser/native-device journey checks and evidence retention remain open.

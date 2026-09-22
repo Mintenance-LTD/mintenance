@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Plus, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getCsrfToken } from '@/lib/csrf-client';
@@ -30,17 +30,21 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState({ email: '', role: 'viewer' });
 
   const fetchMembers = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetch(`/api/properties/${propertyId}/team`);
-      if (res.ok) {
-        const data = await res.json();
-        setMembers(data.members || []);
-      }
+      if (!res.ok) throw new Error('Failed to load records');
+      const data = await res.json();
+      if (!Array.isArray(data.members)) throw new Error('Incomplete records');
+      setMembers(data.members);
     } catch {
-      /* silent */
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -51,10 +55,12 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
   }, [fetchMembers]);
 
   const handleInvite = async () => {
+    if (savingRef.current) return;
     if (!form.email) {
       toast.error('Email is required');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
       const csrfToken = await getCsrfToken();
@@ -89,6 +95,7 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
     } catch {
       toast.error('Failed to invite');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -103,7 +110,11 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
           headers: { 'X-CSRF-Token': csrfToken },
         }
       );
-      if (res.ok) {
+      if (!res.ok) throw new Error('Removal could not be confirmed');
+      const data = await res.json();
+      if (data.success !== true)
+        throw new Error('Removal could not be confirmed');
+      {
         setMembers((prev) => prev.filter((m) => m.id !== id));
         toast.success('Member removed');
       }
@@ -111,6 +122,16 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
       toast.error('Failed to remove');
     }
   };
+
+  if (loadError)
+    return (
+      <div role='alert' className='p-4 border rounded-xl'>
+        <p>Could not load members.</p>
+        <button type='button' onClick={fetchMembers}>
+          Retry members
+        </button>
+      </div>
+    );
 
   if (loading) {
     return (

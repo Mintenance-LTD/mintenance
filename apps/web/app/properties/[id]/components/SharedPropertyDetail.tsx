@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { PROPERTY_JOB_STATUS_LABELS } from '@mintenance/shared';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { TenantReportingCard } from './TenantReportingCard';
+import TeamAccess from './TeamAccess';
 import RecurringMaintenance from './RecurringMaintenance';
 import {
   MintEditorialPropertyDocuments,
@@ -90,6 +91,7 @@ export function SharedPropertyDetail({
         ) : (
           <>
             <RecurringMaintenance propertyId={property.id} />
+            {role === 'admin' && <TeamAccess propertyId={property.id} />}
             <TenantReportingCard
               propertyId={property.id}
               propertyName={property.name}
