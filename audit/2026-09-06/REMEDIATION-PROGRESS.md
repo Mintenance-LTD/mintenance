@@ -3731,3 +3731,12 @@ Final schedule verification: production build completed successfully. The correc
 HTTP test passed all reads/writes and version conflicts, with viewer tenant-contact reads denied as
 intended. Synthetic fixtures were removed and no provider messages/payments were used. No database
 migration was required; existing updated_at triggers supply edit versions.
+
+### Mobile environment isolation checkpoint
+
+The shared environment loader now treats web/root values as defaults and preserves explicitly
+injected mobile settings, including empty strings. This prevents local test/EAS configuration from
+being overwritten with another backend. Seven VM-isolated tests cover all supported mappings and
+private-key exclusion; mobile type checking and strict changed-file lint passed. Tests never read
+real environment contents. A fresh, separate Android audit emulator now boots; native journey
+verification is in progress, not yet a passing readiness gate.
