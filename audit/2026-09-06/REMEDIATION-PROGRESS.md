@@ -3199,3 +3199,17 @@ orchestration, canonical dispute resolution, audit durability and UI state remai
   235.66s (current-dispute-complete-web-coverage.log). This includes the previously reported escrow
   lifecycle failures and the new dispute worker/route/security/review regressions. Coverage executes
   configured web tests; it is not external-provider or device certification.
+
+### 2026-09-22 — Checkpoint and added property-operations scope
+
+- Remediation checkpoint `d02b7ad71b4fd5cc1656327428fdc454175082dd` committed with normal hooks
+  (web/mobile type checks, staged source lint/formatting, staged tests and repository checks) and
+  pushed to `codex/migrate-next-proxy`. Exact remote HEAD matched after push.
+- User added the property-management brief and eight screenshots to the ongoing goal.
+  `GOAL-SCOPE.md` preserves the original F1–F15 objective and records this additional workstream;
+  `PROPERTY-OPERATIONS-USER-BRIEF.md` preserves the entire brief. The added scope does not replace
+  unfinished audit repairs or relax isolation/payment safeguards.
+- Initial current-code inspection confirmed budget-derived property spending, completed-job rows
+  labelled as receipt PDFs without document lookup, and a job-count health grade asserting critical
+  condition without inspection evidence. Property implementation tracing and P0 work remain in
+  progress; the new property experience is not yet implemented.
