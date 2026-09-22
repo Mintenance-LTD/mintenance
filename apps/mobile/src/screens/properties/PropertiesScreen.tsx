@@ -8,6 +8,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import { me } from '../../design-system/mint-editorial';
 import { styles } from './PropertiesStyles';
+import { PropertyInvitations } from './components/PropertyInvitations';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Properties'>;
@@ -325,24 +327,28 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       {!properties || properties.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <Ionicons name='home-outline' size={32} color={me.brand} />
+        <ScrollView>
+          <PropertyInvitations />
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name='home-outline' size={32} color={me.brand} />
+            </View>
+            <Text style={styles.emptyTitle}>No Properties</Text>
+            <Text style={styles.emptySubtitle}>
+              Add your first property to start managing maintenance.
+            </Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => navigation.navigate('AddProperty')}
+            >
+              <Ionicons name='add' size={20} color={me.onBrand} />
+              <Text style={styles.addButtonText}>Add Property</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.emptyTitle}>No Properties</Text>
-          <Text style={styles.emptySubtitle}>
-            Add your first property to start managing maintenance.
-          </Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => navigation.navigate('AddProperty')}
-          >
-            <Ionicons name='add' size={20} color={me.onBrand} />
-            <Text style={styles.addButtonText}>Add Property</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
+          ListHeaderComponent={PropertyInvitations}
           data={sortedProperties}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (

@@ -6,7 +6,11 @@ import { PropertyTeamService } from './PropertyTeamService';
 export async function getPropertyForManagement(
   user: { id: string; role: string },
   propertyId: string,
-  action: 'view' | 'manage_maintenance' | 'manage_compliance'
+  action:
+    | 'view'
+    | 'manage_maintenance'
+    | 'manage_compliance'
+    | 'manage_contacts'
 ) {
   if (user.role === 'admin') await requireAdminFromDatabase(user.id);
   else {

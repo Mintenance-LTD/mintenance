@@ -3520,3 +3520,34 @@ goal complete.
   to existing objects and cannot restore deleted files. Retry upload caching remains mounted-form
   only. The broader manager workflow, structured evidence records/admin tooling, and portfolio
   operations remain incomplete. No SQL migration or application deployment performed.
+
+### 2026-09-22 — Delegated reporting and verified invitation acceptance
+
+- Accepted property managers/team administrators can now list/create/disable reporting links on
+  web/shared-property and native detail screens. Server authorization uses `manage_contacts`,
+  verifies current accepted membership, and charges feature entitlement to the property owner.
+  Tokens remain owned by that owner. Viewers/unrelated/revoked users cannot read bearer links.
+  Downgrade still permits disabling; creation/reactivation require the owner plan. Added input
+  validation and missing-write-result failure handling.
+- Extracted a shared reporting-link card so owner and delegated web surfaces use the same
+  request/recovery controls.
+- Invitation email matching now uses the auth provider's verified address, with no profile/session
+  fallback. GET uses separate user-id and escaped literal-email filters, avoiding email
+  interpolation into a PostgREST OR expression. Acceptance returns conflict if its conditional
+  pending-row update loses a race; lookup errors fail closed.
+- Added native invitation accept/decline controls in the property list, including accounts with no
+  owned properties. Confirmation must match the requested property/status; success refreshes the
+  account-scoped property list. Web confirmation checks now match that contract. Corrected old
+  invite copy: acceptance exists, invitations are available in Properties, and no email is sent by
+  the recording route.
+- Validation: 34 manager/shared/maintenance authorization tests passed, 13 invitation route tests
+  passed, and final 25 targeted web tests (overlapping those groups) passed. Five native
+  invitation/reporting/account-isolation tests passed. Web/mobile type checks passed before final
+  reusable-card extraction; normal hooks verify final staged sources. Changed web sources passed
+  strict lint; native lint found an existing dynamic require in the touched team component, replaced
+  with the existing React Native static import pattern.
+- No hosted data changes, email sends, SQL migrations, or application deployment. Remaining
+  limitations include team-invite capacity concurrency and delegated team administration,
+  contact-form recovery, full native/device and browser verification, and evidence-retention
+  lifecycle testing. This is another completed implementation checkpoint, not completion of the
+  overall goal.

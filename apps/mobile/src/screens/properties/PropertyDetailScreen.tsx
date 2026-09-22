@@ -80,7 +80,7 @@ function capsForRole(role: PropertyRoleApi) {
   return {
     canEdit: isOwnerOrAdmin || isOrgAdmin || isManager,
     canDelete: isOwnerOrAdmin,
-    canManageReporting: isOwnerOrAdmin,
+    canManageReporting: isOwnerOrAdmin || isOrgAdmin || isManager,
     canManageTeam: isOwnerOrAdmin || isOrgAdmin,
     canManageMaintenance: isOwnerOrAdmin || isOrgAdmin || isManager,
     canManageContacts: isOwnerOrAdmin || isOrgAdmin || isManager,

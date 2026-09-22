@@ -12,7 +12,7 @@
  * ordinary properties page nothing.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2, UserPlus } from 'lucide-react';
@@ -22,6 +22,7 @@ interface Invite {
   id: string;
   role: string;
   propertyName: string;
+  propertyId: string;
   propertyAddress: string | null;
 }
 
@@ -38,13 +39,16 @@ export function PendingPropertyInvites() {
   // An empty list and a failed load must not render the same way.
   const [loadFailed, setLoadFailed] = useState<boolean | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const pending = useRef(false);
 
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/properties/invites');
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
-      setInvites(Array.isArray(data?.invites) ? data.invites : []);
+      if (!Array.isArray(data?.invites))
+        throw new Error('Incomplete invitations');
+      setInvites(data.invites);
       setLoadFailed(false);
     } catch {
       setLoadFailed(true);
@@ -56,6 +60,8 @@ export function PendingPropertyInvites() {
   }, [load]);
 
   const respond = async (inviteId: string, action: 'accept' | 'decline') => {
+    if (pending.current) return;
+    pending.current = true;
     setBusyId(inviteId);
     try {
       const res = await fetch('/api/properties/invites', {
@@ -71,6 +77,13 @@ export function PendingPropertyInvites() {
         toast.error(data.error || 'Could not update the invitation');
         return;
       }
+      if (
+        data.success !== true ||
+        data.status !== (action === 'accept' ? 'accepted' : 'declined') ||
+        data.propertyId !==
+          invites.find((invite) => invite.id === inviteId)?.propertyId
+      )
+        throw new Error('Unconfirmed invitation');
       toast.success(
         action === 'accept' ? 'Invitation accepted' : 'Invitation declined'
       );
@@ -80,6 +93,7 @@ export function PendingPropertyInvites() {
     } catch {
       toast.error('Could not update the invitation');
     } finally {
+      pending.current = false;
       setBusyId(null);
     }
   };

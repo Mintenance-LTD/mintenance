@@ -9,6 +9,9 @@ vi.mock('@/app/dashboard/components/HomeownerPageWrapper', () => ({
 vi.mock('@/app/properties/[id]/components/RecurringMaintenance', () => ({
   default: () => <button>Manage recurring maintenance</button>,
 }));
+vi.mock('@/app/properties/[id]/components/TenantReportingCard', () => ({
+  TenantReportingCard: () => <button>Manage tenant reporting links</button>,
+}));
 const data = {
   property: { id: 'property', name: 'Synthetic property', address: '' },
   jobs: [{ id: 'job', title: 'Inspect boiler', status: 'assigned' }],
@@ -30,6 +33,9 @@ it.each(['manager', 'admin'] as const)(
     render(<SharedPropertyDetail {...data} role={role} />);
     expect(
       screen.getByRole('button', { name: 'Manage recurring maintenance' })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Manage tenant reporting links' })
     ).toBeTruthy();
     expect(
       screen.queryByRole('link', {

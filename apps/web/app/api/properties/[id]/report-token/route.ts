@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -33,23 +36,11 @@ export const GET = withApiHandler(
   async (_req, { user, params }) => {
     const propertyId = params.id;
 
-    // Verify ownership
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .single();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found or forbidden' },
-        { status: 404 }
-      );
-    }
+    await getPropertyForManagement(user, propertyId, 'manage_contacts');
 
     const { data: tokens, error } = await serverSupabase
       .from('anonymous_report_tokens')
-      .select('*')
+      .select('id, property_id, label, is_active, created_at')
       .eq('property_id', propertyId)
       .order('created_at', { ascending: false });
 
@@ -69,37 +60,35 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
+    const validation = await validateRequest(
+      req,
+      z.object({
+        label: z.string().trim().min(1).max(200).nullable().optional(),
+      })
+    );
+    if ('headers' in validation) return validation;
+    const body = validation.data;
 
-    const tierBlock = await requireLandlordTier(user.id, user.role);
+    const property = await getPropertyForManagement(
+      user,
+      propertyId,
+      'manage_contacts'
+    );
+    const tierBlock = await requireLandlordTier(property.owner_id, user.role);
     if (tierBlock) return tierBlock;
-
-    // Verify ownership
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .single();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found or forbidden' },
-        { status: 404 }
-      );
-    }
 
     const { data: token, error } = await serverSupabase
       .from('anonymous_report_tokens')
       .insert({
         property_id: propertyId,
-        owner_id: user.id,
+        owner_id: property.owner_id,
         label: body.label || null,
         is_active: true,
       })
       .select()
       .single();
 
-    if (error) {
+    if (error || !token) {
       return NextResponse.json(
         { error: 'Failed to create token' },
         { status: 500 }
@@ -115,35 +104,21 @@ export const PATCH = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
-    const { token_id, is_active } = body;
-
-    if (!token_id || typeof is_active !== 'boolean') {
-      return NextResponse.json(
-        { error: 'token_id and is_active are required' },
-        { status: 400 }
-      );
-    }
-
-    // 2026-07-26: only POST carried the tier gate, so a landlord who
-    // downgraded to Free could re-activate an old tenant link here and keep
-    // the feature forever. Gate re-activation only — deactivating a link
-    // must stay available to every tier so a downgraded user can always
-    // take a live tenant link offline.
+    const validation = await validateRequest(
+      req,
+      z.object({ token_id: z.string().uuid(), is_active: z.boolean() })
+    );
+    if ('headers' in validation) return validation;
+    const { token_id, is_active } = validation.data;
+    const property = await getPropertyForManagement(
+      user,
+      propertyId,
+      'manage_contacts'
+    );
+    // Disabling remains available after downgrade so live links can be revoked.
     if (is_active) {
-      const tierBlock = await requireLandlordTier(user.id, user.role);
+      const tierBlock = await requireLandlordTier(property.owner_id, user.role);
       if (tierBlock) return tierBlock;
-    }
-
-    // Verify ownership
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .single();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { data: token, error } = await serverSupabase
@@ -154,7 +129,7 @@ export const PATCH = withApiHandler(
       .select()
       .single();
 
-    if (error) {
+    if (error || !token) {
       return NextResponse.json(
         { error: 'Failed to update token' },
         { status: 500 }

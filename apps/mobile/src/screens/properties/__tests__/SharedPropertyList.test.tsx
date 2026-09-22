@@ -3,6 +3,9 @@ import { FlatList } from 'react-native';
 import { act, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PropertiesScreen } from '../PropertiesScreen';
+jest.mock('../components/PropertyInvitations', () => ({
+  PropertyInvitations: () => null,
+}));
 const mockGet = jest.fn();
 const mockUser = { id: 'first-member' };
 const clients: QueryClient[] = [];
