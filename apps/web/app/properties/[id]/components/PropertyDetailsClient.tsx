@@ -30,9 +30,8 @@ import {
   SpendingChart,
   aggregateSpendingByMonth,
 } from '@/app/properties/components/SpendingChart';
-import { calculatePropertyHealthScore } from '@/lib/utils/property-health-score';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
-import { PropertyHealthScoreCard } from '@/app/properties/components/PropertyHealthScore';
+import { PropertyWorkSummary } from './PropertyWorkSummary';
 import { FeatureGateCard } from '@/components/FeatureGateCard';
 import RecurringMaintenance from './RecurringMaintenance';
 import TenantContacts from './TenantContacts';
@@ -189,30 +188,6 @@ export default function PropertyDetailsClient({
       toast.error('Failed to copy. Please copy the link manually.');
     }
   };
-
-  // Calculate property health score
-  const completedJobsList = jobs.filter((j) => j.status === 'completed');
-  const lastCompletedJob = completedJobsList.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )[0];
-
-  const healthScore = calculatePropertyHealthScore({
-    completedJobs: stats.completedJobs,
-    activeJobs: stats.activeJobs,
-    lastServiceDate: lastCompletedJob?.date || null,
-    totalSpent: stats.totalSpent,
-    propertyAge: property.yearBuilt
-      ? new Date().getFullYear() - property.yearBuilt
-      : undefined,
-    recentCategories: [
-      ...new Set(
-        jobs
-          .slice(0, 10)
-          .map((j) => j.category)
-          .filter(Boolean)
-      ),
-    ],
-  });
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -630,7 +605,9 @@ export default function PropertyDetailsClient({
                 <PoundSterling className='w-5 h-5 text-teal-600' />
               </div>
               <div>
-                <div className='text-xs text-gray-500'>Total Spent</div>
+                <div className='text-xs text-gray-500'>
+                  Completed job budgets
+                </div>
                 <div className='text-lg font-semibold text-gray-900'>
                   £{stats.totalSpent.toLocaleString()}
                 </div>
@@ -692,7 +669,9 @@ export default function PropertyDetailsClient({
                   <div>
                     <div className='text-xs text-gray-500 mb-1'>Year Built</div>
                     <div className='font-medium text-gray-900'>
-                      {property.yearBuilt}
+                      {property.yearBuilt > 0
+                        ? property.yearBuilt
+                        : 'Not recorded'}
                     </div>
                   </div>
                   <div>
@@ -723,7 +702,7 @@ export default function PropertyDetailsClient({
                 <FeatureGateCard featureId='HOMEOWNER_PORTFOLIO_ANALYTICS'>
                   <div className='bg-white rounded-xl border border-gray-200 p-6'>
                     <h2 className='text-lg font-semibold text-gray-900 mb-4'>
-                      Spending Trend
+                      Completed-job budgets by creation month
                     </h2>
                     <SpendingChart
                       data={aggregateSpendingByMonth(jobs)}
@@ -736,10 +715,7 @@ export default function PropertyDetailsClient({
 
             {/* Right — Health Score + YoY */}
             <div className='space-y-6'>
-              <PropertyHealthScoreCard
-                healthScore={healthScore}
-                showRecommendations={true}
-              />
+              <PropertyWorkSummary jobs={jobs} />
 
               <FeatureGateCard featureId='HOMEOWNER_YOY_COMPARISON'>
                 <YearOverYearComparison jobs={jobs} />

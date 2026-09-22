@@ -3313,3 +3313,30 @@ payments were performed. Overall audit/property goal remains incomplete.
 
 Full isolated web coverage checkpoint passed: 366 test files, 192.93 seconds, exit 0. The
 administrator exact-payment diagnostic added after suite discovery also passed separately.
+
+## 22 September 2026 — property evidence and operational summary
+
+Replaced both property-detail health-score displays with a shared filterable work summary and links
+to real jobs. Assigned jobs remain labelled Assigned. Job activity no longer produces a
+physical-condition score, Critical grade or deterioration recommendation on these screens. Missing
+construction year remains unknown. Property, jobs, schedules and certificate query failures now
+reach the existing error/retry boundary instead of fabricating empty state.
+
+The editorial Documents tab now receives actual certificate metadata selected for the authorized
+property. It no longer generates PDF/Receipt/Auto-filed rows from completed jobs, or advertises an
+upload action that only opened property editing. Search works on recorded type, number and issuer.
+No arbitrary document URLs are exposed by the new read model. This is certificate metadata, not a
+complete uploaded-document library.
+
+Timeline items use job creation dates and explicitly state current status; they no longer invent
+completion timestamps or receipt events. Removed the unsupported automatic-contractor-preference
+promise. Totals based on budgets are labelled completed-job budgets, and chart/year comparison
+labels state their creation-date basis. This does not implement authoritative paid-spend analytics.
+
+Validation: 8 regression tests across 4 files passed (2.14 seconds), web TypeScript and strict
+changed-source lint passed. React review covered shared logic, labels, real links and explicit
+empty/search states. No hosted SQL change was needed for these existing-table reads. Browser/device
+journey testing remains outstanding. Remaining property work includes portfolio Inbox, permissions
+across manager flows, financial read models, complete document access/upload, compliance
+applicability, recurring operations, pagination and responsive browser proof. Overall goal remains
+incomplete.

@@ -48,7 +48,9 @@ export default async function PropertyDetailPage({
     .eq('owner_id', user.id)
     .single();
 
-  if (propertyError || !property) {
+  if (propertyError && propertyError.code !== 'PGRST116')
+    throw new Error('Unable to load property details. Please retry.');
+  if (!property) {
     notFound();
   }
 
@@ -76,6 +78,8 @@ export default async function PropertyDetailPage({
     .eq('homeowner_id', user.id)
     .eq('property_id', resolvedParams.id)
     .order('created_at', { ascending: false });
+
+  if (jobsError) throw new Error('Unable to load property jobs. Please retry.');
 
   // Calculate stats. The property grid (/properties) counts any job
   // not yet completed as "active" (posted + assigned + in_progress).
@@ -107,7 +111,7 @@ export default async function PropertyDetailPage({
     bedrooms: property.bedrooms || 0,
     bathrooms: property.bathrooms || 0,
     squareFeet: property.square_footage || 0,
-    yearBuilt: property.year_built || new Date().getFullYear(),
+    yearBuilt: property.year_built || 0,
     images:
       property.photos && property.photos.length > 0 ? property.photos : [],
     // Access & contacts (migration 20260520000003). These may be
@@ -129,7 +133,7 @@ export default async function PropertyDetailPage({
   // property. The table + RLS already exist (migration 20260214200000);
   // the row count is just zero for properties that haven't been
   // configured yet, which is a fine empty state.
-  const { data: schedulesRows } = await serverSupabase
+  const { data: schedulesRows, error: schedulesError } = await serverSupabase
     .from('recurring_schedules')
     .select(
       'id, task_type, title, description, category, frequency, next_due_date, last_completed_date, auto_create_job, is_active'
@@ -137,6 +141,8 @@ export default async function PropertyDetailPage({
     .eq('owner_id', user.id)
     .eq('property_id', property.id)
     .order('next_due_date', { ascending: true });
+  if (schedulesError)
+    throw new Error('Unable to load maintenance schedules. Please retry.');
   const schedules = schedulesRows || [];
 
   // Format jobs data
@@ -174,14 +180,16 @@ export default async function PropertyDetailPage({
     };
   });
 
-  // Phase-2 design rebrand. Mint Editorial users get the new card
-  // layout (real per-property health score from
-  // calculatePropertyHealthScore, recent jobs list, single Post-a-job
-  // CTA). Spending-trend chart from the legacy view is deliberately
-  // omitted in this first slice — building it would need real
-  // month-bucketed payment data that the page doesn't fetch today.
-  // Skipping a chart that would otherwise be eye-candy beats faking
-  // one (Phase-1 dashboard escrow lesson).
+  const { data: certificates, error: certificatesError } = await serverSupabase
+    .from('compliance_certificates')
+    .select(
+      'id, cert_type, certificate_number, issued_date, expiry_date, issuer_name'
+    )
+    .eq('property_id', property.id)
+    .order('issued_date', { ascending: false });
+  if (certificatesError)
+    throw new Error('Unable to load certificate records. Please retry.');
+
   const cookieStore = await cookies();
   const isMintEditorial =
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
@@ -197,6 +205,7 @@ export default async function PropertyDetailPage({
           totalSpent,
         }}
         schedules={schedules}
+        certificates={certificates || []}
       />
     );
   }
