@@ -4,6 +4,7 @@ import { isValidUUID } from '@/lib/validation/uuid';
 import {
   BadRequestError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -33,37 +34,53 @@ export const GET = withApiHandler(
 
     const isAdmin = user.role === 'admin';
 
-    let escrowQuery = serverSupabase
+    const escrowQuery = serverSupabase
       .from('escrow_transactions')
       .select(
         'id, job_id, payer_id, payee_id, amount, status, dispute_priority, sla_deadline, escalation_level, mediation_requested_at, mediation_status, mediation_outcome, created_at, updated_at'
       )
       .eq('id', disputeId);
 
-    if (!isAdmin) {
-      escrowQuery = escrowQuery.or(
-        `payer_id.eq.${user.id},payee_id.eq.${user.id}`
-      );
-    }
-
     const { data: escrow, error: escrowError } =
       await escrowQuery.maybeSingle();
 
-    if (escrowError || !escrow) {
+    if (escrowError)
+      throw new InternalServerError(
+        'Unable to load the dispute. Please retry.'
+      );
+    if (!escrow) {
       // Return generic error to avoid leaking dispute existence
       throw new NotFoundError('Dispute not found or access denied');
     }
 
-    // Belt-and-braces ownership check
+    // A homeowner can remain the claimant when payment is delegated. Verify
+    // the current job/escrow relationship before allowing that additional reader.
     if (
       !isAdmin &&
       escrow.payer_id !== user.id &&
       escrow.payee_id !== user.id
     ) {
-      throw new ForbiddenError('Not authorized to view this dispute');
+      const { data: job, error: jobError } = await serverSupabase
+        .from('jobs')
+        .select('homeowner_id, payer_user_id, contractor_id')
+        .eq('id', escrow.job_id)
+        .maybeSingle();
+      if (jobError)
+        throw new InternalServerError(
+          'Unable to check dispute access. Please retry.'
+        );
+      if (
+        !job ||
+        job.homeowner_id !== user.id ||
+        job.contractor_id !== escrow.payee_id ||
+        (job.payer_user_id ?? job.homeowner_id) !== escrow.payer_id
+      ) {
+        throw new ForbiddenError('Not authorized to view this dispute');
+      }
     }
 
-    // Most-recent dispute record on the same job
+    // Match the exact payment. Legacy unbound disputes need reconciliation;
+    // choosing the most recent job dispute can expose another payer's record.
     let disputeRecord: {
       id: string;
       reason: string;
@@ -73,18 +90,24 @@ export const GET = withApiHandler(
       status: string | null;
       raised_by: string | null;
       against: string | null;
+      created_at: string | null;
     } | null = null;
 
     if (escrow.job_id) {
-      const { data: drows } = await serverSupabase
+      const { data: drows, error: recordError } = await serverSupabase
         .from('disputes')
         .select(
-          'id, reason, description, resolution, resolved_at, status, raised_by, against'
+          'id, reason, description, resolution, resolved_at, status, raised_by, against, created_at, dispute_escrow_links!inner(escrow_id)'
         )
         .eq('job_id', escrow.job_id)
+        .eq('dispute_escrow_links.escrow_id', escrow.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
+      if (recordError)
+        throw new InternalServerError(
+          'Unable to load dispute details. Please retry.'
+        );
       if (drows && drows.length > 0) {
         disputeRecord = drows[0];
       }
@@ -103,7 +126,7 @@ export const GET = withApiHandler(
       mediation_requested_at: escrow.mediation_requested_at,
       mediation_status: escrow.mediation_status,
       mediation_outcome: escrow.mediation_outcome,
-      created_at: escrow.created_at,
+      created_at: disputeRecord?.created_at ?? null,
       updated_at: escrow.updated_at,
       // Frontend-facing aliases (apps/web/app/disputes/[id]/page.tsx)
       dispute_reason: disputeRecord?.reason ?? null,

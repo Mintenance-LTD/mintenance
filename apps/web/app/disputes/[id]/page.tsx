@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import { useParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
-import { Icon } from '@/components/ui/Icon';
+
 import { theme } from '@/lib/theme';
 import { PageLoader } from '@/components/LoadingButton';
-import { getCsrfToken } from '@/lib/csrf-client';
+import { useMediationRequest } from '../components/useMediationRequest';
 import { MintEditorialDisputeDetail } from './MintEditorialDisputeDetail';
 
 interface DisputeTimeline {
@@ -20,9 +19,8 @@ interface DisputeTimeline {
 
 export default function DisputeDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const disputeId = params.id as string;
-  const { user, loading } = useCurrentUser();
+  const { loading } = useCurrentUser();
   const [dispute, setDispute] = useState<{
     status: string;
     priority: string;
@@ -31,11 +29,16 @@ export default function DisputeDetailPage() {
     dispute_evidence?: unknown[];
     created_at?: string;
     mediation_requested_at?: string;
+    mediation_status?: string;
     resolved_at?: string;
     resolution?: string;
   } | null>(null);
   const [timeline, setTimeline] = useState<DisputeTimeline[]>([]);
   const [loadingDispute, setLoadingDispute] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  const refresh = () => setReload((value) => value + 1);
+  const mediation = useMediationRequest(disputeId, refresh);
 
   // Mint Editorial theme detection — swap the entire detail surface
   // for the canonical "Track resolution" layout when active.
@@ -48,51 +51,84 @@ export default function DisputeDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (disputeId) {
-      fetch(`/api/disputes/${disputeId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setDispute(data);
-          // Build timeline
-          const timelineData: DisputeTimeline[] = [
-            {
-              status: 'Created',
-              timestamp: data.created_at,
-              description: 'Dispute was created',
-            },
-          ];
-          if (data.mediation_requested_at) {
-            timelineData.push({
-              status: 'Mediation Requested',
-              timestamp: data.mediation_requested_at,
-              description: 'Mediation was requested',
-            });
-          }
-          if (data.resolved_at) {
-            timelineData.push({
-              status: 'Resolved',
-              timestamp: data.resolved_at,
-              description: data.resolution || 'Dispute was resolved',
-            });
-          }
-          setTimeline(timelineData);
-        })
-        .catch(() => {})
-        .finally(() => setLoadingDispute(false));
-    }
-  }, [disputeId]);
+    let active = true;
+    setLoadingDispute(true);
+    setLoadError(null);
+    fetch('/api/disputes/' + encodeURIComponent(disputeId))
+      .then(async (response) => {
+        const data = await response.json().catch(() => null);
+        if (
+          !response.ok ||
+          !data ||
+          data.id !== disputeId ||
+          typeof data.status !== 'string'
+        ) {
+          throw new Error(
+            typeof data?.error === 'string'
+              ? data.error
+              : data?.error?.message ||
+                  'Unable to load dispute details. Please retry.'
+          );
+        }
+        if (!active) return;
+        setDispute(data);
+        const entries: DisputeTimeline[] = [];
+        if (data.created_at)
+          entries.push({
+            status: 'Created',
+            timestamp: data.created_at,
+            description: 'Dispute was created',
+          });
+        if (data.mediation_requested_at)
+          entries.push({
+            status: 'Mediation Requested',
+            timestamp: data.mediation_requested_at,
+            description: 'Mediation was requested',
+          });
+        if (data.resolved_at)
+          entries.push({
+            status: 'Resolved',
+            timestamp: data.resolved_at,
+            description: data.resolution || 'Dispute was resolved',
+          });
+        setTimeline(entries);
+      })
+      .catch((error) => {
+        if (active) {
+          setDispute(null);
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : 'Unable to load dispute details.'
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingDispute(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [disputeId, reload]);
 
   if (loading || loadingDispute) {
     return <PageLoader message='Loading dispute details' />;
   }
 
-  if (!dispute) {
-    return <div>Dispute not found</div>;
+  if (loadError || !dispute) {
+    return (
+      <div role='alert' className='card card-pad'>
+        <p>{loadError || 'Dispute not found'}</p>
+        <Button onClick={refresh}>Retry</Button>
+      </div>
+    );
   }
 
   if (isMintEditorial) {
     return (
       <MintEditorialDisputeDetail
+        key={disputeId}
+        onMediationUpdated={refresh}
         disputeId={disputeId}
         dispute={dispute}
         timeline={timeline}
@@ -151,57 +187,20 @@ export default function DisputeDetailPage() {
                   : 'N/A'}
               </p>
             </div>
-            {dispute.status === 'disputed' && (
-              <Button
-                variant='secondary'
-                onClick={async () => {
-                  // Audit follow-up (2026-04-29): the previous
-                  // `router.push('/disputes/X/mediation')` linked to
-                  // a page that doesn't exist. The backend already
-                  // exposes `POST /api/disputes/[id]/mediation` with
-                  // `action: 'request'` (handled by
-                  // `MediationService.requestMediation`), so the
-                  // button now calls that directly. Once a dedicated
-                  // mediation UI ships, swap back to a router push.
-                  try {
-                    const csrfToken = await getCsrfToken();
-                    const res = await fetch(
-                      `/api/disputes/${disputeId}/mediation`,
-                      {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-                        },
-                        body: JSON.stringify({ action: 'request' }),
-                      }
-                    );
-                    if (!res.ok) {
-                      const data = await res.json().catch(() => ({}));
-                      throw new Error(
-                        data.error?.message ||
-                          data.error ||
-                          'Failed to request mediation'
-                      );
-                    }
-                    toast.success(
-                      'Mediation requested. An admin will review and contact you.'
-                    );
-                  } catch (err) {
-                    toast.error(
-                      err instanceof Error
-                        ? err.message
-                        : 'Failed to request mediation'
-                    );
-                  }
-                }}
-              >
-                Request Mediation
-              </Button>
-            )}
+            {dispute.status === 'disputed' &&
+              !dispute.mediation_requested_at && (
+                <Button
+                  variant='secondary'
+                  onClick={mediation.request}
+                  disabled={mediation.pending}
+                >
+                  {mediation.pending ? 'Saving request…' : 'Request Mediation'}
+                </Button>
+              )}
           </div>
         </Card>
 
+        {mediation.error && <p role='alert'>{mediation.error}</p>}
         {/* Timeline */}
         <Card style={{ padding: theme.spacing[6] }}>
           <h2

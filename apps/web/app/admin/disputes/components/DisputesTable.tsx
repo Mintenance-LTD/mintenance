@@ -8,6 +8,14 @@ import { Icon } from '@/components/ui/Icon';
 // ── Types ───────────────────────────────────────────────────────────
 
 export interface Dispute {
+  resolution?: {
+    id: string;
+    decision: Resolution;
+    reason: string;
+    state: 'processing' | 'completed';
+    refund_minor: number;
+    release_minor: number;
+  } | null;
   id: string;
   jobId: string;
   jobTitle: string;

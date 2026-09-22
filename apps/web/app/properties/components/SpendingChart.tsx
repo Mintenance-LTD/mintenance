@@ -31,7 +31,9 @@ export function SpendingChart({ data, height = 300 }: SpendingChartProps) {
     return (
       <div className='flex items-center justify-center' style={{ height }}>
         <div className='text-center'>
-          <p className='text-gray-600 mb-2'>No spending data available</p>
+          <p className='text-gray-600 mb-2'>
+            No completed-job budget data available
+          </p>
           <p className='text-sm text-gray-500'>
             Complete jobs will appear here
           </p>
@@ -60,7 +62,10 @@ export function SpendingChart({ data, height = 300 }: SpendingChartProps) {
             borderRadius: '8px',
             padding: '12px',
           }}
-          formatter={(value: number) => [`£${value.toLocaleString()}`, 'Spent']}
+          formatter={(value: number) => [
+            `£${value.toLocaleString()}`,
+            'Job budget',
+          ]}
           labelStyle={{
             color: '#111827',
             fontWeight: 600,

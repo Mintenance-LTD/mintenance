@@ -1,6 +1,5 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -10,11 +9,8 @@ import {
   MapPin,
   Plus,
   PoundSterling,
-  ShieldAlert,
-  Sparkles,
-  Star,
 } from 'lucide-react';
-import { calculatePropertyHealthScore } from '@/lib/utils/property-health-score';
+import { PropertyWorkSummary } from './PropertyWorkSummary';
 
 export interface PropertyShape {
   id: string;
@@ -162,7 +158,7 @@ export function PropertyHeader({
         />
         <StatTile
           icon={<PoundSterling size={16} strokeWidth={1.75} />}
-          label='Total spent'
+          label='Completed job budgets'
           value={stats.totalSpent > 0 ? formatGBP(stats.totalSpent) : '—'}
         />
         <Link
@@ -230,147 +226,22 @@ export function PropertyDetailsCard({ property }: { property: PropertyShape }) {
 }
 
 export function PropertyHealthCard({
-  property,
   jobs,
-  stats,
 }: {
   property: PropertyShape;
   jobs: JobItem[];
   stats: Stats;
 }) {
-  const completedJobsList = jobs.filter((j) => j.status === 'completed');
-  const lastCompletedJob = completedJobsList.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )[0];
-  const health = calculatePropertyHealthScore({
-    completedJobs: stats.completedJobs,
-    activeJobs: stats.activeJobs,
-    lastServiceDate: lastCompletedJob?.date || null,
-    totalSpent: stats.totalSpent,
-    propertyAge: property.yearBuilt
-      ? new Date().getFullYear() - property.yearBuilt
-      : undefined,
-    recentCategories: [
-      ...new Set(
-        jobs
-          .slice(0, 10)
-          .map((j) => j.category)
-          .filter(Boolean)
-      ),
-    ],
-  });
-  const tone =
-    health.score >= 80
-      ? { fg: 'var(--me-ok-fg)', bg: 'var(--me-ok-bg)' }
-      : health.score >= 60
-        ? { fg: 'var(--me-brand)', bg: 'var(--me-brand-soft)' }
-        : { fg: 'var(--me-warn-fg)', bg: 'var(--me-warn-bg)' };
-
-  return (
-    <div className='card card-pad'>
-      <div className='t-eyebrow' style={{ marginBottom: 8 }}>
-        Property health
-      </div>
-      <div className='row' style={{ gap: 14, marginBottom: 12 }}>
-        <span
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            background: tone.bg,
-            color: tone.fg,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          {health.score >= 80 ? (
-            <Star size={22} strokeWidth={1.75} />
-          ) : (
-            <ShieldAlert size={22} strokeWidth={1.75} />
-          )}
-        </span>
-        <div className='col' style={{ gap: 2 }}>
-          <div>
-            <span className='me-list-amount' style={{ fontSize: 30 }}>
-              {health.score}
-            </span>
-            <span className='t-meta' style={{ marginLeft: 4 }}>
-              / 100
-            </span>
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: tone.fg,
-              textTransform: 'capitalize',
-            }}
-          >
-            {health.grade}
-          </div>
-        </div>
-      </div>
-      <div
-        style={{
-          height: 6,
-          borderRadius: 9999,
-          background: 'var(--me-bg-3)',
-          overflow: 'hidden',
-          marginBottom: 14,
-        }}
-      >
-        <div
-          style={{
-            width: `${health.score}%`,
-            height: '100%',
-            background: tone.fg,
-          }}
-        />
-      </div>
-      {health.recommendations.length > 0 ? (
-        <>
-          <div className='t-eyebrow' style={{ marginBottom: 8 }}>
-            Recommendations
-          </div>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {health.recommendations.map((r: string) => (
-              <li
-                key={r}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 8,
-                  padding: '6px 0',
-                  fontSize: 13,
-                  color: 'var(--me-ink-2)',
-                }}
-              >
-                <Sparkles
-                  size={12}
-                  strokeWidth={1.75}
-                  style={{
-                    color: 'var(--me-brand)',
-                    marginTop: 3,
-                    flexShrink: 0,
-                  }}
-                />
-                {r}
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-    </div>
-  );
+  return <PropertyWorkSummary jobs={jobs} />;
 }
 
 function statusBadge(status: string) {
   const s = (status || '').toLowerCase();
   if (s === 'posted' || s === 'pending')
     return <span className='badge badge-warn'>Awaiting bids</span>;
-  if (s === 'assigned' || s === 'in_progress')
+  if (s === 'assigned')
+    return <span className='badge badge-info'>Assigned</span>;
+  if (s === 'in_progress')
     return <span className='badge badge-info'>In progress</span>;
   if (s === 'completed')
     return <span className='badge badge-ok'>Completed</span>;

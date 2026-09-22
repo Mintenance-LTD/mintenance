@@ -88,3 +88,67 @@ it.each([false, true])(
     );
   }
 );
+
+it('reports approval and review publication without claiming a transfer or an uncharged tip', async () => {
+  mocks.request.mockImplementation(
+    async () =>
+      new Response(JSON.stringify({ success: true, reviewId: 'review' }))
+  );
+  render(<MintEditorialJobReview job={job} />);
+  expect(screen.queryByText('Add a tip')).toBeNull();
+  expect(screen.queryByText(/500.*in escrow/)).toBeNull();
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'The completed repair looked very good.' },
+  });
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Approve work & post review' })
+  );
+  await screen.findByRole('heading', {
+    name: 'Work approved and review posted.',
+  });
+  expect(
+    screen.getByText(
+      /Payment release remains subject to the cooling-off period and final checks/
+    )
+  ).toBeDefined();
+  expect(screen.queryByText(/on its way|Released to/)).toBeNull();
+  expect(mocks.request).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(mocks.request.mock.calls[1][1].body).comment).not.toContain(
+    '[Tip:'
+  );
+});
+
+it('recovers after approval succeeds and the review response is lost', async () => {
+  let attempts = 0;
+  mocks.request.mockImplementation(async (url: string) => {
+    if (url.endsWith('/review') && ++attempts === 1)
+      throw new Error('Response lost');
+    return new Response(
+      JSON.stringify({ success: true, reviewId: 'persisted-review' })
+    );
+  });
+  render(<MintEditorialJobReview job={job} />);
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'The completed repair looked very good.' },
+  });
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Approve work & post review' })
+  );
+  await waitFor(() =>
+    expect(mocks.error).toHaveBeenCalledWith('Response lost')
+  );
+  expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe(
+    'The completed repair looked very good.'
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Approve work & post review' })
+  );
+  await screen.findByRole('heading', {
+    name: 'Work approved and review posted.',
+  });
+  const requests = mocks.request.mock.calls.filter(([url]) =>
+    url.endsWith('/review')
+  );
+  expect(requests).toHaveLength(2);
+  expect(requests[1][1].body).toBe(requests[0][1].body);
+});

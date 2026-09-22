@@ -56,3 +56,10 @@ External verification remains explicitly bounded: no hosted mutation is authoriz
 may be moved, and no real users may be contacted. Missing hosted parity, provider test credentials,
 physical-device checks or model evaluation evidence must be named, not replaced by mocks or inferred
 from confidence scores. These limitations do not justify abandoning available local work.
+
+## Hosted authorization and parity update — 22 September 2026
+
+The user has superseded this document's earlier prohibition on hosted migrations. All 53 pending
+application migrations were applied to production and a fresh dry-run found zero remaining. See
+HOSTED-ROLLOUT-2026-09-22.md for sampled effective-permission checks and unresolved platform/advisor
+items. This does not close the unverified journeys or the additional property operations scope.

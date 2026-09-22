@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   verifyAdminRoleFromDatabase: vi.fn(),
+  requireAdminFromDatabase: vi.fn(),
   hasValidStepUp: vi.fn(),
   getEffectiveHomeownerTier: vi.fn(),
   hasFeatureAccess: vi.fn(),
@@ -58,6 +59,7 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 vi.mock('@/lib/admin-verification', () => ({
   verifyAdminRoleFromDatabase: mocks.verifyAdminRoleFromDatabase,
+  requireAdminFromDatabase: mocks.requireAdminFromDatabase,
 }));
 
 vi.mock('@/lib/auth/mfa-step-up', () => ({
@@ -156,6 +158,7 @@ beforeEach(() => {
     retryAfter: 0,
   });
   mocks.verifyAdminRoleFromDatabase.mockResolvedValue(true);
+  mocks.requireAdminFromDatabase.mockResolvedValue(undefined);
   mocks.hasValidStepUp.mockResolvedValue(true);
 
   // Default: a paid landlord who owns the property.
@@ -232,6 +235,7 @@ describe('PATCH /api/properties/[id]/recurring-maintenance — tier gate', () =>
 
     expect(res.status).toBe(200);
     expect(mocks.getEffectiveHomeownerTier).not.toHaveBeenCalled();
+    expect(mocks.requireAdminFromDatabase).toHaveBeenCalledWith('admin-1');
   });
 
   it('leaves DELETE ungated so a downgraded user can still clean up', async () => {

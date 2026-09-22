@@ -58,29 +58,46 @@ vi.mock('@/lib/errors/api-error', async () => {
       public code: string,
       public userMessage: string,
       public statusCode: number = 500,
-      public details?: unknown,
+      public details?: unknown
     ) {
       super(userMessage);
       this.name = 'APIError';
     }
     toResponse() {
-      return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() };
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
     }
   }
   class UnauthorizedError extends APIError {
-    constructor(msg = 'Unauthorized') { super('UNAUTHORIZED', msg, 401); }
+    constructor(msg = 'Unauthorized') {
+      super('UNAUTHORIZED', msg, 401);
+    }
+  }
+  class InternalServerError extends APIError {
+    constructor(msg = 'Internal server error') {
+      super('INTERNAL_SERVER_ERROR', msg, 500);
+    }
   }
   class ForbiddenError extends APIError {
-    constructor(msg = 'Forbidden') { super('FORBIDDEN', msg, 403); }
+    constructor(msg = 'Forbidden') {
+      super('FORBIDDEN', msg, 403);
+    }
   }
   class NotFoundError extends APIError {
-    constructor(msg = 'Resource not found') { super('NOT_FOUND', msg, 404); }
+    constructor(msg = 'Resource not found') {
+      super('NOT_FOUND', msg, 404);
+    }
   }
   class BadRequestError extends APIError {
-    constructor(msg = 'Bad Request', details?: unknown) { super('BAD_REQUEST', msg, 400, details); }
+    constructor(msg = 'Bad Request', details?: unknown) {
+      super('BAD_REQUEST', msg, 400, details);
+    }
   }
   return {
     APIError,
+    InternalServerError,
     UnauthorizedError,
     ForbiddenError,
     NotFoundError,
@@ -88,12 +105,19 @@ vi.mock('@/lib/errors/api-error', async () => {
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
       return NextResponse.json(
-        { error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } },
-        { status: 500 },
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
       );
     }),
   };
@@ -104,7 +128,10 @@ vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function createGetRequest(url: string, headers: Record<string, string> = {}): NextRequest {
+function createGetRequest(
+  url: string,
+  headers: Record<string, string> = {}
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'GET',
     headers: { 'x-forwarded-for': '127.0.0.1', ...headers },
@@ -129,9 +156,12 @@ function setupDefaultMocks() {
 }
 
 function createSupabaseChain(
-  tableMap: Record<string, {
-    selectReturn?: { data: unknown; error: unknown };
-  }>,
+  tableMap: Record<
+    string,
+    {
+      selectReturn?: { data: unknown; error: unknown };
+    }
+  >
 ) {
   mocks.supabaseFrom.mockImplementation((table: string) => {
     const cfg = tableMap[table] || {};
@@ -168,6 +198,36 @@ describe('GET /api/jobs/[id]/escrow', () => {
   });
 
   // ---- Authentication ----
+  it('reports a failed escrow read without presenting an empty payment or leaking database details', async () => {
+    createSupabaseChain({
+      jobs: {
+        selectReturn: {
+          data: { id: 'job-1', homeowner_id: 'homeowner-1' },
+          error: null,
+        },
+      },
+      escrow_transactions: {
+        selectReturn: {
+          data: null,
+          error: { message: 'synthetic internal database diagnostic' },
+        },
+      },
+    });
+    const res = await GET(
+      createGetRequest('/api/jobs/job-1/escrow'),
+      segmentData('job-1')
+    );
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error.message).toBe(
+      'Unable to load payment details. Please retry.'
+    );
+    expect(body).not.toHaveProperty('escrow');
+    expect(JSON.stringify(body)).not.toContain(
+      'synthetic internal database diagnostic'
+    );
+  });
+
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
@@ -185,7 +245,9 @@ describe('GET /api/jobs/[id]/escrow', () => {
       jobs: { selectReturn: { data: null, error: { message: 'not found' } } },
     });
 
-    const req = createGetRequest('http://localhost:3000/api/jobs/nonexistent/escrow');
+    const req = createGetRequest(
+      'http://localhost:3000/api/jobs/nonexistent/escrow'
+    );
     const res = await GET(req, segmentData('nonexistent'));
     expect(res.status).toBe(404);
 
@@ -206,7 +268,11 @@ describe('GET /api/jobs/[id]/escrow', () => {
     createSupabaseChain({
       jobs: {
         selectReturn: {
-          data: { id: 'job-1', homeowner_id: 'homeowner-1', contractor_id: 'contractor-1' },
+          data: {
+            id: 'job-1',
+            homeowner_id: 'homeowner-1',
+            contractor_id: 'contractor-1',
+          },
           error: null,
         },
       },
@@ -225,7 +291,11 @@ describe('GET /api/jobs/[id]/escrow', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { id: 'job-1', homeowner_id: 'homeowner-1', contractor_id: 'contractor-1' },
+                data: {
+                  id: 'job-1',
+                  homeowner_id: 'homeowner-1',
+                  contractor_id: 'contractor-1',
+                },
                 error: null,
               }),
             }),
@@ -238,7 +308,9 @@ describe('GET /api/jobs/[id]/escrow', () => {
           eq: vi.fn().mockReturnValue({
             order: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                maybeSingle: vi
+                  .fn()
+                  .mockResolvedValue({ data: null, error: null }),
               }),
             }),
           }),
@@ -272,7 +344,11 @@ describe('GET /api/jobs/[id]/escrow', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { id: 'job-1', homeowner_id: 'homeowner-1', contractor_id: 'contractor-1' },
+                data: {
+                  id: 'job-1',
+                  homeowner_id: 'homeowner-1',
+                  contractor_id: 'contractor-1',
+                },
                 error: null,
               }),
             }),
@@ -284,7 +360,9 @@ describe('GET /api/jobs/[id]/escrow', () => {
           eq: vi.fn().mockReturnValue({
             order: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: escrowData, error: null }),
+                maybeSingle: vi
+                  .fn()
+                  .mockResolvedValue({ data: escrowData, error: null }),
               }),
             }),
           }),
@@ -324,7 +402,11 @@ describe('GET /api/jobs/[id]/escrow', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { id: 'job-1', homeowner_id: 'homeowner-1', contractor_id: 'contractor-1' },
+                data: {
+                  id: 'job-1',
+                  homeowner_id: 'homeowner-1',
+                  contractor_id: 'contractor-1',
+                },
                 error: null,
               }),
             }),
@@ -379,7 +461,11 @@ describe('GET /api/jobs/[id]/escrow', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: { id: 'job-1', homeowner_id: 'homeowner-1', contractor_id: 'contractor-1' },
+                data: {
+                  id: 'job-1',
+                  homeowner_id: 'homeowner-1',
+                  contractor_id: 'contractor-1',
+                },
                 error: null,
               }),
             }),

@@ -83,6 +83,27 @@ export const GET = withApiHandler(
       throw new InternalServerError('Failed to fetch disputes');
     }
 
+    // Only load resolution decisions for this page; never make a persisted
+    // decision appear editable because its lookup failed.
+    const resolutionByEscrow = new Map<string, unknown>();
+    if (disputes?.length) {
+      const resolutions = await serverSupabase
+        .from('escrow_dispute_resolutions')
+        .select(
+          'id, escrow_id, decision, reason, state, refund_minor, release_minor'
+        )
+        .in(
+          'escrow_id',
+          disputes.map((dispute) => dispute.id)
+        );
+      if (resolutions.error)
+        throw new InternalServerError(
+          'Failed to load dispute resolution status'
+        );
+      for (const resolution of resolutions.data ?? [])
+        resolutionByEscrow.set(resolution.escrow_id, resolution);
+    }
+
     // Fetch stats in a single query instead of 4 separate ones
     const { data: statsRows } = await serverSupabase
       .from('escrow_transactions')
@@ -127,6 +148,7 @@ export const GET = withApiHandler(
 
       return {
         id: d.id,
+        resolution: resolutionByEscrow.get(d.id) ?? null,
         jobId: d.job_id,
         jobTitle: (job?.title as string) ?? 'Unknown Job',
         jobStatus: (job?.status as string) ?? 'unknown',

@@ -4,7 +4,11 @@ import {
   createRequestScopedClient,
 } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 
 export const GET = withApiHandler(
   { csrf: false },
@@ -46,8 +50,13 @@ export const GET = withApiHandler(
       .limit(1)
       .maybeSingle();
 
-    // Return null escrow instead of 404 — job may not have escrow yet
-    if (escrowError || !escrow) {
+    if (escrowError) {
+      throw new InternalServerError(
+        'Unable to load payment details. Please retry.'
+      );
+    }
+    // A successful empty lookup means the job has no escrow yet.
+    if (!escrow) {
       return NextResponse.json({ escrow: null });
     }
 

@@ -9,12 +9,10 @@
  * proposed-resolution panel + status checklist on the right.
  */
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
 import { Check, Loader2 } from 'lucide-react';
-import { getCsrfToken } from '@/lib/csrf-client';
+import { useMediationRequest } from '../components/useMediationRequest';
 import { StepStrip } from '../components/StepStrip';
 
 interface DisputeTimelineEntry {
@@ -31,19 +29,23 @@ interface Dispute {
   dispute_evidence?: unknown[];
   created_at?: string;
   mediation_requested_at?: string;
+  mediation_status?: string;
   resolved_at?: string;
   resolution?: string;
 }
 
 interface Props {
   disputeId: string;
+  onMediationUpdated: () => void;
   dispute: Dispute;
   timeline: DisputeTimelineEntry[];
 }
 
 function deriveStep(dispute: Dispute): 0 | 1 | 2 | 3 {
   if (dispute.resolved_at) return 3;
-  if (dispute.mediation_requested_at) return 2;
+  if (['in_progress', 'completed'].includes(dispute.mediation_status || ''))
+    return 2;
+  if (dispute.mediation_requested_at) return 1;
   if ((dispute.dispute_evidence?.length || 0) > 0) return 1;
   return 0;
 }
@@ -67,43 +69,12 @@ function fmtRelativeDays(iso: string | undefined): string {
 
 export function MintEditorialDisputeDetail({
   disputeId,
+  onMediationUpdated,
   dispute,
   timeline,
 }: Props) {
-  const router = useRouter();
-  const [mediating, setMediating] = useState(false);
+  const mediation = useMediationRequest(disputeId, onMediationUpdated);
   const step = deriveStep(dispute);
-
-  const handleRequestMediation = async () => {
-    setMediating(true);
-    try {
-      const csrfToken = await getCsrfToken();
-      const res = await fetch(`/api/disputes/${disputeId}/mediation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-        },
-        body: JSON.stringify({ action: 'request' }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(
-          data.error?.message || data.error || 'Failed to request mediation'
-        );
-      }
-      toast.success(
-        'Mediation requested. An admin will review and contact you.'
-      );
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to request mediation'
-      );
-    } finally {
-      setMediating(false);
-    }
-  };
 
   // Build a canonical "Status" checklist from the timeline entries we
   // already have, padding out the four canonical states. Items past
@@ -121,8 +92,8 @@ export function MintEditorialDisputeDetail({
       done: !!dispute.mediation_requested_at,
     },
     {
-      label: 'Mint trust on the case',
-      ts: dispute.mediation_requested_at ? 'Active' : 'Pending',
+      label: 'Mediation in progress',
+      ts: step >= 2 ? 'Recorded' : 'Pending',
       done: step >= 2,
     },
     {
@@ -152,7 +123,10 @@ export function MintEditorialDisputeDetail({
           {dispute.created_at
             ? ` · ${fmtRelativeDays(dispute.created_at)}`
             : ''}
-          {dispute.mediation_requested_at ? ' · Mint mediating' : ''}
+          {dispute.mediation_requested_at
+            ? ' · Mediation ' +
+              (dispute.mediation_status || 'requested').replace('_', ' ')
+            : ''}
         </span>
         <span className='t-meta'>
           DSP-{disputeId.slice(0, 8).toUpperCase()}
@@ -270,7 +244,9 @@ export function MintEditorialDisputeDetail({
         </div>
 
         <div className='col' style={{ gap: 14 }}>
-          {!dispute.resolved_at && !dispute.mediation_requested_at ? (
+          {dispute.status === 'disputed' &&
+          !dispute.resolved_at &&
+          !dispute.mediation_requested_at ? (
             <div
               className='card card-pad'
               style={{ borderColor: 'var(--me-brand)', borderWidth: 1.5 }}
@@ -286,17 +262,17 @@ export function MintEditorialDisputeDetail({
                   marginBottom: 14,
                 }}
               >
-                If you and the contractor can't agree, Mint's trust team steps
-                in. Decisions are usually made within 5 days.
+                Request mediation if you need help reaching an agreement. You
+                can follow the request status here.
               </div>
               <button
                 type='button'
                 className='btn btn-primary'
-                onClick={handleRequestMediation}
-                disabled={mediating}
+                onClick={mediation.request}
+                disabled={mediation.pending}
                 style={{ justifyContent: 'center', width: '100%' }}
               >
-                {mediating ? (
+                {mediation.pending ? (
                   <Loader2
                     size={16}
                     strokeWidth={1.75}
@@ -309,6 +285,7 @@ export function MintEditorialDisputeDetail({
             </div>
           ) : null}
 
+          {mediation.error && <p role='alert'>{mediation.error}</p>}
           <div className='card card-pad'>
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
               Status

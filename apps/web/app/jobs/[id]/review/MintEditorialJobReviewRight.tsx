@@ -1,18 +1,11 @@
 'use client';
 
-/**
- * Right column of the unified review surface — payment breakdown,
- * tip chips, Mint guarantee, release CTA, contractor card. Extracted
- * from MintEditorialJobReview to keep the parent under the 500-line
- * cap.
- */
+/** Completion approval actions and contractor summary. */
 
 import React from 'react';
 import Link from 'next/link';
+import { OpenJobDispute } from './OpenJobDispute';
 import { Shield, Star } from 'lucide-react';
-import { formatMoney } from '@/lib/utils/currency';
-
-const TIP_PRESETS = [0, 5, 10, 15, 20];
 
 interface ContractorShape {
   rating?: number;
@@ -21,12 +14,7 @@ interface ContractorShape {
 
 interface Props {
   jobId: string;
-  quoted: number;
-  tip: number;
-  setTip: (n: number) => void;
-  total: number;
   contractorName: string;
-  contractorFirstName: string;
   contractor?: ContractorShape;
   submitting: boolean;
   onSubmit: () => void;
@@ -43,49 +31,9 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '10px 0',
-        borderBottom: '1px dashed var(--me-line-2)',
-      }}
-    >
-      <span style={{ color: 'var(--me-ink-2)' }}>{label}</span>
-      <span style={{ color: 'var(--me-ink)' }}>{value}</span>
-    </div>
-  );
-}
-
-function TotalRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        paddingTop: 14,
-        borderTop: '1px solid var(--me-line)',
-        marginTop: 6,
-        fontWeight: 600,
-        color: 'var(--me-ink)',
-      }}
-    >
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
 export function MintEditorialJobReviewRight({
   jobId,
-  quoted,
-  tip,
-  setTip,
-  total,
   contractorName,
-  contractorFirstName,
   contractor,
   submitting,
   onSubmit,
@@ -95,43 +43,12 @@ export function MintEditorialJobReviewRight({
     <div className='col' style={{ gap: 16 }}>
       <div className='card card-pad-lg'>
         <h2 className='t-h3' style={{ marginBottom: 4 }}>
-          Release payment
+          Approve completed work
         </h2>
         <p className='t-body' style={{ marginBottom: 18 }}>
-          {formatMoney(total)} will move from escrow to {contractorFirstName}.
-          They see it in their account by tomorrow morning.
+          Approval records your acceptance of the completed work. Payment
+          release remains subject to the cooling-off period and final checks.
         </p>
-
-        <div style={{ fontSize: 13, marginBottom: 18 }}>
-          <Row label='Quoted price' value={formatMoney(quoted)} />
-          <Row label='Tip' value={tip > 0 ? formatMoney(tip) : '£0.00'} />
-          <TotalRow label='Total to release' value={formatMoney(total)} />
-        </div>
-
-        <div className='t-meta' style={{ marginBottom: 8 }}>
-          Add a tip
-        </div>
-        <div
-          className='row'
-          style={{ gap: 6, marginBottom: 18, flexWrap: 'wrap' }}
-        >
-          {TIP_PRESETS.map((t) => (
-            <button
-              key={t}
-              type='button'
-              className={'chip ' + (tip === t ? 'on' : '')}
-              onClick={() => setTip(t)}
-              style={{
-                flex: 1,
-                minWidth: 56,
-                justifyContent: 'center',
-                padding: '10px 0',
-              }}
-            >
-              {t === 0 ? 'None' : `£${t}`}
-            </button>
-          ))}
-        </div>
 
         <div
           style={{
@@ -152,14 +69,8 @@ export function MintEditorialJobReviewRight({
             />
             <b style={{ color: 'var(--me-ink)' }}>Mint guarantee active</b>
           </div>
-          Spotted a problem?{' '}
-          <Link
-            href={`/disputes/create?escrowId=${jobId}`}
-            style={{ color: 'var(--me-brand)', fontWeight: 600 }}
-          >
-            Open a dispute instead
-          </Link>{' '}
-          — funds stay held until it&apos;s sorted.
+          Spotted a problem? <OpenJobDispute jobId={jobId} />— funds stay held
+          until it&apos;s sorted.
         </div>
 
         <button
@@ -174,9 +85,7 @@ export function MintEditorialJobReviewRight({
             fontSize: 15,
           }}
         >
-          {submitting
-            ? 'Releasing…'
-            : `Release ${formatMoney(total)} & post review`}
+          {submitting ? 'Submitting…' : 'Approve work & post review'}
         </button>
         <button
           type='button'

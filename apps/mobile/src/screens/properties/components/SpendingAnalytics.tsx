@@ -49,7 +49,7 @@ export const SpendingAnalytics: React.FC<Props> = ({ jobs }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>SPENDING</Text>
+        <Text style={styles.sectionTitle}>COMPLETED-JOB BUDGETS</Text>
         <View style={styles.totalBadge}>
           <Text style={styles.totalText}>
             {'\u00A3'}
@@ -58,6 +58,9 @@ export const SpendingAnalytics: React.FC<Props> = ({ jobs }) => {
         </View>
       </View>
 
+      <Text style={styles.barLabel}>
+        Grouped by job creation month, not payment date.
+      </Text>
       <View style={styles.chartRow}>
         {months.map((m, i) => (
           <View key={i} style={styles.barCol}>
