@@ -3240,3 +3240,11 @@ orchestration, canonical dispute resolution, audit durability and UI state remai
 - Web TypeScript and targeted application-source ESLint passed. No schema change. Real
   browser/native interaction and external MFA/provider verification remain outside this checkpoint's
   evidence; the original remediation and property-operations goals remain active.
+
+### 2026-09-22: MFA navigation interruption
+
+- Abandoning the verification dialog now prevents a late successful response from resuming the
+  parked administrator action.
+- Targeted rendered UI regression checks: 9 tests across 3 files passed (6.58s); application ESLint
+  passed. These use synthetic responses, not a live MFA provider.
+- The broader remediation and property operations goal remains incomplete.

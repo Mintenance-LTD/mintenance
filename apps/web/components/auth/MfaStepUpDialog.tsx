@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
@@ -25,6 +25,13 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -48,6 +55,9 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
         body: JSON.stringify({ code: value, method, maxAgeMinutes: 15 }),
       });
       const data = await response.json().catch(() => null);
+      // Navigating away abandons the parked action even if verification later
+      // succeeds. Never launch a payment mutation from an unmounted dialog.
+      if (!active.current) return;
       if (!response.ok || response.status === 202 || data?.success !== true) {
         const message =
           typeof data?.error === 'string' ? data.error : data?.error?.message;
@@ -61,12 +71,13 @@ export function MfaStepUpDialog({ onCancel, onSuccess }: Props) {
       setCode('');
       onSuccess();
     } catch {
-      setError(
-        'Unable to verify your code. Check your connection and try again.'
-      );
+      if (active.current)
+        setError(
+          'Unable to verify your code. Check your connection and try again.'
+        );
     } finally {
       inFlight.current = false;
-      setSubmitting(false);
+      if (active.current) setSubmitting(false);
     }
   }
 

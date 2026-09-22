@@ -13,6 +13,27 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
+it('does not resume the parked action when verification completes after navigation away', async () => {
+  let finish!: (response: Response) => void;
+  mocks.fetch.mockReturnValue(
+    new Promise<Response>((resolve) => {
+      finish = resolve;
+    })
+  );
+  const onSuccess = vi.fn();
+  const { unmount } = render(
+    <MfaStepUpDialog onCancel={vi.fn()} onSuccess={onSuccess} />
+  );
+  fireEvent.change(screen.getByLabelText('Verification code'), {
+    target: { value: '123456' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Verify and continue' }));
+  unmount();
+  await act(async () => {
+    finish(new Response(JSON.stringify({ success: true })));
+  });
+  expect(onSuccess).not.toHaveBeenCalled();
+});
 it('prevents duplicate verification requests while a backup code is being consumed', async () => {
   let finish!: (response: Response) => void;
   mocks.fetch.mockReturnValue(
