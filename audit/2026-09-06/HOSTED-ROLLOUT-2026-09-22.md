@@ -72,3 +72,19 @@ mostly unimplemented: P0 Inbox/command centre/work orders, then compliance/asset
 documents/history/financials and evidence-backed insights. Final web/mobile/build/browser/provider
 verification and the platform items above remain distinct completion gates. No completion percentage
 or finish date is supported by the evidence.
+
+### Hosted follow-up: customer disputes and mediation
+
+On 22 September, applied 20260922145716_atomic_customer_job_dispute and
+20260922151331_authorize_atomic_mediation_transitions after local diagnostics, full migration replay
+and commits 1506f414f / 886647edf. The mediation dry-run listed exactly one pending migration; no
+seeds or role files. Both push operations exited 0. Supabase MCP metadata checks confirmed both
+original versions are present. The customer-dispute and mediation functions deny execution to
+anon/authenticated; mediation permits service_role. No synthetic records were inserted into
+production. This brings this rollout to 55 application migrations. Application deployment is
+separate and was not performed.
+
+The mediation checkpoint passed 3,829 tests across 366 files (192.93 seconds), plus one
+administrator exact-payment diagnostic added after suite discovery; web types, changed-source lint
+and normal commit hooks passed. Local security advisors still report the existing PostGIS issues.
+This is not overall launch approval.
