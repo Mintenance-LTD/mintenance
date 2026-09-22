@@ -94,3 +94,11 @@ Do not mark the goal complete merely because one workstream or checkpoint passes
 property workflow requirements and applicable local validation must all be accounted for with
 current code/runtime evidence. Preserve the original prohibitions on deployment, hosted mutations,
 live payments and real-user contact.
+
+## Hosted SQL authorization — 22 September 2026
+
+The user now authorizes applying reviewed application migrations to the connected hosted Supabase
+project. This supersedes earlier no-hosted-mutation wording for that purpose. Preserve the
+prohibitions on live payments, unrelated production data edits, destructive resets, real-user
+contact and application deployment. See HOSTED-ROLLOUT-2026-09-22.md for the completed 53-migration
+production rollout and remaining limitations.

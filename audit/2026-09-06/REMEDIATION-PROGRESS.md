@@ -3248,3 +3248,11 @@ orchestration, canonical dispute resolution, audit durability and UI state remai
 - Targeted rendered UI regression checks: 9 tests across 3 files passed (6.58s); application ESLint
   passed. These use synthetic responses, not a live MFA provider.
 - The broader remediation and property operations goal remains incomplete.
+
+### 2026-09-22 — Authorized hosted migration rollout
+
+Applied all 53 pending migration files to MintEnance production after target, deployed-caller and
+aggregate constraint checks. Original versions preserved; final dry-run reports zero pending
+migrations. MCP checked effective lifecycle/profile/RPC privileges and RLS on twelve internal
+tables. See HOSTED-ROLLOUT-2026-09-22.md for exact scope, remaining advisor notices, deployment
+distinction and unfinished goal. No live payment or business mutation RPC was tested.
