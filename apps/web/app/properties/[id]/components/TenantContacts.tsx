@@ -89,8 +89,8 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
         });
         setShowForm(false);
         toast.success(
-          data.invitation_status === 'not_sent'
-            ? 'Contact saved. Invitation was not sent.'
+          ['not_sent', 'unconfirmed'].includes(data.invitation_status)
+            ? 'Contact saved. Invitation delivery is unconfirmed. Check the inbox before retrying in 15 minutes.'
             : 'Tenant added'
         );
       } else {
@@ -120,10 +120,18 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
       });
       const body = await res.json();
       if (!res.ok || body.invitation_sent !== true)
-        throw new Error('Delivery failed');
+        throw new Error(
+          typeof body.error === 'string'
+            ? body.error
+            : 'Invitation delivery was not confirmed. Please check the inbox before retrying.'
+        );
       toast.success('Invitation sent');
-    } catch {
-      toast.error('Invitation was not sent. Please retry.');
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Invitation delivery was not confirmed.'
+      );
     } finally {
       inviting.current = false;
       setSendingInvite(false);

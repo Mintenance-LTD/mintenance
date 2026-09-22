@@ -79,8 +79,11 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       return result;
     },
     onSuccess: (result) => {
-      if (result.invitation_status === 'not_sent')
-        Alert.alert('Contact saved', 'The invitation was not sent.');
+      if (['not_sent', 'unconfirmed'].includes(result.invitation_status ?? ''))
+        Alert.alert(
+          'Contact saved',
+          'Invitation delivery is unconfirmed. Check the inbox before retrying in 15 minutes.'
+        );
       queryClient.invalidateQueries({
         queryKey: ['tenants', user?.id, propertyId],
       });
@@ -103,10 +106,16 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
         { tenantId }
       );
       if (result.invitation_sent !== true)
-        throw new Error('Invitation was not sent');
+        throw new Error('Invitation delivery was not confirmed.');
     },
     onSuccess: () => Alert.alert('Invitation sent'),
-    onError: () => Alert.alert('Invitation was not sent', 'Please retry.'),
+    onError: (error: unknown) =>
+      Alert.alert(
+        'Invitation delivery unconfirmed',
+        error instanceof Error
+          ? error.message
+          : 'Check the inbox before retrying in 15 minutes.'
+      ),
   });
 
   const deleteMutation = useMutation({

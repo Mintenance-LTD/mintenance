@@ -28,6 +28,10 @@ vi.mock('@/lib/services/notifications/NotificationService', () => ({
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
+    rpc: async (name: string) => ({
+      data: name === 'claim_property_invitation' ? 'claim' : true,
+      error: null,
+    }),
     auth: {
       admin: { getUserById: (...args: unknown[]) => m.identity(...args) },
     },
@@ -88,7 +92,7 @@ it('does not claim email delivery when provider declines', async () => {
   expect(await res.json()).toMatchObject({
     tenant: { id: 'contact' },
     invitation_sent: false,
-    invitation_status: 'not_sent',
+    invitation_status: 'unconfirmed',
   });
 });
 it('preserves successful contact creation if email throws', async () => {

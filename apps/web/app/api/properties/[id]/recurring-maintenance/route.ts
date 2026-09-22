@@ -1,4 +1,8 @@
-import { propertyScheduleInput } from '@/lib/services/recurring/schedule-input';
+import { z } from 'zod';
+import {
+  propertyScheduleInput,
+  propertyScheduleUpdate,
+} from '@/lib/services/recurring/schedule-input';
 import { validateRequest } from '@/lib/validation/validator';
 import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
@@ -141,7 +145,7 @@ export const DELETE = withApiHandler(
     const { searchParams } = new URL(req.url);
     const scheduleId = searchParams.get('scheduleId');
 
-    if (!scheduleId) {
+    if (!z.string().uuid().safeParse(scheduleId).success) {
       return NextResponse.json(
         { error: 'scheduleId is required' },
         { status: 400 }
@@ -150,11 +154,13 @@ export const DELETE = withApiHandler(
 
     await getPropertyForManagement(user, propertyId, 'manage_maintenance');
 
-    const { error } = await serverSupabase
+    const { data: removed, error } = await serverSupabase
       .from('recurring_schedules')
       .delete()
       .eq('id', scheduleId)
-      .eq('property_id', propertyId);
+      .eq('property_id', propertyId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json(
@@ -163,7 +169,12 @@ export const DELETE = withApiHandler(
       );
     }
 
-    return NextResponse.json({ success: true });
+    if (!removed)
+      return NextResponse.json(
+        { error: 'Schedule not found' },
+        { status: 404 }
+      );
+    return NextResponse.json({ success: true, scheduleId: removed.id });
   }
 );
 
@@ -172,15 +183,19 @@ export const PATCH = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
-    const { scheduleId, is_active } = body;
-
-    if (!scheduleId || typeof is_active !== 'boolean') {
+    const parsed = propertyScheduleUpdate.safeParse(
+      await req.json().catch(() => null)
+    );
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'scheduleId and is_active required' },
+        { error: 'Check the schedule details and reload before editing.' },
         { status: 400 }
       );
     }
+    const { scheduleId, expected_updated_at, ...changes } = parsed.data;
+    const editsDetails = Object.keys(changes).some(
+      (key) => key !== 'is_active'
+    );
 
     // 2026-07-26: only POST carried the tier gate, so a landlord who
     // downgraded to Free could keep re-arming existing auto-create
@@ -194,18 +209,19 @@ export const PATCH = withApiHandler(
       'manage_maintenance'
     );
 
-    if (is_active) {
+    if (changes.is_active || editsDetails) {
       const tierBlock = await requireLandlordTier(property.owner_id, user.role);
       if (tierBlock) return tierBlock;
     }
 
-    const { data: schedule, error } = await serverSupabase
+    let update = serverSupabase
       .from('recurring_schedules')
-      .update({ is_active })
+      .update(changes)
       .eq('id', scheduleId)
-      .eq('property_id', propertyId)
-      .select()
-      .maybeSingle();
+      .eq('property_id', propertyId);
+    if (expected_updated_at)
+      update = update.eq('updated_at', expected_updated_at);
+    const { data: schedule, error } = await update.select().maybeSingle();
 
     if (error) {
       return NextResponse.json(
@@ -216,8 +232,12 @@ export const PATCH = withApiHandler(
 
     if (!schedule) {
       return NextResponse.json(
-        { error: 'Schedule not found' },
-        { status: 404 }
+        {
+          error: expected_updated_at
+            ? 'Schedule changed or was removed. Reload before editing again.'
+            : 'Schedule not found',
+        },
+        { status: expected_updated_at ? 409 : 404 }
       );
     }
 

@@ -7,6 +7,28 @@ const m = vi.hoisted(() => ({
   error: vi.fn(),
   success: vi.fn(),
 }));
+it('shows invitation cooldown guidance without creating another contact', async () => {
+  m.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      tenants: [
+        { id: 'contact', name: 'Synthetic', email: 'contact@example.invalid' },
+      ],
+    }),
+  });
+  render(<TenantContacts propertyId='property' />);
+  const button = await screen.findByRole('button', { name: 'Send invitation' });
+  m.fetch.mockResolvedValueOnce({
+    ok: false,
+    json: async () => ({ error: 'Wait 15 minutes before retrying.' }),
+  });
+  fireEvent.click(button);
+  await waitFor(() =>
+    expect(m.error).toHaveBeenCalledWith('Wait 15 minutes before retrying.')
+  );
+  expect(m.fetch).toHaveBeenCalledTimes(2);
+  expect(m.success).not.toHaveBeenCalled();
+});
 vi.mock('react-hot-toast', () => ({
   default: { error: m.error, success: m.success },
 }));
@@ -21,12 +43,10 @@ it.each([
 ])(
   'offers recovery instead of an empty $records list after failure',
   async ({ Component, records }) => {
-    m.fetch
-      .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ [records]: [] }),
-      });
+    m.fetch.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ [records]: [] }),
+    });
     render(<Component propertyId='property' />);
     fireEvent.click(
       await screen.findByRole('button', { name: `Retry ${records}` })

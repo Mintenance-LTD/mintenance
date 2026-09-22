@@ -18,6 +18,8 @@ import {
   RefreshControl,
   TouchableOpacity,
   StatusBar,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -169,6 +171,18 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.screenHeader}>
         <Text style={styles.eyebrow}>Payments</Text>
         <Text style={styles.headline}>Payment history</Text>
+        <TouchableOpacity
+          accessibilityRole='link'
+          onPress={() => {
+            Linking.openURL('https://www.mintenance.co.uk/disputes').catch(() =>
+              Alert.alert('Could not open records', 'Please try again.')
+            );
+          }}
+        >
+          <Text style={styles.sub}>
+            Retained dispute records (opens secure website)
+          </Text>
+        </TouchableOpacity>
         <Text style={styles.sub}>
           {allPayments.length} {allPayments.length === 1 ? 'record' : 'records'}
         </Text>

@@ -190,7 +190,10 @@ describe('PATCH /api/properties/[id]/recurring-maintenance — tier gate', () =>
     const { PATCH } =
       await import('@/app/api/properties/[id]/recurring-maintenance/route');
     return PATCH(
-      request('PATCH', { scheduleId: 'sched-1', is_active }),
+      request('PATCH', {
+        scheduleId: '11111111-1111-4111-8111-111111111111',
+        is_active,
+      }),
       segmentData()
     );
   }
@@ -248,7 +251,11 @@ describe('PATCH /api/properties/[id]/recurring-maintenance — tier gate', () =>
     // scheduleId travels as a query param on this handler, not in the body —
     // passing it in the body would 400 and the assertion would pass vacuously.
     const res = await DELETE(
-      request('DELETE', undefined, '?scheduleId=sched-1'),
+      request(
+        'DELETE',
+        undefined,
+        '?scheduleId=11111111-1111-4111-8111-111111111111'
+      ),
       segmentData()
     );
 

@@ -3628,3 +3628,129 @@ goal complete.
   deduplication under concurrent requests; broader property work queues/actions; archived dispute
   evidence access and retention review; browser and physical-device validation. These areas are not
   marked complete.
+
+## Controlled-pilot milestones and invitation hand-off
+
+User requested the six launch gates as the continued goal. Acceptance criteria are recorded in
+CONTROLLED-PILOT-MILESTONES.md; the existing app goal tracker remains stale/blocked and cannot be
+reset through the available goal API. No goal completion is claimed.
+
+Fixed the registration flow that silently ignored tenant-invitation acceptance before email
+verification. It now returns to an explicit invitation page with sign-in/create-account links,
+verification guidance, retry and confirmed success. New invitation emails point to that page; old
+registration invite URLs still return there. The login/MFA redirect validator permits only that
+exact additional same-origin path. Token-bearing page uses no-index/no-referrer metadata.
+
+32 focused tests passed across four files; changed-source lint passed. This checkpoint does not
+verify actual email delivery, the full provider verification/browser journey, or native
+universal-link handling. No SQL changes or live messages were needed.
+
+## 2026-09-22 — Deletion archive and retention review controls
+
+Disputes are now snapshotted before parent cascades remove payment links and participants. The
+restricted archive has no foreign keys back to erasable accounts/jobs. Participant-only reads are
+audited; evidence download URLs are renewed for 600 seconds only for the original scoped objects.
+The web has a retained-record list and read-only view; mobile payment history links to the same
+authenticated website. This browser hand-off is not a native-device verification claim.
+
+Real local HTTP verification passed with three synthetic accounts, real cookie authentication, the
+full /api/user/delete-account endpoint, actual Auth deletion, surviving-party listing/read,
+byte-identical private Storage download, and unrelated-user denial. Cleanup removed only generated
+fixtures. An earlier attempt hit the normal login rate limit; the successful run waited for its
+window rather than changing or bypassing it. Rolled-back SQL also covers contractor/owner/job
+deletion, denied unrelated administrator access, and unbound legacy records.
+
+Added a staff evidence-review queue for both archive types. Decisions require fresh MFA and a
+database administrator check, serialize against the source record, reject stale revisions, and
+append a protected history. Holds require review within 90 days; other review dates are bounded to
+one year. These are review dates, not automatic deletion deadlines. Seven route tests and two
+component tests cover identity binding, errors, MFA payload preservation and input after failure;
+real SQL checks cover privileges, both record types, hold/release history and stale decisions.
+
+Before these latest review additions, full isolated web coverage passed 388 files / 3,952 tests. The
+earlier archive-focused run passed 17 tests; the combined archive/review-service run passed 12.
+Current review type checking and strict changed-source lint passed. Final build, migration replay,
+hosted rollout and final commit evidence are recorded separately when completed.
+
+Still unfinished: durable disposal and hold/disposal race checks, unbound legacy reconciliation,
+identity-verified access after the requesting party closes their own account, provider email and
+Stripe test journeys, broader management acceptance and physical-device checks. Neither the
+retention policy draft nor these passing subsets establish launch readiness.
+
+Final checkpoint verification: sanitized production build completed successfully (512 generated
+pages); 14 final focused retention tests passed. Final isolated schema replay/diff was empty. Both
+migrations are hosted and MCP metadata checks passed. Actual concurrent first reviews produced
+exactly one winner. No real payments, messages or native device tests were performed.
+
+# 2026-09-22 — Concurrent contact creation and invitation delivery
+
+The database now enforces one active case/whitespace-normalized email per property. Both contact
+creation paths return conflict for a lost insertion race. Inactive historical contacts do not block
+a new active record. Hosted preflight found zero conflicting groups; no records were altered to make
+the index fit.
+
+Invitation sending reserves a durable, private attempt before calling the provider. Concurrent and
+recent attempts are denied for 15 minutes; finalization matches the attempt ID. Invitation network
+requests time out after 10 seconds. An interrupted/declined response is tracked as unknown, and
+web/mobile describe unconfirmed delivery and the retry window. No automatic resend is performed.
+This prevents concurrent duplicate sends; it does not promise provider exactly-once delivery after
+an explicit later retry of an uncertain outcome.
+
+Verification: full isolated web coverage passed 391 files / 3,966 tests in 188.59 seconds. Four
+native contact tests passed, including server retry guidance without duplicate creation. Web/native
+types and changed-source strict lint passed. Real independent PostgreSQL connections produced one
+normalized contact and one invitation claim; stale finalization and immediate retry were denied, and
+retry recovered beyond the documented boundary. Full local migration replay/diff was empty. Advisors
+retain the existing PostGIS and duplicate service_areas index findings only.
+
+The new property-management HTTP diagnostic uses five synthetic cookie-authenticated roles and a
+local subscription fixture. Its first run confirmed owner/manager/team-admin contact and schedule
+writes but stopped at a mistaken viewer-contact expectation: private contact access is correctly
+denied to viewers. The expectation was corrected; the remaining viewer/unrelated checks must still
+be rerun after the normal login window. No production fixtures, messages or payments were used.
+
+# 2026-09-22 — Editable recurring maintenance and truthful mutations
+
+Property owners and delegated managers can edit a recurring task's title, frequency and next due
+date from both web and mobile. Edits include the loaded updated_at value and condition the database
+update on it; stale or removed records return conflict rather than overwriting another decision.
+Dates and identifiers are validated. Editing/reactivation use the property owner's entitlement;
+pausing and deletion remain available after downgrade.
+
+Schedule deletion now requires a returned record before confirming success. Both clients check
+mutation confirmations; the web reports non-success pause/delete responses and preserves the visible
+record and edit input. Mobile uses the same API contract. Native styles were extracted to keep the
+component within the repository's size convention.
+
+45 relevant web tests and seven native property tests passed. New coverage includes version-bound
+edits, retained input on conflict, invalid dates, downgrade behavior and missing-record deletion.
+The existing tier test fixture was corrected to use a UUID. Web/native type checks and strict lint
+passed. Real role HTTP verification and final production build are recorded after completion.
+
+Final schedule verification: production build completed successfully. The corrected five-role real
+HTTP test passed all reads/writes and version conflicts, with viewer tenant-contact reads denied as
+intended. Synthetic fixtures were removed and no provider messages/payments were used. No database
+migration was required; existing updated_at triggers supply edit versions.
+
+### Mobile environment isolation checkpoint
+
+The shared environment loader now treats web/root values as defaults and preserves explicitly
+injected mobile settings, including empty strings. This prevents local test/EAS configuration from
+being overwritten with another backend. Seven VM-isolated tests cover all supported mappings and
+private-key exclusion; mobile type checking and strict changed-file lint passed. Tests never read
+real environment contents. A fresh, separate Android audit emulator now boots; native journey
+verification is in progress, not yet a passing readiness gate.
+
+### Native startup and verification checkpoint
+
+A fresh workspace-only Android 36 emulator booted with hardware acceleration. Official SDK 54 Expo
+Go installed successfully. The whole-repository Metro scan left HTTP status requests timing out
+repeatedly; excluding generated outputs alone did not resolve it. Limiting watchFolders to shared
+packages and root dependencies restored HTTP 200 packager-status:running and produced the Android
+bundle in 37.5 seconds (3,654 modules). Mobile source remains its projectRoot; Expo's server root
+remains unchanged. A VM configuration regression checks exclusions and required watch roots.
+
+Expo Go then failed at native startup because the installed Stripe library requires OnrampSdk, which
+that client does not contain. No payment module was stubbed or removed. A proper local Android
+project was generated successfully with no package.json changes; development-client build validation
+is continuing. This is not yet a passed native user journey.

@@ -6,6 +6,7 @@ import { TenantContacts } from '../components/TenantContacts';
 import { TeamAccess } from '../components/TeamAccess';
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockPatch = jest.fn();
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'actor' } }),
 }));
@@ -13,6 +14,7 @@ jest.mock('../../../utils/mobileApiClient', () => ({
   mobileApiClient: {
     get: (...args: unknown[]) => mockGet(...args),
     post: (...args: unknown[]) => mockPost(...args),
+    patch: (...args: unknown[]) => mockPatch(...args),
   },
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
@@ -29,6 +31,25 @@ function show(node: React.ReactElement) {
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+});
+it('shows the server retry guidance without resending or creating a contact', async () => {
+  mockGet.mockResolvedValue({
+    tenants: [
+      { id: 'contact', name: 'Synthetic', email: 'contact@example.invalid' },
+    ],
+  });
+  mockPatch.mockRejectedValue(new Error('Wait 15 minutes before retrying.'));
+  const view = show(<TenantContacts propertyId='property' />);
+  await waitFor(() => expect(view.getByText('Send invitation')).toBeTruthy());
+  await act(async () => fireEvent.press(view.getByText('Send invitation')));
+  await waitFor(() =>
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Invitation delivery unconfirmed',
+      'Wait 15 minutes before retrying.'
+    )
+  );
+  expect(mockPatch).toHaveBeenCalledTimes(1);
+  expect(mockPost).not.toHaveBeenCalled();
 });
 afterEach(() => {
   clients.splice(0).forEach((client) => client.clear());

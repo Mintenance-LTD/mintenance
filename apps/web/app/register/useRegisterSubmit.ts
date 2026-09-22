@@ -128,22 +128,6 @@ export function useRegisterSubmit() {
         }
       }
 
-      // Accept tenant invitation if invite token present
-      if (inviteToken) {
-        try {
-          await fetch('/api/tenant-invite/accept', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-csrf-token': csrfToken,
-            },
-            body: JSON.stringify({ token: inviteToken }),
-          });
-        } catch {
-          // Non-blocking — invitation can be accepted later
-        }
-      }
-
       setSubmitStatus('success');
       setTimeout(() => {
         // 2026-05-25 audit-P0-2: fresh homeowner sign-ups now land on
@@ -154,8 +138,9 @@ export function useRegisterSubmit() {
         // redirects to /dashboard if the flag is already true, so the
         // unconditional homeowner-to-wizard route is idempotent and
         // safe even on repeat sign-ups with the same email.
-        const redirectPath =
-          data.role === 'contractor'
+        const redirectPath = inviteToken
+          ? `/register/invitation?token=${encodeURIComponent(inviteToken)}`
+          : data.role === 'contractor'
             ? '/contractor/dashboard-enhanced'
             : '/onboarding/homeowner';
         router.push(redirectPath);

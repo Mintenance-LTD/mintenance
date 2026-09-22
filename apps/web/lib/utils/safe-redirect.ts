@@ -21,6 +21,7 @@
 
 const ALLOWED_PATH_PREFIXES = [
   '/dashboard',
+  '/disputes',
   '/contractor',
   '/jobs',
   '/profile',
@@ -44,6 +45,7 @@ export function isAllowedRedirect(url: string | null | undefined): boolean {
   try {
     const parsed = new URL(url, window.location.origin);
     if (parsed.origin !== window.location.origin) return false;
+    if (parsed.pathname === '/register/invitation') return true;
     return ALLOWED_PATH_PREFIXES.some((p) => parsed.pathname.startsWith(p));
   } catch {
     return false;

@@ -121,3 +121,30 @@ only this migration, no seeds/roles, with vault updates skipped. MCP confirmed r
 UPDATE and DELETE policies for authenticated clients. No objects were created, changed or removed
 remotely during verification. Service-role retention remains possible; archival retrieval and
 retention review are still open work.
+
+# Retention archive and review rollout — 22 September, 20:35 UTC
+
+Applied only 20260922195828_retain_deleted_dispute_records and
+20260922202042_add_evidence_retention_review after isolated replay/diff returned no changes. Linked
+CLI push skipped vault changes and ran no seeds or roles. No application deployment or production
+fixture/backfill was performed.
+
+Read-only Supabase MCP verification confirmed both migration versions, all four enabled archive
+triggers, RLS on all four new tables, denied authenticated execution of archive/review RPCs, allowed
+service-role review execution, and denied service-role deletion of review history.
+
+Local tests cover actual account-deletion HTTP, private evidence byte preservation and unrelated
+access denial; two independent database connections racing the first review produced exactly one
+success and one revision conflict. Local advisors report existing PostGIS public-schema/RLS and
+duplicate service_areas index findings; none concern the new archive/review objects.
+
+Retention disposal and legacy reconciliation remain unimplemented. Review dates do not authorize
+automatic deletion. Hosted schema verification is not proof of the live web/native journey.
+
+## Invitation concurrency rollout — 22 September, 20:56 UTC
+
+Applied 20260922204117 alone after local concurrent tests and empty replay/diff. No seeds, roles,
+vault changes or backfills. Read-only MCP confirmed migration history, the valid active-email unique
+index, invitation-attempt RLS, denied authenticated claim execution and allowed service execution.
+Full web coverage: 391 files / 3,966 tests; native contact recovery: four tests. Provider delivery
+after an ambiguous response still cannot be claimed exactly once across a later explicit retry.
