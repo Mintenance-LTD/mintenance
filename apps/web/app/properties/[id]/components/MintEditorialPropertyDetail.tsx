@@ -22,7 +22,10 @@ import PropertyAssessments from './PropertyAssessments';
 import { MintEditorialPropertyManage } from './MintEditorialPropertyManage';
 import { MintEditorialPropertyMintSays } from './MintEditorialPropertyMintSays';
 import { MintEditorialPropertySystemsTable } from './MintEditorialPropertySystemsTable';
-import { MintEditorialPropertyDocuments } from './MintEditorialPropertyDocuments';
+import {
+  MintEditorialPropertyDocuments,
+  type PropertyCertificateRecord,
+} from './MintEditorialPropertyDocuments';
 import { MintEditorialPropertyTimeline } from './MintEditorialPropertyTimeline';
 import { MintEditorialPropertyAccess } from './MintEditorialPropertyAccess';
 import {
@@ -47,6 +50,7 @@ interface Props {
   /** Per-property recurring schedules fed into the Maintenance tab.
    *  Empty array renders the empty-state CTA. */
   schedules?: PropertySchedule[];
+  certificates?: PropertyCertificateRecord[];
 }
 
 type Tab =
@@ -93,6 +97,7 @@ export function MintEditorialPropertyDetail({
   jobs,
   stats,
   schedules = [],
+  certificates = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>(initialTabFromUrl);
 
@@ -107,7 +112,7 @@ export function MintEditorialPropertyDetail({
     {
       id: 'documents',
       label: 'Documents',
-      count: jobs.filter((j) => j.status === 'completed').length,
+      count: certificates.length,
     },
     { id: 'timeline', label: 'Timeline' },
     { id: 'access', label: 'Access & contacts' },
@@ -186,7 +191,7 @@ export function MintEditorialPropertyDetail({
       ) : null}
 
       {activeTab === 'documents' ? (
-        <MintEditorialPropertyDocuments propertyId={property.id} jobs={jobs} />
+        <MintEditorialPropertyDocuments certificates={certificates} />
       ) : null}
 
       {activeTab === 'timeline' ? (

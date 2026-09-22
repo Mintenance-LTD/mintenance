@@ -16,8 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { requireConfirmedDisputeAction } from './dispute-action-response';
-import { getCsrfHeaders } from '@/lib/csrf-client';
+import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
+import { useDisputeActions } from './useDisputeActions';
 import { logger } from '@mintenance/shared';
 import {
   DisputesTable,
@@ -78,7 +78,6 @@ export function DisputesClient() {
   const [resolveDialog, setResolveDialog] = useState(false);
   const [resolution, setResolution] = useState<Resolution>('pay_contractor');
   const [resolveNotes, setResolveNotes] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     message: string;
@@ -86,7 +85,13 @@ export function DisputesClient() {
 
   const queryKey = ['admin', 'disputes', { page, statusFilter }];
 
-  const { data, isLoading: loading } = useQuery<DisputesResponse>({
+  const {
+    data,
+    isLoading: loading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery<DisputesResponse>({
     queryKey,
     queryFn: () => fetchDisputes({ page, statusFilter }),
     refetchInterval: 30000,
@@ -100,6 +105,10 @@ export function DisputesClient() {
   });
 
   const disputes = data?.data ?? [];
+  const currentSelection = selectedDispute
+    ? (disputes.find((dispute) => dispute.id === selectedDispute.id) ??
+      selectedDispute)
+    : null;
   const stats: Stats = data?.stats ?? {
     open: 0,
     reviewing: 0,
@@ -123,86 +132,46 @@ export function DisputesClient() {
     setPage(1);
   }, []);
 
-  const handleResolve = async () => {
-    if (!selectedDispute) return;
-    setActionLoading(true);
-    try {
-      const csrfHeaders = await getCsrfHeaders();
-
-      const endpoint =
-        resolution === 'refund_homeowner'
-          ? '/api/admin/escrow/reject'
-          : '/api/admin/escrow/approve';
-
-      const body =
-        resolution === 'refund_homeowner'
-          ? {
-              escrowId: selectedDispute.id,
-              reason: resolveNotes || 'Dispute resolved: refund to homeowner',
-            }
-          : {
-              escrowId: selectedDispute.id,
-              notes:
-                resolveNotes ||
-                `Dispute resolved: ${resolution.replace(/_/g, ' ')}`,
-            };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...csrfHeaders,
-        },
-        body: JSON.stringify(body),
-      });
-
-      await requireConfirmedDisputeAction(response);
-
-      setResolveDialog(false);
-      setSelectedDispute(null);
-      setResolveNotes('');
+  const actions = useDisputeActions({
+    onConfirmed: (kind) => {
+      if (kind === 'resolve') {
+        setResolveDialog(false);
+        setSelectedDispute(null);
+        setResolveNotes('');
+      }
       invalidateDisputes();
-    } catch (error) {
-      logger.error('Error resolving dispute:', error);
-      setErrorDialog({ open: true, message: (error as Error).message });
-    } finally {
-      setActionLoading(false);
-    }
+    },
+    onError: (message) => {
+      invalidateDisputes();
+      setErrorDialog({ open: true, message });
+    },
+  });
+  const actionLoading = actions.loading || actions.requiresVerification;
+
+  const handleResolve = () => {
+    if (!selectedDispute || isError) return;
+    void actions.submit({
+      kind: 'resolve',
+      body: {
+        escrowId: selectedDispute.id,
+        decision: currentSelection?.resolution?.decision ?? resolution,
+        reason:
+          currentSelection?.resolution?.reason ??
+          (resolveNotes.trim() ||
+            `Dispute resolved: ${resolution.replace(/_/g, ' ')}`),
+      },
+    });
   };
 
-  const handleHoldForReview = async (dispute: Dispute) => {
-    setActionLoading(true);
-    try {
-      const csrfHeaders = await getCsrfHeaders();
-
-      const response = await fetch('/api/admin/escrow/hold', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...csrfHeaders,
-        },
-        body: JSON.stringify({
-          escrowId: dispute.id,
-          reason: 'Escalated from disputes dashboard for detailed review',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: 'Action failed' }));
-        throw new Error(errorData.error || 'Failed to hold escrow');
-      }
-
-      invalidateDisputes();
-    } catch (error) {
-      logger.error('Error holding dispute:', error);
-      setErrorDialog({ open: true, message: (error as Error).message });
-    } finally {
-      setActionLoading(false);
-    }
+  const handleHoldForReview = (dispute: Dispute) => {
+    if (isError) return;
+    void actions.submit({
+      kind: 'hold',
+      body: {
+        escrowId: dispute.id,
+        reason: 'Escalated from disputes dashboard for detailed review',
+      },
+    });
   };
 
   return (
@@ -221,6 +190,17 @@ export function DisputesClient() {
       />
 
       {/* Disputes Table */}
+      {isError ? (
+        <div role='alert'>
+          <p>
+            Unable to load current disputes and settlement decisions. Any
+            displayed data may be out of date.
+          </p>
+          <Button onClick={() => void refetch()} disabled={isFetching}>
+            Retry loading disputes
+          </Button>
+        </div>
+      ) : null}
       <AdminCard padding='none' className='overflow-hidden'>
         {loading ? (
           <div
@@ -232,7 +212,7 @@ export function DisputesClient() {
           >
             <Spinner size='lg' />
           </div>
-        ) : disputes.length === 0 ? (
+        ) : isError && !data ? null : disputes.length === 0 ? (
           <div
             role='status'
             style={{
@@ -284,10 +264,12 @@ export function DisputesClient() {
           <>
             <DisputesTable
               disputes={disputes}
-              actionLoading={actionLoading}
+              actionLoading={actionLoading || isError}
               onHoldForReview={handleHoldForReview}
               onResolve={(dispute) => {
                 setSelectedDispute(dispute);
+                setResolution(dispute.resolution?.decision ?? 'pay_contractor');
+                setResolveNotes(dispute.resolution?.reason ?? '');
                 setResolveDialog(true);
               }}
             />
@@ -340,11 +322,13 @@ export function DisputesClient() {
 
       {/* Resolve Dialog */}
       <ResolveDisputeDialog
-        open={resolveDialog}
-        selectedDispute={selectedDispute}
-        resolution={resolution}
-        resolveNotes={resolveNotes}
-        actionLoading={actionLoading}
+        open={
+          resolveDialog && !actions.requiresVerification && !errorDialog.open
+        }
+        selectedDispute={currentSelection}
+        resolution={currentSelection?.resolution?.decision ?? resolution}
+        resolveNotes={currentSelection?.resolution?.reason ?? resolveNotes}
+        actionLoading={actionLoading || isError}
         onOpenChange={(open) => {
           setResolveDialog(open);
           if (!open) {
@@ -356,6 +340,13 @@ export function DisputesClient() {
         onNotesChange={setResolveNotes}
         onResolve={handleResolve}
       />
+
+      {actions.requiresVerification ? (
+        <MfaStepUpDialog
+          onCancel={actions.cancelVerification}
+          onSuccess={actions.resumeAfterVerification}
+        />
+      ) : null}
 
       {/* Error Dialog */}
       <AlertDialog

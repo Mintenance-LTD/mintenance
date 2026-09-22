@@ -1,3 +1,4 @@
+import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -13,23 +14,7 @@ export const GET = withApiHandler(
   async (_req, { user, params }) => {
     const propertyId = params.id;
 
-    // Verify property ownership
-    const { data: property, error: propError } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .single();
-
-    if (propError || !property) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
-
-    if (property.owner_id !== user.id && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    await getPropertyForManagement(user, propertyId, 'view');
 
     // Property Rooms Slice 4 (2026-05-21): include the optional
     // room link + its snapshot name/type so the cert list can show
@@ -57,19 +42,11 @@ export const POST = withApiHandler(
   async (req, { user, params }) => {
     const propertyId = params.id;
 
-    // Verify ownership
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .single();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found or forbidden' },
-        { status: 404 }
-      );
-    }
+    const property = await getPropertyForManagement(
+      user,
+      propertyId,
+      'manage_compliance'
+    );
 
     const validation = await validateRequest(req, upsertComplianceCertSchema);
     if ('headers' in validation) {
@@ -145,7 +122,7 @@ export const POST = withApiHandler(
 
     const certPayload = {
       property_id: propertyId,
-      owner_id: user.id,
+      owner_id: property.owner_id,
       property_room_id: propertyRoomId,
       cert_type,
       certificate_number: certificate_number || null,

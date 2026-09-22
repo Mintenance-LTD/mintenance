@@ -16,7 +16,6 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, ArrowRight } from 'lucide-react';
 import { formatGBP, type JobItem } from './MintEditorialPropertyCards';
 
 type Filter = 'all' | 'jobs' | 'receipts' | 'mint';
@@ -42,50 +41,24 @@ function groupKey(ts: number): string {
 }
 
 function buildItems(jobs: JobItem[]): TimelineItem[] {
-  const items: TimelineItem[] = [];
-  jobs.forEach((j) => {
-    const ts = new Date(j.date).getTime();
-    if (Number.isNaN(ts)) return;
-    if (j.status === 'completed') {
-      items.push({
-        id: `${j.id}-done`,
-        kind: 'done',
-        group: groupKey(ts),
-        ts,
-        title: `${j.title} complete`,
-        body:
-          j.amount > 0
-            ? `${j.contractor || 'Contractor'} · ${formatGBP(j.amount)}`
-            : j.contractor || 'Contractor',
-        href: `/jobs/${j.id}`,
-        tone: 'ok',
-      });
-      items.push({
-        id: `${j.id}-receipt`,
-        kind: 'receipt',
-        group: groupKey(ts),
-        ts: ts - 1000, // sort just below the "complete" event
-        title: 'Receipt filed',
-        body: j.amount > 0 ? formatGBP(j.amount) : 'Receipt',
-        href: `/jobs/${j.id}`,
-        tone: 'mute',
-      });
-    } else {
-      items.push({
-        id: `${j.id}-posted`,
-        kind: 'job',
-        group: groupKey(ts),
-        ts,
-        title: `${j.title} ${j.status === 'in_progress' ? 'in progress' : j.status}`,
-        body: j.contractor
-          ? `${j.contractor}${j.amount > 0 ? ` · ${formatGBP(j.amount)}` : ''}`
-          : `Posted · ${j.category || 'General'}`,
-        href: `/jobs/${j.id}`,
-        tone: j.status === 'in_progress' ? 'warn' : 'mute',
-      });
-    }
-  });
-  return items.sort((a, b) => b.ts - a.ts);
+  return jobs
+    .flatMap((job) => {
+      const ts = new Date(job.date).getTime();
+      if (!Number.isFinite(ts)) return [];
+      return [
+        {
+          id: job.id,
+          kind: 'job' as const,
+          group: groupKey(ts),
+          ts,
+          title: `${job.title} — created`,
+          body: `Current status: ${job.status.replace(/_/g, ' ')}`,
+          href: `/jobs/${encodeURIComponent(job.id)}`,
+          tone: 'mute' as const,
+        },
+      ];
+    })
+    .sort((a, b) => b.ts - a.ts);
 }
 
 function deriveStats(jobs: JobItem[]) {
@@ -160,7 +133,8 @@ export function MintEditorialPropertyTimeline({ jobs }: Props) {
             Everything <em>that&apos;s happened</em>
           </h2>
           <p className='t-body'>
-            Every job, every receipt — one searchable thread.
+            Job creation dates and current statuses. Completion and payment
+            events are not inferred from these dates.
           </p>
         </div>
         <div className='row' style={{ gap: 6, flexWrap: 'wrap' }}>
@@ -168,8 +142,6 @@ export function MintEditorialPropertyTimeline({ jobs }: Props) {
             [
               ['all', 'All'],
               ['jobs', 'Jobs'],
-              ['receipts', 'Receipts'],
-              ['mint', 'Mint notes'],
             ] as [Filter, string][]
           ).map(([key, label]) => (
             <button
@@ -290,11 +262,11 @@ export function MintEditorialPropertyTimeline({ jobs }: Props) {
             {[
               ['Total jobs', String(stats.totalJobs)],
               [
-                'Total spent',
+                'Completed job budgets',
                 stats.totalSpent > 0 ? formatGBP(stats.totalSpent) : '—',
               ],
               [
-                'Avg per job',
+                'Average completed-job budget',
                 stats.avg > 0 ? formatGBP(Math.round(stats.avg)) : '—',
               ],
               [
@@ -319,50 +291,6 @@ export function MintEditorialPropertyTimeline({ jobs }: Props) {
                 <span style={{ fontWeight: 600 }}>{v}</span>
               </div>
             ))}
-          </div>
-
-          <div
-            className='card card-pad'
-            style={{
-              background:
-                'linear-gradient(180deg, var(--me-brand-soft) 0%, var(--me-surface) 60%)',
-              border: '1px solid var(--me-brand-soft)',
-            }}
-          >
-            <div className='row' style={{ gap: 10, marginBottom: 8 }}>
-              <Sparkles
-                size={16}
-                strokeWidth={1.75}
-                style={{ color: 'var(--me-brand)' }}
-              />
-              <h4 className='t-h4'>Mint memory</h4>
-            </div>
-            {stats.fave ? (
-              <p
-                className='t-body'
-                style={{ fontSize: 13, lineHeight: 1.55, margin: 0 }}
-              >
-                You&apos;ve hired <strong>{stats.fave[0]}</strong>{' '}
-                {stats.fave[1]} times. I&apos;ll suggest them by default when
-                you next post a job at this property.
-              </p>
-            ) : (
-              <p
-                className='t-body'
-                style={{ fontSize: 13, lineHeight: 1.55, margin: 0 }}
-              >
-                I haven&apos;t learned this property&apos;s rhythm yet. Once
-                you&apos;ve hired a couple of trades I&apos;ll remember who does
-                what.
-              </p>
-            )}
-            <Link
-              href={`/jobs/create?property_id=${jobs[0]?.id ? '' : ''}`}
-              className='btn btn-ghost btn-sm'
-              style={{ marginTop: 10 }}
-            >
-              See my preferences <ArrowRight size={12} strokeWidth={1.75} />
-            </Link>
           </div>
         </aside>
       </div>

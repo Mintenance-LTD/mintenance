@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  InternalServerError,
+  NotFoundError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
 
@@ -103,7 +107,7 @@ export const GET = withApiHandler(
       job = jobRow ?? null;
     }
 
-    // ── Latest dispute record on the job ─────────────────────────────
+    // ── Dispute record linked to this exact payment ─────────────────────────────
     let disputeRecord: {
       id: string;
       reason: string | null;
@@ -117,14 +121,19 @@ export const GET = withApiHandler(
     } | null = null;
 
     if (jobId) {
-      const { data: drows } = await serverSupabase
+      const { data: drows, error: disputeError } = await serverSupabase
         .from('disputes')
         .select(
-          'id, reason, description, status, resolution, resolved_at, raised_by, against, created_at'
+          'id, reason, description, status, resolution, resolved_at, raised_by, against, created_at, dispute_escrow_links!inner(escrow_id)'
         )
         .eq('job_id', jobId)
+        .eq('dispute_escrow_links.escrow_id', disputeId)
         .order('created_at', { ascending: false })
         .limit(1);
+      if (disputeError)
+        throw new InternalServerError(
+          'Unable to load dispute details. Please retry.'
+        );
       if (drows && drows.length > 0) {
         disputeRecord = drows[0];
       }
@@ -147,10 +156,10 @@ export const GET = withApiHandler(
       );
     }
     const homeowner = escrow.payer_id
-      ? profilesById[escrow.payer_id] ?? null
+      ? (profilesById[escrow.payer_id] ?? null)
       : null;
     const contractor = escrow.payee_id
-      ? profilesById[escrow.payee_id] ?? null
+      ? (profilesById[escrow.payee_id] ?? null)
       : null;
 
     // ── Conversation (real homeowner↔contractor thread on the job) ───
@@ -213,7 +222,9 @@ export const GET = withApiHandler(
     if (jobId) {
       const { data: photoRows } = await serverSupabase
         .from('job_photos_metadata')
-        .select('id, photo_url, photo_type, created_at, quality_score, verified')
+        .select(
+          'id, photo_url, photo_type, created_at, quality_score, verified'
+        )
         .eq('job_id', jobId)
         .order('created_at', { ascending: true });
       evidence = (photoRows ?? []).map((p) => ({
@@ -221,8 +232,7 @@ export const GET = withApiHandler(
         url: (p.photo_url as string) ?? '',
         type: (p.photo_type as string | null) ?? null,
         createdAt: p.created_at as string,
-        qualityScore:
-          p.quality_score != null ? Number(p.quality_score) : null,
+        qualityScore: p.quality_score != null ? Number(p.quality_score) : null,
         verified: (p.verified as boolean | null) ?? null,
       }));
     }

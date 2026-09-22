@@ -32,7 +32,6 @@ export class AdminEscrowHoldService {
           admin_hold_reason: reason,
           admin_hold_at: new Date().toISOString(),
           admin_hold_by: adminId,
-          status: 'admin_hold',
           release_blocked_reason: `Admin hold: ${reason}`,
           updated_at: new Date().toISOString(),
         })
@@ -41,8 +40,7 @@ export class AdminEscrowHoldService {
           'held',
           'awaiting_homeowner_approval',
           'disputed',
-          'admin_review',
-          'admin_hold',
+          'pending_review',
         ])
         .select('id')
         .maybeSingle();
@@ -101,7 +99,7 @@ export class AdminEscrowHoldService {
 
       // Update admin approval status
       const updateData: EscrowUpdateData = {
-        admin_hold_status: 'admin_approved',
+        admin_hold_status: 'none',
         admin_approved_at: new Date().toISOString(),
         admin_hold_by: adminId,
         updated_at: new Date().toISOString(),
@@ -117,7 +115,7 @@ export class AdminEscrowHoldService {
         updateData.release_blocked_reason = null;
       } else {
         // Still waiting for homeowner approval or photo verification
-        updateData.status = 'admin_review';
+        updateData.status = 'held';
         updateData.release_blocked_reason =
           'Waiting for homeowner approval and photo verification';
       }
@@ -126,13 +124,7 @@ export class AdminEscrowHoldService {
         .from('escrow_transactions')
         .update(updateData)
         .eq('id', escrowId)
-        .in('status', [
-          'held',
-          'awaiting_homeowner_approval',
-          'disputed',
-          'admin_review',
-          'admin_hold',
-        ])
+        .in('status', ['held', 'awaiting_homeowner_approval', 'pending_review'])
         .select('id')
         .maybeSingle();
 
@@ -184,7 +176,6 @@ export class AdminEscrowHoldService {
           admin_hold_reason: reason,
           admin_hold_at: new Date().toISOString(),
           admin_hold_by: adminId,
-          status: 'admin_hold',
           release_blocked_reason: `Admin rejection: ${reason}`,
           updated_at: new Date().toISOString(),
         })
@@ -193,8 +184,7 @@ export class AdminEscrowHoldService {
           'held',
           'awaiting_homeowner_approval',
           'disputed',
-          'admin_review',
-          'admin_hold',
+          'pending_review',
         ])
         .select('id')
         .maybeSingle();

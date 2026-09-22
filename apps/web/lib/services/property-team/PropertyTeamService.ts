@@ -1,3 +1,4 @@
+import { InternalServerError } from '@/lib/errors/api-error';
 import { cache } from 'react';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
@@ -63,17 +64,19 @@ const PERMISSION_MATRIX: Record<PropertyRole, Set<Action>> = {
 const getRoleCached = cache(
   async (userId: string, propertyId: string): Promise<PropertyRole | null> => {
     // Check ownership first — short-circuits the 95% owner case.
-    const { data: property } = await serverSupabase
+    const { data: property, error: propertyError } = await serverSupabase
       .from('properties')
       .select('owner_id')
       .eq('id', propertyId)
       .single();
 
+    if (propertyError && propertyError.code !== 'PGRST116')
+      throw new InternalServerError('Unable to verify property access');
     if (!property) return null;
     if (property.owner_id === userId) return 'owner';
 
     // Check team membership
-    const { data: member } = await serverSupabase
+    const { data: member, error: memberError } = await serverSupabase
       .from('property_team_members')
       .select('role')
       .eq('property_id', propertyId)
@@ -81,6 +84,8 @@ const getRoleCached = cache(
       .eq('status', 'accepted')
       .maybeSingle();
 
+    if (memberError)
+      throw new InternalServerError('Unable to verify property membership');
     if (!member) return null;
     return member.role as PropertyRole;
   }

@@ -1,9 +1,16 @@
-const m = vi.hoisted(() => ({ filter: vi.fn(), log: vi.fn() }));
+const m = vi.hoisted(() => ({
+  filter: vi.fn(),
+  log: vi.fn(),
+  update: vi.fn(),
+}));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: () => {
       const q = {
-        update: () => q,
+        update: (value: unknown) => {
+          m.update(value);
+          return q;
+        },
         select: () => q,
         eq: () => q,
         in: m.filter,
@@ -38,7 +45,17 @@ it.each([
       AdminEscrowHoldService[method]('escrow', 'admin', 'Synthetic decision')
     ).rejects.toMatchObject({ statusCode: 409 });
     const allowed = m.filter.mock.calls[0][1];
-    expect(allowed).toContain('disputed');
+    if (method === 'approveEscrowRelease')
+      expect(allowed).not.toContain('disputed');
+    else expect(allowed).toContain('disputed');
+    const update = m.update.mock.calls[0][0];
+    if (method === 'approveEscrowRelease') {
+      expect(update.status).toBe('held');
+      expect(update.admin_hold_status).toBe('none');
+    } else {
+      expect(update).not.toHaveProperty('status');
+      expect(update.admin_hold_status).toBe('admin_hold');
+    }
     for (const state of [
       'release_pending',
       'released',

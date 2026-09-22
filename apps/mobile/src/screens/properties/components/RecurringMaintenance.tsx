@@ -1,7 +1,7 @@
 /**
  * RecurringMaintenance - Manage recurring maintenance schedules for a property
  */
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   TextInput,
   StyleSheet,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../../contexts/AuthContext';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { me } from '../../../design-system/mint-editorial';
 
@@ -52,38 +54,52 @@ const FREQ_LABEL: Record<string, string> = {
 
 export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const creating = useRef(false);
+  const [firstDueDate, setFirstDueDate] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('monthly');
 
-  const { data: schedules = [] } = useQuery({
-    queryKey: ['recurring-maintenance', propertyId],
+  const {
+    data: schedules = [],
+    isLoading,
+    error: loadError,
+    refetch,
+  } = useQuery({
+    queryKey: ['recurring-maintenance', propertyId, user?.id],
+    enabled: !!user,
     queryFn: async () => {
       const res = await mobileApiClient.get<
         { schedules: Schedule[] } | Schedule[]
       >(`/api/properties/${propertyId}/recurring-maintenance`);
-      return Array.isArray(res) ? res : res?.schedules || [];
+      const rows = Array.isArray(res) ? res : res?.schedules;
+      if (!Array.isArray(rows))
+        throw new Error('Schedule response was incomplete');
+      return rows;
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      await mobileApiClient.post(
-        `/api/properties/${propertyId}/recurring-maintenance`,
-        {
-          title: title.trim(),
-          frequency,
-          next_due_date: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-        }
-      );
+      const result = await mobileApiClient.post<{
+        schedule?: { id?: string; property_id?: string };
+      }>(`/api/properties/${propertyId}/recurring-maintenance`, {
+        title: title.trim(),
+        frequency,
+        next_due_date: firstDueDate,
+      });
+      if (!result?.schedule?.id || result.schedule.property_id !== propertyId)
+        throw new Error(
+          'Schedule creation could not be confirmed. Refresh before retrying.'
+        );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['recurring-maintenance', propertyId],
+        queryKey: ['recurring-maintenance', propertyId, user?.id],
       });
       setTitle('');
+      setFirstDueDate('');
       setShowForm(false);
     },
     onError: (err: unknown) => {
@@ -115,13 +131,14 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
             {
               text: 'View plans',
               onPress: () => {
-                try {
-                  type LinkingMod = { openURL: (url: string) => void };
-                  const Linking = require('react-native').Linking as LinkingMod;
-                  Linking.openURL('mintenance://profile/subscription');
-                } catch {
-                  // no-op — user can navigate manually
-                }
+                void Linking.openURL('mintenance://profile/subscription').catch(
+                  () => {
+                    Alert.alert(
+                      'Could not open plans',
+                      'Open Profile, then Subscription to view your plans.'
+                    );
+                  }
+                );
               },
             },
           ]
@@ -151,9 +168,14 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
         }
       );
     },
+    onError: (error: unknown) =>
+      Alert.alert(
+        'Schedule not saved',
+        error instanceof Error ? error.message : 'Please retry.'
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['recurring-maintenance', propertyId],
+        queryKey: ['recurring-maintenance', propertyId, user?.id],
       });
     },
   });
@@ -164,9 +186,14 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
         `/api/properties/${propertyId}/recurring-maintenance?scheduleId=${scheduleId}`
       );
     },
+    onError: (error: unknown) =>
+      Alert.alert(
+        'Schedule not saved',
+        error instanceof Error ? error.message : 'Please retry.'
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['recurring-maintenance', propertyId],
+        queryKey: ['recurring-maintenance', propertyId, user?.id],
       });
     },
   });
@@ -187,14 +214,39 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
       Alert.alert('Required', 'Please enter a title.');
       return;
     }
-    createMutation.mutate();
+    const parsed = new Date(`${firstDueDate}T00:00:00Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ||
+      !Number.isFinite(parsed.getTime()) ||
+      parsed.toISOString().slice(0, 10) !== firstDueDate
+    ) {
+      Alert.alert(
+        'First due date required',
+        'Enter a valid date as YYYY-MM-DD.'
+      );
+      return;
+    }
+    if (creating.current) return;
+    creating.current = true;
+    void createMutation
+      .mutateAsync()
+      .catch(() => undefined)
+      .finally(() => {
+        creating.current = false;
+      });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>RECURRING MAINTENANCE</Text>
-        <TouchableOpacity onPress={() => setShowForm(!showForm)}>
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessibilityLabel={
+            showForm ? 'Close schedule form' : 'Add recurring schedule'
+          }
+          onPress={() => setShowForm(!showForm)}
+        >
           <Ionicons
             name={showForm ? 'close' : 'add-circle-outline'}
             size={22}
@@ -209,9 +261,22 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
             style={styles.input}
             value={title}
             onChangeText={setTitle}
+            accessibilityLabel='Schedule title'
             placeholder='e.g. Boiler Service'
             placeholderTextColor={me.ink3}
           />
+          <TextInput
+            style={styles.input}
+            accessibilityLabel='First due date, YYYY-MM-DD'
+            placeholder='First due date: YYYY-MM-DD'
+            value={firstDueDate}
+            onChangeText={setFirstDueDate}
+            autoCapitalize='none'
+          />
+          <Text style={styles.emptyText}>
+            A job is created when the task becomes due. This does not charge you
+            or book a contractor.
+          </Text>
           <View style={styles.freqRow}>
             {FREQ_OPTIONS.map((f) => (
               <TouchableOpacity
@@ -245,7 +310,17 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
         </View>
       )}
 
-      {schedules.length === 0 && !showForm ? (
+      {isLoading ? (
+        <Text>Loading recurring schedules...</Text>
+      ) : loadError ? (
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessibilityLabel='Retry loading schedules'
+          onPress={() => refetch()}
+        >
+          <Text>Could not load schedules. Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : schedules.length === 0 && !showForm ? (
         <View style={styles.emptyWrap}>
           <Ionicons name='repeat-outline' size={20} color={me.ink3} />
           <Text style={styles.emptyText}>No recurring schedules yet</Text>
@@ -261,6 +336,9 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
           >
             <TouchableOpacity
               style={styles.toggleBtn}
+              disabled={toggleMutation.isPending}
+              accessibilityRole='button'
+              accessibilityLabel={`${s.is_active ? 'Pause' : 'Resume'} ${s.title}`}
               onPress={() =>
                 toggleMutation.mutate({ id: s.id, is_active: s.is_active })
               }

@@ -1,27 +1,6 @@
 'use client';
 
-/**
- * Mint Editorial unified "Job complete · Review & release" surface —
- * canonical from design-system/project/redesign-v2/job-review.html.
- *
- * Combines what was previously two separate steps in the homeowner
- * lifecycle:
- *   1. HomeownerPhotoReview "Approve work" (/api/jobs/[id]/confirm-completion)
- *   2. /jobs/[id]/review "Rate + comment" (/api/jobs/[id]/review)
- *
- * The merged surface lets the homeowner approve, rate, tip, and
- * release in one pass — the canonical mock's stated value prop
- * ("usually 30 seconds and a couple of taps").
- *
- * Both API calls are still made sequentially behind the single
- * primary button. The tip + tag chips are stashed in the review
- * comment as metadata until backend columns ship (same pattern
- * used for dispute outcomes in W1).
- *
- * Sub-components extracted to keep this file under the 500-line cap:
- *   - MintEditorialJobReviewLeft  · stars + tags + comment + photos
- *   - MintEditorialJobReviewRight · breakdown + tip + guarantee + CTAs
- */
+/** Approve the displayed completion and publish a review. Payment settles separately. */
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -30,7 +9,6 @@ import { Check, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
-import { formatMoney } from '@/lib/utils/currency';
 import { MintEditorialJobReviewLeft } from './MintEditorialJobReviewLeft';
 import { MintEditorialJobReviewRight } from './MintEditorialJobReviewRight';
 
@@ -97,14 +75,11 @@ export function MintEditorialJobReview({ job }: Props) {
   const [tags, setTags] = useState<Set<string>>(
     new Set(['On time', 'Tidy', 'Knowledgeable'])
   );
-  const [tip, setTip] = useState<number>(0);
   const [text, setText] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [done, setDone] = useState<boolean>(false);
 
   const tagSet = stars >= 4 ? TAGS_GOOD : TAGS_BAD;
-  const quoted = Number(job.budget) || 0;
-  const total = quoted + tip;
   const conName = contractorName(job.contractor);
   const conFirst = contractorFirstName(job.contractor);
 
@@ -120,7 +95,7 @@ export function MintEditorialJobReview({ job }: Props) {
 
   const handleSubmit = async () => {
     if (stars === 0) {
-      toast.error('Pick a rating before releasing payment.');
+      toast.error('Pick a rating before approving work.');
       return;
     }
     if (text.trim().length < 20) {
@@ -152,13 +127,10 @@ export function MintEditorialJobReview({ job }: Props) {
         );
       }
 
-      // 2. Submit the review. Tags + tip are stashed at the top of
-      //    the comment as machine-readable metadata until the
-      //    `reviews` table grows `tags` and `tip_amount` columns.
+      // Submit the review only after completion approval is confirmed.
       const tagList = Array.from(tags);
       const metaLines: string[] = [];
       if (tagList.length > 0) metaLines.push(`[Tags: ${tagList.join(', ')}]`);
-      if (tip > 0) metaLines.push(`[Tip: ${formatMoney(tip)}]`);
       const body = metaLines.length
         ? `${metaLines.join('\n')}\n\n${text.trim()}`
         : text.trim();
@@ -172,14 +144,22 @@ export function MintEditorialJobReview({ job }: Props) {
           wouldRecommend: stars >= 4,
         }),
       });
-      if (!reviewRes.ok) {
-        const data = await reviewRes.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to post review');
+      const reviewResult = await reviewRes.json().catch(() => null);
+      if (
+        !reviewRes.ok ||
+        reviewResult?.success !== true ||
+        !reviewResult.reviewId
+      ) {
+        throw new Error(
+          typeof reviewResult?.error === 'string'
+            ? reviewResult.error
+            : 'Review publication is not confirmed. Retry the same review.'
+        );
       }
 
       setDone(true);
     } catch (err) {
-      logger.error('Failed to release + review', err);
+      logger.error('Failed to approve work and post review', err);
       toast.error(
         err instanceof Error ? err.message : 'Something went wrong, try again.'
       );
@@ -214,11 +194,7 @@ export function MintEditorialJobReview({ job }: Props) {
           <Check size={36} strokeWidth={1.75} />
         </div>
         <h1 className='t-h1' style={{ fontSize: 48, marginBottom: 12 }}>
-          Released to{' '}
-          <em style={{ color: 'var(--me-brand)', fontStyle: 'italic' }}>
-            {conFirst}
-          </em>
-          .
+          Work approved and review posted.
         </h1>
         <p
           className='t-body'
@@ -229,8 +205,8 @@ export function MintEditorialJobReview({ job }: Props) {
             lineHeight: 1.5,
           }}
         >
-          {formatMoney(total)} on its way. Your review is live on {conFirst}
-          &apos;s profile.
+          Your review is live on {conFirst}&apos;s profile. Payment release
+          remains subject to the cooling-off period and final checks.
         </p>
         <div className='row' style={{ justifyContent: 'center', gap: 10 }}>
           <Link href='/dashboard' className='btn btn-primary'>
@@ -324,9 +300,8 @@ export function MintEditorialJobReview({ job }: Props) {
               lineHeight: 1.5,
             }}
           >
-            {conFirst} marked the work complete. We&apos;re holding{' '}
-            <b>{formatMoney(quoted)}</b> in escrow until you confirm — usually
-            30 seconds and a couple of taps.
+            {conFirst} marked the work complete. Review the work before
+            approving it and sharing your experience.
           </p>
           <div
             className='row'
@@ -347,7 +322,6 @@ export function MintEditorialJobReview({ job }: Props) {
                 : ''}
             </span>
             <span>· {job.title}</span>
-            <span>· {formatMoney(quoted)} in escrow</span>
           </div>
         </div>
         <div
@@ -390,12 +364,7 @@ export function MintEditorialJobReview({ job }: Props) {
         />
         <MintEditorialJobReviewRight
           jobId={job.id}
-          quoted={quoted}
-          tip={tip}
-          setTip={setTip}
-          total={total}
           contractorName={conName}
-          contractorFirstName={conFirst}
           contractor={job.contractor}
           submitting={submitting}
           onSubmit={handleSubmit}
