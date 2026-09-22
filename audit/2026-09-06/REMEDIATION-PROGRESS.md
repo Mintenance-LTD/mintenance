@@ -3256,3 +3256,35 @@ aggregate constraint checks. Original versions preserved; final dry-run reports 
 migrations. MCP checked effective lifecycle/profile/RPC privileges and RLS on twelve internal
 tables. See HOSTED-ROLLOUT-2026-09-22.md for exact scope, remaining advisor notices, deployment
 distinction and unfinished goal. No live payment or business mutation RPC was tested.
+
+### 2026-09-22 — Atomic customer disputes and exact payment views
+
+- Replaced the job-dispute route's independent status/record/notification writes with a service-only
+  transaction. It verifies current customer authority under the job lock, selects one eligible
+  payment, invokes canonical dispute creation, updates the job, and persists distinct participant
+  notifications atomically. The actual homeowner remains the claimant when payment is delegated. A
+  guarded database transition permits completed/in-progress jobs to enter disputed only with an
+  existing linked open dispute and disputed escrow.
+- Old response cache entries are separated by operation name because they did not establish a hold.
+  The API requires exactly one matching transaction result and returns the escrow route ID
+  separately from the canonical dispute record ID. No unsupported delivery or 48-hour resolution
+  promise remains in this route.
+- The dispute GET route now filters the canonical record through its exact escrow link. Current
+  homeowners can view delegated-payment disputes only after matching current job
+  ownership/payer/contractor. Query errors remain errors instead of empty details. Legacy unbound
+  records are not guessed from job recency.
+- Real isolated rollback tests passed owner/payer creation, unrelated-user denial, changed-payload
+  rejection, replay, notification failure rollback, transfer-state exclusion and active-escrow
+  uniqueness. The existing dispute settlement diagnostic also passed.
+- The two-connection diagnostic observed an overlapping retry waiting on the original lock, then
+  returning the same dispute with exactly three participant notifications. Its real REST query
+  excluded another payer's dispute on the same job. PostgREST represents the unique dispute link as
+  an object; the diagnostic asserts that actual shape. Fixtures were cleaned up.
+- Focused API tests: 30 tests / 3 files passed. Full web coverage: 3802 tests / 363 files passed,
+  179.50 seconds. Web types and targeted application ESLint passed; test files are excluded by
+  repository ESLint configuration. Full isolated migration replay returned an empty diff; local
+  warning/error advisors still report only the previously recorded PostGIS items.
+- Follow-up discovered while tracing the consumer: mediation requests lack participant checks and
+  use a placeholder admin notification. Repair is next. Detail-page loading/error and timestamp
+  presentation also require completion review. No claim of full dispute journey or overall goal
+  completion is made.

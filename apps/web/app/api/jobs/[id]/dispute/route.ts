@@ -1,27 +1,13 @@
-/**
- * POST /api/jobs/:id/dispute
- * Homeowner disputes the job completion (disagrees with quality of work).
- * Transitions job: completed|in_progress → disputed
- * Escrow remains held until dispute is resolved.
- */
-
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import {
-  logger,
-  JOB_STATUS,
-  validateStatusTransition,
-  type JobStatus,
-} from '@mintenance/shared';
-import { notifyJobStatusChange } from '@/lib/services/notifications/NotificationHelper';
-import { NotificationService } from '@/lib/services/notifications/NotificationService';
-import {
-  BadRequestError,
+  ConflictError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
 } from '@/lib/errors/api-error';
-import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import {
   getIdempotencyKeyFromRequest,
@@ -30,196 +16,117 @@ import {
   releaseOnError,
 } from '@/lib/idempotency';
 
-const disputeSchema = z.object({
-  reason: z
-    .string()
-    .min(20, 'Please describe the dispute in detail (at least 20 characters)')
-    .max(2000),
-  category: z.enum([
-    'quality',
-    'incomplete',
-    'damage',
-    'different_from_agreed',
-    'other',
-  ]),
-});
+const disputeSchema = z
+  .object({
+    reason: z
+      .string()
+      .trim()
+      .min(20, 'Please describe the dispute in detail (at least 20 characters)')
+      .max(2000),
+    category: z.enum([
+      'quality',
+      'incomplete',
+      'damage',
+      'different_from_agreed',
+      'other',
+    ]),
+  })
+  .strict();
+const resultSchema = z
+  .array(
+    z.object({
+      dispute_id: z.string().uuid(),
+      job_id: z.string().uuid(),
+      escrow_id: z.string().uuid(),
+    })
+  )
+  .length(1);
+// Separate old cached responses, which did not establish a payment hold.
+const operation = 'job_dispute_atomic';
 
 export const POST = withApiHandler(
   { roles: ['homeowner'], rateLimit: { maxRequests: 10 } },
   async (request, { user, params }) => {
     const jobId = params.id as string;
-
-    // Validate input
     const validation = await validateRequest(request, disputeSchema);
     if ('headers' in validation) return validation;
-    const { reason, category } = validation.data;
-
-    // The primary homeowner is stored on the job, while delegated payment
-    // authority is stored as payer_user_id. Fetch both and enforce the
-    // complete customer authorization before changing job state.
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, payer_user_id, contractor_id, status, title')
+      .select('id, homeowner_id, payer_user_id')
       .eq('id', jobId)
       .single();
-
-    if (jobError || !job) {
-      throw new NotFoundError('Job not found');
-    }
-
+    if (jobError && jobError.code !== 'PGRST116')
+      throw new InternalServerError(
+        'Unable to check job access. Please retry.'
+      );
+    if (!job) throw new NotFoundError('Job not found');
     if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
       throw new ForbiddenError(
         'Only the homeowner or designated payer can file a dispute'
       );
     }
-
-    // Idempotency — without it, a network retry would create
-    // duplicate `disputes` rows (no unique constraint by job_id +
-    // raised_by) and re-fan out two notifications to the contractor.
-    // Status flip itself is guarded by validateStatusTransition but
-    // the side-effects below can still double-fire on retry.
-    // AUDIT_PUNCH_LIST P2 #75.
-    const idempotencyKey = getIdempotencyKeyFromRequest(
+    const key = getIdempotencyKeyFromRequest(
       request,
-      'job_dispute',
+      operation,
       user.id,
       jobId
     );
-    const idem = await checkIdempotency<{
-      success: boolean;
-      message: string;
-    }>(idempotencyKey, 'job_dispute', true, {
+    const claim = await checkIdempotency(key, operation, true, {
       userId: user.id,
       request: { jobId, ...validation.data },
     });
-    if (idem?.isDuplicate && idem.cachedResult) {
-      logger.info('Duplicate job_dispute — returning cached result', {
-        service: 'jobs',
-        idempotencyKey,
-        userId: user.id,
-        jobId,
-      });
-      return NextResponse.json(idem.cachedResult);
-    }
-
-    return await releaseOnError(
-      idempotencyKey,
-      'job_dispute',
+    if (claim?.isDuplicate && claim.cachedResult)
+      return NextResponse.json(claim.cachedResult);
+    return releaseOnError(
+      key,
+      operation,
       async () => {
-        // Validate state machine transition
-        validateStatusTransition(
-          job.status as JobStatus,
-          JOB_STATUS.DISPUTED as JobStatus
+        const { data, error } = await serverSupabase.rpc(
+          'create_customer_job_dispute',
+          {
+            p_job_id: jobId,
+            p_actor_id: user.id,
+            p_reason: validation.data.reason,
+            p_category: validation.data.category,
+          }
         );
-
-        if (!job.contractor_id) {
-          throw new BadRequestError('No contractor assigned to this job');
-        }
-
-        const contractorId = job.contractor_id;
-
-        // Update job status to disputed
-        const { error: updateError } = await serverSupabase
-          .from('jobs')
-          .update({
-            status: JOB_STATUS.DISPUTED,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', jobId);
-
-        if (updateError) {
-          logger.error('Failed to update job to disputed', updateError, {
-            service: 'jobs',
-            jobId,
-          });
-          throw new BadRequestError(
-            'Failed to file dispute. Please try again.'
+        if (error?.code === '42501')
+          throw new ForbiddenError('Your access to this job has changed.');
+        if (error?.code === 'P0002') throw new NotFoundError('Job not found');
+        if (error?.code === '23514')
+          throw new ConflictError(
+            'This job does not have a single payment available for this dispute. Refresh the job or contact support.'
+          );
+        if (error)
+          throw new InternalServerError(
+            'Unable to file the dispute. Please retry.'
+          );
+        const parsed = resultSchema.safeParse(data);
+        if (!parsed.success || parsed.data[0].job_id !== jobId) {
+          throw new InternalServerError(
+            'Dispute confirmation was incomplete. Retry to check the same request.'
           );
         }
-
-        // Create a dispute record for tracking.
-        // 2026-05-09: corrected column names to match the live `disputes`
-        // schema (raised_by/against/description). Prior insert silently
-        // failed for every dispute because it referenced non-existent
-        // columns (homeowner_id/contractor_id/category) and the catch
-        // block swallowed the error.
-        try {
-          await serverSupabase.from('disputes').insert({
-            job_id: jobId,
-            raised_by: user.id,
-            against: contractorId,
-            reason,
-            description: `Category: ${category}`,
-            status: 'open',
-          });
-        } catch (disputeInsertError) {
-          // Non-fatal — the job status is already updated
-          logger.error('Failed to create dispute record', disputeInsertError, {
-            service: 'jobs',
-            jobId,
-          });
-        }
-
-        // Notify both parties
-        await notifyJobStatusChange({
-          jobId,
-          jobTitle: job.title || 'Job',
-          oldStatus: job.status,
-          newStatus: JOB_STATUS.DISPUTED,
-          homeownerId: user.id,
-          contractorId,
-        });
-
-        // Specific notification to contractor about the dispute
-        try {
-          // 2026-05-21 Mint Editorial voice — dispute is a heavy moment;
-          // calm, factual, action-led. Funds-held line reassures the
-          // contractor that payment isn't gone, just paused.
-          await NotificationService.createNotification({
-            userId: contractorId,
-            title: `${job.title || 'A job'} — dispute opened`,
-            message: `Funds stay held while we mediate (48-hour SLA). Open the job to read the issue and respond.`,
-            type: 'job_disputed',
-            actionUrl: `/contractor/jobs/${jobId}`,
-          });
-        } catch (notificationError) {
-          logger.error(
-            'Failed to send dispute notification',
-            notificationError,
-            {
-              service: 'jobs',
-              jobId,
-            }
-          );
-        }
-
-        logger.info('Job disputed by homeowner', {
-          service: 'jobs',
-          jobId,
-          homeownerId: user.id,
-          contractorId,
-          category,
-          previousStatus: job.status,
-        });
-
-        const responseData = {
+        const result = parsed.data[0];
+        const response = {
           success: true,
+          disputeId: result.escrow_id,
+          disputeRecordId: result.dispute_id,
+          escrowId: result.escrow_id,
           message:
-            'Dispute filed. The contractor has been notified and escrow funds remain held until resolution.',
+            'Dispute filed. Payment release is paused while it is reviewed.',
         };
-
         await storeIdempotencyResult(
-          idempotencyKey,
-          'job_dispute',
-          responseData,
+          key,
+          operation,
+          response,
           user.id,
-          { jobId, contractorId, category },
-          idem?.ownership
+          { jobId, disputeId: result.dispute_id },
+          claim?.ownership
         );
-
-        return NextResponse.json(responseData);
+        return NextResponse.json(response);
       },
-      idem?.ownership
+      claim?.ownership
     );
   }
 );
