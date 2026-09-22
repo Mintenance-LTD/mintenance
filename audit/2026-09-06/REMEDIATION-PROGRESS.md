@@ -3628,3 +3628,19 @@ goal complete.
   deduplication under concurrent requests; broader property work queues/actions; archived dispute
   evidence access and retention review; browser and physical-device validation. These areas are not
   marked complete.
+
+## Controlled-pilot milestones and invitation hand-off
+
+User requested the six launch gates as the continued goal. Acceptance criteria are recorded in
+CONTROLLED-PILOT-MILESTONES.md; the existing app goal tracker remains stale/blocked and cannot be
+reset through the available goal API. No goal completion is claimed.
+
+Fixed the registration flow that silently ignored tenant-invitation acceptance before email
+verification. It now returns to an explicit invitation page with sign-in/create-account links,
+verification guidance, retry and confirmed success. New invitation emails point to that page; old
+registration invite URLs still return there. The login/MFA redirect validator permits only that
+exact additional same-origin path. Token-bearing page uses no-index/no-referrer metadata.
+
+32 focused tests passed across four files; changed-source lint passed. This checkpoint does not
+verify actual email delivery, the full provider verification/browser journey, or native
+universal-link handling. No SQL changes or live messages were needed.

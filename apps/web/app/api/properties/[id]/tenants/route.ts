@@ -301,7 +301,7 @@ export const POST = withApiHandler(
             propertyAddress:
               property.address || property.name || 'your property',
             landlordName: 'Your property manager',
-            inviteUrl: `${baseUrl}/register?invite=${tenant.invitation_token}`,
+            inviteUrl: `${baseUrl}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
           }
         );
         if (invitationSent) {
@@ -447,7 +447,7 @@ export const PATCH = withApiHandler(
         tenantName: tenant.name,
         propertyAddress: 'your property',
         landlordName: 'Your property manager',
-        inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk'}/register?invite=${tenant.invitation_token}`,
+        inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk'}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
       });
       if (sent)
         await serverSupabase
