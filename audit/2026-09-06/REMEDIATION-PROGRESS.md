@@ -3740,3 +3740,17 @@ being overwritten with another backend. Seven VM-isolated tests cover all suppor
 private-key exclusion; mobile type checking and strict changed-file lint passed. Tests never read
 real environment contents. A fresh, separate Android audit emulator now boots; native journey
 verification is in progress, not yet a passing readiness gate.
+
+### Native startup and verification checkpoint
+
+A fresh workspace-only Android 36 emulator booted with hardware acceleration. Official SDK 54 Expo
+Go installed successfully. The whole-repository Metro scan left HTTP status requests timing out
+repeatedly; excluding generated outputs alone did not resolve it. Limiting watchFolders to shared
+packages and root dependencies restored HTTP 200 packager-status:running and produced the Android
+bundle in 37.5 seconds (3,654 modules). Mobile source remains its projectRoot; Expo's server root
+remains unchanged. A VM configuration regression checks exclusions and required watch roots.
+
+Expo Go then failed at native startup because the installed Stripe library requires OnrampSdk, which
+that client does not contain. No payment module was stubbed or removed. A proper local Android
+project was generated successfully with no package.json changes; development-client build validation
+is continuing. This is not yet a passed native user journey.
