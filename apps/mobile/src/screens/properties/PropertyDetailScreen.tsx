@@ -122,6 +122,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isFavorite, setIsFavorite] = useState(false);
   const [jobFilter, setJobFilter] = useState<'open' | 'all'>('open');
@@ -444,6 +445,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         onRetry={() => goBackSafe(navigation, 'Properties')}
       />
     );
+  if (accessDenied)
+    return (
+      <ErrorView
+        message='Property access is no longer available.'
+        onRetry={() => goBackSafe(navigation, 'Properties')}
+      />
+    );
   if (isLoading) return <LoadingSpinner message='Loading property...' />;
   if (error)
     return <ErrorView message='Failed to load property' onRetry={refetch} />;
@@ -715,6 +723,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       <PropertyAccessSection
         propertyId={propertyId}
         canEditKeySafeCode={canEditKeySafeCode}
+        onAccessDenied={() => setAccessDenied(true)}
         initial={{
           access_mode:
             (p?.access_mode as

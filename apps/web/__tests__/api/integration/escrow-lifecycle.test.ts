@@ -1535,6 +1535,7 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     auditInserts: Array<Record<string, unknown>>;
     refundedMinor?: number;
     feeOnlyCompleted?: boolean;
+    releasePending?: boolean;
     finalUpdateResult?: { data: unknown; error: unknown };
   }) {
     mocks.supabaseRpc.mockImplementation(async (name, params) => {
@@ -1622,6 +1623,9 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
     // the way so the CAS/transfer/final sequence is isolated.
     const escrow = {
       ...baseEscrowRow('held'),
+      ...(opts.releasePending
+        ? { status: 'release_pending', reconciliation_id: ESCROW_ID }
+        : {}),
       ...(opts.feeOnlyCompleted
         ? { status: 'completed', contractor_payout: 0 }
         : {}),
@@ -1784,6 +1788,35 @@ describe('Escrow Lifecycle - 5b. CAS ordering + reconciliation depth', () => {
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
   }
+
+  it('lets a pending payout reach the guarded recovery claim despite the legacy state validator', async () => {
+    setupFullReleaseMocks({
+      orderLog: [],
+      casEqArgs: [],
+      auditInserts: [],
+      releasePending: true,
+    });
+    mocks.validateTransition.mockReturnValue({
+      valid: false,
+      error: 'Unknown pending release',
+    });
+    // A refused claim must never reach Stripe, even when the API admits a retry.
+    mocks.supabaseRpc.mockResolvedValue({ data: [], error: null });
+    const response = await releaseEscrowPOST(
+      createPostRequest('http://localhost/api/payments/release-escrow', {
+        escrowTransactionId: ESCROW_ID,
+        releaseReason: 'job_completed',
+      }),
+      noSegment()
+    );
+    expect(response.status).toBe(409);
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith('claim_escrow_release', {
+      p_escrow_id: ESCROW_ID,
+      p_release_reason: 'job_completed',
+      p_reconciliation_id: ESCROW_ID,
+    });
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
+  });
 
   it('recovers a committed fee-only settlement without claiming or transferring again', async () => {
     setupFullReleaseMocks({

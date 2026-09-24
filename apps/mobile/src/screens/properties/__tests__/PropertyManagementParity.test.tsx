@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ComplianceCertificates } from '../components/ComplianceCertificates';
 import { RecurringMaintenance } from '../components/RecurringMaintenance';
 import { SpendingAnalytics } from '../components/SpendingAnalytics';
+import { PropertyAccessSection } from '../components/PropertyAccessSection';
 import {
   isOpenPropertyJob,
   PROPERTY_JOB_STATUS_LABELS,
@@ -41,6 +42,38 @@ beforeEach(() => {
   mockUser.id = 'owner';
 });
 afterEach(() => clients.splice(0).forEach((client) => client.clear()));
+it('clears native access fields and notifies the parent when a stale save is forbidden', async () => {
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const denied = jest.fn();
+  mockPatch.mockRejectedValue(
+    Object.assign(new Error('Forbidden'), { statusCode: 403 })
+  );
+  const view = wrap(
+    <PropertyAccessSection
+      propertyId='property'
+      initial={{ access_notes: 'Private instructions' }}
+      onAccessDenied={denied}
+    />
+  );
+  clients[0].setQueryData(
+    ['property-contacts', 'property'],
+    [{ name: 'Private contact' }]
+  );
+  fireEvent.changeText(
+    view.getByPlaceholderText('e.g. Side gate, watch out for the cat.'),
+    'Edited instructions'
+  );
+  await act(async () => fireEvent.press(view.getByText('Save access details')));
+  await waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
+  expect(
+    view.getByPlaceholderText('e.g. Side gate, watch out for the cat.').props
+      .value
+  ).toBe('');
+  expect(
+    clients[0].getQueryData(['property-contacts', 'property'])
+  ).toBeUndefined();
+});
+
 it('preserves a native schedule edit after a revision conflict and sends the loaded version', async () => {
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   mockGet.mockResolvedValue({
