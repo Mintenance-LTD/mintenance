@@ -3853,3 +3853,17 @@ Read-only live check: the user-supplied dashboard URL opened in the existing Edg
 navigation, project cards and property actions. No production data was changed. This establishes
 page access, not completion of payment or management journeys. Supabase MCP also verified the hosted
 contact FK definitions directly: property deletion CASCADE; deleted user reference SET NULL.
+
+### September 24 — dashboard phone layout
+
+The user's live dashboard was readable at desktop width, but Edge at 390 × 844 showed four narrow
+metric columns and a jobs/sidebar split that caused severe wrapping and overlapping Verify controls.
+The cause was unconditional inline grid columns and a non-wrapping greeting/actions row. Replaced
+those inline layouts with a component-scoped stylesheet: wrapping greeting/actions, two metric
+columns and one content column below 1200px; the desktop four/two-column layout remains above it.
+
+A synthetic browser preview rendered the actual dashboard, jobs and side-panel components with Next
+Link and the authenticated shell substituted solely for static rendering. At phone width the cards
+and property action buttons are readable without the prior overlap. This is layout evidence, not
+authentication or data-flow verification. The real live menu opened; browser viewport overrides were
+reset. No production content or configuration was edited.

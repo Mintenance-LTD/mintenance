@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Plus, FileText } from 'lucide-react';
+import styles from './HomeownerDashboard.module.css';
 import { MintEditorialShell } from './mint-editorial/MintEditorialShell';
 import { MintEditorialJobsPanel } from './mint-editorial/MintEditorialJobsPanel';
 import { MintEditorialSidePanel } from './mint-editorial/MintEditorialSidePanel';
@@ -45,7 +46,7 @@ export function MintEditorialHomeownerDashboard({
       profileImageUrl={homeowner.avatar}
     >
       {/* Greeting */}
-      <div className='between' style={{ marginBottom: 22 }}>
+      <div className={styles.greeting}>
         <div className='col' style={{ gap: 6 }}>
           <div className='t-eyebrow'>{today}</div>
           <h1 className='t-h1'>Good day, {firstName}.</h1>
@@ -66,14 +67,7 @@ export function MintEditorialHomeownerDashboard({
       </div>
 
       {/* KPI row */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-          gap: 14,
-          marginBottom: 22,
-        }}
-      >
+      <div className={styles.metrics}>
         <div className='kpi'>
           <div className='label'>Active jobs</div>
           <div className='num'>{metrics.activeJobs}</div>
@@ -109,13 +103,7 @@ export function MintEditorialHomeownerDashboard({
       </div>
 
       {/* Two-column layout */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)',
-          gap: 18,
-        }}
-      >
+      <div className={styles.content}>
         <MintEditorialJobsPanel activeJobs={activeJobs} />
         <MintEditorialSidePanel
           topBid={topBid}
