@@ -16,6 +16,11 @@ import { isValidJwtFormat, extractBearerToken } from '../middleware/helpers';
 import { NextRequest } from 'next/server';
 
 describe('isPublicRoute', () => {
+  it('permits only the exact email confirmation callback before login', () => {
+    expect(isPublicRoute('/auth/callback')).toBe(true);
+    expect(isPublicRoute('/auth/callback/private')).toBe(false);
+    expect(isPublicRoute('/auth/settings')).toBe(false);
+  });
   it('allows only generated tenant reporting token paths without a login', () => {
     const token = '0123456789abcdef0123456789abcdef';
     expect(isPublicRoute(`/report/${token}`)).toBe(true);

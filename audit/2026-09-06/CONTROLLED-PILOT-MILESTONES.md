@@ -33,27 +33,34 @@ live payments, real-user messages, production fixtures, or application deploymen
 
 ## Current evidence
 
-See REMEDIATION-PROGRESS.md and HOSTED-ROLLOUT-2026-09-22.md for exact completed checks. The last
-completed full web coverage run passed 393 files / 3,985 tests on September 24, including the latest
-schedule and invitation changes. The September 22 follow-up coverage run was stopped at the user's
-pause request; its partial output was not counted as a pass.
+See REMEDIATION-PROGRESS.md and HOSTED-ROLLOUT-2026-09-22.md for exact completed checks. The latest
+full web coverage run passed 397 files / 4,013 tests on September 24 after central
+email-confirmation repairs; subsequent verification recovery has focused route/UI and real local
+HTTP coverage. The September 22 follow-up coverage run was stopped at the user's pause request; its
+partial output was not counted as a pass.
 
 ## Active next slice
+
+Latest September 24 checkpoint: email callback proxy access and redirect handling repaired; real
+local Auth token consumption/profile synchronization/replay checks passed. Android native
+build/install now succeeds. Launch correctly blocks the local HTTP server; trusted HTTPS staging and
+Firebase/test-provider configuration are still needed. See EMAIL-CALLBACK-AND-NATIVE-2026-09-24.md.
 
 September 24 follow-up: reviewed database-evidence disposal is implemented, locally tested and its
 schema applied to hosted Supabase. See EVIDENCE-DISPOSAL-2026-09-24.md. External files/processors,
 backup reconciliation and closed-account identity/export remain open. Stripe rejected the configured
-test key (401). The Java socket blocker is resolved; native compilation now fails on Windows C++
-generated path lengths. Native acceptance and the overall readiness goal remain unfinished.
+test key (401). Java and Windows compiler-path blockers are resolved; native build/install succeeds,
+but launch rejects untrusted local HTTP. Native acceptance and the overall readiness goal remain
+unfinished.
 
 Invitation acceptance retries and contact deletion verification/rollout are complete and pushed in
 17b9596c9. Continue retention disposal/reconciliation and the remaining manager role journeys.
 Invitation delivery claims and cooldowns are implemented and tested, but real
 delivery/verification/MFA acceptance remains open. Provider test payments still need usable Stripe
 test credentials. An isolated Android emulator boots and the native bundle compiles; Expo Go lacks
-the installed Stripe OnrampSdk native module. A proper development-client build currently fails
-before compilation with Java loopback/Unix-domain socket errors, reproduced independently in a
-minimal Java program. Native acceptance remains unverified.
+the installed Stripe OnrampSdk native module. The development-client build now succeeds after
+resolving Java socket and Windows compiler-path errors; its launch requires trusted HTTPS test
+transport. Native acceptance remains unverified.
 
 The staff archive queue now supports stable continuation beyond the first 50 records per kind.
 Fourteen focused route/UI tests and a real local REST diagnostic covering 105 contracts and 53
@@ -94,3 +101,23 @@ responsive stacking is repaired and visually checked in a synthetic component pr
 Full web coverage passed 393 files / 3,985 tests before the final layout-only change. Subsequent
 public-route checks passed 33 focused tests, native reporting 3 tests, and commit hooks checked web
 and mobile types and staged source. Public-launch readiness remains unestablished.
+
+### 24 September confirmation and native checkpoint
+
+The Android development client now builds and installs; the earlier Java/CMake blockers are resolved
+using ignored local build configuration. Launch rejects local HTTP correctly. The user confirmed no
+HTTPS staging environment exists. Pixel_8_Pro is running, but native journeys and push delivery
+remain unverified.
+
+Real local registration exposed and now closes an email-confirmation bypass, including previously
+issued unconfirmed cookies and bearer identities. Local captured mail confirmation and subsequent
+login pass. Verification resend is available before login and no longer reports provider failures as
+success. Full web coverage after the central authentication changes passed 397 files / 4,013 tests;
+subsequent recovery changes have separate focused route/UI and real local HTTP validation. See
+EMAIL-CALLBACK-AND-NATIVE-2026-09-24.md for exact scope.
+
+The expanded five-role cookie HTTP property-management matrix now passes, superseding the earlier
+assertion-blocked run. This does not establish all manager workflows. Stripe test credentials remain
+rejected; hosted delivery/cron execution, external storage disposal and backup/processor erasure
+remain open. All six milestones remain tracked; no public-launch or real-money readiness claim is
+made.

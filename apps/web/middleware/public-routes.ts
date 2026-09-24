@@ -94,6 +94,9 @@ const TENANT_REPORT_RE = /^\/(?:api\/)?report\/[0-9a-f]{32}$/i;
  */
 export function isPublicRoute(pathname: string): boolean {
   if (pathname === '/') return true;
+  // Confirmation links must work before login; the handler verifies the token
+  // and then requires normal sign-in. Do not expose other /auth subpaths.
+  if (pathname === '/auth/callback') return true;
   if (TENANT_REPORT_RE.test(pathname)) return true;
 
   // E2E-only test-auth endpoint. Whitelisted ONLY when E2E_TESTING is on, so

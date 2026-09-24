@@ -335,6 +335,10 @@ describe('Auth Manager', () => {
       expect(result.success).toBe(true);
       expect(result.user).toBeDefined();
       expect(result.user!.email).toBe('newuser@example.com');
+      expect(result.requiresEmailVerification).toBe(true);
+      expect(result.cookieHeaders).toBeUndefined();
+      expect(mocks.createTokenPair).not.toHaveBeenCalled();
+      expect(mocks.createAuthCookieHeaders).not.toHaveBeenCalled();
     });
 
     it('should reject registration with invalid email format', async () => {
@@ -400,39 +404,42 @@ describe('Auth Manager', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('must not auto-confirm an account in production when email delivery fails', async () => {
-      const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+    it.each(['production', 'development', 'test'])(
+      'must not auto-confirm when email delivery fails in %s',
+      async (environment) => {
+        const originalNodeEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = environment;
 
-      try {
-        mocks.authClient.auth.signUp.mockResolvedValue({
-          data: {
-            user: {
-              id: 'user-email-failure',
-              email: 'delivery-failure@example.com',
-              user_metadata: {},
-              email_confirmed_at: null,
+        try {
+          mocks.authClient.auth.signUp.mockResolvedValue({
+            data: {
+              user: {
+                id: 'user-email-failure',
+                email: 'delivery-failure@example.com',
+                user_metadata: {},
+                email_confirmed_at: null,
+              },
             },
-          },
-          error: { message: 'Error sending confirmation email' },
-        });
+            error: { message: 'Error sending confirmation email' },
+          });
 
-        const result = await authManager.register({
-          email: 'delivery-failure@example.com',
-          password: 'SecurePassword123!',
-          first_name: 'Delivery',
-          last_name: 'Failure',
-          role: 'homeowner',
-        });
+          const result = await authManager.register({
+            email: 'delivery-failure@example.com',
+            password: 'SecurePassword123!',
+            first_name: 'Delivery',
+            last_name: 'Failure',
+            role: 'homeowner',
+          });
 
-        expect(result.success).toBe(false);
-        expect(
-          mocks.serverSupabase.auth.admin.updateUserById
-        ).not.toHaveBeenCalled();
-      } finally {
-        process.env.NODE_ENV = originalNodeEnv;
+          expect(result.success).toBe(false);
+          expect(
+            mocks.serverSupabase.auth.admin.updateUserById
+          ).not.toHaveBeenCalled();
+        } finally {
+          process.env.NODE_ENV = originalNodeEnv;
+        }
       }
-    });
+    );
   });
 
   describe('User Logout', () => {
