@@ -5,7 +5,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({ serverSupabase: { rpc } }));
 vi.mock('@mintenance/shared', () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
 }));
-import { fingerprintMultipartRequest } from '@/lib/api/request-fingerprint';
+import {
+  fingerprintMultipartRequest,
+  parseMultipartRequest,
+} from '@/lib/api/request-fingerprint';
 import {
   checkIdempotency,
   storeIdempotencyResult,
@@ -183,6 +186,16 @@ describe('multipart retry identity', () => {
     );
     expect(identity).not.toEqual(
       await fingerprintMultipartRequest(upload('first', '52'))
+    );
+  });
+  it('returns the validated file payload together with its retry identity', async () => {
+    const request = upload('same bytes');
+    const parsed = await parseMultipartRequest(request);
+    // Upload handlers consume this form directly; no second body read is needed.
+    expect(await (parsed.form.get('photos') as File).text()).toBe('same bytes');
+    expect(parsed.form.get('latitude')).toBe('51.5');
+    expect(parsed.fingerprint).toEqual(
+      await fingerprintMultipartRequest(upload('same bytes'))
     );
   });
 });
