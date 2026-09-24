@@ -96,7 +96,25 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    from: (...args: unknown[]) => {
+      // A successful empty entitlement lookup means Basic. Do not rely on
+      // production silently swallowing missing mock query methods as an outage.
+      if (
+        args[0] === 'early_access_grants' ||
+        args[0] === 'contractor_subscriptions'
+      ) {
+        const query = {
+          select: () => query,
+          eq: () => query,
+          in: () => query,
+          order: () => query,
+          limit: () => query,
+          maybeSingle: async () => ({ data: null, error: null }),
+        };
+        return query;
+      }
+      return mocks.supabaseFrom(...args);
+    },
     rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
     functions: { invoke: mocks.supabaseFunctionsInvoke },
   },

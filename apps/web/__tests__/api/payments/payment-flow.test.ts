@@ -659,6 +659,20 @@ function createSupabaseChain(
       data: null,
       error: null,
     };
+    if (
+      tableName === 'early_access_grants' ||
+      tableName === 'contractor_subscriptions'
+    ) {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        in: () => query,
+        order: () => query,
+        limit: () => query,
+        maybeSingle: async () => selectReturn,
+      };
+      return query;
+    }
     const insertReturn = tableConfig.insertReturn || {
       data: null,
       error: null,
