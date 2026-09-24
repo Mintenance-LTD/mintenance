@@ -40,6 +40,12 @@ pause request; its partial output was not counted as a pass.
 
 ## Active next slice
 
+September 24 follow-up: reviewed database-evidence disposal is implemented, locally tested and its
+schema applied to hosted Supabase. See EVIDENCE-DISPOSAL-2026-09-24.md. External files/processors,
+backup reconciliation and closed-account identity/export remain open. Stripe rejected the configured
+test key (401). The Java socket blocker is resolved; native compilation now fails on Windows C++
+generated path lengths. Native acceptance and the overall readiness goal remain unfinished.
+
 Invitation acceptance retries and contact deletion verification/rollout are complete and pushed in
 17b9596c9. Continue retention disposal/reconciliation and the remaining manager role journeys.
 Invitation delivery claims and cooldowns are implemented and tested, but real

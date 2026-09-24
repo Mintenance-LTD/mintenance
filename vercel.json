@@ -52,6 +52,7 @@
     { "path": "/api/cron/auto-verify-contractors",      "schedule": "0 7 * * *"   },
     { "path": "/api/cron/admin-alerts",                 "schedule": "0 8 * * *"   },
     { "path": "/api/cron/retention-cleanup",            "schedule": "0 3 * * 0"   },
+    { "path": "/api/cron/evidence-disposal",            "schedule": "30 2 * * *"  },
     { "path": "/api/cron/pii-cleanup",                  "schedule": "0 3 * * *"   },
     { "path": "/api/cron/data-archival",                "schedule": "0 4 1 * *"   },
     { "path": "/api/cron/model-retraining",             "schedule": "0 5 * * *"   },

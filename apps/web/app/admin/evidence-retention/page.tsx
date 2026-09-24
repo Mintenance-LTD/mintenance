@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
 
@@ -140,6 +141,12 @@ export default function EvidenceRetentionPage() {
   return (
     <main className='mx-auto max-w-4xl space-y-5 p-6'>
       <h1 className='text-2xl font-semibold'>Evidence retention reviews</h1>
+      <Link
+        className='inline-block underline'
+        href='/admin/evidence-retention/disposal'
+      >
+        Manage disposal decisions
+      </Link>
       <p>
         Review retained contracts and dispute records. A hold records an
         obligation to preserve evidence. Review dates never trigger automatic
@@ -192,7 +199,9 @@ export default function EvidenceRetentionPage() {
             <p>
               Review due:{' '}
               {new Date(row.review_due_at).toLocaleDateString('en-GB')} ·{' '}
-              {row.revision ? 'Previously reviewed' : 'Not yet reviewed'}
+              {row.revision
+                ? `Review revision ${row.revision}`
+                : 'Not yet reviewed'}
             </p>
             <label className='block'>
               Reason for retention or hold
