@@ -121,3 +121,14 @@ assertion-blocked run. This does not establish all manager workflows. Stripe tes
 rejected; hosted delivery/cron execution, external storage disposal and backup/processor erasure
 remain open. All six milestones remain tracked; no public-launch or real-money readiness claim is
 made.
+
+### Stripe sandbox checkpoint � 24 September
+
+The replacement key authenticates; secret/publishable pair verification passes. Provider success,
+decline, requires-action and refund tests pass. Mintenance HTTP create-intent uses the accepted bid
+amount, rejects unrelated payers, reuses an intent on retry, and tolerates concurrent confirmation.
+Real forwarded Stripe events move local escrow pending -> held -> refunded. The pre-existing hosted
+test webhook was temporarily disabled with explicit permission and restored after each run. See
+STRIPE-SANDBOX-2026-09-24.md for fixtures and scope limits. Connect onboarding/payout, completed
+3DS/browser/native hand-offs and fault-recovery acceptance remain open. The previous sandbox-key 401
+blocker is superseded; no public readiness claim is made.
