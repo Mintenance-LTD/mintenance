@@ -98,3 +98,10 @@ errors too, without leaking raw database diagnostics or changing/replaying the b
 Seven focused tracking/notification tests pass. The earlier full web coverage run predates this
 small wrapper change. This does not install missing schedules or establish an operational alert
 response; those remain required release checks.
+
+A subsequent full mobile run with --detectOpenHandles passed 470 suites, all 12,341 tests and all 87
+snapshots with no skipped tests. It again remained open and emitted post-test logs from the
+memory/performance monitors; the exact owned process was stopped after assertions finished. The
+monitoring stacks identify unfinished work, not conclusively the sole cause of the hang. Do not
+claim a clean full-suite exit or mask this with --forceExit. Focused AuthService handle detection
+exits cleanly.
