@@ -239,7 +239,15 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
       Alert.alert(
         'Dispute Submitted',
         'Your dispute has been submitted. It is awaiting review.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        [
+          {
+            text: 'View dispute',
+            onPress: () =>
+              navigation.replace('DisputeDetails', {
+                escrowId: result.disputeId,
+              }),
+          },
+        ]
       );
     } catch (error) {
       logger.error('Failed to submit dispute', error);

@@ -184,3 +184,11 @@ and three real local database checks passed. Retry scheduling is five-minute in 
 learning stays daily. This does not establish hosted execution, durable provider receipt recovery,
 exactly-once delivery or the remaining retention/identity/release-device gates. No schema changes or
 hosted data changes were required.
+
+### Native dispute access checkpoint
+
+See NATIVE-DISPUTE-ACCESS-2026-09-24.md. Submission, job and disputed-payment entries now reach a
+native dispute reader using the authorized web API. Retained statements, status and fresh private
+evidence links are supported. Sensitive query persistence/restoration is excluded. Seventy-two
+native regression checks and mobile types passed. This is not new device/release verification;
+archive discovery, closed-account identity recovery and external retention work remain open.

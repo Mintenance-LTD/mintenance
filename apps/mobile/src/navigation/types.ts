@@ -104,6 +104,7 @@ export type JobsStackParamList = {
   };
   JobTimeline: { jobId: string };
   Dispute: { jobId: string; jobTitle: string };
+  DisputeDetails: import('../services/DisputeReader').DisputeTarget;
   BidReview: { jobId: string };
   PhotoReview: { jobId: string };
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };

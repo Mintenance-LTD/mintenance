@@ -178,6 +178,7 @@ const EXCLUDED_CACHE_PREFIXES = [
   '["contractor_documents"',
   '["contractor-documents"',
   '["documents"',
+  '["dispute-record"',
 ];
 
 const isSensitiveQuery = (key: string): boolean =>
@@ -245,6 +246,7 @@ export const restoreQueryClient = async () => {
       >;
 
       const entries = Object.entries(parsedData)
+        .filter(([key]) => !isSensitiveQuery(key))
         .map(([key, value]) => ({ key, ...value }))
         .filter((e) => Date.now() - e.dataUpdatedAt <= CACHE_TTL_MS)
         .sort((a, b) => b.dataUpdatedAt - a.dataUpdatedAt)
@@ -319,19 +321,3 @@ export const queryKeys = {
     services: (query: string) => ['search', 'services', query] as const,
   },
 } as const;
-
-// Utility functions for common operations
-const invalidateQueries = {
-  userProfile: (userId: string) =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.user.profile(userId) }),
-  userStats: (userId: string) =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.user.stats(userId) }),
-  allJobs: () =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all }),
-  jobDetails: (jobId: string) =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.details(jobId) }),
-  allMessages: () =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.messages.all }),
-  feedPosts: () =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.feed.all }),
-};

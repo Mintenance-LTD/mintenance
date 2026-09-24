@@ -269,6 +269,12 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
           renderItem={({ item }) => (
             <PaymentCard
               payment={item}
+              onDisputePress={(payment) =>
+                goToTab(navigation, 'JobsTab', {
+                  screen: 'DisputeDetails',
+                  params: { escrowId: payment.id },
+                })
+              }
               onReceiptPress={(p) => {
                 // 2026-05-24 audit-27 P2: cross-stack jump from
                 // ProfileTab → JobsTab → JobDetails. Replaces the

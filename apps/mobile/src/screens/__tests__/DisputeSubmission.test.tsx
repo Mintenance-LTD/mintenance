@@ -7,6 +7,7 @@ const mockGet = jest.fn();
 const mockPost = jest.fn();
 const mockUpload = jest.fn();
 const mockSign = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'actor' } }),
 }));
@@ -66,7 +67,7 @@ function form() {
   const view = render(
     <DisputeScreen
       route={{ params: { jobId: 'job', jobTitle: 'Synthetic job' } } as never}
-      navigation={{ goBack: jest.fn() } as never}
+      navigation={{ goBack: jest.fn(), replace: mockReplace } as never}
     />
   );
   fireEvent.press(view.getByLabelText('Dispute reason: Work Quality'));
@@ -111,6 +112,11 @@ it('blocks a second tap while submission is pending', async () => {
     expect.any(String),
     expect.any(Array)
   );
+  const buttons = jest.mocked(Alert.alert).mock.calls[0]?.[2];
+  buttons?.[0]?.onPress?.();
+  expect(mockReplace).toHaveBeenCalledWith('DisputeDetails', {
+    escrowId: 'escrow',
+  });
 });
 
 it('does not submit after evidence fails and reuses uploaded evidence after an uncertain response', async () => {
