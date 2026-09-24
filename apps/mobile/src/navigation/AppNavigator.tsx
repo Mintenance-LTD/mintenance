@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import {
   useSafeAreaInsets,
@@ -54,7 +54,7 @@ import {
 import { CustomTabBar } from './components/CustomTabBar';
 import OfflineSyncStatus from '../components/OfflineSyncStatus';
 
-import { NotificationService } from '../services/NotificationService';
+import { useNotificationNavigation } from './useNotificationNavigation';
 
 // Import QuickJobModal for homeowner (+) button
 import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
@@ -305,35 +305,7 @@ export const AppNavigator: React.FC = () => {
   const { user, loading } = useAuth();
   const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
-  // 2026-05-26 audit-58 P2: imported from ./navigationRef so the
-  // boundary + push-notification + future cross-cutting consumers all
-  // share one ref instance instead of relying on the hook-local one.
-  const listenersRegistered = useRef(false);
-
-  // Register push notification listeners once navigation is ready and user is authenticated
-  useEffect(() => {
-    if (user && navigationRef.isReady() && !listenersRegistered.current) {
-      NotificationService.registerListeners({
-        navigate: (screen: string, params?: unknown) =>
-          (
-            navigationRef.navigate as (screen: string, params?: unknown) => void
-          )(screen, params),
-        reset: (state: unknown) =>
-          navigationRef.reset(
-            state as Parameters<typeof navigationRef.reset>[0]
-          ),
-        isReady: () => navigationRef.isReady(),
-      });
-      listenersRegistered.current = true;
-    }
-
-    return () => {
-      if (listenersRegistered.current) {
-        NotificationService.cleanup();
-        listenersRegistered.current = false;
-      }
-    };
-  }, [user, navigationRef]);
+  const onNavigationReady = useNotificationNavigation(user?.id, loading);
 
   // Build a React Navigation theme that matches our app theme colors
   const navTheme = isDark
@@ -377,6 +349,7 @@ export const AppNavigator: React.FC = () => {
     <AppErrorBoundary>
       <NavigationContainer
         ref={navigationRef}
+        onReady={onNavigationReady}
         linking={linking}
         theme={navTheme}
       >

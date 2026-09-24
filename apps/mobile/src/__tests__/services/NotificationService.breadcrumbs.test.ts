@@ -3,8 +3,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../config/supabase';
-import { logger } from '../../utils/logger';
+import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import { Platform } from 'react-native';
 import * as sentry from '../../config/sentry';
 
@@ -27,7 +26,7 @@ jest.mock('../../utils/mobileApiClient', () => ({
   API_BASE_URL: 'http://localhost:3000',
 }));
 
-const { mobileApiClient } = require('../../utils/mobileApiClient');
+const mobileApiClient = jest.mocked(apiClient);
 
 jest.mock('react-native', () => ({
   Platform: {
@@ -38,7 +37,6 @@ jest.mock('react-native', () => ({
 
 describe('NotificationService with Sentry Breadcrumbs', () => {
   const mockAddBreadcrumb = sentry.addBreadcrumb as jest.Mock;
-  const mockLogger = logger as jest.Mocked<typeof logger>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -89,10 +87,12 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Notification Service initialized',
         'notification',
-        expect.objectContaining({
-          token: 'ExponentPushToken[test-token-123]',
+        {
           level: 'info',
-        })
+        }
+      );
+      expect(JSON.stringify(mockAddBreadcrumb.mock.calls)).not.toContain(
+        'ExponentPushToken[test-token-123]'
       );
       expect(token).toBe('ExponentPushToken[test-token-123]');
     });
@@ -103,7 +103,7 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       const token = await NotificationService.initialize();
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
-        'Push notifications only work on physical devices',
+        'Push notifications require a supported native device',
         'notification',
         { level: 'warning' }
       );
@@ -744,7 +744,7 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       const breadcrumbCalls = mockAddBreadcrumb.mock.calls;
 
       expect(breadcrumbCalls).toContainEqual([
-        'Push notifications only work on physical devices',
+        'Push notifications require a supported native device',
         'notification',
         { level: 'warning' },
       ]);
