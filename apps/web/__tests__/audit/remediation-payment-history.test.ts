@@ -74,7 +74,7 @@ describe('payment history balance boundary', () => {
       contractorPayout: 8.8,
     });
   });
-  it.each(['failed', 'cancelled', 'pending_review'])(
+  it.each(['failed', 'cancelled', 'pending_review', 'disputed'])(
     'does not turn %s into a pending payment',
     async (status) => {
       rows = [

@@ -19,6 +19,39 @@ beforeEach(() => {
   });
 });
 describe('durable private dispute evidence', () => {
+  it('keeps evidence visible when the retained claimant is missing without signing it', async () => {
+    expect(
+      await readDisputeEvidence(
+        'Claim\n\nEvidence:\n1. job-attachments:job/disputes/claimant/photo.jpg',
+        'job',
+        null
+      )
+    ).toEqual([{ label: 'Evidence 1', url: null }]);
+    expect(mocks.sign).not.toHaveBeenCalled();
+  });
+  it('preserves ordered unavailable entries alongside valid evidence without exposing raw references', async () => {
+    expect(
+      await readDisputeEvidence(
+        'Claim\n\nEvidence:\n1. old-private-reference\n2. job-attachments:job/disputes/claimant/photo.jpg\n3. old-private-reference\n',
+        'job',
+        'claimant'
+      )
+    ).toEqual([
+      { label: 'Evidence 1', url: null },
+      { label: 'Evidence 2', url: 'https://storage.example.test/fresh' },
+    ]);
+    expect(mocks.sign).toHaveBeenCalledExactlyOnceWith(
+      'job/disputes/claimant/photo.jpg',
+      600
+    );
+  });
+  it('does not invent evidence for descriptions without attachment entries', async () => {
+    expect(await readDisputeEvidence('Claim', 'job', null)).toEqual([]);
+    expect(
+      await readDisputeEvidence('Claim\n\nEvidence:\n\n', 'job', 'claimant')
+    ).toEqual([]);
+    expect(mocks.sign).not.toHaveBeenCalled();
+  });
   it('renews an expired legacy URL and a stable reference without fetching the supplied URL', async () => {
     const path = 'job/disputes/claimant/photo.jpg';
     const url = `https://storage.example.test/storage/v1/object/sign/job-attachments/${path}?token=expired`;
@@ -51,7 +84,7 @@ describe('durable private dispute evidence', () => {
           'job',
           'claimant'
         )
-      ).toEqual([]);
+      ).toEqual([{ label: 'Evidence 1', url: null }]);
       expect(mocks.sign).not.toHaveBeenCalled();
     }
   );

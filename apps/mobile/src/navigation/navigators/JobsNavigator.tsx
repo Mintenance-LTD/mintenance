@@ -16,6 +16,8 @@ import { PaymentScreen } from '../../screens/PaymentScreen';
 import AddPaymentMethodScreen from '../../screens/payment-methods/AddPaymentMethodScreen';
 import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
 import { DisputeScreen } from '../../screens/DisputeScreen';
+import { RetainedDisputesScreen } from '../../screens/RetainedDisputesScreen';
+import { DisputeDetailsScreen } from '../../screens/DisputeDetailsScreen';
 import { BidReviewScreen } from '../../screens/BidReviewScreen';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
 import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
@@ -79,6 +81,18 @@ const SafeJobTimelineScreen = withScreenErrorBoundary(
 const SafeDisputeScreen = withScreenErrorBoundary(DisputeScreen, 'Dispute', {
   fallbackRoute: 'JobDetails',
 });
+const SafeRetainedDisputesScreen = withScreenErrorBoundary(
+  RetainedDisputesScreen,
+  'Retained disputes',
+  { fallbackRoute: 'JobsList' }
+);
+const SafeDisputeDetailsScreen = withScreenErrorBoundary(
+  DisputeDetailsScreen,
+  'Dispute details',
+  {
+    fallbackRoute: 'JobsList',
+  }
+);
 
 const SafeBidReviewScreen = withScreenErrorBoundary(
   BidReviewScreen,
@@ -212,6 +226,16 @@ const JobsNavigator: React.FC = () => {
           presentation: 'modal',
           gestureEnabled: true,
         }}
+      />
+      <JobsStack.Screen
+        name='RetainedDisputes'
+        component={SafeRetainedDisputesScreen}
+        options={{ title: 'Retained disputes' }}
+      />
+      <JobsStack.Screen
+        name='DisputeDetails'
+        component={SafeDisputeDetailsScreen}
+        options={{ title: 'Dispute details' }}
       />
       <JobsStack.Screen
         name='BidReview'

@@ -359,6 +359,7 @@ describe('persistQueryClient', () => {
       ['bids', 'j1'],
       ['contractor_documents'],
       ['documents'],
+      ['dispute-record', 'actor', 'escrow'],
       ['tax'],
       ['financial'],
     ];
@@ -441,6 +442,30 @@ describe('persistQueryClient', () => {
 // restoreQueryClient
 // ---------------------------------------------------------------------------
 describe('restoreQueryClient', () => {
+  it('does not restore sensitive records left by an older app version', async () => {
+    const dataUpdatedAt = Date.now();
+    mockedGetItem.mockResolvedValueOnce(
+      JSON.stringify({
+        '["dispute-record","actor","escrow"]': {
+          data: { description: 'private statement' },
+          dataUpdatedAt,
+        },
+        '["messages","thread"]': {
+          data: { body: 'private message' },
+          dataUpdatedAt,
+        },
+        '["jobs","list","all"]': { data: { jobs: [] }, dataUpdatedAt },
+      })
+    );
+    await restoreQueryClient();
+    expect(
+      queryClient.getQueryData(['dispute-record', 'actor', 'escrow'])
+    ).toBeUndefined();
+    expect(queryClient.getQueryData(['messages', 'thread'])).toBeUndefined();
+    expect(queryClient.getQueryData(['jobs', 'list', 'all'])).toEqual({
+      jobs: [],
+    });
+  });
   it('does nothing when there is no cached data', async () => {
     mockedGetItem.mockResolvedValueOnce(null);
     await restoreQueryClient();

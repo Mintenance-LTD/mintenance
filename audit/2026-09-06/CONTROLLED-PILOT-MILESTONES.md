@@ -175,3 +175,40 @@ checkout and refreshes the new card. Four notification suites (54 tests) and mob
 The test webhook was restored, fixtures cleaned, tunnels/services stopped, and retrieved
 configuration/APK files removed. Current release binaries, physical devices, negative/recovery paths
 and provider push-ticket handling remain open; no overall readiness claim is made.
+
+### Notification failure recovery checkpoint
+
+See NOTIFICATION-RECOVERY-2026-09-24.md. Expo ticket rejection, partial-device retries, queue
+claims, in-app replay, preference changes and error reporting are repaired. Twenty-two focused tests
+and three real local database checks passed. Retry scheduling is five-minute in source; engagement
+learning stays daily. This does not establish hosted execution, durable provider receipt recovery,
+exactly-once delivery or the remaining retention/identity/release-device gates. No schema changes or
+hosted data changes were required.
+
+### Native dispute access checkpoint
+
+See NATIVE-DISPUTE-ACCESS-2026-09-24.md. Submission, job and disputed-payment entries now reach a
+native dispute reader using the authorized web API. Retained statements, status and fresh private
+evidence links are supported. Sensitive query persistence/restoration is excluded. Seventy-two
+native regression checks and mobile types passed. This is not new device/release verification;
+archive discovery, closed-account identity recovery and external retention work remain open.
+
+### Real Android retained-evidence checkpoint
+
+The native dispute reader now has actual isolated Android verification: live and archived
+statements, fresh private attachment browser hand-off, missing-file visibility, and account-removal
+sign-out. Both participants retrieved real PNG bytes through the actual API before/after archival;
+an unrelated account was denied. Temporary services and synthetic credentials were cleaned. See the
+follow-up in NATIVE-DISPUTE-ACCESS-2026-09-24.md for debug-build and asset limitations. This
+supersedes only the reader's earlier no-device-test limitation, not the wider release/retention
+gates.
+
+### Consolidated readiness checkpoint
+
+READINESS-CHECKPOINT-2026-09-24.md supersedes historical blocker summaries with current evidence.
+Full web coverage passes 404 files / 4,066 tests. Full mobile assertions pass 470 suites / 12,336
+tests with five historical skips, but Jest required cleanup after an open-handle warning. Those five
+AuthService tests were subsequently restored; all 39 in that file pass with handle detection and a
+clean exit. Native archive discovery is now implemented and pushed. Hosted metadata shows the live
+alias remains on main b34fca6d5, with newer changes on preview deployments. No public readiness
+claim.

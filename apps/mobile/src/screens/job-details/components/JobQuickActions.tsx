@@ -16,6 +16,7 @@ interface JobQuickActionsProps {
   onEditPress: () => void;
   onSignOffPress: () => void;
   onDisputePress: () => void;
+  onDisputeDetailsPress?: () => void;
 }
 
 /**
@@ -37,9 +38,21 @@ export function JobQuickActions({
   onEditPress,
   onSignOffPress,
   onDisputePress,
+  onDisputeDetailsPress,
 }: JobQuickActionsProps) {
   return (
     <View style={styles.quickActionsSection}>
+      {onDisputeDetailsPress && (
+        <TouchableOpacity
+          style={styles.quickActionRow}
+          onPress={onDisputeDetailsPress}
+          accessibilityRole='button'
+        >
+          <Ionicons name='shield-outline' size={20} color={me.ink2} />
+          <Text style={styles.quickActionText}>View Dispute Record</Text>
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+        </TouchableOpacity>
+      )}
       {onContractPress && (
         <TouchableOpacity
           style={styles.quickActionRow}

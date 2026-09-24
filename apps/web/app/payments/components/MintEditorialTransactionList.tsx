@@ -23,6 +23,7 @@ interface Transaction {
     | 'release_pending'
     | 'released'
     | 'refunded'
+    | 'disputed'
     | 'completed';
   type: 'payment' | 'refund' | 'escrow';
   created_at: string;
@@ -63,6 +64,8 @@ function statusBadge(status: string) {
       return { label: 'Held in escrow', className: 'badge badge-info' };
     case 'refunded':
       return { label: 'Refunded', className: 'badge badge-mute' };
+    case 'disputed':
+      return { label: 'Disputed', className: 'badge badge-warn' };
     default:
       return { label: status || 'unknown', className: 'badge badge-mute' };
   }
@@ -243,10 +246,12 @@ export function MintEditorialTransactionList({
                   className='btn btn-ghost btn-sm'
                   onClick={(e) => {
                     e.stopPropagation();
-                    onViewReceipt(tx);
+                    if (tx.status === 'disputed')
+                      router.push(`/disputes/${tx.id}`);
+                    else onViewReceipt(tx);
                   }}
                 >
-                  Receipt
+                  {tx.status === 'disputed' ? 'View dispute' : 'Receipt'}
                 </button>
               )}
             </div>

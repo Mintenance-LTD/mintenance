@@ -18,8 +18,6 @@ import {
   RefreshControl,
   TouchableOpacity,
   StatusBar,
-  Linking,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -172,16 +170,12 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.eyebrow}>Payments</Text>
         <Text style={styles.headline}>Payment history</Text>
         <TouchableOpacity
-          accessibilityRole='link'
+          accessibilityRole='button'
           onPress={() => {
-            Linking.openURL('https://www.mintenance.co.uk/disputes').catch(() =>
-              Alert.alert('Could not open records', 'Please try again.')
-            );
+            goToTab(navigation, 'JobsTab', { screen: 'RetainedDisputes' });
           }}
         >
-          <Text style={styles.sub}>
-            Retained dispute records (opens secure website)
-          </Text>
+          <Text style={styles.sub}>Retained dispute records</Text>
         </TouchableOpacity>
         <Text style={styles.sub}>
           {allPayments.length} {allPayments.length === 1 ? 'record' : 'records'}
@@ -269,6 +263,12 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
           renderItem={({ item }) => (
             <PaymentCard
               payment={item}
+              onDisputePress={(payment) =>
+                goToTab(navigation, 'JobsTab', {
+                  screen: 'DisputeDetails',
+                  params: { escrowId: payment.id },
+                })
+              }
               onReceiptPress={(p) => {
                 // 2026-05-24 audit-27 P2: cross-stack jump from
                 // ProfileTab → JobsTab → JobDetails. Replaces the

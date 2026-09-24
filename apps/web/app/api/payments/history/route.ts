@@ -89,6 +89,7 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
             'cancelled',
             'awaiting_homeowner_approval',
             'pending_review',
+            'disputed',
           ].includes(row.status)
         ? (row.status as EscrowTransaction['status'])
         : 'pending',

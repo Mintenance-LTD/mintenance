@@ -640,6 +640,12 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <JobQuickActions
           jobId={job.id}
+          onDisputeDetailsPress={
+            viewModel.escrowStatus &&
+            (canManageJob || job.contractor_id === user?.id)
+              ? () => navigation.navigate('DisputeDetails', { jobId: job.id })
+              : undefined
+          }
           onContractPress={
             viewModel.contractStatus &&
             (isOwner || job.contractor_id === user?.id)

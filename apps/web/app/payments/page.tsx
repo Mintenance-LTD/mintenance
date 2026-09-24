@@ -28,6 +28,7 @@ interface Transaction {
     | 'release_pending'
     | 'released'
     | 'refunded'
+    | 'disputed'
     | 'completed';
   type: 'payment' | 'refund' | 'escrow';
   created_at: string;
@@ -136,11 +137,7 @@ export default function PaymentsPage2025() {
             const platformFee = t.platformFee;
             const processingFee = t.stripeProcessingFee;
 
-            // Prefer `company_name` when the payee has one set — a
-            // contractor trading as "my Company LTD" should display that
-            // over their personal Djodjo Nkouka name on the homeowner's
-            // transaction list. Fall back to the first+last name when the
-            // company field is empty.
+            // Prefer the trading name; fall back to the person's name.
             const contractorName =
               t.contractor_name ||
               t.payee?.company_name ||
