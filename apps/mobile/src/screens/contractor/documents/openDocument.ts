@@ -15,12 +15,15 @@ export function openDocument(args: {
 }): void {
   const { doc, navigateToJob } = args;
 
-  if (
-    doc.is_contract ||
-    doc.category === 'contract' ||
-    doc.category === 'contracts'
-  ) {
-    navigateToJob(doc.job_id ?? doc.id);
+  if (doc.is_contract) {
+    if (!doc.job_id) {
+      Alert.alert(
+        'Cannot Open',
+        'This contract is missing its job reference. Please contact support.'
+      );
+      return;
+    }
+    navigateToJob(doc.job_id);
     return;
   }
 

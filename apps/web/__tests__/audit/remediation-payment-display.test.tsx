@@ -1,14 +1,25 @@
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+const paymentMocks = vi.hoisted(() => ({
+  submit: vi.fn(),
+  confirmPayment: vi.fn(),
+}));
 vi.mock('@stripe/stripe-js', () => ({
   loadStripe: () => Promise.resolve(null),
 }));
 vi.mock('@stripe/react-stripe-js', () => ({
   Elements: ({ children }: { children: React.ReactNode }) => children,
   PaymentElement: () => <div>Payment fields</div>,
-  useStripe: () => ({}),
-  useElements: () => ({}),
+  useStripe: () => ({ confirmPayment: paymentMocks.confirmPayment }),
+  useElements: () => ({ submit: paymentMocks.submit }),
 }));
 vi.mock('@/lib/csrf-client', () => ({ getCsrfToken: async () => 'synthetic' }));
 import { PaymentForm } from '@/components/payments/PaymentForm';
@@ -18,6 +29,74 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('credit-funded payment display', () => {
+  it('recovers from an interrupted confirmation without creating another intent', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ clientSecret: 'synthetic', amount: 10 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    paymentMocks.submit.mockResolvedValue({});
+    paymentMocks.confirmPayment
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({
+        paymentIntent: { id: 'pi_synthetic', status: 'succeeded' },
+      });
+    const onError = vi.fn();
+    const onSuccess = vi.fn();
+    render(
+      <PaymentForm
+        jobId='job'
+        contractorId='contractor'
+        jobTitle='Synthetic'
+        defaultAmount={10}
+        onError={onError}
+        onSuccess={onSuccess}
+      />
+    );
+    const pay = await screen.findByRole('button', { name: /Pay £10/ });
+    fireEvent.click(pay);
+    await waitFor(() =>
+      expect(onError).toHaveBeenCalledWith(
+        expect.stringContaining('interrupted')
+      )
+    );
+    expect(pay).not.toBeDisabled();
+    fireEvent.click(pay);
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('pi_synthetic'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps pending processing distinct from success and prevents resubmission', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ clientSecret: 'synthetic', amount: 10 }),
+      })
+    );
+    paymentMocks.submit.mockResolvedValue({});
+    paymentMocks.confirmPayment.mockResolvedValue({
+      paymentIntent: { id: 'pi_synthetic', status: 'processing' },
+    });
+    const onSuccess = vi.fn();
+    render(
+      <PaymentForm
+        jobId='job'
+        contractorId='contractor'
+        jobTitle='Synthetic'
+        defaultAmount={10}
+        onError={vi.fn()}
+        onSuccess={onSuccess}
+      />
+    );
+    const pay = await screen.findByRole('button', { name: /Pay £10/ });
+    fireEvent.click(pay);
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'still processing'
+    );
+    expect(pay).toBeDisabled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
   it('changes the request key with the resource and keeps callback rerenders from starting payments', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -60,7 +139,7 @@ describe('credit-funded payment display', () => {
       second.headers['Idempotency-Key']
     );
   });
-  it('reuses one key when StrictMode invokes the same request effect twice', async () => {
+  it('shares one in-flight request when StrictMode repeats the effect', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ clientSecret: 'synthetic', amount: 500 }),
@@ -79,10 +158,7 @@ describe('credit-funded payment display', () => {
       </React.StrictMode>
     );
     await screen.findByRole('button', { name: /Pay £500/ });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][1].headers['Idempotency-Key']).toBe(
-      fetchMock.mock.calls[1][1].headers['Idempotency-Key']
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
   it('clears the old payable intent when the form no longer has a valid job', async () => {
     vi.stubGlobal(

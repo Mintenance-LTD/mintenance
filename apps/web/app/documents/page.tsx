@@ -69,6 +69,7 @@ export default function HomeownerDocumentsPage() {
   const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetch('/api/documents');
       if (!res.ok) throw new Error('Failed to fetch documents');
       const data: ApiResponse = await res.json();

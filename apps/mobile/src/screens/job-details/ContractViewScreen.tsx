@@ -20,7 +20,7 @@
  * byte-for-byte. They are legally and financially sensitive; changes
  * here are visual only.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Linking,
   Modal,
   StatusBar,
 } from 'react-native';
@@ -37,11 +36,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import * as WebBrowser from 'expo-web-browser';
-import { cacheDirectory, downloadAsync } from 'expo-file-system/legacy';
+import { saveContractPdf } from '../../utils/saveContractPdf';
 import { HapticService } from '../../utils/haptics';
 import { useAuth } from '../../contexts/AuthContext';
-import { mobileApiClient, API_BASE_URL } from '../../utils/mobileApiClient';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobCRUDService } from '../../services/JobCRUDService';
 import { JobsStackParamList } from '../../navigation/types';
 import { goBackSafe } from '../../navigation/hooks';
@@ -81,6 +79,8 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [quoteItems, setQuoteItems] = useState<QuoteLineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
+  const [savingPdf, setSavingPdf] = useState(false);
+  const pdfBusy = useRef(false);
   const [rejecting, setRejecting] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -230,44 +230,21 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const handleViewPdf = useCallback(async () => {
-    if (!contract) return;
+    if (!contract || pdfBusy.current) return;
+    pdfBusy.current = true;
+    setSavingPdf(true);
     try {
-      // Ask the server for a short-lived signed PDF URL. The API route
-      // requires auth, so we use mobileApiClient (which injects the
-      // Bearer token) instead of opening a raw URL in the system browser.
-      const response = await mobileApiClient.get<{ url?: string }>(
-        `/api/contracts/${contract.id}/pdf`
-      );
-      if (response?.url) {
-        await WebBrowser.openBrowserAsync(response.url);
-        return;
-      }
-      // Fallback: download the binary via expo-file-system and open
-      // with the system viewer (expo-sharing is not installed).
-      const { supabase } = await import('../../config/supabase');
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token ?? '';
-      const localUri = `${cacheDirectory ?? ''}contract-${contract.id}.pdf`;
-      const downloadResult = await downloadAsync(
-        `${API_BASE_URL}/api/contracts/${contract.id}/pdf`,
-        localUri,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (downloadResult.status === 200) {
-        const canOpen = await Linking.canOpenURL(downloadResult.uri);
-        if (canOpen) {
-          await Linking.openURL(downloadResult.uri);
-        } else {
-          Alert.alert('PDF downloaded', `Contract saved to ${localUri}`);
-        }
-      } else {
+      const result = await saveContractPdf(contract.id);
+      if (result === 'saved')
         Alert.alert(
-          'Cannot open PDF',
-          'Unable to download the contract PDF. Please try again.'
+          'PDF saved',
+          'The contract was saved to your selected folder.'
         );
-      }
     } catch {
       Alert.alert('Error', 'Failed to open contract PDF.');
+    } finally {
+      pdfBusy.current = false;
+      setSavingPdf(false);
     }
   }, [contract]);
 
@@ -364,10 +341,16 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.pdfButton}
           onPress={handleViewPdf}
+          disabled={savingPdf}
+          accessibilityState={{ busy: savingPdf, disabled: savingPdf }}
           accessibilityRole='button'
           accessibilityLabel='Download PDF'
         >
-          <Ionicons name='download-outline' size={18} color={me.ink} />
+          {savingPdf ? (
+            <ActivityIndicator size='small' color={me.ink} />
+          ) : (
+            <Ionicons name='download-outline' size={18} color={me.ink} />
+          )}
         </TouchableOpacity>
         <View
           style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}

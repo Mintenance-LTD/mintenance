@@ -83,6 +83,8 @@ interface PaymentData {
   transaction_type?: string;
   release_reason?: string;
   refund_reason?: string;
+  platformFee?: number;
+  stripeProcessingFee?: number;
   homeownerApproval?: boolean;
   coolingOffEndsAt?: string;
 }
@@ -108,7 +110,6 @@ export default function PaymentsPage2025() {
   const [submittingRefund, setSubmittingRefund] = useState(false);
   const refundInFlight = useRef(false);
   const confirm = useConfirm();
-
   // Hide the inline "Back to Dashboard" link when the Mint Editorial
   // shell is active — the persistent sidebar already provides nav, so
   // the legacy back link becomes redundant chrome.
@@ -132,8 +133,8 @@ export default function PaymentsPage2025() {
         const transformedTransactions: Transaction[] = (payments || []).map(
           (t: PaymentData) => {
             const amount = Number(t.amount) || 0;
-            const platformFee = amount * 0.05;
-            const processingFee = amount * 0.02;
+            const platformFee = t.platformFee;
+            const processingFee = t.stripeProcessingFee;
 
             // Prefer `company_name` when the payee has one set — a
             // contractor trading as "my Company LTD" should display that

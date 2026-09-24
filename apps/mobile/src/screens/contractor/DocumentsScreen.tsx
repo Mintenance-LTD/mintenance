@@ -16,19 +16,13 @@ import {
   FlatList,
   RefreshControl,
   StatusBar,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
-let DocumentPicker: typeof import('expo-document-picker') | null = null;
-try {
-  DocumentPicker = require('expo-document-picker');
-} catch {
-  // Package not installed
-}
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
@@ -61,7 +55,7 @@ export const DocumentsScreen: React.FC = () => {
   const uploadMutation = useUploadDocument(filter);
   const toggleStarMutation = useToggleStar();
 
-  const documents = data || [];
+  const documents = useMemo(() => data ?? [], [data]);
   const filtered =
     filter === 'all'
       ? documents
@@ -83,10 +77,6 @@ export const DocumentsScreen: React.FC = () => {
   }, [documents]);
 
   const handlePickDocument = useCallback(async () => {
-    if (!DocumentPicker) {
-      Alert.alert('Not Available', 'Document picker is not installed.');
-      return;
-    }
     const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
@@ -101,7 +91,7 @@ export const DocumentsScreen: React.FC = () => {
   const navigateToJob = useCallback(
     (jobId: string) => {
       (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
-        screen: 'JobDetails',
+        screen: 'ContractView',
         params: { jobId },
       });
     },

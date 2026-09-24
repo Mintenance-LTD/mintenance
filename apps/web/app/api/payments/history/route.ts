@@ -76,15 +76,22 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
   payerId: row.payer_id,
   payeeId: row.payee_id,
   amount: Number(row.amount ?? 0),
-  status: [
-    'pending',
-    'held',
-    'release_pending',
-    'released',
-    'refunded',
-  ].includes(row.status)
-    ? (row.status as EscrowTransaction['status'])
-    : 'pending',
+  status:
+    row.status === 'completed'
+      ? 'released'
+      : [
+            'pending',
+            'held',
+            'release_pending',
+            'released',
+            'refunded',
+            'failed',
+            'cancelled',
+            'awaiting_homeowner_approval',
+            'pending_review',
+          ].includes(row.status)
+        ? (row.status as EscrowTransaction['status'])
+        : 'pending',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   releasedAt: row.released_at ?? undefined,
