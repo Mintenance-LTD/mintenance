@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
 
 /**
  * GET /api/documents
@@ -60,6 +59,7 @@ export const GET = withApiHandler(
         : rawTitle;
       return {
         id: `contract-${c.id}`,
+        contract_id: c.id as string,
         type: 'contract' as const,
         name: displayName,
         status: c.status as string,

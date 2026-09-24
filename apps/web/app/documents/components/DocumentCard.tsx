@@ -1,24 +1,6 @@
 'use client';
 
-/**
- * DocumentCard — Mint Editorial 2-column grid card for the homeowner
- * /documents inbox.
- *
- * Matches the mockup the user shared 2026-05-21:
- *   - Type-coloured left border (Contract = violet, Bid = rose,
- *     Payment = amber).
- *   - Soft tinted icon tile with PDF / BID / PDF label underneath.
- *   - Title with `Contract · Boiler service` shape (type · subject).
- *   - Status badge under the title (Awaiting you / Fully signed /
- *     Pending review / Declined / Accepted / Released / In escrow).
- *   - Counterparty + relative date row.
- *   - Right-aligned amount + chevron.
- *   - Action chips on awaiting items ("Review & sign →" / "Review bid →"
- *     + "Remind me later").
- *
- * Click anywhere on the card → routes to the linked record (existing
- * `doc.href` from the API).
- */
+/** Record navigation and contract PDF downloads are separate actions. */
 
 import React from 'react';
 import Link from 'next/link';
@@ -66,7 +48,7 @@ function styleForType(type: DocumentItem['type']): TypeStyle {
         borderColor: 'var(--me-doc-payment-fg)',
         iconBg: 'var(--me-doc-payment-bg)',
         iconText: 'var(--me-doc-payment-fg)',
-        fileLabel: 'PDF',
+        fileLabel: 'PAY',
       };
   }
 }
@@ -213,8 +195,7 @@ export function DocumentCard({ doc }: DocumentCardProps) {
     return Wallet;
   })();
   return (
-    <Link
-      href={doc.href}
+    <article
       style={{
         display: 'block',
         position: 'relative',
@@ -230,113 +211,111 @@ export function DocumentCard({ doc }: DocumentCardProps) {
         color: 'inherit',
       }}
     >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '60px 1fr auto',
-          gap: 16,
-          alignItems: 'flex-start',
-        }}
+      <Link
+        href={doc.href}
+        style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
       >
-        {/* Paper-shape icon tile per redesign-v2/documents-web spec
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '60px 1fr auto',
+            gap: 16,
+            alignItems: 'flex-start',
+          }}
+        >
+          {/* Paper-shape icon tile per redesign-v2/documents-web spec
             (54×68 with extension chip in the bottom-right corner). */}
-        <DocIcon color={t.iconText} bg={t.iconBg} ext={t.fileLabel}>
-          <CenterIcon size={22} strokeWidth={1.75} />
-        </DocIcon>
+          <DocIcon color={t.iconText} bg={t.iconBg} ext={t.fileLabel}>
+            <CenterIcon size={22} strokeWidth={1.75} />
+          </DocIcon>
 
-        {/* Body */}
-        <div style={{ minWidth: 0 }}>
-          <h3
-            className='t-h4'
-            style={{
-              margin: 0,
-              fontSize: 15,
-              fontWeight: 600,
-              color: 'var(--me-ink)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {doc.name}
-          </h3>
+          {/* Body */}
+          <div style={{ minWidth: 0 }}>
+            <h3
+              className='t-h4'
+              style={{
+                margin: 0,
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--me-ink)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {doc.name}
+            </h3>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginTop: 6,
+                flexWrap: 'wrap',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '2px 10px',
+                  borderRadius: 9999,
+                  background: badge.bg,
+                  color: badge.fg,
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                {badge.label}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: 'var(--me-ink-3)',
+                }}
+              >
+                {doc.contractor_name ?? 'Unknown'} ·{' '}
+                {relativeDate(doc.created_at)}
+              </span>
+            </div>
+          </div>
+
+          {/* Right rail — amount + chevron */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              marginTop: 6,
-              flexWrap: 'wrap',
+              gap: 6,
+              color: 'var(--me-ink-2)',
             }}
           >
             <span
               style={{
-                display: 'inline-block',
-                padding: '2px 10px',
-                borderRadius: 9999,
-                background: badge.bg,
-                color: badge.fg,
-                fontSize: 11,
-                fontWeight: 700,
+                fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
+                fontSize: 22,
+                color: 'var(--me-ink)',
+                lineHeight: 1,
               }}
             >
-              {badge.label}
+              {doc.amount != null ? `£${doc.amount}` : '—'}
             </span>
-            <span
-              style={{
-                fontSize: 12,
-                color: 'var(--me-ink-3)',
-              }}
-            >
-              {doc.contractor_name ?? 'Unknown'} ·{' '}
-              {relativeDate(doc.created_at)}
-            </span>
+            <ArrowRight size={16} strokeWidth={1.75} />
           </div>
         </div>
-
-        {/* Right rail — amount + chevron */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            color: 'var(--me-ink-2)',
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'var(--me-font-display, "Inter", sans-serif)',
-              fontSize: 22,
-              color: 'var(--me-ink)',
-              lineHeight: 1,
-            }}
+      </Link>
+      <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+        <Link href={doc.href} className='btn btn-ghost btn-sm'>
+          {awaiting && primaryLabel ? primaryLabel : 'View record'}
+        </Link>
+        {doc.type === 'contract' && doc.contract_id && (
+          <a
+            href={`/api/contracts/${doc.contract_id}/pdf`}
+            download
+            className='btn btn-primary btn-sm'
           >
-            {doc.amount != null ? `£${doc.amount}` : '—'}
-          </span>
-          <ArrowRight size={16} strokeWidth={1.75} />
-        </div>
+            Download PDF
+          </a>
+        )}
       </div>
-
-      {/* Awaiting action chips */}
-      {awaiting && primaryLabel ? (
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            marginTop: 14,
-            paddingTop: 14,
-            borderTop: '1px dashed var(--me-line-2)',
-          }}
-        >
-          <span className='btn btn-primary btn-sm'>{primaryLabel}</span>
-          <span
-            className='btn btn-ghost btn-sm'
-            style={{ color: 'var(--me-ink-2)' }}
-          >
-            Remind me later
-          </span>
-        </div>
-      ) : null}
-    </Link>
+    </article>
   );
 }

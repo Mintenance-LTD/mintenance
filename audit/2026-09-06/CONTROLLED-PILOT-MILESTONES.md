@@ -141,3 +141,14 @@ is not verified. Real contract PDF bytes/participant isolation and uploaded PDF 
 map retry and active native meeting-map placeholder repaired with focused tests. Authorized HTTPS
 tunnel worked; native UI control unavailable, so Android hand-offs remain open. No milestone is
 marked complete from these partial checks.
+
+### Actual application checkout and payout follow-up
+
+See APP-CHECKOUT-PAYOUT-DOCUMENTS-2026-09-24.md. Actual Mintenance browser checkout now completes a
+Stripe 3DS challenge and shows held escrow, independently confirmed by provider and local database.
+Actual release settles one transfer on retry and a separate synthetic connected-account bank payout
+reaches paid. Seeded completion/approval prerequisites and Custom Connect scope are explicitly
+documented. Client duplicate initialization, binary mobile PDF handling, false document/download
+labels, invented receipt amounts and incorrect payment-history states are repaired with focused
+tests. Android ADB access is now authorized; broader HTTPS Auth/Metro exposure remains pending
+separate approval. Overall readiness and all unfinished milestone limitations remain open.

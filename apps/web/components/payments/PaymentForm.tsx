@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -42,46 +43,62 @@ function StripeCheckoutForm({
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const submittingRef = useRef(false);
+  const [pending, setPending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || submittingRef.current || pending) return;
 
+    submittingRef.current = true;
     setProcessing(true);
+    onError('');
 
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      onError(submitError.message || 'Payment validation failed');
-      setProcessing(false);
-      return;
-    }
+    try {
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        onError(submitError.message || 'Payment validation failed');
+        setProcessing(false);
+        return;
+      }
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      clientSecret,
-      confirmParams: {
-        return_url: `${window.location.origin}/payments`,
-      },
-      redirect: 'if_required',
-    });
-
-    if (error) {
-      logger.error('Stripe confirmPayment error', {
-        error: error.message,
-        code: error.code,
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/payments`,
+        },
+        redirect: 'if_required',
       });
-      onError(error.message || 'Payment failed. Please try again.');
+
+      if (error) {
+        logger.error('Stripe confirmPayment error', {
+          error: error.message,
+          code: error.code,
+        });
+        onError(error.message || 'Payment failed. Please try again.');
+        setProcessing(false);
+        return;
+      }
+
+      if (paymentIntent?.status === 'succeeded') {
+        onSuccess(paymentIntent.id);
+      } else if (
+        paymentIntent?.status === 'processing' ||
+        paymentIntent?.status === 'requires_capture'
+      ) {
+        setPending(true);
+      } else {
+        onError('Payment was not completed. Please try again.');
+      }
+    } catch {
+      onError(
+        'Payment confirmation was interrupted. Retry to check the same payment.'
+      );
+    } finally {
+      submittingRef.current = false;
       setProcessing(false);
-      return;
     }
-
-    if (paymentIntent?.status === 'succeeded') {
-      onSuccess(paymentIntent.id);
-    } else {
-      onError('Payment was not completed. Please try again.');
-    }
-
-    setProcessing(false);
   };
 
   const fmtGBP = (n: number) =>
@@ -94,6 +111,16 @@ function StripeCheckoutForm({
           layout: 'tabs',
         }}
       />
+
+      {pending && (
+        <p role='status'>
+          Your payment is still processing. Check{' '}
+          <Link href='/payments' className='underline'>
+            Payments
+          </Link>{' '}
+          for its status before trying again.
+        </p>
+      )}
 
       {/* Actions */}
       <div className='flex items-center gap-3 pt-2'>
@@ -109,7 +136,7 @@ function StripeCheckoutForm({
         )}
         <button
           type='submit'
-          disabled={processing || !stripe || !elements}
+          disabled={processing || pending || !stripe || !elements}
           className='flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none'
         >
           {processing ? (
@@ -157,6 +184,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     null
   );
 
+  const intentRequestRef = useRef<{
+    identity: string;
+    request: Promise<Record<string, unknown>>;
+  } | null>(null);
+  const [setupAttempt, setSetupAttempt] = useState(0);
+
   useEffect(() => {
     let active = true;
     setClientSecret(null);
@@ -185,34 +218,40 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     // for a different job that the user has since opened.
     const requestKey = idempotencyKeyRef.current.key;
 
-    getCsrfToken()
-      .then((csrfToken) =>
-        fetch('/api/payments/create-intent', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
-            'Idempotency-Key': requestKey,
-          },
-          body: JSON.stringify({
-            amount: amountInPence / 100,
-            currency: 'gbp',
-            jobId,
-            contractorId,
-          }),
-        })
-      )
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || 'Failed to initialise payment');
-        }
-        return res.json();
-      })
+    // StrictMode may subscribe twice while the first request still owns the
+    // server claim. Share that request; never weaken server idempotency.
+    if (intentRequestRef.current?.identity !== identity) {
+      const request = getCsrfToken()
+        .then((csrfToken) =>
+          fetch('/api/payments/create-intent', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+              'Idempotency-Key': requestKey,
+            },
+            body: JSON.stringify({
+              amount: amountInPence / 100,
+              currency: 'gbp',
+              jobId,
+              contractorId,
+            }),
+          })
+        )
+        .then(async (res) => {
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || 'Failed to initialise payment');
+          }
+          return res.json() as Promise<Record<string, unknown>>;
+        });
+      intentRequestRef.current = { identity, request };
+    }
+    intentRequestRef.current.request
       .then((data) => {
         if (!active) return;
-        if (!data.clientSecret)
+        if (typeof data.clientSecret !== 'string' || !data.clientSecret)
           throw new Error('No client secret returned from server');
         const cash = Number(data.amount);
         const gross = Number(data.grossAmount ?? data.amount);
@@ -248,7 +287,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     return () => {
       active = false;
     };
-  }, [jobId, contractorId, amountInPence]);
+  }, [jobId, contractorId, amountInPence, setupAttempt]);
 
   const appearance = {
     theme: 'stripe' as const,
@@ -295,7 +334,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     );
   }
 
-  if (!clientSecret || !funding) return null;
+  if (!clientSecret || !funding)
+    return (
+      <button
+        type='button'
+        className='btn btn-primary'
+        onClick={() => {
+          intentRequestRef.current = null;
+          onErrorRef.current('');
+          setSetupAttempt((value) => value + 1);
+        }}
+      >
+        Retry payment setup
+      </button>
+    );
 
   return (
     <div className='space-y-4'>

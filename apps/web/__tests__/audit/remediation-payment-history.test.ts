@@ -56,6 +56,39 @@ const request = () =>
     {} as never
   );
 describe('payment history balance boundary', () => {
+  it('reports a completed payout as released and preserves recorded fees', async () => {
+    rows = [
+      {
+        id,
+        amount: 10,
+        status: 'completed',
+        platform_fee: 1.2,
+        contractor_payout: 8.8,
+        created_at: '2026-09-24',
+        updated_at: '2026-09-24',
+      },
+    ];
+    expect((await (await request()).json()).payments[0]).toMatchObject({
+      status: 'released',
+      platformFee: 1.2,
+      contractorPayout: 8.8,
+    });
+  });
+  it.each(['failed', 'cancelled', 'pending_review'])(
+    'does not turn %s into a pending payment',
+    async (status) => {
+      rows = [
+        {
+          id,
+          amount: 10,
+          status,
+          created_at: '2026-09-24',
+          updated_at: '2026-09-24',
+        },
+      ];
+      expect((await (await request()).json()).payments[0].status).toBe(status);
+    }
+  );
   it('applies actor ownership and exact ID before reading the private ledger', async () => {
     const response = await request();
     const body = await response.json();
