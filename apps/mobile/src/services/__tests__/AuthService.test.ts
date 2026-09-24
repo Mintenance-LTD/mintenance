@@ -1,21 +1,22 @@
-/**
- * Tests for AuthService - Authentication Operations
- * Following the pattern from BidManagementService.test.ts
- *
- * NOTE: 5 tests are .skip'd (2026-07-02 triage) because AuthService evolved
- * since they were written: profile reads/writes now go through mobileApiClient
- * (packages/api-client), so the supabase.from('profiles') mocks are never hit
- * and the tests perform real fetches with retry backoff. They need a rewrite
- * against mobileApiClient mocks. (The onAuthStateChange test was fixed and
- * re-enabled — the service forwards the full (event, session) pair.)
- */
+/** Authentication orchestration and current profile API contracts. */
 
 import { AuthService, SignUpData } from '../AuthService';
 
 // Import mocked modules for easier access
 import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
+
+// NetworkDiagnosticsService mock removed — the module was deleted in the
+// bulk dead-code cleanup (commit 9f06a7ac) and AuthService no longer uses it.
+
+// AuthService now delegates to standalone functions split out of the service
+// on 2026-05-09. The biometric-restore path reads the current user via
+// auth/profile-fetch (NOT AuthService.getCurrentUser). The restore test spies
+// on that module's getCurrentUser inside its own describe block so the real
+// implementation is preserved for the getCurrentUser unit tests.
+import * as profileFetch from '../auth/profile-fetch';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -77,22 +78,14 @@ jest.mock('../../utils/serviceErrorHandler', () => ({
 // the check from reaching the network in the test runner.
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: {
+    get: jest.fn(),
+    put: jest.fn(),
     post: jest.fn().mockResolvedValue({
       isBreached: false,
       occurrences: null,
     }),
   },
 }));
-
-// NetworkDiagnosticsService mock removed — the module was deleted in the
-// bulk dead-code cleanup (commit 9f06a7ac) and AuthService no longer uses it.
-
-// AuthService now delegates to standalone functions split out of the service
-// on 2026-05-09. The biometric-restore path reads the current user via
-// auth/profile-fetch (NOT AuthService.getCurrentUser). The restore test spies
-// on that module's getCurrentUser inside its own describe block so the real
-// implementation is preserved for the getCurrentUser unit tests.
-import * as profileFetch from '../auth/profile-fetch';
 
 /**
  * Build a genuinely base64url-decodable JWT (header.payload.signature) so the
@@ -307,41 +300,28 @@ describe('AuthService', () => {
       expect(result.session).toEqual(mockSession);
     });
 
-    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
-    it.skip('should return fallback user data when profile fetch fails', async () => {
-      const mockAuthResponse = {
-        data: {
-          user: mockUser,
-          session: mockSession,
-        },
+    it('should return fallback user data when profile fetch fails', async () => {
+      (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
         error: null,
-      };
-
-      (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue(
-        mockAuthResponse
-      );
-
-      const mockFrom = {
+      });
+      (supabase.from as jest.Mock).mockReturnValue({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           data: null,
-          error: new Error('Profile not found'),
+          error: new Error('Profile unavailable'),
         }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
+      });
       const result = await AuthService.signIn(
         'test@example.com',
         'password123'
       );
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Profile fetch error:',
-        expect.any(Error)
-      );
-      expect(result.user.id).toBe(mockUser.id);
-      expect(result.user.email).toBe(mockUser.email);
+      expect(result.user).toMatchObject({
+        id: mockUser.id,
+        email: mockUser.email,
+      });
+      expect(result.session).toEqual(mockSession);
     });
 
     it('should handle authentication errors', async () => {
@@ -396,28 +376,16 @@ describe('AuthService', () => {
   });
 
   describe('getCurrentUser', () => {
-    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
-    it.skip('should get current user with profile successfully', async () => {
+    it('should get current user with profile successfully', async () => {
       (supabase.auth.getSession as jest.Mock).mockResolvedValue({
         data: { session: mockSession },
       });
-
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: mockUserProfile,
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
+      (mobileApiClient.get as jest.Mock).mockResolvedValue({
+        profile: mockUserProfile,
+      });
       const result = await AuthService.getCurrentUser();
-
-      expect(supabase.auth.getSession).toHaveBeenCalled();
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', mockUser.id);
-
+      expect(mobileApiClient.get).toHaveBeenCalledWith('/api/users/profile');
+      expect(supabase.from).not.toHaveBeenCalled();
       expect(result).toEqual({
         ...mockUserProfile,
         firstName: mockUserProfile.first_name,
@@ -437,30 +405,17 @@ describe('AuthService', () => {
       expect(supabase.from).not.toHaveBeenCalled();
     });
 
-    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
-    it.skip('should return fallback user when profile fetch fails', async () => {
+    it('should return fallback user when profile fetch fails', async () => {
       (supabase.auth.getSession as jest.Mock).mockResolvedValue({
         data: { session: mockSession },
       });
-
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error: new Error('Profile error'),
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
-      const result = await AuthService.getCurrentUser();
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Profile fetch error:',
-        expect.any(Error)
+      (mobileApiClient.get as jest.Mock).mockRejectedValue(
+        new Error('Offline')
       );
-      expect(result.id).toBe(mockUser.id);
-      expect(result.email).toBe(mockUser.email);
+      const result = await AuthService.getCurrentUser();
+      expect(mobileApiClient.get).toHaveBeenCalledWith('/api/users/profile');
+      expect(result).toMatchObject({ id: mockUser.id, email: mockUser.email });
+      expect(supabase.from).not.toHaveBeenCalled();
     });
 
     it('should handle errors gracefully and return null', async () => {
@@ -502,30 +457,18 @@ describe('AuthService', () => {
   });
 
   describe('updateUserProfile', () => {
-    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
-    it.skip('should update user profile successfully', async () => {
-      const updates = {
-        first_name: 'Jane',
-        last_name: 'Updated',
-        email: 'updated@example.com',
-      };
-
-      const mockFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { ...mockUserProfile, ...updates },
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
+    it('should update user profile successfully', async () => {
+      const updates = { first_name: 'Jane', last_name: 'Updated' };
+      (mobileApiClient.put as jest.Mock).mockResolvedValue({
+        success: true,
+        profile: { ...mockUserProfile, ...updates },
+      });
       const result = await AuthService.updateUserProfile('user-123', updates);
-
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
-      expect(mockFrom.update).toHaveBeenCalledWith(updates);
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', 'user-123');
+      expect(mobileApiClient.put).toHaveBeenCalledWith(
+        '/api/users/profile',
+        updates
+      );
+      expect(supabase.from).not.toHaveBeenCalled();
       expect(result).toEqual({ ...mockUserProfile, ...updates });
     });
 
@@ -541,23 +484,14 @@ describe('AuthService', () => {
       expect(supabase.from).not.toHaveBeenCalled();
     });
 
-    // SKIP: Tracked in #1154 — profile I/O moved to mobileApiClient; supabase.from('profiles') mock never hit, test does a real fetch (rewrite against mobileApiClient mocks)
-    it.skip('should throw error when update fails', async () => {
-      const error = new Error('Update failed');
-      const mockFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
-
+    it('should throw error when update fails', async () => {
+      (mobileApiClient.put as jest.Mock).mockRejectedValue(
+        new Error('Update failed')
+      );
       await expect(
         AuthService.updateUserProfile('user-123', { first_name: 'Test' })
       ).rejects.toThrow('Update failed');
+      expect(supabase.from).not.toHaveBeenCalled();
     });
   });
 

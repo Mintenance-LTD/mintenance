@@ -202,3 +202,13 @@ an unrelated account was denied. Temporary services and synthetic credentials we
 follow-up in NATIVE-DISPUTE-ACCESS-2026-09-24.md for debug-build and asset limitations. This
 supersedes only the reader's earlier no-device-test limitation, not the wider release/retention
 gates.
+
+### Consolidated readiness checkpoint
+
+READINESS-CHECKPOINT-2026-09-24.md supersedes historical blocker summaries with current evidence.
+Full web coverage passes 404 files / 4,066 tests. Full mobile assertions pass 470 suites / 12,336
+tests with five historical skips, but Jest required cleanup after an open-handle warning. Those five
+AuthService tests were subsequently restored; all 39 in that file pass with handle detection and a
+clean exit. Native archive discovery is now implemented and pushed. Hosted metadata shows the live
+alias remains on main b34fca6d5, with newer changes on preview deployments. No public readiness
+claim.
