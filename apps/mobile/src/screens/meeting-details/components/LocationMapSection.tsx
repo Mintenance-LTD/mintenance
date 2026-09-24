@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatMilesFromKm } from '@mintenance/shared';
@@ -25,14 +25,20 @@ export function LocationMapSection({
   distanceKm: number | null;
   etaMinutes: number | null;
 }) {
-  const mapRef = useRef<View>(null);
+  const hasMeetingCoordinates =
+    typeof meeting.latitude === 'number' &&
+    Number.isFinite(meeting.latitude) &&
+    typeof meeting.longitude === 'number' &&
+    Number.isFinite(meeting.longitude) &&
+    Math.abs(meeting.latitude) <= 90 &&
+    Math.abs(meeting.longitude) <= 180;
 
   return (
     <View style={styles.mapSection}>
       <Text style={styles.sectionTitle}>Location & Tracking</Text>
       <View style={styles.mapContainer}>
-        {region && (
-          <MapView ref={mapRef} style={{ flex: 1 }}>
+        {region && hasMeetingCoordinates ? (
+          <MapView region={region} style={{ flex: 1 }}>
             <Marker
               coordinate={{
                 latitude: meeting.latitude ?? 0,
@@ -77,6 +83,8 @@ export function LocationMapSection({
               />
             )}
           </MapView>
+        ) : (
+          <Text>Meeting location is not available yet.</Text>
         )}
 
         <View style={styles.locationOverlay}>
@@ -89,11 +97,7 @@ export function LocationMapSection({
               </Text>
               {etaMinutes !== null ? (
                 <Text style={styles.estimatedTime}>ETA: {etaMinutes} mins</Text>
-              ) : (
-                <Text style={styles.estimatedTime}>
-                  ~{Math.round(distanceKm * 2)} mins
-                </Text>
-              )}
+              ) : null}
             </View>
           )}
         </View>
