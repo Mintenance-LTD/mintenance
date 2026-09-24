@@ -84,11 +84,17 @@ const ADMIN_AUTH_ROUTES = [
 const UUID_CONTRACTOR_PROFILE_RE =
   /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Generated reporting capabilities are 16 random bytes encoded as 32 hex chars.
+// The handler still verifies existence, active status and the linked property,
+// and rate-limits anonymous requests. Never expose reporting management paths.
+const TENANT_REPORT_RE = /^\/(?:api\/)?report\/[0-9a-f]{32}$/i;
+
 /**
  * Returns true when the given pathname requires no authentication.
  */
 export function isPublicRoute(pathname: string): boolean {
   if (pathname === '/') return true;
+  if (TENANT_REPORT_RE.test(pathname)) return true;
 
   // E2E-only test-auth endpoint. Whitelisted ONLY when E2E_TESTING is on, so
   // in production the middleware treats it as a normal protected route and

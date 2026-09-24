@@ -1,4 +1,5 @@
 import React from 'react';
+import { Share } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TenantReportingLinks } from '../components/TenantReportingLinks';
@@ -33,6 +34,7 @@ it('shows retry on load failure and exposes all recovered reporting links', asyn
   mockGet.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({
     tokens: [1, 2, 3, 4].map((id) => ({
       id: String(id),
+      token: `public-token-${id}`,
       property_id: 'property',
       label: `Link ${id}`,
       is_active: true,
@@ -45,6 +47,29 @@ it('shows retry on load failure and exposes all recovered reporting links', asyn
   expect(view.queryByText('No reporting links yet.')).toBeNull();
   fireEvent.press(view.getByText('Retry reporting links'));
   await waitFor(() => expect(view.getByText('Link 4 · Active')).toBeTruthy());
+});
+it('shares the public reporting token, not the internal row ID', async () => {
+  const share = jest
+    .spyOn(Share, 'share')
+    .mockResolvedValue({ action: Share.sharedAction });
+  mockGet.mockResolvedValue({
+    tokens: [
+      {
+        id: 'internal-row-id',
+        token: 'public-report-token',
+        property_id: 'property',
+        label: 'Tenant link',
+        is_active: true,
+      },
+    ],
+  });
+  const view = show();
+  await waitFor(() => expect(view.getByText('Share link')).toBeTruthy());
+  await act(async () => fireEvent.press(view.getByText('Share link')));
+  expect(share).toHaveBeenCalledWith({
+    message: 'https://www.mintenance.co.uk/report/public-report-token',
+  });
+  share.mockRestore();
 });
 it('does not treat a malformed creation response as saved', async () => {
   mockGet.mockResolvedValue({ tokens: [] });

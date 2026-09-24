@@ -40,7 +40,7 @@ export const GET = withApiHandler(
 
     const { data: tokens, error } = await serverSupabase
       .from('anonymous_report_tokens')
-      .select('id, property_id, label, is_active, created_at')
+      .select('id, token, property_id, label, is_active, created_at')
       .eq('property_id', propertyId)
       .order('created_at', { ascending: false });
 

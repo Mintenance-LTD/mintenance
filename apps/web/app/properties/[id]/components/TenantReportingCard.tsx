@@ -7,6 +7,7 @@ import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 
 interface ReportToken {
   id: string;
+  token: string;
   property_id: string;
   label: string | null;
   is_active: boolean;
@@ -117,8 +118,12 @@ export function TenantReportingCard({
     }
   };
 
-  const copyReportLink = async (tokenId: string) => {
-    const url = `${window.location.origin}/report/${tokenId}`;
+  const copyReportLink = async (reportToken: string) => {
+    if (!reportToken) {
+      toast.error('Reporting link unavailable. Reload and retry.');
+      return;
+    }
+    const url = `${window.location.origin}/report/${encodeURIComponent(reportToken)}`;
     const ok = await safeCopyToClipboard(url);
     if (ok) {
       toast.success('Link copied to clipboard');
@@ -196,7 +201,7 @@ export function TenantReportingCard({
               <div style={{ flex: 1 }} />
               <button
                 type='button'
-                onClick={() => copyReportLink(token.id)}
+                onClick={() => copyReportLink(token.token)}
                 className='btn btn-ghost btn-sm'
                 aria-label={`Copy ${token.label || 'reporting link'}`}
                 style={{ padding: '4px 6px' }}

@@ -91,6 +91,7 @@ interface PropertyDetailsClientProps {
 
 interface ReportToken {
   id: string;
+  token: string;
   property_id: string;
   label: string | null;
   is_active: boolean;
@@ -179,8 +180,12 @@ export default function PropertyDetailsClient({
     }
   };
 
-  const copyReportLink = async (tokenId: string) => {
-    const url = `${window.location.origin}/report/${tokenId}`;
+  const copyReportLink = async (reportToken: string) => {
+    if (!reportToken) {
+      toast.error('Reporting link unavailable. Reload and retry.');
+      return;
+    }
+    const url = `${window.location.origin}/report/${encodeURIComponent(reportToken)}`;
     const ok = await safeCopyToClipboard(url);
     if (ok) {
       toast.success('Link copied to clipboard');
@@ -935,7 +940,7 @@ export default function PropertyDetailsClient({
                           </span>
                           <div className='flex items-center gap-1'>
                             <button
-                              onClick={() => copyReportLink(token.id)}
+                              onClick={() => copyReportLink(token.token)}
                               className='p-1 hover:bg-gray-200 rounded'
                               title='Copy link'
                             >

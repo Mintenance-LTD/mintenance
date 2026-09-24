@@ -16,6 +16,21 @@ import { isValidJwtFormat, extractBearerToken } from '../middleware/helpers';
 import { NextRequest } from 'next/server';
 
 describe('isPublicRoute', () => {
+  it('allows only generated tenant reporting token paths without a login', () => {
+    const token = '0123456789abcdef0123456789abcdef';
+    expect(isPublicRoute(`/report/${token}`)).toBe(true);
+    expect(isPublicRoute(`/api/report/${token}`)).toBe(true);
+    for (const path of [
+      '/report',
+      '/api/report',
+      '/report/settings',
+      `/api/report/${token}/admin`,
+      '/api/properties/example/report-token',
+      '/landlord/reports',
+    ]) {
+      expect(isPublicRoute(path)).toBe(false);
+    }
+  });
   it('returns true for the root path', () => {
     expect(isPublicRoute('/')).toBe(true);
   });

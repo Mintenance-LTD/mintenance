@@ -34,6 +34,31 @@ async function account() {
  db(await service.from('property_team_members').insert([[manager, 'manager'], [administrator, 'admin'], [viewer, 'viewer']].map(([actor, role]) => ({ property_id: property, invited_by: owner.id, user_id: actor.id, email: actor.email, role, status: 'accepted' }))));
  for (const [role, actor, canWrite, canRead] of [['owner', owner, true, true], ['manager', manager, true, true], ['team administrator', administrator, true, true], ['viewer', viewer, false, true], ['unrelated', unrelated, false, false]]) {
   const base = `/api/properties/${property}`;
+  const reporting = await actor.request(`${base}/report-token`);
+  check(canWrite ? reporting.status === 200 : [403,404].includes(reporting.status), `${role} reporting link read mismatch: ${reporting.status}`);
+  const createdLink = await actor.request(`${base}/report-token`, 'POST', { label: 'Synthetic reporting link' });
+  check(canWrite ? createdLink.status === 201 : [403,404].includes(createdLink.status), `${role} reporting link create mismatch: ${createdLink.status}`);
+  if (canWrite) {
+   const link = createdLink.data.token;
+   check(typeof link.token === 'string' && link.token !== link.id, 'Reporting token must differ from internal row identity');
+   const listed = await actor.request(`${base}/report-token`);
+   check(listed.data.tokens.some(row => row.id === link.id && row.token === link.token), 'List omitted the usable reporting token');
+   const publicRead = async value => fetch(`${web}/api/report/${encodeURIComponent(value)}`, { signal: AbortSignal.timeout(90000) });
+   check([401,403,404].includes((await publicRead(link.id)).status), 'Internal row ID unexpectedly accepted as reporting token');
+   check((await publicRead(link.token)).status === 200, 'Generated public reporting token failed');
+   const disabled = await actor.request(`${base}/report-token`, 'PATCH', { token_id: link.id, is_active: false });
+   check(disabled.status === 200 && disabled.data.token.is_active === false, 'Reporting link revocation not confirmed');
+   check((await publicRead(link.token)).status === 410, 'Revoked reporting token remains usable');
+  }
+  const canManageTeam = role === 'owner' || role === 'team administrator';
+  const teamRead = await actor.request(`${base}/team`);
+  check(canManageTeam ? teamRead.status === 200 : [403,404].includes(teamRead.status), `${role} private team read mismatch: ${teamRead.status}`);
+  const teamInvite = await actor.request(`${base}/team`, 'POST', { email: `audit_${randomUUID()}@example.invalid`, role: 'viewer' });
+  check(canManageTeam ? teamInvite.status === 201 && teamInvite.data.invitation?.activated === false : [403,404].includes(teamInvite.status), `${role} team invitation mismatch: ${teamInvite.status}`);
+  if (canManageTeam) {
+   const removed = await actor.request(`${base}/team?memberId=${teamInvite.data.member.id}`, 'DELETE');
+   check(removed.status === 200 && removed.data.success === true, 'Team invitation removal not confirmed');
+  }
   for (const suffix of ['tenants', 'recurring-maintenance', 'compliance']) {
    const result = await actor.request(`${base}/${suffix}`);
    // Viewer access to the property does not include private tenant contact records.
@@ -67,6 +92,7 @@ async function account() {
  check(linked.user_id === unrelated.id && linked.invitation_accepted_at, 'Invitation did not persist the verified invitee');
  console.log('PASS: invitation rejects a different verified user; concurrent and repeated acceptance confirms one persisted invited identity. Synthetic fixture only; no invitation email sent.');
  console.log('PASS: 5 real cookie-authenticated roles; 15 authorized/denied reads; owner/manager/team-admin contact and schedule writes; viewer/unrelated write denial; delegated owner attribution. No email or payment provider called.');
+ console.log('PASS: 5-role reporting/team access; public reporting tokens differ from row IDs, load successfully and revoke with 410; owner/team-admin invite/remove allowed and manager/viewer/unrelated denied. No report submitted and no email sent.');
 } finally {
  db(await service.from('properties').delete().eq('id', property));
  for (const id of users) { db(await service.from('homeowner_subscriptions').delete().eq('homeowner_id', id)); db(await service.auth.admin.deleteUser(id)); }

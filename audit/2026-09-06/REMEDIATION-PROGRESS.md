@@ -3825,3 +3825,31 @@ disputes with tied microsecond timestamps and intervening review-date changes, w
 omissions/duplicates. All diagnostic fixtures were removed. No SQL or hosted schema changes were
 needed for this slice. The last full coverage result predates this pagination change; focused tests
 cover this change. Durable disposal, legacy reconciliation and processor/backup expiry remain open.
+
+### September 24 — usable tenant reporting links on web and mobile
+
+Confirmed two independent failures in the property reporting journey. Property cards and native
+sharing built `/report/<row id>`, while both public handlers look up a separate random `token`. The
+property listing endpoint also omitted that token. Separately, the proxy redirected the public
+report page to login and rejected its API before the handler's `auth:false` could take effect. The
+signed-out local Edge browser reproduced that redirect using a real synthetic reporting token.
+
+The authorized management listing now includes the reporting capability. Web property cards
+(including the older component) and native sharing use that token; mutation requests still use the
+internal row ID. Missing token values produce an error instead of copying an invalid link. Proxy
+access is limited to exactly one 32-hex-character generated token segment under `/report/` or
+`/api/report/`; the handler still checks active status/property existence and rate-limits requests.
+Management, landlord, settings and extra subpaths stay protected.
+
+Verification: 8 focused web reporting/permission tests and 3 native component tests passed; adding
+the proxy regression produced 33 passing focused checks. Web/mobile types and source lint passed.
+Full web coverage passed 393 files / 3,985 tests; the public-route edit was additionally checked by
+the focused run. Edge then showed the signed-out synthetic report form, and after revocation showed
+an invalid/deactivated-link message. No report was submitted, no email sent, and synthetic browser
+fixtures were removed. The expanded five-role HTTP diagnostic is pending its normal login cooldown;
+do not count it as passed yet. No SQL migration is required.
+
+Read-only live check: the user-supplied dashboard URL opened in the existing Edge session and showed
+navigation, project cards and property actions. No production data was changed. This establishes
+page access, not completion of payment or management journeys. Supabase MCP also verified the hosted
+contact FK definitions directly: property deletion CASCADE; deleted user reference SET NULL.
