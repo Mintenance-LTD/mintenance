@@ -5,10 +5,8 @@ import { me } from '../../../design-system/mint-editorial';
 /**
  * Web-compatible fallbacks for `react-native-maps`.
  *
- * `react-native-maps` was removed for web compatibility — this file
- * provides typed shells so the screen renders a "Map view available
- * on mobile devices" placeholder. Native devices should swap these
- * imports for the real `react-native-maps` exports when needed.
+ * Metro selects MapPlaceholder.native.tsx on Android and iOS. This
+ * fallback keeps native-only map imports out of the web bundle.
  *
  * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44g).
  */
@@ -22,7 +20,11 @@ export interface MapRegion {
 
 export const MapView = React.forwardRef<
   View,
-  { children?: React.ReactNode; style?: Record<string, unknown> }
+  {
+    children?: React.ReactNode;
+    style?: Record<string, unknown>;
+    region?: MapRegion;
+  }
 >(function MapView({ children }, ref) {
   return (
     <View

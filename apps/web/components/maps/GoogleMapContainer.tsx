@@ -55,20 +55,15 @@ function GoogleMapContent({
   children,
 }: GoogleMapContainerProps): JSX.Element {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [attempt, setAttempt] = useState(0);
   const handleRetry = useCallback(() => {
     setError(null);
     setLoading(true);
-
-    if (mapRef.current && mapInstanceRef.current) {
-      mapInstanceRef.current.setCenter(center);
-      mapInstanceRef.current.setZoom(zoom);
-      setLoading(false);
-    }
-  }, [center, zoom]);
+    setAttempt((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -101,7 +96,7 @@ function GoogleMapContent({
         const loadTime = performance.now() - loadStartTime;
 
         const mapInstance = new google.maps.Map(mapRef.current, {
-          center,
+          center: { lat: center.lat, lng: center.lng },
           zoom,
           mapTypeControl: true,
           streetViewControl: false,
@@ -117,7 +112,6 @@ function GoogleMapContent({
           ],
         });
 
-        mapInstanceRef.current = mapInstance;
         setLoading(false);
 
         // Only log on actual first load (not re-renders)
@@ -146,69 +140,47 @@ function GoogleMapContent({
       }
     };
 
-    // Check if Google Maps is already fully loaded
     const google = (window as unknown as WindowWithGoogle).google;
-    if (google && google.maps && google.maps.Map) {
+    if (google?.maps?.Map) {
       initializeMap();
       return;
     }
 
-    // Check if script is already being loaded
-    if (document.getElementById(scriptId)) {
-      // Wait for script to load and Maps library to be available
-      checkInterval = setInterval(() => {
-        const google = (window as unknown as WindowWithGoogle).google;
-        if (google && google.maps && google.maps.Map) {
-          if (checkInterval) clearInterval(checkInterval);
-          initializeMap();
-        }
-      }, 100);
-
-      return () => {
-        if (checkInterval) clearInterval(checkInterval);
-      };
-    }
-
-    // Create callback function name
-    const callbackName = `initGoogleMap_${Date.now()}`;
-
-    // Set up callback function
-    (window as unknown as WindowWithGoogle)[callbackName] = () => {
-      // Clean up callback
-      delete (window as unknown as WindowWithGoogle)[callbackName];
-
-      // Initialize map after callback fires (ensures Maps library is ready)
-      setTimeout(() => {
-        initializeMap();
-      }, 100);
-    };
-
-    // Create and load script with callback
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&loading=async&callback=${callbackName}`;
-    script.async = true;
-    script.defer = true;
-
-    script.onerror = () => {
-      logger.error('Error loading Google Maps script');
-      delete (window as unknown as WindowWithGoogle)[callbackName];
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    const fail = () => {
+      if (checkInterval) clearInterval(checkInterval);
+      clearTimeout(timeout);
+      script?.remove();
       setError('Failed to load map. Please try again.');
       setLoading(false);
     };
-
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup
-      if (checkInterval) clearInterval(checkInterval);
-      // Clean up callback if component unmounts before script loads
-      if ((window as unknown as WindowWithGoogle)[callbackName]) {
-        delete (window as unknown as WindowWithGoogle)[callbackName];
+    // Every consumer owns a bounded wait, including consumers joining a load
+    // started by a component which has since unmounted.
+    const timeout = setTimeout(fail, 15000);
+    checkInterval = setInterval(() => {
+      if ((window as unknown as WindowWithGoogle).google?.maps?.Map) {
+        if (checkInterval) clearInterval(checkInterval);
+        clearTimeout(timeout);
+        initializeMap();
       }
-      // Don't remove script as it might be used by other components
+    }, 100);
+    if (!script) {
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places,geometry&loading=async`;
+      script.async = true;
+      script.defer = true;
+      script.addEventListener('error', fail);
+      document.head.appendChild(script);
+    } else {
+      script.addEventListener('error', fail);
+    }
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+      clearTimeout(timeout);
+      script?.removeEventListener('error', fail);
     };
-  }, [center.lat, center.lng, zoom, onMapLoad]);
+  }, [center.lat, center.lng, zoom, onMapLoad, attempt]);
 
   if (error) {
     return (

@@ -121,3 +121,23 @@ assertion-blocked run. This does not establish all manager workflows. Stripe tes
 rejected; hosted delivery/cron execution, external storage disposal and backup/processor erasure
 remain open. All six milestones remain tracked; no public-launch or real-money readiness claim is
 made.
+
+### Stripe sandbox checkpoint � 24 September
+
+The replacement key authenticates; secret/publishable pair verification passes. Provider success,
+decline, requires-action and refund tests pass. Mintenance HTTP create-intent uses the accepted bid
+amount, rejects unrelated payers, reuses an intent on retry, and tolerates concurrent confirmation.
+Real forwarded Stripe events move local escrow pending -> held -> refunded. The pre-existing hosted
+test webhook was temporarily disabled with explicit permission and restored after each run. See
+STRIPE-SANDBOX-2026-09-24.md for fixtures and scope limits. Connect onboarding/payout, completed
+3DS/browser/native hand-offs and fault-recovery acceptance remain open. The previous sandbox-key 401
+blocker is superseded; no public readiness claim is made.
+
+### Payments, documents and maps follow-up
+
+See PAYMENTS-DOCUMENTS-MAPS-2026-09-24.md. Real provider 3DS challenge and synthetic Express
+onboarding completed. Transfer remains blocked by insufficient sandbox available balance; app payout
+is not verified. Real contract PDF bytes/participant isolation and uploaded PDF roundtrip pass. Web
+map retry and active native meeting-map placeholder repaired with focused tests. Authorized HTTPS
+tunnel worked; native UI control unavailable, so Android hand-offs remain open. No milestone is
+marked complete from these partial checks.
