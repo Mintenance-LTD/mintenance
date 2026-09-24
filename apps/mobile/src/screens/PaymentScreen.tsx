@@ -29,7 +29,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoadingSpinner, ErrorView } from '../components/shared';
 import { goBackSafe } from '../navigation/hooks';
@@ -58,6 +57,7 @@ interface PaymentScreenProps {
     goBack: () => void;
     canGoBack: () => boolean;
     navigate: (screen: string) => void;
+    addListener: (event: 'focus', callback: () => void) => () => void;
   };
 }
 
@@ -73,7 +73,6 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   useScreenCaptureGuard();
 
   const { user } = useAuth();
-  const rootNavigation = useNavigation();
   const queryClient = useQueryClient();
   const {
     jobId,
@@ -110,6 +109,15 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     useEscrow,
     onSuccess: handlePaymentSuccess,
   });
+
+  const { loadPaymentMethods } = payment;
+  React.useEffect(
+    () =>
+      navigation.addListener('focus', () => {
+        void loadPaymentMethods();
+      }),
+    [navigation, loadPaymentMethods]
+  );
 
   if (payment.loading) {
     return <LoadingSpinner message='Loading payment options…' />;
@@ -176,19 +184,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             {payment.paymentMethods.length === 0 ? (
               <TouchableOpacity
                 style={styles.addMethodButton}
-                onPress={() => {
-                  (
-                    rootNavigation as unknown as {
-                      navigate: (
-                        screen: string,
-                        params?: Record<string, unknown>
-                      ) => void;
-                    }
-                  ).navigate('Main', {
-                    screen: 'ProfileTab',
-                    params: { screen: 'AddPaymentMethod' },
-                  });
-                }}
+                onPress={() => navigation.navigate('AddPaymentMethod')}
                 accessibilityRole='button'
                 accessibilityLabel='Add payment method'
               >

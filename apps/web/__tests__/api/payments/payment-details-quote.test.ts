@@ -46,6 +46,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
 }));
 
 import { GET } from '@/app/api/jobs/[id]/payment-details/route';
+import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
 const request = () =>
   GET(new NextRequest('http://localhost/api/jobs/job/payment-details'), {
     params: Promise.resolve({ id: 'job' }),
@@ -53,11 +54,32 @@ const request = () =>
 
 describe('payment details accepted-bid quote', () => {
   beforeEach(() => {
+    vi.spyOn(FeeCalculationService, 'resolveContractorTier').mockResolvedValue(
+      'basic'
+    );
     state.actor = 'owner';
     state.job.contractor_id = 'contractor';
     state.bid = { amount: '200.50' };
     state.bidError = null;
     state.filters = [];
+  });
+  it.each([
+    ['basic', 24.06],
+    ['professional', 16.04],
+    ['enterprise', 10.03],
+  ] as const)('quotes the resolved %s contractor fee', async (tier, fee) => {
+    vi.mocked(FeeCalculationService.resolveContractorTier).mockResolvedValue(
+      tier
+    );
+    const body = await (await request()).json();
+    expect(FeeCalculationService.resolveContractorTier).toHaveBeenCalledWith(
+      'contractor'
+    );
+    expect(body.fees.platformFee).toBe(fee);
+    expect(body.fees.contractorPayout).toBe(
+      Math.round((200.5 - fee) * 100) / 100
+    );
+    expect(body.fees.totalAmount).toBe(200.5);
   });
   it('normalizes numeric strings and binds the quote to the assigned contractor', async () => {
     const body = await (await request()).json();

@@ -93,6 +93,7 @@ export type JobsStackParamList = {
   // canonical validation + submit pipeline and was deleted.
   ExploreMap: undefined;
   BidSubmission: { jobId: string; existingBidId?: string };
+  AddPaymentMethod: undefined;
   JobPayment: {
     jobId: string;
     amount: number;
@@ -358,6 +359,8 @@ export type ModalStackParamList = {
 
 declare global {
   namespace ReactNavigation {
+    // React Navigation requires an interface here for global declaration merging.
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface RootParamList extends RootStackParamList {}
   }
 }

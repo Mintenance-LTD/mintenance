@@ -95,8 +95,12 @@ export const GET = withApiHandler(
       });
     }
 
+    const contractorTier = await FeeCalculationService.resolveContractorTier(
+      job.contractor_id!
+    );
     const feeBreakdown = FeeCalculationService.calculateFees(paymentAmount, {
       paymentType: 'final',
+      contractorTier,
     });
 
     return NextResponse.json({

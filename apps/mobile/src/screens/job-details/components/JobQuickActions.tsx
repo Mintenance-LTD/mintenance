@@ -12,6 +12,7 @@ interface JobQuickActionsProps {
   status: string;
   isCompletionConfirmedByHomeowner: boolean;
   onTimelinePress: () => void;
+  onContractPress?: () => void;
   onEditPress: () => void;
   onSignOffPress: () => void;
   onDisputePress: () => void;
@@ -32,12 +33,24 @@ export function JobQuickActions({
   status,
   isCompletionConfirmedByHomeowner,
   onTimelinePress,
+  onContractPress,
   onEditPress,
   onSignOffPress,
   onDisputePress,
 }: JobQuickActionsProps) {
   return (
     <View style={styles.quickActionsSection}>
+      {onContractPress && (
+        <TouchableOpacity
+          style={styles.quickActionRow}
+          onPress={onContractPress}
+          accessibilityRole='button'
+        >
+          <Ionicons name='document-text-outline' size={20} color={me.ink2} />
+          <Text style={styles.quickActionText}>View Contract</Text>
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         style={styles.quickActionRow}
         onPress={onTimelinePress}

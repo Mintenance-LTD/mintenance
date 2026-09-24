@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor, fireEvent } from '@testing-library/react-native';
+import { render, waitFor, fireEvent, act } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { PaymentService } from '../../services/PaymentService';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -169,6 +169,34 @@ describe('PaymentScreen', () => {
       view.getByLabelText('Pay £350.00').props.accessibilityState.disabled
     ).toBe(true);
     expect(PaymentService.createPaymentIntent).not.toHaveBeenCalled();
+    fireEvent.press(view.getByLabelText('Add payment method'));
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('AddPaymentMethod');
+  });
+
+  it('refreshes saved cards when returning from card setup', async () => {
+    (PaymentService.getPaymentMethods as jest.Mock).mockResolvedValue({
+      methods: [],
+    });
+    const view = renderScreen();
+    await waitFor(() =>
+      expect(view.getByLabelText('Add payment method')).toBeTruthy()
+    );
+    (PaymentService.getPaymentMethods as jest.Mock).mockResolvedValue({
+      methods: [method],
+    });
+    const focus = mockNavigation.addListener.mock.calls.find(
+      ([event]) => event === 'focus'
+    )?.[1];
+    expect(focus).toBeDefined();
+    await act(async () => {
+      focus();
+    });
+    await waitFor(() =>
+      expect(view.queryByLabelText('Add payment method')).toBeNull()
+    );
+    expect(
+      view.getByLabelText('Pay £350.00').props.accessibilityState.disabled
+    ).toBe(false);
   });
 
   it('shows a method-load failure instead of a payable screen', async () => {

@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../types';
 
 // Import existing screens
-import JobsScreen from '../../screens/JobsScreen';
+import { JobsScreen } from '../../screens/JobsScreen';
 import { JobDetailsScreen } from '../../screens/job-details';
 import JobPostingScreen from '../../screens/JobPostingScreen';
 // 2026-05-23: PostJobWizardScreen retired. Silver-mode users now use
@@ -13,6 +13,7 @@ import JobPostingScreen from '../../screens/JobPostingScreen';
 // screen's validation + submit pipeline.
 import BidSubmissionScreen from '../../screens/BidSubmissionScreen';
 import { PaymentScreen } from '../../screens/PaymentScreen';
+import AddPaymentMethodScreen from '../../screens/payment-methods/AddPaymentMethodScreen';
 import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
 import { DisputeScreen } from '../../screens/DisputeScreen';
 import { BidReviewScreen } from '../../screens/BidReviewScreen';
@@ -62,6 +63,12 @@ const SafeBidSubmissionScreen = withScreenErrorBoundary(
 const SafePaymentScreen = withScreenErrorBoundary(PaymentScreen, 'Payment', {
   fallbackRoute: 'JobDetails',
 });
+
+const SafeAddPaymentMethodScreen = withScreenErrorBoundary(
+  AddPaymentMethodScreen,
+  'Add Payment Method',
+  { fallbackRoute: 'JobsList' }
+);
 
 const SafeJobTimelineScreen = withScreenErrorBoundary(
   JobTimelineScreen,
@@ -171,6 +178,11 @@ const JobsNavigator: React.FC = () => {
           presentation: 'modal',
           gestureEnabled: true,
         }}
+      />
+      <JobsStack.Screen
+        name='AddPaymentMethod'
+        component={SafeAddPaymentMethodScreen}
+        options={{ title: 'Add payment method' }}
       />
       <JobsStack.Screen
         name='JobPayment'

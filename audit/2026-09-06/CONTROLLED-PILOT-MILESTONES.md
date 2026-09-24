@@ -152,3 +152,26 @@ documented. Client duplicate initialization, binary mobile PDF handling, false d
 labels, invented receipt amounts and incorrect payment-history states are repaired with focused
 tests. Android ADB access is now authorized; broader HTTPS Auth/Metro exposure remains pending
 separate approval. Overall readiness and all unfinished milestone limitations remain open.
+
+### Native payment and document checkpoint
+
+See ANDROID-PAYMENT-PDF-FEES-2026-09-24.md. With explicit Auth/Metro tunnel and ADB permission, the
+actual Android debug client completed saved-card setup and payment 3DS challenges. The app reported
+escrow success; local DB held and Stripe authenticated/succeeded agreed. The single GBP10 test
+charge was fully refunded, hosted test webhook restored, and temporary services/tunnels stopped.
+Android saved an actual contract PDF to its selected Documents folder. Contractor-tier quote
+mismatch and silent higher-fee fallback were repaired; native setup-return refresh and persistent
+contract access were added. Fresh device revalidation of those new entry-point repairs, Firebase
+push, configured native maps and the wider operational/retention/recovery gates remain open. This
+supersedes the earlier Auth/Metro permission blocker; overall readiness remains unestablished.
+
+### Configured Android push, maps and checkout return
+
+See ANDROID-PUSH-MAPS-RETURN-2026-09-24.md. Approved EAS development configuration enabled actual
+Android FCM/Expo registration and visible background push delivery. A navigation-readiness race was
+repaired and a post-restart notification tap opened the assigned synthetic job. Native Maps tiles, a
+synthetic marker/card and its Details navigation passed. Saved-card setup now returns directly to
+checkout and refreshes the new card. Four notification suites (54 tests) and mobile type-check pass.
+The test webhook was restored, fixtures cleaned, tunnels/services stopped, and retrieved
+configuration/APK files removed. Current release binaries, physical devices, negative/recovery paths
+and provider push-ticket handling remain open; no overall readiness claim is made.

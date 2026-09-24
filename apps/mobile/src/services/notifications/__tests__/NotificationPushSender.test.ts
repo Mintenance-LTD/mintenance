@@ -17,6 +17,14 @@
  *     burns the iOS one-shot dialog) and the non-physical-device guard.
  */
 
+import {
+  savePushToken,
+  sendPushNotification,
+  sendBulkNotification,
+  initializePushNotifications,
+} from '../NotificationPushSender';
+import { Platform } from 'react-native';
+
 const mockPost = jest.fn();
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
@@ -62,13 +70,6 @@ jest.mock('expo-constants', () => ({
   __esModule: true,
   default: { expoConfig: { extra: { eas: { projectId: 'test-project' } } } },
 }));
-
-import {
-  savePushToken,
-  sendPushNotification,
-  sendBulkNotification,
-  initializePushNotifications,
-} from '../NotificationPushSender';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -156,6 +157,32 @@ describe('sendBulkNotification', () => {
 });
 
 describe('initializePushNotifications', () => {
+  it('registers an Android emulator and creates channels before permission', async () => {
+    const original = Platform.OS;
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'android',
+    });
+    mockGetDevicePushTokenAsync.mockResolvedValue({
+      type: 'android',
+      data: 'synthetic-fcm',
+    });
+    mockGetPermissionsAsync.mockResolvedValueOnce({ status: 'undetermined' });
+    try {
+      await expect(
+        initializePushNotifications(false, { promptIfUndetermined: true })
+      ).resolves.toBe('ExponentPushToken[abc]');
+      expect(
+        mockSetNotificationChannelAsync.mock.invocationCallOrder[0]
+      ).toBeLessThan(mockRequestPermissionsAsync.mock.invocationCallOrder[0]);
+      expect(mockGetDevicePushTokenAsync).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(Platform, 'OS', {
+        configurable: true,
+        value: original,
+      });
+    }
+  });
   it('returns null on a non-physical device without requesting permission', async () => {
     const token = await initializePushNotifications(false);
     expect(token).toBeNull();
