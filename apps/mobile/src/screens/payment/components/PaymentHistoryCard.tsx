@@ -36,6 +36,7 @@ export const getStatusColor = (status: string): string => {
     case 'release_pending':
       return me.accent;
     case 'failed':
+    case 'disputed':
     case 'refunded':
       return me.errFg;
     default:
@@ -59,6 +60,8 @@ export const getStatusLabel = (status: string): string => {
       return 'Processing';
     case 'failed':
       return 'Failed';
+    case 'disputed':
+      return 'Disputed';
     case 'refunded':
       return 'Refunded';
     default:

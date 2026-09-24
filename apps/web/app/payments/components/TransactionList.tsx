@@ -26,6 +26,7 @@ interface Transaction {
     | 'release_pending'
     | 'released'
     | 'refunded'
+    | 'disputed'
     | 'completed';
   type: 'payment' | 'refund' | 'escrow';
   created_at: string;
@@ -184,7 +185,6 @@ export function TransactionList({
       <div className='divide-y divide-gray-100'>
         {transactions.map((transaction, index) => {
           const statusConfig = getStatusConfig(transaction.status);
-          const StatusIcon = statusConfig.icon;
 
           return (
             <MotionDiv
@@ -288,11 +288,16 @@ export function TransactionList({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onViewReceipt(transaction);
+                      if (transaction.status === 'disputed')
+                        router.push(`/disputes/${transaction.id}`);
+                      else onViewReceipt(transaction);
                     }}
                     className='inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-700 font-medium opacity-0 group-hover:opacity-100 transition-opacity'
                   >
-                    Receipt <ArrowUpRight size={12} />
+                    {transaction.status === 'disputed'
+                      ? 'View dispute'
+                      : 'Receipt'}{' '}
+                    <ArrowUpRight size={12} />
                   </button>
                 </div>
               </div>
@@ -344,11 +349,15 @@ export function TransactionList({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onViewReceipt(transaction);
+                        if (transaction.status === 'disputed')
+                          router.push(`/disputes/${transaction.id}`);
+                        else onViewReceipt(transaction);
                       }}
                       className='text-xs text-teal-600 font-medium'
                     >
-                      Receipt
+                      {transaction.status === 'disputed'
+                        ? 'View dispute'
+                        : 'Receipt'}
                     </button>
                   </div>
                 </div>
