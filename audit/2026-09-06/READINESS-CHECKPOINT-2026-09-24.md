@@ -80,3 +80,21 @@ GET/PUT /api/users/profile for current-user/save behavior, and the current sign-
 No application behavior was changed. The complete AuthService file now passes all 39 tests with
 --detectOpenHandles and exits zero; no tests remain skipped in that file. This focused run does not
 prove the full suite's open-handle problem resolved. Full mobile coverage thresholds were not run.
+
+## Hosted recovery follow-up and tracking repair
+
+Read-only aggregate Supabase MCP queries found zero cron_job_runs entries in the last 48 hours, four
+entries in total, and a latest start at 2026-06-11 20:23:52 UTC. No payloads, error bodies or user
+records were selected. This materially limits recovery assurance; tracking failures can also hide
+execution. Do not equate these missing records with confirmed absence of all provider invocations.
+
+A fetched copy of the exact live commit confirms notification-processor is scheduled daily at noon;
+the pushed source changes it to every five minutes and separates daily learning. These changes are
+not yet on the live alias.
+
+The shared cron wrapper previously ignored returned Supabase errors while saving completion, because
+only thrown exceptions entered its catch. It now emits the existing tracking warning for returned
+errors too, without leaking raw database diagnostics or changing/replaying the business operation.
+Seven focused tracking/notification tests pass. The earlier full web coverage run predates this
+small wrapper change. This does not install missing schedules or establish an operational alert
+response; those remain required release checks.
