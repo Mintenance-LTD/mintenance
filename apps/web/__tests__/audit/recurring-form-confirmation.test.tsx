@@ -13,6 +13,40 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
+it('renders structured API errors as text and preserves the unsaved task', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ schedules: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: { code: 'BAD_REQUEST', message: 'The due date is invalid' },
+        }),
+      })
+  );
+  render(<PropertyRecurringMaintenance propertyId='property' />);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Add recurring schedule' })
+  );
+  fireEvent.change(screen.getByLabelText('Task title'), {
+    target: { value: 'Synthetic maintenance' },
+  });
+  fireEvent.change(screen.getByLabelText('First due date'), {
+    target: { value: '2030-05-01' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Add Schedule' }));
+  await waitFor(() =>
+    expect(toast.error).toHaveBeenCalledWith('The due date is invalid')
+  );
+  expect(screen.getByDisplayValue('Synthetic maintenance')).toBeTruthy();
+  expect(toast.success).not.toHaveBeenCalled();
+});
 it.each([MintEditorialRecurringTasks, RecurringTasksClient])(
   'preserves input and rejects false success on an incomplete server confirmation (%#)',
   async (Component) => {

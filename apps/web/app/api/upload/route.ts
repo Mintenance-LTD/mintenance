@@ -24,6 +24,8 @@ export const POST = withApiHandler(
     // SECURITY: Enhanced rate limiting with user-tier based limits
     const rateLimitResult = await checkRateLimit(request, {
       path: '/api/upload',
+      identifier: `user:${user.id}`,
+      tier: user.role === 'admin' ? 'admin' : 'authenticated',
     });
 
     if (!rateLimitResult.allowed) {
