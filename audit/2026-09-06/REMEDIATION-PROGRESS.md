@@ -3754,3 +3754,133 @@ Expo Go then failed at native startup because the installed Stripe library requi
 that client does not contain. No payment module was stubbed or removed. A proper local Android
 project was generated successfully with no package.json changes; development-client build validation
 is continuing. This is not yet a passed native user journey.
+
+### September 24 resume: invitation acceptance and contact deletion
+
+Preserved the September 22 uncommitted batch and re-ran nine invitation tests plus the rolled-back
+contact-deletion diagnostic successfully. Concurrent correct-user invitation acceptance now confirms
+the saved result without a duplicate notification; a different user is denied, unavailable result
+verification returns 503, and malformed JSON/null/array input returns 400.
+
+The September 22 real five-role HTTP run passed management reads/writes, stale schedule edits,
+wrong-identity invitation denial, concurrent/repeated correct-user acceptance and checked cleanup.
+The earlier cleanup failure was direct Auth deletion, not the normal account-erasure endpoint:
+delete_user_data already removes linked tenant records. The new FK migration preserves that normal
+erasure behavior, allows direct Auth deletion to detach the account without reopening its consumed
+invitation, and removes property-owned tenant contacts when their property is deleted. The separate
+property_contacts table with retained owner history is not changed.
+
+Migration 20260922214821 was locally applied and passed a full shadow-schema replay/diff (empty).
+The isolated migration ledger is older than its manually applied schema; db push --local attempted
+an already-existing older table and failed. This was not counted as a runner pass. The subsequent
+full schema diff confirmed the final local schema matches all migration files. Security advisors
+show only the previously recorded PostGIS findings. Hosted metadata confirms the two old FK actions;
+dry-run selects only this migration. One pre-existing hosted detached contact remains untouched.
+
+The interrupted September 22 full coverage run is not a result. A fresh September 24 run is in
+progress. Native development-client builds remain blocked before compilation by a Java local socket
+failure, also reproduced by a minimal Selector.open() program on the host. Expo Go cannot substitute
+for this app's Stripe native module. No payment or network controls were removed for testing.
+
+### September 24 security follow-up: PostGIS reference writes
+
+Hosted privilege metadata confirmed anon/authenticated/service_role could insert, update, delete and
+read public.spatial_ref_sys with RLS disabled. A local transaction as anon updated one reference row
+and rolled back. This is a confirmed write exposure, not merely a generic advisor warning: altered
+coordinate definitions can affect location calculations or availability. No hosted mutation was used
+to reproduce it.
+
+The managed table is owned by supabase_admin; hosted postgres is not a superuser, does not inherit
+that owner and has no grant options, but does have TRIGGER privilege. Migration 20260924075110 adds
+a SECURITY INVOKER statement guard that rejects INSERT/UPDATE/DELETE/TRUNCATE unless current_user is
+postgres or supabase_admin. Reads and coordinate transformation remain available. No role is
+elevated and no extension is moved or upgraded. The owner/RLS advisor warning remains structurally
+true; the write guard is the enforced mitigation and must be rechecked after extension maintenance.
+
+Rolled-back checks pass for anon/authenticated/service_role across all four denied writes plus
+reference reads and ST_Transform. The local anonymous REST update returns permission error 42501
+with the guard's exact message (HTTP 401 for anonymous PostgREST, not 403). Full migration replay
+and schema diff are empty. The fresh full web coverage run passed 392 files / 3,977 tests in
+264.96s.
+
+Hosted rollout confirmation: migrations 20260922214821 and 20260924075110 were applied on September
+24 after isolated verification and individual dry-runs. MCP verified the contact migration history
+and the enabled spatial statement guard, SECURITY INVOKER, fixed pg_catalog search path and denied
+anonymous function execution. No hosted row mutation or production fixture was performed. Existing
+orphan contact data was not cleaned up as part of these schema changes.
+
+### September 24 — complete staff archive pagination
+
+The retention GET previously stopped at 50 contracts and 50 disputes without a continuation path.
+The staff page now appends bounded batches ordered by immutable archive timestamp and record ID.
+Validated independent cursors preserve timestamp precision and prevent filter injection. Changing a
+review date cannot shift the paging boundary. A failed continuation preserves existing form drafts
+and retries the same cursor; duplicate records are not appended. Database administrator verification
+still precedes reads; responses contain metadata, not evidence payloads. This remains a web-only
+staff surface, not a new mobile customer permission.
+
+Validation: 14 focused route/UI tests passed; web type check and source ESLint passed. A real
+isolated PostgREST diagnostic (`retention-pagination-rest.py`) traversed 105 contracts and 53
+disputes with tied microsecond timestamps and intervening review-date changes, with no
+omissions/duplicates. All diagnostic fixtures were removed. No SQL or hosted schema changes were
+needed for this slice. The last full coverage result predates this pagination change; focused tests
+cover this change. Durable disposal, legacy reconciliation and processor/backup expiry remain open.
+
+### September 24 — usable tenant reporting links on web and mobile
+
+Confirmed two independent failures in the property reporting journey. Property cards and native
+sharing built `/report/<row id>`, while both public handlers look up a separate random `token`. The
+property listing endpoint also omitted that token. Separately, the proxy redirected the public
+report page to login and rejected its API before the handler's `auth:false` could take effect. The
+signed-out local Edge browser reproduced that redirect using a real synthetic reporting token.
+
+The authorized management listing now includes the reporting capability. Web property cards
+(including the older component) and native sharing use that token; mutation requests still use the
+internal row ID. Missing token values produce an error instead of copying an invalid link. Proxy
+access is limited to exactly one 32-hex-character generated token segment under `/report/` or
+`/api/report/`; the handler still checks active status/property existence and rate-limits requests.
+Management, landlord, settings and extra subpaths stay protected.
+
+Verification: 8 focused web reporting/permission tests and 3 native component tests passed; adding
+the proxy regression produced 33 passing focused checks. Web/mobile types and source lint passed.
+Full web coverage passed 393 files / 3,985 tests; the public-route edit was additionally checked by
+the focused run. Edge then showed the signed-out synthetic report form, and after revocation showed
+an invalid/deactivated-link message. No report was submitted, no email sent, and synthetic browser
+fixtures were removed. The expanded five-role HTTP diagnostic is pending its normal login cooldown;
+do not count it as passed yet. No SQL migration is required.
+
+Read-only live check: the user-supplied dashboard URL opened in the existing Edge session and showed
+navigation, project cards and property actions. No production data was changed. This establishes
+page access, not completion of payment or management journeys. Supabase MCP also verified the hosted
+contact FK definitions directly: property deletion CASCADE; deleted user reference SET NULL.
+
+### September 24 — dashboard phone layout
+
+The user's live dashboard was readable at desktop width, but Edge at 390 × 844 showed four narrow
+metric columns and a jobs/sidebar split that caused severe wrapping and overlapping Verify controls.
+The cause was unconditional inline grid columns and a non-wrapping greeting/actions row. Replaced
+those inline layouts with a component-scoped stylesheet: wrapping greeting/actions, two metric
+columns and one content column below 1200px; the desktop four/two-column layout remains above it.
+
+A synthetic browser preview rendered the actual dashboard, jobs and side-panel components with Next
+Link and the authenticated shell substituted solely for static rendering. At phone width the cards
+and property action buttons are readable without the prior overlap. This is layout evidence, not
+authentication or data-flow verification. The real live menu opened; browser viewport overrides were
+reset. No production content or configuration was edited.
+
+### September 24 — expanded bearer-client manager workflow verification
+
+The first expanded cookie HTTP run stopped at a stale harness expectation: an internal reporting row
+ID must be rejected, but the old assertion required exactly the handler's 404 rather than also
+accepting proxy denial. Its cleanup completed. The assertion now accepts 401/403/404; it never
+accepts a redirect-followed login page or a successful response. This cookie run is not a pass.
+
+Added an explicit `--bearer` diagnostic mode using genuine Supabase password sign-in for separate
+synthetic accounts. This exercises the supported provider-bearer authentication path; it does not
+replace the cookie-login check, spoof IPs, relax rate limits or change production auth behavior.
+That run passed all five roles, all existing contact/schedule/compliance checks, reporting-link
+read/create/revoke and public validation, owner/team-admin invitation/removal, and denial for
+manager/viewer/unrelated team administration. Concurrent/repeated tenant acceptance and wrong-user
+rejection passed as well. Checked cleanup completed. No email, report submission or provider payment
+occurred. Log: resume-management-reporting-bearer.log. Earlier completed cookie coverage remains
+limited to the previously recorded contact/schedule/compliance and invitation journeys.

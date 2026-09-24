@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
 
@@ -27,7 +28,12 @@ export default function EvidenceRetentionPage() {
   const [retry, setRetry] = useState(0);
   const [pending, setPending] = useState<Decision | null>(null);
   const [busy, setBusy] = useState(false);
+  const [next, setNext] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const moreLock = useRef(false);
+  const moreAbort = useRef<AbortController | null>(null);
   const lock = useRef(false);
+  useEffect(() => () => moreAbort.current?.abort(), []);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -37,7 +43,9 @@ export default function EvidenceRetentionPage() {
         const data = await response.json();
         if (!response.ok || !Array.isArray(data.records))
           throw new Error('Unable to load reviews.');
+        if (controller.signal.aborted) return;
         setRecords(data.records);
+        setNext(typeof data.next === 'string' ? data.next : null);
       })
       .catch(() => {
         if (!controller.signal.aborted)
@@ -48,6 +56,41 @@ export default function EvidenceRetentionPage() {
       });
     return () => controller.abort();
   }, [retry]);
+  async function loadMore() {
+    if (!next || moreLock.current || lock.current) return;
+    moreLock.current = true;
+    setLoadingMore(true);
+    setError('');
+    const controller = new AbortController();
+    moreAbort.current = controller;
+    try {
+      const response = await fetch(`/api/admin/evidence-retention?${next}`, {
+        signal: controller.signal,
+      });
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data.records))
+        throw new Error('Unable to load more reviews. Retry below.');
+      if (controller.signal.aborted) return;
+      setRecords((existing) => {
+        const keys = new Set(existing.map((row) => `${row.kind}:${row.id}`));
+        return [
+          ...existing,
+          ...data.records.filter(
+            (row: RecordReview) => !keys.has(`${row.kind}:${row.id}`)
+          ),
+        ];
+      });
+      setNext(typeof data.next === 'string' ? data.next : null);
+    } catch {
+      if (!controller.signal.aborted)
+        setError(
+          'Unable to load more reviews. Your entered decisions are preserved. Retry below.'
+        );
+    } finally {
+      moreLock.current = false;
+      if (!controller.signal.aborted) setLoadingMore(false);
+    }
+  }
   async function save(decision: Decision) {
     if (lock.current) return;
     lock.current = true;
@@ -98,10 +141,18 @@ export default function EvidenceRetentionPage() {
   return (
     <main className='mx-auto max-w-4xl space-y-5 p-6'>
       <h1 className='text-2xl font-semibold'>Evidence retention reviews</h1>
+      <Link
+        className='inline-block underline'
+        href='/admin/evidence-retention/disposal'
+      >
+        Manage disposal decisions
+      </Link>
       <p>
         Review retained contracts and dispute records. A hold records an
         obligation to preserve evidence. Review dates never trigger automatic
-        deletion. This queue shows the earliest 50 records of each type.
+        deletion. Records are loaded oldest archive first, in batches of up to
+        50 contracts and 50 disputes. Changing a review date does not move a
+        record between batches.
       </p>
       <p>
         Include the purpose and case reference in your reason. Review holds
@@ -112,7 +163,7 @@ export default function EvidenceRetentionPage() {
       {message && <p role='status'>{message}</p>}
       <button
         className='underline'
-        disabled={busy || !!pending}
+        disabled={loading || loadingMore || busy || !!pending}
         onClick={() => setRetry((value) => value + 1)}
       >
         Reload reviews
@@ -148,7 +199,9 @@ export default function EvidenceRetentionPage() {
             <p>
               Review due:{' '}
               {new Date(row.review_due_at).toLocaleDateString('en-GB')} ·{' '}
-              {row.revision ? 'Previously reviewed' : 'Not yet reviewed'}
+              {row.revision
+                ? `Review revision ${row.revision}`
+                : 'Not yet reviewed'}
             </p>
             <label className='block'>
               Reason for retention or hold
@@ -186,6 +239,15 @@ export default function EvidenceRetentionPage() {
             </button>
           </form>
         ))
+      )}
+      {next && !loading && (
+        <button
+          className='rounded border px-4 py-2 disabled:opacity-50'
+          disabled={loadingMore || busy || !!pending}
+          onClick={() => void loadMore()}
+        >
+          {loadingMore ? 'Loading more reviews…' : 'Load more reviews'}
+        </button>
       )}
       {pending && (
         <MfaStepUpDialog

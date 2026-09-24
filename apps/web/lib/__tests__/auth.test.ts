@@ -58,6 +58,7 @@ const { mockConfigInstance, mockCookieStore, supabaseChain } = vi.hoisted(
         error: null,
       })
     );
+    supabaseChain.getUserById = vi.fn();
     supabaseChain.is = vi.fn(() => supabaseChain);
     supabaseChain.eq = vi.fn(() => supabaseChain);
     supabaseChain.select = vi.fn(() => supabaseChain);
@@ -143,6 +144,7 @@ vi.mock('../api/supabaseServer', () => ({
   serverSupabase: {
     from: vi.fn(() => supabaseChain),
     rpc: supabaseChain.rpc,
+    auth: { admin: { getUserById: supabaseChain.getUserById } },
   },
 }));
 
@@ -178,6 +180,10 @@ describe('Auth Library', () => {
    * Must be called after vi.clearAllMocks() since that clears all mock implementations.
    */
   function resetSupabaseChain() {
+    supabaseChain.getUserById.mockResolvedValue({
+      data: { user: { id: '123', email_confirmed_at: '2026-01-01T00:00:00Z' } },
+      error: null,
+    });
     supabaseChain.single.mockImplementation(() =>
       Promise.resolve({
         data: {
@@ -283,6 +289,18 @@ describe('Auth Library', () => {
   });
 
   describe('verifyToken', () => {
+    it.each([
+      { data: { user: { id: '123', email_confirmed_at: null } }, error: null },
+      { data: { user: null }, error: null },
+      { data: { user: null }, error: { message: 'Auth unavailable' } },
+    ])(
+      'rejects previously issued cookies without authoritative email confirmation',
+      async (identity) => {
+        const token = await createToken(mockUser);
+        supabaseChain.getUserById.mockResolvedValueOnce(identity);
+        expect(await verifyToken(token)).toBeNull();
+      }
+    );
     it('accepts a fresh login after revocation within the same JWT second', async () => {
       const second = Math.floor(Date.now() / 1000) * 1000;
       vi.useFakeTimers();

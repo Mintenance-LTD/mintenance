@@ -1,152 +1,46 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import { createAnonClient } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { getAppUrl } from '@/lib/env';
 import { z } from 'zod';
 
-const resendVerificationSchema = z.object({
-  email: z.string().email(),
-});
+const schema = z.object({ email: z.string().trim().email().max(254) });
 
-/**
- * POST /api/auth/resend-verification
- * Resend email verification email to the current user
- */
+// Unconfirmed users deliberately have no app session. Keep this rate-limited,
+// CSRF-protected recovery endpoint anonymous and never disclose account status.
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 5 } },
-  async (request, { user }) => {
-    const validation = await validateRequest(request, resendVerificationSchema);
-    if (validation instanceof NextResponse) return validation;
-
-    // Get user's email from database
-    const { data: userData, error: fetchError } = await serverSupabase
-      .from('profiles')
-      .select('email, verified')
-      .eq('id', user.id)
-      .single();
-
-    if (fetchError || !userData) {
-      logger.error('Failed to fetch user for email verification', {
-        service: 'auth',
-        userId: user.id,
-        error: fetchError?.message,
-      });
-      throw new NotFoundError('User not found');
-    }
-
-    if (userData.verified) {
-      return NextResponse.json(
-        { message: 'Email is already verified' },
-        { status: 200 }
-      );
-    }
-
-    if (!userData.email) {
-      throw new BadRequestError('Email address not found');
-    }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      logger.error('Missing Supabase configuration', {
-        service: 'auth',
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseServiceKey,
-      });
-      throw new InternalServerError('Server configuration error. Please contact support.');
-    }
-
-    const isLocalDev = process.env.NODE_ENV === 'development' ||
-      supabaseUrl.includes('127.0.0.1') ||
-      supabaseUrl.includes('localhost');
-
+  { auth: false, rateLimit: { maxRequests: 3, windowMs: 900_000 } },
+  async (request) => {
+    const validation = await validateRequest(request, schema);
+    if ('headers' in validation) return validation;
     try {
-      const redirectUrl = `${getAppUrl()}/auth/callback`;
-      const resendUrl = `${supabaseUrl}/auth/v1/resend`;
-
-      const response = await fetch(resendUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json',
-          'apikey': supabaseServiceKey,
-        },
-        body: JSON.stringify({
-          type: 'signup',
-          email: userData.email,
-          options: { emailRedirectTo: redirectUrl },
-        }),
+      const { error } = await createAnonClient().auth.resend({
+        type: 'signup',
+        email: validation.data.email,
+        options: { emailRedirectTo: `${getAppUrl()}/auth/callback` },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        const errorMessage = errorData.message || errorData.error_description || errorData.error || `HTTP ${response.status}`;
-
-        logger.error('Failed to resend email verification', {
-          service: 'auth',
-          userId: user.id,
-          email: userData.email,
-          status: response.status,
-          error: errorMessage,
-        });
-
-        if (isLocalDev) {
-          return NextResponse.json({
-            message: 'Verification email sent. In local development, check Inbucket at http://localhost:54324',
-            devMode: true,
-            inbucketUrl: 'http://localhost:54324',
-            error: errorMessage,
-          }, { status: 200 });
-        }
-
+      if (error) {
         return NextResponse.json(
-          { error: `Failed to send verification email: ${errorMessage}` },
-          { status: 500 }
+          {
+            error:
+              'Unable to send a verification email right now. Please try again later.',
+          },
+          { status: error.status === 429 ? 429 : 503 }
         );
       }
-
-      logger.info('Email verification resent successfully', {
-        service: 'auth',
-        userId: user.id,
-        email: userData.email,
+      return NextResponse.json({
+        message:
+          'If this address has an account awaiting verification, a new link has been requested. Check your inbox and spam folder.',
       });
-
-      if (isLocalDev) {
-        return NextResponse.json({
-          message: 'Verification email sent! In local development, check Inbucket at http://localhost:54324',
-          success: true,
-          devMode: true,
-          inbucketUrl: 'http://localhost:54324',
-        });
-      }
-    } catch (fetchError) {
-      logger.error('Error calling Supabase Auth API for email resend', fetchError, {
-        service: 'auth',
-        userId: user.id,
-        email: userData.email,
-      });
-
-      if (isLocalDev) {
-        return NextResponse.json({
-          message: 'Verification email may have been sent. In local development, check Inbucket at http://localhost:54324',
-          devMode: true,
-          inbucketUrl: 'http://localhost:54324',
-        }, { status: 200 });
-      }
-
+    } catch {
       return NextResponse.json(
-        { error: 'Failed to send verification email. Please try again later.' },
-        { status: 500 }
+        {
+          error:
+            'Unable to send a verification email right now. Please try again later.',
+        },
+        { status: 503 }
       );
     }
-
-    return NextResponse.json({
-      message: 'Verification email sent successfully. Please check your inbox.',
-      success: true,
-    });
   }
 );

@@ -76,3 +76,47 @@ it('preserves entered reasons after failure and does not show a success message'
     screen.queryByText('Review saved. Evidence remains retained.')
   ).toBeNull();
 });
+
+it('preserves drafts and retries the same next page after an interrupted request', async () => {
+  const row = {
+    kind: 'contract',
+    id: 'first',
+    revision: 0,
+    legal_hold: false,
+    reason: '',
+    review_due_at: '2026-10-22',
+  };
+  const fetchMock = vi.mocked(fetch);
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ records: [row], next: 'contractAfter=cursor' }),
+  } as Response);
+  fetchMock.mockRejectedValueOnce(new Error('Disconnected'));
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      records: [row, { ...row, id: 'second' }],
+      next: null,
+    }),
+  } as Response);
+  render(<Page />);
+  const reason = await screen.findByLabelText('Reason for retention or hold');
+  fireEvent.change(reason, {
+    target: { value: 'Keep this unfinished decision' },
+  });
+  fireEvent.click(screen.getByText('Load more reviews'));
+  await screen.findByRole('alert');
+  expect((reason as HTMLTextAreaElement).value).toBe(
+    'Keep this unfinished decision'
+  );
+  fireEvent.click(screen.getByText('Load more reviews'));
+  await screen.findByText('Reference: second');
+  expect(screen.getAllByLabelText('Reason for retention or hold')).toHaveLength(
+    2
+  );
+  expect((reason as HTMLTextAreaElement).value).toBe(
+    'Keep this unfinished decision'
+  );
+  expect(fetchMock.mock.calls[1][0]).toBe(fetchMock.mock.calls[2][0]);
+  expect(screen.queryByText('Load more reviews')).toBeNull();
+});

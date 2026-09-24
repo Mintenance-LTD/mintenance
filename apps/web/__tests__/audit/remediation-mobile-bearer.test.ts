@@ -20,7 +20,11 @@ beforeEach(async () => {
     .sign(privateKey);
   m.getUser.mockResolvedValue({
     data: {
-      user: { id: 'synthetic-user', email: 'synthetic@example.invalid' },
+      user: {
+        id: 'synthetic-user',
+        email: 'synthetic@example.invalid',
+        email_confirmed_at: '2026-01-01T00:00:00Z',
+      },
     },
     error: null,
   });
@@ -65,3 +69,12 @@ it.each([
     expect(await verifySupabaseBearer(token)).toBeNull();
   }
 );
+
+it('rejects a provider identity whose email remains unconfirmed', async () => {
+  m.getUser.mockResolvedValue({
+    data: { user: { id: 'synthetic-user', email_confirmed_at: null } },
+    error: null,
+  });
+  expect(await verifySupabaseBearer(token)).toBeNull();
+  expect(m.rpc).not.toHaveBeenCalled();
+});

@@ -6,6 +6,8 @@ const m = vi.hoisted(() => ({
   update: vi.fn(),
   filters: vi.fn(),
   notify: vi.fn(),
+  current: null as null | { user_id: string; invitation_accepted_at: string },
+  currentError: null as null | { code: string },
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, fn: Function) => (req: NextRequest) =>
@@ -23,10 +25,12 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     },
     from: (table: string) => {
       let updated = false;
+      let reread = false;
       const result = () => ({
-        error: null,
-        data:
-          table === 'properties'
+        error: reread ? m.currentError : null,
+        data: reread
+          ? m.current
+          : table === 'properties'
             ? { owner_id: 'owner' }
             : updated
               ? m.accepted
@@ -42,7 +46,10 @@ vi.mock('@/lib/api/supabaseServer', () => ({
                 },
       });
       const q = {
-        select: () => q,
+        select: (columns: string) => {
+          reread = columns === 'user_id, invitation_accepted_at';
+          return q;
+        },
         eq: (...args: unknown[]) => {
           m.filters(...args);
           return q;
@@ -72,6 +79,8 @@ const req = () =>
 beforeEach(() => {
   vi.clearAllMocks();
   m.accepted = true;
+  m.current = null;
+  m.currentError = null;
   m.notify.mockResolvedValue(undefined);
   m.identity.mockResolvedValue({
     data: {
@@ -115,3 +124,29 @@ it('preserves acceptance success if owner notification fails', async () => {
   m.notify.mockRejectedValue(new Error('offline'));
   expect((await POST(req(), { params: Promise.resolve({}) })).status).toBe(200);
 });
+it('confirms a concurrent acceptance by the same verified user without notifying twice', async () => {
+  m.accepted = false;
+  m.current = { user_id: 'actor', invitation_accepted_at: '2026-09-22' };
+  expect((await POST(req(), { params: Promise.resolve({}) })).status).toBe(200);
+  expect(m.notify).not.toHaveBeenCalled();
+});
+it('does not confirm another user or an unavailable reconciliation read', async () => {
+  m.accepted = false;
+  m.current = { user_id: 'other', invitation_accepted_at: '2026-09-22' };
+  expect((await POST(req(), { params: Promise.resolve({}) })).status).toBe(409);
+  m.currentError = { code: 'unavailable' };
+  expect((await POST(req(), { params: Promise.resolve({}) })).status).toBe(503);
+});
+it.each(['{', 'null', '[]'])(
+  'rejects malformed invitation input: %s',
+  async (body) => {
+    const request = new NextRequest(
+      'http://localhost/api/tenant-invite/accept',
+      { method: 'POST', body }
+    );
+    expect((await POST(request, { params: Promise.resolve({}) })).status).toBe(
+      400
+    );
+    expect(m.identity).not.toHaveBeenCalled();
+  }
+);

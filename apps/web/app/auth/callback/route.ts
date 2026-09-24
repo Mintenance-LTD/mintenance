@@ -1,107 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { createAnonClient, serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { redirect } from 'next/navigation';
 
-/**
- * GET /auth/callback
- * Handles email verification callback from Supabase
- * This route is called when users click the verification link in their email
- */
+/** Verification does not create an application session or bypass login/MFA. */
 export async function GET(request: NextRequest) {
+  // Explicitly empty fragment prevents browsers carrying an implicit Auth token
+  // fragment forward from the callback URL onto the login page.
+  const loginUrl = new URL('/login#', request.url);
+  function fail(code: string, message: string) {
+    loginUrl.searchParams.set('error', code);
+    loginUrl.searchParams.set('message', message);
+    return NextResponse.redirect(loginUrl);
+  }
+  const params = request.nextUrl.searchParams;
+  if (params.has('error')) {
+    // Provider error descriptions and callback URLs may contain sensitive data.
+    return fail(
+      'verification_failed',
+      'The verification link failed or expired. Please request a new one.'
+    );
+  }
+  const token = params.get('token_hash') || params.get('token');
+  const type = params.get('type');
+  if (!token && !type) {
+    // Default confirmation links are consumed by Auth before redirecting here.
+    // Browser-only session fragments are not proof available to this handler.
+    // Require login, which checks Auth again, without claiming verification.
+    return NextResponse.redirect(loginUrl);
+  }
+  if (
+    !token ||
+    token.length > 2048 ||
+    (type !== 'signup' && type !== 'email')
+  ) {
+    return fail(
+      'invalid_callback',
+      'Invalid verification link. Please request a new one.'
+    );
+  }
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const token = searchParams.get('token');
-    const type = searchParams.get('type');
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-
-    // Handle errors from Supabase
-    if (error) {
-      logger.error('Email verification callback error', {
-        service: 'auth',
-        error,
-        errorDescription,
-      });
-
-      // Redirect to login with error message
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'verification_failed');
-      loginUrl.searchParams.set('message', errorDescription || 'Email verification failed. Please try again.');
-      return redirect(loginUrl.toString());
-    }
-
-    // Handle email verification
-    // Supabase automatically verifies the email when the link is clicked
-    // We just need to sync the verification status and redirect
-    if (type === 'signup' && token) {
-      try {
-        // Exchange the token for a session to get user info
-        const { data, error: exchangeError } = await serverSupabase.auth.verifyOtp({
-          token_hash: token,
-          type: 'signup',
-        });
-
-        if (exchangeError) {
-          logger.error('Failed to exchange verification token', {
-            service: 'auth',
-            error: exchangeError.message,
-          });
-
-          const loginUrl = new URL('/login', request.url);
-          loginUrl.searchParams.set('error', 'verification_failed');
-          loginUrl.searchParams.set('message', 'Invalid or expired verification link. Please request a new one.');
-          return redirect(loginUrl.toString());
-        }
-
-        if (data?.user) {
-          // Supabase has already confirmed the email, sync our database
-          await serverSupabase
-            .from('profiles')
-            .update({ verified: true })
-            .eq('id', data.user.id);
-
-          logger.info('Email verified successfully', {
-            service: 'auth',
-            userId: data.user.id,
-            email: data.user.email,
-          });
-
-          // Redirect to login with success message
-          const loginUrl = new URL('/login', request.url);
-          loginUrl.searchParams.set('verified', 'true');
-          loginUrl.searchParams.set('message', 'Email verified successfully! You can now sign in.');
-          return redirect(loginUrl.toString());
-        }
-      } catch (verifyError) {
-        logger.error('Error during email verification', verifyError, {
-          service: 'auth',
-        });
-
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('error', 'verification_failed');
-        loginUrl.searchParams.set('message', 'An error occurred during verification. Please try again.');
-        return redirect(loginUrl.toString());
-      }
-    }
-
-    // If no token or type, redirect to login
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', 'invalid_callback');
-    loginUrl.searchParams.set('message', 'Invalid verification link. Please request a new one.');
-    return redirect(loginUrl.toString());
-
-  } catch (error) {
-    logger.error('Auth callback error', error, {
-      service: 'auth',
-      method: request.method,
-      url: request.url,
+    // Avoid mutating the shared service client's auth session.
+    const { data, error } = await createAnonClient().auth.verifyOtp({
+      token_hash: token,
+      type,
     });
-
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', 'server_error');
-    loginUrl.searchParams.set('message', 'An unexpected error occurred. Please try again.');
-    return redirect(loginUrl.toString());
+    if (error || !data.user?.email_confirmed_at) {
+      return fail(
+        'verification_failed',
+        'Invalid or expired verification link. Please request a new one.'
+      );
+    }
+    const { error: syncError } = await serverSupabase
+      .from('profiles')
+      .update({ verified: true })
+      .eq('id', data.user.id);
+    if (syncError) {
+      logger.error(
+        'Email verification profile synchronization failed',
+        undefined,
+        { service: 'auth', userId: data.user.id }
+      );
+      return fail(
+        'verification_sync_failed',
+        'Your email was confirmed, but account details could not be updated. Please sign in or contact support.'
+      );
+    }
+    loginUrl.searchParams.set('verified', 'true');
+    loginUrl.searchParams.set(
+      'message',
+      'Email verified successfully! You can now sign in.'
+    );
+    return NextResponse.redirect(loginUrl);
+  } catch {
+    logger.error('Email verification callback failed', undefined, {
+      service: 'auth',
+    });
+    return fail(
+      'server_error',
+      'Verification could not be confirmed. Please try signing in or request a new link.'
+    );
   }
 }
-

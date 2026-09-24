@@ -121,6 +121,7 @@ export const POST = withApiHandler(
     const response = NextResponse.json(
       {
         message: 'Registration successful',
+        requiresEmailVerification: result.requiresEmailVerification === true,
         user: {
           id: result.user.id,
           email: result.user.email,

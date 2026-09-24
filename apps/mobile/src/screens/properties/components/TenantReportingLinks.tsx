@@ -7,6 +7,7 @@ import { me } from '../../../design-system/mint-editorial';
 
 interface ReportToken {
   id: string;
+  token: string;
   property_id: string;
   label: string | null;
   is_active: boolean;
@@ -99,8 +100,10 @@ export function TenantReportingLinks({ propertyId }: { propertyId: string }) {
                   accessibilityLabel={`Share ${token.label || 'reporting link'}`}
                   onPress={async () => {
                     try {
+                      if (!token.token)
+                        throw new Error('Reporting token unavailable');
                       await Share.share({
-                        message: `https://www.mintenance.co.uk/report/${encodeURIComponent(token.id)}`,
+                        message: `https://www.mintenance.co.uk/report/${encodeURIComponent(token.token)}`,
                       });
                     } catch {
                       setError(
