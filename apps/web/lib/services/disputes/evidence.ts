@@ -56,23 +56,31 @@ export async function readDisputeEvidence(
   jobId: string,
   claimantId: string | null
 ): Promise<DisputeEvidenceItem[]> {
-  if (!description || !claimantId) return [];
+  if (!description) return [];
   const marker = description.lastIndexOf('\n\nEvidence:\n');
   if (marker < 0) return [];
   const values = description
     .slice(marker + '\n\nEvidence:\n'.length)
     .split('\n')
     .slice(0, 20)
-    .map((line) => line.replace(/^\d+\.\s*/, '').trim());
-  const paths = [
-    ...new Set(
-      values
-        .map((value) => disputeEvidencePath(value, jobId, claimantId))
-        .filter((path): path is string => path !== null)
-    ),
-  ];
+    .map((line) => line.replace(/^\d+\.\s*/, '').trim())
+    .filter(Boolean);
+  // Preserve missing evidence without returning or signing untrusted references.
+  // Stable references and expired URLs for the same authorized object coalesce.
+  const seen = new Set<string>();
+  const paths: (string | null)[] = [];
+  for (const value of values) {
+    const path = claimantId
+      ? disputeEvidencePath(value, jobId, claimantId)
+      : null;
+    const key = path === null ? `unavailable:${value}` : `authorized:${path}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    paths.push(path);
+  }
   return Promise.all(
     paths.map(async (path, index) => {
+      if (path === null) return { label: `Evidence ${index + 1}`, url: null };
       try {
         const { data, error } = await serverSupabase.storage
           .from(BUCKET)
