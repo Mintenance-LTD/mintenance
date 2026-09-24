@@ -192,3 +192,13 @@ native dispute reader using the authorized web API. Retained statements, status 
 evidence links are supported. Sensitive query persistence/restoration is excluded. Seventy-two
 native regression checks and mobile types passed. This is not new device/release verification;
 archive discovery, closed-account identity recovery and external retention work remain open.
+
+### Real Android retained-evidence checkpoint
+
+The native dispute reader now has actual isolated Android verification: live and archived
+statements, fresh private attachment browser hand-off, missing-file visibility, and account-removal
+sign-out. Both participants retrieved real PNG bytes through the actual API before/after archival;
+an unrelated account was denied. Temporary services and synthetic credentials were cleaned. See the
+follow-up in NATIVE-DISPUTE-ACCESS-2026-09-24.md for debug-build and asset limitations. This
+supersedes only the reader's earlier no-device-test limitation, not the wider release/retention
+gates.

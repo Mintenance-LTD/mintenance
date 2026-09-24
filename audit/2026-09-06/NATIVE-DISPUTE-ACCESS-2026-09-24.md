@@ -36,3 +36,33 @@ This is automated native-component verification, not a new device run. Current r
 binaries/physical iOS and Android devices remain open. Job-based lookup uses the latest payment;
 direct payment IDs support older/retained records but an archive discovery list and closed-account
 identity recovery remain separate unfinished work.
+
+## Real local Android follow-up
+
+The current JavaScript ran in the dedicated Android 36 audit emulator with an existing debug binary,
+real isolated Supabase Auth/Database/Storage, and the actual Next API through temporary HTTPS
+tunnels. Three synthetic accounts and a private one-pixel PNG were used; no payment or production
+data was involved.
+
+- The homeowner signed in through the login screen and opened the dispute deep link. Its live
+  statement and explicitly unavailable legacy evidence appeared.
+- Opening the valid attachment refreshed the record and handed off to Chrome over HTTPS. Separate
+  authorized API requests retrieved actual PNG bytes with image/png, not an application page.
+- Deleting the synthetic canonical dispute through the normal retention trigger preserved access:
+  homeowner and contractor each received the retained record and PNG; an unrelated account was
+  denied both before and after archival.
+- Returning to Android displayed the retained statement and the warning that archival does not mean
+  resolution. Removing the synthetic object then refreshing showed both attachments unavailable.
+- Removing the synthetic account and refreshing returned to sign-in without showing dispute data.
+
+Cleanup removed active fixture records/accounts/object and the credential file, uninstalled the test
+app, cleared Chrome data, stopped the audit emulator, and closed all three tunnels and owned local
+servers. Protected synthetic archive/access records remain in the isolated database; no retention
+control was bypassed. The ignored diagnostic cleanup initially used actor_id instead of changed_by;
+that diagnostic-only column mismatch was corrected and cleanup then succeeded.
+
+Limits: this was not a current release binary or physical device. Metro advertised HTTP font/icon
+assets, correctly blocked by Android, so full visual acceptance is not claimed. Splash sign-in taps
+were inconclusive; the supported login deep link and actual login form worked. New HTTPS manifest
+association paths, closed-account identity recovery, archive discovery, external object
+preservation, and provider/backup disposal remain separate gates.
