@@ -3,7 +3,8 @@ const fs = require('fs'), { randomUUID } = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const keys = fs.readFileSync('apps/web/test/integration/supabase-test-client.ts', 'utf8').match(/eyJ[^'\s]+/g);
 const service = createClient('http://127.0.0.1:55321', keys[1], { auth: { persistSession: false, autoRefreshToken: false } });
-const web = 'http://localhost:3017', property = randomUUID(), users = [];
+const web = process.env.AUDIT_WEB_URL || 'http://localhost:3017', property = randomUUID(), users = [];
+if (!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(web)) throw new Error('Local audit server required');
 const bearerMode = process.argv.includes('--bearer');
 function check(ok, message) { if (!ok) throw new Error(message); }
 function db(result) { if (result.error) throw new Error('Local fixture failed: ' + result.error.code); return result.data; }
@@ -26,11 +27,6 @@ async function account() {
  }
  await request('/api/csrf');
  let login = await request('/api/auth/login', 'POST', { email, password });
- if (login.status === 429) {
-  console.log('Local login limit reached; waiting the normal 15-minute window before continuing.');
-  await new Promise(resolve => setTimeout(resolve, 15 * 60 * 1000 + 1000));
-  login = await request('/api/auth/login', 'POST', { email, password });
- }
  check(login.status === 200, 'Synthetic role login failed: ' + login.status);
  return { id: user.id, email, request };
 }
@@ -88,6 +84,23 @@ async function account() {
  }
  const schedules = db(await service.from('recurring_schedules').select('owner_id').eq('property_id', property));
  check(schedules.length === 3 && schedules.every(row => row.owner_id === owner.id), 'Delegated schedules do not belong to property owner');
+ // Keep the manager's existing session: revocation must take effect without logout.
+ const membership = db(await service.from('property_team_members').select('id').eq('property_id', property).eq('user_id', manager.id).single());
+ const removedManager = await owner.request(`/api/properties/${property}/team?memberId=${membership.id}`, 'DELETE');
+ check(removedManager.status === 200, 'Owner could not revoke manager');
+ for (const suffix of ['tenants', 'recurring-maintenance', 'compliance', 'report-token']) {
+  const denied = await manager.request(`/api/properties/${property}/${suffix}`);
+  check([403, 404].includes(denied.status), `Revoked manager can still read ${suffix}: ${denied.status}`);
+ }
+ const deniedWrites = await Promise.all([
+  manager.request(`/api/properties/${property}/tenants`, 'POST', { name: 'Revoked write must not persist' }),
+  manager.request(`/api/properties/${property}/recurring-maintenance`, 'POST', { title: 'Revoked write must not persist', frequency: 'annual', next_due_date: '2030-01-01' }),
+  manager.request(`/api/properties/${property}/report-token`, 'POST', { label: 'Revoked write must not persist' }),
+ ]);
+ check(deniedWrites.every(result => [403, 404].includes(result.status)), 'Revoked manager mutation was not denied');
+ check(db(await service.from('recurring_schedules').select('id').eq('property_id', property)).length === 3, 'Denied schedule persisted');
+ check((await owner.request(`/api/properties/${property}/recurring-maintenance`)).status === 200, 'Revocation removed owner access');
+ console.log('PASS: owner revokes manager through team API; unchanged manager session denies four reads and three concurrent writes; owner remains authorized.');
  const token = randomUUID(), tenantId = randomUUID();
  db(await service.from('property_tenants').insert({ id: tenantId, property_id: property, name: 'Synthetic invited tenant', email: unrelated.email, invitation_token: token, is_active: true }));
  const wrongIdentity = await viewer.request('/api/tenant-invite/accept', 'POST', { token });

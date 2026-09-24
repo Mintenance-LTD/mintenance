@@ -175,12 +175,19 @@ export default function RecurringMaintenance({
       } else {
         const err = await res.json();
 
-        toast.error(
+        const message =
           err.errors?.[0]?.message ||
-            err.message ||
-            err.error ||
-            'Failed to add'
+          err.message ||
+          err.error?.message ||
+          err.error;
+        toast.error(
+          typeof message === 'string' ? message : 'Failed to save schedule'
         );
+        if ([401, 403, 404].includes(res.status)) {
+          // Re-enter the server-authorized list after expiry or revoked access.
+          // This also drops the other private cards on the current property page.
+          window.location.assign('/properties');
+        }
       }
     } catch (error) {
       toast.error(

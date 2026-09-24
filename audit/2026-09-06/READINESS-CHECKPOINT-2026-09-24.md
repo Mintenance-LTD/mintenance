@@ -4,6 +4,13 @@ Readiness cannot yet be established. This checkpoint consolidates the latest res
 contain historical blockers that later checks superseded. It does not mark the overall goal
 complete.
 
+Latest targeted follow-up:
+[money/contracts and management acceptance](MONEY-MANAGEMENT-GATES-2026-09-24.md). Both cookie and
+bearer upload-to-contract journeys and manager API revocation passed. A real browser revocation test
+found and verified a fix for a structured-error rendering crash; bearer uploads also required a
+verified-identity rate-limit fix. Fifty-nine focused tests passed. These results reduce the
+remaining work but do not close the full money or management gates.
+
 ## Current source and deployment
 
 Source branch: codex/migrate-next-proxy, pushed through 26decb0c6. The latest source adds native
