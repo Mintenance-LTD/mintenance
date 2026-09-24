@@ -3867,3 +3867,20 @@ Link and the authenticated shell substituted solely for static rendering. At pho
 and property action buttons are readable without the prior overlap. This is layout evidence, not
 authentication or data-flow verification. The real live menu opened; browser viewport overrides were
 reset. No production content or configuration was edited.
+
+### September 24 — expanded bearer-client manager workflow verification
+
+The first expanded cookie HTTP run stopped at a stale harness expectation: an internal reporting row
+ID must be rejected, but the old assertion required exactly the handler's 404 rather than also
+accepting proxy denial. Its cleanup completed. The assertion now accepts 401/403/404; it never
+accepts a redirect-followed login page or a successful response. This cookie run is not a pass.
+
+Added an explicit `--bearer` diagnostic mode using genuine Supabase password sign-in for separate
+synthetic accounts. This exercises the supported provider-bearer authentication path; it does not
+replace the cookie-login check, spoof IPs, relax rate limits or change production auth behavior.
+That run passed all five roles, all existing contact/schedule/compliance checks, reporting-link
+read/create/revoke and public validation, owner/team-admin invitation/removal, and denial for
+manager/viewer/unrelated team administration. Concurrent/repeated tenant acceptance and wrong-user
+rejection passed as well. Checked cleanup completed. No email, report submission or provider payment
+occurred. Log: resume-management-reporting-bearer.log. Earlier completed cookie coverage remains
+limited to the previously recorded contact/schedule/compliance and invitation journeys.

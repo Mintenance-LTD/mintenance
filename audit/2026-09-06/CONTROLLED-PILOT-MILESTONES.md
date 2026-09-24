@@ -34,7 +34,7 @@ live payments, real-user messages, production fixtures, or application deploymen
 ## Current evidence
 
 See REMEDIATION-PROGRESS.md and HOSTED-ROLLOUT-2026-09-22.md for exact completed checks. The last
-completed full web coverage run passed 392 files / 3,977 tests on September 24, including the latest
+completed full web coverage run passed 393 files / 3,985 tests on September 24, including the latest
 schedule and invitation changes. The September 22 follow-up coverage run was stopped at the user's
 pause request; its partial output was not counted as a pass.
 
@@ -75,3 +75,16 @@ Staff review controls cover both signed-contract and dispute archives: database-
 fresh MFA for decisions, revision-checked updates, hold/release audit history, and bounded future
 review dates (90 days for holds). Review deadlines do not erase records. Durable disposal, processor
 copies/backups, closed-account identity verification and full native acceptance remain unfinished.
+
+### Reporting and responsive dashboard checkpoint
+
+Property reporting links now use the public token on both web and mobile, with a narrowly scoped
+public proxy route. Local signed-out browser access and revocation passed. Five provider-bearer
+roles completed reporting, team, contact, schedule and invitation checks; the expanded cookie run
+stopped on an outdated rejection-status assertion and is not counted as a pass. Native sharing has
+component-test coverage, not a device pass. The phone-width live dashboard exposed fixed grids;
+responsive stacking is repaired and visually checked in a synthetic component preview.
+
+Full web coverage passed 393 files / 3,985 tests before the final layout-only change. Subsequent
+public-route checks passed 33 focused tests, native reporting 3 tests, and commit hooks checked web
+and mobile types and staged source. Public-launch readiness remains unestablished.

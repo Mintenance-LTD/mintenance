@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const keys = fs.readFileSync('apps/web/test/integration/supabase-test-client.ts', 'utf8').match(/eyJ[^'\s]+/g);
 const service = createClient('http://127.0.0.1:55321', keys[1], { auth: { persistSession: false, autoRefreshToken: false } });
 const web = 'http://localhost:3017', property = randomUUID(), users = [];
+const bearerMode = process.argv.includes('--bearer');
 function check(ok, message) { if (!ok) throw new Error(message); }
 function db(result) { if (result.error) throw new Error('Local fixture failed: ' + result.error.code); return result.data; }
 async function account() {
@@ -11,10 +12,17 @@ async function account() {
  const user = db(await service.auth.admin.createUser({ email, password, email_confirm: true })).user;
  users.push(user.id); db(await service.from('profiles').update({ role: 'homeowner', first_name: 'Synthetic', last_name: 'Audit' }).eq('id', user.id));
  const jar = new Map();
+ let accessToken;
  async function request(path, method = 'GET', body) {
-  const response = await fetch(web + path, { method, headers: { origin: web, cookie: [...jar].map(([key, value]) => `${key}=${value}`).join('; '), 'x-csrf-token': jar.get('csrf-token') || '', 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, redirect: 'manual', signal: AbortSignal.timeout(90000) });
+  const response = await fetch(web + path, { method, headers: { origin: web, ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), cookie: [...jar].map(([key, value]) => `${key}=${value}`).join('; '), 'x-csrf-token': jar.get('csrf-token') || '', 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, redirect: 'manual', signal: AbortSignal.timeout(90000) });
   for (const cookie of response.headers.getSetCookie()) { const part = cookie.split(';')[0], index = part.indexOf('='); jar.set(part.slice(0, index), part.slice(index + 1)); }
   return { status: response.status, data: await response.json().catch(() => null) };
+ }
+ if (bearerMode) {
+  const client = createClient('http://127.0.0.1:55321', keys[0], { auth: { persistSession: false, autoRefreshToken: false } });
+  accessToken = db(await client.auth.signInWithPassword({ email, password })).session?.access_token;
+  check(accessToken, 'Synthetic provider sign-in failed');
+  return { id: user.id, email, request };
  }
  await request('/api/csrf');
  let login = await request('/api/auth/login', 'POST', { email, password });
@@ -91,7 +99,7 @@ async function account() {
  const linked = db(await service.from('property_tenants').select('user_id,invitation_accepted_at').eq('id', tenantId).single());
  check(linked.user_id === unrelated.id && linked.invitation_accepted_at, 'Invitation did not persist the verified invitee');
  console.log('PASS: invitation rejects a different verified user; concurrent and repeated acceptance confirms one persisted invited identity. Synthetic fixture only; no invitation email sent.');
- console.log('PASS: 5 real cookie-authenticated roles; 15 authorized/denied reads; owner/manager/team-admin contact and schedule writes; viewer/unrelated write denial; delegated owner attribution. No email or payment provider called.');
+ console.log(`PASS: 5 real ${bearerMode ? 'provider-bearer' : 'cookie'}-authenticated roles; 15 authorized/denied reads; owner/manager/team-admin contact and schedule writes; viewer/unrelated write denial; delegated owner attribution. No email or payment provider called.`);
  console.log('PASS: 5-role reporting/team access; public reporting tokens differ from row IDs, load successfully and revoke with 410; owner/team-admin invite/remove allowed and manager/viewer/unrelated denied. No report submitted and no email sent.');
 } finally {
  db(await service.from('properties').delete().eq('id', property));
