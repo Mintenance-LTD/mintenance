@@ -40,14 +40,19 @@ pause request; its partial output was not counted as a pass.
 
 ## Active next slice
 
-Finish verification and rollout of invitation acceptance retries and contact deletion, then continue
-retention disposal/reconciliation and the remaining manager role journeys. Invitation delivery
-claims and cooldowns are implemented and tested, but real delivery/verification/MFA acceptance
-remains open. Provider test payments still need usable Stripe test credentials. An isolated Android
-emulator boots and the native bundle compiles; Expo Go lacks the installed Stripe OnrampSdk native
-module. A proper development-client build currently fails before compilation with Java
-loopback/Unix-domain socket errors, reproduced independently in a minimal Java program. Native
-acceptance remains unverified.
+Invitation acceptance retries and contact deletion verification/rollout are complete and pushed in
+17b9596c9. Continue retention disposal/reconciliation and the remaining manager role journeys.
+Invitation delivery claims and cooldowns are implemented and tested, but real
+delivery/verification/MFA acceptance remains open. Provider test payments still need usable Stripe
+test credentials. An isolated Android emulator boots and the native bundle compiles; Expo Go lacks
+the installed Stripe OnrampSdk native module. A proper development-client build currently fails
+before compilation with Java loopback/Unix-domain socket errors, reproduced independently in a
+minimal Java program. Native acceptance remains unverified.
+
+The staff archive queue now supports stable continuation beyond the first 50 records per kind.
+Fourteen focused route/UI tests and a real local REST diagnostic covering 105 contracts and 53
+disputes pass, including tied timestamps, changed review dates and preserved drafts after an
+interrupted request. This is an access/review improvement, not completed disposal.
 
 ### Invitation hand-off checkpoint
 

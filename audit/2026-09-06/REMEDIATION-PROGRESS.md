@@ -3808,3 +3808,20 @@ Hosted rollout confirmation: migrations 20260922214821 and 20260924075110 were a
 and the enabled spatial statement guard, SECURITY INVOKER, fixed pg_catalog search path and denied
 anonymous function execution. No hosted row mutation or production fixture was performed. Existing
 orphan contact data was not cleaned up as part of these schema changes.
+
+### September 24 — complete staff archive pagination
+
+The retention GET previously stopped at 50 contracts and 50 disputes without a continuation path.
+The staff page now appends bounded batches ordered by immutable archive timestamp and record ID.
+Validated independent cursors preserve timestamp precision and prevent filter injection. Changing a
+review date cannot shift the paging boundary. A failed continuation preserves existing form drafts
+and retries the same cursor; duplicate records are not appended. Database administrator verification
+still precedes reads; responses contain metadata, not evidence payloads. This remains a web-only
+staff surface, not a new mobile customer permission.
+
+Validation: 14 focused route/UI tests passed; web type check and source ESLint passed. A real
+isolated PostgREST diagnostic (`retention-pagination-rest.py`) traversed 105 contracts and 53
+disputes with tied microsecond timestamps and intervening review-date changes, with no
+omissions/duplicates. All diagnostic fixtures were removed. No SQL or hosted schema changes were
+needed for this slice. The last full coverage result predates this pagination change; focused tests
+cover this change. Durable disposal, legacy reconciliation and processor/backup expiry remain open.
