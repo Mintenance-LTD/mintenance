@@ -182,11 +182,8 @@ export class NotificationService {
     }
 
     if (prefs.push_enabled && !params.inAppOnly) {
-      // Fire-and-forget. Failures are logged + enqueued for retry in
-      // the push dispatcher. On success, the dispatcher also flips
-      // push_sent + delivered_at on the `notifications` row via
-      // the notificationId we thread through below (added 2026-04-20
-      // for observability of multi-channel delivery).
+      // Await the bounded dispatch so serverless shutdown cannot interrupt
+      // delivery or persistence of a retry. Acceptance is not device delivery.
       // `inAppOnly` callers (e.g. retention digests) opt out here
       // because they already delivered through email and would
       // otherwise double-notify the user.
@@ -198,7 +195,7 @@ export class NotificationService {
       // FCM/APNS wire). Without this spread, push taps fell through
       // to the inbox even when the server knew exactly which job /
       // thread / property to deep-link to.
-      void sendPushToDevice({
+      await sendPushToDevice({
         userId: params.userId,
         title: params.title,
         body: params.message,

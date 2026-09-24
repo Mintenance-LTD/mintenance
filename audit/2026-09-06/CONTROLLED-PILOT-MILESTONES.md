@@ -175,3 +175,12 @@ checkout and refreshes the new card. Four notification suites (54 tests) and mob
 The test webhook was restored, fixtures cleaned, tunnels/services stopped, and retrieved
 configuration/APK files removed. Current release binaries, physical devices, negative/recovery paths
 and provider push-ticket handling remain open; no overall readiness claim is made.
+
+### Notification failure recovery checkpoint
+
+See NOTIFICATION-RECOVERY-2026-09-24.md. Expo ticket rejection, partial-device retries, queue
+claims, in-app replay, preference changes and error reporting are repaired. Twenty-two focused tests
+and three real local database checks passed. Retry scheduling is five-minute in source; engagement
+learning stays daily. This does not establish hosted execution, durable provider receipt recovery,
+exactly-once delivery or the remaining retention/identity/release-device gates. No schema changes or
+hosted data changes were required.

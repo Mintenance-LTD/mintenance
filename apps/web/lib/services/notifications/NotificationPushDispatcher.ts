@@ -27,24 +27,21 @@ export interface PushDispatchParams {
   metadata?: Record<string, unknown>;
   /**
    * Optional id of the `notifications` row that will be flagged
-   * push_sent + delivered_at on successful dispatch. Omitted
+   * push_sent after Expo accepts all outstanding devices. Omitted
    * for out-of-band push (e.g. bulk broadcasts that skip the
    * in-app row entirely).
    */
   notificationId?: string;
+  /** Server-owned retry state; never forwarded to the device. */
+  acceptedDeviceIds?: string[];
 }
 
 export interface PushDispatchResult {
   sent: boolean;
   reason?: string;
+  acceptedDeviceIds?: string[];
 }
 
-/**
- * Mark a notification row as pushed once Expo accepted the message.
- * Uses `delivered_at IS NULL` in the WHERE clause so we never
- * overwrite an earlier channel's timestamp — whichever channel
- * reaches the user first wins the delivered_at race.
- */
 /**
  * Count unread notifications for a user. Used to populate the iOS/Android
  * app icon badge in the Expo push payload — without `badge`, the OS
@@ -82,15 +79,14 @@ async function getUnreadCountForUser(userId: string): Promise<number | null> {
 }
 
 async function markNotificationPushSent(notificationId: string): Promise<void> {
+  // Expo ticket acceptance is not proof of delivery to the device.
   try {
     const { error } = await serverSupabase
       .from('notifications')
       .update({
         push_sent: true,
-        delivered_at: new Date().toISOString(),
       })
-      .eq('id', notificationId)
-      .is('delivered_at', null);
+      .eq('id', notificationId);
     if (error) {
       logger.warn('Failed to mark notification push_sent=true (non-fatal)', {
         service: 'NotificationPushDispatcher',
@@ -112,56 +108,107 @@ export async function sendPushToDevice(
   params: PushDispatchParams
 ): Promise<PushDispatchResult> {
   let failureReason: string | null = null;
+  const acceptedDeviceIds = new Set(params.acceptedDeviceIds ?? []);
+  const deadline = Date.now() + 20_000;
 
   try {
-    const { data: tokens } = await serverSupabase
+    const { data: registeredTokens, error: tokenError } = await serverSupabase
       .from('user_push_tokens')
-      .select('push_token')
+      .select('id, push_token')
       .eq('user_id', params.userId);
 
-    if (!tokens || tokens.length === 0) {
-      return { sent: false, reason: 'no_push_tokens' };
+    if (tokenError) throw new Error('push_token_lookup_failed');
+    const tokens = (registeredTokens ?? []).filter(
+      (token: { id: string }) => !acceptedDeviceIds.has(token.id)
+    );
+
+    if (tokens.length === 0) {
+      if (acceptedDeviceIds.size && params.notificationId) {
+        await markNotificationPushSent(params.notificationId);
+      }
+      return acceptedDeviceIds.size
+        ? { sent: true, acceptedDeviceIds: [...acceptedDeviceIds] }
+        : { sent: false, reason: 'no_push_tokens' };
     }
 
     // 2026-04-30 audit P0-10: include the user's current unread count so
     // the OS launcher badge updates even when the app is killed.
     const unreadCount = await getUnreadCountForUser(params.userId);
 
-    const messages = tokens.map((t: { push_token: string }) => ({
-      to: t.push_token,
-      title: params.title,
-      body: params.body,
-      sound: 'default',
-      data: params.data || {},
-      channelId: 'default',
-      ...(typeof unreadCount === 'number' ? { badge: unreadCount } : {}),
-    }));
-
-    const response = await fetch(EXPO_PUSH_URL, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(messages),
-    });
-
-    if (!response.ok) {
-      failureReason = `expo_http_${response.status}`;
-      logger.warn('Expo push API returned non-OK status', {
-        service: 'NotificationPushDispatcher',
-        status: response.status,
-        userId: params.userId,
-      });
-    } else {
-      if (params.notificationId) {
-        await markNotificationPushSent(params.notificationId);
+    for (let offset = 0; offset < tokens.length; offset += 100) {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        failureReason = 'push_time_budget_exhausted';
+        break;
       }
-      return { sent: true };
+      const batch = tokens.slice(offset, offset + 100);
+      const messages = batch.map((t: { push_token: string }) => ({
+        to: t.push_token,
+        title: params.title,
+        body: params.body,
+        sound: 'default',
+        data: params.data || {},
+        channelId: 'default',
+        ...(typeof unreadCount === 'number' ? { badge: unreadCount } : {}),
+      }));
+
+      const response = await fetch(EXPO_PUSH_URL, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messages),
+        signal: AbortSignal.timeout(Math.min(10_000, remainingMs)),
+      });
+
+      if (!response.ok) {
+        failureReason = `expo_http_${response.status}`;
+        logger.warn('Expo push API returned non-OK status', {
+          service: 'NotificationPushDispatcher',
+          status: response.status,
+          userId: params.userId,
+        });
+      } else {
+        const result = await response.json();
+        // HTTP 200 can contain rejected tickets. Validate one ticket per device.
+        const tickets = Array.isArray(result?.data) ? result.data : [];
+        if (tickets.length !== batch.length) {
+          failureReason = 'expo_invalid_ticket_response';
+        } else {
+          for (let index = 0; index < batch.length; index++) {
+            const ticket = tickets[index];
+            if (
+              ticket?.status === 'ok' &&
+              typeof ticket.id === 'string' &&
+              ticket.id
+            ) {
+              acceptedDeviceIds.add(batch[index].id);
+            } else {
+              // Never log provider messages: they can contain the device token.
+              failureReason = 'expo_ticket_rejected';
+              if (ticket?.details?.error === 'DeviceNotRegistered') {
+                const { error } = await serverSupabase
+                  .from('user_push_tokens')
+                  .delete()
+                  .eq('user_id', params.userId)
+                  .eq('id', batch[index].id)
+                  .eq('push_token', batch[index].push_token);
+                if (error) failureReason = 'push_token_removal_failed';
+              }
+            }
+          }
+        }
+      }
     }
-  } catch (error) {
-    failureReason = error instanceof Error ? error.message : String(error);
+    if (!failureReason) {
+      if (params.notificationId)
+        await markNotificationPushSent(params.notificationId);
+      return { sent: true, acceptedDeviceIds: [...acceptedDeviceIds] };
+    }
+  } catch {
+    failureReason = 'push_dispatch_failed';
     logger.warn('Failed to send push notification', {
       service: 'NotificationPushDispatcher',
       userId: params.userId,
@@ -179,27 +226,31 @@ export async function sendPushToDevice(
       // Falls back to whatever metadata the caller already supplied.
       const queueMetadata: Record<string, unknown> = {
         ...(params.metadata ?? {}),
+        push_accepted_device_ids: [...acceptedDeviceIds],
       };
       if (params.notificationId) {
         queueMetadata.original_notification_id = params.notificationId;
       }
 
-      await serverSupabase.from('notification_queue').insert({
-        user_id: params.userId,
-        notification_type: params.notificationType,
-        priority: NotificationAgent.getNotificationPriority(
-          params.notificationType
-        ),
-        title: params.title,
-        message: params.body,
-        action_url: params.actionUrl ?? null,
-        metadata: queueMetadata,
-        scheduled_for: new Date().toISOString(),
-        status: 'failed_push',
-        retry_count: 0,
-        last_retry_at: null,
-        error_message: failureReason,
-      });
+      const { error: queueError } = await serverSupabase
+        .from('notification_queue')
+        .insert({
+          user_id: params.userId,
+          notification_type: params.notificationType,
+          priority: NotificationAgent.getNotificationPriority(
+            params.notificationType
+          ),
+          title: params.title,
+          message: params.body,
+          action_url: params.actionUrl ?? null,
+          metadata: queueMetadata,
+          scheduled_for: new Date().toISOString(),
+          status: 'failed_push',
+          retry_count: 0,
+          last_retry_at: null,
+          error_message: failureReason,
+        });
+      if (queueError) throw new Error('push_retry_enqueue_failed');
       logger.info('Failed push enqueued for retry', {
         service: 'NotificationPushDispatcher',
         userId: params.userId,
@@ -219,5 +270,9 @@ export async function sendPushToDevice(
     }
   }
 
-  return { sent: false, reason: failureReason ?? 'unknown' };
+  return {
+    sent: false,
+    reason: failureReason ?? 'unknown',
+    acceptedDeviceIds: [...acceptedDeviceIds],
+  };
 }
