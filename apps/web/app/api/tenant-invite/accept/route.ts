@@ -10,7 +10,11 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
  * to the property. Called after registration with ?invite=TOKEN.
  */
 export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
-  const { token } = await req.json();
+  const payload: unknown = await req.json().catch(() => null);
+  const token =
+    payload && typeof payload === 'object' && 'token' in payload
+      ? payload.token
+      : undefined;
 
   if (typeof token !== 'string' || !token || token.length > 256) {
     return NextResponse.json(
@@ -94,11 +98,32 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
     );
   }
 
-  if (!accepted)
+  if (!accepted) {
+    // A simultaneous acceptance by this same verified account is success.
+    // Re-read the exact active invitation before confirming; never infer it
+    // from the original token lookup or send a second notification.
+    const { data: current, error: currentError } = await serverSupabase
+      .from('property_tenants')
+      .select('user_id, invitation_accepted_at')
+      .eq('id', tenant.id)
+      .eq('property_id', tenant.property_id)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (currentError)
+      return NextResponse.json(
+        { error: 'Unable to confirm invitation acceptance. Please retry.' },
+        { status: 503 }
+      );
+    if (current?.user_id === user.id && current.invitation_accepted_at)
+      return NextResponse.json({
+        success: true,
+        property_id: tenant.property_id,
+      });
     return NextResponse.json(
       { error: 'Invitation is no longer available' },
       { status: 409 }
     );
+  }
 
   // Get property details for the notification.
   // Column is `property_name` in the DB; aliasing it to `name` here so the

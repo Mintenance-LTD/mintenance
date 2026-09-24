@@ -3754,3 +3754,57 @@ Expo Go then failed at native startup because the installed Stripe library requi
 that client does not contain. No payment module was stubbed or removed. A proper local Android
 project was generated successfully with no package.json changes; development-client build validation
 is continuing. This is not yet a passed native user journey.
+
+### September 24 resume: invitation acceptance and contact deletion
+
+Preserved the September 22 uncommitted batch and re-ran nine invitation tests plus the rolled-back
+contact-deletion diagnostic successfully. Concurrent correct-user invitation acceptance now confirms
+the saved result without a duplicate notification; a different user is denied, unavailable result
+verification returns 503, and malformed JSON/null/array input returns 400.
+
+The September 22 real five-role HTTP run passed management reads/writes, stale schedule edits,
+wrong-identity invitation denial, concurrent/repeated correct-user acceptance and checked cleanup.
+The earlier cleanup failure was direct Auth deletion, not the normal account-erasure endpoint:
+delete_user_data already removes linked tenant records. The new FK migration preserves that normal
+erasure behavior, allows direct Auth deletion to detach the account without reopening its consumed
+invitation, and removes property-owned tenant contacts when their property is deleted. The separate
+property_contacts table with retained owner history is not changed.
+
+Migration 20260922214821 was locally applied and passed a full shadow-schema replay/diff (empty).
+The isolated migration ledger is older than its manually applied schema; db push --local attempted
+an already-existing older table and failed. This was not counted as a runner pass. The subsequent
+full schema diff confirmed the final local schema matches all migration files. Security advisors
+show only the previously recorded PostGIS findings. Hosted metadata confirms the two old FK actions;
+dry-run selects only this migration. One pre-existing hosted detached contact remains untouched.
+
+The interrupted September 22 full coverage run is not a result. A fresh September 24 run is in
+progress. Native development-client builds remain blocked before compilation by a Java local socket
+failure, also reproduced by a minimal Selector.open() program on the host. Expo Go cannot substitute
+for this app's Stripe native module. No payment or network controls were removed for testing.
+
+### September 24 security follow-up: PostGIS reference writes
+
+Hosted privilege metadata confirmed anon/authenticated/service_role could insert, update, delete and
+read public.spatial_ref_sys with RLS disabled. A local transaction as anon updated one reference row
+and rolled back. This is a confirmed write exposure, not merely a generic advisor warning: altered
+coordinate definitions can affect location calculations or availability. No hosted mutation was used
+to reproduce it.
+
+The managed table is owned by supabase_admin; hosted postgres is not a superuser, does not inherit
+that owner and has no grant options, but does have TRIGGER privilege. Migration 20260924075110 adds
+a SECURITY INVOKER statement guard that rejects INSERT/UPDATE/DELETE/TRUNCATE unless current_user is
+postgres or supabase_admin. Reads and coordinate transformation remain available. No role is
+elevated and no extension is moved or upgraded. The owner/RLS advisor warning remains structurally
+true; the write guard is the enforced mitigation and must be rechecked after extension maintenance.
+
+Rolled-back checks pass for anon/authenticated/service_role across all four denied writes plus
+reference reads and ST_Transform. The local anonymous REST update returns permission error 42501
+with the guard's exact message (HTTP 401 for anonymous PostgREST, not 403). Full migration replay
+and schema diff are empty. The fresh full web coverage run passed 392 files / 3,977 tests in
+264.96s.
+
+Hosted rollout confirmation: migrations 20260922214821 and 20260924075110 were applied on September
+24 after isolated verification and individual dry-runs. MCP verified the contact migration history
+and the enabled spatial statement guard, SECURITY INVOKER, fixed pg_catalog search path and denied
+anonymous function execution. No hosted row mutation or production fixture was performed. Existing
+orphan contact data was not cleaned up as part of these schema changes.

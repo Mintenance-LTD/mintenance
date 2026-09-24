@@ -17,7 +17,12 @@ async function account() {
   return { status: response.status, data: await response.json().catch(() => null) };
  }
  await request('/api/csrf');
- const login = await request('/api/auth/login', 'POST', { email, password });
+ let login = await request('/api/auth/login', 'POST', { email, password });
+ if (login.status === 429) {
+  console.log('Local login limit reached; waiting the normal 15-minute window before continuing.');
+  await new Promise(resolve => setTimeout(resolve, 15 * 60 * 1000 + 1000));
+  login = await request('/api/auth/login', 'POST', { email, password });
+ }
  check(login.status === 200, 'Synthetic role login failed: ' + login.status);
  return { id: user.id, email, request };
 }
@@ -50,6 +55,17 @@ async function account() {
  }
  const schedules = db(await service.from('recurring_schedules').select('owner_id').eq('property_id', property));
  check(schedules.length === 3 && schedules.every(row => row.owner_id === owner.id), 'Delegated schedules do not belong to property owner');
+ const token = randomUUID(), tenantId = randomUUID();
+ db(await service.from('property_tenants').insert({ id: tenantId, property_id: property, name: 'Synthetic invited tenant', email: unrelated.email, invitation_token: token, is_active: true }));
+ const wrongIdentity = await viewer.request('/api/tenant-invite/accept', 'POST', { token });
+ check(wrongIdentity.status === 403, 'Wrong verified invitation identity accepted');
+ const accepted = await Promise.all([1,2].map(() => unrelated.request('/api/tenant-invite/accept', 'POST', { token })));
+ check(accepted.every(result => result.status === 200 && result.data.success === true && result.data.property_id === property), 'Concurrent correct-user invitation acceptance was not confirmed');
+ const repeat = await unrelated.request('/api/tenant-invite/accept', 'POST', { token });
+ check(repeat.status === 200 && repeat.data.success === true, 'Repeated invitation acceptance failed');
+ const linked = db(await service.from('property_tenants').select('user_id,invitation_accepted_at').eq('id', tenantId).single());
+ check(linked.user_id === unrelated.id && linked.invitation_accepted_at, 'Invitation did not persist the verified invitee');
+ console.log('PASS: invitation rejects a different verified user; concurrent and repeated acceptance confirms one persisted invited identity. Synthetic fixture only; no invitation email sent.');
  console.log('PASS: 5 real cookie-authenticated roles; 15 authorized/denied reads; owner/manager/team-admin contact and schedule writes; viewer/unrelated write denial; delegated owner attribution. No email or payment provider called.');
 } finally {
  db(await service.from('properties').delete().eq('id', property));

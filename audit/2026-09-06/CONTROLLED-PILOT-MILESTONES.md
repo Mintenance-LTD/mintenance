@@ -33,15 +33,21 @@ live payments, real-user messages, production fixtures, or application deploymen
 
 ## Current evidence
 
-See REMEDIATION-PROGRESS.md and HOSTED-ROLLOUT-2026-09-22.md for exact completed checks. Prior
-3,929-test full run predates latest focused invitation/evidence changes. New client storage
-restrictions are not a complete retention implementation.
+See REMEDIATION-PROGRESS.md and HOSTED-ROLLOUT-2026-09-22.md for exact completed checks. The last
+completed full web coverage run passed 392 files / 3,977 tests on September 24, including the latest
+schedule and invitation changes. The September 22 follow-up coverage run was stopped at the user's
+pause request; its partial output was not counted as a pass.
 
 ## Active next slice
 
-Finish retention disposal/reconciliation and invitation delivery concurrency, then complete the
-remaining manager role journeys. Provider test payments and native-device acceptance remain blocked
-by unavailable Stripe test credentials and no connected device; neither is a passing gate.
+Finish verification and rollout of invitation acceptance retries and contact deletion, then continue
+retention disposal/reconciliation and the remaining manager role journeys. Invitation delivery
+claims and cooldowns are implemented and tested, but real delivery/verification/MFA acceptance
+remains open. Provider test payments still need usable Stripe test credentials. An isolated Android
+emulator boots and the native bundle compiles; Expo Go lacks the installed Stripe OnrampSdk native
+module. A proper development-client build currently fails before compilation with Java
+loopback/Unix-domain socket errors, reproduced independently in a minimal Java program. Native
+acceptance remains unverified.
 
 ### Invitation hand-off checkpoint
 
