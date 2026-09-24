@@ -57,6 +57,7 @@ const linkingConfig = {
             JobDetails: 'jobs/:jobId',
             JobPayment: 'payment/:jobId',
             ContractView: 'contracts/:jobId',
+            RetainedDisputes: 'disputes',
             DisputeDetails: 'disputes/:escrowId',
             BidSubmission: 'jobs/:jobId/bid',
             BidReview: 'jobs/:jobId/bids',

@@ -66,3 +66,17 @@ assets, correctly blocked by Android, so full visual acceptance is not claimed. 
 were inconclusive; the supported login deep link and actual login form worked. New HTTPS manifest
 association paths, closed-account identity recovery, archive discovery, external object
 preservation, and provider/backup disposal remain separate gates.
+
+## Native archive discovery follow-up
+
+Payment history now opens an in-app retained-dispute list rather than hardcoding the production
+website and requiring a separate browser session. The list uses the existing participant-authorized
+API, validates IDs/dates, opens the exact escrow record and explicitly states the latest-50 limit.
+Focus/refresh rechecks access; failed refresh hides earlier data. Its account-specific query uses
+the existing sensitive dispute cache prefix and zero unused-cache lifetime. Signed-out and empty
+states are explicit. Native `disputes` navigation is registered alongside the detail path.
+
+Seventeen focused native list/detail tests pass, including failed refresh/retry, account switch,
+malformed response rejection and exact record navigation. Mobile types pass. This new list has
+component verification only; the Android run above verified the detail reader before this change.
+Pagination beyond 50, closed-account identity recovery and release-device acceptance remain open.
