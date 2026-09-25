@@ -144,12 +144,9 @@ export class TrainingDataExporter {
     // any systematic GPT-4o errors for this damage category.
     const label = example.humanCorrectedResponse ?? example.teacherResponse;
 
-    // Prepend GPT-4o chain-of-thought reasoning as a <thinking> block when
-    // available. This is chain-of-thought (CoT) distillation: the student
-    // learns the diagnostic reasoning process, not just the final JSON answer.
-    const assistantContent = example.teacherReasoning
-      ? `<thinking>\n${example.teacherReasoning}\n</thinking>\n\n${JSON.stringify(label)}`
-      : JSON.stringify(label);
+    // Serving requires JSON. Keep rationale in its structured fields instead
+    // of teaching a text prefix that makes JSON.parse reject the response.
+    const assistantContent = JSON.stringify(label);
 
     return {
       messages: [

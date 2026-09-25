@@ -534,6 +534,16 @@ describe('TrainingDataExporter.toQwenConversation', () => {
     // Verify it round-trips back to the same object
     expect(JSON.parse(assistantContent)).toEqual(example.teacherResponse);
   });
+
+  it('keeps training targets parseable JSON even when teacher rationale exists', () => {
+    const conversation = TrainingDataExporter.toQwenConversation({
+      ...example,
+      teacherReasoning: 'Legacy diagnostic rationale',
+    });
+    expect(JSON.parse(conversation.messages[2].content as string)).toEqual(
+      example.teacherResponse
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

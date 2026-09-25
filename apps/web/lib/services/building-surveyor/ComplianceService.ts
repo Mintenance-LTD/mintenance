@@ -63,6 +63,9 @@ export class ComplianceService {
       return severity as ComplianceSeverity;
     }
     const s = String(severity).toLowerCase();
+    if (s === 'major') return 'violation';
+    if (s === 'moderate') return 'warning';
+    if (s === 'minor') return 'info';
     if (s.includes('violation') || s.includes('non-compliant')) {
       return 'violation';
     }

@@ -9,6 +9,7 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { resignAssessmentUrls } from '@/lib/api/assessment-storage';
+import { getAssessmentResult } from '@/lib/services/building-surveyor/assessment-result';
 
 /**
  * GET /api/assessments/:id/status
@@ -66,27 +67,40 @@ export const GET = withApiHandler(
     }));
 
     const status = assessment.validation_status as string;
-    const isComplete = status === 'completed' || status === 'validated';
-    const isFailed = status === 'failed';
+    const result = getAssessmentResult(assessment.assessment_data);
+    const hasResult = status !== 'processing' && result !== null;
+    const isComplete = hasResult;
+    const isFailed = [
+      'failed',
+      'ai_analysis_failed',
+      'ai_analysis_skipped_no_auth',
+    ].includes(status);
 
-    // 2026-07-28: the payload used to be gated on `isComplete`, which conflated
-    // two different things. `validation_status` tracks HUMAN validation —
-    // 'pending' means nobody has signed the survey off yet, not that the AI is
-    // still working. Every walkthrough persists as 'pending', so this returned
-    // `assessment: null` for all of them: assessment history had nothing to
-    // show, and the correction page (which reads `data.assessment?.data`)
-    // silently rendered an empty record.
-    //
-    // The row is returned whenever it holds a result. `isComplete` / `isFailed`
-    // remain for callers polling on processing state.
-    const hasResult =
-      status !== 'processing' && Boolean(assessment.damage_type);
-
+    // Completion means a stored AI result; human approval is exposed separately.
+    const analysis = (
+      assessment.assessment_data as Record<string, unknown> | null
+    )?.analysis as { startedAt?: string } | undefined;
+    const leaseExpired =
+      Date.now() -
+        Date.parse(analysis?.startedAt ?? String(assessment.updated_at)) >=
+      6 * 60 * 1000;
     return NextResponse.json({
       id: assessment.id,
       status,
       isComplete,
       isFailed,
+      isValidated: status === 'validated',
+      canRetry:
+        !hasResult &&
+        imageRows.length > 0 &&
+        (status !== 'processing' || leaseExpired),
+      processingStatus: isFailed
+        ? 'failed'
+        : isComplete
+          ? 'ready'
+          : status === 'processing'
+            ? 'processing'
+            : 'pending',
       assessment: hasResult
         ? {
             domain: assessment.domain,
@@ -97,7 +111,7 @@ export const GET = withApiHandler(
             complianceScore: assessment.compliance_score,
             insuranceRiskScore: assessment.insurance_risk_score,
             urgency: assessment.urgency,
-            data: assessment.assessment_data,
+            data: result,
           }
         : null,
       videoUrl: assessment.video_url,

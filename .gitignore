@@ -224,6 +224,7 @@ yolo11n.pt
 # Development artifacts that shouldn't be in root
 *.sql
 !supabase/migrations/**/*.sql
+!supabase/verification/**/*.sql
 !migrations/**/*.sql
 *.py
 !scripts/**/*.py
