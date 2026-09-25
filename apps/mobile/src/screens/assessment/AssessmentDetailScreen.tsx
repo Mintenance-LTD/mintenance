@@ -31,6 +31,8 @@ interface StatusResponse {
   id: string;
   status: string;
   isFailed?: boolean;
+  canRetry?: boolean;
+  processingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
   assessment: {
     damageType?: string | null;
     severity?: string | null;
@@ -54,6 +56,8 @@ export const AssessmentDetailScreen: React.FC<Props> = ({
 
   const [data, setData] = useState<StatusResponse | null>(null);
   const [loadFailed, setLoadFailed] = useState<boolean | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +75,31 @@ export const AssessmentDetailScreen: React.FC<Props> = ({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (data?.processingStatus !== 'processing') return;
+    const timer = setInterval(() => void load(), 5000);
+    return () => clearInterval(timer);
+  }, [data?.processingStatus, load]);
+
+  const retry = async () => {
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      await mobileApiClient.post(
+        `/api/assessments/${encodeURIComponent(assessmentId)}/analyze`,
+        {},
+        { timeout: 300_000 }
+      );
+    } catch {
+      setRetryError(
+        'Unable to complete the request. Your photos are saved. Check the status and try again.'
+      );
+    } finally {
+      await load();
+      setRetrying(false);
+    }
+  };
 
   // Rebuild the frame list in index order so findings' sourceFrameIndex lines
   // up. Sorting explicitly rather than trusting the response order: a gap or a
@@ -160,8 +189,24 @@ export const AssessmentDetailScreen: React.FC<Props> = ({
             <Text style={styles.noticeText}>
               {data?.isFailed
                 ? 'This survey did not complete, so there are no results to show.'
-                : 'This survey is still being analysed. Check back shortly.'}
+                : data?.processingStatus === 'processing' || retrying
+                  ? 'Your photos are being analysed.'
+                  : data?.images?.length
+                    ? 'Your photos are saved and ready for analysis.'
+                    : 'This survey has no photos to analyse yet.'}
             </Text>
+            {retryError && <Text style={styles.noticeText}>{retryError}</Text>}
+            {retrying && <ActivityIndicator color={me.brand} />}
+            {data?.canRetry && !retrying && (
+              <TouchableOpacity
+                accessibilityRole='button'
+                onPress={() => void retry()}
+              >
+                <Text style={styles.noticeAction}>
+                  {data.isFailed ? 'Retry analysis' : 'Analyse saved photos'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 

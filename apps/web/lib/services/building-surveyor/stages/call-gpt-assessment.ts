@@ -1,6 +1,7 @@
 import { logger } from '@mintenance/shared';
 import { CostControlService } from '../../ai/CostControlService';
 import { getGeneratorContent } from '../generator/AssessmentGenerator';
+import { parseAssessmentResponse } from '../generator/assessment-response';
 import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
 import { CircuitBreaker } from '../utils/CircuitBreaker';
 import {
@@ -230,8 +231,11 @@ export async function callGptAssessment(
   // Parse JSON
   let aiResponseRaw: unknown;
   try {
-    aiResponseRaw = JSON.parse(genResult.content);
-  } catch (parseError) {
+    aiResponseRaw = parseAssessmentResponse(
+      genResult.content,
+      genResult.finishReason
+    );
+  } catch {
     logger.error('Failed to parse OpenAI response', {
       service: 'BuildingSurveyorService',
       content: genResult.content.substring(0, 500),

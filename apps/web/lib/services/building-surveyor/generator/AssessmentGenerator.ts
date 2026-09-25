@@ -13,6 +13,7 @@ import {
   MINT_AI_SERVED_MODEL,
 } from '../../ai/mint-ai-constants';
 import { validateVlmEndpoint } from './validate-vlm-endpoint';
+import { parseStructuredAssessmentResponse } from './assessment-response';
 
 const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
 const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
@@ -38,6 +39,7 @@ export interface GeneratorMessage {
 
 export interface GeneratorResult {
   content: string;
+  finishReason?: string | null;
   model: string;
   provider: 'openai' | 'mint-ai';
   routingMode: 'teacher_only' | 'shadow_only' | 'auto' | 'student_only';
@@ -81,7 +83,7 @@ async function callGPT4o(
   );
 
   const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+    choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
     usage?: {
       prompt_tokens: number;
       completion_tokens: number;
@@ -126,6 +128,7 @@ async function callGPT4o(
 
   return {
     content,
+    finishReason: data.choices?.[0]?.finish_reason,
     model: OPENAI_MODEL,
     provider: 'openai',
     routingMode: getRoutingMode(),
@@ -190,7 +193,7 @@ export async function callMintAiVLM(
   );
 
   const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+    choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
     usage?: {
       prompt_tokens: number;
       completion_tokens: number;
@@ -200,6 +203,7 @@ export async function callMintAiVLM(
   const content = data.choices?.[0]?.message?.content ?? '{}';
   return {
     content,
+    finishReason: data.choices?.[0]?.finish_reason,
     model: MINT_AI_MODEL_ID,
     provider: 'mint-ai',
     routingMode: getRoutingMode(),
@@ -336,7 +340,10 @@ export async function getGeneratorContent(
           try {
             const { SafetyRecallGate } =
               await import('../distillation/SafetyRecallGate');
-            const parsed = JSON.parse(studentResult.content);
+            const parsed = await parseStructuredAssessmentResponse(
+              studentResult.content,
+              studentResult.finishReason
+            );
             if (
               parsed?.safetyHazards &&
               parsed?.damageAssessment &&
@@ -421,7 +428,10 @@ export async function getGeneratorContent(
       try {
         const { SafetyRecallGate } =
           await import('../distillation/SafetyRecallGate');
-        const parsed = JSON.parse(studentResult.content);
+        const parsed = await parseStructuredAssessmentResponse(
+          studentResult.content,
+          studentResult.finishReason
+        );
         if (
           !parsed?.safetyHazards ||
           !parsed?.damageAssessment ||

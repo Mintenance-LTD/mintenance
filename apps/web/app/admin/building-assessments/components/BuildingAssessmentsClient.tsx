@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
@@ -13,7 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import type {
@@ -26,6 +25,7 @@ import { BuildingAssessmentsAutoValidation } from './BuildingAssessmentsAutoVali
 import { BuildingAssessmentsTimeline } from './BuildingAssessmentsTimeline';
 import { BuildingAssessmentsCard } from './BuildingAssessmentsCard';
 import { BuildingAssessmentsReviewDialog } from './BuildingAssessmentsReviewDialog';
+import { ExpertEvaluationPanel } from './ExpertEvaluationPanel';
 interface BuildingAssessmentsClientProps {
   initialAssessments: Assessment[];
   initialStatistics: Statistics;
@@ -64,7 +64,7 @@ export function BuildingAssessmentsClient(
   const [correctionStats, setCorrectionStats] =
     useState<CorrectionStats | null>(null);
 
-  const refreshAssessments = async () => {
+  const refreshAssessments = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -72,7 +72,7 @@ export function BuildingAssessmentsClient(
       );
       const data = await response.json();
       setAssessments(data.assessments || []);
-      setStatistics(data.statistics || statistics);
+      setStatistics((previous) => data.statistics || previous);
     } catch (error) {
       logger.error('Error refreshing assessments', error, {
         service: 'building-assessments',
@@ -80,7 +80,7 @@ export function BuildingAssessmentsClient(
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   const handleValidate = async (assessmentId: string, validated: boolean) => {
     setLoading(true);
@@ -114,7 +114,7 @@ export function BuildingAssessmentsClient(
 
   useEffect(() => {
     refreshAssessments();
-  }, [filterStatus]);
+  }, [refreshAssessments]);
 
   useEffect(() => {
     async function fetchCorrectionStats() {
@@ -422,6 +422,7 @@ export function BuildingAssessmentsClient(
         )}
       </div>
 
+      <ExpertEvaluationPanel />
       <BuildingAssessmentsReviewDialog
         selectedAssessment={selectedAssessment}
         validationNotes={validationNotes}

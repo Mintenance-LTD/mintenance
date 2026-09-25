@@ -15,7 +15,11 @@ import { callMintAiVLM } from '../generator/AssessmentGenerator';
 import { CostControlService } from '../../ai/CostControlService';
 import { MINT_AI_MODEL_ID } from '../../ai/mint-ai-constants';
 import type { GeneratorMessage } from '../generator/AssessmentGenerator';
-import type { Phase1BuildingAssessment, DamageSeverity } from '../types';
+import type { Phase1BuildingAssessment } from '../types';
+import {
+  parseAssessmentResponse,
+  AssessmentResponseError,
+} from '../generator/assessment-response';
 import type { ShadowComparisonResult } from './types';
 import { compareFindings } from './findings-comparison';
 
@@ -117,22 +121,62 @@ export class StudentShadowService {
             firstErr instanceof Error ? firstErr.message : String(firstErr),
         });
         await new Promise((resolve) => setTimeout(resolve, 8000));
-        studentResult = await callMintAiVLM(messages, apiKey);
+        try {
+          studentResult = await callMintAiVLM(messages, apiKey);
+        } catch (error) {
+          const failure = this.compareAssessments(
+            assessmentId,
+            teacherAssessment,
+            null,
+            false,
+            Date.now() - startMs,
+            0,
+            imageUrls.length
+          );
+          failure.teacherModel =
+            teacherAssessment.modelMetadata?.model ?? 'gpt-4o';
+          failure.outputDiagnostics = {
+            failureCode: 'request_failed',
+            finishReason: null,
+            responseCharacters: 0,
+          };
+          await this.storeShadowComparison(failure, teacherAssessment, null);
+          logger.warn('Student request failed after retry', {
+            assessmentId,
+            error,
+          });
+          return;
+        }
       }
       const latencyMs = Date.now() - startMs;
 
       // Parse student output
       let studentAssessment: Phase1BuildingAssessment | null = null;
       let parseSuccess = false;
+      let outputFailure: string | undefined;
 
       try {
-        const parsed = JSON.parse(studentResult.content);
-        studentAssessment = this.coerceToAssessment(parsed);
+        const parsed = parseAssessmentResponse(
+          studentResult.content,
+          studentResult.finishReason
+        );
+        const { structureAssessment } =
+          await import('../assessment-structurer');
+        studentAssessment = await structureAssessment(parsed, undefined, {
+          enrichMaterials: false,
+        });
         parseSuccess = true;
-      } catch {
-        logger.debug('Student VLM produced unparseable JSON', {
+      } catch (error) {
+        outputFailure =
+          error instanceof AssessmentResponseError
+            ? error.code
+            : 'normalization_failed';
+        logger.warn('Student VLM output rejected', {
           service: 'StudentShadowService',
           assessmentId,
+          reason: outputFailure,
+          finishReason: studentResult.finishReason,
+          responseCharacters: studentResult.content.length,
         });
       }
 
@@ -158,6 +202,14 @@ export class StudentShadowService {
         costUsd,
         imageUrls.length
       );
+      comparison.teacherModel =
+        teacherAssessment.modelMetadata?.model ?? 'gpt-4o';
+      comparison.studentModel = studentResult.model;
+      comparison.outputDiagnostics = {
+        ...(outputFailure ? { failureCode: outputFailure } : {}),
+        finishReason: studentResult.finishReason ?? null,
+        responseCharacters: studentResult.content.length,
+      };
 
       // Write to vlm_shadow_comparisons and capture ID
       const shadowComparisonId = await this.storeShadowComparison(
@@ -325,191 +377,6 @@ export class StudentShadowService {
   }
 
   /**
-   * Coerce a raw parsed object into a Phase1BuildingAssessment shape with
-   * sensible defaults so comparison doesn't crash on partial student output.
-   */
-  private static coerceToAssessment(
-    raw: Record<string, unknown>
-  ): Phase1BuildingAssessment {
-    const da = (raw.damageAssessment ?? raw) as Record<string, unknown>;
-    const sh = (raw.safetyHazards ?? {}) as Record<string, unknown>;
-    const comp = (raw.compliance ?? {}) as Record<string, unknown>;
-    const ir = (raw.insuranceRisk ?? {}) as Record<string, unknown>;
-    const urg = (raw.urgency ?? {}) as Record<string, unknown>;
-    const he = (raw.homeownerExplanation ?? {}) as Record<string, unknown>;
-    const ca = (raw.contractorAdvice ?? {}) as Record<string, unknown>;
-
-    return {
-      damageAssessment: {
-        damageType: String(da.damageType ?? 'unknown'),
-        severity: (['early', 'developing', 'significant', 'dangerous'].includes(
-          String(da.severity)
-        )
-          ? String(da.severity)
-          : 'early') as 'early' | 'developing' | 'significant' | 'dangerous',
-        confidence: Number(da.confidence) || 0,
-        location: String(da.location ?? 'Unknown'),
-        description: String(da.description ?? ''),
-        detectedItems: Array.isArray(da.detectedItems)
-          ? (da.detectedItems as string[])
-          : [],
-      },
-      safetyHazards: {
-        hazards: Array.isArray(sh.hazards)
-          ? (sh.hazards as Array<Record<string, unknown>>).map((h) => ({
-              type: String(h.type ?? ''),
-              severity: String(h.severity ?? 'low') as
-                | 'low'
-                | 'medium'
-                | 'high'
-                | 'critical',
-              location: String(h.location ?? ''),
-              description: String(h.description ?? ''),
-              immediateAction: h.immediateAction
-                ? String(h.immediateAction)
-                : undefined,
-              urgency: String(h.urgency ?? 'monitor') as
-                | 'immediate'
-                | 'urgent'
-                | 'soon'
-                | 'planned'
-                | 'monitor',
-            }))
-          : [],
-        hasCriticalHazards: Boolean(sh.hasCriticalHazards),
-        overallSafetyScore: Number(sh.overallSafetyScore) || 100,
-      },
-      compliance: {
-        complianceIssues: Array.isArray(comp.complianceIssues)
-          ? (comp.complianceIssues as Array<Record<string, unknown>>).map(
-              (c) => ({
-                issue: String(c.issue ?? ''),
-                regulation: c.regulation ? String(c.regulation) : undefined,
-                severity: String(c.severity ?? 'info') as
-                  | 'info'
-                  | 'warning'
-                  | 'violation',
-                description: String(c.description ?? ''),
-                recommendation: String(c.recommendation ?? ''),
-              })
-            )
-          : [],
-        requiresProfessionalInspection: Boolean(
-          comp.requiresProfessionalInspection
-        ),
-        complianceScore: Number(comp.complianceScore) || 100,
-      },
-      insuranceRisk: {
-        riskFactors: Array.isArray(ir.riskFactors)
-          ? (ir.riskFactors as Array<Record<string, unknown>>).map((r) => ({
-              factor: String(r.factor ?? ''),
-              severity: String(r.severity ?? 'low') as
-                | 'low'
-                | 'medium'
-                | 'high',
-              impact: String(r.impact ?? ''),
-            }))
-          : [],
-        riskScore: Number(ir.riskScore) || 0,
-        premiumImpact: (['none', 'low', 'medium', 'high'].includes(
-          String(ir.premiumImpact)
-        )
-          ? String(ir.premiumImpact)
-          : 'none') as 'none' | 'low' | 'medium' | 'high',
-        mitigationSuggestions: Array.isArray(ir.mitigationSuggestions)
-          ? (ir.mitigationSuggestions as string[])
-          : [],
-      },
-      urgency: {
-        urgency: ([
-          'immediate',
-          'urgent',
-          'soon',
-          'planned',
-          'monitor',
-        ].includes(String(urg.urgency))
-          ? String(urg.urgency)
-          : 'monitor') as
-          | 'immediate'
-          | 'urgent'
-          | 'soon'
-          | 'planned'
-          | 'monitor',
-        recommendedActionTimeline: String(
-          urg.recommendedActionTimeline ?? 'Monitor'
-        ),
-        estimatedTimeToWorsen: urg.estimatedTimeToWorsen
-          ? String(urg.estimatedTimeToWorsen)
-          : undefined,
-        reasoning: String(urg.reasoning ?? ''),
-        priorityScore: Number(urg.priorityScore) || 0,
-      },
-      homeownerExplanation: {
-        whatIsIt: String(he.whatIsIt ?? ''),
-        whyItHappened: String(he.whyItHappened ?? ''),
-        whatToDo: String(he.whatToDo ?? ''),
-      },
-      contractorAdvice: {
-        repairNeeded: Array.isArray(ca.repairNeeded)
-          ? (ca.repairNeeded as string[])
-          : [],
-        materials: Array.isArray(ca.materials)
-          ? (ca.materials as Array<Record<string, unknown>>).map((m) => ({
-              name: String(m.name ?? ''),
-              quantity: String(m.quantity ?? ''),
-              estimatedCost: Number(m.estimatedCost) || 0,
-            }))
-          : [],
-        tools: Array.isArray(ca.tools) ? (ca.tools as string[]) : [],
-        estimatedTime: String(ca.estimatedTime ?? 'Unknown'),
-        estimatedCost: {
-          min: Number((ca.estimatedCost as Record<string, unknown>)?.min) || 0,
-          max: Number((ca.estimatedCost as Record<string, unknown>)?.max) || 0,
-          recommended:
-            Number(
-              (ca.estimatedCost as Record<string, unknown>)?.recommended
-            ) || 0,
-        },
-        complexity: (['low', 'medium', 'high'].includes(String(ca.complexity))
-          ? String(ca.complexity)
-          : 'medium') as 'low' | 'medium' | 'high',
-      },
-      // Multi-finding: parse the student's findings[] when present so the
-      // set-based comparison can score them. v2 students typically omit this
-      // (single-defect) — that is the gap Phase 2 quantifies.
-      findings: Array.isArray(raw.findings)
-        ? (raw.findings as Array<Record<string, unknown>>).map((f) => ({
-            element: String(f.element ?? 'general'),
-            taxonomyClassId: f.taxonomyClassId
-              ? String(f.taxonomyClassId)
-              : undefined,
-            damageType: String(f.damageType ?? 'general_damage'),
-            severity: ([
-              'early',
-              'developing',
-              'significant',
-              'dangerous',
-            ].includes(String(f.severity))
-              ? String(f.severity)
-              : 'developing') as DamageSeverity,
-            conditionRating:
-              f.conditionRating === 1 ||
-              f.conditionRating === 2 ||
-              f.conditionRating === 3
-                ? (f.conditionRating as 1 | 2 | 3)
-                : undefined,
-            description: String(f.description ?? ''),
-            probableCause: f.probableCause
-              ? String(f.probableCause)
-              : undefined,
-            confidence: Number(f.confidence) || 0,
-            isPrimary: Boolean(f.isPrimary),
-          }))
-        : [],
-    };
-  }
-
-  /**
    * Aggregate shadow stats for a dashboard query.
    */
   static async getShadowStats(since?: Date): Promise<{
@@ -603,7 +470,10 @@ export class StudentShadowService {
         image_count: comparison.imageCount,
         // Multi-finding set metrics (Phase 2). Scalars for easy dashboarding,
         // full detail in the JSONB.
-        findings_comparison: comparison.findingsComparison ?? null,
+        findings_comparison: {
+          ...comparison.findingsComparison,
+          outputDiagnostics: comparison.outputDiagnostics ?? null,
+        },
         findings_precision: comparison.findingsComparison?.precision ?? null,
         findings_recall: comparison.findingsComparison?.recall ?? null,
         findings_f1: comparison.findingsComparison?.f1 ?? null,
