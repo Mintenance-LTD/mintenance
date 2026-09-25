@@ -120,7 +120,8 @@ afterEach(() => {
 function importFresh() {
   let mod: typeof import('../mobileApiClient');
   jest.isolateModules(() => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Jest isolates the module only when it is loaded inside this callback.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     mod = require('../mobileApiClient');
   });
   // @ts-expect-error assigned within isolateModules synchronously
@@ -674,6 +675,47 @@ describe('postFormData', () => {
 // ===========================================================================
 // Singleton export sanity.
 // ===========================================================================
+describe('session lookup deadline', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('rejects a stalled lookup and never sends the abandoned save after late auth', async () => {
+    jest.useFakeTimers();
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.test';
+    let resolveSession!: (value: ReturnType<typeof sessionWith>) => void;
+    mockSupabaseAuth.getSession.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSession = resolve;
+        })
+    );
+    const client = importFresh().mobileApiClient;
+    const result = client.post('/save', { title: 'Synthetic' });
+    const rejected = expect(result).rejects.toThrow('Session check timed out');
+    await jest.advanceTimersByTimeAsync(30000);
+    await rejected;
+    resolveSession(sessionWith('late-token'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockSupabaseAuth.getUser).not.toHaveBeenCalled();
+  });
+
+  it('bounds session restoration before an upload starts', async () => {
+    jest.useFakeTimers();
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.test';
+    mockSupabaseAuth.getSession.mockImplementationOnce(
+      () => new Promise(() => {})
+    );
+    const result = importFresh().mobileApiClient.postFormData(
+      '/upload',
+      new FormData()
+    );
+    const rejected = expect(result).rejects.toThrow('Session check timed out');
+    await jest.advanceTimersByTimeAsync(30000);
+    await rejected;
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
 describe('mobileApiClient singleton', () => {
   it('exposes the public verb surface', () => {
     process.env.EXPO_PUBLIC_API_URL = 'https://api.test';
