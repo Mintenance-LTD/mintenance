@@ -262,3 +262,42 @@ it('preserves schedule input when the server does not confirm the created record
   expect(view.getByDisplayValue('2026-12-15')).toBeTruthy();
   alert.mockRestore();
 });
+
+it('preserves a schedule after a connection failure, suppresses double taps, and retries unchanged input', async () => {
+  mockGet.mockResolvedValue({ schedules: [] });
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  let rejectSave!: (error: Error) => void;
+  mockPost.mockImplementationOnce(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectSave = reject;
+      })
+  );
+  const view = wrap(<RecurringMaintenance propertyId='property' />);
+  fireEvent.press(view.getByLabelText('Add recurring schedule'));
+  fireEvent.changeText(
+    view.getByLabelText('Schedule title'),
+    'Synthetic interrupted schedule'
+  );
+  fireEvent.changeText(
+    view.getByLabelText('First due date, YYYY-MM-DD'),
+    '2027-01-15'
+  );
+  await act(async () => {
+    fireEvent.press(view.getByText('Add Schedule'));
+    fireEvent.press(view.getByText('Add Schedule'));
+  });
+  expect(mockPost).toHaveBeenCalledTimes(1);
+  await act(async () => rejectSave(new Error('Network request failed')));
+  await waitFor(() => expect(view.getByText('Add Schedule')).toBeTruthy());
+  expect(view.getByDisplayValue('Synthetic interrupted schedule')).toBeTruthy();
+  expect(view.getByDisplayValue('2027-01-15')).toBeTruthy();
+  const originalPayload = mockPost.mock.calls[0][1];
+  mockPost.mockResolvedValueOnce({
+    schedule: { id: 'confirmed', property_id: 'property' },
+  });
+  await act(async () => fireEvent.press(view.getByText('Add Schedule')));
+  await waitFor(() => expect(view.queryByText('Add Schedule')).toBeNull());
+  expect(mockPost).toHaveBeenCalledTimes(2);
+  expect(mockPost.mock.calls[1][1]).toEqual(originalPayload);
+});

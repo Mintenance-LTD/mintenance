@@ -83,3 +83,42 @@ it('preserves typed tenant details when the server cannot confirm a saved record
     'Synthetic tenant'
   );
 });
+
+it('keeps tenant input after a connection failure, suppresses double taps, and permits an explicit retry', async () => {
+  mockGet.mockResolvedValue({ tenants: [] });
+  let rejectSave!: (error: Error) => void;
+  mockPost.mockImplementationOnce(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectSave = reject;
+      })
+  );
+  const view = show(<TenantContacts propertyId='property' />);
+  await waitFor(() => expect(view.getByLabelText('Add tenant')).toBeTruthy());
+  fireEvent.press(view.getByLabelText('Add tenant'));
+  fireEvent.changeText(
+    view.getByPlaceholderText('Full name *'),
+    'Synthetic interrupted tenant'
+  );
+  await act(async () => {
+    fireEvent.press(view.getByText('Add Tenant'));
+    fireEvent.press(view.getByText('Add Tenant'));
+  });
+  expect(mockPost).toHaveBeenCalledTimes(1);
+  await act(async () => rejectSave(new Error('Network request failed')));
+  await waitFor(() =>
+    expect(Alert.alert).toHaveBeenCalledWith('Error', 'Network request failed')
+  );
+  expect(view.getByPlaceholderText('Full name *').props.value).toBe(
+    'Synthetic interrupted tenant'
+  );
+  const originalPayload = mockPost.mock.calls[0][1];
+  mockPost.mockResolvedValueOnce({ tenant: { id: 'confirmed' } });
+  await waitFor(() => expect(view.getByText('Add Tenant')).toBeTruthy());
+  await act(async () => fireEvent.press(view.getByText('Add Tenant')));
+  await waitFor(() =>
+    expect(view.queryByPlaceholderText('Full name *')).toBeNull()
+  );
+  expect(mockPost).toHaveBeenCalledTimes(2);
+  expect(mockPost.mock.calls[1][1]).toEqual(originalPayload);
+});
