@@ -47,6 +47,44 @@ function resolveApiBaseUrl(): string {
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
+// Session restoration can wait on an auth lock while connectivity changes.
+// Bound that wait before entering the HTTP client, whose timeout starts later.
+function getAuthTokenWithDeadline(
+  signal?: AbortSignal
+): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    let settled = false;
+    const finish = (error?: Error, token?: string | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', cancel);
+      controller.abort();
+      if (error) reject(error);
+      else resolve(token ?? null);
+    };
+    const cancel = () => finish(new Error('Request cancelled'));
+    const timer = setTimeout(
+      () =>
+        finish(new Error('Session check timed out. Reconnect and try again.')),
+      30000
+    );
+    signal?.addEventListener('abort', cancel, { once: true });
+    if (signal?.aborted) {
+      cancel();
+      return;
+    }
+    getAuthToken(controller.signal).then(
+      (token) => finish(undefined, token),
+      (error: unknown) =>
+        finish(
+          error instanceof Error ? error : new Error('Session check failed')
+        )
+    );
+  });
+}
+
 /**
  * Get authentication token from Supabase session.
  * Falls back to SecureStore if the Supabase client session is null
@@ -137,10 +175,10 @@ async function getAuthToken(signal?: AbortSignal): Promise<string | null> {
  */
 class MobileApiClient extends ApiClient {
   private isRefreshing = false;
-  private refreshQueue: Array<{
+  private refreshQueue: {
     resolve: (token: string) => void;
     reject: (error: unknown) => void;
-  }> = [];
+  }[] = [];
 
   constructor() {
     super({
@@ -159,7 +197,7 @@ class MobileApiClient extends ApiClient {
     url: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const token = await getAuthToken(options.signal ?? undefined);
+    const token = await getAuthTokenWithDeadline(options.signal ?? undefined);
 
     const headers = {
       ...options.headers,
@@ -263,7 +301,7 @@ class MobileApiClient extends ApiClient {
       }
     };
 
-    const initialToken = await getAuthToken();
+    const initialToken = await getAuthTokenWithDeadline();
     let response = await doRequest(initialToken);
 
     if (response.status === 401) {
