@@ -101,3 +101,33 @@ it('rejects malformed archive identifiers instead of creating a navigation targe
   await waitFor(() => expect(view.getByText('Try Again')).toBeTruthy());
   expect(view.navigate).not.toHaveBeenCalled();
 });
+it('loads older records and retries a failed next page without losing the cursor', async () => {
+  mockGet.mockResolvedValue({ ...response, nextCursor: 'older-page' });
+  const view = screen();
+  await view.findByText('Load older records');
+  mockGet.mockRejectedValue(new Error('Offline'));
+  fireEvent.press(view.getByText('Load older records'));
+  await view.findByText('Try Again');
+  expect(view.queryByText(/View dispute archived/)).toBeNull();
+  mockGet.mockResolvedValue({
+    records: [
+      {
+        escrow_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        archived_at: '2026-09-23T12:00:00+00:00',
+      },
+    ],
+    limit: 50,
+    nextCursor: null,
+  });
+  fireEvent.press(view.getByText('Try Again'));
+  await waitFor(() =>
+    expect(view.getAllByText(/View dispute archived/)).toHaveLength(2)
+  );
+  expect(view.queryByText('Load older records')).toBeNull();
+  await waitFor(() =>
+    expect(mockGet).toHaveBeenCalledWith(
+      '/api/disputes/retained?cursor=older-page',
+      expect.anything()
+    )
+  );
+});
