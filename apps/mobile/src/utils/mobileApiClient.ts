@@ -145,7 +145,7 @@ async function getAuthToken(signal?: AbortSignal): Promise<string | null> {
     if (sessionJson) {
       const persisted = JSON.parse(sessionJson);
       if (persisted?.access_token && persisted?.refresh_token) {
-        const { error: restoreError } = await supabase.auth.setSession({
+        const { data, error: restoreError } = await supabase.auth.setSession({
           access_token: persisted.access_token,
           refresh_token: persisted.refresh_token,
         });
@@ -157,7 +157,7 @@ async function getAuthToken(signal?: AbortSignal): Promise<string | null> {
           return null;
         }
         logger.info('[AUTH] getAuthToken: restored from SecureStore');
-        return persisted.access_token;
+        return data?.session?.access_token ?? null;
       }
     }
   } catch {
@@ -215,10 +215,19 @@ class MobileApiClient extends ApiClient {
           ...options.headers,
           Authorization: `Bearer ${newToken}`,
         };
-        return await super.request<T>(url, {
-          ...options,
-          headers: retryHeaders,
-        });
+        try {
+          return await super.request<T>(url, {
+            ...options,
+            headers: retryHeaders,
+          });
+        } catch (retryError) {
+          // Refresh cannot renew an absolute session timeout or revocation.
+          // Leave the protected navigation instead of stranding every screen.
+          if ((retryError as IApiError).statusCode === 401) {
+            await supabase.auth.signOut({ scope: 'local' });
+          }
+          throw retryError;
+        }
       }
       throw error;
     }
@@ -308,6 +317,9 @@ class MobileApiClient extends ApiClient {
       // Mirror request()'s behaviour: wait for the queued refresh, retry once.
       const newToken = await this.waitForTokenRefresh();
       response = await doRequest(newToken);
+      if (response.status === 401) {
+        await supabase.auth.signOut({ scope: 'local' });
+      }
     }
 
     if (!response.ok) {

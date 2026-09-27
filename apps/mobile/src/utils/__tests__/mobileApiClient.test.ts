@@ -267,6 +267,9 @@ describe('getAuthToken (via request auth header injection)', () => {
         refresh_token: 'stored-refresh',
       })
     );
+    mockSupabaseAuth.setSession.mockResolvedValue(
+      sessionWith('restored-fresh-token')
+    );
     (global.fetch as jest.Mock).mockResolvedValue(
       makeResponse({ jsonBody: {} })
     );
@@ -276,7 +279,9 @@ describe('getAuthToken (via request auth header injection)', () => {
       access_token: 'stored-token',
       refresh_token: 'stored-refresh',
     });
-    expect(lastFetchHeaders().Authorization).toBe('Bearer stored-token');
+    expect(lastFetchHeaders().Authorization).toBe(
+      'Bearer restored-fresh-token'
+    );
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.stringContaining('restored from SecureStore')
     );
@@ -472,6 +477,38 @@ describe('401 refresh-and-retry', () => {
   beforeEach(() => {
     process.env.EXPO_PUBLIC_API_URL = 'https://api.test';
     client = importFresh().mobileApiClient;
+  });
+
+  it('leaves an expired session when even the refreshed token is rejected', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      makeResponse({
+        status: 401,
+        jsonBody: { code: 'SESSION_TIMEOUT', message: 'Sign in again' },
+      })
+    );
+    await expect(client.get('/api/jobs')).rejects.toBeDefined();
+    expect(mockSupabaseAuth.refreshSession).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(mockSupabaseAuth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+  });
+
+  it('preserves the session when the retry fails with a permission error', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(makeResponse({ status: 401 }))
+      .mockResolvedValueOnce(makeResponse({ status: 403 }));
+    await expect(client.get('/api/jobs')).rejects.toBeDefined();
+    expect(mockSupabaseAuth.signOut).not.toHaveBeenCalled();
+  });
+
+  it('leaves an expired session after an upload is rejected again', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      makeResponse({ status: 401 })
+    );
+    await expect(
+      client.postFormData('/api/upload', new FormData())
+    ).rejects.toThrow('Upload failed: 401');
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(mockSupabaseAuth.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
   it('refreshes the session on 401 and retries with the new token', async () => {
