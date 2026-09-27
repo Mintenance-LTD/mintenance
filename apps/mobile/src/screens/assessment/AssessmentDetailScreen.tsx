@@ -32,7 +32,14 @@ interface StatusResponse {
   status: string;
   isFailed?: boolean;
   canRetry?: boolean;
-  processingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
+  processingStatus?:
+    | 'pending'
+    | 'processing'
+    | 'ready'
+    | 'failed'
+    | 'insufficient_evidence';
+  requiresRecapture?: boolean;
+  message?: string;
   assessment: {
     damageType?: string | null;
     severity?: string | null;
@@ -187,15 +194,19 @@ export const AssessmentDetailScreen: React.FC<Props> = ({
         {loadFailed === false && !aiAnalysis && (
           <View style={styles.notice}>
             <Text style={styles.noticeText}>
-              {data?.isFailed
-                ? 'This survey did not complete, so there are no results to show.'
-                : data?.processingStatus === 'processing' || retrying
-                  ? 'Your photos are being analysed.'
-                  : data?.images?.length
-                    ? 'Your photos are saved and ready for analysis.'
-                    : 'This survey has no photos to analyse yet.'}
+              {data?.requiresRecapture
+                ? data.message
+                : data?.isFailed
+                  ? 'This survey did not complete, so there are no results to show.'
+                  : data?.processingStatus === 'processing' || retrying
+                    ? 'Your photos are being analysed.'
+                    : data?.images?.length
+                      ? 'Your photos are saved and ready for analysis.'
+                      : 'This survey has no photos to analyse yet.'}
             </Text>
-            {retryError && <Text style={styles.noticeText}>{retryError}</Text>}
+            {retryError && !data?.requiresRecapture && (
+              <Text style={styles.noticeText}>{retryError}</Text>
+            )}
             {retrying && <ActivityIndicator color={me.brand} />}
             {data?.canRetry && !retrying && (
               <TouchableOpacity

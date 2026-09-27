@@ -45,7 +45,8 @@ vi.mock('@/lib/csrf', () => ({ requireCSRF: vi.fn() }));
 vi.mock('@/lib/rate-limiter', () => ({
   rateLimiter: { checkRateLimit: mocks.rateLimiterCheckRateLimit },
 }));
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: mocks.logger,
   BUSINESS_RULES: {},
   RATE_LIMITS: {},
@@ -195,6 +196,35 @@ beforeEach(() => {
 });
 
 describe('GET /api/assessments/:id/status', () => {
+  it.each([
+    {
+      damageAssessment: { damageType: 'no_defect', confidence: 0 },
+      safetyHazards: { overallSafetyScore: 100 },
+    },
+    { analysis: { errorCode: 'INSUFFICIENT_EVIDENCE' } },
+    {
+      ai_analysis: { damageAssessment: { damageType: 'none', confidence: 0 } },
+    },
+  ])(
+    'withholds scores and validation for unassessable saved evidence',
+    async (assessment_data) => {
+      wireDb(
+        assessmentRow({ assessment_data, validation_status: 'validated' }),
+        [{ id: 'photo', image_url: 'test' }]
+      );
+      const body = await (await get()).json();
+      expect(body).toMatchObject({
+        assessment: null,
+        isComplete: false,
+        isValidated: false,
+        requiresRecapture: true,
+        canRetry: false,
+        processingStatus: 'insufficient_evidence',
+      });
+      expect(body.message).toContain('Retake');
+    }
+  );
+
   it('returns the survey for a pending row that already holds results', async () => {
     // The regression that made assessment history impossible: every walkthrough
     // is 'pending', and every one of them used to come back as null.

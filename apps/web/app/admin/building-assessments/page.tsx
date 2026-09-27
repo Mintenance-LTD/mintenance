@@ -1,3 +1,4 @@
+import { isAssessmentUnassessable } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BuildingAssessmentsClient } from './components/BuildingAssessmentsClient';
 
@@ -19,6 +20,12 @@ export default async function AdminBuildingAssessmentsPage() {
 
   const safeAssessments = assessments ?? [];
 
+  const scoredAssessments = safeAssessments.filter(
+    (a) =>
+      !isAssessmentUnassessable(a.assessment_data) &&
+      typeof a.confidence === 'number' &&
+      a.confidence > 0
+  );
   const statistics = {
     total: safeAssessments.length,
     pending: safeAssessments.filter((a) => a.validation_status === 'pending')
@@ -32,14 +39,14 @@ export default async function AdminBuildingAssessmentsPage() {
       (a) => a.validation_status === 'needs_review'
     ).length,
     averageConfidence:
-      safeAssessments.length > 0
-        ? safeAssessments.reduce((sum, a) => sum + (a.confidence ?? 0), 0) /
-          safeAssessments.length
+      scoredAssessments.length > 0
+        ? scoredAssessments.reduce((sum, a) => sum + (a.confidence ?? 0), 0) /
+          scoredAssessments.length
         : 0,
     averageSafetyScore:
-      safeAssessments.length > 0
-        ? safeAssessments.reduce((sum, a) => sum + (a.safety_score ?? 0), 0) /
-          safeAssessments.length
+      scoredAssessments.length > 0
+        ? scoredAssessments.reduce((sum, a) => sum + (a.safety_score ?? 0), 0) /
+          scoredAssessments.length
         : 0,
     bySeverity: {
       early: safeAssessments.filter((a) => a.severity === 'early').length,

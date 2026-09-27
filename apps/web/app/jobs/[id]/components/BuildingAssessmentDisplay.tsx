@@ -5,6 +5,10 @@
 
 'use client';
 
+import {
+  isAssessmentUnassessable,
+  INSUFFICIENT_EVIDENCE_MESSAGE,
+} from '@mintenance/shared';
 import React, { useState } from 'react';
 import {
   AlertCircle,
@@ -98,6 +102,17 @@ export function BuildingAssessmentDisplay({
       setReRunLoading(false);
     }
   };
+
+  if (isAssessmentUnassessable(assessment))
+    return (
+      <div
+        role='alert'
+        className='rounded-xl border border-amber-300 bg-amber-50 p-4'
+      >
+        <h3 className='font-semibold'>New photos needed</h3>
+        <p>{INSUFFICIENT_EVIDENCE_MESSAGE}</p>
+      </div>
+    );
 
   if (loading) {
     return (

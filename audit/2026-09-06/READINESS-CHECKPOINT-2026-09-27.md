@@ -113,3 +113,27 @@ an explicit Pro-plan-or-above requirement. Enabling and saving did not persist: 
 switch off again. No subscription change was made. The fresh security advisor still flags this
 setting and the database security update. This gate remains open; an enabled-looking unsaved form is
 not evidence of protection.
+
+## Internal APK verification, build 24
+
+EAS build 5203b02a-fe98-4749-8334-2cf11956c6f8 succeeded, version 1.2.4/code 24, from
+4d7aa39e954ea7f479b0094e04a567e1b693eebf. Downloaded APK SHA-256:
+`936755208a6c0583dd2d83e6c6b2c07c69b62bddf9f00d20f9bba6c6e613484a`.
+
+The original emulator had insufficient storage (395 MB free). Its application data was preserved; a
+separate Android 36 emulator (5556) was created with 10 GB storage using hardware configuration
+only. Build 24 installed successfully. First boot showed a System UI timeout; after stabilization
+the application reached its signed-out welcome screen. This is a startup check, not a performance
+measurement or proof of authenticated journeys.
+
+Installed-package intent resolution passed twelve checks across mintenance.co.uk and
+www.mintenance.co.uk: invitation registration, auth callback, tenant properties and the
+properties-malicious lookalike path do not match the app; canonical job/property detail paths do.
+Only synthetic IDs/tokens were used in resolver queries; no corresponding production pages were
+opened or records changed. This closes the rebuilt-APK route interception check, not the whole
+invitation onboarding or native acceptance gate. Signed-in interruptions, permissions, retained
+pagination, verified-domain auto-opening and physical Android/iOS remain unverified on this build.
+
+APK, emulator data, screenshot and resolver output are ignored local diagnostic artifacts under
+isolated-stack. The emulator welcome copy still says pay only when work is right; it should be
+aligned with the web wording that distinguishes funding from release.

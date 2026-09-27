@@ -1,6 +1,12 @@
 import { NextResponse, after } from 'next/server';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import crypto from 'crypto';
+import {
+  isAssessmentUnassessable,
+  requireAssessmentEvidence,
+  InsufficientEvidenceError,
+} from '@mintenance/shared';
+
 import { LRUCache } from 'lru-cache';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
@@ -73,10 +79,7 @@ function generateCacheKey(input: {
 
   // SHA-256 hex is exactly 64 chars, which fits the VARCHAR(64) cache_key column.
   // The table name (building_assessments) provides the namespace implicitly.
-  return crypto
-    .createHash('sha256')
-    .update(canonicalInput)
-    .digest('hex');
+  return crypto.createHash('sha256').update(canonicalInput).digest('hex');
 }
 
 /**
@@ -238,7 +241,7 @@ export const POST = withApiHandler(
       roomMetadata: bodyRoomMetadata,
     });
     const memoryAssessment = assessmentCache.get(cacheKey);
-    if (memoryAssessment) {
+    if (memoryAssessment && !isAssessmentUnassessable(memoryAssessment)) {
       deps.logger.info('Building assessment cache hit (in-memory)', {
         service: 'building-surveyor-api',
         userId: user.id,
@@ -266,7 +269,7 @@ export const POST = withApiHandler(
     const cachedData = cachedAssessment?.assessment_data as
       | Record<string, unknown>
       | undefined;
-    if (cachedData?.damageAssessment) {
+    if (cachedData?.damageAssessment && !isAssessmentUnassessable(cachedData)) {
       deps.logger.info('Building assessment cache hit (database)', {
         service: 'building-surveyor-api',
         userId: user.id,
@@ -297,7 +300,10 @@ export const POST = withApiHandler(
         const coalescedData = coalesced?.assessment_data as
           | Record<string, unknown>
           | undefined;
-        if (coalescedData?.damageAssessment) {
+        if (
+          coalescedData?.damageAssessment &&
+          !isAssessmentUnassessable(coalescedData)
+        ) {
           assessmentCache.set(
             cacheKey,
             coalescedData as unknown as Phase1BuildingAssessment
@@ -371,6 +377,10 @@ export const POST = withApiHandler(
             });
           } else {
             if (!abResult.requiresHumanReview && abResult.aiResult) {
+              requireAssessmentEvidence({
+                ...abResult.aiResult,
+                confidence: abResult.aiResult.fusionMean * 100,
+              });
               deps.logger.info('A/B automated assessment', {
                 service: 'building-surveyor-api',
                 assessmentId,
@@ -420,6 +430,7 @@ export const POST = withApiHandler(
             }
           }
         } catch (abError) {
+          if (abError instanceof InsufficientEvidenceError) throw abError;
           deps.logger.error(
             'A/B test error - falling back to standard flow',
             abError,
@@ -439,6 +450,7 @@ export const POST = withApiHandler(
         imageUrls,
         context
       )) as unknown as Phase1BuildingAssessment;
+      requireAssessmentEvidence(assessment);
       deps.logger.info('Assessment service used', {
         service: 'building-surveyor-api',
         inferenceType: 'hybrid',
@@ -528,29 +540,57 @@ export const POST = withApiHandler(
         }
       }
 
-      const agentResult = await deps.runAgent({
-        assessmentId,
-        imageUrls,
-        userId: user.id,
-        context:
-          context || beforeImageUrls?.length
-            ? {
-                ...(context
-                  ? {
-                      propertyType: context.propertyType,
-                      ageOfProperty: context.ageOfProperty,
-                      location: context.location,
-                      propertyDetails: context.propertyDetails,
-                    }
-                  : {}),
-                ...(beforeImageUrls?.length ? { beforeImageUrls } : {}),
-              }
-            : undefined,
-        jobId: bodyJobId,
-        propertyId: bodyPropertyId,
-        domain,
-      });
+      const agentResult = await deps
+        .runAgent({
+          assessmentId,
+          imageUrls,
+          userId: user.id,
+          context:
+            context || beforeImageUrls?.length
+              ? {
+                  ...(context
+                    ? {
+                        propertyType: context.propertyType,
+                        ageOfProperty: context.ageOfProperty,
+                        location: context.location,
+                        propertyDetails: context.propertyDetails,
+                      }
+                    : {}),
+                  ...(beforeImageUrls?.length ? { beforeImageUrls } : {}),
+                }
+              : undefined,
+          jobId: bodyJobId,
+          propertyId: bodyPropertyId,
+          domain,
+        })
+        .catch(async (error: unknown) => {
+          if (error instanceof InsufficientEvidenceError) {
+            const { error: saveError } = await deps.serverSupabase
+              .from('building_assessments')
+              .update({
+                validation_status: 'ai_analysis_failed',
+                assessment_data: {
+                  outcome: 'insufficient_evidence',
+                  evidenceSufficient: false,
+                  analysis: {
+                    state: 'insufficient_evidence',
+                    errorCode: error.code,
+                    retryable: false,
+                  },
+                },
+              })
+              .eq('id', assessmentId)
+              .eq('user_id', user.id);
+            if (saveError)
+              deps.logger.error(
+                'Unable to save insufficient evidence outcome',
+                saveError
+              );
+          }
+          throw error;
+        });
       assessment = agentResult.assessment;
+      requireAssessmentEvidence(assessment);
 
       const validationStatus =
         agentResult.needsReview === true

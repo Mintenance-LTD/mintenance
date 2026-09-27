@@ -7,6 +7,10 @@
  *
  * @filesize Target: <300 lines
  */
+import {
+  isAssessmentUnassessable,
+  INSUFFICIENT_EVIDENCE_MESSAGE,
+} from '@mintenance/shared';
 import React, { useState } from 'react';
 import {
   View,
@@ -49,7 +53,7 @@ interface AssessmentData {
   needsOnsiteInspection?: boolean;
   onsiteInspectionReason?: string;
   sceneSummary?: string;
-  findings?: Array<{
+  findings?: {
     element: string;
     damageType: string;
     severity: string;
@@ -57,21 +61,21 @@ interface AssessmentData {
     description?: string;
     probableCause?: string;
     isPrimary?: boolean;
-  }>;
+  }[];
   safetyHazards?: {
     hasCriticalHazards: boolean;
     overallSafetyScore: number;
-    hazards: Array<{ type: string; description: string }>;
+    hazards: { type: string; description: string }[];
   };
   homeownerExplanation?: { whatIsIt: string; whatToDo: string };
   contractorAdvice?: {
     estimatedCost?: { min: number; recommended: number; max: number };
     estimatedTime?: string;
-    materials?: Array<{
+    materials?: {
       name: string;
       quantity: string;
       estimatedCost: number;
-    }>;
+    }[];
     repairNeeded?: string[];
   };
   insuranceRisk?: {
@@ -108,6 +112,13 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
   frameUrls,
 }) => {
   const [expanded, setExpanded] = useState(true);
+
+  if (isAssessmentUnassessable(aiAnalysis?.assessmentData))
+    return (
+      <View>
+        <Text accessibilityRole='alert'>{INSUFFICIENT_EVIDENCE_MESSAGE}</Text>
+      </View>
+    );
 
   if (aiLoading) {
     return (

@@ -45,7 +45,8 @@ vi.mock('@/lib/services/building-surveyor/agent/AgentRunner', () => ({
 vi.mock('@/app/api/assessments/walkthrough/property-age', () => ({
   withPropertyAge: vi.fn(async () => ({ ageOfProperty: 0 })),
 }));
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
@@ -152,6 +153,19 @@ const request = () =>
   );
 
 describe('saved assessment analysis', () => {
+  it('persists insufficient evidence without scores or training capture', async () => {
+    const { InsufficientEvidenceError } = await import('@mintenance/shared');
+    mocks.runAgent.mockRejectedValue(new InsufficientEvidenceError());
+    await request();
+    expect(row.assessment_data.analysis).toMatchObject({
+      state: 'insufficient_evidence',
+      errorCode: 'INSUFFICIENT_EVIDENCE',
+      retryable: false,
+    });
+    expect(row.validation_status).toBe('ai_analysis_failed');
+    expect(mocks.after).not.toHaveBeenCalled();
+  });
+
   it('checks current access to the saved property before invoking AI', async () => {
     mocks.anchors.mockRejectedValue(
       Object.assign(new Error('Access revoked'), { statusCode: 403 })
@@ -183,6 +197,17 @@ describe('saved assessment analysis', () => {
       })
     );
     expect(mocks.after).toHaveBeenCalledOnce();
+  });
+  it('clears an earlier insufficient outcome after usable replacement photos', async () => {
+    row.assessment_data = {
+      evidenceSufficient: false,
+      outcome: 'insufficient_evidence',
+      ai_analysis: { damageAssessment: { confidence: 0 } },
+    };
+    expect((await request()).status).toBe(200);
+    const { getAssessmentResult } =
+      await import('@/lib/services/building-surveyor/assessment-result');
+    expect(getAssessmentResult(row.assessment_data)).not.toBeNull();
   });
   it('returns the saved result on retry without another model call', async () => {
     await request();

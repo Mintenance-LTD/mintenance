@@ -3,6 +3,7 @@
  * Structures AI responses into Phase1BuildingAssessment format
  */
 
+import { requireAssessmentEvidence } from '@mintenance/shared';
 import type {
   Phase1BuildingAssessment,
   Material,
@@ -47,6 +48,7 @@ export async function structureAssessment(
   },
   options?: { enrichMaterials?: boolean }
 ): Promise<Phase1BuildingAssessment> {
+  requireAssessmentEvidence(aiResponse);
   // Validate and normalize severity
   const severity = normalizeSeverity(aiResponse.severity);
   const urgency = normalizeUrgency(aiResponse.urgency);

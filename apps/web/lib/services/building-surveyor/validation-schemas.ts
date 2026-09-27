@@ -169,6 +169,7 @@ const findingSchema = z.object({
 });
 
 export const AI_ASSESSMENT_SCHEMA = z.object({
+  evidenceSufficient: z.boolean().optional(),
   damageType: z.string().optional(),
   // v3 surveyor taxonomy class — tolerant: anything outside the canonical id
   // set (including null, the prompt's "no match" value) degrades to undefined
