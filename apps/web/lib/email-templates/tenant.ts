@@ -15,23 +15,23 @@ export function tenantInviteTemplate(data: TenantInviteData): {
 } {
   const e = escapeHtml;
   const subject = `${data.landlordName} invited you to Mintenance.`;
-  const preview = `Report repairs at ${data.propertyAddress} in two taps — your landlord pays.`;
+  const preview = `Link your verified account to ${data.propertyAddress}.`;
   const html = mintEmailShell(
     subject,
     preview,
     `<p>Hi ${e(data.tenantName)},</p>
-     <p><strong>${e(data.landlordName)}</strong> added you as a tenant at <strong>${e(data.propertyAddress)}</strong>. Mintenance gives you one place to:</p>
+     <p><strong>${e(data.landlordName)}</strong> added you as a tenant at <strong>${e(data.propertyAddress)}</strong>. Accept this invitation to:</p>
      <ul style="color:#333;padding-left:20px;line-height:1.9">
-       <li>Report something broken in two taps</li>
-       <li>Watch the repair from booking to done</li>
-       <li>Message the contractor directly on the day</li>
+       <li>Link your verified email to this property</li>
+       <li>View your linked property details</li>
+       <li>Confirm your account to your property manager</li>
      </ul>
-     <div class="note">Your landlord pays — you don't see a price.</div>
+     <div class="note">For maintenance requests, ask your property manager for their reporting link or use your usual contact channel.</div>
      <a href="${e(data.inviteUrl)}" class="cta">Accept invitation →</a>
      <p style="font-size:12px;color:#888">This link is unique to you. If you weren't expecting it, just ignore it.</p>`,
     `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  const text = `Hi ${data.tenantName},\n\n${data.landlordName} added you as a tenant at ${data.propertyAddress} on Mintenance.\n\nReport repairs in two taps, watch them from booking to done, message the contractor directly. Your landlord pays — you don't see a price.\n\nAccept: ${data.inviteUrl}\n\nIf you weren't expecting this, ignore it.\n\n© ${year()} Mintenance Ltd.`;
+  const text = `Hi ${data.tenantName},\n\n${data.landlordName} added you as a tenant at ${data.propertyAddress} on Mintenance.\n\nUse your invited email address, verify it, and accept to view your linked property details. For maintenance requests, ask your property manager for their reporting link or use your usual contact channel.\n\nAccept: ${data.inviteUrl}\n\nIf you weren't expecting this, ignore it.\n\n© ${year()} Mintenance Ltd.`;
   return { subject, html, text };
 }
 

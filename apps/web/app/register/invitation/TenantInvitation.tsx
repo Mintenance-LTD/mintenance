@@ -66,7 +66,7 @@ export function TenantInvitation() {
       ) : propertyId ? (
         <>
           <p role='status'>Invitation accepted.</p>
-          <Link href={`/properties/${propertyId}`} className='underline'>
+          <Link href={`/tenant/properties/${propertyId}`} className='underline'>
             Open property
           </Link>
         </>

@@ -50,6 +50,10 @@ it('recovers after an interrupted response and requires confirmed success', asyn
   await waitFor(() =>
     expect(screen.getByRole('link', { name: 'Open property' })).toBeTruthy()
   );
+  expect(screen.getByRole('link', { name: 'Open property' })).toHaveAttribute(
+    'href',
+    '/tenant/properties/11111111-1111-4111-8111-111111111111'
+  );
 });
 it('does not submit incomplete tokens', () => {
   m.token = '';

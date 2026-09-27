@@ -146,7 +146,7 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
       userId: property.owner_id,
       type: 'tenant_accepted',
       title: `${tenant.name} joined ${property.address || property.name || 'your property'}`,
-      message: `They can now report issues directly — you'll be in the loop on every job.`,
+      message: `Their verified account is now linked to this property.`,
       actionUrl: `/properties/${tenant.property_id}`,
       metadata: { property_id: tenant.property_id, tenant_id: tenant.id },
     }).catch(() =>
@@ -165,6 +165,6 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
   return NextResponse.json({
     success: true,
     property_id: tenant.property_id,
-    message: `You've been linked to ${property?.address || 'the property'}. You can now submit maintenance requests.`,
+    message: `You've been linked to ${property?.address || 'the property'}. Contact your property manager for maintenance reporting instructions.`,
   });
 });

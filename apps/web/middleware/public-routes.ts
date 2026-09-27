@@ -97,6 +97,9 @@ export function isPublicRoute(pathname: string): boolean {
   // Confirmation links must work before login; the handler verifies the token
   // and then requires normal sign-in. Do not expose other /auth subpaths.
   if (pathname === '/auth/callback') return true;
+  // Password sign-in intentionally issues no full session until MFA succeeds.
+  // Only expose the challenge page; its API validates the pending session/code.
+  if (pathname === '/auth/mfa-verify') return true;
   if (TENANT_REPORT_RE.test(pathname)) return true;
 
   // E2E-only test-auth endpoint. Whitelisted ONLY when E2E_TESTING is on, so
