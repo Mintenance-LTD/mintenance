@@ -24,6 +24,12 @@ jest.mock('../../../utils/mobileApiClient', () => ({
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
+jest.mock('../../../utils/scheduleRequestKey', () => ({
+  scheduleRequest: async () => ({
+    key: 'test-request',
+    complete: async () => {},
+  }),
+}));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 const clients: QueryClient[] = [];
 function wrap(node: React.ReactElement) {
@@ -113,7 +119,8 @@ it('preserves a native schedule edit after a revision conflict and sends the loa
       scheduleId: 'schedule',
       expected_updated_at: '2026-09-22T12:00:00Z',
       title: 'Updated boiler service',
-    })
+    }),
+    undefined
   );
   expect(view.getByLabelText('Schedule title').props.value).toBe(
     'Updated boiler service'
@@ -188,7 +195,8 @@ it('uses the selected first due date and suppresses duplicate create taps', asyn
     expect.objectContaining({
       next_due_date: '2026-12-15',
       frequency: 'monthly',
-    })
+    }),
+    { headers: { 'Idempotency-Key': 'test-request' } }
   );
   await act(async () =>
     finish({ schedule: { id: 'schedule', property_id: 'property' } })

@@ -105,51 +105,51 @@ export class ApiClient {
             signal: controller.signal,
             redirect: 'manual', // Don't follow redirects — treat 3xx as errors (catches middleware 307s)
           });
+          // Treat redirects (307/302) as 401 auth failures — middleware redirects
+          // unauthenticated API requests to login page instead of returning JSON
+          if (response.status >= 300 && response.status < 400) {
+            throw parseError({
+              message: 'Authentication required (redirected to login)',
+              code: 'UNAUTHORIZED',
+              statusCode: 401,
+            });
+          }
+          // Handle non-OK responses
+          if (!response.ok) {
+            const errorData = await this.parseErrorResponse(response);
+            const error = parseError({
+              message: errorData.message || `HTTP ${response.status}`,
+              code: errorData.code,
+              statusCode: response.status,
+              details: errorData,
+            });
+            // Don't retry on client errors (4xx)
+            if (response.status >= 400 && response.status < 500) {
+              // 403/404 are often expected (e.g., no escrow/reviews for a job,
+              // or contractor viewing homeowner-only escrow) — don't log as error
+              if (response.status !== 403 && response.status !== 404) {
+                logError(error, `API Request failed: ${url}`);
+              }
+              throw error;
+            }
+            // Retry on server errors (5xx) or network errors
+            lastError = error;
+            if (attempt < retries) {
+              await this.delay(retryDelay * (attempt + 1));
+              continue;
+            }
+            throw error;
+          }
+          // Parse response
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+          }
+          return (await response.text()) as unknown as T;
         } finally {
           clearTimeout(timeoutId);
           externalSignal?.removeEventListener('abort', abortFromCaller);
         }
-        // Treat redirects (307/302) as 401 auth failures — middleware redirects
-        // unauthenticated API requests to login page instead of returning JSON
-        if (response.status >= 300 && response.status < 400) {
-          throw parseError({
-            message: 'Authentication required (redirected to login)',
-            code: 'UNAUTHORIZED',
-            statusCode: 401,
-          });
-        }
-        // Handle non-OK responses
-        if (!response.ok) {
-          const errorData = await this.parseErrorResponse(response);
-          const error = parseError({
-            message: errorData.message || `HTTP ${response.status}`,
-            code: errorData.code,
-            statusCode: response.status,
-            details: errorData,
-          });
-          // Don't retry on client errors (4xx)
-          if (response.status >= 400 && response.status < 500) {
-            // 403/404 are often expected (e.g., no escrow/reviews for a job,
-            // or contractor viewing homeowner-only escrow) — don't log as error
-            if (response.status !== 403 && response.status !== 404) {
-              logError(error, `API Request failed: ${url}`);
-            }
-            throw error;
-          }
-          // Retry on server errors (5xx) or network errors
-          lastError = error;
-          if (attempt < retries) {
-            await this.delay(retryDelay * (attempt + 1));
-            continue;
-          }
-          throw error;
-        }
-        // Parse response
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          return await response.json();
-        }
-        return (await response.text()) as unknown as T;
       } catch (error) {
         const parsedError = parseError(error);
         // Don't retry on abort (timeout)

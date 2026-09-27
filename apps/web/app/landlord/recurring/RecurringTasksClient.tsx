@@ -1,4 +1,5 @@
 'use client';
+import { scheduleRequest } from '@/lib/schedule-request-key';
 
 import React, { useState, useRef } from 'react';
 import {
@@ -107,10 +108,15 @@ export function RecurringTasksClient({
       // withApiHandler — without an X-CSRF-Token the POST 403s in
       // production. Audit 2026-05-12 caught this. Aligning the legacy
       // path with the Mint Editorial port that already sends CSRF.
+      const operation = await scheduleRequest(formData.property_id, formData);
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch('/api/landlord/recurring', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders,
+          'Idempotency-Key': operation.key,
+        },
         body: JSON.stringify({
           ...formData,
           title: formData.title.trim(),
@@ -128,6 +134,7 @@ export function RecurringTasksClient({
         throw new Error(
           'Task creation could not be confirmed. Refresh before retrying.'
         );
+      operation.complete();
       setSchedules((prev) =>
         [...prev, schedule].sort(
           (a, b) =>

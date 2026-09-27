@@ -111,6 +111,10 @@ it('shows a property schedule read failure with retry rather than an empty list'
 });
 
 it('preserves the property form after an unconfirmed save and prevents double taps', async () => {
+  sessionStorage.clear();
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  );
   const fetch = vi
     .fn()
     .mockResolvedValueOnce({ ok: true, json: async () => ({ schedules: [] }) })
@@ -141,6 +145,11 @@ it('preserves the property form after an unconfirmed save and prevents double ta
   expect(fetch).toHaveBeenCalledTimes(2);
   expect(toast.success).not.toHaveBeenCalled();
   expect(screen.getByDisplayValue('Synthetic maintenance')).toBeTruthy();
+  const originalKey = fetch.mock.calls[1][1].headers['Idempotency-Key'];
+  expect(originalKey).toMatch(/^[0-9a-f-]{36}$/i);
+  fireEvent.click(screen.getByRole('button', { name: 'Add Schedule' }));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+  expect(fetch.mock.calls[2][1].headers['Idempotency-Key']).toBe(originalKey);
 });
 
 it('sends the original schedule version and preserves edits when another manager changed it', async () => {

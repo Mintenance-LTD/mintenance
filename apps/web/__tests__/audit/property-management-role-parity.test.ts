@@ -29,6 +29,18 @@ vi.mock('@/lib/feature-access-config', () => ({
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
+    rpc: async (
+      _name: string,
+      args: { p_details: object; p_property_id: string }
+    ) => {
+      const row = {
+        ...args.p_details,
+        owner_id: 'owner',
+        property_id: args.p_property_id,
+      };
+      m.insert('recurring_schedules', row);
+      return { data: { id: 'schedule', ...row }, error: null };
+    },
     from: (table: string) => {
       const filters: Record<string, unknown> = {};
       let inserted: unknown;
@@ -77,6 +89,7 @@ const request = () =>
     'http://localhost/api/properties/property/recurring-maintenance',
     {
       method: 'POST',
+      headers: { 'Idempotency-Key': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
       body: JSON.stringify({
         title: 'Boiler inspection',
         frequency: 'annual',
@@ -90,6 +103,16 @@ beforeEach(() => {
   m.role = 'manager';
   m.membershipError = null;
 });
+it.each([null, 'invalid'])(
+  'rejects missing or malformed creation identity: %s',
+  async (key) => {
+    const req = request();
+    if (key === null) req.headers.delete('Idempotency-Key');
+    else req.headers.set('Idempotency-Key', key);
+    await expect(POST(req, context)).rejects.toMatchObject({ statusCode: 400 });
+    expect(m.insert).not.toHaveBeenCalled();
+  }
+);
 it('lets a current manager create for the owner and checks the owner subscription', async () => {
   expect((await POST(request(), context)).status).toBe(201);
   expect(m.insert).toHaveBeenCalledWith(
@@ -148,6 +171,7 @@ for (const [name, handler] of [
   const makeRequest = (body: unknown) =>
     new NextRequest('http://localhost/api/recurring', {
       method: 'POST',
+      headers: { 'Idempotency-Key': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
       body: JSON.stringify(body),
     });
   it.each([
@@ -194,6 +218,7 @@ for (const [name, handler] of [
     const response = await handler(
       new NextRequest('http://localhost/api/recurring', {
         method: 'POST',
+        headers: { 'Idempotency-Key': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
         body: '{',
       }),
       context
@@ -207,6 +232,7 @@ it('accepts the empty optional category sent by the existing property form', asy
   const response = await POST(
     new NextRequest('http://localhost/api/recurring', {
       method: 'POST',
+      headers: { 'Idempotency-Key': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
       body: JSON.stringify({
         title: 'Boiler inspection',
         frequency: 'monthly',

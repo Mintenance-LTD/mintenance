@@ -1,3 +1,4 @@
+import { createScheduleOnce } from '@/lib/services/recurring/create-schedule';
 import { portfolioScheduleInput } from '@/lib/services/recurring/schedule-input';
 import { validateRequest } from '@/lib/validation/validator';
 import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
@@ -78,29 +79,15 @@ export const POST = withApiHandler(
     const tierBlock = await requireLandlordTier(property.owner_id, user.role);
     if (tierBlock) return tierBlock;
 
-    const { data: schedule, error } = await serverSupabase
-      .from('recurring_schedules')
-      .insert({
-        property_id,
-        owner_id: property.owner_id,
-        task_type: task_type || 'general',
-        title: title.trim(),
-        description: description?.trim() || null,
-        category: 'general',
-        frequency,
-        next_due_date,
-        auto_create_job: auto_create_job ?? false,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (error || !schedule?.id) {
-      return NextResponse.json(
-        { error: 'Failed to create schedule' },
-        { status: 500 }
-      );
-    }
+    const schedule = await createScheduleOnce(req, user.id, property_id, {
+      title: title.trim(),
+      description: description?.trim() || null,
+      task_type: task_type || 'general',
+      category: 'general',
+      frequency,
+      next_due_date,
+      auto_create_job: auto_create_job ?? false,
+    });
 
     return NextResponse.json({ schedule }, { status: 201 });
   }
