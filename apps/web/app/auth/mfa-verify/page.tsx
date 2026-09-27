@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { toast } from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
 import { safeRedirect } from '@/lib/utils/safe-redirect';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 export default function MFAVerifyPage() {
   const router = useRouter();
@@ -23,22 +24,8 @@ export default function MFAVerifyPage() {
   >('totp');
   const [rememberDevice, setRememberDevice] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [csrfToken, setCsrfToken] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Get CSRF token
-  useEffect(() => {
-    async function fetchCSRF() {
-      try {
-        const response = await fetch('/api/csrf');
-        const data = await response.json();
-        setCsrfToken(data.csrfToken);
-      } catch (error) {
-        logger.error('Failed to fetch CSRF token', error);
-      }
-    }
-    fetchCSRF();
-  }, []);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if no pre-MFA token
   useEffect(() => {
@@ -73,7 +60,7 @@ export default function MFAVerifyPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
+          'X-CSRF-Token': await getCsrfToken(),
         },
         body: JSON.stringify({
           preMfaToken,
@@ -86,7 +73,11 @@ export default function MFAVerifyPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
+        throw new Error(
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message || 'Verification failed'
+        );
       }
 
       toast.success('Login successful!');

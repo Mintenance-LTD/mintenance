@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useAuth } from '../contexts/AuthContext';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
@@ -21,6 +21,7 @@ const responseSchema = z.object({
     )
     .max(50),
   limit: z.literal(50),
+  nextCursor: z.string().max(512).nullable().optional(),
 });
 
 export function RetainedDisputesScreen({
@@ -29,12 +30,32 @@ export function RetainedDisputesScreen({
   navigation: NativeStackNavigationProp<JobsStackParamList, 'RetainedDisputes'>;
 }) {
   const { user } = useAuth();
-  const { data, error, isFetching, refetch } = useQuery({
+  const {
+    data,
+    error,
+    isFetching,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchNextPageError,
+  } = useInfiniteQuery<
+    z.infer<typeof responseSchema>,
+    Error,
+    InfiniteData<z.infer<typeof responseSchema>>,
+    readonly unknown[],
+    string | null
+  >({
     // Shares the detail reader's sensitive-cache exclusion.
     queryKey: ['dispute-record', user?.id, 'retained-list'],
-    queryFn: async ({ signal }) =>
+    initialPageParam: null as string | null,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryFn: async ({ signal, pageParam }) =>
       responseSchema.parse(
-        await mobileApiClient.get<unknown>('/api/disputes/retained', { signal })
+        await mobileApiClient.get<unknown>(
+          '/api/disputes/retained' +
+            (pageParam ? '?cursor=' + encodeURIComponent(pageParam) : ''),
+          { signal }
+        )
       ),
     enabled: !!user?.id,
     retry: false,
@@ -47,6 +68,14 @@ export function RetainedDisputesScreen({
     }, [user?.id, refetch])
   );
 
+  const records = [
+    ...new Map(
+      (data?.pages.flatMap((page) => page.records) ?? []).map((record) => [
+        record.escrow_id,
+        record,
+      ])
+    ).values(),
+  ];
   return (
     <SafeAreaView style={styles.container}>
       <ScreenHeader
@@ -63,20 +92,21 @@ export function RetainedDisputesScreen({
         <ErrorView
           message='Unable to load retained disputes. Check your connection and access, then retry.'
           onRetry={() => {
-            void refetch();
+            if (isFetchNextPageError) void fetchNextPage();
+            else void refetch();
           }}
         />
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.body}>
             Read-only records preserved after account or job deletion. Only
-            records you participated in are shown, up to the latest 50. Archived
-            does not mean resolved.
+            records you participated in are shown. Archived does not mean
+            resolved.
           </Text>
-          {!data?.records.length ? (
+          {!records.length ? (
             <Text style={styles.body}>No retained disputes found.</Text>
           ) : (
-            data.records.map((record) => (
+            records.map((record) => (
               <TouchableOpacity
                 key={record.escrow_id}
                 accessibilityRole='button'
@@ -96,6 +126,17 @@ export function RetainedDisputesScreen({
                 </Text>
               </TouchableOpacity>
             ))
+          )}
+          {hasNextPage && (
+            <TouchableOpacity
+              accessibilityRole='button'
+              style={styles.card}
+              onPress={() => {
+                void fetchNextPage();
+              }}
+            >
+              <Text style={styles.link}>Load older records</Text>
+            </TouchableOpacity>
           )}
           <TouchableOpacity
             accessibilityRole='button'

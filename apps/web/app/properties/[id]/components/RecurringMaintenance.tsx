@@ -1,4 +1,5 @@
 'use client';
+import { scheduleRequest } from '@/lib/schedule-request-key';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -119,6 +120,9 @@ export default function RecurringMaintenance({
     setSaving(true);
 
     try {
+      const operation = editing
+        ? null
+        : await scheduleRequest(propertyId, form);
       const csrfToken = await getCsrfToken();
 
       const res = await fetch(
@@ -130,6 +134,7 @@ export default function RecurringMaintenance({
             'Content-Type': 'application/json',
 
             'X-CSRF-Token': csrfToken,
+            ...(operation ? { 'Idempotency-Key': operation.key } : {}),
           },
 
           body: JSON.stringify({
@@ -156,6 +161,7 @@ export default function RecurringMaintenance({
             'Schedule creation could not be confirmed. Refresh before retrying.'
           );
 
+        operation?.complete();
         setSchedules((prev) =>
           editing
             ? prev.map((row) => (row.id === editing.id ? data.schedule : row))

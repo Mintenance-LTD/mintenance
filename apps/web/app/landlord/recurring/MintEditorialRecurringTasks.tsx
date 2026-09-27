@@ -1,4 +1,5 @@
 'use client';
+import { scheduleRequest } from '@/lib/schedule-request-key';
 
 /**
  * Mint Editorial port of /landlord/recurring.
@@ -50,25 +51,7 @@ interface Schedule {
   is_active: boolean;
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  biannual: 'Every 6 months',
-  annual: 'Annually',
-};
-
-const TASK_TYPES = [
-  'Gas Safety Check',
-  'EICR Inspection',
-  'Boiler Service',
-  'Gutter Cleaning',
-  'Fire Alarm Test',
-  'Legionella Assessment',
-  'Garden Maintenance',
-  'Chimney Sweep',
-  'Pest Inspection',
-  'General Inspection',
-] as const;
+import { FREQUENCY_LABELS, TASK_TYPES } from './recurring-options';
 
 function daysUntil(dateStr: string): number {
   return Math.ceil(
@@ -171,10 +154,15 @@ export function MintEditorialRecurringTasks({
     savingRef.current = true;
     setSaving(true);
     try {
+      const operation = await scheduleRequest(formData.property_id, formData);
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch('/api/landlord/recurring', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders,
+          'Idempotency-Key': operation.key,
+        },
         body: JSON.stringify({
           ...formData,
           title: formData.title.trim(),
@@ -192,6 +180,7 @@ export function MintEditorialRecurringTasks({
           'Task creation could not be confirmed. Refresh before retrying.'
         );
       }
+      operation.complete();
       setSchedules((prev) => [...prev, schedule]);
       setShowForm(false);
       setFormData({

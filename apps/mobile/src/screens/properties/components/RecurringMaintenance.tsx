@@ -1,3 +1,4 @@
+import { scheduleRequest } from '../../../utils/scheduleRequestKey';
 /**
  * RecurringMaintenance - Manage recurring maintenance schedules for a property
  */
@@ -86,16 +87,26 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
     mutationFn: async () => {
       if (editing && !editing.updated_at)
         throw new Error('Reload schedules before editing.');
-      const result = await mobileApiClient[editing ? 'patch' : 'post']<{
-        schedule?: { id?: string; property_id?: string };
-      }>(`/api/properties/${propertyId}/recurring-maintenance`, {
+      const payload = {
         title: title.trim(),
         frequency,
         next_due_date: firstDueDate,
         ...(editing
           ? { scheduleId: editing.id, expected_updated_at: editing.updated_at }
           : {}),
-      });
+      };
+      const operation = editing
+        ? null
+        : await scheduleRequest(`${user?.id}:${propertyId}`, payload);
+      const result = await mobileApiClient[editing ? 'patch' : 'post']<{
+        schedule?: { id?: string; property_id?: string };
+      }>(
+        `/api/properties/${propertyId}/recurring-maintenance`,
+        payload,
+        operation
+          ? { headers: { 'Idempotency-Key': operation.key } }
+          : undefined
+      );
       if (
         !result?.schedule?.id ||
         result.schedule.property_id !== propertyId ||
@@ -104,6 +115,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
         throw new Error(
           'Schedule creation could not be confirmed. Refresh before retrying.'
         );
+      await operation?.complete();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

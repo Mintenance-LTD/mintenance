@@ -1,3 +1,4 @@
+import { createScheduleOnce } from '@/lib/services/recurring/create-schedule';
 import { z } from 'zod';
 import {
   propertyScheduleInput,
@@ -100,38 +101,15 @@ export const POST = withApiHandler(
     if ('headers' in validation) return validation;
     const { title, category, frequency, next_due_date } = validation.data;
 
-    const { data: schedule, error } = await serverSupabase
-      .from('recurring_schedules')
-      .insert({
-        property_id: propertyId,
-        // 2026-05-23 audit-20 P1: recurring_schedules.owner_id is the FK
-        // RecurringJobCreatorService uses when constructing the new job
-        // (homeowner_id = owner_id). For an admin acting on behalf of a
-        // homeowner, fall back to the property owner so auto-created
-        // jobs still attach to the right person.
-        owner_id: property.owner_id,
-        title,
-        description: `Recurring maintenance: ${title}`,
-        task_type: 'general',
-        category: category || 'general',
-        frequency,
-        next_due_date,
-        // Mobile / property flow assumes auto-creation: the whole UI
-        // promises "next visit on …" and the homeowner expects the job
-        // to show up. The /api/landlord/recurring dashboard surface lets
-        // the user opt in/out explicitly; here we default true.
-        auto_create_job: true,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (error || !schedule?.id) {
-      return NextResponse.json(
-        { error: 'Failed to create schedule' },
-        { status: 500 }
-      );
-    }
+    const schedule = await createScheduleOnce(req, user.id, propertyId, {
+      title,
+      description: `Recurring maintenance: ${title}`,
+      task_type: 'general',
+      category: category || 'general',
+      frequency,
+      next_due_date,
+      auto_create_job: true,
+    });
 
     return NextResponse.json({ schedule }, { status: 201 });
   }
