@@ -4,6 +4,16 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TenantContacts } from '../components/TenantContacts';
 import { TeamAccess } from '../components/TeamAccess';
+const mockStorage = new Map<string, string>();
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(async (key: string) => mockStorage.get(key) ?? null),
+  setItemAsync: jest.fn(async (key: string, value: string) => {
+    mockStorage.set(key, value);
+  }),
+  deleteItemAsync: jest.fn(async (key: string) => {
+    mockStorage.delete(key);
+  }),
+}));
 const mockGet = jest.fn();
 const mockPost = jest.fn();
 const mockPatch = jest.fn();
@@ -30,6 +40,7 @@ function show(node: React.ReactElement) {
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  mockStorage.clear();
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 });
 it('shows the server retry guidance without resending or creating a contact', async () => {
@@ -121,4 +132,96 @@ it('keeps tenant input after a connection failure, suppresses double taps, and p
   );
   expect(mockPost).toHaveBeenCalledTimes(2);
   expect(mockPost.mock.calls[1][1]).toEqual(originalPayload);
+});
+
+it('recovers a submitted contact after remount and reuses its operation identity', async () => {
+  mockGet.mockResolvedValue({ tenants: [] });
+  mockPost.mockRejectedValueOnce(new Error('Response lost'));
+  const first = show(<TenantContacts propertyId='property' />);
+  await waitFor(() => expect(first.getByLabelText('Add tenant')).toBeTruthy());
+  fireEvent.press(first.getByLabelText('Add tenant'));
+  fireEvent.changeText(
+    first.getByPlaceholderText('Full name *'),
+    'Recovery tenant'
+  );
+  await act(async () => fireEvent.press(first.getByText('Add Tenant')));
+  await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(1));
+  const payload = mockPost.mock.calls[0][1];
+  expect(payload.operationId).toMatch(/^[a-f0-9-]{36}$/);
+  first.unmount();
+  const second = show(<TenantContacts propertyId='property' />);
+  await waitFor(() =>
+    expect(second.getByPlaceholderText('Full name *').props.value).toBe(
+      'Recovery tenant'
+    )
+  );
+  mockPost.mockResolvedValueOnce({ tenant: { id: 'saved' } });
+  await act(async () => fireEvent.press(second.getByText('Add Tenant')));
+  await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(2));
+  expect(mockPost.mock.calls[1][1]).toEqual(payload);
+  await waitFor(() => expect(mockStorage.size).toBe(0));
+});
+
+it('does not send a save when encrypted persistence fails', async () => {
+  mockGet.mockResolvedValue({ tenants: [] });
+  const store = jest.requireMock('expo-secure-store');
+  store.setItemAsync.mockRejectedValueOnce(
+    new Error('Secure storage unavailable')
+  );
+  const view = show(<TenantContacts propertyId='property' />);
+  await waitFor(() => expect(view.getByLabelText('Add tenant')).toBeTruthy());
+  fireEvent.press(view.getByLabelText('Add tenant'));
+  fireEvent.changeText(
+    view.getByPlaceholderText('Full name *'),
+    'Unsaved tenant'
+  );
+  await act(async () => fireEvent.press(view.getByText('Add Tenant')));
+  await waitFor(() =>
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Error',
+      'Secure storage unavailable'
+    )
+  );
+  expect(mockPost).not.toHaveBeenCalled();
+  expect(view.getByPlaceholderText('Full name *').props.value).toBe(
+    'Unsaved tenant'
+  );
+});
+it('does not recover another property contact', async () => {
+  mockGet.mockResolvedValue({ tenants: [] });
+  mockStorage.set(
+    'pending-tenant.actor.other',
+    JSON.stringify({
+      operationId: '12345678-1234-4234-a234-123456789abc',
+      name: 'Private',
+      email: '',
+      phone: '',
+    })
+  );
+  const view = show(<TenantContacts propertyId='property' />);
+  await waitFor(() => expect(view.getByLabelText('Add tenant')).toBeTruthy());
+  fireEvent.press(view.getByLabelText('Add tenant'));
+  expect(view.getByPlaceholderText('Full name *').props.value).toBe('');
+  expect(mockPost).not.toHaveBeenCalled();
+});
+
+it('discards a pending local draft only after explicit confirmation', async () => {
+  mockGet.mockResolvedValue({ tenants: [] });
+  mockStorage.set(
+    'pending-tenant.actor.property',
+    JSON.stringify({
+      operationId: '12345678-1234-4234-a234-123456789abc',
+      name: 'Pending',
+      email: '',
+      phone: '',
+    })
+  );
+  const view = show(<TenantContacts propertyId='property' />);
+  await waitFor(() => expect(view.getByText('Discard draft')).toBeTruthy());
+  fireEvent.press(view.getByText('Discard draft'));
+  expect(mockStorage.size).toBe(1);
+  const buttons = (Alert.alert as jest.Mock).mock.calls.at(-1)[2];
+  await act(async () => buttons[1].onPress());
+  await waitFor(() => expect(mockStorage.size).toBe(0));
+  expect(mockPost).not.toHaveBeenCalled();
 });

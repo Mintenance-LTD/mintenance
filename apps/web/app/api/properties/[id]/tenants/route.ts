@@ -1,3 +1,7 @@
+import {
+  contactSaveId,
+  recoverContactSave,
+} from '@/lib/services/property-team/contact-save-recovery';
 import { z } from 'zod';
 import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
@@ -68,12 +72,6 @@ export const GET = withApiHandler(
       );
     }
 
-    // 2026-05-23 audit: linked tenants used to see every tenant's
-    // email/phone/lease/notes for the property. In a multi-tenant let
-    // (shared houses, HMOs) that's a privacy leak — tenant A could
-    // pull tenant B's contact details + lease dates. The owner branch
-    // still returns the full list (they manage the property); linked
-    // tenants now get only their own row back.
     let tenantQuery = serverSupabase
       .from('property_tenants')
       .select(
@@ -111,6 +109,7 @@ export const POST = withApiHandler(
     const parsed = z
       .object({
         name: z.string().trim().min(1).max(200),
+        operationId: z.string().uuid().optional(),
         email: z
           .union([z.string().trim().email().max(254), z.literal('')])
           .optional(),
@@ -135,12 +134,6 @@ export const POST = withApiHandler(
     const body = parsed.data;
 
     // Verify ownership.
-    // Column is `property_name` in the DB; aliasing it to `name` here so the
-    // downstream usages at the email-template / notification sites stay
-    // unchanged. Selecting the literal `name` column was the cause of the
-    // HTTP 500 the user saw on this endpoint — PostgREST rejected the SELECT
-    // because no such column exists, supabase-js threw, and withApiHandler
-    // fell through to a 500.
     const { data: property } = await serverSupabase
       .from('properties')
       .select('id, owner_id, address, name:property_name')
@@ -154,9 +147,6 @@ export const POST = withApiHandler(
       );
     }
 
-    // 2026-05-26 audit-61 P1: route through PropertyTeamService so
-    // managers/team-admins on the property can add tenants. Previously
-    // owner_id-only gate left mobile manager UI with 404 on add.
     if (user.role !== 'admin') {
       const { authorized } = await PropertyTeamService.authorize(
         user.id,
@@ -172,6 +162,11 @@ export const POST = withApiHandler(
     }
 
     const { name, email, phone, lease_start, lease_end, notes } = body;
+    const saveId = body.operationId
+      ? contactSaveId(user.id, propertyId, body.operationId)
+      : undefined;
+    const recovered = await recoverContactSave(saveId, propertyId, body);
+    if (recovered) return recovered;
 
     if (!name) {
       return NextResponse.json({ error: 'name is required' }, { status: 400 });
@@ -223,6 +218,7 @@ export const POST = withApiHandler(
         const { data: tenant, error } = await serverSupabase
           .from('property_tenants')
           .insert({
+            ...(saveId ? { id: saveId } : {}),
             property_id: propertyId,
             name,
             email: normalizedEmail,
@@ -237,6 +233,10 @@ export const POST = withApiHandler(
           .select()
           .single();
 
+        if (error?.code === '23505' && saveId) {
+          const replay = await recoverContactSave(saveId, propertyId, body);
+          if (replay) return replay;
+        }
         if (error?.code === '23505')
           return NextResponse.json(
             {
@@ -278,6 +278,7 @@ export const POST = withApiHandler(
     const { data: tenant, error } = await serverSupabase
       .from('property_tenants')
       .insert({
+        ...(saveId ? { id: saveId } : {}),
         property_id: propertyId,
         name,
         email: normalizedEmail,
@@ -290,6 +291,10 @@ export const POST = withApiHandler(
       .select()
       .single();
 
+    if (error?.code === '23505' && saveId) {
+      const replay = await recoverContactSave(saveId, propertyId, body);
+      if (replay) return replay;
+    }
     if (error?.code === '23505')
       return NextResponse.json(
         {

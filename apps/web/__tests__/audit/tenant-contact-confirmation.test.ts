@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 const m = vi.hoisted(() => ({
   send: vi.fn(),
   removed: false,
+  consumed: false,
   allowed: true,
   insert: vi.fn(),
   identity: vi.fn(),
@@ -40,13 +41,17 @@ vi.mock('@/lib/api/supabaseServer', () => ({
       const result = () => ({
         error: null,
         data:
-          table === 'properties'
-            ? { id: 'property', owner_id: 'owner' }
-            : mode === 'insert'
-              ? { id: 'contact', invitation_token: 'token' }
-              : mode === 'delete' && m.removed
-                ? { id: 'contact' }
-                : m.contact,
+          table === 'property_contact_save_ids'
+            ? m.consumed
+              ? { id: 'consumed' }
+              : null
+            : table === 'properties'
+              ? { id: 'property', owner_id: 'owner' }
+              : mode === 'insert'
+                ? { id: 'contact', invitation_token: 'token' }
+                : mode === 'delete' && m.removed
+                  ? { id: 'contact' }
+                  : m.contact,
       });
       const q = {
         select: () => q,
@@ -69,6 +74,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     },
   },
 }));
+import { contactSaveId } from '@/lib/services/property-team/contact-save-recovery';
 import { POST, DELETE, PATCH } from '@/app/api/properties/[id]/tenants/route';
 const ctx = { params: Promise.resolve({ id: 'property' }) };
 const request = (body: unknown) =>
@@ -80,6 +86,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   m.allowed = true;
   m.removed = false;
+  m.consumed = false;
   m.contact = null;
   m.send.mockResolvedValue(false);
 });
@@ -156,4 +163,72 @@ it('retries delivery without inserting another contact', async () => {
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ invitation_sent: true });
   expect(m.insert).not.toHaveBeenCalled();
+});
+
+it('recovers a committed operation without inserting or sending an invitation again', async () => {
+  m.contact = {
+    id: 'saved',
+    name: 'Tenant',
+    email: null,
+    phone: null,
+    is_active: true,
+  };
+  const res = await POST(
+    request({
+      name: 'Tenant',
+      operationId: '12345678-1234-4234-a234-123456789abc',
+    }),
+    ctx
+  );
+  expect(res.status).toBe(200);
+  expect((await res.json()).recovered).toBe(true);
+  expect(m.insert).not.toHaveBeenCalled();
+  expect(m.send).not.toHaveBeenCalled();
+});
+it('rejects changed payloads for an already committed operation', async () => {
+  m.contact = { id: 'saved', name: 'Original', is_active: true };
+  const res = await POST(
+    request({
+      name: 'Changed',
+      operationId: '12345678-1234-4234-a234-123456789abc',
+    }),
+    ctx
+  );
+  expect(res.status).toBe(409);
+  expect(m.insert).not.toHaveBeenCalled();
+});
+it('rechecks management permission before replaying a saved contact', async () => {
+  m.allowed = false;
+  m.contact = { id: 'saved', name: 'Tenant', is_active: true };
+  const res = await POST(
+    request({
+      name: 'Tenant',
+      operationId: '12345678-1234-4234-a234-123456789abc',
+    }),
+    ctx
+  );
+  expect(res.status).toBe(404);
+  expect(m.insert).not.toHaveBeenCalled();
+});
+
+it('scopes the database primary key to the actor, property, and operation', () => {
+  const id = contactSaveId('actor', 'property', 'operation');
+  expect(contactSaveId('actor', 'property', 'operation')).toBe(id);
+  expect(contactSaveId('other', 'property', 'operation')).not.toBe(id);
+  expect(contactSaveId('actor', 'other', 'operation')).not.toBe(id);
+  expect(contactSaveId('actor', 'property', 'other')).not.toBe(id);
+});
+
+it('rejects replay after deletion rather than recreating the contact', async () => {
+  m.consumed = true;
+  const res = await POST(
+    request({
+      name: 'Tenant',
+      operationId: '12345678-1234-4234-a234-123456789abc',
+    }),
+    ctx
+  );
+  expect(res.status).toBe(410);
+  expect(m.insert).not.toHaveBeenCalled();
+  expect(m.send).not.toHaveBeenCalled();
 });
