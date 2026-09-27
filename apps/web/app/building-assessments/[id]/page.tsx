@@ -20,6 +20,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import type { ObservationAssessment } from '@/lib/services/building-surveyor/observation-assessment';
 
 interface AssessmentImage {
   image_url: string;
@@ -30,21 +31,23 @@ export default function ViewAssessmentPage() {
   const params = useParams();
   const assessmentId = params?.id as string;
 
-  const [assessment, setAssessment] = useState<Phase1BuildingAssessment | null>(
-    null
-  );
+  const [assessment, setAssessment] = useState<
+    Phase1BuildingAssessment | ObservationAssessment | null
+  >(null);
   const [images, setImages] = useState<AssessmentImage[]>([]);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   // null = still loading. An assessment that has no result and one whose
   // request failed are different things and must not read the same.
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recaptureMessage, setRecaptureMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
         setError(null);
+        setRecaptureMessage(null);
 
         const response = await fetch(`/api/assessments/${assessmentId}/status`);
         if (!response.ok) {
@@ -56,12 +59,19 @@ export default function ViewAssessmentPage() {
         }
 
         const data = await response.json();
+        if (data.requiresRecapture)
+          setRecaptureMessage(
+            data.message ??
+              'Retake clear, well-lit photos. Safety and condition have not been assessed.'
+          );
 
         // `assessment.data` is the stored Phase1 payload -- verified against
         // the live rows, whose top-level keys match this type exactly.
         setAssessment(
-          (data.assessment?.data as Phase1BuildingAssessment | undefined) ??
-            null
+          (data.assessment?.data as
+            | Phase1BuildingAssessment
+            | ObservationAssessment
+            | undefined) ?? null
         );
         setImages(Array.isArray(data.images) ? data.images : []);
         setCreatedAt(data.createdAt ?? null);
@@ -90,6 +100,15 @@ export default function ViewAssessmentPage() {
   return (
     <div className='container mx-auto px-4 py-8'>
       <div className='max-w-4xl mx-auto'>
+        {recaptureMessage && (
+          <div
+            role='alert'
+            className='mb-4 rounded border border-amber-300 bg-amber-50 p-4'
+          >
+            <h2 className='font-semibold'>New photos needed</h2>
+            <p>{recaptureMessage}</p>
+          </div>
+        )}
         <Link
           href='/properties'
           className='inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4'
@@ -121,7 +140,7 @@ export default function ViewAssessmentPage() {
           </div>
         )}
 
-        {!loading && !error && !assessment && (
+        {!loading && !error && !assessment && !recaptureMessage && (
           <div className='rounded-lg border border-gray-200 bg-gray-50 p-4'>
             <p className='text-sm text-gray-700'>
               This survey has no results to show yet.
@@ -140,8 +159,7 @@ export default function ViewAssessmentPage() {
             {frameUrls.filter(Boolean).length > 0 && (
               <div className='mt-8'>
                 <h2 className='text-sm font-semibold text-gray-900 mb-3'>
-                  Frames from this walkthrough (
-                  {frameUrls.filter(Boolean).length})
+                  Source photos ({frameUrls.filter(Boolean).length})
                 </h2>
                 <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'>
                   {frameUrls.map((url, index) =>
@@ -153,7 +171,7 @@ export default function ViewAssessmentPage() {
                       <img
                         key={index}
                         src={url}
-                        alt={`Walkthrough frame ${index + 1}`}
+                        alt={`Assessment source photo ${index + 1}`}
                         className='w-full aspect-square object-cover rounded-lg border border-gray-200'
                       />
                     ) : null
@@ -162,14 +180,16 @@ export default function ViewAssessmentPage() {
               </div>
             )}
 
-            <div className='mt-8 pt-4 border-t border-gray-200'>
-              <Link
-                href={`/building-assessments/${assessmentId}/correct`}
-                className='text-xs font-semibold text-gray-500 hover:text-gray-700'
-              >
-                Correct the AI’s detections →
-              </Link>
-            </div>
+            {!('protocol' in assessment) && (
+              <div className='mt-8 pt-4 border-t border-gray-200'>
+                <Link
+                  href={`/building-assessments/${assessmentId}/correct`}
+                  className='text-xs font-semibold text-gray-500 hover:text-gray-700'
+                >
+                  Correct the AI’s detections →
+                </Link>
+              </div>
+            )}
           </>
         )}
       </div>

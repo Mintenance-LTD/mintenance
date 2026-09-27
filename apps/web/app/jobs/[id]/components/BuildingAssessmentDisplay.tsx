@@ -5,10 +5,10 @@
 
 'use client';
 
-import {
-  isAssessmentUnassessable,
-  INSUFFICIENT_EVIDENCE_MESSAGE,
-} from '@mintenance/shared';
+import { isAssessmentUnassessable } from '@mintenance/shared';
+import { getRecaptureMessage } from '@/lib/services/building-surveyor/recapture-guidance';
+import { CaptureWarnings } from '@/components/building-surveyor/CaptureWarnings';
+import { VisibleEvidenceCard } from '@/components/building-surveyor/VisibleEvidenceCard';
 import React, { useState } from 'react';
 import {
   AlertCircle,
@@ -19,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import type { ObservationAssessment } from '@/lib/services/building-surveyor/observation-assessment';
 import { getCsrfToken } from '@/lib/csrf-client';
 import {
   damageMatchesCategory,
@@ -38,7 +39,7 @@ import {
 } from './BuildingAssessmentSurveyorSections';
 
 interface BuildingAssessmentDisplayProps {
-  assessment: Phase1BuildingAssessment | null;
+  assessment: Phase1BuildingAssessment | ObservationAssessment | null;
   loading?: boolean;
   onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
   jobId?: string;
@@ -110,7 +111,7 @@ export function BuildingAssessmentDisplay({
         className='rounded-xl border border-amber-300 bg-amber-50 p-4'
       >
         <h3 className='font-semibold'>New photos needed</h3>
-        <p>{INSUFFICIENT_EVIDENCE_MESSAGE}</p>
+        <p>{getRecaptureMessage(assessment)}</p>
       </div>
     );
 
@@ -130,6 +131,20 @@ export function BuildingAssessmentDisplay({
     );
   }
 
+  if (assessment && 'protocol' in assessment)
+    return (
+      <div className='space-y-4'>
+        <CaptureWarnings warnings={assessment.captureWarnings} />
+        <VisibleEvidenceCard evidence={assessment.visualEvidence} />
+      </div>
+    );
+  if (assessment?.visualEvidence)
+    return (
+      <div className='space-y-4'>
+        <CaptureWarnings warnings={assessment.captureWarnings} />
+        <VisibleEvidenceCard evidence={assessment.visualEvidence} />
+      </div>
+    );
   // Guard: also treat incomplete assessments (placeholder row without GPT data) as "no assessment"
   if (!assessment || !assessment.damageAssessment) {
     if (jobId && photoUrls && photoUrls.length > 0) {
@@ -194,6 +209,7 @@ export function BuildingAssessmentDisplay({
 
   return (
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
+      <CaptureWarnings warnings={assessment.captureWarnings} />
       {/* Header */}
       <div
         className='p-6 cursor-pointer hover:bg-gray-50 transition-colors'

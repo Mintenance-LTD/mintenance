@@ -129,11 +129,15 @@ const contractorAdviceSchema = z.object({
     })
     .optional(),
   complexity: complexityEnum,
-  recommendedTrades: z
-    .array(z.enum(CONTRACTOR_TRADES))
-    .max(5)
-    .optional()
-    .default([]),
+  // Unsupported optional trade suggestions must not discard valid safety evidence.
+  // Preserve recognised codes without guessing a replacement trade.
+  recommendedTrades: z.preprocess(
+    (value) =>
+      Array.isArray(value)
+        ? value.filter((trade) => CONTRACTOR_TRADES.includes(trade))
+        : value,
+    z.array(z.enum(CONTRACTOR_TRADES)).max(5).optional().default([])
+  ),
 });
 
 const specialistReferralSchema = z.object({

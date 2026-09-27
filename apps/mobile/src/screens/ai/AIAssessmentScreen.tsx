@@ -1,3 +1,8 @@
+import {
+  VisibleEvidenceCard,
+  isObservationResult,
+  type ObservationResult,
+} from '../../components/ai/VisibleEvidenceCard';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -28,7 +33,9 @@ export const AIAssessmentScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<
+    AnalysisResult | ObservationResult | null
+  >(null);
   // Tracks how long the current analysis has been running. Mint AI on
   // scale-to-zero infra has a ~60-90s cold start on the first request of
   // the day; we update the label after 10s / 30s so the user understands
@@ -198,7 +205,10 @@ export const AIAssessmentScreen: React.FC = () => {
               </Card>
             )}
 
-            {result && (
+            {result && isObservationResult(result) && (
+              <VisibleEvidenceCard assessment={result} />
+            )}
+            {result && !isObservationResult(result) && (
               <>
                 {result.needsOnsiteInspection && (
                   <Card

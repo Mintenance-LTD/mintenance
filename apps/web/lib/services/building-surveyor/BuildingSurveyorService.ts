@@ -1,8 +1,17 @@
 import { logger } from '@mintenance/shared';
 import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
-import { initializeMemorySystem, isLearnedFeaturesEnabled, getLearnedFeatureExtractor } from './initialization/BuildingSurveyorInitializationService';
-import { learnFromRepairOutcome, learnFromProgression, learnFromValidation } from './learning-handler';
+import {
+  initializeMemorySystem,
+  isLearnedFeaturesEnabled,
+  getLearnedFeatureExtractor,
+} from './initialization/BuildingSurveyorInitializationService';
+import {
+  learnFromRepairOutcome,
+  learnFromProgression,
+  learnFromValidation,
+} from './learning-handler';
 import { validateInput } from './stages/validate-input';
+import { observePhotos } from './stages/observe-photos';
 import { collectEvidence } from './stages/collect-evidence';
 import { extractAllFeatures } from './stages/extract-features';
 import { callGptAssessment } from './stages/call-gpt-assessment';
@@ -33,19 +42,24 @@ import type { DamageTypeSegmentation } from './SAM3Service';
  * Implementation is split into focused stage modules under ./stages/
  */
 export class BuildingSurveyorService {
-  private static readonly DETECTOR_TIMEOUT_MS = Number.parseInt(
-    process.env.BUILDING_SURVEYOR_DETECTOR_TIMEOUT_MS || '',
-    10,
-  ) || 7000;
+  private static readonly DETECTOR_TIMEOUT_MS =
+    Number.parseInt(
+      process.env.BUILDING_SURVEYOR_DETECTOR_TIMEOUT_MS || '',
+      10
+    ) || 7000;
 
-  private static readonly VISION_TIMEOUT_MS = Number.parseInt(
-    process.env.BUILDING_SURVEYOR_VISION_TIMEOUT_MS || '',
-    10,
-  ) || 9000;
+  private static readonly VISION_TIMEOUT_MS =
+    Number.parseInt(
+      process.env.BUILDING_SURVEYOR_VISION_TIMEOUT_MS || '',
+      10
+    ) || 9000;
 
   private static readonly AGENT_NAME = 'building-surveyor';
 
-  private static recordMetric(metric: string, payload: Record<string, unknown>): void {
+  private static recordMetric(
+    metric: string,
+    payload: Record<string, unknown>
+  ): void {
     MonitoringService.record(metric, {
       agentName: this.AGENT_NAME,
       ...payload,
@@ -72,14 +86,20 @@ export class BuildingSurveyorService {
       await initializeMemorySystem();
 
       // 2. Validate input and URLs
-      const { openaiApiKey, validatedImageUrls } = await validateInput(imageUrls);
+      const { openaiApiKey, validatedImageUrls, captureWarnings } =
+        await validateInput(imageUrls);
+      const visualEvidence = await observePhotos(
+        validatedImageUrls,
+        openaiApiKey,
+        captureWarnings
+      );
 
       // 3. Collect evidence from detectors
       const evidence = await collectEvidence(
         validatedImageUrls,
         this.DETECTOR_TIMEOUT_MS,
         this.VISION_TIMEOUT_MS,
-        options?.preRunEvidence,
+        options?.preRunEvidence
       );
 
       // 4. Extract features (scene graph, memory, image quality)
@@ -88,7 +108,7 @@ export class BuildingSurveyorService {
         evidence.roboflowDetections,
         evidence.visionAnalysis,
         evidence.sam3Segmentation,
-        context,
+        context
       );
 
       // 5. Call GPT-4o for assessment
@@ -103,6 +123,7 @@ export class BuildingSurveyorService {
           evidence.hasMachineEvidence,
           context,
           options?.damageTypesForPrompt,
+          visualEvidence
         );
       } catch (gptError) {
         // P2: Persist partial evidence even when GPT fails
@@ -111,7 +132,8 @@ export class BuildingSurveyorService {
           roboflowDetectionCount: evidence.roboflowDetections.length,
           hasVisionAnalysis: !!evidence.visionAnalysis,
           hasSam3: !!evidence.sam3Segmentation,
-          error: gptError instanceof Error ? gptError.message : String(gptError),
+          error:
+            gptError instanceof Error ? gptError.message : String(gptError),
         });
         this.recordMetric('assessment.partial_evidence', {
           roboflowDetections: evidence.roboflowDetections.length,
@@ -140,7 +162,9 @@ export class BuildingSurveyorService {
         damageType: assessment.damageAssessment.damageType,
         severity: assessment.damageAssessment.severity,
         urgency: assessment.urgency.urgency,
-        adjustmentsApplied: featureResult.memoryAdjustments.some(a => Math.abs(a) > 0.01),
+        adjustmentsApplied: featureResult.memoryAdjustments.some(
+          (a) => Math.abs(a) > 0.01
+        ),
         decision: assessment.decisionResult?.decision,
         shadowMode: process.env.SHADOW_MODE_ENABLED === 'true',
       });
@@ -149,10 +173,23 @@ export class BuildingSurveyorService {
         durationMs: Date.now() - startedAt,
         imageCount: validatedImageUrls.slice(0, 4).length,
         hasMachineEvidence: evidence.hasMachineEvidence,
-        adjustmentsApplied: featureResult.memoryAdjustments.some((a) => Math.abs(a) > 0.01),
+        adjustmentsApplied: featureResult.memoryAdjustments.some(
+          (a) => Math.abs(a) > 0.01
+        ),
         decision: assessment.decisionResult?.decision,
       });
 
+      if (captureWarnings?.length) assessment.captureWarnings = captureWarnings;
+      if (visualEvidence) {
+        assessment.visualEvidence = visualEvidence;
+        if (assessment.decisionResult)
+          assessment.decisionResult = {
+            ...assessment.decisionResult,
+            decision: 'escalate',
+            reason:
+              'Visible observations require human review; diagnosis is not established',
+          };
+      }
       return assessment;
     } catch (error) {
       logger.error('Error assessing building damage', error, {

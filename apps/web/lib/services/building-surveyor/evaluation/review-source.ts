@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isAssessmentUnassessable } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getAssessmentResult } from '../assessment-result';
 import {
@@ -31,9 +32,15 @@ export async function loadReviewSource(id: string) {
     .maybeSingle();
   if (error) throw new InternalServerError('Unable to read the assessment');
   if (!row) throw new NotFoundError('Assessment not found');
-  const result = getAssessmentResult(row.assessment_data);
+  const result =
+    getAssessmentResult(row.assessment_data) ??
+    (isAssessmentUnassessable(row.assessment_data)
+      ? (row.assessment_data as Record<string, unknown>)
+      : null);
   if (!result || row.validation_status === 'processing')
-    throw new BadRequestError('A completed AI result is required for review');
+    throw new BadRequestError(
+      'A completed assessment or insufficient-evidence outcome is required for review'
+    );
   const { data: images, error: imageError } = await serverSupabase
     .from('assessment_images')
     .select('id, image_url, image_index, storage_path')
@@ -45,6 +52,7 @@ export async function loadReviewSource(id: string) {
   const snapshot = Object.fromEntries(
     [
       'damageAssessment',
+      'visualEvidence',
       'safetyHazards',
       'compliance',
       'insuranceRisk',
@@ -52,6 +60,8 @@ export async function loadReviewSource(id: string) {
       'findings',
       'modelMetadata',
       'analysis',
+      'outcome',
+      'evidenceSufficient',
     ]
       .filter((k) => result[k] !== undefined)
       .map((k) => [k, result[k]])

@@ -22,10 +22,8 @@ vi.mock('@/lib/api/with-api-handler', () => ({
           params: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
         });
       } catch (error) {
-        return NextResponse.json(
-          { error: (error as Error).message },
-          { status: (error as { statusCode?: number }).statusCode ?? 500 }
-        );
+        const { handleAPIError } = await import('@/lib/errors/api-error');
+        return handleAPIError(error);
       }
     },
 }));
@@ -167,9 +165,8 @@ describe('saved assessment analysis', () => {
   });
 
   it('checks current access to the saved property before invoking AI', async () => {
-    mocks.anchors.mockRejectedValue(
-      Object.assign(new Error('Access revoked'), { statusCode: 403 })
-    );
+    const { ForbiddenError } = await import('@/lib/errors/api-error');
+    mocks.anchors.mockRejectedValue(new ForbiddenError('Access revoked'));
     expect((await request()).status).toBe(403);
     expect(mocks.runAgent).not.toHaveBeenCalled();
     expect(writes).toHaveLength(0);
@@ -251,6 +248,20 @@ describe('saved assessment analysis', () => {
     });
     expect(row.validation_status).toBe('ai_analysis_failed');
     expect(images).toHaveLength(1);
+    expect(mocks.after).not.toHaveBeenCalled();
+  });
+  it('persists capture reason and prevents training capture on rejected photos', async () => {
+    const { PhotoRecaptureError } =
+      await import('@/lib/services/building-surveyor/recapture-guidance');
+    mocks.runAgent.mockRejectedValue(
+      new PhotoRecaptureError({ photoIndex: 0, issue: 'too_dark' })
+    );
+    expect((await request()).status).toBe(422);
+    expect(row.assessment_data.analysis).toMatchObject({
+      state: 'insufficient_evidence',
+      retryable: false,
+      captureIssue: { photoIndex: 0, issue: 'too_dark' },
+    });
     expect(mocks.after).not.toHaveBeenCalled();
   });
   it('does not report success or capture training data if saving fails', async () => {

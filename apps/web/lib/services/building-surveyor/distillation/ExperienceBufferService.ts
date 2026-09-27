@@ -134,6 +134,8 @@ export class ExperienceBufferService {
       .from('vlm_training_buffer')
       .select('*')
       .eq('used_in_training', false)
+      // Confidence is useful for queue priority, not evidence of label truth.
+      .eq('human_verified', true)
       .is('reserved_by_job_id', null)
       .order('priority_score', { ascending: false })
       .limit(limit);

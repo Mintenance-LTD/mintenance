@@ -65,6 +65,46 @@ describe('assessment response contract', () => {
     expect(parsed.confidence).toBe(87);
   });
 
+  it('keeps a valid assessment when an optional trade suggestion is unsupported', () => {
+    // Observed in the SDNET baseline: GPT returned painter alongside valid trades.
+    const parsed = parseAssessmentResponse(
+      JSON.stringify({
+        ...flat,
+        contractorAdvice: {
+          recommendedTrades: ['general_builder', 'painter', 'electrician'],
+        },
+      })
+    );
+    expect(parsed.contractorAdvice?.recommendedTrades).toEqual([
+      'general_builder',
+      'electrician',
+    ]);
+    expect(parsed.safetyHazards).toEqual(flat.safetyHazards);
+    expect(parsed.urgency).toBe('immediate');
+  });
+
+  it('leaves no trade suggestion when every optional code is unsupported', () => {
+    const parsed = parseAssessmentResponse(
+      JSON.stringify({
+        ...flat,
+        contractorAdvice: { recommendedTrades: ['painter', 'invented_trade'] },
+      })
+    );
+    expect(parsed.contractorAdvice?.recommendedTrades).toEqual([]);
+  });
+
+  it('still rejects invalid safety fields when optional trades need filtering', () => {
+    expect(() =>
+      parseAssessmentResponse(
+        JSON.stringify({
+          ...flat,
+          safetyHazards: [{ type: 'exposed wiring', severity: 'invented' }],
+          contractorAdvice: { recommendedTrades: ['painter'] },
+        })
+      )
+    ).toThrow('invalid_schema');
+  });
+
   it('accepts existing nested training targets without dropping safety evidence', () => {
     const parsed = parseAssessmentResponse(
       JSON.stringify({

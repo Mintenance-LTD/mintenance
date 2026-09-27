@@ -30,6 +30,7 @@ const initialLabels: ReviewLabels = {
 export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
   const [source, setSource] = useState<ReviewSource | null>(null);
   const [labels, setLabels] = useState<ReviewLabels>(initialLabels);
+  const [evidenceChosen, setEvidenceChosen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [expertise, setExpertise] = useState('');
@@ -41,6 +42,11 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
   useEffect(() => {
     const abort = new AbortController();
     setSource(null);
+    setLabels(initialLabels);
+    setEvidenceChosen(false);
+    setPhotos([]);
+    setNotes('');
+    setConfirmed(false);
     fetch(`/api/admin/building-assessments/${assessmentId}/expert-review`, {
       signal: abort.signal,
     })
@@ -51,7 +57,9 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
           );
         return response.json();
       })
-      .then(setSource)
+      .then((result) => {
+        if (!abort.signal.aborted) setSource(result);
+      })
       .catch((error) => {
         if (!abort.signal.aborted) setMessage(error.message);
       });
@@ -60,7 +68,7 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
 
   async function save(event?: React.FormEvent) {
     event?.preventDefault();
-    if (!source || busy) return;
+    if (!source || busy || !evidenceChosen) return;
     setBusy(true);
     setMessage('');
     try {
@@ -116,9 +124,9 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
   return (
     <section
       className='mt-6 border-t pt-6 space-y-4'
-      aria-label='Expert reference review'
+      aria-label='Photo reference review'
     >
-      <h3 className='text-lg font-semibold'>Expert reference review</h3>
+      <h3 className='text-lg font-semibold'>Your photo review</h3>
       {needsStepUp && (
         <MfaStepUpDialog
           onCancel={() => setNeedsStepUp(false)}
@@ -132,7 +140,8 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
         Assess the primary visible defect from the photos. Use “none” when no
         defect is visible. Choose insufficient evidence when a judgement cannot
         be made. This records a reference label; it does not certify the
-        building or add data to model training.
+        building or add data to model training. If you are unsure, leave the
+        review unsaved and note the question for a specialist.
       </p>
       <p role='status' aria-live='polite'>
         {message}
@@ -192,21 +201,27 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
                 Evidence quality
                 <select
                   className={fieldClass}
-                  value={labels.evidence}
-                  onChange={(e) =>
+                  required
+                  value={evidenceChosen ? labels.evidence : ''}
+                  onChange={(e) => {
+                    setEvidenceChosen(true);
+                    setConfirmed(false);
                     setLabels({
                       ...initialLabels,
                       evidence: e.target.value as ReviewLabels['evidence'],
-                    })
-                  }
+                    });
+                  }}
                 >
+                  <option value='' disabled>
+                    Choose whether the photos can be assessed
+                  </option>
                   <option value='sufficient'>
                     Sufficient for a visual judgement
                   </option>
                   <option value='insufficient'>Insufficient evidence</option>
                 </select>
               </label>
-              {labels.evidence === 'sufficient' && (
+              {evidenceChosen && labels.evidence === 'sufficient' && (
                 <div className='grid gap-4 sm:grid-cols-2'>
                   <label>
                     Primary defect category
@@ -299,7 +314,8 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
                 </div>
               )}
               <label className='block'>
-                Your relevant qualification or experience
+                Your role and relevant experience (no qualification required to
+                record an observation)
                 <input
                   required
                   minLength={3}
@@ -334,9 +350,11 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
               </label>
               <Button
                 type='submit'
-                disabled={busy || photos.length === 0 || !confirmed}
+                disabled={
+                  busy || photos.length === 0 || !confirmed || !evidenceChosen
+                }
               >
-                {busy ? 'Saving review…' : 'Save expert review'}
+                {busy ? 'Saving review…' : 'Save my review'}
               </Button>
               <Button
                 type='button'

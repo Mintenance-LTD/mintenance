@@ -1,3 +1,4 @@
+import { PhotoRecaptureError } from '@/lib/services/building-surveyor/recapture-guidance';
 import { after, NextResponse } from 'next/server';
 import { z } from 'zod';
 import crypto from 'node:crypto';
@@ -253,6 +254,9 @@ export const POST = withApiHandler(
                 ? 'INSUFFICIENT_EVIDENCE'
                 : 'ANALYSIS_FAILED',
               retryable: !insufficient,
+              ...(error instanceof PhotoRecaptureError
+                ? { captureIssue: error.captureIssue }
+                : {}),
             },
           },
         })

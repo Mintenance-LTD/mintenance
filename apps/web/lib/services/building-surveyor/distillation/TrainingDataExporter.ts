@@ -58,6 +58,13 @@ export class TrainingDataExporter {
     const ids: string[] = [];
 
     for (const example of examples) {
+      if (example.humanVerified !== true) {
+        logger.warn('Skipping unreviewed VLM training label', {
+          service: 'TrainingDataExporter',
+          exampleId: example.id,
+        });
+        continue;
+      }
       const freshImageUrls = await resignAssessmentUrls(
         example.imageUrls,
         24 * 60 * 60
@@ -125,6 +132,11 @@ export class TrainingDataExporter {
    * Uses a generic system prompt to avoid leaking proprietary prompt engineering.
    */
   static toQwenConversation(example: VLMTrainingExample): QwenConversation {
+    if (example.humanVerified !== true) {
+      throw new Error(
+        'A reviewed label is required before VLM training export'
+      );
+    }
     // Build user content: text prompt + image URLs
     const userContent: Array<{
       type: string;

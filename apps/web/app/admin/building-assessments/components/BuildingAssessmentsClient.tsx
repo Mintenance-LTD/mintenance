@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
@@ -153,6 +154,18 @@ export function BuildingAssessmentsClient(
           </p>
         </div>
         <div className='flex gap-3'>
+          <Link
+            className='px-5 py-2.5 underline'
+            href='/admin/building-assessments/review-queue'
+          >
+            Review photos first
+          </Link>
+          <Link
+            className='px-5 py-2.5 underline'
+            href='/admin/building-assessments/check-photos'
+          >
+            Check photos
+          </Link>
           <button className='px-5 py-2.5 bg-[#d3e4fe] text-[#435368] rounded-xl font-medium text-sm hover:brightness-95 transition-all flex items-center gap-2'>
             <Icon name='clock' size={16} color='#435368' /> Model History
           </button>

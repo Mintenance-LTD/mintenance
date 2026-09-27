@@ -13,6 +13,10 @@ import {
 } from '@mintenance/shared';
 import React, { useState } from 'react';
 import {
+  VisibleEvidenceCard,
+  isObservationResult,
+} from '../../../components/ai/VisibleEvidenceCard';
+import {
   View,
   Text,
   StyleSheet,
@@ -119,6 +123,9 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
         <Text accessibilityRole='alert'>{INSUFFICIENT_EVIDENCE_MESSAGE}</Text>
       </View>
     );
+
+  if (isObservationResult(aiAnalysis?.assessmentData))
+    return <VisibleEvidenceCard assessment={aiAnalysis.assessmentData} />;
 
   if (aiLoading) {
     return (

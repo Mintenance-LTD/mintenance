@@ -26,6 +26,32 @@ export function BuildingAssessmentsCard({
   onReview,
   onValidate,
 }: BuildingAssessmentsCardProps) {
+  if (assessment.assessment_data?.visualEvidence) {
+    return (
+      <AdminCard padding='lg' className='mb-4'>
+        <h3>Visible findings — human review needed</h3>
+        <p>
+          Cause, severity, safety and repair cost have not been established.
+        </p>
+        <Button onClick={() => onReview(assessment)}>
+          Review photos and findings
+        </Button>
+      </AdminCard>
+    );
+  }
+  if (
+    assessment.assessment_data &&
+    'protocol' in assessment.assessment_data &&
+    !isAssessmentUnassessable(assessment.assessment_data)
+  ) {
+    return (
+      <AdminCard padding='lg'>
+        <h3>Findings not available</h3>
+        <p>Check the saved assessment status before retrying.</p>
+        <Button onClick={() => onReview(assessment)}>View record</Button>
+      </AdminCard>
+    );
+  }
   if (
     isAssessmentUnassessable(assessment.assessment_data) ||
     isAssessmentUnassessable({ confidence: assessment.confidence })

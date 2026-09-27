@@ -1,4 +1,4 @@
-import { toAnalysisResult } from '../analyzeWithMintAI';
+import { toAnalysisResult, toMobileResult } from '../analyzeWithMintAI';
 
 describe('toAnalysisResult', () => {
   it('uses canonical assessment confidence, repair cost, and advice', () => {
@@ -43,5 +43,35 @@ describe('toAnalysisResult', () => {
     expect(result.confidence).toBe(0);
     expect(result.estimatedCostMin).toBe(50);
     expect(result.estimatedCostMax).toBe(200);
+  });
+});
+
+describe('observation-only mobile response', () => {
+  it('preserves visible findings without manufacturing costs or severity', () => {
+    const response = {
+      protocol: 'observation-only-v1' as const,
+      assessmentId: 'test',
+      visualEvidence: {
+        photos: [
+          {
+            photoIndex: 0,
+            observation: {
+              outcome: 'no_visible_defect',
+              observations: [],
+              limitations: ['Visible region only.'],
+            },
+          },
+        ],
+      },
+    };
+    const result = toMobileResult(response);
+    expect(result).toBe(response);
+    for (const field of [
+      'confidence',
+      'severity',
+      'estimatedCostMin',
+      'estimatedCostMax',
+    ])
+      expect(result).not.toHaveProperty(field);
   });
 });

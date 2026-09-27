@@ -14,6 +14,7 @@ import {
 } from '../../ai/mint-ai-constants';
 import { validateVlmEndpoint } from './validate-vlm-endpoint';
 import { parseStructuredAssessmentResponse } from './assessment-response';
+import { buildOpenAIAssessmentRequest } from './openai-request';
 
 const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
 const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
@@ -66,13 +67,9 @@ async function callGPT4o(
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        messages,
-        max_tokens: 2000,
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-      }),
+      body: JSON.stringify(
+        buildOpenAIAssessmentRequest(OPENAI_MODEL, messages)
+      ),
     },
     {
       maxAttempts: 5,
@@ -83,6 +80,7 @@ async function callGPT4o(
   );
 
   const data = (await response.json()) as {
+    model?: string;
     choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
     usage?: {
       prompt_tokens: number;
@@ -129,7 +127,7 @@ async function callGPT4o(
   return {
     content,
     finishReason: data.choices?.[0]?.finish_reason,
-    model: OPENAI_MODEL,
+    model: data.model ?? OPENAI_MODEL,
     provider: 'openai',
     routingMode: getRoutingMode(),
     usage: data.usage,
