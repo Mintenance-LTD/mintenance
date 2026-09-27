@@ -85,7 +85,8 @@ export function BuildingAssessmentDisplay({
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(
-          (err as { message?: string }).message ||
+          (typeof err.message === 'string' && err.message) ||
+            (typeof err.error === 'string' && err.error) ||
             `Analysis failed (${res.status})`
         );
       }

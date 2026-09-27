@@ -27,6 +27,17 @@ const nextConfig = {
   // Required for monorepo: trace from repo root to include workspace packages
   outputFileTracingRoot: path.join(__dirname, '../../'),
 
+  // sharp's native addon loads libvips dynamically. Include both packages:
+  // tracing the addon alone leaves Linux functions unable to load the library.
+  outputFileTracingIncludes: {
+    '/api/**/*': [
+      '../../node_modules/@img/sharp-linux-x64/**/*',
+      '../../node_modules/@img/sharp-libvips-linux-x64/**/*',
+      './node_modules/@img/sharp-linux-x64/**/*',
+      './node_modules/@img/sharp-libvips-linux-x64/**/*',
+    ],
+  },
+
   // Exclude heavy packages from serverless function bundle to stay under 250MB
   outputFileTracingExcludes: {
     '*': [
