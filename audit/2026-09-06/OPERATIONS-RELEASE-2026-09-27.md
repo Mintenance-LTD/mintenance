@@ -1,7 +1,7 @@
 # Operations and release verification, 27 September 2026
 
-Readiness remains unestablished. These are fresh read-only hosted observations, not evidence that
-the remaining journeys pass.
+Readiness remains unestablished. These are fresh hosted observations, not evidence that the
+remaining journeys pass.
 
 ## Confirmed production blocker: scheduler disabled
 
@@ -16,9 +16,16 @@ The production `public.cron_job_runs` table contained four rows total. Its lates
 one-hour Vercel log query for `/api/cron/` returned no logs. The wider aggregate query timed out and
 supplies no additional evidence.
 
-The Alerts settings showed a single Default Alert Rule, with **no destinations configured**. This
-does not establish anything about alerts outside Vercel. The hosting dashboard also displayed an
-overdue-payment warning and possible account shutdown. Billing needs the account owner's attention.
+The Alerts list initially labelled the Default Alert Rule **no destinations configured**. The fully
+loaded detail drawer instead showed Vercel Notifications and Subscribe Team Owners enabled. Personal
+Web and Email notifications are enabled, with only High severity selected. The email is the
+account's verified primary address, `admin@mintenance.co.uk`; the owner confirmed keeping this
+address. The built-in Test Notification was clicked once; its button disabled during the request and
+re-enabled afterward. The owner then confirmed **Test email received** at that address. This
+verifies the email channel, not detection of a missed scheduled job or delivery of an actual
+recovery-failure alert. No sign-in email was added or changed. These details supersede the initial
+list-label reading. The hosting dashboard also displayed an overdue-payment warning and possible
+account shutdown. Billing needs the account owner's attention.
 
 No scheduler toggle or Run button was activated. Enabling the global scheduler would activate
 production financial, messaging and deletion operations, outside the isolated-test restriction.
