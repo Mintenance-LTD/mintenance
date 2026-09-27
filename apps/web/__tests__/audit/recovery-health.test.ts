@@ -72,7 +72,16 @@ it('treats invalid clocks and missing completion as unverified', () => {
     )
   ).toBe('unknown');
 });
-it.each(['failed', 'expired', 'attemptsNeedingReview', 'needsReconciliation'])(
+it.each([
+  'failed',
+  'errors',
+  'expired',
+  'attemptsNeedingReview',
+  'needsReconciliation',
+  'mismatched',
+  'missingInStripe',
+  'queuedErrors',
+])(
   'shows %s outcomes as needing review even when the worker returned success',
   (key) => {
     expect(

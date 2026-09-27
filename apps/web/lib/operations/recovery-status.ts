@@ -92,7 +92,16 @@ export function recoveryState(
   if (latest.status === 'failed') return 'failed';
   // Some workers record a completed run while reporting unresolved provider work.
   if (
-    ['failed', 'expired', 'attemptsNeedingReview', 'needsReconciliation'].some(
+    [
+      'failed',
+      'errors',
+      'expired',
+      'attemptsNeedingReview',
+      'needsReconciliation',
+      'mismatched',
+      'missingInStripe',
+      'queuedErrors',
+    ].some(
       (key) =>
         typeof latest.metadata?.[key] === 'number' &&
         Number(latest.metadata[key]) > 0
