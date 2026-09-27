@@ -1,10 +1,11 @@
 import './globals.css';
+import { DeferredFontStylesheet } from './DeferredFontStylesheet';
 import '../styles/professional-design-system.css';
 import '../styles/responsive.css';
 import '../styles/print.css';
 import '../styles/animations-enhanced.css';
 import { Inter, Geist } from 'next/font/google';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import CookieConsent from '../components/CookieConsent';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { ChunkLoadErrorBoundary } from '../components/ChunkLoadErrorBoundary';
@@ -61,16 +62,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Read the per-request CSP nonce that middleware.ts attaches via the
-  // `x-csp-nonce` request header. When `ENABLE_CSP_NONCE=true` the CSP
-  // policy emits `script-src 'nonce-<value>' 'strict-dynamic'`; any
-  // inline script tag below MUST forward this nonce or browsers will
-  // refuse to execute it. When the flag is off the nonce is still
-  // generated but unused — `'unsafe-inline'` keeps inline scripts
-  // running for the legacy rollout path.
-  const headerStore = await headers();
-  const cspNonce = headerStore.get('x-csp-nonce') ?? undefined;
-
   // Mint Editorial Phase-1 theme toggle. Read from cookie set by the
   // server action triggered by the floating switch (see
   // app/api/theme/route.ts). Default empty so the legacy look is
@@ -106,26 +97,7 @@ export default async function RootLayout({
           as='style'
           crossOrigin='anonymous'
         />
-        {/*
-          Async font loading: media="print" prevents render-blocking.
-          The inline script below swaps it to media="all" once loaded.
-          Note: dangerouslySetInnerHTML is safe here — content is a static string, not user input.
-        */}
-        <link
-          rel='stylesheet'
-          href={materialSymbolsUrl}
-          media='print'
-          crossOrigin='anonymous'
-        />
-        <script
-          nonce={cspNonce}
-          dangerouslySetInnerHTML={{
-            __html:
-              'document.addEventListener("DOMContentLoaded",function(){' +
-              'document.querySelectorAll(\'link[media="print"][rel="stylesheet"]\')' +
-              '.forEach(function(l){l.media="all"})});',
-          }}
-        />
+        <DeferredFontStylesheet href={materialSymbolsUrl} />
         {/* Fallback for users with JS disabled */}
         <noscript>
           <link rel='stylesheet' href={materialSymbolsUrl} />

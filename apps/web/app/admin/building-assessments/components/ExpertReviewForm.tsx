@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { Button } from '@/components/ui/Button';
+import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
 import type { ReviewLabels } from '@/lib/services/building-surveyor/evaluation/review-contract';
 
 interface ReviewSource {
@@ -36,6 +37,7 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [reload, setReload] = useState(0);
+  const [needsStepUp, setNeedsStepUp] = useState(false);
   useEffect(() => {
     const abort = new AbortController();
     setSource(null);
@@ -56,8 +58,8 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
     return () => abort.abort();
   }, [assessmentId, reload]);
 
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
+  async function save(event?: React.FormEvent) {
+    event?.preventDefault();
     if (!source || busy) return;
     setBusy(true);
     setMessage('');
@@ -81,6 +83,11 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
         }
       );
       if (!response.ok) {
+        const failure = await response.json().catch(() => ({}));
+        if (response.status === 403 && failure.requiresStepUp) {
+          setNeedsStepUp(true);
+          return;
+        }
         if (response.status === 409)
           throw new Error(
             'The source changed. Reload the evidence and check your labels before saving again.'
@@ -112,6 +119,15 @@ export function ExpertReviewForm({ assessmentId }: { assessmentId: string }) {
       aria-label='Expert reference review'
     >
       <h3 className='text-lg font-semibold'>Expert reference review</h3>
+      {needsStepUp && (
+        <MfaStepUpDialog
+          onCancel={() => setNeedsStepUp(false)}
+          onSuccess={() => {
+            setNeedsStepUp(false);
+            void save();
+          }}
+        />
+      )}
       <p className='text-sm text-gray-600'>
         Assess the primary visible defect from the photos. Use “none” when no
         defect is visible. Choose insufficient evidence when a judgement cannot

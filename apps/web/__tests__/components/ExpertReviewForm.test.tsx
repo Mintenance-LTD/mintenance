@@ -21,6 +21,20 @@ vi.mock('@/components/ui/Button', () => ({
 vi.mock('@/lib/csrf-client', () => ({
   getCsrfHeaders: vi.fn(async () => ({ 'x-csrf-token': 'test' })),
 }));
+vi.mock('@/components/auth/MfaStepUpDialog', () => ({
+  MfaStepUpDialog: ({
+    onSuccess,
+    onCancel,
+  }: {
+    onSuccess: () => void;
+    onCancel: () => void;
+  }) => (
+    <div role='dialog'>
+      <button onClick={onSuccess}>Verify test MFA</button>
+      <button onClick={onCancel}>Cancel test MFA</button>
+    </div>
+  ),
+}));
 const source = {
   sourceFingerprint: 'a'.repeat(64),
   images: [
@@ -114,6 +128,25 @@ describe('expert review interface', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save expert review' }));
     await screen.findByText(/The source changed/);
     expect(screen.queryByText(/Review saved/)).toBeNull();
+  });
+  it('requests step-up and retries the review after successful verification', async () => {
+    render(<ExpertReviewForm assessmentId='test-id' />);
+    await fillReview();
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => ({ requiresStepUp: true }),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save expert review' }));
+    await screen.findByRole('dialog');
+    expect(screen.queryByText(/Review saved/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Verify test MFA' }));
+    await screen.findByText(/Review saved/);
+    const posts = fetchMock.mock.calls.filter(
+      (call) => ((call as unknown[])[1] as RequestInit)?.method === 'POST'
+    ) as unknown as Array<[string, RequestInit]>;
+    expect(posts).toHaveLength(2);
+    expect(posts[1][1].body).toEqual(posts[0][1].body);
   });
   it('does not offer review submission without source images', async () => {
     fetchMock.mockResolvedValue({

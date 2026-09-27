@@ -25,6 +25,7 @@
     }
   },
   "crons": [
+    { "path": "/api/cron/push-receipts", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/password-change-recovery", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/refund-recovery", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/admin-release-recovery", "schedule": "*/5 * * * *" },
