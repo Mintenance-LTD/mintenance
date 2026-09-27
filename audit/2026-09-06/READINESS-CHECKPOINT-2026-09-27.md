@@ -72,8 +72,9 @@ private receipt table and index.
 - Landing hero redesigned and visually inspected in Edge at desktop and narrow mobile widths. No
   horizontal overflow in the narrow viewport. The illustrative preview is labelled; nearby payment
   wording now distinguishes funding from release. Commit 453f4b576 passed normal repository hooks
-  and was pushed. An existing layout font-stylesheet hydration warning remains outside this
-  component.
+  and was pushed. The separate font-stylesheet hydration warning was subsequently fixed in
+  fe808ecd4: React now activates the stylesheet after hydration. Browser reload produced no new
+  hydration error, and normal repository hooks passed.
 - User authorized an EAS internal APK. Build 5203b02a-fe98-4749-8334-2cf11956c6f8 was started from
   exact commit 4d7aa39e954ea7f479b0094e04a567e1b693eebf, base directory apps/mobile, internal
   profile, no store submission. That profile uses production endpoints. Only read-only acceptance is
@@ -99,3 +100,16 @@ stale transition and private-table privileges; synthetic records were rolled bac
 visibility, not exactly-once notification delivery: the existing network retry path can still
 duplicate a notification after ambiguous provider acceptance. Production alert delivery and schedule
 evidence remain open.
+
+The journal migration 20260927104701_journal_push_dispatch_attempts.sql was also applied to the
+hosted project. Verification confirmed anonymous SELECT and authenticated INSERT are denied, while
+service-role INSERT is allowed. The local schema diff completed without DROP statements; the
+isolated baseline also contains other previously recorded migration drift.
+
+## Auth dashboard verification
+
+After the owner signed in, the Email provider settings showed leaked-password protection off, with
+an explicit Pro-plan-or-above requirement. Enabling and saving did not persist: a reload showed the
+switch off again. No subscription change was made. The fresh security advisor still flags this
+setting and the database security update. This gate remains open; an enabled-looking unsaved form is
+not evidence of protection.
