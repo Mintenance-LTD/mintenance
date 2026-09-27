@@ -30,7 +30,7 @@ or retention readiness gates. No production data or live payments were changed.
 
 ## Database replay guard follow-up
 
-Migration `20260927141955_prevent_deleted_contact_replay.sql` now reserves consumed contact UUIDs
+Migration `20260927142309_prevent_deleted_contact_replay.sql` now reserves consumed contact UUIDs
 transactionally. The ledger stores only the UUID, with no contact fields, actor/property references
 or payload. Existing contact UUIDs were backfilled. Its unique constraint serializes simultaneous
 saves; reservations roll back with failed inserts and survive contact deletion. IDs cannot be
@@ -51,3 +51,42 @@ The requested local schema diff was attempted with the installed Supabase CLI. S
 at existing migration `20260830090100_message_bid_hot_path_indexes.sql`: CREATE INDEX CONCURRENTLY
 cannot be executed within a pipeline. This prevents claiming a clean full migration replay; the new
 migration was separately applied and exercised transactionally in the isolated database.
+
+The CLI-created migration file was renamed to the hosted MCP-assigned version `20260927142309`,
+avoiding a duplicate pending migration on a later CLI push.
+
+## Executed Android diagnostic interruption test
+
+Executed on isolated emulator-5556 using the existing diagnostic Android native shell and current
+Metro JavaScript, with a separate web checkout at f65a5469b and local Supabase. The user's
+emulator-5554 and installed standalone APK were not changed. Temporary HTTPS Auth/API/Metro tunnels
+were used under existing authorization.
+
+- Synthetic homeowner authenticated through the app, completed/skipped the normal introductory UI,
+  opened its property and Manage tab, and submitted a contact with no email (no external invitation
+  delivery).
+- First ordinary save returned 201. A subsequent delayed-response attempt was automatically retried
+  by the API client and returned 200; database count remained one. This verified retry deduplication
+  but did NOT test pending draft restoration because retry finished before manual termination.
+- Corrected the diagnostic harness to call ADB force-stop immediately after the local API committed
+  another synthetic contact and began an incomplete response. The POST returned 201 internally at
+  14:52:10 UTC; the harness recorded immediate process termination. Independently checked one
+  database row.
+- Relaunched the app, restored the authenticated session, navigated back to Manage, and observed the
+  original pending name in the editable form without retyping it.
+- Pressed Add Tenant. The API returned 200 at 14:54 UTC; the form closed, the contact appeared in
+  the list, and a separate database query still counted exactly one matching contact.
+- Deleted the synthetic property/account and temporary credential fixture afterward. Closed all
+  three tunnels, the isolated API and Metro processes, and emulator-5556. No production
+  contact/payment records were created or changed.
+
+The diagnostic Metro asset URLs used HTTP for the icon font while Android requires HTTPS. This
+exposed a collapsed icon-only Add tenant action. Added a visible label and a 44-point minimum touch
+height; verified the action appeared and worked in the emulator. Fonts remained a diagnostic-build
+limitation. Cold local route compilation also caused initial request timeouts; warming/retrying the
+real routes succeeded. These are not release-performance measurements.
+
+This is real native process-termination evidence for the updated contact component, encrypted
+storage, authenticated API and database. It does not replace fresh standalone-release APK
+acceptance, iOS/physical-device checks, the broader management interruption matrix, or local draft
+retention/expiry work. No release APK was built or deployed in this follow-up.

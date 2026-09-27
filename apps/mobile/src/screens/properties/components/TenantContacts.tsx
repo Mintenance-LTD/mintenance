@@ -269,7 +269,14 @@ const TenantContactsForAccount: React.FC<Props & { user: { id: string } }> = ({
         <Text style={styles.sectionTitle}>TENANTS</Text>
         <TouchableOpacity
           accessibilityRole='button'
-          accessibilityLabel='Add tenant'
+          accessibilityLabel={showForm ? 'Close tenant form' : 'Add tenant'}
+          style={{
+            minHeight: 44,
+            paddingHorizontal: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+          }}
           onPress={() => setShowForm(!showForm)}
         >
           <Ionicons
@@ -277,6 +284,9 @@ const TenantContactsForAccount: React.FC<Props & { user: { id: string } }> = ({
             size={22}
             color={me.brand}
           />
+          <Text style={styles.contactLink}>
+            {showForm ? 'Close' : 'Add tenant'}
+          </Text>
         </TouchableOpacity>
       </View>
 
