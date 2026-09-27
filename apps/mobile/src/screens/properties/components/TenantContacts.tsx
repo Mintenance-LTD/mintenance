@@ -196,6 +196,37 @@ const TenantContactsForAccount: React.FC<Props & { user: { id: string } }> = ({
     ]);
   };
 
+  const discardDraft = () =>
+    Alert.alert(
+      'Discard contact draft?',
+      'A previous save may already have succeeded. Check the contact list before adding it again. This only removes the draft from this device.',
+      [
+        { text: 'Keep draft', style: 'cancel' },
+        {
+          text: 'Discard draft',
+          style: 'destructive',
+          onPress: () => {
+            void clearPendingTenant(user.id, propertyId)
+              .then(() => {
+                setName('');
+                setEmail('');
+                setPhone('');
+                setShowForm(false);
+                void queryClient.invalidateQueries({
+                  queryKey: ['tenants', user.id, propertyId],
+                });
+              })
+              .catch(() =>
+                Alert.alert(
+                  'Draft kept',
+                  'Could not remove the saved draft. Please retry.'
+                )
+              );
+          },
+        },
+      ]
+    );
+
   const handleCreate = () => {
     if (!name.trim()) {
       Alert.alert('Required', 'Please enter a name.');
@@ -286,6 +317,13 @@ const TenantContactsForAccount: React.FC<Props & { user: { id: string } }> = ({
             <Text style={styles.createBtnText}>
               {createMutation.isPending ? 'Adding...' : 'Add Tenant'}
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole='button'
+            disabled={createMutation.isPending}
+            onPress={discardDraft}
+          >
+            <Text style={styles.contactLink}>Discard draft</Text>
           </TouchableOpacity>
         </View>
       )}

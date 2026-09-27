@@ -204,3 +204,24 @@ it('does not recover another property contact', async () => {
   expect(view.getByPlaceholderText('Full name *').props.value).toBe('');
   expect(mockPost).not.toHaveBeenCalled();
 });
+
+it('discards a pending local draft only after explicit confirmation', async () => {
+  mockGet.mockResolvedValue({ tenants: [] });
+  mockStorage.set(
+    'pending-tenant.actor.property',
+    JSON.stringify({
+      operationId: '12345678-1234-4234-a234-123456789abc',
+      name: 'Pending',
+      email: '',
+      phone: '',
+    })
+  );
+  const view = show(<TenantContacts propertyId='property' />);
+  await waitFor(() => expect(view.getByText('Discard draft')).toBeTruthy());
+  fireEvent.press(view.getByText('Discard draft'));
+  expect(mockStorage.size).toBe(1);
+  const buttons = (Alert.alert as jest.Mock).mock.calls.at(-1)[2];
+  await act(async () => buttons[1].onPress());
+  await waitFor(() => expect(mockStorage.size).toBe(0));
+  expect(mockPost).not.toHaveBeenCalled();
+});
