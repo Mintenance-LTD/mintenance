@@ -60,7 +60,7 @@
 | Cloud build                        | Passed                                                                                             |
 | Required local database diff       | Blocked by existing CREATE INDEX CONCURRENTLY migration 20260830090100 executing within a pipeline |
 
-## Remaining release blocker: insufficient evidence
+## Release blocker found during the first staging pass: insufficient evidence
 
 The blank-image response correctly described no visible building and had zero confidence and an
 escalation decision. However, the saved response still carried safety/compliance scores of 100, RICS
@@ -74,3 +74,53 @@ test confirms transport and workflow reliability, not surveying accuracy.
 
 Physical phone upload/interruption/retry testing and qualified expert accuracy evaluation remain
 outstanding.
+
+## Insufficient-evidence fix
+
+- Shared evidence guard rejects an explicit insufficient-evidence outcome or zero-confidence result
+  before scoring. The prompt now distinguishes absent visual evidence from a visibly healthy element
+  or an uncertain cause requiring onsite inspection.
+- APIs return HTTP 422 with `INSUFFICIENT_EVIDENCE`, `requiresRecapture: true`, and
+  `assessment: null`. Saved attempts persist this outcome, and do not capture a completed training
+  target.
+- Status reads hide older zero-confidence results and their validation status. Memory/database
+  caches cannot return them as completed surveys.
+- Web and mobile assessment views ask for new photos and suppress ratings, repair advice and
+  use-assessment actions. The admin list suppresses their stored scores and excludes them from score
+  averages.
+- A successful subsequent saved analysis clears old insufficient-evidence markers and nested legacy
+  output.
+- Local checks: 46 focused tests passed, web and mobile TypeScript passed, changed API/admin
+  components passed ESLint. Regression cases include flat/nested zero-confidence output, explicit
+  evidence rejection, visible healthy elements, defects needing onsite inspection, historical
+  status, persistence, recovery, HTTP contract and rendered score suppression.
+
+### Modal workspace inspection
+
+The supplied `admin-19723/main` workspace shows zero live apps and no deployed inference endpoints.
+Repository searches found no Modal SDK app or Modal endpoint wiring. The existing generator supports
+an OpenAI-compatible `MINT_AI_VLM_ENDPOINT`, which could be connected to a future Modal deployment.
+No Modal resources, credentials or paid deployments were created. The previously verified assessment
+provider was OpenAI/gpt-4o in shadow-only routing.
+
+### Deployed regression verification
+
+- Inference replay on `https://mintenance-clean-j2prkb3d1-mintenance.vercel.app`
+  (`dpl_6uehxyrdWmVvi2Rxnuf8vTWND1Hy`, Ready): normal login and MFA succeeded; both saved and
+  generic blank-image analysis returned 422 / `INSUFFICIENT_EVIDENCE`, `assessment: null`, and a
+  retake instruction.
+- The saved-status endpoint returned `processingStatus: insufficient_evidence`, `canRetry: false`,
+  no assessment and no validation. Its historical scores remain in the original stored JSON for
+  audit, but are not returned as a completed result.
+- Supabase MCP confirmed the new synthetic request `2b66da54-30f0-43ef-a4bb-1febbae090c2` persisted
+  an explicit insufficient-evidence outcome with no safetyHazards payload. Existing synthetic saved
+  fixture was reanalysed in place.
+- Final admin score suppression was browser-verified at
+  `https://mintenance-clean-re1btzq71-mintenance.vercel.app` (`dpl_Cc7eAB33uUgnvhvi4D3qfTRCBDE8`,
+  Ready) through password and MFA login. The list displays the retake notice instead of the old
+  scores. Local screenshot: `.vercel/mint-evidence-staging.png` (ignored).
+- There are now four specifically identified synthetic assessment rows awaiting the previously
+  requested cleanup approval. No customer data was modified or deleted.
+- This fixes the observed blank-image failure. Real-photo accuracy across healthy, defective,
+  blurred and off-topic scenes still needs a labelled expert-reviewed evaluation set; contract tests
+  alone do not establish visual classification accuracy.

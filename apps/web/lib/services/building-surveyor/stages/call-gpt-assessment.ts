@@ -1,4 +1,4 @@
-import { logger } from '@mintenance/shared';
+import { logger, InsufficientEvidenceError } from '@mintenance/shared';
 import { CostControlService } from '../../ai/CostControlService';
 import { getGeneratorContent } from '../generator/AssessmentGenerator';
 import { parseAssessmentResponse } from '../generator/assessment-response';
@@ -17,7 +17,7 @@ import type {
 } from '../types';
 
 const AGENT_NAME = 'building-surveyor';
-const PROMPT_VERSION = 'building-surveyor-v3';
+const PROMPT_VERSION = 'building-surveyor-v4-evidence';
 
 /** Use the same configurable model as the generator */
 const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-4o';
@@ -235,7 +235,8 @@ export async function callGptAssessment(
       genResult.content,
       genResult.finishReason
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof InsufficientEvidenceError) throw error;
     logger.error('Failed to parse OpenAI response', {
       service: 'BuildingSurveyorService',
       content: genResult.content.substring(0, 500),

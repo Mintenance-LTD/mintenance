@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
+import {
+  logger,
+  isAssessmentUnassessable,
+  INSUFFICIENT_EVIDENCE_MESSAGE,
+} from '@mintenance/shared';
 import {
   BadRequestError,
   ForbiddenError,
@@ -67,6 +71,9 @@ export const GET = withApiHandler(
     }));
 
     const status = assessment.validation_status as string;
+    const requiresRecapture = isAssessmentUnassessable(
+      assessment.assessment_data
+    );
     const result = getAssessmentResult(assessment.assessment_data);
     const hasResult = status !== 'processing' && result !== null;
     const isComplete = hasResult;
@@ -89,18 +96,23 @@ export const GET = withApiHandler(
       status,
       isComplete,
       isFailed,
-      isValidated: status === 'validated',
+      isValidated: !requiresRecapture && status === 'validated',
+      requiresRecapture,
+      message: requiresRecapture ? INSUFFICIENT_EVIDENCE_MESSAGE : undefined,
       canRetry:
+        !requiresRecapture &&
         !hasResult &&
         imageRows.length > 0 &&
         (status !== 'processing' || leaseExpired),
-      processingStatus: isFailed
-        ? 'failed'
-        : isComplete
-          ? 'ready'
-          : status === 'processing'
-            ? 'processing'
-            : 'pending',
+      processingStatus: requiresRecapture
+        ? 'insufficient_evidence'
+        : isFailed
+          ? 'failed'
+          : isComplete
+            ? 'ready'
+            : status === 'processing'
+              ? 'processing'
+              : 'pending',
       assessment: hasResult
         ? {
             domain: assessment.domain,

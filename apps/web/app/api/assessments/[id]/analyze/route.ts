@@ -10,7 +10,11 @@ import {
   InternalServerError,
   NotFoundError,
 } from '@/lib/errors/api-error';
-import { logger } from '@mintenance/shared';
+import {
+  logger,
+  InsufficientEvidenceError,
+  requireAssessmentEvidence,
+} from '@mintenance/shared';
 import { getAssessmentResult } from '@/lib/services/building-surveyor/assessment-result';
 import { canonicalizeDamageType } from '@/lib/services/building-surveyor/normalization-utils';
 import { withPropertyAge } from '../../walkthrough/property-age';
@@ -160,10 +164,14 @@ export const POST = withApiHandler(
         propertyId: row.property_id ?? undefined,
         jobId: row.job_id ?? undefined,
       });
+      requireAssessmentEvidence(assessment);
       const completedAt = new Date().toISOString();
       const result = {
         ...stored,
         ...assessment,
+        evidenceSufficient: true,
+        outcome: 'assessed',
+        ai_analysis: undefined,
         analysis: {
           ...analysis,
           state: 'ready',
@@ -223,6 +231,7 @@ export const POST = withApiHandler(
         assessment: result,
       });
     } catch (error) {
+      const insufficient = error instanceof InsufficientEvidenceError;
       logger.error('Saved assessment analysis failed', {
         assessmentId,
         runId,
@@ -238,10 +247,12 @@ export const POST = withApiHandler(
             ...stored,
             analysis: {
               ...analysis,
-              state: 'failed',
+              state: insufficient ? 'insufficient_evidence' : 'failed',
               failedAt: new Date().toISOString(),
-              errorCode: 'ANALYSIS_FAILED',
-              retryable: true,
+              errorCode: insufficient
+                ? 'INSUFFICIENT_EVIDENCE'
+                : 'ANALYSIS_FAILED',
+              retryable: !insufficient,
             },
           },
         })
@@ -253,6 +264,7 @@ export const POST = withApiHandler(
           assessmentId,
           error: failureError,
         });
+      if (insufficient) throw error;
       throw new InternalServerError(
         'Analysis could not complete. Your photos are saved; please retry.'
       );

@@ -13,17 +13,44 @@ const flat = {
 };
 
 describe('assessment response contract', () => {
-  it('preserves zero confidence and compliance seriousness across both schemas', () => {
+  it.each([
+    { evidenceSufficient: false, outcome: 'insufficient_evidence' },
+    { ...flat, confidence: 0 },
+    { ...flat, evidenceSufficient: false },
+    { damageAssessment: { ...flat, confidence: 0 } },
+  ])('rejects unassessable evidence before scoring: %j', (value) => {
+    expect(() => parseAssessmentResponse(JSON.stringify(value))).toThrow(
+      'Unable to assess'
+    );
+  });
+  it('allows visible healthy elements and visible defects needing onsite inspection', () => {
+    expect(
+      parseAssessmentResponse(
+        JSON.stringify({
+          ...flat,
+          evidenceSufficient: true,
+          damageType: 'no_defect',
+          safetyHazards: [],
+        })
+      ).confidence
+    ).toBe(87);
+    expect(
+      parseAssessmentResponse(
+        JSON.stringify({ ...flat, needsOnsiteInspection: true })
+      ).confidence
+    ).toBe(87);
+  });
+  it('preserves low confidence and compliance seriousness across both schemas', () => {
     const parsed = parseAssessmentResponse(
       JSON.stringify({
         ...flat,
-        confidence: 0,
+        confidence: 1,
         complianceIssues: [
           { issue: 'Unsafe installation', severity: 'violation' },
         ],
       })
     );
-    expect(parsed.confidence).toBe(0);
+    expect(parsed.confidence).toBe(1);
     expect(parsed.complianceIssues[0].severity).toBe('major');
     const compliance = ComplianceService.processCompliance(
       parsed.complianceIssues

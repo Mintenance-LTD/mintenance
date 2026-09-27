@@ -3,7 +3,7 @@
  * Constructs system and user prompts for GPT-4 Vision API
  */
 
-import type { AssessmentContext, RICSConditionRating } from './types';
+import type { AssessmentContext } from './types';
 import { buildTaxonomyPromptSection } from './taxonomy/taxonomy-v3';
 
 /**
@@ -207,6 +207,7 @@ You must respond with valid JSON matching this exact structure:
       "isPrimary": boolean (true for exactly ONE finding — the most serious)
     }
   ],
+  "evidenceSufficient": true,
   "sceneSummary": "string (one or two sentences describing the property/scene overall — e.g. 'room appears mid-strip-out, several elements exposed'; distinguish active works from defects)",
   "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth'${safeDamageTypes?.length ? ` or one of: ${safeDamageTypes.slice(0, 5).join(', ')}` : ''})",
   "taxonomyClassId": "string | null (the single best-matching class id from the SURVEYOR DEFECT TAXONOMY below; null if none fits or photos are insufficient)",
@@ -311,6 +312,8 @@ NORMAL BUILDING FEATURES ARE NOT DEFECTS:
 - Much of what a building is MEANT to look like reads as a defect if you are hunting for one. Before reporting, ask whether this is simply how the building was built.
 - Deliberate features, not damage: the shadow gap or expansion joint where a wall meets a ceiling or skirting; movement joints in masonry; trickle vents, air bricks and weep holes; service penetrations and sealed cable entries; pipe boxing and bulkheads (which are not bowing walls); coving and cornice shadow lines (which are not cracks); door and window frame reveals.
 - UK domestic norms, not faults: a socket near a kitchen counter is normal and compliant — it is where appliances plug in — and only a concern if it sits within about 300mm of a sink or tap, which a photograph usually cannot establish. Radiators under windows, extract fans, consumer units in cupboards, boxed-in soil pipes and exposed service runs in a garage or loft are all normal. Do not report a code concern you cannot actually measure from the image; if the geometry is the whole question, that is an inconclusive finding.
+- FIRST decide whether the images contain enough visible evidence for any meaningful building/asset assessment. Blank, unreadable, severely blurred/dark, or off-topic images are NOT healthy assets. If no relevant element can be assessed, return ONLY {"evidenceSufficient": false, "outcome": "insufficient_evidence"}. Do not supply condition ratings, safety/compliance scores, urgency, costs, or a no-defect finding. Ask for recapture through this outcome. Context text alone is not visual evidence.
+- For usable photos set "evidenceSufficient": true. A clearly visible healthy element can legitimately have no defect with positive confidence. An uncertain hidden cause may still warrant onsite inspection when visible evidence is usable; that is distinct from having no assessable image.
 - Work in progress is not a defect: fresh filler, mist coats, unfinished trims, protective film, a room mid-decoration. Say so in "sceneSummary" instead of reporting damage.
 
 SURFACES, MATERIALS AND OBJECTS:

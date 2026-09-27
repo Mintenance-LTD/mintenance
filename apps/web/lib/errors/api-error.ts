@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@mintenance/shared';
+import { logger, InsufficientEvidenceError } from '@mintenance/shared';
 import { getCorsHeaders } from '@/lib/cors';
 
 /**
@@ -136,6 +136,19 @@ export function handleAPIError(
   context?: Record<string, unknown>,
   request?: NextRequest
 ): NextResponse {
+  if (error instanceof InsufficientEvidenceError) {
+    return NextResponse.json(
+      {
+        outcome: 'insufficient_evidence',
+        code: error.code,
+        message: error.message,
+        error: { code: error.code, message: error.message },
+        requiresRecapture: true,
+        assessment: null,
+      },
+      { status: 422, headers: request ? getCorsHeaders(request) : {} }
+    );
+  }
   // Helper to get headers with CORS support
   const getResponseHeaders = (
     baseHeaders: Record<string, string> = {}

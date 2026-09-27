@@ -1,6 +1,10 @@
 'use client';
 
 import React from 'react';
+import {
+  isAssessmentUnassessable,
+  INSUFFICIENT_EVIDENCE_MESSAGE,
+} from '@mintenance/shared';
 import Image from 'next/image';
 import { Check, X, Hourglass } from 'lucide-react';
 import { theme } from '@/lib/theme';
@@ -22,6 +26,19 @@ export function BuildingAssessmentsCard({
   onReview,
   onValidate,
 }: BuildingAssessmentsCardProps) {
+  if (
+    isAssessmentUnassessable(assessment.assessment_data) ||
+    isAssessmentUnassessable({ confidence: assessment.confidence })
+  ) {
+    return (
+      <AdminCard padding='lg' className='mb-4'>
+        <h3>New photos needed</h3>
+        <p>{assessment.user?.email || assessment.id}</p>
+        <p role='alert'>{INSUFFICIENT_EVIDENCE_MESSAGE}</p>
+        <Button onClick={() => onReview(assessment)}>View record</Button>
+      </AdminCard>
+    );
+  }
   const autoBadgeStyle = getAutoValidationBadge(assessment);
 
   return (

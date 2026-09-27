@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { requireAssessmentEvidence } from '@mintenance/shared';
 import {
   AI_ASSESSMENT_SCHEMA,
   type AiAssessmentPayload,
@@ -55,6 +56,7 @@ export function parseAssessmentResponse(
     throw new AssessmentResponseError('invalid_json');
   }
   const raw = object(parsed);
+  requireAssessmentEvidence(raw);
   const damage = object(raw.damageAssessment);
   const safety = object(raw.safetyHazards);
   const compliance = object(raw.compliance);
