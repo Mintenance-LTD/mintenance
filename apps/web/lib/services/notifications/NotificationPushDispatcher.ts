@@ -15,6 +15,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '../agents/NotificationAgent';
 import { recordPushReceipt } from './PushReceiptService';
+import { beginPushAttempt, finishPushAttempt } from './PushAttemptService';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
@@ -153,6 +154,12 @@ export async function sendPushToDevice(
         ...(typeof unreadCount === 'number' ? { badge: unreadCount } : {}),
       }));
 
+      const attemptId = await beginPushAttempt(
+        params.userId,
+        params.notificationId,
+        batch.length
+      );
+      let needsReview = false;
       const response = await fetch(EXPO_PUSH_URL, {
         method: 'POST',
         headers: {
@@ -165,6 +172,7 @@ export async function sendPushToDevice(
       });
 
       if (!response.ok) {
+        needsReview = true;
         failureReason = `expo_http_${response.status}`;
         logger.warn('Expo push API returned non-OK status', {
           service: 'NotificationPushDispatcher',
@@ -176,6 +184,7 @@ export async function sendPushToDevice(
         // HTTP 200 can contain rejected tickets. Validate one ticket per device.
         const tickets = Array.isArray(result?.data) ? result.data : [];
         if (tickets.length !== batch.length) {
+          needsReview = true;
           failureReason = 'expo_invalid_ticket_response';
         } else {
           for (let index = 0; index < batch.length; index++) {
@@ -194,6 +203,7 @@ export async function sendPushToDevice(
                   batch[index].push_token
                 );
               } catch {
+                needsReview = true;
                 // Do not resend an accepted push just because its journal failed.
                 // Surface the observability failure separately for operations.
                 logger.error(
@@ -206,6 +216,7 @@ export async function sendPushToDevice(
                 );
               }
             } else {
+              if (ticket?.status !== 'error') needsReview = true;
               // Never log provider messages: they can contain the device token.
               failureReason = 'expo_ticket_rejected';
               if (ticket?.details?.error === 'DeviceNotRegistered') {
@@ -220,6 +231,15 @@ export async function sendPushToDevice(
             }
           }
         }
+      }
+      try {
+        await finishPushAttempt(attemptId, needsReview);
+      } catch {
+        // The pre-send row remains started and will be surfaced by recovery.
+        logger.error('Push attempt checkpoint requires recovery', undefined, {
+          service: 'NotificationPushDispatcher',
+          attemptId,
+        });
       }
     }
     if (!failureReason) {

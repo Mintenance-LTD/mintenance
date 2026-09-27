@@ -19,107 +19,16 @@ vi.mock('../NotificationPreferenceResolver', () => ({
   }),
   isTypeDisabled: () => false,
 }));
-vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: {
-    from(table: string) {
-      const filters: ((row: Record<string, unknown>) => boolean)[] = [];
-      let operation = 'select';
-      let values: Record<string, unknown> = {};
-      let single = false;
-      const query = {
-        select: () => query,
-        single: () => {
-          single = true;
-          return query;
-        },
-        maybeSingle: () => {
-          single = true;
-          return query;
-        },
-        limit: () => query,
-        order: () => query,
-        neq: (key: string, value: unknown) => {
-          filters.push((row) => row[key] !== value);
-          return query;
-        },
-        in: (key: string, values: unknown[]) => {
-          filters.push((row) => values.includes(row[key]));
-          return query;
-        },
-        lte: (key: string, value: string) => {
-          filters.push((row) => String(row[key]) <= value);
-          return query;
-        },
-        lt: (key: string, value: number | string) => {
-          filters.push((row) =>
-            typeof value === 'number'
-              ? Number(row[key]) < value
-              : String(row[key]) < value
-          );
-          return query;
-        },
-        eq: (key: string, value: unknown) => {
-          filters.push((row) => row[key] === value);
-          return query;
-        },
-        update: (value: Record<string, unknown>) => {
-          operation = 'update';
-          values = value;
-          return query;
-        },
-        insert: (value: Record<string, unknown>) => {
-          operation = 'insert';
-          values = value;
-          return query;
-        },
-        delete: () => {
-          operation = 'delete';
-          return query;
-        },
-        then(resolve: (value: unknown) => unknown) {
-          if (state.failTable === table)
-            return Promise.resolve(
-              resolve({ error: { message: 'database unavailable' } })
-            );
-          const rows = state.tables[table] ?? [];
-          const matches = rows.filter((row) =>
-            filters.every((filter) => filter(row))
-          );
-          if (operation === 'update')
-            matches.forEach((row) => Object.assign(row, values));
-          if (operation === 'insert') {
-            if (values.id && rows.some((row) => row.id === values.id)) {
-              return Promise.resolve(
-                resolve({ data: null, error: { code: '23505' } })
-              );
-            }
-            rows.push(values);
-          }
-          if (operation === 'delete')
-            state.tables[table] = rows.filter((row) => !matches.includes(row));
-          return Promise.resolve(
-            resolve({
-              data: structuredClone(
-                single
-                  ? operation === 'insert'
-                    ? values
-                    : (matches[0] ?? null)
-                  : matches
-              ),
-              count: matches.length,
-              error: null,
-            })
-          );
-        },
-      };
-      return query;
-    },
-  },
-}));
+vi.mock('@/lib/api/supabaseServer', async () => {
+  const { notificationDatabase } =
+    await import('./notificationDatabaseFixture');
+  return { serverSupabase: notificationDatabase(state) };
+});
 
 import { sendPushToDevice } from '../NotificationPushDispatcher';
 import { NotificationProcessorService } from '../NotificationProcessorService';
 import { processPushReceipts, pushTokenHash } from '../PushReceiptService';
+import { reconcilePushAttempts } from '../PushAttemptService';
 
 const params = {
   userId: 'owner',
@@ -145,6 +54,7 @@ beforeEach(() => {
     ],
     notification_queue: [],
     push_delivery_receipts: [],
+    push_dispatch_attempts: [],
   };
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -453,4 +363,58 @@ it('does not resend an accepted push when receipt persistence fails; emits an op
     expect.objectContaining({ notificationId: 'notification' })
   );
   expect(state.tables.notification_queue).toHaveLength(0);
+});
+
+it('persists the attempt before calling the provider and records the completed hand-off', async () => {
+  state.fetch.mockImplementation(async () => {
+    expect(state.tables.push_dispatch_attempts).toHaveLength(1);
+    expect(state.tables.push_dispatch_attempts[0]).toMatchObject({
+      status: 'started',
+      device_count: 2,
+    });
+    return response([
+      { status: 'ok', id: 'a' },
+      { status: 'ok', id: 'b' },
+    ]);
+  });
+  await sendPushToDevice(params);
+  expect(state.tables.push_dispatch_attempts[0].status).toBe('recorded');
+});
+
+it('never contacts Expo if the pre-send journal is unavailable', async () => {
+  state.failTable = 'push_dispatch_attempts';
+  expect(await sendPushToDevice(params)).toMatchObject({ sent: false });
+  expect(state.fetch).not.toHaveBeenCalled();
+  expect(state.tables.notification_queue).toHaveLength(1);
+});
+
+it('preserves a durable review record when an accepted receipt cannot be saved', async () => {
+  state.failTable = 'push_delivery_receipts';
+  state.fetch.mockResolvedValue(
+    response([
+      { status: 'ok', id: 'a' },
+      { status: 'ok', id: 'b' },
+    ])
+  );
+  await sendPushToDevice(params);
+  expect(state.tables.push_dispatch_attempts[0].status).toBe('needs_review');
+});
+
+it('surfaces interrupted attempts and retains unresolved records without resending', async () => {
+  const old = new Date(Date.now() - 8 * 86400000).toISOString();
+  state.tables.push_dispatch_attempts.push(
+    { id: 'interrupted', status: 'started', created_at: old },
+    { id: 'active', status: 'started', created_at: new Date().toISOString() },
+    { id: 'done', status: 'recorded', completed_at: old },
+    { id: 'review', status: 'needs_review', created_at: old }
+  );
+  expect(await reconcilePushAttempts()).toBe(2);
+  expect(state.tables.push_dispatch_attempts.map((row) => row.id)).toEqual([
+    'interrupted',
+    'active',
+    'review',
+  ]);
+  expect(state.tables.push_dispatch_attempts[0].status).toBe('needs_review');
+  expect(state.tables.push_dispatch_attempts[1].status).toBe('started');
+  expect(state.fetch).not.toHaveBeenCalled();
 });

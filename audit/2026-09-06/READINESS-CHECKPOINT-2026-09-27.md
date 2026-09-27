@@ -66,3 +66,36 @@ and remaining advisor items require individual review.
 
 No live payments or production business records were changed. The hosted change is an additive
 private receipt table and index.
+
+## Follow-up: landing and native build, 27 September
+
+- Landing hero redesigned and visually inspected in Edge at desktop and narrow mobile widths. No
+  horizontal overflow in the narrow viewport. The illustrative preview is labelled; nearby payment
+  wording now distinguishes funding from release. Commit 453f4b576 passed normal repository hooks
+  and was pushed. An existing layout font-stylesheet hydration warning remains outside this
+  component.
+- User authorized an EAS internal APK. Build 5203b02a-fe98-4749-8334-2cf11956c6f8 was started from
+  exact commit 4d7aa39e954ea7f479b0094e04a567e1b693eebf, base directory apps/mobile, internal
+  profile, no store submission. That profile uses production endpoints. Only read-only acceptance is
+  appropriate on that binary; synthetic mutations remain isolated. Build was still compiling at this
+  checkpoint.
+- A separate local release attempt failed resolving the entry module relative to the monorepo root.
+  A retry with the supported EXPO_NO_METRO_WORKSPACE_ROOT option was stopped during native
+  compilation because it made the host unresponsive. Temporary generated Android files were
+  restored. No new APK was installed and native invitation routing is not yet closed.
+
+## Push attempt journal follow-up
+
+The sender now saves an attempt before calling Expo. If that save fails, it does not send and
+retains the existing retry path. A failed receipt save leaves a durable needs_review attempt.
+Crashes or uncertain network outcomes leave started attempts, which the receipt worker marks for
+review after five minutes. Recovery never resends based on this journal. Completed attempts expire
+after seven days; unresolved attempts remain until reviewed. No message text or device token is
+stored here.
+
+Twenty-four notification tests passed, including ordering, pre-send database failure, missing
+receipt persistence, stale recovery and unresolved record retention. Local SQL verified a synthetic
+stale transition and private-table privileges; synthetic records were rolled back. This is failure
+visibility, not exactly-once notification delivery: the existing network retry path can still
+duplicate a notification after ambiguous provider acceptance. Production alert delivery and schedule
+evidence remain open.
