@@ -196,6 +196,78 @@ beforeEach(() => {
 });
 
 describe('GET /api/assessments/:id/status', () => {
+  it('returns observation-only results without exposing legacy placeholder scores', async () => {
+    wireDb(
+      assessmentRow({
+        validation_status: 'needs_review',
+        assessment_data: {
+          protocol: 'observation-only-v1',
+          diagnosisStatus: 'not_established',
+          visualEvidence: {
+            version: 'visible-evidence-v1',
+            diagnosisStatus: 'not_established',
+            photos: [
+              {
+                photoIndex: 0,
+                model: 'gpt-4o',
+                observation: {
+                  scope: 'visible_region',
+                  outcome: 'no_visible_defect',
+                  crackPresent: false,
+                  observations: [],
+                  limitations: ['Visible surface only'],
+                },
+              },
+            ],
+          },
+        },
+      })
+    );
+    const body = await (await get()).json();
+    expect(body).toMatchObject({
+      isComplete: true,
+      isValidated: false,
+      requiresRecapture: false,
+      processingStatus: 'ready',
+    });
+    expect(body.assessment).toMatchObject({
+      confidence: null,
+      safetyScore: null,
+      complianceScore: null,
+      insuranceRiskScore: null,
+      severity: null,
+      urgency: null,
+    });
+    expect(body.assessment.data).not.toHaveProperty('damageAssessment');
+  });
+  it('returns specific saved recapture guidance without exposing arbitrary stored prose', async () => {
+    wireDb(
+      assessmentRow({
+        assessment_data: {
+          analysis: {
+            errorCode: 'INSUFFICIENT_EVIDENCE',
+            captureIssue: { photoIndex: 1, issue: 'overexposed' },
+          },
+        },
+      })
+    );
+    const body = await (await get()).json();
+    expect(body.message).toContain('Photo 2:');
+    expect(body.message).toContain('glare');
+    expect(body.assessment).toBeNull();
+    wireDb(
+      assessmentRow({
+        assessment_data: {
+          analysis: {
+            errorCode: 'INSUFFICIENT_EVIDENCE',
+            captureIssue: { photoIndex: 1, issue: 'invented' },
+            message: 'Unsafe arbitrary advice',
+          },
+        },
+      })
+    );
+    expect((await (await get()).json()).message).not.toContain('Unsafe');
+  });
   it.each([
     {
       damageAssessment: { damageType: 'no_defect', confidence: 0 },

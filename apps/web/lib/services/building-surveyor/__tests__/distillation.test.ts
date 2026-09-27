@@ -472,7 +472,7 @@ describe('TrainingDataExporter.toQwenConversation', () => {
     severity: 'developing',
     teacherConfidence: 85,
     teacherQuality: 'high',
-    humanVerified: false,
+    humanVerified: true,
     usedInTraining: false,
     trainingRound: null,
     createdAt: new Date('2026-02-15'),
@@ -485,6 +485,31 @@ describe('TrainingDataExporter.toQwenConversation', () => {
     expect(conversation.messages[0].role).toBe('system');
     expect(conversation.messages[1].role).toBe('user');
     expect(conversation.messages[2].role).toBe('assistant');
+  });
+
+  it('rejects unreviewed labels even when the teacher is highly confident', () => {
+    expect(() =>
+      TrainingDataExporter.toQwenConversation({
+        ...example,
+        humanVerified: false,
+        teacherConfidence: 99,
+        teacherQuality: 'high',
+      })
+    ).toThrow('reviewed label');
+  });
+
+  it('uses the reviewed correction rather than repeating the teacher mistake', () => {
+    const corrected = makeAssessment({
+      damageType: 'wall_crack',
+      confidence: 75,
+    });
+    const conversation = TrainingDataExporter.toQwenConversation({
+      ...example,
+      humanCorrectedResponse: corrected,
+    });
+    expect(JSON.parse(conversation.messages[2].content as string)).toEqual(
+      corrected
+    );
   });
 
   it('system message uses a generic training prompt, NOT the example systemPrompt', () => {

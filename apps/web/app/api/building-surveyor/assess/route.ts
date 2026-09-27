@@ -1,3 +1,4 @@
+import { PhotoRecaptureError } from '@/lib/services/building-surveyor/recapture-guidance';
 import { NextResponse, after } from 'next/server';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import crypto from 'crypto';
@@ -15,6 +16,7 @@ import { checkAICostBudget } from '@/lib/ai/cost-budget';
 import { loadDependencies } from './_deps';
 import { validateImageUrls } from './_image-validation';
 import { authorizeAssessmentAnchors } from './_anchor-authorization';
+import { assessVisibleEvidence } from './_observe-assessment';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,8 +69,12 @@ function generateCacheKey(input: {
   // never share assessment data across users or property anchors: the result
   // may contain context-derived and property-pattern information.
   const canonicalInput = JSON.stringify({
+    observationProtocol:
+      process.env.MINT_OBSERVATION_GATE_ENABLED === 'true'
+        ? 'observation-only-v1'
+        : 'legacy',
     userId: input.userId,
-    imageUrls: [...input.imageUrls].sort(),
+    imageUrls: input.imageUrls,
     context: input.context ?? null,
     jobId: input.jobId ?? null,
     propertyId: input.propertyId ?? null,
@@ -240,6 +246,21 @@ export const POST = withApiHandler(
       gps: bodyGps,
       roomMetadata: bodyRoomMetadata,
     });
+    if (process.env.MINT_OBSERVATION_GATE_ENABLED === 'true') {
+      const apiKey = deps.getConfig().openaiApiKey;
+      if (!apiKey) throw new Error('Visual assessment service is unavailable');
+      return NextResponse.json(
+        await assessVisibleEvidence({
+          userId: user.id,
+          imageUrls,
+          cacheKey,
+          apiKey,
+          jobId: bodyJobId,
+          propertyId: bodyPropertyId,
+          domain: bodyDomain,
+        })
+      );
+    }
     const memoryAssessment = assessmentCache.get(cacheKey);
     if (memoryAssessment && !isAssessmentUnassessable(memoryAssessment)) {
       deps.logger.info('Building assessment cache hit (in-memory)', {
@@ -257,7 +278,7 @@ export const POST = withApiHandler(
     // Check database cache
     const { data: cachedAssessment } = await deps.serverSupabase
       .from('building_assessments')
-      .select('assessment_data, created_at')
+      .select('id, assessment_data, created_at')
       .eq('cache_key', cacheKey)
       .gt(
         'created_at',
@@ -275,9 +296,13 @@ export const POST = withApiHandler(
         userId: user.id,
         cacheSource: 'database',
       });
-      assessmentCache.set(cacheKey, cachedAssessment!.assessment_data);
-      return NextResponse.json({
+      const cachedResponse = {
         ...cachedAssessment!.assessment_data,
+        assessmentId: cachedAssessment!.id,
+      };
+      assessmentCache.set(cacheKey, cachedResponse);
+      return NextResponse.json({
+        ...cachedResponse,
         cached: true,
         cacheSource: 'database',
       });
@@ -294,7 +319,7 @@ export const POST = withApiHandler(
         await new Promise((resolve) => setTimeout(resolve, INFLIGHT_POLL_MS));
         const { data: coalesced } = await deps.serverSupabase
           .from('building_assessments')
-          .select('assessment_data')
+          .select('id, assessment_data')
           .eq('cache_key', cacheKey)
           .single();
         const coalescedData = coalesced?.assessment_data as
@@ -304,16 +329,17 @@ export const POST = withApiHandler(
           coalescedData?.damageAssessment &&
           !isAssessmentUnassessable(coalescedData)
         ) {
-          assessmentCache.set(
-            cacheKey,
-            coalescedData as unknown as Phase1BuildingAssessment
-          );
+          assessmentCache.set(cacheKey, {
+            ...coalescedData,
+            assessmentId: coalesced!.id,
+          } as unknown as Phase1BuildingAssessment);
           deps.logger.info('Assessment coalesced to in-flight request', {
             service: 'building-surveyor-api',
             userId: user.id,
           });
           return NextResponse.json({
             ...coalescedData,
+            assessmentId: coalesced!.id,
             cached: true,
             cacheSource: 'coalesced',
           });
@@ -576,6 +602,9 @@ export const POST = withApiHandler(
                     state: 'insufficient_evidence',
                     errorCode: error.code,
                     retryable: false,
+                    ...(error instanceof PhotoRecaptureError
+                      ? { captureIssue: error.captureIssue }
+                      : {}),
                   },
                 },
               })
@@ -585,6 +614,39 @@ export const POST = withApiHandler(
               deps.logger.error(
                 'Unable to save insufficient evidence outcome',
                 saveError
+              );
+            // Rejected evidence still needs its original photos for human review.
+            // The successful-result image insert below is never reached here.
+            const { data: savedImages, error: readImagesError } =
+              await deps.serverSupabase
+                .from('assessment_images')
+                .select('image_index')
+                .eq('assessment_id', assessmentId);
+            if (!readImagesError) {
+              const existingIndexes = new Set(
+                (savedImages ?? []).map((image) => image.image_index)
+              );
+              const missingImages = imageUrls
+                .map((url, index) => ({
+                  assessment_id: assessmentId,
+                  image_url: url,
+                  image_index: index,
+                }))
+                .filter((image) => !existingIndexes.has(image.image_index));
+              if (missingImages.length) {
+                const { error: imageSaveError } = await deps.serverSupabase
+                  .from('assessment_images')
+                  .insert(missingImages);
+                if (imageSaveError)
+                  deps.logger.error(
+                    'Unable to save rejected source photos',
+                    imageSaveError
+                  );
+              }
+            } else
+              deps.logger.error(
+                'Unable to read rejected source photos',
+                readImagesError
               );
           }
           throw error;
@@ -636,6 +698,7 @@ export const POST = withApiHandler(
     // Save assessment_images immediately (before any early return)
     // This fixes the gap where automated assessments skipped image persistence
     if (assessmentIdForImages) {
+      assessment.assessmentId = assessmentIdForImages;
       try {
         await deps.serverSupabase.from('assessment_images').insert(
           imageUrls.map((url, index) => ({
@@ -709,6 +772,7 @@ export const POST = withApiHandler(
         ).data?.id;
 
       if (savedAssessmentId) {
+        assessment.assessmentId = savedAssessmentId;
         // Images already saved above (before early-return check).
         // Only save here for hybrid inference path where assessmentIdForImages was null.
         if (!assessmentIdForImages) {

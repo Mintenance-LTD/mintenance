@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import {
-  logger,
-  isAssessmentUnassessable,
-  INSUFFICIENT_EVIDENCE_MESSAGE,
-} from '@mintenance/shared';
+import { logger, isAssessmentUnassessable } from '@mintenance/shared';
 import {
   BadRequestError,
   ForbiddenError,
@@ -14,6 +10,7 @@ import {
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { resignAssessmentUrls } from '@/lib/api/assessment-storage';
 import { getAssessmentResult } from '@/lib/services/building-surveyor/assessment-result';
+import { getRecaptureMessage } from '@/lib/services/building-surveyor/recapture-guidance';
 
 /**
  * GET /api/assessments/:id/status
@@ -75,6 +72,7 @@ export const GET = withApiHandler(
       assessment.assessment_data
     );
     const result = getAssessmentResult(assessment.assessment_data);
+    const observationOnly = result?.protocol === 'observation-only-v1';
     const hasResult = status !== 'processing' && result !== null;
     const isComplete = hasResult;
     const isFailed = [
@@ -98,7 +96,9 @@ export const GET = withApiHandler(
       isFailed,
       isValidated: !requiresRecapture && status === 'validated',
       requiresRecapture,
-      message: requiresRecapture ? INSUFFICIENT_EVIDENCE_MESSAGE : undefined,
+      message: requiresRecapture
+        ? getRecaptureMessage(assessment.assessment_data)
+        : undefined,
       canRetry:
         !requiresRecapture &&
         !hasResult &&
@@ -116,13 +116,17 @@ export const GET = withApiHandler(
       assessment: hasResult
         ? {
             domain: assessment.domain,
-            damageType: assessment.damage_type,
-            severity: assessment.severity,
-            confidence: assessment.confidence,
-            safetyScore: assessment.safety_score,
-            complianceScore: assessment.compliance_score,
-            insuranceRiskScore: assessment.insurance_risk_score,
-            urgency: assessment.urgency,
+            damageType: observationOnly ? null : assessment.damage_type,
+            severity: observationOnly ? null : assessment.severity,
+            confidence: observationOnly ? null : assessment.confidence,
+            safetyScore: observationOnly ? null : assessment.safety_score,
+            complianceScore: observationOnly
+              ? null
+              : assessment.compliance_score,
+            insuranceRiskScore: observationOnly
+              ? null
+              : assessment.insurance_risk_score,
+            urgency: observationOnly ? null : assessment.urgency,
             data: result,
           }
         : null,

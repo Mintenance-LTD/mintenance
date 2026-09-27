@@ -8,6 +8,8 @@ TrainingDataExporter in Qwen2.5-VL conversation JSONL format.
 Usage:
     python train_qwen_vlm.py \
         --data training_data.jsonl \
+        --val-data validation_data.jsonl \
+        --split-manifest training_data.jsonl.split.json \
         --output ./adapters/mint-vlm-v1 \
         --epochs 3 \
         --batch-size 2 \
@@ -24,6 +26,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from reviewed_split import load_reviewed_split
 
 import torch
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType
@@ -135,6 +138,8 @@ class QwenVLCollator:
 
 def train(args: argparse.Namespace) -> dict:
     """Run LoRA fine-tuning."""
+    # Fail before allocating/downloading model weights or spending GPU time.
+    rows, val_rows = load_reviewed_split(args.data, args.val_data, args.split_manifest)
     print(f"Loading base model: {args.model}")
     start = time.time()
 
@@ -173,15 +178,6 @@ def train(args: argparse.Namespace) -> dict:
     model.print_trainable_parameters()
 
     # Load and tokenize data
-    rows = load_jsonl(args.data)
-    if args.val_data:
-        val_rows = load_jsonl(args.val_data)
-    else:
-        # Split 90/10 for validation
-        split_idx = max(1, int(len(rows) * 0.9))
-        val_rows = rows[split_idx:]
-        rows = rows[:split_idx]
-
     train_dataset = build_dataset(rows)
     val_dataset = build_dataset(val_rows) if val_rows else None
 
@@ -263,7 +259,8 @@ def train(args: argparse.Namespace) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Qwen2.5-VL LoRA fine-tuning for Mintenance")
     parser.add_argument("--data", required=True, help="Path to training JSONL file")
-    parser.add_argument("--val-data", default=None, help="Path to validation JSONL (optional; defaults to 10%% split)")
+    parser.add_argument("--val-data", required=True, help="Path to independently grouped validation JSONL")
+    parser.add_argument("--split-manifest", required=True, help="Content-bound property split manifest from reviewed export")
     parser.add_argument("--output", required=True, help="Output directory for adapter weights")
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Base model (default: {DEFAULT_MODEL})")
     parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")

@@ -1,3 +1,4 @@
+import type { ObservationAssessment } from '@/lib/services/building-surveyor/observation-assessment';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 
 export interface Assessment {
@@ -10,7 +11,7 @@ export interface Assessment {
   compliance_score: number;
   insurance_risk_score: number;
   urgency: string;
-  assessment_data: Phase1BuildingAssessment;
+  assessment_data: Phase1BuildingAssessment | ObservationAssessment;
   validation_status: 'pending' | 'validated' | 'rejected' | 'needs_review';
   validated_by?: string;
   validated_at?: string;

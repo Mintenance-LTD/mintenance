@@ -10,6 +10,10 @@
  *   3. A row in building_assessments for the flywheel
  */
 
+import {
+  isObservationResult,
+  type ObservationResult,
+} from '../../services/observationResult';
 import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
@@ -185,7 +189,7 @@ async function uploadImage(uri: string): Promise<string> {
  */
 export async function analyzeWithMintAI(
   imageUri: string
-): Promise<AnalysisResult> {
+): Promise<AnalysisResult | ObservationResult> {
   logger.info('AIAssessmentScreen → Mint AI analysis starting', {
     uri: imageUri.slice(0, 80),
   });
@@ -205,5 +209,13 @@ export async function analyzeWithMintAI(
     throw new Error('Empty response from Mint AI');
   }
 
-  return toAnalysisResult(mintResponse);
+  return toMobileResult(mintResponse);
+}
+
+/** Preserve observation-only results without inventing legacy diagnosis fields. */
+export function toMobileResult(
+  response: BuildingAssessmentResponse | ObservationResult
+): AnalysisResult | ObservationResult {
+  if (isObservationResult(response)) return response;
+  return toAnalysisResult(response);
 }

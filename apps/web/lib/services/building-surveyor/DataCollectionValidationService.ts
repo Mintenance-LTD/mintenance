@@ -56,6 +56,15 @@ export async function validateAssessment(
       throw new Error('Assessment not found');
     }
 
+    if (
+      assessmentRecord.assessment_data?.visualEvidence ||
+      assessmentRecord.assessment_data?.protocol === 'observation-only-v1'
+    ) {
+      throw new Error(
+        'Use the photo review workflow for visible findings; diagnosis cannot be validated.'
+      );
+    }
+
     const { error } = await serverSupabase
       .from('building_assessments')
       .update({

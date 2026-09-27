@@ -50,44 +50,47 @@ export function BuildingAssessmentsReviewDialog({
         </DialogHeader>
         {selectedAssessment && (
           <>
-            {selectedAssessment.auto_validated && (
-              <AdminCard padding='md' className='mb-6'>
-                <div className='space-y-2 text-sm text-muted-foreground'>
-                  <div className='font-semibold text-foreground'>
-                    Auto-Validation Details
-                  </div>
-                  <div>
-                    Status:{' '}
-                    <strong>
-                      {getAutoValidationBadge(selectedAssessment)?.label ||
-                        'Auto-Validated'}
-                    </strong>
-                  </div>
-                  <div>
-                    Confidence at time of auto-validation:{' '}
-                    <strong>
-                      {selectedAssessment.auto_validation_confidence ??
-                        selectedAssessment.confidence}
-                      %
-                    </strong>
-                  </div>
-                  {selectedAssessment.auto_validated_at && (
-                    <div>
-                      Auto-validated at:{' '}
-                      {new Date(
-                        selectedAssessment.auto_validated_at
-                      ).toLocaleString()}
+            {selectedAssessment.auto_validated &&
+              !selectedAssessment.assessment_data?.visualEvidence && (
+                <AdminCard padding='md' className='mb-6'>
+                  <div className='space-y-2 text-sm text-muted-foreground'>
+                    <div className='font-semibold text-foreground'>
+                      Auto-Validation Details
                     </div>
-                  )}
-                  {selectedAssessment.auto_validation_reason && (
                     <div>
-                      Reason: {selectedAssessment.auto_validation_reason}
+                      Status:{' '}
+                      <strong>
+                        {getAutoValidationBadge(selectedAssessment)?.label ||
+                          'Auto-Validated'}
+                      </strong>
                     </div>
-                  )}
-                </div>
-              </AdminCard>
-            )}
-            {selectedAssessment.assessment_data?.damageAssessment ? (
+                    <div>
+                      Confidence at time of auto-validation:{' '}
+                      <strong>
+                        {selectedAssessment.auto_validation_confidence ??
+                          selectedAssessment.confidence}
+                        %
+                      </strong>
+                    </div>
+                    {selectedAssessment.auto_validated_at && (
+                      <div>
+                        Auto-validated at:{' '}
+                        {new Date(
+                          selectedAssessment.auto_validated_at
+                        ).toLocaleString()}
+                      </div>
+                    )}
+                    {selectedAssessment.auto_validation_reason && (
+                      <div>
+                        Reason: {selectedAssessment.auto_validation_reason}
+                      </div>
+                    )}
+                  </div>
+                </AdminCard>
+              )}
+            {selectedAssessment.assessment_data &&
+            ('damageAssessment' in selectedAssessment.assessment_data ||
+              selectedAssessment.assessment_data.visualEvidence) ? (
               <BuildingAssessmentDisplay
                 assessment={selectedAssessment.assessment_data}
               />
@@ -98,46 +101,47 @@ export function BuildingAssessmentsReviewDialog({
               key={selectedAssessment.id}
               assessmentId={selectedAssessment.id}
             />
-            {(selectedAssessment.validation_status === 'pending' ||
-              (selectedAssessment.auto_validated &&
-                selectedAssessment.auto_validation_review_status ===
-                  'pending_review')) && (
-              <div className='mt-6 pt-6 border-t border-border space-y-4'>
-                <div className='space-y-2'>
-                  <Label htmlFor='validation-notes'>
-                    Validation Notes (Optional)
-                  </Label>
-                  <Textarea
-                    id='validation-notes'
-                    value={validationNotes}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      onNotesChange(e.target.value)
-                    }
-                    placeholder='Add notes about this assessment...'
-                    rows={3}
-                  />
+            {!selectedAssessment.assessment_data?.visualEvidence &&
+              (selectedAssessment.validation_status === 'pending' ||
+                (selectedAssessment.auto_validated &&
+                  selectedAssessment.auto_validation_review_status ===
+                    'pending_review')) && (
+                <div className='mt-6 pt-6 border-t border-border space-y-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='validation-notes'>
+                      Validation Notes (Optional)
+                    </Label>
+                    <Textarea
+                      id='validation-notes'
+                      value={validationNotes}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        onNotesChange(e.target.value)
+                      }
+                      placeholder='Add notes about this assessment...'
+                      rows={3}
+                    />
+                  </div>
+                  <div className='flex gap-3 justify-end'>
+                    <Button
+                      variant='secondary'
+                      onClick={() => onValidate(selectedAssessment.id, true)}
+                      disabled={loading}
+                    >
+                      Validate
+                    </Button>
+                    <Button
+                      variant='outline'
+                      onClick={() => onValidate(selectedAssessment.id, false)}
+                      disabled={loading}
+                    >
+                      Reject
+                    </Button>
+                    <Button variant='ghost' onClick={onClose}>
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-                <div className='flex gap-3 justify-end'>
-                  <Button
-                    variant='secondary'
-                    onClick={() => onValidate(selectedAssessment.id, true)}
-                    disabled={loading}
-                  >
-                    Validate
-                  </Button>
-                  <Button
-                    variant='outline'
-                    onClick={() => onValidate(selectedAssessment.id, false)}
-                    disabled={loading}
-                  >
-                    Reject
-                  </Button>
-                  <Button variant='ghost' onClick={onClose}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
           </>
         )}
       </DialogContent>
