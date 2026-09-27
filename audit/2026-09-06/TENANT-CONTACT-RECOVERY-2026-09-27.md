@@ -27,3 +27,27 @@ expiry/account-deletion cleanup is still part of the retention gate. Operation i
 the contact row, not a permanent operation journal; removal of that row before a delayed retry
 requires additional reconciliation/tombstone coverage. This change does not close the broader native
 or retention readiness gates. No production data or live payments were changed.
+
+## Database replay guard follow-up
+
+Migration `20260927141955_prevent_deleted_contact_replay.sql` now reserves consumed contact UUIDs
+transactionally. The ledger stores only the UUID, with no contact fields, actor/property references
+or payload. Existing contact UUIDs were backfilled. Its unique constraint serializes simultaneous
+saves; reservations roll back with failed inserts and survive contact deletion. IDs cannot be
+changed after insertion.
+
+Executed against isolated Docker Postgres: deletion/replay rejection, failed-insert rollback
+followed by successful correction, immutable ID, privilege assertions, and a real two-session
+concurrent insert. All passed. The API regression suite passed 14 tests including HTTP 410 for a
+deleted contact operation. The earlier deletion-before-retry limitation is addressed by this
+migration; native force-stop acceptance remains open.
+
+Applied through Supabase MCP to the authorized hosted project on 27 September. Verified RLS enabled,
+anonymous/authenticated reads denied, service-role read allowed but ledger deletion denied, direct
+trigger-function execution denied to authenticated users, and trigger enabled. No synthetic contact
+records were added to the hosted database.
+
+The requested local schema diff was attempted with the installed Supabase CLI. Shadow replay stopped
+at existing migration `20260830090100_message_bid_hot_path_indexes.sql`: CREATE INDEX CONCURRENTLY
+cannot be executed within a pipeline. This prevents claiming a clean full migration replay; the new
+migration was separately applied and exercised transactionally in the isolated database.

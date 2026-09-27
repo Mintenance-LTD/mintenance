@@ -40,7 +40,23 @@ export async function recoverContactSave(
     .eq('property_id', property)
     .maybeSingle();
   if (error) throw new Error('Contact save could not be checked');
-  if (!tenant) return null;
+  if (!tenant) {
+    const { data: consumed, error: lookupError } = await serverSupabase
+      .from('property_contact_save_ids')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+    if (lookupError) throw new Error('Contact save could not be checked');
+    if (consumed)
+      return NextResponse.json(
+        {
+          error:
+            'This contact was already saved and has since been removed. Discard the pending draft and refresh your contacts.',
+        },
+        { status: 410 }
+      );
+    return null;
+  }
   const expected = {
     ...details,
     email: details.email?.trim().toLowerCase() || null,
