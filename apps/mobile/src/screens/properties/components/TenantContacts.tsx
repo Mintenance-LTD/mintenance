@@ -1,7 +1,7 @@
 /**
  * TenantContacts - Manage tenant contacts for a property
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { useAuth } from '../../../contexts/AuthContext';
+import {
+  readPendingTenant,
+  savePendingTenant,
+  clearPendingTenant,
+} from '../../../utils/pendingTenantContact';
 import { me } from '../../../design-system/mint-editorial';
 
 interface Tenant {
@@ -36,13 +41,49 @@ interface Props {
 }
 
 export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
-  const queryClient = useQueryClient();
   const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <TenantContactsForAccount
+      key={`${user.id}.${propertyId}`}
+      propertyId={propertyId}
+      user={user}
+    />
+  );
+};
+
+const TenantContactsForAccount: React.FC<Props & { user: { id: string } }> = ({
+  propertyId,
+  user,
+}) => {
+  const queryClient = useQueryClient();
   const saving = useRef(false);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [recoveryReady, setRecoveryReady] = useState(false);
+  const [recoveryError, setRecoveryError] = useState(false);
+  useEffect(() => {
+    let active = true;
+    readPendingTenant(user.id, propertyId)
+      .then((pending) => {
+        if (!active) return;
+        if (pending) {
+          setName(pending.name);
+          setEmail(pending.email);
+          setPhone(pending.phone);
+          setShowForm(true);
+        }
+        setRecoveryReady(true);
+      })
+      .catch(() => {
+        if (active) setRecoveryError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user.id, propertyId]);
 
   const {
     data: tenants = [],
@@ -66,16 +107,22 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       saving.current = false;
     },
     mutationFn: async () => {
+      const pending = await savePendingTenant(user.id, propertyId, {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      });
       const result = await mobileApiClient.post<{
         tenant: { id: string };
         invitation_status?: string;
       }>(`/api/properties/${propertyId}/tenants`, {
-        name: name.trim(),
-        email: email.trim() || undefined,
-        phone: phone.trim() || undefined,
+        ...pending,
+        email: pending.email || undefined,
+        phone: pending.phone || undefined,
       });
       if (!result.tenant?.id)
         throw new Error('Tenant save could not be confirmed');
+      await clearPendingTenant(user.id, propertyId);
       return result;
     },
     onSuccess: (result) => {
@@ -154,12 +201,19 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       Alert.alert('Required', 'Please enter a name.');
       return;
     }
-    if (saving.current) return;
+    if (saving.current || !recoveryReady) return;
     saving.current = true;
     createMutation.mutate();
   };
 
-  if (isLoading)
+  if (recoveryError)
+    return (
+      <Text>
+        Saved contact details could not be recovered. Reopen this property to
+        retry.
+      </Text>
+    );
+  if (isLoading || !recoveryReady)
     return (
       <View style={styles.container}>
         <Text>Loading tenants…</Text>
@@ -199,6 +253,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
         <View style={styles.form}>
           <TextInput
             style={styles.input}
+            maxLength={200}
             value={name}
             onChangeText={setName}
             placeholder='Full name *'
@@ -206,6 +261,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
           />
           <TextInput
             style={styles.input}
+            maxLength={254}
             value={email}
             onChangeText={setEmail}
             placeholder='Email address'
@@ -215,6 +271,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
           />
           <TextInput
             style={styles.input}
+            maxLength={50}
             value={phone}
             onChangeText={setPhone}
             placeholder='Phone number'
