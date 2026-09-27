@@ -14,6 +14,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '../agents/NotificationAgent';
+import { recordPushReceipt } from './PushReceiptService';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
@@ -185,6 +186,25 @@ export async function sendPushToDevice(
               ticket.id
             ) {
               acceptedDeviceIds.add(batch[index].id);
+              try {
+                await recordPushReceipt(
+                  ticket.id,
+                  params.userId,
+                  batch[index].id,
+                  batch[index].push_token
+                );
+              } catch {
+                // Do not resend an accepted push just because its journal failed.
+                // Surface the observability failure separately for operations.
+                logger.error(
+                  'Accepted push receipt could not be recorded',
+                  undefined,
+                  {
+                    service: 'NotificationPushDispatcher',
+                    notificationId: params.notificationId,
+                  }
+                );
+              }
             } else {
               // Never log provider messages: they can contain the device token.
               failureReason = 'expo_ticket_rejected';

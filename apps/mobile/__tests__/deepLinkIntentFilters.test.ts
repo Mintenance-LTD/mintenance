@@ -73,6 +73,25 @@ describe('buildAndroidIntentData()', () => {
     }
   });
 
+  it.each([
+    '/register/invitation?token=synthetic-invite',
+    '/auth/callback?token_hash=synthetic-verification',
+    '/auth/mfa-verify?token=synthetic-challenge',
+    '/tenant/properties/11111111-1111-4111-8111-111111111111',
+  ])(
+    'keeps the complete resident onboarding journey in the browser: %s',
+    (path) => {
+      const pathname = new URL(path, 'https://www.mintenance.co.uk').pathname;
+      expect(
+        data.some(
+          (entry) =>
+            entry.path === pathname ||
+            (entry.pathPrefix && pathname.startsWith(entry.pathPrefix))
+        )
+      ).toBe(false);
+    }
+  );
+
   it('uses a trailing slash on prefixes so /jobs does not swallow /jobsomething', () => {
     const prefixes = data.filter((d) => d.pathPrefix).map((d) => d.pathPrefix!);
     expect(prefixes.length).toBeGreaterThan(0);

@@ -37,6 +37,11 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           return query;
         },
         limit: () => query,
+        order: () => query,
+        neq: (key: string, value: unknown) => {
+          filters.push((row) => row[key] !== value);
+          return query;
+        },
         in: (key: string, values: unknown[]) => {
           filters.push((row) => values.includes(row[key]));
           return query;
@@ -45,8 +50,12 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           filters.push((row) => String(row[key]) <= value);
           return query;
         },
-        lt: (key: string, value: number) => {
-          filters.push((row) => Number(row[key]) < value);
+        lt: (key: string, value: number | string) => {
+          filters.push((row) =>
+            typeof value === 'number'
+              ? Number(row[key]) < value
+              : String(row[key]) < value
+          );
           return query;
         },
         eq: (key: string, value: unknown) => {
@@ -110,6 +119,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
 
 import { sendPushToDevice } from '../NotificationPushDispatcher';
 import { NotificationProcessorService } from '../NotificationProcessorService';
+import { processPushReceipts, pushTokenHash } from '../PushReceiptService';
 
 const params = {
   userId: 'owner',
@@ -134,6 +144,7 @@ beforeEach(() => {
       { id: 'notification', user_id: 'owner', read: false, push_sent: false },
     ],
     notification_queue: [],
+    push_delivery_receipts: [],
   };
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -318,4 +329,128 @@ it('respects a push opt-out made after the initial failure', async () => {
   await NotificationProcessorService.processQueuedNotifications();
   expect(state.fetch).not.toHaveBeenCalled();
   expect(state.tables.notification_queue[0].status).toBe('cancelled');
+});
+
+function pendingReceipt(id = 'receipt-a', ageHours = 1) {
+  return {
+    id,
+    user_id: 'owner',
+    device_id: 'device-a',
+    token_hash: pushTokenHash('token-a'),
+    status: 'pending',
+    created_at: new Date(Date.now() - ageHours * 3600000).toISOString(),
+    next_check_at: new Date(Date.now() - 1000).toISOString(),
+  };
+}
+
+it('journals accepted tickets without retaining raw device tokens', async () => {
+  state.fetch.mockResolvedValue(
+    response([
+      { status: 'ok', id: 'a' },
+      { status: 'ok', id: 'b' },
+    ])
+  );
+  await sendPushToDevice(params);
+  expect(state.tables.push_delivery_receipts).toHaveLength(2);
+  expect(state.tables.push_delivery_receipts[0]).toMatchObject({
+    id: 'a',
+    user_id: 'owner',
+    token_hash: pushTokenHash('token-a'),
+  });
+  expect(JSON.stringify(state.tables.push_delivery_receipts)).not.toContain(
+    'token-a'
+  );
+});
+
+it('polls persisted receipts without sending another notification', async () => {
+  state.tables.push_delivery_receipts.push(pendingReceipt());
+  state.fetch.mockResolvedValue(response({ 'receipt-a': { status: 'ok' } }));
+  expect(await processPushReceipts()).toMatchObject({
+    accepted: 1,
+    checked: 1,
+  });
+  expect(state.tables.push_delivery_receipts[0].status).toBe(
+    'provider_accepted'
+  );
+  expect(state.fetch).toHaveBeenCalledWith(
+    'https://exp.host/--/api/v2/push/getReceipts',
+    expect.objectContaining({ body: JSON.stringify({ ids: ['receipt-a'] }) })
+  );
+  await processPushReceipts();
+  expect(state.fetch).toHaveBeenCalledTimes(1);
+});
+
+it('keeps pending receipts retryable when the provider is unavailable', async () => {
+  state.tables.push_delivery_receipts.push(pendingReceipt());
+  state.fetch.mockResolvedValue({ ok: false });
+  await expect(processPushReceipts()).rejects.toThrow('provider unavailable');
+  expect(state.tables.push_delivery_receipts[0].status).toBe('pending');
+});
+
+it.each([false, true])(
+  'invalidates only the exact rejected device token, rotated=%s',
+  async (rotated) => {
+    state.tables.push_delivery_receipts.push(pendingReceipt());
+    if (rotated)
+      state.tables.user_push_tokens[0].push_token = 'replacement-token';
+    state.fetch.mockResolvedValue(
+      response({
+        'receipt-a': {
+          status: 'error',
+          details: { error: 'DeviceNotRegistered' },
+        },
+      })
+    );
+    expect(await processPushReceipts()).toMatchObject({ failed: 1 });
+    expect(
+      state.tables.user_push_tokens.some((row) => row.id === 'device-a')
+    ).toBe(rotated);
+    expect(
+      state.tables.user_push_tokens.some((row) => row.id === 'other-device')
+    ).toBe(true);
+  }
+);
+
+it('leaves reconciliation pending when token removal fails', async () => {
+  state.tables.push_delivery_receipts.push(pendingReceipt());
+  state.failTable = 'user_push_tokens';
+  state.fetch.mockResolvedValue(
+    response({
+      'receipt-a': {
+        status: 'error',
+        details: { error: 'DeviceNotRegistered' },
+      },
+    })
+  );
+  await expect(processPushReceipts()).rejects.toThrow(
+    'reconciliation unavailable'
+  );
+  expect(state.tables.push_delivery_receipts[0].status).toBe('pending');
+});
+
+it('expires missing receipts only after the provider retention window', async () => {
+  state.tables.push_delivery_receipts.push(
+    pendingReceipt(),
+    pendingReceipt('old', 25)
+  );
+  state.fetch.mockResolvedValue(response({}));
+  expect(await processPushReceipts()).toMatchObject({ pending: 1, expired: 1 });
+});
+
+it('does not resend an accepted push when receipt persistence fails; emits an operational error', async () => {
+  state.failTable = 'push_delivery_receipts';
+  state.fetch.mockResolvedValue(
+    response([
+      { status: 'ok', id: 'a' },
+      { status: 'ok', id: 'b' },
+    ])
+  );
+  await sendPushToDevice(params);
+  expect(state.fetch).toHaveBeenCalledTimes(1);
+  expect(state.logError).toHaveBeenCalledWith(
+    'Accepted push receipt could not be recorded',
+    undefined,
+    expect.objectContaining({ notificationId: 'notification' })
+  );
+  expect(state.tables.notification_queue).toHaveLength(0);
 });
