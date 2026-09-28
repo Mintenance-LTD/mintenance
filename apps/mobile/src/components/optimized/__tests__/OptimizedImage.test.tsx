@@ -24,6 +24,17 @@ import { OptimizedImage } from '../OptimizedImage';
 const URI = 'https://cdn.example.com/photo.jpg';
 
 describe('OptimizedImage', () => {
+  it('loads a replacement URL after the previous image failed', () => {
+    const { getByTestId, queryByTestId, rerender } = render(
+      <OptimizedImage source={{ uri: URI }} testID='img' />
+    );
+    fireEvent(getByTestId('img-image'), 'error', { error: 'expired' });
+    expect(queryByTestId('img-image')).toBeNull();
+    rerender(
+      <OptimizedImage source={{ uri: `${URI}?token=new` }} testID='img' />
+    );
+    expect(getByTestId('img-image').props.source.uri).toContain('token=new');
+  });
   it('exports a memoized component', () => {
     expect(OptimizedImage).toBeDefined();
     expect(OptimizedImage.$$typeof).toBeDefined();

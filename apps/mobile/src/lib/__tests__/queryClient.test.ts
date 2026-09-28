@@ -106,6 +106,21 @@ describe('queryClient default options', () => {
 // Query retry branch coverage
 // ---------------------------------------------------------------------------
 describe('query retry logic', () => {
+  it('does not replay rejected mobile API queries or mutations', () => {
+    for (const options of [
+      queryClient.getDefaultOptions().queries,
+      queryClient.getDefaultOptions().mutations,
+    ]) {
+      const shouldRetry = options!.retry as (
+        count: number,
+        error: unknown
+      ) => boolean;
+      for (const statusCode of [400, 401, 403, 404, 409, 422, 429]) {
+        expect(shouldRetry(0, { statusCode })).toBe(false);
+      }
+      expect(shouldRetry(0, { statusCode: 503 })).toBe(true);
+    }
+  });
   const retry = () =>
     queryClient.getDefaultOptions().queries!.retry as (
       failureCount: number,

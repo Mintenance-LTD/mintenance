@@ -7,6 +7,8 @@
  */
 import { renderHook, act } from '@testing-library/react-native';
 
+import { useAssignedJobLocationAutoStart } from '../useAssignedJobLocationAutoStart';
+
 const mockGetFg = jest.fn();
 jest.mock('expo-location', () => ({
   __esModule: true,
@@ -57,8 +59,6 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-import { useAssignedJobLocationAutoStart } from '../useAssignedJobLocationAutoStart';
-
 const enRouteTrip = {
   id: 't1',
   status: 'en_route',
@@ -87,7 +87,14 @@ describe('mount auto-start', () => {
       await jest.advanceTimersByTimeAsync(2000);
     });
     expect(mockAcquire).toHaveBeenCalledWith('u1', 'j1');
-    expect(mockStartTracking).toHaveBeenCalled();
+    expect(mockStartTracking).toHaveBeenCalledWith(
+      'u1',
+      'j1',
+      null,
+      { latitude: 1, longitude: 2 },
+      undefined,
+      { skipShareNotify: true }
+    );
   });
 
   it('does nothing without foreground permission', async () => {

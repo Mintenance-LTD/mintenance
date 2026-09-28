@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useMemo } from 'react';
+import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -95,6 +95,12 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     error: false,
     loaded: false,
   });
+
+  const sourceIdentity = typeof source === 'object' ? source.uri : source;
+  useEffect(() => {
+    // A failed signed URL must not prevent a replacement URL from mounting.
+    setImageState({ loading: false, error: false, loaded: false });
+  }, [sourceIdentity]);
 
   // ============================================================================
   // COMPUTED SOURCE

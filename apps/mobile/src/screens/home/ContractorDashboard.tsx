@@ -26,7 +26,6 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/UserService';
 import { Ionicons } from '@expo/vector-icons';
-import { useHaptics } from '../../utils/haptics';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FullScreenLoading } from '../../components/LoadingSpinner';
 import type { HeaderMenuItem } from '../../components/navigation/NavigationHeader';
@@ -66,9 +65,9 @@ export const ContractorDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigation =
     useNavigation<NavigationProp<Record<string, object | undefined>>>();
-  const haptics = useHaptics();
   const queryClient = useQueryClient();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showTools, setShowTools] = useState(false);
 
   const {
     data: contractorStats = null,
@@ -345,43 +344,6 @@ export const ContractorDashboard: React.FC = () => {
             />
           </FadeIn>
 
-          <FadeIn duration={400}>
-            <QuickActions
-              onBrowseJobsPress={openFindJobs}
-              onInboxPress={() =>
-                navigation.navigate('MessagingTab', { screen: 'MessagesList' })
-              }
-              onQuotesPress={() =>
-                navigation.navigate('BusinessTab', { screen: 'QuoteBuilder' })
-              }
-              onInvoicesPress={() =>
-                navigation.navigate('BusinessTab', {
-                  screen: 'InvoiceManagement',
-                })
-              }
-              onExpensesPress={() =>
-                navigation.navigate('BusinessTab', { screen: 'Expenses' })
-              }
-              onCalendarPress={() =>
-                navigation.navigate('BusinessTab', { screen: 'Calendar' })
-              }
-              onCRMPress={() =>
-                navigation.navigate('BusinessTab', { screen: 'CRMDashboard' })
-              }
-              onFinancePress={() =>
-                navigation.navigate('BusinessTab', {
-                  screen: 'FinanceDashboard',
-                })
-              }
-              onTimeTrackingPress={() =>
-                navigation.navigate('BusinessTab', { screen: 'TimeTracking' })
-              }
-              onReportingPress={() =>
-                navigation.navigate('BusinessTab', { screen: 'Reporting' })
-              }
-            />
-          </FadeIn>
-
           {/* Phase 1.3 — Finish-setup checklist. Self-hides when done. */}
           <FadeIn duration={400} delay={200}>
             <FinishSetupCard />
@@ -407,6 +369,64 @@ export const ContractorDashboard: React.FC = () => {
             />
           </SlideIn>
 
+          <TouchableOpacity
+            onPress={() => setShowTools((value) => !value)}
+            accessibilityRole='button'
+            accessibilityState={{ expanded: showTools }}
+            style={{ paddingVertical: 16 }}
+          >
+            <Text style={{ color: me.brand, fontWeight: '600' }}>
+              {showTools ? 'Hide business tools' : 'Business tools'}
+            </Text>
+          </TouchableOpacity>
+          {showTools && (
+            <View>
+              <FadeIn duration={400}>
+                <QuickActions
+                  onBrowseJobsPress={openFindJobs}
+                  onInboxPress={() =>
+                    navigation.navigate('MessagingTab', {
+                      screen: 'MessagesList',
+                    })
+                  }
+                  onQuotesPress={() =>
+                    navigation.navigate('BusinessTab', {
+                      screen: 'QuoteBuilder',
+                    })
+                  }
+                  onInvoicesPress={() =>
+                    navigation.navigate('BusinessTab', {
+                      screen: 'InvoiceManagement',
+                    })
+                  }
+                  onExpensesPress={() =>
+                    navigation.navigate('BusinessTab', { screen: 'Expenses' })
+                  }
+                  onCalendarPress={() =>
+                    navigation.navigate('BusinessTab', { screen: 'Calendar' })
+                  }
+                  onCRMPress={() =>
+                    navigation.navigate('BusinessTab', {
+                      screen: 'CRMDashboard',
+                    })
+                  }
+                  onFinancePress={() =>
+                    navigation.navigate('BusinessTab', {
+                      screen: 'FinanceDashboard',
+                    })
+                  }
+                  onTimeTrackingPress={() =>
+                    navigation.navigate('BusinessTab', {
+                      screen: 'TimeTracking',
+                    })
+                  }
+                  onReportingPress={() =>
+                    navigation.navigate('BusinessTab', { screen: 'Reporting' })
+                  }
+                />
+              </FadeIn>
+            </View>
+          )}
           <View style={styles.bottomSpacer} />
         </View>
       </ScrollView>
