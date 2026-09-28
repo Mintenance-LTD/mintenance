@@ -47,6 +47,44 @@ function resolveApiBaseUrl(): string {
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
+// Session restoration can wait on an auth lock while connectivity changes.
+// Bound that wait before entering the HTTP client, whose timeout starts later.
+function getAuthTokenWithDeadline(
+  signal?: AbortSignal
+): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    let settled = false;
+    const finish = (error?: Error, token?: string | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', cancel);
+      controller.abort();
+      if (error) reject(error);
+      else resolve(token ?? null);
+    };
+    const cancel = () => finish(new Error('Request cancelled'));
+    const timer = setTimeout(
+      () =>
+        finish(new Error('Session check timed out. Reconnect and try again.')),
+      30000
+    );
+    signal?.addEventListener('abort', cancel, { once: true });
+    if (signal?.aborted) {
+      cancel();
+      return;
+    }
+    getAuthToken(controller.signal).then(
+      (token) => finish(undefined, token),
+      (error: unknown) =>
+        finish(
+          error instanceof Error ? error : new Error('Session check failed')
+        )
+    );
+  });
+}
+
 /**
  * Get authentication token from Supabase session.
  * Falls back to SecureStore if the Supabase client session is null
@@ -107,7 +145,7 @@ async function getAuthToken(signal?: AbortSignal): Promise<string | null> {
     if (sessionJson) {
       const persisted = JSON.parse(sessionJson);
       if (persisted?.access_token && persisted?.refresh_token) {
-        const { error: restoreError } = await supabase.auth.setSession({
+        const { data, error: restoreError } = await supabase.auth.setSession({
           access_token: persisted.access_token,
           refresh_token: persisted.refresh_token,
         });
@@ -119,7 +157,7 @@ async function getAuthToken(signal?: AbortSignal): Promise<string | null> {
           return null;
         }
         logger.info('[AUTH] getAuthToken: restored from SecureStore');
-        return persisted.access_token;
+        return data?.session?.access_token ?? null;
       }
     }
   } catch {
@@ -137,10 +175,10 @@ async function getAuthToken(signal?: AbortSignal): Promise<string | null> {
  */
 class MobileApiClient extends ApiClient {
   private isRefreshing = false;
-  private refreshQueue: Array<{
+  private refreshQueue: {
     resolve: (token: string) => void;
     reject: (error: unknown) => void;
-  }> = [];
+  }[] = [];
 
   constructor() {
     super({
@@ -159,7 +197,7 @@ class MobileApiClient extends ApiClient {
     url: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const token = await getAuthToken(options.signal ?? undefined);
+    const token = await getAuthTokenWithDeadline(options.signal ?? undefined);
 
     const headers = {
       ...options.headers,
@@ -177,10 +215,19 @@ class MobileApiClient extends ApiClient {
           ...options.headers,
           Authorization: `Bearer ${newToken}`,
         };
-        return await super.request<T>(url, {
-          ...options,
-          headers: retryHeaders,
-        });
+        try {
+          return await super.request<T>(url, {
+            ...options,
+            headers: retryHeaders,
+          });
+        } catch (retryError) {
+          // Refresh cannot renew an absolute session timeout or revocation.
+          // Leave the protected navigation instead of stranding every screen.
+          if ((retryError as IApiError).statusCode === 401) {
+            await supabase.auth.signOut({ scope: 'local' });
+          }
+          throw retryError;
+        }
       }
       throw error;
     }
@@ -263,13 +310,16 @@ class MobileApiClient extends ApiClient {
       }
     };
 
-    const initialToken = await getAuthToken();
+    const initialToken = await getAuthTokenWithDeadline();
     let response = await doRequest(initialToken);
 
     if (response.status === 401) {
       // Mirror request()'s behaviour: wait for the queued refresh, retry once.
       const newToken = await this.waitForTokenRefresh();
       response = await doRequest(newToken);
+      if (response.status === 401) {
+        await supabase.auth.signOut({ scope: 'local' });
+      }
     }
 
     if (!response.ok) {

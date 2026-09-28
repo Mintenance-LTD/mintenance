@@ -1,3 +1,5 @@
+import { readRetainedDispute } from '@/lib/services/disputes/retained';
+import { readDisputeEvidence } from '@/lib/services/disputes/evidence';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID } from '@/lib/validation/uuid';
@@ -49,6 +51,8 @@ export const GET = withApiHandler(
         'Unable to load the dispute. Please retry.'
       );
     if (!escrow) {
+      const retained = await readRetainedDispute(disputeId, user.id);
+      if (retained) return NextResponse.json(retained);
       // Return generic error to avoid leaking dispute existence
       throw new NotFoundError('Dispute not found or access denied');
     }
@@ -113,6 +117,11 @@ export const GET = withApiHandler(
       }
     }
 
+    if (!disputeRecord) {
+      const retained = await readRetainedDispute(disputeId, user.id);
+      if (retained) return NextResponse.json(retained);
+    }
+
     return NextResponse.json({
       id: escrow.id,
       job_id: escrow.job_id,
@@ -131,7 +140,11 @@ export const GET = withApiHandler(
       // Frontend-facing aliases (apps/web/app/disputes/[id]/page.tsx)
       dispute_reason: disputeRecord?.reason ?? null,
       description: disputeRecord?.description ?? null,
-      dispute_evidence: [] as unknown[],
+      dispute_evidence: await readDisputeEvidence(
+        disputeRecord?.description ?? null,
+        escrow.job_id,
+        disputeRecord?.raised_by ?? null
+      ),
       resolution: disputeRecord?.resolution ?? null,
       resolved_at: disputeRecord?.resolved_at ?? null,
       dispute_record_id: disputeRecord?.id ?? null,

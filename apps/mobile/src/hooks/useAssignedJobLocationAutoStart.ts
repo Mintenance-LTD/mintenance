@@ -137,10 +137,19 @@ export function useAssignedJobLocationAutoStart(): void {
         // job-detail section beat us to it, the existing watcher's
         // updates still apply.
         if (!status.isTracking) {
-          await service.startJobTracking(ownerUserId, jobId, null, {
-            latitude,
-            longitude,
-          });
+          // Resuming an existing trip is not a new sharing decision. Trip creation
+          // already notified the homeowner; app foregrounding must not notify again.
+          await service.startJobTracking(
+            ownerUserId,
+            jobId,
+            null,
+            {
+              latitude,
+              longitude,
+            },
+            undefined,
+            { skipShareNotify: true }
+          );
         }
 
         activeJobIdRef.current = jobId;

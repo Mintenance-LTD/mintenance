@@ -1,7 +1,7 @@
 /**
  * TenantContacts - Manage tenant contacts for a property
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { useAuth } from '../../../contexts/AuthContext';
+import {
+  readPendingTenant,
+  savePendingTenant,
+  clearPendingTenant,
+} from '../../../utils/pendingTenantContact';
 import { me } from '../../../design-system/mint-editorial';
 
 interface Tenant {
@@ -35,32 +41,99 @@ interface Props {
 }
 
 export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <TenantContactsForAccount
+      key={`${user.id}.${propertyId}`}
+      propertyId={propertyId}
+      user={user}
+    />
+  );
+};
+
+const TenantContactsForAccount: React.FC<Props & { user: { id: string } }> = ({
+  propertyId,
+  user,
+}) => {
   const queryClient = useQueryClient();
+  const saving = useRef(false);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [recoveryReady, setRecoveryReady] = useState(false);
+  const [recoveryError, setRecoveryError] = useState(false);
+  useEffect(() => {
+    let active = true;
+    readPendingTenant(user.id, propertyId)
+      .then((pending) => {
+        if (!active) return;
+        if (pending) {
+          setName(pending.name);
+          setEmail(pending.email);
+          setPhone(pending.phone);
+          setShowForm(true);
+        }
+        setRecoveryReady(true);
+      })
+      .catch(() => {
+        if (active) setRecoveryError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user.id, propertyId]);
 
-  const { data: tenants = [] } = useQuery({
-    queryKey: ['tenants', propertyId],
+  const {
+    data: tenants = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['tenants', user?.id, propertyId],
     queryFn: async () => {
       const res = await mobileApiClient.get<{ tenants: Tenant[] } | Tenant[]>(
         `/api/properties/${propertyId}/tenants`
       );
-      return Array.isArray(res) ? res : res?.tenants || [];
+      const rows = Array.isArray(res) ? res : res?.tenants;
+      if (!Array.isArray(rows)) throw new Error('Records could not be loaded');
+      return rows;
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async () => {
-      await mobileApiClient.post(`/api/properties/${propertyId}/tenants`, {
-        name: name.trim(),
-        email: email.trim() || undefined,
-        phone: phone.trim() || undefined,
-      });
+    onSettled: () => {
+      saving.current = false;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', propertyId] });
+    mutationFn: async () => {
+      const pending = await savePendingTenant(user.id, propertyId, {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      });
+      const result = await mobileApiClient.post<{
+        tenant: { id: string };
+        invitation_status?: string;
+      }>(`/api/properties/${propertyId}/tenants`, {
+        ...pending,
+        email: pending.email || undefined,
+        phone: pending.phone || undefined,
+      });
+      if (!result.tenant?.id)
+        throw new Error('Tenant save could not be confirmed');
+      await clearPendingTenant(user.id, propertyId);
+      return result;
+    },
+    onSuccess: (result) => {
+      if (['not_sent', 'unconfirmed'].includes(result.invitation_status ?? ''))
+        Alert.alert(
+          'Contact saved',
+          'Invitation delivery is unconfirmed. Check the inbox before retrying in 15 minutes.'
+        );
+      queryClient.invalidateQueries({
+        queryKey: ['tenants', user?.id, propertyId],
+      });
       setName('');
       setEmail('');
       setPhone('');
@@ -73,14 +146,42 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
       ),
   });
 
-  const deleteMutation = useMutation({
+  const invitationMutation = useMutation({
     mutationFn: async (tenantId: string) => {
-      await mobileApiClient.delete(
+      const result = await mobileApiClient.patch<{ invitation_sent: boolean }>(
+        `/api/properties/${propertyId}/tenants`,
+        { tenantId }
+      );
+      if (result.invitation_sent !== true)
+        throw new Error('Invitation delivery was not confirmed.');
+    },
+    onSuccess: () => Alert.alert('Invitation sent'),
+    onError: (error: unknown) =>
+      Alert.alert(
+        'Invitation delivery unconfirmed',
+        error instanceof Error
+          ? error.message
+          : 'Check the inbox before retrying in 15 minutes.'
+      ),
+  });
+
+  const deleteMutation = useMutation({
+    onError: () =>
+      Alert.alert(
+        'Removal failed',
+        'The record could not be removed. Please retry.'
+      ),
+    mutationFn: async (tenantId: string) => {
+      const result = await mobileApiClient.delete<{ success: boolean }>(
         `/api/properties/${propertyId}/tenants?tenantId=${tenantId}`
       );
+      if (result.success !== true)
+        throw new Error('Removal could not be confirmed');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ['tenants', user?.id, propertyId],
+      });
     },
   });
 
@@ -95,24 +196,97 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
     ]);
   };
 
+  const discardDraft = () =>
+    Alert.alert(
+      'Discard contact draft?',
+      'A previous save may already have succeeded. Check the contact list before adding it again. This only removes the draft from this device.',
+      [
+        { text: 'Keep draft', style: 'cancel' },
+        {
+          text: 'Discard draft',
+          style: 'destructive',
+          onPress: () => {
+            void clearPendingTenant(user.id, propertyId)
+              .then(() => {
+                setName('');
+                setEmail('');
+                setPhone('');
+                setShowForm(false);
+                void queryClient.invalidateQueries({
+                  queryKey: ['tenants', user.id, propertyId],
+                });
+              })
+              .catch(() =>
+                Alert.alert(
+                  'Draft kept',
+                  'Could not remove the saved draft. Please retry.'
+                )
+              );
+          },
+        },
+      ]
+    );
+
   const handleCreate = () => {
     if (!name.trim()) {
       Alert.alert('Required', 'Please enter a name.');
       return;
     }
+    if (saving.current || !recoveryReady) return;
+    saving.current = true;
     createMutation.mutate();
   };
+
+  if (recoveryError)
+    return (
+      <Text>
+        Saved contact details could not be recovered. Reopen this property to
+        retry.
+      </Text>
+    );
+  if (isLoading || !recoveryReady)
+    return (
+      <View style={styles.container}>
+        <Text>Loading tenants…</Text>
+      </View>
+    );
+  if (isError)
+    return (
+      <View style={styles.container}>
+        <Text>Could not load tenants.</Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          onPress={() => void refetch()}
+        >
+          <Text>Retry tenants</Text>
+        </TouchableOpacity>
+      </View>
+    );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>TENANTS</Text>
-        <TouchableOpacity onPress={() => setShowForm(!showForm)}>
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessibilityLabel={showForm ? 'Close tenant form' : 'Add tenant'}
+          style={{
+            minHeight: 44,
+            paddingHorizontal: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+          }}
+          onPress={() => setShowForm(!showForm)}
+        >
           <Ionicons
             name={showForm ? 'close' : 'person-add-outline'}
             size={22}
             color={me.brand}
           />
+          <Text style={styles.contactLink}>
+            {showForm ? 'Close' : 'Add tenant'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -120,6 +294,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
         <View style={styles.form}>
           <TextInput
             style={styles.input}
+            maxLength={200}
             value={name}
             onChangeText={setName}
             placeholder='Full name *'
@@ -127,6 +302,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
           />
           <TextInput
             style={styles.input}
+            maxLength={254}
             value={email}
             onChangeText={setEmail}
             placeholder='Email address'
@@ -136,6 +312,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
           />
           <TextInput
             style={styles.input}
+            maxLength={50}
             value={phone}
             onChangeText={setPhone}
             placeholder='Phone number'
@@ -150,6 +327,13 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
             <Text style={styles.createBtnText}>
               {createMutation.isPending ? 'Adding...' : 'Add Tenant'}
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole='button'
+            disabled={createMutation.isPending}
+            onPress={discardDraft}
+          >
+            <Text style={styles.contactLink}>Discard draft</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -185,6 +369,15 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
               </View>
               {t.email && !t.invitation_accepted_at && t.invitation_sent_at && (
                 <Text style={styles.inviteStatus}>Invitation sent</Text>
+              )}
+              {t.email && !t.user_id && !t.invitation_accepted_at && (
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  disabled={invitationMutation.isPending}
+                  onPress={() => invitationMutation.mutate(t.id)}
+                >
+                  <Text style={styles.contactLink}>Send invitation</Text>
+                </TouchableOpacity>
               )}
               {t.invitation_accepted_at && (
                 <Text style={styles.inviteAccepted}>Account linked</Text>

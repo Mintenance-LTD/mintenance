@@ -21,7 +21,7 @@ try {
     config = extendConfig(defaultConfig);
     module.exports = config;
   }
-} catch (error) {
+} catch (_error) {
   // If we can't load expo/metro-config (e.g., due to version mismatch),
   // provide a minimal config that should work for EAS validation
   // EAS will use its own metro config during the actual build
@@ -43,23 +43,30 @@ function extendConfig(baseConfig) {
   // bundle URL /apps/mobile/index.bundle resolves correctly against the server root.
 
   // Ensure proper node_modules resolution for monorepo
-  baseConfig.watchFolders = [monorepoRoot];
+  baseConfig.watchFolders = [
+    path.join(monorepoRoot, 'packages'),
+    path.join(monorepoRoot, 'node_modules'),
+  ];
 
   if (!baseConfig.resolver) {
     baseConfig.resolver = {};
   }
 
-  // watchFolders covers the whole monorepo, so Metro's file watcher also
-  // walks apps/web/.next — Next.js dev constantly creates/deletes dirs in
-  // there, and the Windows FallbackWatcher crashes Metro with ENOENT when a
-  // dir vanishes mid-walk. Build output is never bundled, so block it.
+  // Keep generated outputs excluded if another tool extends watchFolders.
+  // Next.js changes these directories during builds; they are not mobile input.
   const nextBuildDir = /apps[\/\\]web[\/\\]\.next[\/\\].*/;
+  // These directories contain generated outputs, dependency caches or duplicate
+  // checkouts, never mobile imports. Crawling them can stall local native startup.
+  const generatedRoot = monorepoRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const generatedDirectories = new RegExp(
+    `^${generatedRoot}[\\\\/](?:audit|\\.pnpm-store|\\.next|\\.claude[\\\\/]worktrees)(?:[\\\\/]|$)`
+  );
   const existingBlockList = baseConfig.resolver.blockList;
   baseConfig.resolver.blockList = Array.isArray(existingBlockList)
-    ? [...existingBlockList, nextBuildDir]
+    ? [...existingBlockList, nextBuildDir, generatedDirectories]
     : existingBlockList
-      ? [existingBlockList, nextBuildDir]
-      : [nextBuildDir];
+      ? [existingBlockList, nextBuildDir, generatedDirectories]
+      : [nextBuildDir, generatedDirectories];
   if (!baseConfig.resolver.nodeModulesPaths) {
     baseConfig.resolver.nodeModulesPaths = [];
   }
@@ -154,7 +161,10 @@ function extendConfig(baseConfig) {
 function getMinimalConfig() {
   return {
     projectRoot: __dirname,
-    watchFolders: [path.resolve(__dirname, '../..')],
+    watchFolders: [
+      path.resolve(__dirname, '../../packages'),
+      path.resolve(__dirname, '../../node_modules'),
+    ],
     resolver: {
       resolverMainFields: ['react-native', 'browser', 'main'],
       sourceExts: ['js', 'jsx', 'json', 'ts', 'tsx'],

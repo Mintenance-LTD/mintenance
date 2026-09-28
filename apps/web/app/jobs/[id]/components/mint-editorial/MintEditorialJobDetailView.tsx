@@ -86,6 +86,35 @@ export function MintEditorialJobDetailView({
           beforePhotos={beforePhotos}
           afterPhotos={afterPhotos}
           buildingAssessment={buildingAssessment}
+          supportingPanels={
+            <div
+              style={{
+                marginTop: 24,
+                width: '100%',
+              }}
+            >
+              {job.status === 'completed' && afterPhotos.length > 0 && (
+                <div id='photo-review'>
+                  <HomeownerPhotoReview
+                    jobId={job.id}
+                    beforePhotos={beforePhotos}
+                    afterPhotos={afterPhotos}
+                    isConfirmed={completionConfirmed}
+                    completedAt={job.completed_at}
+                  />
+                </div>
+              )}
+              {job.contractor_id && (
+                <div id='contract-section' style={{ marginTop: 18 }}>
+                  <ContractManagement
+                    jobId={job.id}
+                    userRole='homeowner'
+                    userId={userId}
+                  />
+                </div>
+              )}
+            </div>
+          }
           lifecycle={{
             contractStatus,
             contractContractorSignedAt,
@@ -96,42 +125,6 @@ export function MintEditorialJobDetailView({
             completionConfirmed,
           }}
         />
-        {/* Below-the-fold interactive panels reuse the legacy
-            components — they handle real API mutations (sign contract,
-            confirm completion) that we don't want to re-implement in
-            this slice.
-            Width-constrained (max-w-3xl) so the contract card and
-            photo review sit inside the same visual main column as the
-            hero's AI cards above, instead of stretching edge-to-edge
-            and crowding the Mint AI dock. */}
-        <div
-          style={{
-            marginTop: 24,
-            maxWidth: 768,
-            width: '100%',
-          }}
-        >
-          {job.status === 'completed' && afterPhotos.length > 0 && (
-            <div id='photo-review'>
-              <HomeownerPhotoReview
-                jobId={job.id}
-                beforePhotos={beforePhotos}
-                afterPhotos={afterPhotos}
-                isConfirmed={completionConfirmed}
-                completedAt={job.completed_at}
-              />
-            </div>
-          )}
-          {job.contractor_id && (
-            <div id='contract-section' style={{ marginTop: 18 }}>
-              <ContractManagement
-                jobId={job.id}
-                userRole='homeowner'
-                userId={userId}
-              />
-            </div>
-          )}
-        </div>
       </HomeownerPageWrapper>
     </>
   );

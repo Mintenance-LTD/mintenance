@@ -4,6 +4,13 @@ import { BadRequestError } from '@/lib/errors/api-error';
 export async function fingerprintMultipartRequest(
   request: Request
 ): Promise<unknown> {
+  return (await parseMultipartRequest(request)).fingerprint;
+}
+
+/** Use the same bounded, parsed payload for identity and upload processing. */
+export async function parseMultipartRequest(
+  request: Request
+): Promise<{ form: FormData; fingerprint: unknown }> {
   const copy = request.clone();
   const reader = copy.body?.getReader();
   const chunks: Uint8Array[] = [];
@@ -45,5 +52,10 @@ export async function fingerprintMultipartRequest(
     ])
   );
   // Sort field names while preserving repeated-file ordering.
-  return fields.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return {
+    form,
+    fingerprint: fields.sort((a, b) =>
+      String(a[0]).localeCompare(String(b[0]))
+    ),
+  };
 }

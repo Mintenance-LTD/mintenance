@@ -1,4 +1,5 @@
 'use client';
+import { scheduleRequest } from '@/lib/schedule-request-key';
 
 /**
  * Mint Editorial port of /landlord/recurring.
@@ -17,7 +18,7 @@
  * ports.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -50,25 +51,7 @@ interface Schedule {
   is_active: boolean;
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  biannual: 'Every 6 months',
-  annual: 'Annually',
-};
-
-const TASK_TYPES = [
-  'Gas Safety Check',
-  'EICR Inspection',
-  'Boiler Service',
-  'Gutter Cleaning',
-  'Fire Alarm Test',
-  'Legionella Assessment',
-  'Garden Maintenance',
-  'Chimney Sweep',
-  'Pest Inspection',
-  'General Inspection',
-] as const;
+import { FREQUENCY_LABELS, TASK_TYPES } from './recurring-options';
 
 function daysUntil(dateStr: string): number {
   return Math.ceil(
@@ -118,6 +101,7 @@ export function MintEditorialRecurringTasks({
   const [schedules, setSchedules] = useState(initialSchedules);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const [formData, setFormData] = useState({
     property_id: '',
@@ -156,23 +140,47 @@ export function MintEditorialRecurringTasks({
       !formData.property_id ||
       !formData.title.trim() ||
       !formData.next_due_date ||
-      saving
+      saving ||
+      savingRef.current
     )
       return;
+    if (
+      formData.title.trim().length < 5 ||
+      formData.title.trim().length > 200
+    ) {
+      toast.error('Enter a title between 5 and 200 characters.');
+      return;
+    }
+    savingRef.current = true;
     setSaving(true);
     try {
+      const operation = await scheduleRequest(formData.property_id, formData);
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch('/api/landlord/recurring', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders,
+          'Idempotency-Key': operation.key,
+        },
         body: JSON.stringify({
           ...formData,
           title: formData.title.trim(),
           description: formData.description.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error('Failed');
-      const { schedule } = await res.json();
+      const body = await res.json();
+      if (!res.ok)
+        throw new Error(
+          body.errors?.[0]?.message || body.message || 'Failed to create task'
+        );
+      const { schedule } = body;
+      if (!schedule?.id || schedule.property_id !== formData.property_id) {
+        throw new Error(
+          'Task creation could not be confirmed. Refresh before retrying.'
+        );
+      }
+      operation.complete();
       setSchedules((prev) => [...prev, schedule]);
       setShowForm(false);
       setFormData({
@@ -185,9 +193,12 @@ export function MintEditorialRecurringTasks({
         auto_create_job: false,
       });
       toast.success('Recurring task created');
-    } catch {
-      toast.error('Failed to create task');
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create task'
+      );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -272,6 +283,7 @@ export function MintEditorialRecurringTasks({
 
       {showForm ? (
         <form
+          aria-label='New recurring task'
           onSubmit={onSubmit}
           className='card card-pad'
           style={{ marginBottom: 18 }}
@@ -293,6 +305,7 @@ export function MintEditorialRecurringTasks({
                 required
                 className='field'
                 value={formData.property_id}
+                aria-label='Property'
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, property_id: e.target.value }))
                 }
@@ -308,6 +321,7 @@ export function MintEditorialRecurringTasks({
               <select
                 className='field'
                 value={formData.task_type}
+                aria-label='Task type'
                 onChange={(e) =>
                   setFormData((p) => ({
                     ...p,
@@ -329,6 +343,9 @@ export function MintEditorialRecurringTasks({
               type='text'
               className='field'
               placeholder='Task title'
+              aria-label='Task title'
+              minLength={5}
+              maxLength={200}
               value={formData.title}
               onChange={(e) =>
                 setFormData((p) => ({ ...p, title: e.target.value }))
@@ -338,6 +355,7 @@ export function MintEditorialRecurringTasks({
               <select
                 className='field'
                 value={formData.frequency}
+                aria-label='Frequency'
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, frequency: e.target.value }))
                 }
@@ -354,6 +372,7 @@ export function MintEditorialRecurringTasks({
                 type='date'
                 className='field'
                 value={formData.next_due_date}
+                aria-label='First due date'
                 min={new Date().toISOString().split('T')[0]}
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, next_due_date: e.target.value }))

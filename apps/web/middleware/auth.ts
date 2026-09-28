@@ -7,15 +7,6 @@ import { securityMonitor } from '@/lib/security-monitor';
 import { redirectToLogin } from './helpers';
 import { validateCsrf, setCsrfCookie } from './csrf';
 
-interface AuthResult {
-  response?: NextResponse;
-  jwtPayload?: {
-    sub?: string;
-    email?: string;
-    role?: string;
-  };
-}
-
 export async function handleSupabaseAuth(
   request: NextRequest,
   pathname: string,
@@ -101,7 +92,18 @@ export async function verifyJwtToken(
 ): Promise<JWTPayload | null> {
   try {
     const jwtSecret = cfg.getRequired('JWT_SECRET');
-    return await verifyJWT(token, jwtSecret);
+    const payload = await verifyJWT(token, jwtSecret);
+    // A Supabase HS256 token can verify with the same configured signing key.
+    // Its `authenticated` role is a database role, not an application session.
+    // Let the bearer fallback verify its provider session and obtain the role
+    // and timeout timestamps from the database instead of blacklisting it for
+    // missing application-only session claims.
+    if (
+      !payload ||
+      !['homeowner', 'contractor', 'admin'].includes(payload.role ?? '')
+    )
+      return null;
+    return payload;
   } catch (configError) {
     logger.error(
       'JWT verification failed due to configuration error',

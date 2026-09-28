@@ -38,6 +38,7 @@ interface EmailOptions {
   subject: string;
   html: string;
   text?: string;
+  timeoutMs?: number;
 }
 
 /**
@@ -101,6 +102,9 @@ export class EmailService {
       if (provider === 'brevo') {
         // Brevo (formerly Sendinblue) — 300 free emails/day
         response = await fetch('https://api.brevo.com/v3/smtp/email', {
+          signal: options.timeoutMs
+            ? AbortSignal.timeout(options.timeoutMs)
+            : undefined,
           method: 'POST',
           headers: {
             'api-key': this.brevoKey!,
@@ -117,6 +121,9 @@ export class EmailService {
         });
       } else if (provider === 'resend') {
         response = await fetch('https://api.resend.com/emails', {
+          signal: options.timeoutMs
+            ? AbortSignal.timeout(options.timeoutMs)
+            : undefined,
           method: 'POST',
           headers: {
             Authorization: `Bearer ${this.resendKey}`,
@@ -133,6 +140,9 @@ export class EmailService {
       } else {
         // SendGrid
         response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+          signal: options.timeoutMs
+            ? AbortSignal.timeout(options.timeoutMs)
+            : undefined,
           method: 'POST',
           headers: {
             Authorization: `Bearer ${this.sendgridKey}`,
@@ -420,7 +430,13 @@ export class EmailService {
     data: Parameters<typeof tenantInviteTemplate>[0]
   ): Promise<boolean> {
     const { subject, html, text } = tenantInviteTemplate(data);
-    return this.sendEmail({ to: tenantEmail, subject, html, text });
+    return this.sendEmail({
+      to: tenantEmail,
+      subject,
+      html,
+      text,
+      timeoutMs: 10000,
+    });
   }
 
   /** Send tenant job status notification */

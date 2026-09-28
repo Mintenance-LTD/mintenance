@@ -7,6 +7,8 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import PropertyDetailsClient from './components/PropertyDetailsClient';
 import { MintEditorialPropertyDetail } from './components/MintEditorialPropertyDetail';
+import { SharedPropertyDetail } from './components/SharedPropertyDetail';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 export const metadata: Metadata = {
   title: 'Property Details | Mintenance',
@@ -46,7 +48,6 @@ export default async function PropertyDetailPage({
     .from('properties')
     .select('*')
     .eq('id', resolvedParams.id)
-    .eq('owner_id', user.id)
     .single();
 
   if (propertyError && propertyError.code !== 'PGRST116')
@@ -54,6 +55,11 @@ export default async function PropertyDetailPage({
   if (!property) {
     notFound();
   }
+  const access =
+    property.owner_id === user.id
+      ? { authorized: true, role: 'owner' as const }
+      : await PropertyTeamService.authorize(user.id, property.id, 'view');
+  if (!access.authorized || !access.role) notFound();
 
   // Fetch jobs linked to this specific property
   const { data: jobs, error: jobsError } = await serverSupabase
@@ -76,7 +82,7 @@ export default async function PropertyDetailPage({
       )
     `
     )
-    .eq('homeowner_id', user.id)
+    .eq('homeowner_id', property.owner_id)
     .eq('property_id', resolvedParams.id)
     .order('created_at', { ascending: false });
 
@@ -121,7 +127,8 @@ export default async function PropertyDetailPage({
       | 'smart_lock'
       | 'in_person'
       | null,
-    key_safe_code: property.key_safe_code ?? null,
+    key_safe_code:
+      access.role === 'owner' ? (property.key_safe_code ?? null) : null,
     access_notes: property.access_notes ?? null,
     stopcock_location: property.stopcock_location ?? null,
     gas_isolator_location: property.gas_isolator_location ?? null,
@@ -137,7 +144,7 @@ export default async function PropertyDetailPage({
     .select(
       'id, task_type, title, description, category, frequency, next_due_date, last_completed_date, auto_create_job, is_active'
     )
-    .eq('owner_id', user.id)
+    .eq('owner_id', property.owner_id)
     .eq('property_id', property.id)
     .order('next_due_date', { ascending: true });
   if (schedulesError)
@@ -188,6 +195,26 @@ export default async function PropertyDetailPage({
     .order('issued_date', { ascending: false });
   if (certificatesError)
     throw new Error('Unable to load certificate records. Please retry.');
+
+  if (access.role !== 'owner') {
+    return (
+      <SharedPropertyDetail
+        property={{
+          id: property.id,
+          name: formattedProperty.name,
+          address: formattedProperty.address,
+        }}
+        role={access.role}
+        jobs={formattedJobs.map(({ id, title, status }) => ({
+          id,
+          title,
+          status,
+        }))}
+        schedules={schedules}
+        certificates={certificates || []}
+      />
+    );
+  }
 
   const cookieStore = await cookies();
   const isMintEditorial =

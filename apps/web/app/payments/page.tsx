@@ -28,6 +28,7 @@ interface Transaction {
     | 'release_pending'
     | 'released'
     | 'refunded'
+    | 'disputed'
     | 'completed';
   type: 'payment' | 'refund' | 'escrow';
   created_at: string;
@@ -83,6 +84,8 @@ interface PaymentData {
   transaction_type?: string;
   release_reason?: string;
   refund_reason?: string;
+  platformFee?: number;
+  stripeProcessingFee?: number;
   homeownerApproval?: boolean;
   coolingOffEndsAt?: string;
 }
@@ -108,7 +111,6 @@ export default function PaymentsPage2025() {
   const [submittingRefund, setSubmittingRefund] = useState(false);
   const refundInFlight = useRef(false);
   const confirm = useConfirm();
-
   // Hide the inline "Back to Dashboard" link when the Mint Editorial
   // shell is active — the persistent sidebar already provides nav, so
   // the legacy back link becomes redundant chrome.
@@ -132,14 +134,10 @@ export default function PaymentsPage2025() {
         const transformedTransactions: Transaction[] = (payments || []).map(
           (t: PaymentData) => {
             const amount = Number(t.amount) || 0;
-            const platformFee = amount * 0.05;
-            const processingFee = amount * 0.02;
+            const platformFee = t.platformFee;
+            const processingFee = t.stripeProcessingFee;
 
-            // Prefer `company_name` when the payee has one set — a
-            // contractor trading as "my Company LTD" should display that
-            // over their personal Djodjo Nkouka name on the homeowner's
-            // transaction list. Fall back to the first+last name when the
-            // company field is empty.
+            // Prefer the trading name; fall back to the person's name.
             const contractorName =
               t.contractor_name ||
               t.payee?.company_name ||
@@ -188,12 +186,7 @@ export default function PaymentsPage2025() {
       return;
     }
 
-    // An escrow the homeowner has not yet approved cannot be released without
-    // also waiving the 48-hour cooling-off window that approval would
-    // normally open. That waiver has to be informed, so the confirm copy
-    // spells out both halves of what the single click does — approving the
-    // work AND giving up the window. Only send the waiver flag when the user
-    // agreed to that specific wording.
+    // Explain approval and the cooling-off waiver before releasing funds.
     const transaction = transactions.find((t) => t.id === transactionId);
     const needsApproval = transaction ? !transaction.homeowner_approval : false;
 
@@ -235,7 +228,13 @@ export default function PaymentsPage2025() {
       });
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to release payment');
+        throw new Error(
+          typeof data.error === 'string'
+            ? data.error
+            : typeof data.error?.message === 'string'
+              ? data.error.message
+              : 'Failed to release payment. Please try again.'
+        );
       }
       toast.success('Payment released successfully!');
       window.location.reload();

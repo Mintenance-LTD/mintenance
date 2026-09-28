@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -385,13 +384,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       // confidence, and a full AI breakdown stored in assessment_data.
       // See triggerAIAnalysis.ts for the contract and failure handling.
       if (assessment?.id && uploadedUrls.length > 0) {
-        void triggerAIAnalysis(assessment.id, uploadedUrls, {
-          propertyId: propertyId || undefined,
-          propertyType: propertyInfo.propertyType,
-          domain: 'building',
-          gps: gpsLocation,
-          roomMetadata,
-        });
+        void triggerAIAnalysis(assessment.id);
       }
 
       if (photoFailed) {

@@ -1,8 +1,11 @@
 import { logger } from '@mintenance/shared';
 import { validateURLs } from '@/lib/security/url-validation';
 import { getConfig } from '../config/BuildingSurveyorConfig';
+import { checkPhotoQuality } from './check-photo-quality';
+import type { CaptureWarning } from '../recapture-guidance';
 
 interface ValidationResult {
+  captureWarnings: CaptureWarning[];
   openaiApiKey: string;
   validatedImageUrls: string[];
 }
@@ -47,8 +50,13 @@ export async function validateInput(
     );
   }
 
+  // Preserve the user's image indices across local and remote inputs.
+  if (dataUris.length + remoteUrls.length !== imageUrls.length)
+    throw new Error('Unsupported image URL format');
+  const captureWarnings = await checkPhotoQuality(imageUrls);
   return {
+    captureWarnings,
     openaiApiKey: config.openaiApiKey,
-    validatedImageUrls: [...urlValidation.valid, ...dataUris],
+    validatedImageUrls: imageUrls,
   };
 }

@@ -45,7 +45,8 @@ vi.mock('@/lib/csrf', () => ({ requireCSRF: vi.fn() }));
 vi.mock('@/lib/rate-limiter', () => ({
   rateLimiter: { checkRateLimit: mocks.rateLimiterCheckRateLimit },
 }));
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: mocks.logger,
   BUSINESS_RULES: {},
   RATE_LIMITS: {},
@@ -133,7 +134,10 @@ function assessmentRow(over: Record<string, unknown> = {}) {
     compliance_score: 70,
     insurance_risk_score: 40,
     urgency: 'urgent',
-    assessment_data: { damageAssessment: { confidence: 70 }, findings: [] },
+    assessment_data: {
+      damageAssessment: { damageType: 'water_damage', confidence: 70 },
+      findings: [],
+    },
     validation_status: 'pending',
     video_url: null,
     created_at: '2026-07-28T21:54:12.490Z',
@@ -192,6 +196,107 @@ beforeEach(() => {
 });
 
 describe('GET /api/assessments/:id/status', () => {
+  it('returns observation-only results without exposing legacy placeholder scores', async () => {
+    wireDb(
+      assessmentRow({
+        validation_status: 'needs_review',
+        assessment_data: {
+          protocol: 'observation-only-v1',
+          diagnosisStatus: 'not_established',
+          visualEvidence: {
+            version: 'visible-evidence-v1',
+            diagnosisStatus: 'not_established',
+            photos: [
+              {
+                photoIndex: 0,
+                model: 'gpt-4o',
+                observation: {
+                  scope: 'visible_region',
+                  outcome: 'no_visible_defect',
+                  crackPresent: false,
+                  observations: [],
+                  limitations: ['Visible surface only'],
+                },
+              },
+            ],
+          },
+        },
+      })
+    );
+    const body = await (await get()).json();
+    expect(body).toMatchObject({
+      isComplete: true,
+      isValidated: false,
+      requiresRecapture: false,
+      processingStatus: 'ready',
+    });
+    expect(body.assessment).toMatchObject({
+      confidence: null,
+      safetyScore: null,
+      complianceScore: null,
+      insuranceRiskScore: null,
+      severity: null,
+      urgency: null,
+    });
+    expect(body.assessment.data).not.toHaveProperty('damageAssessment');
+  });
+  it('returns specific saved recapture guidance without exposing arbitrary stored prose', async () => {
+    wireDb(
+      assessmentRow({
+        assessment_data: {
+          analysis: {
+            errorCode: 'INSUFFICIENT_EVIDENCE',
+            captureIssue: { photoIndex: 1, issue: 'overexposed' },
+          },
+        },
+      })
+    );
+    const body = await (await get()).json();
+    expect(body.message).toContain('Photo 2:');
+    expect(body.message).toContain('glare');
+    expect(body.assessment).toBeNull();
+    wireDb(
+      assessmentRow({
+        assessment_data: {
+          analysis: {
+            errorCode: 'INSUFFICIENT_EVIDENCE',
+            captureIssue: { photoIndex: 1, issue: 'invented' },
+            message: 'Unsafe arbitrary advice',
+          },
+        },
+      })
+    );
+    expect((await (await get()).json()).message).not.toContain('Unsafe');
+  });
+  it.each([
+    {
+      damageAssessment: { damageType: 'no_defect', confidence: 0 },
+      safetyHazards: { overallSafetyScore: 100 },
+    },
+    { analysis: { errorCode: 'INSUFFICIENT_EVIDENCE' } },
+    {
+      ai_analysis: { damageAssessment: { damageType: 'none', confidence: 0 } },
+    },
+  ])(
+    'withholds scores and validation for unassessable saved evidence',
+    async (assessment_data) => {
+      wireDb(
+        assessmentRow({ assessment_data, validation_status: 'validated' }),
+        [{ id: 'photo', image_url: 'test' }]
+      );
+      const body = await (await get()).json();
+      expect(body).toMatchObject({
+        assessment: null,
+        isComplete: false,
+        isValidated: false,
+        requiresRecapture: true,
+        canRetry: false,
+        processingStatus: 'insufficient_evidence',
+      });
+      expect(body.message).toContain('Retake');
+    }
+  );
+
   it('returns the survey for a pending row that already holds results', async () => {
     // The regression that made assessment history impossible: every walkthrough
     // is 'pending', and every one of them used to come back as null.
@@ -204,19 +309,20 @@ describe('GET /api/assessments/:id/status', () => {
     expect(body.assessment).not.toBeNull();
     expect(body.assessment.damageType).toBe('damp');
     expect(body.assessment.data).toEqual({
-      damageAssessment: { confidence: 70 },
+      damageAssessment: { damageType: 'water_damage', confidence: 70 },
       findings: [],
     });
   });
 
-  it('still reports isComplete false while awaiting human sign-off', async () => {
-    // Pollers key off isComplete; returning the data must not change its meaning.
+  it('reports analysis complete separately from human sign-off', async () => {
     wireDb(assessmentRow());
 
     const body = await (await get()).json();
 
     expect(body.status).toBe('pending');
-    expect(body.isComplete).toBe(false);
+    expect(body.isComplete).toBe(true);
+    expect(body.isValidated).toBe(false);
+    expect(body.processingStatus).toBe('ready');
     expect(body.isFailed).toBe(false);
   });
 
@@ -241,12 +347,60 @@ describe('GET /api/assessments/:id/status', () => {
   });
 
   it('returns nothing for a row that never produced a result', async () => {
-    wireDb(assessmentRow({ validation_status: 'failed', damage_type: null }));
+    wireDb(
+      assessmentRow({
+        validation_status: 'failed',
+        damage_type: null,
+        assessment_data: {},
+      })
+    );
 
     const body = await (await get()).json();
 
     expect(body.assessment).toBeNull();
     expect(body.isFailed).toBe(true);
+  });
+
+  it('does not present default damage fields as a completed assessment', async () => {
+    wireDb(
+      assessmentRow({
+        damage_type: 'general_damage',
+        confidence: 0,
+        assessment_data: {},
+      })
+    );
+    const body = await (await get()).json();
+    expect(body.assessment).toBeNull();
+    expect(body.isComplete).toBe(false);
+    expect(body.processingStatus).toBe('pending');
+  });
+
+  it('reads the older mobile nested response and allows retry of failed analysis', async () => {
+    wireDb(
+      assessmentRow({
+        assessment_data: {
+          ai_analysis: {
+            damageAssessment: {
+              damageType: 'electrical_fault',
+              confidence: 87,
+            },
+          },
+        },
+      })
+    );
+    expect(
+      (await (await get()).json()).assessment.data.damageAssessment.confidence
+    ).toBe(87);
+    wireDb(
+      assessmentRow({
+        validation_status: 'ai_analysis_failed',
+        assessment_data: {},
+      }),
+      [{ image_url: 'https://example.com/photo.jpg', image_index: 0 }]
+    );
+    const failed = await (await get()).json();
+    expect(failed.isFailed).toBe(true);
+    expect(failed.canRetry).toBe(true);
   });
 
   it('returns a validated survey', async () => {

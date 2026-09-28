@@ -51,7 +51,7 @@ interface DocumentsApiResponse {
 // redesign-v2/documents-web.html so each type reads at a glance:
 //   Contract → deep purple, Bid → magenta, Payment → teal.
 // `fileLabel` is the extension chip on the paper-shape DocIcon —
-// contracts and payment receipts are PDFs, bids carry a "BID" chip.
+// contracts expose PDFs; bids and payments link to their records.
 const TYPE_STYLE: Record<
   DocType,
   {
@@ -81,7 +81,7 @@ const TYPE_STYLE: Record<
     bg: me.doc.paymentBg,
     icon: 'card',
     label: 'Payment',
-    fileLabel: 'PDF',
+    fileLabel: 'PAY',
   },
 };
 
@@ -207,7 +207,7 @@ export const HomeownerDocumentsScreen: React.FC = () => {
     enabled: !!user?.id,
   });
 
-  const documents = data?.documents ?? [];
+  const documents = useMemo(() => data?.documents ?? [], [data?.documents]);
   const counts = data?.counts ?? {
     contracts: 0,
     bids: 0,
@@ -263,7 +263,7 @@ export const HomeownerDocumentsScreen: React.FC = () => {
     }
     if (doc.job_id) {
       (navigation as ReturnType<typeof Object>).navigate('JobsTab', {
-        screen: 'JobDetails',
+        screen: doc.type === 'contract' ? 'ContractView' : 'JobDetails',
         params: { jobId: doc.job_id },
       });
     }

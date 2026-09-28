@@ -82,6 +82,31 @@ describe('NotificationService.createNotification — deferUntil', () => {
     mockFrom.mockReturnValue(buildInsertChain());
   });
 
+  it('awaits push dispatch or retry persistence before returning from immediate delivery', async () => {
+    let finish!: () => void;
+    let started!: () => void;
+    const dispatchStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    mockSendPush.mockImplementationOnce(() => {
+      started();
+      return new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    });
+    let returned = false;
+    const pending = NotificationService.createNotification(
+      baseParams({ type: 'payment' })
+    ).then(() => {
+      returned = true;
+    });
+    await dispatchStarted;
+    expect(returned).toBe(false);
+    finish();
+    await pending;
+    expect(returned).toBe(true);
+  });
+
   it('queues instead of firing when deferUntil is in the future', async () => {
     const deferUntil = new Date(Date.now() + 60 * 60 * 1000);
 

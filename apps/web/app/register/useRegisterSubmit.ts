@@ -69,6 +69,12 @@ export function useRegisterSubmit() {
   const { csrfToken, loading: csrfLoading } = useCSRF();
   const [submitStatus, setSubmitStatus] = React.useState<SubmitStatus>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [verificationRequired, setVerificationRequired] = React.useState(false);
+  const [verificationEmail, setVerificationEmail] = React.useState('');
+  const [resending, setResending] = React.useState(false);
+  const [resendMessage, setResendMessage] = React.useState('');
+  const [verificationLoginPath, setVerificationLoginPath] =
+    React.useState('/login');
 
   const roleParam = searchParams?.get('role') ?? null;
   const initialRole: Role =
@@ -128,23 +134,20 @@ export function useRegisterSubmit() {
         }
       }
 
-      // Accept tenant invitation if invite token present
-      if (inviteToken) {
-        try {
-          await fetch('/api/tenant-invite/accept', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-csrf-token': csrfToken,
-            },
-            body: JSON.stringify({ token: inviteToken }),
-          });
-        } catch {
-          // Non-blocking — invitation can be accepted later
-        }
-      }
-
       setSubmitStatus('success');
+      if (responseData.requiresEmailVerification === true) {
+        setVerificationEmail(data.email);
+        const returnPath = inviteToken
+          ? `/register/invitation?token=${encodeURIComponent(inviteToken)}`
+          : data.role === 'contractor'
+            ? '/contractor/dashboard-enhanced'
+            : '/onboarding/homeowner';
+        setVerificationRequired(true);
+        setVerificationLoginPath(
+          `/login?redirect=${encodeURIComponent(returnPath)}`
+        );
+        return;
+      }
       setTimeout(() => {
         // 2026-05-25 audit-P0-2: fresh homeowner sign-ups now land on
         // the onboarding wizard (mirrors the mobile HomeownerSetupModal
@@ -154,8 +157,9 @@ export function useRegisterSubmit() {
         // redirects to /dashboard if the flag is already true, so the
         // unconditional homeowner-to-wizard route is idempotent and
         // safe even on repeat sign-ups with the same email.
-        const redirectPath =
-          data.role === 'contractor'
+        const redirectPath = inviteToken
+          ? `/register/invitation?token=${encodeURIComponent(inviteToken)}`
+          : data.role === 'contractor'
             ? '/contractor/dashboard-enhanced'
             : '/onboarding/homeowner';
         router.push(redirectPath);
@@ -171,6 +175,32 @@ export function useRegisterSubmit() {
     }
   };
 
+  const resendVerification = async () => {
+    if (resending || !csrfToken || !verificationEmail) return;
+    setResending(true);
+    setResendMessage('');
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({ email: verificationEmail }),
+      });
+      const result = await response.json();
+      setResendMessage(
+        response.ok
+          ? result.message
+          : 'Unable to resend right now. Please wait a few minutes and try again.'
+      );
+    } catch {
+      setResendMessage('Connection interrupted. Please try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return {
     csrfToken,
     csrfLoading,
@@ -178,5 +208,10 @@ export function useRegisterSubmit() {
     errorMessage,
     onSubmit,
     initialRole,
+    verificationRequired,
+    verificationLoginPath,
+    resendVerification,
+    resending,
+    resendMessage,
   };
 }

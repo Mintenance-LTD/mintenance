@@ -96,6 +96,7 @@ interface Props {
    *  through to the Overview tab body so the AI card surfaces. */
   buildingAssessment?: Record<string, unknown> | null;
   lifecycle: LifecycleData;
+  supportingPanels?: React.ReactNode;
 }
 
 const TABS: {
@@ -120,6 +121,7 @@ export function MintEditorialJobDetail({
   afterPhotos,
   buildingAssessment,
   lifecycle,
+  supportingPanels,
 }: Props) {
   const router = useRouter();
   const pending = useMemo(() => pendingOnly(bids), [bids]);
@@ -326,7 +328,7 @@ export function MintEditorialJobDetail({
             >
               <Sparkles size={13} strokeWidth={1.75} />
             </span>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Mint AI summary</div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Job summary</div>
           </div>
           <p className='t-body' style={{ fontSize: 12, lineHeight: 1.55 }}>
             {aiSummary}
@@ -398,6 +400,7 @@ export function MintEditorialJobDetail({
             recommendedId={recommendedId}
             onSelect={setSelectedId}
           />
+          {supportingPanels}
         </div>
 
         {/* Right rail — sticky */}

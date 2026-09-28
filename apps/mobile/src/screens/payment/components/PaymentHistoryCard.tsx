@@ -36,6 +36,7 @@ export const getStatusColor = (status: string): string => {
     case 'release_pending':
       return me.accent;
     case 'failed':
+    case 'disputed':
     case 'refunded':
       return me.errFg;
     default:
@@ -59,6 +60,8 @@ export const getStatusLabel = (status: string): string => {
       return 'Processing';
     case 'failed':
       return 'Failed';
+    case 'disputed':
+      return 'Disputed';
     case 'refunded':
       return 'Refunded';
     default:
@@ -86,7 +89,8 @@ const RECEIPT_STATUSES = new Set(['completed', 'succeeded', 'released']);
 export const PaymentCard: React.FC<{
   payment: PaymentRecord;
   onReceiptPress?: (payment: PaymentRecord) => void;
-}> = ({ payment, onReceiptPress }) => (
+  onDisputePress?: (payment: PaymentRecord) => void;
+}> = ({ payment, onReceiptPress, onDisputePress }) => (
   <View style={styles.paymentCard}>
     <View style={styles.paymentHeader}>
       <View style={styles.paymentInfo}>
@@ -131,6 +135,16 @@ export const PaymentCard: React.FC<{
       </View>
     )}
     <View style={styles.cardFooter}>
+      {payment.status === 'disputed' && onDisputePress && (
+        <TouchableOpacity
+          style={styles.receiptButton}
+          onPress={() => onDisputePress(payment)}
+          accessibilityRole='button'
+          accessibilityLabel='View dispute record'
+        >
+          <Text style={styles.receiptButtonText}>View dispute</Text>
+        </TouchableOpacity>
+      )}
       {payment.last4 && (
         <View style={styles.methodRow}>
           <Ionicons name='card-outline' size={14} color={me.ink3} />

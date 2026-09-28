@@ -1,7 +1,14 @@
+import {
+  contactSaveId,
+  recoverContactSave,
+} from '@/lib/services/property-team/contact-save-recovery';
+import { z } from 'zod';
+import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
+import { deliverTenantInvitation } from '@/lib/services/notifications/tenant-invitation-delivery';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { logger } from '@mintenance/shared';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
@@ -65,12 +72,6 @@ export const GET = withApiHandler(
       );
     }
 
-    // 2026-05-23 audit: linked tenants used to see every tenant's
-    // email/phone/lease/notes for the property. In a multi-tenant let
-    // (shared houses, HMOs) that's a privacy leak — tenant A could
-    // pull tenant B's contact details + lease dates. The owner branch
-    // still returns the full list (they manage the property); linked
-    // tenants now get only their own row back.
     let tenantQuery = serverSupabase
       .from('property_tenants')
       .select(
@@ -105,15 +106,34 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
+    const parsed = z
+      .object({
+        name: z.string().trim().min(1).max(200),
+        operationId: z.string().uuid().optional(),
+        email: z
+          .union([z.string().trim().email().max(254), z.literal('')])
+          .optional(),
+        phone: z.string().trim().max(50).optional(),
+        lease_start: z.union([z.string().date(), z.literal('')]).optional(),
+        lease_end: z.union([z.string().date(), z.literal('')]).optional(),
+        notes: z.string().trim().max(5000).optional(),
+      })
+      .refine(
+        (value) =>
+          !value.lease_start ||
+          !value.lease_end ||
+          value.lease_end >= value.lease_start,
+        { message: 'Lease end must be on or after lease start' }
+      )
+      .safeParse(await req.json());
+    if (!parsed.success)
+      return NextResponse.json(
+        { error: 'Check the contact details and lease dates' },
+        { status: 400 }
+      );
+    const body = parsed.data;
 
     // Verify ownership.
-    // Column is `property_name` in the DB; aliasing it to `name` here so the
-    // downstream usages at the email-template / notification sites stay
-    // unchanged. Selecting the literal `name` column was the cause of the
-    // HTTP 500 the user saw on this endpoint — PostgREST rejected the SELECT
-    // because no such column exists, supabase-js threw, and withApiHandler
-    // fell through to a 500.
     const { data: property } = await serverSupabase
       .from('properties')
       .select('id, owner_id, address, name:property_name')
@@ -127,9 +147,6 @@ export const POST = withApiHandler(
       );
     }
 
-    // 2026-05-26 audit-61 P1: route through PropertyTeamService so
-    // managers/team-admins on the property can add tenants. Previously
-    // owner_id-only gate left mobile manager UI with 404 on add.
     if (user.role !== 'admin') {
       const { authorized } = await PropertyTeamService.authorize(
         user.id,
@@ -145,6 +162,11 @@ export const POST = withApiHandler(
     }
 
     const { name, email, phone, lease_start, lease_end, notes } = body;
+    const saveId = body.operationId
+      ? contactSaveId(user.id, propertyId, body.operationId)
+      : undefined;
+    const recovered = await recoverContactSave(saveId, propertyId, body);
+    if (recovered) return recovered;
 
     if (!name) {
       return NextResponse.json({ error: 'name is required' }, { status: 400 });
@@ -163,6 +185,7 @@ export const POST = withApiHandler(
         .select('id')
         .eq('property_id', propertyId)
         .eq('email', normalizedEmail)
+        .eq('is_active', true)
         .maybeSingle();
 
       if (existing) {
@@ -181,11 +204,21 @@ export const POST = withApiHandler(
         .eq('email', normalizedEmail)
         .maybeSingle();
 
-      // If they have an account, link them directly
-      if (existingUser) {
+      // Editable profile email is only a candidate lookup, never identity proof.
+      const verified = existingUser
+        ? await serverSupabase.auth.admin.getUserById(existingUser.id)
+        : null;
+      const verifiedUser = verified?.data.user;
+      if (
+        existingUser &&
+        !verified?.error &&
+        verifiedUser?.email_confirmed_at &&
+        verifiedUser.email?.trim().toLowerCase() === normalizedEmail
+      ) {
         const { data: tenant, error } = await serverSupabase
           .from('property_tenants')
           .insert({
+            ...(saveId ? { id: saveId } : {}),
             property_id: propertyId,
             name,
             email: normalizedEmail,
@@ -200,6 +233,18 @@ export const POST = withApiHandler(
           .select()
           .single();
 
+        if (error?.code === '23505' && saveId) {
+          const replay = await recoverContactSave(saveId, propertyId, body);
+          if (replay) return replay;
+        }
+        if (error?.code === '23505')
+          return NextResponse.json(
+            {
+              error:
+                'An active contact with this email already exists for this property',
+            },
+            { status: 409 }
+          );
         if (error) {
           logger.error('Failed to create tenant', { error });
           return NextResponse.json(
@@ -219,7 +264,11 @@ export const POST = withApiHandler(
           message: `Anything need fixing? Open the property and post a job — the landlord pays.`,
           actionUrl: `/properties/${propertyId}`,
           metadata: { property_id: propertyId },
-        });
+        }).catch(() =>
+          logger.warn('Tenant saved; notification unavailable', {
+            tenantId: tenant.id,
+          })
+        );
 
         return NextResponse.json({ tenant, linked: true }, { status: 201 });
       }
@@ -229,6 +278,7 @@ export const POST = withApiHandler(
     const { data: tenant, error } = await serverSupabase
       .from('property_tenants')
       .insert({
+        ...(saveId ? { id: saveId } : {}),
         property_id: propertyId,
         name,
         email: normalizedEmail,
@@ -241,6 +291,18 @@ export const POST = withApiHandler(
       .select()
       .single();
 
+    if (error?.code === '23505' && saveId) {
+      const replay = await recoverContactSave(saveId, propertyId, body);
+      if (replay) return replay;
+    }
+    if (error?.code === '23505')
+      return NextResponse.json(
+        {
+          error:
+            'An active contact with this email already exists for this property',
+        },
+        { status: 409 }
+      );
     if (error) {
       logger.error('Failed to create tenant', { error });
       return NextResponse.json(
@@ -249,53 +311,41 @@ export const POST = withApiHandler(
       );
     }
 
-    // Send invitation email if email provided
-    if (email && tenant.invitation_token) {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
-      const inviteUrl = `${baseUrl}/register?invite=${tenant.invitation_token}`;
-
-      // Get landlord name
-      const { data: landlord } = await serverSupabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
-
-      const landlordName =
-        landlord?.first_name && landlord?.last_name
-          ? `${landlord.first_name} ${landlord.last_name}`
-          : 'Your landlord';
-
-      const propertyAddress =
-        property.address || property.name || 'your property';
-
-      EmailService.sendTenantInviteEmail(email.toLowerCase().trim(), {
-        tenantName: name,
-        propertyAddress,
-        landlordName,
-        inviteUrl,
-      })
-        .then((sent) => {
-          if (sent) {
-            // Update invitation_sent_at
-            serverSupabase
-              .from('property_tenants')
-              .update({ invitation_sent_at: new Date().toISOString() })
-              .eq('id', tenant.id)
-              .then(() => {});
-          }
-        })
-        .catch((err) => {
-          logger.error('Failed to send tenant invitation email', {
-            err,
-            tenantId: tenant.id,
-          });
+    // Saving the contact succeeds independently of email-provider availability.
+    let invitationSent = false;
+    if (normalizedEmail && tenant?.invitation_token) {
+      try {
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
+        const delivery = await deliverTenantInvitation(
+          tenant.id,
+          propertyId,
+          () =>
+            EmailService.sendTenantInviteEmail(normalizedEmail, {
+              tenantName: name,
+              propertyAddress:
+                property.address || property.name || 'your property',
+              landlordName: 'Your property manager',
+              inviteUrl: `${baseUrl}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
+            })
+        );
+        invitationSent = delivery.sent;
+      } catch {
+        logger.warn('Tenant saved; invitation delivery unavailable', {
+          tenantId: tenant.id,
         });
+      }
     }
-
     return NextResponse.json(
-      { tenant, invitation_sent: !!email },
+      {
+        tenant,
+        invitation_sent: invitationSent,
+        invitation_status: !normalizedEmail
+          ? 'not_requested'
+          : invitationSent
+            ? 'sent'
+            : 'unconfirmed',
+      },
       { status: 201 }
     );
   }
@@ -312,7 +362,7 @@ export const DELETE = withApiHandler(
     const { searchParams } = new URL(req.url);
     const tenantId = searchParams.get('tenantId');
 
-    if (!tenantId) {
+    if (!z.string().uuid().safeParse(tenantId).success) {
       return NextResponse.json(
         { error: 'tenantId is required' },
         { status: 400 }
@@ -350,11 +400,13 @@ export const DELETE = withApiHandler(
       }
     }
 
-    const { error } = await serverSupabase
+    const { data: removed, error } = await serverSupabase
       .from('property_tenants')
       .delete()
       .eq('id', tenantId)
-      .eq('property_id', propertyId);
+      .eq('property_id', propertyId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json(
@@ -363,6 +415,84 @@ export const DELETE = withApiHandler(
       );
     }
 
+    if (!removed)
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     return NextResponse.json({ success: true });
+  }
+);
+
+/** Retry delivery for an existing contact without creating another record. */
+export const PATCH = withApiHandler(
+  { roles: ['homeowner', 'admin'] },
+  async (req, { user, params }) => {
+    const parsed = z
+      .object({ tenantId: z.string().uuid() })
+      .safeParse(await req.json());
+    if (!parsed.success)
+      return NextResponse.json({ error: 'Invalid contact' }, { status: 400 });
+    await getPropertyForManagement(user, params.id, 'manage_contacts');
+    const { data: tenant, error } = await serverSupabase
+      .from('property_tenants')
+      .select(
+        'id, name, email, invitation_token, invitation_accepted_at, user_id'
+      )
+      .eq('id', parsed.data.tenantId)
+      .eq('property_id', params.id)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (error)
+      return NextResponse.json(
+        { error: 'Unable to load contact' },
+        { status: 500 }
+      );
+    if (!tenant)
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+    if (
+      tenant.user_id ||
+      tenant.invitation_accepted_at ||
+      !tenant.email ||
+      !tenant.invitation_token
+    )
+      return NextResponse.json(
+        { error: 'This contact does not need an invitation' },
+        { status: 409 }
+      );
+    let sent = false;
+    try {
+      const delivery = await deliverTenantInvitation(tenant.id, params.id, () =>
+        EmailService.sendTenantInviteEmail(tenant.email!, {
+          tenantName: tenant.name,
+          propertyAddress: 'your property',
+          landlordName: 'Your property manager',
+          inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk'}/register/invitation?token=${encodeURIComponent(tenant.invitation_token)}`,
+        })
+      );
+      if (!delivery.reserved)
+        return NextResponse.json(
+          {
+            invitation_sent: false,
+            error:
+              'An invitation was attempted recently or is no longer needed. Wait 15 minutes before retrying; check whether it already arrived.',
+          },
+          { status: 409 }
+        );
+      sent = delivery.sent;
+    } catch {
+      logger.warn('Tenant invitation retry unavailable', {
+        tenantId: tenant.id,
+      });
+    }
+    return NextResponse.json(
+      {
+        invitation_sent: sent,
+        ...(!sent
+          ? {
+              error:
+                'Invitation delivery was not confirmed. Check whether it arrived before retrying in 15 minutes.',
+            }
+          : {}),
+      },
+      { status: sent ? 200 : 503 }
+    );
   }
 );

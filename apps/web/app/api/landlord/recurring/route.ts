@@ -1,3 +1,7 @@
+import { createScheduleOnce } from '@/lib/services/recurring/create-schedule';
+import { portfolioScheduleInput } from '@/lib/services/recurring/schedule-input';
+import { validateRequest } from '@/lib/validation/validator';
+import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -56,10 +60,8 @@ export const GET = withApiHandler(
 export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user }) => {
-    const tierBlock = await requireLandlordTier(user.id, user.role);
-    if (tierBlock) return tierBlock;
-
-    const body = await req.json();
+    const validation = await validateRequest(req, portfolioScheduleInput);
+    if ('headers' in validation) return validation;
     const {
       property_id,
       task_type,
@@ -68,57 +70,24 @@ export const POST = withApiHandler(
       frequency,
       next_due_date,
       auto_create_job,
-    } = body;
+    } = validation.data;
+    const property = await getPropertyForManagement(
+      user,
+      property_id,
+      'manage_maintenance'
+    );
+    const tierBlock = await requireLandlordTier(property.owner_id, user.role);
+    if (tierBlock) return tierBlock;
 
-    if (!property_id || !title?.trim() || !next_due_date) {
-      return NextResponse.json(
-        { error: 'property_id, title, and next_due_date are required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify property ownership
-    const { data: property } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', property_id)
-      .single();
-
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json(
-        { error: 'Property not found or forbidden' },
-        { status: 404 }
-      );
-    }
-
-    const validFrequencies = ['monthly', 'quarterly', 'biannual', 'annual'];
-    const safeFrequency = validFrequencies.includes(frequency)
-      ? frequency
-      : 'annual';
-
-    const { data: schedule, error } = await serverSupabase
-      .from('recurring_schedules')
-      .insert({
-        property_id,
-        owner_id: user.id,
-        task_type: task_type || 'general',
-        title: title.trim(),
-        description: description?.trim() || null,
-        category: 'general',
-        frequency: safeFrequency,
-        next_due_date,
-        auto_create_job: auto_create_job || false,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Failed to create schedule' },
-        { status: 500 }
-      );
-    }
+    const schedule = await createScheduleOnce(req, user.id, property_id, {
+      title: title.trim(),
+      description: description?.trim() || null,
+      task_type: task_type || 'general',
+      category: 'general',
+      frequency,
+      next_due_date,
+      auto_create_job: auto_create_job ?? false,
+    });
 
     return NextResponse.json({ schedule }, { status: 201 });
   }

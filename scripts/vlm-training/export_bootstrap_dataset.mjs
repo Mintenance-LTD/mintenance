@@ -2,14 +2,10 @@
 /**
  * Bootstrap training dataset export for Mint AI VLM (Qwen2.5-VL).
  *
- * Reads directly from building_assessments + assessment_evidence +
- * assessment_images (+ optional building_assessment_outcomes overlay) and
- * writes Qwen2.5-VL conversation JSONL ready for LoRA fine-tuning.
- *
- * Unlike TrainingDataExporter.ts (which reads from vlm_training_buffer,
- * populated only by StudentShadowService once MINT_AI_VLM_ENDPOINT is set),
- * this bootstraps the FIRST training run from the assessments already in
- * the DB — breaking the chicken-and-egg problem.
+ * Exports assessments only when vlm_training_buffer contains a human-verified
+ * target for the same ordered images. Human corrections take precedence.
+ * Confidence alone never authorizes a training label. Review labels before
+ * the first training run; this script cannot bootstrap from unreviewed AI output.
  *
  * Output format matches TrainingDataExporter.toQwenConversation so both
  * paths produce compatible JSONL.
@@ -25,7 +21,7 @@
  *
  * Optional flags:
  *   --include-needs-review   Include validation_status='needs_review' (default: validated only)
- *   --with-outcomes          Overlay human corrections from building_assessment_outcomes
+ *   --with-outcomes          Deprecated; reviewed full labels always take precedence
  *   --val-output PATH        Write validation split to PATH (defaults to <output>.val.jsonl)
  *   --dry-run                Count + preview without writing
  */
@@ -34,6 +30,9 @@ import { createClient } from '@supabase/supabase-js';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { createHash } from 'node:crypto';
+import { reviewedBootstrapTarget } from './reviewed-bootstrap.mjs';
+import { splitReviewedSites } from './split-reviewed-sites.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration — must match TrainingDataExporter.ts exactly so the student
@@ -120,7 +119,7 @@ async function fetchAssessments() {
 
   const { data: assessments, error } = await supabase
     .from('building_assessments')
-    .select('id, assessment_data, confidence, created_at, validation_status, damage_type, job_id')
+    .select('id, assessment_data, confidence, created_at, validation_status, damage_type, job_id, property_id')
     .in('validation_status', statuses)
     .not('assessment_data', 'is', null)
     .gte('confidence', minConfidence)
@@ -179,26 +178,6 @@ async function fetchImagesFor(assessmentIds) {
       byAssessment.set(row.assessment_id, []);
     }
     byAssessment.get(row.assessment_id).push(row.image_url);
-  }
-  return byAssessment;
-}
-
-async function fetchOutcomesFor(assessmentIds) {
-  if (assessmentIds.length === 0 || !args['with-outcomes']) return new Map();
-
-  const { data, error } = await supabase
-    .from('building_assessment_outcomes')
-    .select('assessment_id, actual_damage_type, actual_severity, actual_urgency, error_message')
-    .in('assessment_id', assessmentIds);
-
-  if (error) {
-    console.warn('Outcomes fetch failed (non-fatal):', error.message);
-    return new Map();
-  }
-
-  const byAssessment = new Map();
-  for (const row of data) {
-    byAssessment.set(row.assessment_id, row);
   }
   return byAssessment;
 }
@@ -325,15 +304,28 @@ async function main() {
   }
 
   const ids = assessments.map((a) => a.id);
-  const [evidenceMap, imagesMap, outcomesMap] = await Promise.all([
+  const [evidenceMap, imagesMap] = await Promise.all([
     fetchEvidenceFor(ids),
     fetchImagesFor(ids),
-    fetchOutcomesFor(ids),
   ]);
+  // Automated validation/confidence is not a human training label. Reuse the
+  // authenticated review path and fail closed if it is unavailable.
+  const reviews = new Map();
+  for (let start = 0; start < ids.length; start += 100) {
+    const { data, error } = await supabase.from('vlm_training_buffer')
+      .select('assessment_id,human_verified,image_urls,human_corrected_response,teacher_response,created_at')
+      .in('assessment_id', ids.slice(start, start + 100))
+      .eq('human_verified', true)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error('Cannot verify reviewed training labels: ' + error.message);
+    for (const review of data ?? []) if (!reviews.has(review.assessment_id)) reviews.set(review.assessment_id, review);
+  }
+  if (args['with-outcomes']) console.warn('Reviewed full labels take precedence; legacy outcome overlays are not applied.');
 
   // Build rows
   let rows = [];
   let skipped = 0;
+  let unreviewed = 0;
   for (const a of assessments) {
     const imageUrls = imagesMap.get(a.id) ?? [];
     if (imageUrls.length === 0) {
@@ -341,19 +333,24 @@ async function main() {
       continue; // skip assessments with no images — useless for VLM training
     }
     const evidence = buildEvidenceSummary(evidenceMap.get(a.id));
-    const outcome = outcomesMap.get(a.id);
-    const conversation = toQwenConversation(a, imageUrls, evidence, outcome);
-    const findings = a.assessment_data?.findings;
+    const target = reviewedBootstrapTarget(reviews.get(a.id), imageUrls);
+    if (!target) { unreviewed++; continue; }
+    const conversation = toQwenConversation({ ...a, assessment_data: target }, imageUrls, evidence, undefined);
+    const findings = target.findings;
     rows.push({
       id: a.id,
+      propertyId: a.property_id,
+      imageUrls,
       confidence: a.confidence,
-      category: a.damage_type ?? a.assessment_data?.damageAssessment?.damageType ?? 'unknown',
+      category: target.damageAssessment?.damageType ?? 'unknown',
       multiFinding: Array.isArray(findings) && findings.length >= 2,
       conversation,
     });
   }
 
   console.log(`Built ${rows.length} training rows (${skipped} skipped for missing images).`);
+  console.log(`Excluded ${unreviewed} assessments without a reviewed target for the same images.`);
+  if (!rows.length) throw new Error('No reviewed training labels available; review examples before exporting.');
 
   // v3 multi-finding readiness gate.
   const multiFindingCount = rows.filter((r) => r.multiFinding).length;
@@ -386,10 +383,8 @@ async function main() {
     console.log('Category distribution:', dist);
   }
 
-  // Train/val split
-  const splitIdx = Math.max(1, Math.floor(rows.length * split));
-  const trainRows = rows.slice(0, splitIdx);
-  const valRows = rows.slice(splitIdx);
+  // Fail closed without asset provenance; row slicing leaks repeated properties.
+  const { trainRows, valRows, manifest: splitManifest } = splitReviewedSites(rows, split);
 
   if (args['dry-run']) {
     console.log(`[dry-run] Would write ${trainRows.length} train + ${valRows.length} val rows`);
@@ -409,6 +404,10 @@ async function main() {
     mkdirSync(dirname(valOutputPath), { recursive: true });
     const valJsonl = valRows.map((r) => JSON.stringify(r.conversation)).join('\n');
     writeFileSync(valOutputPath, valJsonl + '\n', 'utf-8');
+    const sha = text => createHash('sha256').update(text).digest('hex');
+    writeFileSync(`${outputPath}.split.json`, JSON.stringify({ ...splitManifest,
+      trainSha256: sha(trainJsonl + '\n'), validationSha256: sha(valJsonl + '\n'),
+    }, null, 2), 'utf-8');
     console.log(`Wrote ${valRows.length} val rows to ${valOutputPath}`);
   }
 
@@ -417,6 +416,7 @@ async function main() {
   console.log('  1. Upload the dataset to Modal or local GPU');
   console.log('  2. Run: python scripts/vlm-training/train_qwen_vlm.py \\');
   console.log(`       --data ${outputPath} --val-data ${valOutputPath} \\`);
+  console.log(`       --split-manifest ${outputPath}.split.json \\`);
   console.log('       --output ./adapters/mint-vlm-v3 --epochs 3');
   console.log('  3. Evaluate with the gated harness (per-class + multi-finding):');
   console.log('       python scripts/vlm-training/evaluate_vlm.py --data <val> \\');

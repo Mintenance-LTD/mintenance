@@ -8,6 +8,7 @@ import { getCachedUser } from '@/lib/cache';
 import { PropertiesClient2025 } from './components/PropertiesClient2025';
 import { MintEditorialProperties } from './components/MintEditorialProperties';
 import { PendingPropertyInvites } from './components/PendingPropertyInvites';
+import { SharedPropertyLinks } from './components/SharedPropertyLinks';
 import { getFeatureLimit } from '@/lib/feature-access-config';
 import {
   getEffectiveHomeownerTier,
@@ -185,6 +186,7 @@ export default async function PropertiesPage2025() {
     return (
       <>
         <PendingPropertyInvites />
+        <SharedPropertyLinks userId={user.id} />
         <MintEditorialProperties
           properties={propertiesWithStats}
           propertyLimit={propertyLimit}
@@ -196,6 +198,7 @@ export default async function PropertiesPage2025() {
   return (
     <>
       <PendingPropertyInvites />
+      <SharedPropertyLinks userId={user.id} />
       <PropertiesClient2025
         properties={propertiesWithStats}
         propertyLimit={propertyLimit}

@@ -372,6 +372,11 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   // that cutoff are rejected regardless of blacklist state or refresh.
   try {
     if (payload.sub && payload.iat) {
+      // Reject sessions issued by older registration code before email ownership
+      // was confirmed. Profile flags and editable token metadata are not proof.
+      const { data: identity, error: identityError } =
+        await serverSupabase.auth.admin.getUserById(payload.sub);
+      if (identityError || !identity.user?.email_confirmed_at) return null;
       const { data: profile, error: revocationLookupError } =
         await serverSupabase
           .from('profiles')
@@ -691,7 +696,7 @@ export async function getCurrentUserFromBearerToken(
       error,
     } = await serverSupabase.auth.getUser(token);
 
-    if (error || !user) {
+    if (error || !user?.email_confirmed_at) {
       logger.warn('Bearer token verification failed', {
         service: 'auth',
         error: error?.message,

@@ -1,3 +1,10 @@
+import { createScheduleOnce } from '@/lib/services/recurring/create-schedule';
+import { z } from 'zod';
+import {
+  propertyScheduleInput,
+  propertyScheduleUpdate,
+} from '@/lib/services/recurring/schedule-input';
+import { validateRequest } from '@/lib/validation/validator';
 import { getPropertyForManagement } from '@/lib/services/property-team/property-management-access';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -50,15 +57,6 @@ async function requireLandlordTier(userId: string, role: string) {
  * still coerced to 'annual' on input so any older client cache
  * doesn't break (same end-state, just the canonical column value).
  */
-const VALID_FREQUENCIES = ['monthly', 'quarterly', 'biannual', 'annual'];
-
-function normalizeFrequency(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const v = raw.trim().toLowerCase();
-  if (v === 'yearly') return 'annual';
-  return VALID_FREQUENCIES.includes(v) ? v : null;
-}
-
 // GET /api/properties/[id]/recurring-maintenance
 export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'], csrf: false },
@@ -89,7 +87,6 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
 
     const property = await getPropertyForManagement(
       user,
@@ -100,57 +97,19 @@ export const POST = withApiHandler(
     const tierBlock = await requireLandlordTier(property.owner_id, user.role);
     if (tierBlock) return tierBlock;
 
-    const { title, category, frequency, next_due_date } = body;
+    const validation = await validateRequest(req, propertyScheduleInput);
+    if ('headers' in validation) return validation;
+    const { title, category, frequency, next_due_date } = validation.data;
 
-    if (!title || !frequency || !next_due_date) {
-      return NextResponse.json(
-        { error: 'title, frequency, and next_due_date are required' },
-        { status: 400 }
-      );
-    }
-
-    const normalizedFrequency = normalizeFrequency(frequency);
-    if (!normalizedFrequency) {
-      return NextResponse.json(
-        {
-          error: `Invalid frequency. Allowed: ${VALID_FREQUENCIES.join(', ')}`,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { data: schedule, error } = await serverSupabase
-      .from('recurring_schedules')
-      .insert({
-        property_id: propertyId,
-        // 2026-05-23 audit-20 P1: recurring_schedules.owner_id is the FK
-        // RecurringJobCreatorService uses when constructing the new job
-        // (homeowner_id = owner_id). For an admin acting on behalf of a
-        // homeowner, fall back to the property owner so auto-created
-        // jobs still attach to the right person.
-        owner_id: property.owner_id,
-        title,
-        description: `Recurring maintenance: ${title}`,
-        task_type: 'general',
-        category: category || 'general',
-        frequency: normalizedFrequency,
-        next_due_date,
-        // Mobile / property flow assumes auto-creation: the whole UI
-        // promises "next visit on …" and the homeowner expects the job
-        // to show up. The /api/landlord/recurring dashboard surface lets
-        // the user opt in/out explicitly; here we default true.
-        auto_create_job: true,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Failed to create schedule' },
-        { status: 500 }
-      );
-    }
+    const schedule = await createScheduleOnce(req, user.id, propertyId, {
+      title,
+      description: `Recurring maintenance: ${title}`,
+      task_type: 'general',
+      category: category || 'general',
+      frequency,
+      next_due_date,
+      auto_create_job: true,
+    });
 
     return NextResponse.json({ schedule }, { status: 201 });
   }
@@ -164,7 +123,7 @@ export const DELETE = withApiHandler(
     const { searchParams } = new URL(req.url);
     const scheduleId = searchParams.get('scheduleId');
 
-    if (!scheduleId) {
+    if (!z.string().uuid().safeParse(scheduleId).success) {
       return NextResponse.json(
         { error: 'scheduleId is required' },
         { status: 400 }
@@ -173,11 +132,13 @@ export const DELETE = withApiHandler(
 
     await getPropertyForManagement(user, propertyId, 'manage_maintenance');
 
-    const { error } = await serverSupabase
+    const { data: removed, error } = await serverSupabase
       .from('recurring_schedules')
       .delete()
       .eq('id', scheduleId)
-      .eq('property_id', propertyId);
+      .eq('property_id', propertyId)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json(
@@ -186,7 +147,12 @@ export const DELETE = withApiHandler(
       );
     }
 
-    return NextResponse.json({ success: true });
+    if (!removed)
+      return NextResponse.json(
+        { error: 'Schedule not found' },
+        { status: 404 }
+      );
+    return NextResponse.json({ success: true, scheduleId: removed.id });
   }
 );
 
@@ -195,15 +161,19 @@ export const PATCH = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user, params }) => {
     const propertyId = params.id;
-    const body = await req.json();
-    const { scheduleId, is_active } = body;
-
-    if (!scheduleId || typeof is_active !== 'boolean') {
+    const parsed = propertyScheduleUpdate.safeParse(
+      await req.json().catch(() => null)
+    );
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'scheduleId and is_active required' },
+        { error: 'Check the schedule details and reload before editing.' },
         { status: 400 }
       );
     }
+    const { scheduleId, expected_updated_at, ...changes } = parsed.data;
+    const editsDetails = Object.keys(changes).some(
+      (key) => key !== 'is_active'
+    );
 
     // 2026-07-26: only POST carried the tier gate, so a landlord who
     // downgraded to Free could keep re-arming existing auto-create
@@ -217,18 +187,19 @@ export const PATCH = withApiHandler(
       'manage_maintenance'
     );
 
-    if (is_active) {
+    if (changes.is_active || editsDetails) {
       const tierBlock = await requireLandlordTier(property.owner_id, user.role);
       if (tierBlock) return tierBlock;
     }
 
-    const { data: schedule, error } = await serverSupabase
+    let update = serverSupabase
       .from('recurring_schedules')
-      .update({ is_active })
+      .update(changes)
       .eq('id', scheduleId)
-      .eq('property_id', propertyId)
-      .select()
-      .maybeSingle();
+      .eq('property_id', propertyId);
+    if (expected_updated_at)
+      update = update.eq('updated_at', expected_updated_at);
+    const { data: schedule, error } = await update.select().maybeSingle();
 
     if (error) {
       return NextResponse.json(
@@ -239,8 +210,12 @@ export const PATCH = withApiHandler(
 
     if (!schedule) {
       return NextResponse.json(
-        { error: 'Schedule not found' },
-        { status: 404 }
+        {
+          error: expected_updated_at
+            ? 'Schedule changed or was removed. Reload before editing again.'
+            : 'Schedule not found',
+        },
+        { status: expected_updated_at ? 409 : 404 }
       );
     }
 

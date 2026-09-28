@@ -247,44 +247,7 @@ export class AuthManager {
             emailRedirectTo: `${getAppUrl()}/auth/callback`,
           },
         });
-      let authError = initialAuthError;
-
-      // A failed confirmation email does not prove control of the address.
-      // Auto-confirmation is allowed only outside production for local test
-      // environments; production must leave the user unverified and return
-      // the failure so the email provider/configuration can be repaired.
-      if (
-        process.env.NODE_ENV !== 'production' &&
-        authError &&
-        authError.message === 'Error sending confirmation email' &&
-        authData?.user
-      ) {
-        logger.warn(
-          'Confirmation email failed, auto-confirming user via admin API',
-          {
-            userId: authData.user.id,
-            email: userData.email,
-            service: 'auth',
-          }
-        );
-        const { error: confirmError } =
-          await serverSupabase.auth.admin.updateUserById(authData.user.id, {
-            email_confirm: true,
-          });
-        if (confirmError) {
-          logger.error('Failed to auto-confirm user', confirmError, {
-            userId: authData.user.id,
-            service: 'auth',
-          });
-        } else {
-          logger.info('User auto-confirmed successfully', {
-            userId: authData.user.id,
-            service: 'auth',
-          });
-          // Clear the error since we recovered
-          authError = null;
-        }
-      }
+      const authError = initialAuthError;
 
       if (authError) {
         logger.error('Supabase Auth registration failed', authError, {
@@ -342,6 +305,16 @@ export class AuthManager {
 
       const user =
         publicUserProfile || buildRegisterFallbackUser(authData.user, userData);
+
+      // Auth, not profile metadata, decides whether the address is confirmed.
+      // Issuing our own cookies here would bypass Supabase's confirmation gate.
+      if (!authData.user.email_confirmed_at) {
+        return {
+          success: true,
+          user: { ...user, verified: false },
+          requiresEmailVerification: true,
+        };
+      }
 
       // Create and set JWT token pair for immediate login
       logger.info('Creating JWT tokens', { userId: user.id, service: 'auth' });

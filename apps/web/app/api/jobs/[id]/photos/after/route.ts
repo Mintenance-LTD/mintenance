@@ -1,4 +1,4 @@
-import { fingerprintMultipartRequest } from '@/lib/api/request-fingerprint';
+import { parseMultipartRequest } from '@/lib/api/request-fingerprint';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { signJobStoragePath } from '@/lib/api/job-storage';
@@ -74,13 +74,14 @@ export const POST = withApiHandler(
       user.id,
       jobId
     );
+    const multipart = await parseMultipartRequest(request);
     const idem = await checkIdempotency<unknown>(
       idempotencyKey,
       'photos_after',
       true,
       {
         userId: user.id,
-        request: { jobId, form: await fingerprintMultipartRequest(request) },
+        request: { jobId, form: multipart.fingerprint },
       }
     );
     if (idem?.isDuplicate && idem.cachedResult) {
@@ -97,7 +98,7 @@ export const POST = withApiHandler(
       idempotencyKey,
       'photos_after',
       async () => {
-        const formData = await request.formData();
+        const formData = multipart.form;
         // Accept both 'photos' (web) and 'photo' (mobile) field names
         let photoFiles = formData
           .getAll('photos')

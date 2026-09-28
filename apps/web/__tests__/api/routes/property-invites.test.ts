@@ -22,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   supabaseFrom: vi.fn(),
+  authUser: vi.fn(),
+  ilike: vi.fn(),
+  casWon: true,
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
@@ -30,7 +33,10 @@ vi.mock('@/lib/auth', () => ({
   getCurrentUserFromBearerToken: mocks.getCurrentUserFromBearerToken,
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: { from: (...a: unknown[]) => mocks.supabaseFrom(...a) },
+  serverSupabase: {
+    from: (...a: unknown[]) => mocks.supabaseFrom(...a),
+    auth: { admin: { getUserById: mocks.authUser } },
+  },
 }));
 vi.mock('@/lib/csrf', () => ({ requireCSRF: mocks.requireCSRF }));
 vi.mock('@/lib/rate-limiter', () => ({
@@ -84,6 +90,16 @@ vi.mock('@/lib/errors/api-error', async () => {
     ForbiddenError,
     NotFoundError,
     BadRequestError,
+    ConflictError: class extends APIError {
+      constructor(m = 'Conflict') {
+        super('CONFLICT', m, 409);
+      }
+    },
+    InternalServerError: class extends APIError {
+      constructor(m = 'Internal error') {
+        super('INTERNAL', m, 500);
+      }
+    },
     handleAPIError: vi.fn((e: unknown) => {
       const { NextResponse } = require('next/server');
       if (e instanceof APIError)
@@ -129,13 +145,21 @@ function wireSupabase() {
     const chain: Record<string, unknown> = {};
     chain.select = () => chain;
     chain.eq = () => chain;
-    chain.or = () => chain;
+    chain.ilike = (...args: unknown[]) => {
+      mocks.ilike(...args);
+      return chain;
+    };
     chain.order = async () => ({ data: listRows, error: null });
     chain.maybeSingle = async () => ({ data: inviteRow, error: null });
     chain.update = (payload: Record<string, unknown>) => {
       updatePayload = payload;
       const upd: Record<string, unknown> = {};
       upd.eq = () => upd;
+      upd.select = () => upd;
+      upd.maybeSingle = async () => ({
+        data: mocks.casWon ? { id: INVITE_ID } : null,
+        error: null,
+      });
       (upd as { then: unknown }).then = (r: (v: unknown) => void) =>
         r({ error: null });
       return upd;
@@ -169,6 +193,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   updatePayload = null;
   listRows = [];
+  mocks.casWon = true;
+  mocks.authUser.mockResolvedValue({
+    data: { user: { email: MY_EMAIL, email_confirmed_at: '2026-01-01' } },
+    error: null,
+  });
   inviteRow = {
     id: INVITE_ID,
     property_id: PROPERTY_ID,
@@ -286,4 +315,49 @@ describe('POST /api/properties/invites', () => {
     const res = await callPost({ inviteId: INVITE_ID, action: 'maybe' });
     expect(res.status).toBe(400);
   });
+});
+
+it('does not accept using an unverified auth email even when the profile and session match', async () => {
+  mocks.authUser.mockResolvedValue({
+    data: { user: { email: MY_EMAIL, email_confirmed_at: null } },
+    error: null,
+  });
+  expect(
+    (await callPost({ inviteId: INVITE_ID, action: 'accept' })).status
+  ).toBe(403);
+  expect(updatePayload).toBeNull();
+});
+it('uses verified auth identity rather than a stale profile or session email', async () => {
+  mocks.authUser.mockResolvedValue({
+    data: {
+      user: { email: 'other@example.com', email_confirmed_at: '2026-01-01' },
+    },
+    error: null,
+  });
+  expect(
+    (await callPost({ inviteId: INVITE_ID, action: 'accept' })).status
+  ).toBe(403);
+  expect(updatePayload).toBeNull();
+});
+it('returns a conflict when a concurrent answer wins the conditional update', async () => {
+  mocks.casWon = false;
+  expect(
+    (await callPost({ inviteId: INVITE_ID, action: 'accept' })).status
+  ).toBe(409);
+});
+it('escapes wildcard characters when finding email invitations', async () => {
+  mocks.authUser.mockResolvedValue({
+    data: {
+      user: {
+        email: 'first_last%name@example.com',
+        email_confirmed_at: '2026-01-01',
+      },
+    },
+    error: null,
+  });
+  expect((await callGet()).status).toBe(200);
+  expect(mocks.ilike).toHaveBeenCalledWith(
+    'email',
+    String.raw`first\_last\%name@example.com`
+  );
 });

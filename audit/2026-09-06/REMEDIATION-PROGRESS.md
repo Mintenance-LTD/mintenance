@@ -3405,3 +3405,482 @@ access, certificate upload/applicability, durable schedule-create retries, and t
 operations redesign remain open. This checkpoint is not overall goal completion.
 
 Final full web coverage rerun: 3,853 tests / 373 files passed in 225.80 seconds; exit code 0.
+
+## 22 September 2026 — recurring save contracts and read-only Edge verification
+
+Both portfolio and property/mobile recurring create APIs now share validation for bounded titles,
+real calendar dates and supported frequencies. Unknown frequencies no longer silently become annual.
+Older mobile ISO dates and yearly aliases remain supported. Portfolio writes use the current
+property management permission helper, property owner's plan and owner_id. A missing returned
+schedule no longer produces a successful create response. Native titles use the same 5–200 character
+rule as future generated jobs. Web controls have accessible names, duplicate synchronous submits are
+guarded, and missing confirmation preserves input rather than displaying success.
+
+Targeted tests: 34 web tests across three files passed; six native component tests passed. Web
+TypeScript and changed web source strict lint passed before final formatting; normal commit hooks
+check final staged web/mobile types, lint and tests. Earlier full-suite evidence belongs to the
+prior checkpoint and has not been represented as a full run of this additional patch.
+
+Read-only live Edge evidence is in EDGE-VERIFICATION-2026-09-22.md. The deployed property UI still
+shows earlier misleading claims that committed source fixes replace. No SQL change or hosted write
+was needed for this patch. No application deployment occurred. Durable schedule-create idempotency,
+the broader property operations redesign and native-device verification remain incomplete.
+
+### Recurring caller follow-through
+
+Traced the theme switch and property Manage card after the preceding checkpoint. The alternate
+RecurringTasksClient is still active and now has matching duplicate-submit protection, validation,
+accessible field names and unconfirmed-save handling. The property card now offers monthly,
+quarterly, biannual and annual (removing unsupported weekly), displays load errors with retry, and
+preserves input on an unconfirmed create. Kept compatibility with its empty optional category, which
+maps to general. Added regression coverage for all three active web forms and this payload. Final
+targeted web result: 38 tests / three files passed. Removed two unused imports reported by strict
+lint. Final staged source is checked by normal commit hooks. No migration or deployment.
+
+## 22 September 2026 — discoverable shared properties and restricted web view
+
+The web property loader now recognizes accepted team membership before querying jobs, schedules or
+certificates. Related records remain scoped to the property and its owner, not the invited user.
+Owners retain their existing page. Non-owners receive a separate explicit read model without entry
+codes or owner access fields: viewers see recorded work, certificate metadata and schedules;
+managers and team administrators additionally get the existing authorized recurring-maintenance
+control. Owner-only edit/delete/entry-code and unsupported job/finance links are not rendered in
+this view.
+
+Accepted shares are linked separately on both web property-list themes, without changing owned
+property quota calculations. Shared-list lookup failures render a server-refresh retry control.
+Mobile now requests the existing includeShared=view contract. The API fails visibly if membership
+cannot be loaded instead of returning a misleading owner-only success. Mobile refreshes the list on
+mount and no longer carries previous-account placeholder data into another user's pending request.
+Malformed list responses are errors, not empty success.
+
+Evidence: 41 focused web assertions across five files passed. Full isolated web coverage passed
+3,890 tests / 377 files in 335.99 seconds. The subsequently added shared-list refresh-button
+assertion passed in its two-test file. Web/mobile types and changed source lint were checked; one
+existing unused mobile queryClient was removed after strict lint reported it. Normal commit hooks
+check final staged source. Six existing mobile management tests and the new account-isolation
+assertion passed. The new test initially left its deliberately pending request unresolved; after
+completing that request in cleanup, its focused rerun passed and exited normally (34.049 seconds).
+This test observes the project's mocked FlatList data boundary, not pixels on a physical device.
+
+No SQL migration, hosted mutation, live invitation, real-user contact, or application deployment was
+performed. Authorization tests use synthetic role/database fixtures; this is not a live
+multi-account journey verification. The shared web view deliberately exposes only the supported
+records and maintenance flow: complete manager editing, compliance upload, work-order actions,
+inbox/portfolio redesign and native-device verification remain unfinished. Do not mark the overall
+goal complete.
+
+### 2026-09-22 — Native dispute submission confirmation and evidence retry
+
+- Mobile dispute submission now fails visibly if a selected evidence image cannot upload or receive
+  a usable signed link; no dispute request is sent with silently missing evidence. Completed uploads
+  are cached within the mounted form, scoped to actor/job/image, so an interrupted API response can
+  be retried with the same evidence payload.
+- A synchronous guard prevents duplicate taps while the request is pending. Success requires the
+  server contract's matching escrow identifier and a dispute record identifier. Failed submissions
+  preserve description and selected images. Description length matches the API's 10,000-character
+  maximum. Removed the unsupported 48-hour review promise.
+- Three synthetic native regression tests passed: malformed response without false success,
+  duplicate taps, and evidence failure followed by an uncertain response and identical retry. Mobile
+  type checking passed. No real dispute, upload, notification, or payment was created.
+- Scope limits: mounted-form retry only; process-death recovery and durable evidence references
+  remain unverified. Existing 30-day signed evidence URLs remain and require a separate durable
+  evidence-access design. This checkpoint is not end-to-end native-device or hosted storage-policy
+  verification. No SQL changes.
+
+### 2026-09-22 — Property management work queue and durable dispute links
+
+- Reorganised the editorial Manage tab into Plan work, People and access, and Records and
+  compliance, with in-page navigation and responsive single-column defaults. Added a searchable
+  open-work queue with status/contractor filters, job links, and incremental list disclosure. This
+  uses recorded job status, not inferred risk or SLA scores.
+- Reporting links now show loading/error/retry states, all returned links and their labels, guard
+  concurrent mutations, and verify mutation responses before changing visible status. Added native
+  reporting-link listing/generation/toggling and sharing through the OS share sheet. Native controls
+  remain owner/platform-admin only, matching the current API; broader delegated-manager permissions
+  are not claimed.
+- Corrected misleading labels: the compliance card describes certificates, and the CSV is completed
+  job history with job budgets, not proof of compliance or actual spend. Native Manage provides
+  direct navigation to existing jobs and maintenance/compliance surfaces.
+- New mobile dispute evidence stores stable private `job-attachments:<path>` references. The
+  existing atomic dispute record stores these in its evidence section; no schema change is required.
+  The authorised exact-escrow detail route generates 10-minute links. Legacy signed URLs from the
+  exact configured Supabase origin are renewable; foreign origins, other jobs/claimants, traversal
+  and nested encoded paths are not signed. Both web dispute themes show evidence links and an
+  unavailable/retry message when signing fails. Existing unrelated-reader rejection occurs before
+  any signing.
+- Validation: 19 focused web tests across six files passed, plus four queue/management tests across
+  two files (two management tests overlap the prior run). Five native tests across two files passed.
+  Web and native type checks passed before the final queue/shortcut additions; normal commit hooks
+  validate the final state. Changed production web sources passed strict lint; the explicit
+  test-file lint invocation produced only repository-ignore warnings. Native changed source/tests
+  passed strict lint.
+- Limitations: no physical-device, hosted upload, or new browser layout verification in this
+  checkpoint. Storage objects still need retention lifecycle verification; this change renews access
+  to existing objects and cannot restore deleted files. Retry upload caching remains mounted-form
+  only. The broader manager workflow, structured evidence records/admin tooling, and portfolio
+  operations remain incomplete. No SQL migration or application deployment performed.
+
+### 2026-09-22 — Delegated reporting and verified invitation acceptance
+
+- Accepted property managers/team administrators can now list/create/disable reporting links on
+  web/shared-property and native detail screens. Server authorization uses `manage_contacts`,
+  verifies current accepted membership, and charges feature entitlement to the property owner.
+  Tokens remain owned by that owner. Viewers/unrelated/revoked users cannot read bearer links.
+  Downgrade still permits disabling; creation/reactivation require the owner plan. Added input
+  validation and missing-write-result failure handling.
+- Extracted a shared reporting-link card so owner and delegated web surfaces use the same
+  request/recovery controls.
+- Invitation email matching now uses the auth provider's verified address, with no profile/session
+  fallback. GET uses separate user-id and escaped literal-email filters, avoiding email
+  interpolation into a PostgREST OR expression. Acceptance returns conflict if its conditional
+  pending-row update loses a race; lookup errors fail closed.
+- Added native invitation accept/decline controls in the property list, including accounts with no
+  owned properties. Confirmation must match the requested property/status; success refreshes the
+  account-scoped property list. Web confirmation checks now match that contract. Corrected old
+  invite copy: acceptance exists, invitations are available in Properties, and no email is sent by
+  the recording route.
+- Validation: 34 manager/shared/maintenance authorization tests passed, 13 invitation route tests
+  passed, and final 25 targeted web tests (overlapping those groups) passed. Five native
+  invitation/reporting/account-isolation tests passed. Web/mobile type checks passed before final
+  reusable-card extraction; normal hooks verify final staged sources. Changed web sources passed
+  strict lint; native lint found an existing dynamic require in the touched team component, replaced
+  with the existing React Native static import pattern.
+- No hosted data changes, email sends, SQL migrations, or application deployment. Remaining
+  limitations include team-invite capacity concurrency and delegated team administration,
+  contact-form recovery, full native/device and browser verification, and evidence-retention
+  lifecycle testing. This is another completed implementation checkpoint, not completion of the
+  overall goal.
+
+### 2026-09-22 — Atomic team administration and contact recovery
+
+- Added a database trigger that serializes property-team inserts against the property row, enforces
+  the existing ten-record cap, and rejects normalized-email duplicates. It also protects the old
+  application's direct insert path. Existing records are not rewritten.
+- Added service-role-only `manage_property_team` for invite/remove. It locks the property and
+  rechecks owner/platform-admin/accepted team-admin authorization inside the transaction; delegated
+  membership is locked while authorizing. Managers/viewers cannot administer teams. Routes validate
+  payloads, check the owner subscription, and require confirmed mutation results. Shared web
+  properties now expose team administration only to team administrators; native existing
+  capabilities now match the API.
+- Web/native tenant and team cards distinguish failed loads from empty lists and provide retries.
+  Tenant creation preserves inputs on missing confirmation, duplicate-tap guards protect creation,
+  and failed removals are visible. Native query keys include the signed-in account.
+- Local verification: isolated Docker role/grant/duplicate/revocation diagnostics passed. Observed
+  overlapping RPC and legacy direct-insert transactions competing for the tenth slot: one succeeded,
+  one was rejected, final count exactly ten. Synthetic fixtures were removed. Full migration replay
+  through local `db diff --local --use-pg-delta` returned no schema changes.
+- Tests: 17 focused web tests and three native contact-recovery tests passed; changed-source strict
+  lint passed. Web/native type checks produced no errors. Normal commit hooks and a broader web
+  coverage run follow.
+- Hosted read-only preflight returned zero over-capacity properties and zero normalized duplicate
+  groups. Hosted dry-run lists only 20260922182831_serialize_property_team_management.sql, no
+  seeds/roles, and vault changes are skipped. Hosted application is recorded separately after
+  execution and metadata verification.
+- No real invitations, emails, contacts, payments, or synthetic customer records were created
+  remotely. Full browser/native-device journey checks and evidence retention remain open.
+
+### Team-management checkpoint verification and rollout
+
+- Full isolated web coverage run: **384 files / 3,929 tests passed**, 195.15 seconds. The initial
+  run exposed four stale reporting-token fixtures using a non-UUID ID; corrected those fixtures and
+  added explicit invalid-ID rejection coverage without weakening production validation.
+- Normal implementation commit hooks passed. Local security advisors returned only the existing
+  PostGIS public-extension and spatial_ref_sys RLS findings; these remain open.
+- Applied migration 20260922182831 to the authorized hosted project using linked CLI push with vault
+  changes skipped. Only this migration ran; no seeds or roles ran. Read-only MCP verification
+  confirmed migration history, enabled capacity trigger, denied anon/authenticated function
+  execution, and allowed service-role execution.
+- This is a completed checkpoint, not overall readiness: broader management workflows, evidence
+  retention, browser checks, and physical-device journeys remain outstanding.
+
+## 2026-09-22 — Contact delivery recovery and evidence immutability
+
+- Tenant creation now validates contact fields and lease date ordering; email-provider failure does
+  not turn a saved contact into a failed creation. Delivery is awaited and reported truthfully.
+  Web/native users can retry delivery against the existing record rather than creating a second
+  contact. Shared-property managers and administrators can reach web contact controls; viewers
+  cannot.
+- Automatic account linkage verifies the candidate against the authoritative, confirmed Auth email.
+  Invitation acceptance also verifies Auth email, conditionally claims an active/unaccepted/unlinked
+  row, reports lost races, and preserves successful acceptance when notification delivery fails.
+  Repeating an already accepted invitation as the same verified account returns success. Removed
+  email hints from mismatch logging.
+- Contact deletion requires a returned row before reporting success.
+- New restrictive storage policies constrain dispute uploads to the actor folder and job
+  participants and deny client updates/deletes of dispute evidence. They preserve service-role
+  retention operations. This protects original objects but does NOT implement archival access after
+  account/job deletion, scheduled retention review, or orphan-upload cleanup. Existing missing
+  objects cannot be recovered by this change.
+- Verification: 19 focused web tests across four files; three native contact tests; web/native
+  TypeScript and changed-source strict lint passed. Initial test-run sandbox startup and incorrect
+  native test-path failures were corrected; one new retry mock fixture was corrected before the
+  final passing run. Full web coverage was not rerun for this checkpoint.
+- Real local storage RLS diagnostics used synthetic users and rolled-back transactions: valid
+  participant upload succeeded, unrelated-job and foreign-folder uploads failed, and UPDATE/DELETE
+  affected no evidence rows. The diagnostic uses the Storage API deletion transaction setting, with
+  RLS enabled; it does not test object bytes through the HTTP Storage API. Full isolated migration
+  replay/diff returned no changes. Advisors still report the existing PostGIS findings only.
+- Hosted migration 20260922190036 applied alone with vault changes skipped, no seeds/roles.
+  Read-only MCP confirmed all three restrictive authenticated policies. No live contacts, messages,
+  invitations, or payments were exercised.
+- Remaining: invitation deep-link experience after email verification/login and delivery
+  deduplication under concurrent requests; broader property work queues/actions; archived dispute
+  evidence access and retention review; browser and physical-device validation. These areas are not
+  marked complete.
+
+## Controlled-pilot milestones and invitation hand-off
+
+User requested the six launch gates as the continued goal. Acceptance criteria are recorded in
+CONTROLLED-PILOT-MILESTONES.md; the existing app goal tracker remains stale/blocked and cannot be
+reset through the available goal API. No goal completion is claimed.
+
+Fixed the registration flow that silently ignored tenant-invitation acceptance before email
+verification. It now returns to an explicit invitation page with sign-in/create-account links,
+verification guidance, retry and confirmed success. New invitation emails point to that page; old
+registration invite URLs still return there. The login/MFA redirect validator permits only that
+exact additional same-origin path. Token-bearing page uses no-index/no-referrer metadata.
+
+32 focused tests passed across four files; changed-source lint passed. This checkpoint does not
+verify actual email delivery, the full provider verification/browser journey, or native
+universal-link handling. No SQL changes or live messages were needed.
+
+## 2026-09-22 — Deletion archive and retention review controls
+
+Disputes are now snapshotted before parent cascades remove payment links and participants. The
+restricted archive has no foreign keys back to erasable accounts/jobs. Participant-only reads are
+audited; evidence download URLs are renewed for 600 seconds only for the original scoped objects.
+The web has a retained-record list and read-only view; mobile payment history links to the same
+authenticated website. This browser hand-off is not a native-device verification claim.
+
+Real local HTTP verification passed with three synthetic accounts, real cookie authentication, the
+full /api/user/delete-account endpoint, actual Auth deletion, surviving-party listing/read,
+byte-identical private Storage download, and unrelated-user denial. Cleanup removed only generated
+fixtures. An earlier attempt hit the normal login rate limit; the successful run waited for its
+window rather than changing or bypassing it. Rolled-back SQL also covers contractor/owner/job
+deletion, denied unrelated administrator access, and unbound legacy records.
+
+Added a staff evidence-review queue for both archive types. Decisions require fresh MFA and a
+database administrator check, serialize against the source record, reject stale revisions, and
+append a protected history. Holds require review within 90 days; other review dates are bounded to
+one year. These are review dates, not automatic deletion deadlines. Seven route tests and two
+component tests cover identity binding, errors, MFA payload preservation and input after failure;
+real SQL checks cover privileges, both record types, hold/release history and stale decisions.
+
+Before these latest review additions, full isolated web coverage passed 388 files / 3,952 tests. The
+earlier archive-focused run passed 17 tests; the combined archive/review-service run passed 12.
+Current review type checking and strict changed-source lint passed. Final build, migration replay,
+hosted rollout and final commit evidence are recorded separately when completed.
+
+Still unfinished: durable disposal and hold/disposal race checks, unbound legacy reconciliation,
+identity-verified access after the requesting party closes their own account, provider email and
+Stripe test journeys, broader management acceptance and physical-device checks. Neither the
+retention policy draft nor these passing subsets establish launch readiness.
+
+Final checkpoint verification: sanitized production build completed successfully (512 generated
+pages); 14 final focused retention tests passed. Final isolated schema replay/diff was empty. Both
+migrations are hosted and MCP metadata checks passed. Actual concurrent first reviews produced
+exactly one winner. No real payments, messages or native device tests were performed.
+
+# 2026-09-22 — Concurrent contact creation and invitation delivery
+
+The database now enforces one active case/whitespace-normalized email per property. Both contact
+creation paths return conflict for a lost insertion race. Inactive historical contacts do not block
+a new active record. Hosted preflight found zero conflicting groups; no records were altered to make
+the index fit.
+
+Invitation sending reserves a durable, private attempt before calling the provider. Concurrent and
+recent attempts are denied for 15 minutes; finalization matches the attempt ID. Invitation network
+requests time out after 10 seconds. An interrupted/declined response is tracked as unknown, and
+web/mobile describe unconfirmed delivery and the retry window. No automatic resend is performed.
+This prevents concurrent duplicate sends; it does not promise provider exactly-once delivery after
+an explicit later retry of an uncertain outcome.
+
+Verification: full isolated web coverage passed 391 files / 3,966 tests in 188.59 seconds. Four
+native contact tests passed, including server retry guidance without duplicate creation. Web/native
+types and changed-source strict lint passed. Real independent PostgreSQL connections produced one
+normalized contact and one invitation claim; stale finalization and immediate retry were denied, and
+retry recovered beyond the documented boundary. Full local migration replay/diff was empty. Advisors
+retain the existing PostGIS and duplicate service_areas index findings only.
+
+The new property-management HTTP diagnostic uses five synthetic cookie-authenticated roles and a
+local subscription fixture. Its first run confirmed owner/manager/team-admin contact and schedule
+writes but stopped at a mistaken viewer-contact expectation: private contact access is correctly
+denied to viewers. The expectation was corrected; the remaining viewer/unrelated checks must still
+be rerun after the normal login window. No production fixtures, messages or payments were used.
+
+# 2026-09-22 — Editable recurring maintenance and truthful mutations
+
+Property owners and delegated managers can edit a recurring task's title, frequency and next due
+date from both web and mobile. Edits include the loaded updated_at value and condition the database
+update on it; stale or removed records return conflict rather than overwriting another decision.
+Dates and identifiers are validated. Editing/reactivation use the property owner's entitlement;
+pausing and deletion remain available after downgrade.
+
+Schedule deletion now requires a returned record before confirming success. Both clients check
+mutation confirmations; the web reports non-success pause/delete responses and preserves the visible
+record and edit input. Mobile uses the same API contract. Native styles were extracted to keep the
+component within the repository's size convention.
+
+45 relevant web tests and seven native property tests passed. New coverage includes version-bound
+edits, retained input on conflict, invalid dates, downgrade behavior and missing-record deletion.
+The existing tier test fixture was corrected to use a UUID. Web/native type checks and strict lint
+passed. Real role HTTP verification and final production build are recorded after completion.
+
+Final schedule verification: production build completed successfully. The corrected five-role real
+HTTP test passed all reads/writes and version conflicts, with viewer tenant-contact reads denied as
+intended. Synthetic fixtures were removed and no provider messages/payments were used. No database
+migration was required; existing updated_at triggers supply edit versions.
+
+### Mobile environment isolation checkpoint
+
+The shared environment loader now treats web/root values as defaults and preserves explicitly
+injected mobile settings, including empty strings. This prevents local test/EAS configuration from
+being overwritten with another backend. Seven VM-isolated tests cover all supported mappings and
+private-key exclusion; mobile type checking and strict changed-file lint passed. Tests never read
+real environment contents. A fresh, separate Android audit emulator now boots; native journey
+verification is in progress, not yet a passing readiness gate.
+
+### Native startup and verification checkpoint
+
+A fresh workspace-only Android 36 emulator booted with hardware acceleration. Official SDK 54 Expo
+Go installed successfully. The whole-repository Metro scan left HTTP status requests timing out
+repeatedly; excluding generated outputs alone did not resolve it. Limiting watchFolders to shared
+packages and root dependencies restored HTTP 200 packager-status:running and produced the Android
+bundle in 37.5 seconds (3,654 modules). Mobile source remains its projectRoot; Expo's server root
+remains unchanged. A VM configuration regression checks exclusions and required watch roots.
+
+Expo Go then failed at native startup because the installed Stripe library requires OnrampSdk, which
+that client does not contain. No payment module was stubbed or removed. A proper local Android
+project was generated successfully with no package.json changes; development-client build validation
+is continuing. This is not yet a passed native user journey.
+
+### September 24 resume: invitation acceptance and contact deletion
+
+Preserved the September 22 uncommitted batch and re-ran nine invitation tests plus the rolled-back
+contact-deletion diagnostic successfully. Concurrent correct-user invitation acceptance now confirms
+the saved result without a duplicate notification; a different user is denied, unavailable result
+verification returns 503, and malformed JSON/null/array input returns 400.
+
+The September 22 real five-role HTTP run passed management reads/writes, stale schedule edits,
+wrong-identity invitation denial, concurrent/repeated correct-user acceptance and checked cleanup.
+The earlier cleanup failure was direct Auth deletion, not the normal account-erasure endpoint:
+delete_user_data already removes linked tenant records. The new FK migration preserves that normal
+erasure behavior, allows direct Auth deletion to detach the account without reopening its consumed
+invitation, and removes property-owned tenant contacts when their property is deleted. The separate
+property_contacts table with retained owner history is not changed.
+
+Migration 20260922214821 was locally applied and passed a full shadow-schema replay/diff (empty).
+The isolated migration ledger is older than its manually applied schema; db push --local attempted
+an already-existing older table and failed. This was not counted as a runner pass. The subsequent
+full schema diff confirmed the final local schema matches all migration files. Security advisors
+show only the previously recorded PostGIS findings. Hosted metadata confirms the two old FK actions;
+dry-run selects only this migration. One pre-existing hosted detached contact remains untouched.
+
+The interrupted September 22 full coverage run is not a result. A fresh September 24 run is in
+progress. Native development-client builds remain blocked before compilation by a Java local socket
+failure, also reproduced by a minimal Selector.open() program on the host. Expo Go cannot substitute
+for this app's Stripe native module. No payment or network controls were removed for testing.
+
+### September 24 security follow-up: PostGIS reference writes
+
+Hosted privilege metadata confirmed anon/authenticated/service_role could insert, update, delete and
+read public.spatial_ref_sys with RLS disabled. A local transaction as anon updated one reference row
+and rolled back. This is a confirmed write exposure, not merely a generic advisor warning: altered
+coordinate definitions can affect location calculations or availability. No hosted mutation was used
+to reproduce it.
+
+The managed table is owned by supabase_admin; hosted postgres is not a superuser, does not inherit
+that owner and has no grant options, but does have TRIGGER privilege. Migration 20260924075110 adds
+a SECURITY INVOKER statement guard that rejects INSERT/UPDATE/DELETE/TRUNCATE unless current_user is
+postgres or supabase_admin. Reads and coordinate transformation remain available. No role is
+elevated and no extension is moved or upgraded. The owner/RLS advisor warning remains structurally
+true; the write guard is the enforced mitigation and must be rechecked after extension maintenance.
+
+Rolled-back checks pass for anon/authenticated/service_role across all four denied writes plus
+reference reads and ST_Transform. The local anonymous REST update returns permission error 42501
+with the guard's exact message (HTTP 401 for anonymous PostgREST, not 403). Full migration replay
+and schema diff are empty. The fresh full web coverage run passed 392 files / 3,977 tests in
+264.96s.
+
+Hosted rollout confirmation: migrations 20260922214821 and 20260924075110 were applied on September
+24 after isolated verification and individual dry-runs. MCP verified the contact migration history
+and the enabled spatial statement guard, SECURITY INVOKER, fixed pg_catalog search path and denied
+anonymous function execution. No hosted row mutation or production fixture was performed. Existing
+orphan contact data was not cleaned up as part of these schema changes.
+
+### September 24 — complete staff archive pagination
+
+The retention GET previously stopped at 50 contracts and 50 disputes without a continuation path.
+The staff page now appends bounded batches ordered by immutable archive timestamp and record ID.
+Validated independent cursors preserve timestamp precision and prevent filter injection. Changing a
+review date cannot shift the paging boundary. A failed continuation preserves existing form drafts
+and retries the same cursor; duplicate records are not appended. Database administrator verification
+still precedes reads; responses contain metadata, not evidence payloads. This remains a web-only
+staff surface, not a new mobile customer permission.
+
+Validation: 14 focused route/UI tests passed; web type check and source ESLint passed. A real
+isolated PostgREST diagnostic (`retention-pagination-rest.py`) traversed 105 contracts and 53
+disputes with tied microsecond timestamps and intervening review-date changes, with no
+omissions/duplicates. All diagnostic fixtures were removed. No SQL or hosted schema changes were
+needed for this slice. The last full coverage result predates this pagination change; focused tests
+cover this change. Durable disposal, legacy reconciliation and processor/backup expiry remain open.
+
+### September 24 — usable tenant reporting links on web and mobile
+
+Confirmed two independent failures in the property reporting journey. Property cards and native
+sharing built `/report/<row id>`, while both public handlers look up a separate random `token`. The
+property listing endpoint also omitted that token. Separately, the proxy redirected the public
+report page to login and rejected its API before the handler's `auth:false` could take effect. The
+signed-out local Edge browser reproduced that redirect using a real synthetic reporting token.
+
+The authorized management listing now includes the reporting capability. Web property cards
+(including the older component) and native sharing use that token; mutation requests still use the
+internal row ID. Missing token values produce an error instead of copying an invalid link. Proxy
+access is limited to exactly one 32-hex-character generated token segment under `/report/` or
+`/api/report/`; the handler still checks active status/property existence and rate-limits requests.
+Management, landlord, settings and extra subpaths stay protected.
+
+Verification: 8 focused web reporting/permission tests and 3 native component tests passed; adding
+the proxy regression produced 33 passing focused checks. Web/mobile types and source lint passed.
+Full web coverage passed 393 files / 3,985 tests; the public-route edit was additionally checked by
+the focused run. Edge then showed the signed-out synthetic report form, and after revocation showed
+an invalid/deactivated-link message. No report was submitted, no email sent, and synthetic browser
+fixtures were removed. The expanded five-role HTTP diagnostic is pending its normal login cooldown;
+do not count it as passed yet. No SQL migration is required.
+
+Read-only live check: the user-supplied dashboard URL opened in the existing Edge session and showed
+navigation, project cards and property actions. No production data was changed. This establishes
+page access, not completion of payment or management journeys. Supabase MCP also verified the hosted
+contact FK definitions directly: property deletion CASCADE; deleted user reference SET NULL.
+
+### September 24 — dashboard phone layout
+
+The user's live dashboard was readable at desktop width, but Edge at 390 × 844 showed four narrow
+metric columns and a jobs/sidebar split that caused severe wrapping and overlapping Verify controls.
+The cause was unconditional inline grid columns and a non-wrapping greeting/actions row. Replaced
+those inline layouts with a component-scoped stylesheet: wrapping greeting/actions, two metric
+columns and one content column below 1200px; the desktop four/two-column layout remains above it.
+
+A synthetic browser preview rendered the actual dashboard, jobs and side-panel components with Next
+Link and the authenticated shell substituted solely for static rendering. At phone width the cards
+and property action buttons are readable without the prior overlap. This is layout evidence, not
+authentication or data-flow verification. The real live menu opened; browser viewport overrides were
+reset. No production content or configuration was edited.
+
+### September 24 — expanded bearer-client manager workflow verification
+
+The first expanded cookie HTTP run stopped at a stale harness expectation: an internal reporting row
+ID must be rejected, but the old assertion required exactly the handler's 404 rather than also
+accepting proxy denial. Its cleanup completed. The assertion now accepts 401/403/404; it never
+accepts a redirect-followed login page or a successful response. This cookie run is not a pass.
+
+Added an explicit `--bearer` diagnostic mode using genuine Supabase password sign-in for separate
+synthetic accounts. This exercises the supported provider-bearer authentication path; it does not
+replace the cookie-login check, spoof IPs, relax rate limits or change production auth behavior.
+That run passed all five roles, all existing contact/schedule/compliance checks, reporting-link
+read/create/revoke and public validation, owner/team-admin invitation/removal, and denial for
+manager/viewer/unrelated team administration. Concurrent/repeated tenant acceptance and wrong-user
+rejection passed as well. Checked cleanup completed. No email, report submission or provider payment
+occurred. Log: resume-management-reporting-bearer.log. Earlier completed cookie coverage remains
+limited to the previously recorded contact/schedule/compliance and invitation journeys.

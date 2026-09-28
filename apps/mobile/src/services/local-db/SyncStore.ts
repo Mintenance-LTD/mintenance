@@ -34,7 +34,9 @@ export async function getDirtyRecords(
   table: string
 ): Promise<(DatabaseUserRow | DatabaseJobRow | DatabaseMessageRow)[]> {
   assertSyncableTable(table);
-  const query = `SELECT * FROM ${table} WHERE is_dirty = TRUE ORDER BY updated_at DESC`;
+  // Messages are immutable records with created_at, including legacy schemas.
+  const timestamp = table === 'messages' ? 'created_at' : 'updated_at';
+  const query = `SELECT * FROM ${table} WHERE is_dirty = TRUE ORDER BY ${timestamp} DESC`;
   return await db.getAllAsync<
     DatabaseUserRow | DatabaseJobRow | DatabaseMessageRow
   >(query);

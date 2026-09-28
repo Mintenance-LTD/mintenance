@@ -27,6 +27,7 @@ import {
 
 export interface DocumentItem {
   id: string;
+  contract_id?: string;
   type: 'contract' | 'bid' | 'payment';
   name: string;
   status: string;
@@ -316,82 +317,96 @@ export function DocumentRow({ doc }: { doc: DocumentItem }) {
   const TypeIcon = typeConfig.icon;
 
   return (
-    <Link href={doc.href} className='group'>
-      <div className='flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors'>
-        <div
-          className={`w-10 h-10 rounded-xl ${typeConfig.bgColor} flex items-center justify-center flex-shrink-0`}
-        >
-          <TypeIcon className={`h-5 w-5 ${typeConfig.color}`} />
-        </div>
-
-        <div className='flex-1 min-w-0'>
-          <div className='flex items-center gap-2 mb-0.5'>
-            <h3 className='text-sm font-semibold text-gray-900 truncate group-hover:text-indigo-600 transition-colors'>
-              {doc.name}
-            </h3>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${statusConfig.bg} ${statusConfig.color}`}
-            >
-              <StatusIcon className='h-3 w-3' />
-              {statusConfig.label}
-            </span>
+    <div>
+      <Link href={doc.href} className='group'>
+        <div className='flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors'>
+          <div
+            className={`w-10 h-10 rounded-xl ${typeConfig.bgColor} flex items-center justify-center flex-shrink-0`}
+          >
+            <TypeIcon className={`h-5 w-5 ${typeConfig.color}`} />
           </div>
 
-          <div className='flex items-center gap-3 text-xs text-gray-500'>
-            {doc.contractor_name && (
-              <span className='flex items-center gap-1'>
-                <User className='h-3 w-3' />
-                {doc.contractor_name}
+          <div className='flex-1 min-w-0'>
+            <div className='flex items-center gap-2 mb-0.5'>
+              <h3 className='text-sm font-semibold text-gray-900 truncate group-hover:text-indigo-600 transition-colors'>
+                {doc.name}
+              </h3>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${statusConfig.bg} ${statusConfig.color}`}
+              >
+                <StatusIcon className='h-3 w-3' />
+                {statusConfig.label}
               </span>
-            )}
-            {doc.job_title && (
-              <span className='flex items-center gap-1'>
-                <Building2 className='h-3 w-3' />
-                {doc.job_title}
-              </span>
-            )}
-            <span className='flex items-center gap-1'>
-              <CalendarDays className='h-3 w-3' />
-              {formatRelative(doc.created_at)}
-            </span>
-          </div>
-
-          {doc.type === 'bid' && doc.message && (
-            <p className='text-xs text-gray-400 mt-1 line-clamp-1 italic'>
-              &ldquo;{doc.message}&rdquo;
-            </p>
-          )}
-
-          {doc.type === 'contract' &&
-            doc.status !== 'accepted' &&
-            doc.status !== 'rejected' && (
-              <div className='flex items-center gap-3 mt-1.5'>
-                <SignaturePill label='You' signed={!!doc.homeowner_signed} />
-                <SignaturePill
-                  label='Contractor'
-                  signed={!!doc.contractor_signed}
-                />
-              </div>
-            )}
-        </div>
-
-        <div className='flex items-center gap-3 flex-shrink-0'>
-          {doc.amount != null && doc.amount > 0 && (
-            <div className='text-right'>
-              <div className='flex items-center gap-1 text-base font-bold text-gray-900'>
-                <PoundSterling className='h-3.5 w-3.5 text-gray-400' />
-                {doc.amount.toLocaleString('en-GB', {
-                  minimumFractionDigits: 2,
-                })}
-              </div>
-              <div className='text-[10px] text-gray-400 uppercase tracking-wider font-medium'>
-                {doc.type === 'payment' ? 'Paid' : 'Amount'}
-              </div>
             </div>
-          )}
-          <ChevronRight className='h-4 w-4 text-gray-300 group-hover:text-indigo-500 transition-colors' />
+
+            <div className='flex items-center gap-3 text-xs text-gray-500'>
+              {doc.contractor_name && (
+                <span className='flex items-center gap-1'>
+                  <User className='h-3 w-3' />
+                  {doc.contractor_name}
+                </span>
+              )}
+              {doc.job_title && (
+                <span className='flex items-center gap-1'>
+                  <Building2 className='h-3 w-3' />
+                  {doc.job_title}
+                </span>
+              )}
+              <span className='flex items-center gap-1'>
+                <CalendarDays className='h-3 w-3' />
+                {formatRelative(doc.created_at)}
+              </span>
+            </div>
+
+            {doc.type === 'bid' && doc.message && (
+              <p className='text-xs text-gray-400 mt-1 line-clamp-1 italic'>
+                &ldquo;{doc.message}&rdquo;
+              </p>
+            )}
+
+            {doc.type === 'contract' &&
+              doc.status !== 'accepted' &&
+              doc.status !== 'rejected' && (
+                <div className='flex items-center gap-3 mt-1.5'>
+                  <SignaturePill label='You' signed={!!doc.homeowner_signed} />
+                  <SignaturePill
+                    label='Contractor'
+                    signed={!!doc.contractor_signed}
+                  />
+                </div>
+              )}
+          </div>
+
+          <div className='flex items-center gap-3 flex-shrink-0'>
+            {doc.amount != null && doc.amount > 0 && (
+              <div className='text-right'>
+                <div className='flex items-center gap-1 text-base font-bold text-gray-900'>
+                  <PoundSterling className='h-3.5 w-3.5 text-gray-400' />
+                  {doc.amount.toLocaleString('en-GB', {
+                    minimumFractionDigits: 2,
+                  })}
+                </div>
+                <div className='text-[10px] text-gray-400 uppercase tracking-wider font-medium'>
+                  {doc.type === 'payment' &&
+                  ['released', 'completed'].includes(doc.status)
+                    ? 'Paid'
+                    : 'Amount'}
+                </div>
+              </div>
+            )}
+            <ChevronRight className='h-4 w-4 text-gray-300 group-hover:text-indigo-500 transition-colors' />
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      {doc.type === 'contract' && doc.contract_id && (
+        <a
+          href={`/api/contracts/${doc.contract_id}/pdf`}
+          download
+          className='inline-block px-5 pb-4 text-sm underline'
+        >
+          Download PDF
+        </a>
+      )}
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { AdminCard } from '@/components/admin/AdminCard';
@@ -13,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import type {
@@ -26,6 +26,7 @@ import { BuildingAssessmentsAutoValidation } from './BuildingAssessmentsAutoVali
 import { BuildingAssessmentsTimeline } from './BuildingAssessmentsTimeline';
 import { BuildingAssessmentsCard } from './BuildingAssessmentsCard';
 import { BuildingAssessmentsReviewDialog } from './BuildingAssessmentsReviewDialog';
+import { ExpertEvaluationPanel } from './ExpertEvaluationPanel';
 interface BuildingAssessmentsClientProps {
   initialAssessments: Assessment[];
   initialStatistics: Statistics;
@@ -64,7 +65,7 @@ export function BuildingAssessmentsClient(
   const [correctionStats, setCorrectionStats] =
     useState<CorrectionStats | null>(null);
 
-  const refreshAssessments = async () => {
+  const refreshAssessments = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -72,7 +73,7 @@ export function BuildingAssessmentsClient(
       );
       const data = await response.json();
       setAssessments(data.assessments || []);
-      setStatistics(data.statistics || statistics);
+      setStatistics((previous) => data.statistics || previous);
     } catch (error) {
       logger.error('Error refreshing assessments', error, {
         service: 'building-assessments',
@@ -80,7 +81,7 @@ export function BuildingAssessmentsClient(
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   const handleValidate = async (assessmentId: string, validated: boolean) => {
     setLoading(true);
@@ -114,7 +115,7 @@ export function BuildingAssessmentsClient(
 
   useEffect(() => {
     refreshAssessments();
-  }, [filterStatus]);
+  }, [refreshAssessments]);
 
   useEffect(() => {
     async function fetchCorrectionStats() {
@@ -153,6 +154,18 @@ export function BuildingAssessmentsClient(
           </p>
         </div>
         <div className='flex gap-3'>
+          <Link
+            className='px-5 py-2.5 underline'
+            href='/admin/building-assessments/review-queue'
+          >
+            Review photos first
+          </Link>
+          <Link
+            className='px-5 py-2.5 underline'
+            href='/admin/building-assessments/check-photos'
+          >
+            Check photos
+          </Link>
           <button className='px-5 py-2.5 bg-[#d3e4fe] text-[#435368] rounded-xl font-medium text-sm hover:brightness-95 transition-all flex items-center gap-2'>
             <Icon name='clock' size={16} color='#435368' /> Model History
           </button>
@@ -422,6 +435,7 @@ export function BuildingAssessmentsClient(
         )}
       </div>
 
+      <ExpertEvaluationPanel />
       <BuildingAssessmentsReviewDialog
         selectedAssessment={selectedAssessment}
         validationNotes={validationNotes}

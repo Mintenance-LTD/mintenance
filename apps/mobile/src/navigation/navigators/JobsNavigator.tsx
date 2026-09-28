@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../types';
 
 // Import existing screens
-import JobsScreen from '../../screens/JobsScreen';
+import { JobsScreen } from '../../screens/JobsScreen';
 import { JobDetailsScreen } from '../../screens/job-details';
 import JobPostingScreen from '../../screens/JobPostingScreen';
 // 2026-05-23: PostJobWizardScreen retired. Silver-mode users now use
@@ -13,8 +13,11 @@ import JobPostingScreen from '../../screens/JobPostingScreen';
 // screen's validation + submit pipeline.
 import BidSubmissionScreen from '../../screens/BidSubmissionScreen';
 import { PaymentScreen } from '../../screens/PaymentScreen';
+import AddPaymentMethodScreen from '../../screens/payment-methods/AddPaymentMethodScreen';
 import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
 import { DisputeScreen } from '../../screens/DisputeScreen';
+import { RetainedDisputesScreen } from '../../screens/RetainedDisputesScreen';
+import { DisputeDetailsScreen } from '../../screens/DisputeDetailsScreen';
 import { BidReviewScreen } from '../../screens/BidReviewScreen';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
 import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
@@ -63,6 +66,12 @@ const SafePaymentScreen = withScreenErrorBoundary(PaymentScreen, 'Payment', {
   fallbackRoute: 'JobDetails',
 });
 
+const SafeAddPaymentMethodScreen = withScreenErrorBoundary(
+  AddPaymentMethodScreen,
+  'Add Payment Method',
+  { fallbackRoute: 'JobsList' }
+);
+
 const SafeJobTimelineScreen = withScreenErrorBoundary(
   JobTimelineScreen,
   'Job Timeline',
@@ -72,6 +81,18 @@ const SafeJobTimelineScreen = withScreenErrorBoundary(
 const SafeDisputeScreen = withScreenErrorBoundary(DisputeScreen, 'Dispute', {
   fallbackRoute: 'JobDetails',
 });
+const SafeRetainedDisputesScreen = withScreenErrorBoundary(
+  RetainedDisputesScreen,
+  'Retained disputes',
+  { fallbackRoute: 'JobsList' }
+);
+const SafeDisputeDetailsScreen = withScreenErrorBoundary(
+  DisputeDetailsScreen,
+  'Dispute details',
+  {
+    fallbackRoute: 'JobsList',
+  }
+);
 
 const SafeBidReviewScreen = withScreenErrorBoundary(
   BidReviewScreen,
@@ -173,6 +194,11 @@ const JobsNavigator: React.FC = () => {
         }}
       />
       <JobsStack.Screen
+        name='AddPaymentMethod'
+        component={SafeAddPaymentMethodScreen}
+        options={{ title: 'Add payment method' }}
+      />
+      <JobsStack.Screen
         name='JobPayment'
         component={SafePaymentScreen as React.ComponentType<object>}
         options={{
@@ -200,6 +226,16 @@ const JobsNavigator: React.FC = () => {
           presentation: 'modal',
           gestureEnabled: true,
         }}
+      />
+      <JobsStack.Screen
+        name='RetainedDisputes'
+        component={SafeRetainedDisputesScreen}
+        options={{ title: 'Retained disputes' }}
+      />
+      <JobsStack.Screen
+        name='DisputeDetails'
+        component={SafeDisputeDetailsScreen}
+        options={{ title: 'Dispute details' }}
       />
       <JobsStack.Screen
         name='BidReview'

@@ -5,7 +5,7 @@ import {
   createRequestScopedClient,
 } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { ConflictError } from '@/lib/errors/api-error';
+import { ConflictError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
@@ -149,7 +149,9 @@ export const GET = withApiHandler(
           userId: user.id,
           err: memErr.message,
         });
-        // Don't fail the whole listing — own properties still flow.
+        throw new InternalServerError(
+          'Shared properties could not be loaded. Please retry.'
+        );
       } else if (memberships) {
         // supabase-js types the embedded `properties:property_id (...)`
         // relation as an array even though it's a many-to-one FK; each

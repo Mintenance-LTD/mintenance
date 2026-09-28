@@ -8,6 +8,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +17,12 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { goBackSafe } from '../../navigation/hooks';
 import { useAuth } from '../../contexts/AuthContext';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import { me } from '../../design-system/mint-editorial';
 import { styles } from './PropertiesStyles';
+import { PropertyInvitations } from './components/PropertyInvitations';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Properties'>;
@@ -120,7 +122,6 @@ type SortOption = 'name' | 'date' | 'type';
 
 export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -154,20 +155,21 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['properties', user?.id],
+    queryKey: ['properties', user?.id, 'including-shared'],
     queryFn: async () => {
       if (!user?.id) return [];
       const res = await mobileApiClient.get<{ properties: Property[] }>(
-        '/api/properties'
+        '/api/properties?includeShared=view'
       );
-      return res.properties ?? [];
+      if (!Array.isArray(res?.properties))
+        throw new Error('Property list could not be confirmed');
+      return res.properties;
     },
     enabled: !!user?.id,
     retry: 2,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     gcTime: 15 * 60 * 1000,
-    refetchOnMount: false,
-    placeholderData: (prev: Property[] | undefined) => prev,
+    refetchOnMount: 'always',
   });
 
   const toggleFavorite = async (propertyId: string) => {
@@ -325,24 +327,28 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       {!properties || properties.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <Ionicons name='home-outline' size={32} color={me.brand} />
+        <ScrollView>
+          <PropertyInvitations />
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name='home-outline' size={32} color={me.brand} />
+            </View>
+            <Text style={styles.emptyTitle}>No Properties</Text>
+            <Text style={styles.emptySubtitle}>
+              Add your first property to start managing maintenance.
+            </Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => navigation.navigate('AddProperty')}
+            >
+              <Ionicons name='add' size={20} color={me.onBrand} />
+              <Text style={styles.addButtonText}>Add Property</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.emptyTitle}>No Properties</Text>
-          <Text style={styles.emptySubtitle}>
-            Add your first property to start managing maintenance.
-          </Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => navigation.navigate('AddProperty')}
-          >
-            <Ionicons name='add' size={20} color={me.onBrand} />
-            <Text style={styles.addButtonText}>Add Property</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
+          ListHeaderComponent={PropertyInvitations}
           data={sortedProperties}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (

@@ -1,8 +1,13 @@
 'use client';
 
+import { isAssessmentUnassessable } from '@mintenance/shared';
+import { getRecaptureMessage } from '@/lib/services/building-surveyor/recapture-guidance';
+import { CaptureWarnings } from './CaptureWarnings';
+import { VisibleEvidenceCard } from './VisibleEvidenceCard';
 import React from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import type { ObservationAssessment } from '@/lib/services/building-surveyor/observation-assessment';
 import { DamageAssessmentCard } from './BuildingAssessment/DamageSection';
 import { SafetyHazardsCard } from './BuildingAssessment/SafetySection';
 import { ComplianceFlagsCard } from './BuildingAssessment/ComplianceSection';
@@ -16,7 +21,7 @@ import {
 
 // Re-export extracted sections to preserve public API
 interface BuildingAssessmentDisplayProps {
-  assessment: Phase1BuildingAssessment;
+  assessment: Phase1BuildingAssessment | ObservationAssessment;
   onUseAssessment?: () => void;
 }
 
@@ -27,8 +32,34 @@ export function BuildingAssessmentDisplay({
   assessment,
   onUseAssessment,
 }: BuildingAssessmentDisplayProps) {
+  if (isAssessmentUnassessable(assessment))
+    return (
+      <div
+        role='alert'
+        className='rounded-xl border border-amber-300 bg-amber-50 p-4'
+      >
+        <h3 className='font-semibold'>New photos needed</h3>
+        <p>{getRecaptureMessage(assessment)}</p>
+      </div>
+    );
+
+  if ('protocol' in assessment)
+    return (
+      <div className='space-y-4'>
+        <CaptureWarnings warnings={assessment.captureWarnings} />
+        <VisibleEvidenceCard evidence={assessment.visualEvidence} />
+      </div>
+    );
+  if (assessment.visualEvidence)
+    return (
+      <div className='space-y-4'>
+        <CaptureWarnings warnings={assessment.captureWarnings} />
+        <VisibleEvidenceCard evidence={assessment.visualEvidence} />
+      </div>
+    );
   return (
     <div className='space-y-4'>
+      <CaptureWarnings warnings={assessment.captureWarnings} />
       {/* AI Disclaimer - Legal requirement */}
       <AIDisclaimerBanner />
 

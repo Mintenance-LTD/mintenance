@@ -3,6 +3,7 @@
  * Structures AI responses into Phase1BuildingAssessment format
  */
 
+import { requireAssessmentEvidence } from '@mintenance/shared';
 import type {
   Phase1BuildingAssessment,
   Material,
@@ -44,8 +45,10 @@ export async function structureAssessment(
       | import('./scene_graph_features').SceneGraphFeatures
       | null
       | undefined;
-  }
+  },
+  options?: { enrichMaterials?: boolean }
 ): Promise<Phase1BuildingAssessment> {
+  requireAssessmentEvidence(aiResponse);
   // Validate and normalize severity
   const severity = normalizeSeverity(aiResponse.severity);
   const urgency = normalizeUrgency(aiResponse.urgency);
@@ -54,7 +57,6 @@ export async function structureAssessment(
   const safetyHazards = SafetyAnalysisService.processSafetyHazards(
     aiResponse.safetyHazards || []
   );
-  const overallSafetyScore = safetyHazards.overallSafetyScore;
 
   // Process compliance using ComplianceService
   const compliance = ComplianceService.processCompliance(
@@ -105,7 +107,7 @@ export async function structureAssessment(
   // NEW: Enrich materials with database pricing (with error handling)
   let enrichedMaterials = normalizedMaterials; // Default to AI materials
   try {
-    if (normalizedMaterials.length > 0) {
+    if (normalizedMaterials.length > 0 && options?.enrichMaterials !== false) {
       enrichedMaterials =
         await enrichMaterialsWithDatabase(normalizedMaterials);
     }
@@ -185,7 +187,7 @@ export async function structureAssessment(
     damageAssessment: {
       damageType: rawDamageType,
       severity,
-      confidence: Math.max(0, Math.min(100, aiResponse.confidence || 50)),
+      confidence: Math.max(0, Math.min(100, aiResponse.confidence ?? 50)),
       location: aiResponse.location || 'location_not_specified',
       description: aiResponse.description || 'Damage detected',
       detectedItems: Array.isArray(aiResponse.detectedItems)

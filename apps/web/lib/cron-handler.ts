@@ -85,7 +85,7 @@ async function completeCronRun(
   if (!runId) return;
 
   try {
-    await serverSupabase
+    const { error } = await serverSupabase
       .from('cron_job_runs')
       .update({
         status,
@@ -96,6 +96,7 @@ async function completeCronRun(
         metadata: result ? JSON.parse(JSON.stringify(result)) : null,
       })
       .eq('id', runId);
+    if (error) throw new Error('Cron completion tracking could not be saved');
   } catch (error) {
     // Non-fatal: log but don't throw
     logger.warn('Failed to log cron completion', {

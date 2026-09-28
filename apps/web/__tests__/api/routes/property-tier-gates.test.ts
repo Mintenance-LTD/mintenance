@@ -80,6 +80,7 @@ vi.mock('@/lib/logger', () => ({ logger: mocks.logger }));
 // Helpers
 // ---------------------------------------------------------------------------
 const PROPERTY_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const TOKEN_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 const homeownerUser = {
   id: 'homeowner-1',
@@ -189,7 +190,10 @@ describe('PATCH /api/properties/[id]/recurring-maintenance — tier gate', () =>
     const { PATCH } =
       await import('@/app/api/properties/[id]/recurring-maintenance/route');
     return PATCH(
-      request('PATCH', { scheduleId: 'sched-1', is_active }),
+      request('PATCH', {
+        scheduleId: '11111111-1111-4111-8111-111111111111',
+        is_active,
+      }),
       segmentData()
     );
   }
@@ -247,7 +251,11 @@ describe('PATCH /api/properties/[id]/recurring-maintenance — tier gate', () =>
     // scheduleId travels as a query param on this handler, not in the body —
     // passing it in the body would 400 and the assertion would pass vacuously.
     const res = await DELETE(
-      request('DELETE', undefined, '?scheduleId=sched-1'),
+      request(
+        'DELETE',
+        undefined,
+        '?scheduleId=11111111-1111-4111-8111-111111111111'
+      ),
       segmentData()
     );
 
@@ -264,7 +272,7 @@ describe('PATCH /api/properties/[id]/report-token — tier gate', () => {
     const { PATCH } =
       await import('@/app/api/properties/[id]/report-token/route');
     return PATCH(
-      request('PATCH', { token_id: 'token-1', is_active }),
+      request('PATCH', { token_id: TOKEN_ID, is_active }),
       segmentData()
     );
   }
@@ -310,4 +318,16 @@ describe('PATCH /api/properties/[id]/report-token — tier gate', () => {
     expect(res.status).toBe(200);
     expect(mocks.getEffectiveHomeownerTier).not.toHaveBeenCalled();
   });
+});
+
+it('rejects malformed reporting-token identifiers before any entitlement or database mutation', async () => {
+  const { PATCH } =
+    await import('@/app/api/properties/[id]/report-token/route');
+  const res = await PATCH(
+    request('PATCH', { token_id: 'token-1', is_active: true }),
+    segmentData()
+  );
+  expect(res.status).toBe(400);
+  expect(mocks.hasFeatureAccess).not.toHaveBeenCalled();
+  expect(mocks.supabaseFrom).not.toHaveBeenCalled();
 });

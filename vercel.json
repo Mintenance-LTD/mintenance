@@ -25,6 +25,7 @@
     }
   },
   "crons": [
+    { "path": "/api/cron/push-receipts", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/password-change-recovery", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/refund-recovery", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/admin-release-recovery", "schedule": "*/5 * * * *" },
@@ -42,7 +43,8 @@
     { "path": "/api/cron/escrow-auto-release",          "schedule": "0 * * * *"   },
     { "path": "/api/cron/agent-processor",              "schedule": "0 1 * * *"   },
     { "path": "/api/cron/no-show-reminders",            "schedule": "0 11 * * *"  },
-    { "path": "/api/cron/notification-processor",       "schedule": "0 12 * * *"  },
+    { "path": "/api/cron/notification-processor",       "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/notification-learning",        "schedule": "0 12 * * *"  },
     { "path": "/api/cron/distillation-processor",       "schedule": "0 13 * * *"  },
     { "path": "/api/cron/expire-bids",                  "schedule": "0 14 * * *"  },
     { "path": "/api/cron/homeowner-approval-reminders", "schedule": "0 9 * * *"   },
@@ -52,6 +54,7 @@
     { "path": "/api/cron/auto-verify-contractors",      "schedule": "0 7 * * *"   },
     { "path": "/api/cron/admin-alerts",                 "schedule": "0 8 * * *"   },
     { "path": "/api/cron/retention-cleanup",            "schedule": "0 3 * * 0"   },
+    { "path": "/api/cron/evidence-disposal",            "schedule": "30 2 * * *"  },
     { "path": "/api/cron/pii-cleanup",                  "schedule": "0 3 * * *"   },
     { "path": "/api/cron/data-archival",                "schedule": "0 4 1 * *"   },
     { "path": "/api/cron/model-retraining",             "schedule": "0 5 * * *"   },

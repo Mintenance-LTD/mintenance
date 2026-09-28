@@ -205,7 +205,12 @@ export const POST = withApiHandler(
         PaymentAction.COMPLETE
       );
 
-      if (!stateValidation.valid) {
+      // A durable transfer may have succeeded before finalization failed.
+      // The locked database claim below validates journaled recovery; the
+      // transfer service then retrieves the original transfer instead of paying again.
+      const resumingRelease =
+        escrowTransaction.status === ESCROW_STATUS.RELEASE_PENDING;
+      if (!stateValidation.valid && !resumingRelease) {
         logger.warn('Invalid state transition for escrow release', {
           service: 'payments',
           userId: user.id,
@@ -352,7 +357,9 @@ export const POST = withApiHandler(
         job.contractor_id
       );
       // FIX CRIT-3: DB update FIRST (mark as release_pending), THEN Stripe transfer.
-      const reconciliationId = crypto.randomUUID();
+      const reconciliationId =
+        (resumingRelease && escrowTransaction.reconciliation_id) ||
+        crypto.randomUUID();
 
       // Claim and read remaining principal under the same job/escrow locks
       // used by refunds. A separate balance read followed by a status CAS

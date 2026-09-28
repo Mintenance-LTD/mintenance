@@ -25,7 +25,7 @@ export async function getPendingAssessments(limit = 50, offset = 0) {
         images:assessment_images(image_url, image_index)
       `
       )
-      .eq('validation_status', 'pending')
+      .in('validation_status', ['pending', 'needs_review'])
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 

@@ -58,6 +58,13 @@ export class TrainingDataExporter {
     const ids: string[] = [];
 
     for (const example of examples) {
+      if (example.humanVerified !== true) {
+        logger.warn('Skipping unreviewed VLM training label', {
+          service: 'TrainingDataExporter',
+          exampleId: example.id,
+        });
+        continue;
+      }
       const freshImageUrls = await resignAssessmentUrls(
         example.imageUrls,
         24 * 60 * 60
@@ -125,6 +132,11 @@ export class TrainingDataExporter {
    * Uses a generic system prompt to avoid leaking proprietary prompt engineering.
    */
   static toQwenConversation(example: VLMTrainingExample): QwenConversation {
+    if (example.humanVerified !== true) {
+      throw new Error(
+        'A reviewed label is required before VLM training export'
+      );
+    }
     // Build user content: text prompt + image URLs
     const userContent: Array<{
       type: string;
@@ -144,12 +156,9 @@ export class TrainingDataExporter {
     // any systematic GPT-4o errors for this damage category.
     const label = example.humanCorrectedResponse ?? example.teacherResponse;
 
-    // Prepend GPT-4o chain-of-thought reasoning as a <thinking> block when
-    // available. This is chain-of-thought (CoT) distillation: the student
-    // learns the diagnostic reasoning process, not just the final JSON answer.
-    const assistantContent = example.teacherReasoning
-      ? `<thinking>\n${example.teacherReasoning}\n</thinking>\n\n${JSON.stringify(label)}`
-      : JSON.stringify(label);
+    // Serving requires JSON. Keep rationale in its structured fields instead
+    // of teaching a text prefix that makes JSON.parse reject the response.
+    const assistantContent = JSON.stringify(label);
 
     return {
       messages: [

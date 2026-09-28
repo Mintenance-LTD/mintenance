@@ -114,14 +114,19 @@ export async function initializePushNotifications(
     const isDevice =
       deviceOverride !== null ? deviceOverride : (Device.isDevice as boolean);
 
-    if (!isDevice) {
-      logger.warn('Push notifications only work on physical devices');
+    // Android emulators with Google Play services support FCM. Let the native
+    // registration report missing services instead of rejecting all emulators.
+    if (!isDevice && Platform.OS !== 'android') {
+      logger.warn('Push notifications require a supported native device');
       addBreadcrumb(
-        'Push notifications only work on physical devices',
+        'Push notifications require a supported native device',
         'warning'
       );
       return null;
     }
+
+    // Android 13+ needs a notification channel before requesting permission.
+    if (Platform.OS === 'android') await setupAndroidChannels();
 
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
@@ -186,14 +191,8 @@ export async function initializePushNotifications(
       projectId: projectId || '1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
     });
 
-    logger.info('Expo push token obtained', { token: token.data });
-    addBreadcrumb('Notification Service initialized', 'info', {
-      token: token.data,
-    });
-
-    if (Platform.OS === 'android') {
-      await setupAndroidChannels();
-    }
+    logger.info('Expo push token obtained');
+    addBreadcrumb('Notification Service initialized', 'info');
 
     return token.data;
   } catch (error) {

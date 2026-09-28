@@ -1,109 +1,17 @@
 'use client';
 
 import React from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { Download } from 'lucide-react';
-import { MotionDiv } from '@/components/ui/MotionDiv';
-import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
-import { computeVat } from '@mintenance/shared';
-
-interface Transaction {
-  id: string;
-  amount: number;
-  created_at: string;
-  job_title?: string;
-  contractor_name?: string;
-  subtotal?: number;
-  platformFee?: number;
-  processingFee?: number;
-  /** VAT rate (percent) and amount the transaction was ISSUED at, if stored. */
-  taxRate?: number;
-  taxAmount?: number;
-}
-
-/**
- * VAT to show on a receipt: prefer the amount/rate the transaction was issued
- * at; fall back to the UK standard rate for legacy rows that predate stored
- * VAT (all of which were charged at 20%).
- */
-function receiptVat(
-  transaction: Transaction,
-  subtotal: number
-): {
-  rate: number;
-  amount: number;
-} {
-  const amount = transaction.taxAmount ?? computeVat(subtotal, 'standard');
-  const rate = transaction.taxRate ?? 20;
-  return { rate, amount };
-}
+import { Modal } from '@/components/ui/Modal';
+import {
+  downloadPaymentRecord,
+  type PaymentRecord,
+} from '@/lib/payments/payment-record';
 
 interface PaymentsReceiptModalProps {
   isOpen: boolean;
-  transaction: Transaction | null;
+  transaction: PaymentRecord | null;
   onClose: () => void;
-}
-
-function downloadReceipt(transaction: Transaction, subtotal: number) {
-  const platformFee = transaction.platformFee || transaction.amount * 0.05;
-  const processingFee = transaction.processingFee || transaction.amount * 0.02;
-  const vat = receiptVat(transaction, subtotal);
-  const date = new Date(transaction.created_at).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Receipt - ${transaction.id.slice(0, 8)}</title>
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; color: #1a1a1a; }
-  .header { border-bottom: 2px solid #0d9488; padding-bottom: 20px; margin-bottom: 24px; }
-  .header h1 { color: #0d9488; font-size: 24px; margin: 0 0 4px; }
-  .header p { color: #6b7280; font-size: 14px; margin: 0; }
-  .meta { display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 14px; }
-  .meta div { color: #6b7280; }
-  .meta strong { color: #1a1a1a; display: block; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-  th { text-align: left; padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; text-transform: uppercase; }
-  td { padding: 12px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
-  td:last-child, th:last-child { text-align: right; }
-  .total-row td { border-bottom: 2px solid #0d9488; font-weight: 700; font-size: 16px; }
-  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; text-align: center; }
-</style></head><body>
-  <div class="header">
-    <h1>Mintenance</h1>
-    <p>Payment Receipt</p>
-  </div>
-  <div class="meta">
-    <div>Receipt ID<strong>${transaction.id.slice(0, 8).toUpperCase()}</strong></div>
-    <div>Date<strong>${date}</strong></div>
-  </div>
-  ${transaction.job_title ? `<p style="margin-bottom:16px"><strong>Job:</strong> ${transaction.job_title}</p>` : ''}
-  ${transaction.contractor_name ? `<p style="margin-bottom:16px"><strong>Contractor:</strong> ${transaction.contractor_name}</p>` : ''}
-  <table>
-    <thead><tr><th>Description</th><th>Amount</th></tr></thead>
-    <tbody>
-      <tr><td>Service Cost</td><td>&pound;${subtotal.toFixed(2)}</td></tr>
-      <tr><td>VAT (${vat.rate}%)</td><td>&pound;${vat.amount.toFixed(2)}</td></tr>
-      <tr><td>Platform Fee (5%)</td><td>&pound;${platformFee.toFixed(2)}</td></tr>
-      <tr><td>Processing Fee (2%)</td><td>&pound;${processingFee.toFixed(2)}</td></tr>
-      <tr class="total-row"><td>Total</td><td>&pound;${transaction.amount.toFixed(2)}</td></tr>
-    </tbody>
-  </table>
-  <div class="footer">
-    <p>Mintenance Ltd &middot; All prices include applicable taxes</p>
-    <p>This receipt was generated automatically. For queries, contact support@mintenance.co.uk</p>
-  </div>
-</body></html>`;
-
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `mintenance-receipt-${transaction.id.slice(0, 8)}.html`;
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 export function PaymentsReceiptModal({
@@ -111,92 +19,52 @@ export function PaymentsReceiptModal({
   transaction,
   onClose,
 }: PaymentsReceiptModalProps) {
-  if (!transaction) return null;
-
-  const subtotal = transaction.subtotal || transaction.amount / 1.2;
-  const vat = receiptVat(transaction, subtotal);
-
+  if (!isOpen || !transaction) return null;
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <MotionDiv
-          className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4'
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <MotionDiv
-            className='bg-white rounded-2xl shadow-2xl max-w-md w-full'
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 20 }}
-            onClick={(e) => e.stopPropagation()}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title='Payment record'
+      maxWidth={480}
+    >
+      <div>
+        <p className='mt-2'>{transaction.job_title || 'Payment'}</p>
+        <dl className='space-y-3 my-6'>
+          <div>
+            <dt>Recorded amount</dt>
+            <dd>£{transaction.amount.toFixed(2)}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{transaction.status.replace(/_/g, ' ')}</dd>
+          </div>
+          <div>
+            <dt>Reference</dt>
+            <dd className='break-all'>{transaction.id}</dd>
+          </div>
+        </dl>
+        <p className='text-sm text-gray-600'>
+          Pending payments are not proof of payment. This is not a VAT invoice;
+          request any tax invoice from the contractor.
+        </p>
+        <div className='mt-6 flex gap-3'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='px-4 py-2 bg-gray-100 rounded-lg'
           >
-            <div className='p-6 border-b border-gray-200'>
-              <h2 className='text-2xl font-bold text-gray-900'>
-                Payment Receipt
-              </h2>
-              <p className='text-sm text-gray-600 mt-1'>
-                {transaction.job_title || 'Payment'}
-              </p>
-              {transaction.contractor_name && (
-                <p className='text-xs text-gray-500 mt-0.5'>
-                  Contractor: {transaction.contractor_name}
-                </p>
-              )}
-            </div>
-
-            <div className='p-6'>
-              <PricingBreakdown
-                items={[
-                  {
-                    id: '1',
-                    label: 'Service Cost',
-                    amount: subtotal,
-                  },
-                  {
-                    id: '2',
-                    label: `VAT (${vat.rate}%)`,
-                    amount: vat.amount,
-                  },
-                  {
-                    id: '3',
-                    label: 'Platform Fee (5%)',
-                    amount:
-                      transaction.platformFee || transaction.amount * 0.05,
-                  },
-                  {
-                    id: '4',
-                    label: 'Processing Fee (2%)',
-                    amount:
-                      transaction.processingFee || transaction.amount * 0.02,
-                  },
-                ]}
-                subtotal={subtotal}
-                total={transaction.amount}
-                currency={'\u00A3'}
-              />
-
-              <div className='mt-6 flex gap-3'>
-                <button
-                  onClick={onClose}
-                  className='flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors'
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => downloadReceipt(transaction, subtotal)}
-                  className='flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2'
-                >
-                  <Download className='w-4 h-4' />
-                  Download
-                </button>
-              </div>
-            </div>
-          </MotionDiv>
-        </MotionDiv>
-      )}
-    </AnimatePresence>
+            Close
+          </button>
+          <button
+            type='button'
+            onClick={() => downloadPaymentRecord(transaction)}
+            className='px-4 py-2 bg-teal-600 text-white rounded-lg flex items-center gap-2'
+          >
+            <Download className='w-4 h-4' />
+            Download HTML record
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }

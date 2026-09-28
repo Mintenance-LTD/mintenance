@@ -66,6 +66,15 @@ const BiometricLoginButton: React.FC<BiometricLoginButtonProps> = ({
         return;
       }
 
+      if (/expired|restore.*session|credentials/i.test(errorMessage)) {
+        Alert.alert(
+          'Please sign in again',
+          'Your saved sign-in could not be restored. Sign in with your password, then enable biometric sign-in again in Settings.'
+        );
+        onError?.(error as Error);
+        return;
+      }
+
       Alert.alert(
         'Authentication Failed',
         `${biometricType} authentication failed. Please try again or use your password.`

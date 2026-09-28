@@ -1,33 +1,17 @@
-/**
- * Property team invitations — the invitee's side.
- *
- * GET  /api/properties/invites            list invites addressed to me
- * POST /api/properties/invites            { inviteId, action: accept|decline }
- *
- * Until now there was no invitee side at all. `POST /api/properties/[id]/team`
- * wrote a `pending` row, an email went out, and that was the end of it: the
- * only RLS policy on property_team_members was owner-scoped, so the invited
- * person could not read the row addressed to them, and no route existed to
- * accept it. The team UI even shipped a fallback message reading "Invite
- * recorded — activation pathway pending". Production holds zero team rows.
- *
- * Invites here are matched by EMAIL rather than by a token (there is no token
- * column), so there is no link to leak — the invitee signs in and sees invites
- * addressed to their own verified address. The email is compared against the
- * `profiles` row rather than the JWT claim, matching
- * /api/organizations/accept-invite.
- *
- * Writes run with the service role even though the caller is acting on their
- * own row: the RLS write policies are owner-only on purpose, because an
- * invitee able to UPDATE their own membership could also rewrite `role` and
- * make themselves an admin of someone else's property.
+/** Property invitations bind the selected role to the verified invitee.
+ * Service-role writes are restricted to the pending row and never accept a role from the client.
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  ConflictError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 
 const SERVICE = 'property-invites';
 
@@ -38,14 +22,16 @@ const respondSchema = z
   })
   .strict();
 
-/** The caller's canonical email — profiles is ground truth, JWT is a fallback. */
-async function callerEmail(userId: string, fallback?: string | null) {
-  const { data } = await serverSupabase
-    .from('profiles')
-    .select('email')
-    .eq('id', userId)
-    .maybeSingle();
-  return ((data?.email as string | null) || fallback || '').toLowerCase();
+/** Email-based access must use the auth provider's verified identity. */
+async function callerEmail(userId: string) {
+  const { data, error } = await serverSupabase.auth.admin.getUserById(userId);
+  if (error || !data.user)
+    throw new InternalServerError(
+      'Unable to verify invitation identity. Please retry.'
+    );
+  return data.user.email_confirmed_at
+    ? (data.user.email ?? '').toLowerCase()
+    : '';
 }
 
 /** supabase-js returns a many-to-one embed as an object, but has historically
@@ -74,20 +60,33 @@ interface InviteRow {
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 }, csrf: false },
   async (_request, { user }) => {
-    const email = await callerEmail(user.id, user.email);
-    if (!email) {
-      return NextResponse.json({ invites: [] });
-    }
-
-    const { data, error } = await serverSupabase
-      .from('property_team_members')
-      .select(
-        'id, role, status, email, created_at, property_id, ' +
-          'properties:property_id (id, property_name, address)'
-      )
-      .eq('status', 'pending')
-      .or(`user_id.eq.${user.id},email.ilike.${email}`)
-      .order('created_at', { ascending: false });
+    const email = await callerEmail(user.id);
+    const query = () =>
+      serverSupabase
+        .from('property_team_members')
+        .select(
+          'id, role, status, email, created_at, property_id, properties:property_id (id, property_name, address)'
+        )
+        .eq('status', 'pending');
+    // Separate filters avoid interpolating an email into PostgREST's OR syntax.
+    // Escape LIKE wildcards so addresses containing % or _ only match literally.
+    const [byUser, byEmail] = await Promise.all([
+      query().eq('user_id', user.id).order('created_at', { ascending: false }),
+      email
+        ? query()
+            .ilike('email', email.replace(/[\\%_]/g, '\\$&'))
+            .order('created_at', { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    const error = byUser.error || byEmail.error;
+    const data = [
+      ...new Map(
+        [...(byUser.data ?? []), ...(byEmail.data ?? [])].map((row) => [
+          row.id,
+          row,
+        ])
+      ).values(),
+    ];
 
     if (error) {
       logger.error('Failed to list property invites', error, {
@@ -146,12 +145,16 @@ export const POST = withApiHandler(
     }
     const { inviteId, action } = parsed.data;
 
-    const { data: invite } = await serverSupabase
+    const { data: invite, error: lookupError } = await serverSupabase
       .from('property_team_members')
       .select('id, property_id, email, role, status, user_id')
       .eq('id', inviteId)
       .maybeSingle();
 
+    if (lookupError)
+      throw new InternalServerError(
+        'Unable to load the invitation. Please retry.'
+      );
     if (!invite) {
       throw new BadRequestError('Invitation not found');
     }
@@ -159,7 +162,7 @@ export const POST = withApiHandler(
       throw new BadRequestError(`Invitation was already ${invite.status}`);
     }
 
-    const email = await callerEmail(user.id, user.email);
+    const email = await callerEmail(user.id);
     const addressedToCaller =
       invite.user_id === user.id ||
       (email.length > 0 && (invite.email as string).toLowerCase() === email);
@@ -172,7 +175,7 @@ export const POST = withApiHandler(
 
     // `role` is deliberately not read from the request — it is whatever the
     // property owner set when inviting.
-    const { error } = await serverSupabase
+    const { data: updated, error } = await serverSupabase
       .from('property_team_members')
       .update({
         status: action === 'accept' ? 'accepted' : 'declined',
@@ -182,7 +185,9 @@ export const POST = withApiHandler(
       })
       .eq('id', inviteId)
       // Guard against two concurrent responses racing past the status check.
-      .eq('status', 'pending');
+      .eq('status', 'pending')
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       logger.error('Failed to respond to property invite', error, {
@@ -196,6 +201,11 @@ export const POST = withApiHandler(
         { status: 500 }
       );
     }
+
+    if (!updated)
+      throw new ConflictError(
+        'Invitation changed. Refresh before responding again.'
+      );
 
     logger.info('Property invite answered', {
       service: SERVICE,

@@ -12,9 +12,11 @@ interface JobQuickActionsProps {
   status: string;
   isCompletionConfirmedByHomeowner: boolean;
   onTimelinePress: () => void;
+  onContractPress?: () => void;
   onEditPress: () => void;
   onSignOffPress: () => void;
   onDisputePress: () => void;
+  onDisputeDetailsPress?: () => void;
 }
 
 /**
@@ -32,12 +34,36 @@ export function JobQuickActions({
   status,
   isCompletionConfirmedByHomeowner,
   onTimelinePress,
+  onContractPress,
   onEditPress,
   onSignOffPress,
   onDisputePress,
+  onDisputeDetailsPress,
 }: JobQuickActionsProps) {
   return (
     <View style={styles.quickActionsSection}>
+      {onDisputeDetailsPress && (
+        <TouchableOpacity
+          style={styles.quickActionRow}
+          onPress={onDisputeDetailsPress}
+          accessibilityRole='button'
+        >
+          <Ionicons name='shield-outline' size={20} color={me.ink2} />
+          <Text style={styles.quickActionText}>View Dispute Record</Text>
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+        </TouchableOpacity>
+      )}
+      {onContractPress && (
+        <TouchableOpacity
+          style={styles.quickActionRow}
+          onPress={onContractPress}
+          accessibilityRole='button'
+        >
+          <Ionicons name='document-text-outline' size={20} color={me.ink2} />
+          <Text style={styles.quickActionText}>View Contract</Text>
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         style={styles.quickActionRow}
         onPress={onTimelinePress}

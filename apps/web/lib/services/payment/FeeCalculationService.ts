@@ -1,5 +1,6 @@
 import type { FeeCalculation } from '@mintenance/types';
 import { logger } from '@/lib/logger';
+import { APIError } from '@/lib/errors/api-error';
 import { PLATFORM_FEE_RATE_BY_TIER } from '@/lib/feature-access-config';
 import type { ContractorSubscriptionTier } from '@/lib/feature-access-types';
 
@@ -313,12 +314,11 @@ export class FeeCalculationService {
    * Resolution order (matches lib/middleware/subscription-check.ts):
    * 1. Early-access founding-member grant → 'enterprise' (5% rate)
    * 2. Active contractor_subscriptions row → its plan_type
-   * 3. Fallback → 'basic' (12% rate)
+   * 3. Successful lookup with no active subscription → 'basic' (12% rate)
+   * Lookup failures reject the operation so paid contractors are not overcharged.
    *
    * Caller is responsible for passing the result to calculateFees as
-   * `contractorTier`. Kept as a static method on the service so the two
-   * fee-calculation call sites (embedded-checkout, release-escrow) have
-   * one canonical place to fetch this from. 2026-05-22 Sprint 2.
+   * `contractorTier`. Quotes, checkout and release use this shared resolver.
    */
   static async resolveContractorTier(
     contractorId: string
@@ -327,19 +327,24 @@ export class FeeCalculationService {
       const { getEarlyAccessEntitlement } =
         await import('@/lib/subscription/early-access');
       const earlyAccess = await getEarlyAccessEntitlement(contractorId);
+      if (earlyAccess.reason === 'error') {
+        throw new Error('Early access lookup unavailable');
+      }
       if (earlyAccess.eligible && earlyAccess.role === 'contractor') {
         return 'enterprise';
       }
 
       const { serverSupabase } = await import('@/lib/api/supabaseServer');
-      const { data: subscription } = await serverSupabase
-        .from('contractor_subscriptions')
-        .select('plan_type, status')
-        .eq('contractor_id', contractorId)
-        .in('status', ['active', 'trial'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: subscription, error: subscriptionError } =
+        await serverSupabase
+          .from('contractor_subscriptions')
+          .select('plan_type, status')
+          .eq('contractor_id', contractorId)
+          .in('status', ['active', 'trial'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+      if (subscriptionError) throw new Error('Subscription lookup unavailable');
 
       const planType = subscription?.plan_type;
       if (
@@ -350,17 +355,20 @@ export class FeeCalculationService {
       ) {
         return planType;
       }
+      if (subscription) throw new Error('Unrecognized subscription tier');
       return 'basic';
     } catch (err) {
-      // Fail safe — if tier lookup throws, charge the highest rate so the
-      // contractor isn't accidentally subsidised. Logged so we can detect
-      // the lookup chain breaking in prod.
-      logger.warn('Failed to resolve contractor tier; defaulting to basic', {
+      // An outage must not silently charge a paid-tier contractor the highest fee.
+      logger.warn('Failed to resolve contractor fee tier', {
         service: 'FeeCalculationService',
         contractorId,
         error: err instanceof Error ? err.message : String(err),
       });
-      return 'basic';
+      throw new APIError(
+        'FEE_QUOTE_UNAVAILABLE',
+        'Could not verify the contractor fee. Please retry.',
+        503
+      );
     }
   }
 

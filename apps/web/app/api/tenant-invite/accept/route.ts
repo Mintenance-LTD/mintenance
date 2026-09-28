@@ -10,9 +10,13 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
  * to the property. Called after registration with ?invite=TOKEN.
  */
 export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
-  const { token } = await req.json();
+  const payload: unknown = await req.json().catch(() => null);
+  const token =
+    payload && typeof payload === 'object' && 'token' in payload
+      ? payload.token
+      : undefined;
 
-  if (!token) {
+  if (typeof token !== 'string' || !token || token.length > 256) {
     return NextResponse.json(
       { error: 'Invitation token is required' },
       { status: 400 }
@@ -34,17 +38,6 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
     );
   }
 
-  // Already accepted
-  if (tenant.invitation_accepted_at) {
-    return NextResponse.json(
-      {
-        error: 'This invitation has already been accepted',
-        property_id: tenant.property_id,
-      },
-      { status: 409 }
-    );
-  }
-
   // 2026-05-23 audit-15 P1: previously this route accepted any token
   // from any authenticated user and wrote that user's id onto the
   // property_tenants row. A forwarded / leaked invite URL (the token
@@ -55,19 +48,13 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
   // emails are stored canonical-cased but Supabase auth.email
   // sometimes carries the original casing on signup.
   const tenantEmail = (tenant.email ?? '').trim().toLowerCase();
-  const callerEmail = (user.email ?? '').trim().toLowerCase();
+  const { data: identity, error: identityError } =
+    await serverSupabase.auth.admin.getUserById(user.id);
+  const callerEmail =
+    !identityError && identity.user?.email_confirmed_at
+      ? (identity.user.email ?? '').trim().toLowerCase()
+      : '';
   if (!tenantEmail || !callerEmail || tenantEmail !== callerEmail) {
-    logger.warn('Tenant invite accept email mismatch', {
-      service: 'tenant-invite',
-      tenantId: tenant.id,
-      callerUserId: user.id,
-      // Don't log raw emails — log only the first three chars + length
-      // for forensic correlation.
-      tenantEmailHint:
-        tenantEmail.slice(0, 3) + '***@' + tenantEmail.split('@')[1],
-      callerEmailHint:
-        callerEmail.slice(0, 3) + '***@' + callerEmail.split('@')[1],
-    });
     return NextResponse.json(
       {
         error:
@@ -77,20 +64,64 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
     );
   }
 
+  if (tenant.invitation_accepted_at) {
+    if (tenant.user_id === user.id)
+      return NextResponse.json({
+        success: true,
+        property_id: tenant.property_id,
+      });
+    return NextResponse.json(
+      { error: 'This invitation has already been accepted' },
+      { status: 409 }
+    );
+  }
+
   // Link the user to the property
-  const { error: updateError } = await serverSupabase
+  const { data: accepted, error: updateError } = await serverSupabase
     .from('property_tenants')
     .update({
       user_id: user.id,
       invitation_accepted_at: new Date().toISOString(),
     })
-    .eq('id', tenant.id);
+    .eq('id', tenant.id)
+    .eq('is_active', true)
+    .is('invitation_accepted_at', null)
+    .is('user_id', null)
+    .select('id')
+    .maybeSingle();
 
   if (updateError) {
     logger.error('Failed to accept tenant invitation', { error: updateError });
     return NextResponse.json(
       { error: 'Failed to accept invitation' },
       { status: 500 }
+    );
+  }
+
+  if (!accepted) {
+    // A simultaneous acceptance by this same verified account is success.
+    // Re-read the exact active invitation before confirming; never infer it
+    // from the original token lookup or send a second notification.
+    const { data: current, error: currentError } = await serverSupabase
+      .from('property_tenants')
+      .select('user_id, invitation_accepted_at')
+      .eq('id', tenant.id)
+      .eq('property_id', tenant.property_id)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (currentError)
+      return NextResponse.json(
+        { error: 'Unable to confirm invitation acceptance. Please retry.' },
+        { status: 503 }
+      );
+    if (current?.user_id === user.id && current.invitation_accepted_at)
+      return NextResponse.json({
+        success: true,
+        property_id: tenant.property_id,
+      });
+    return NextResponse.json(
+      { error: 'Invitation is no longer available' },
+      { status: 409 }
     );
   }
 
@@ -115,10 +146,14 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
       userId: property.owner_id,
       type: 'tenant_accepted',
       title: `${tenant.name} joined ${property.address || property.name || 'your property'}`,
-      message: `They can now report issues directly — you'll be in the loop on every job.`,
+      message: `Their verified account is now linked to this property.`,
       actionUrl: `/properties/${tenant.property_id}`,
       metadata: { property_id: tenant.property_id, tenant_id: tenant.id },
-    });
+    }).catch(() =>
+      logger.warn('Tenant accepted; owner notification unavailable', {
+        tenantId: tenant.id,
+      })
+    );
   }
 
   logger.info('Tenant invitation accepted', {
@@ -130,6 +165,6 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
   return NextResponse.json({
     success: true,
     property_id: tenant.property_id,
-    message: `You've been linked to ${property?.address || 'the property'}. You can now submit maintenance requests.`,
+    message: `You've been linked to ${property?.address || 'the property'}. Contact your property manager for maintenance reporting instructions.`,
   });
 });

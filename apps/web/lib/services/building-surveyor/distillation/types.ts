@@ -30,6 +30,11 @@ export interface ShadowComparisonResult {
   costUsd: number;
   damageCategory: string;
   imageCount: number;
+  outputDiagnostics?: {
+    failureCode?: string;
+    finishReason: string | null;
+    responseCharacters: number;
+  };
   /** Set-based multi-finding comparison. Absent on legacy single-defect rows. */
   findingsComparison?: import('./findings-comparison').FindingsComparison;
 }
@@ -46,7 +51,7 @@ export interface VLMTrainingExample {
   userPrompt: string;
   teacherResponse: Phase1BuildingAssessment;
   studentResponse: Phase1BuildingAssessment | null;
-  /** GPT-4o chain-of-thought reasoning. Included as <thinking> block in training JSONL. */
+  /** Optional teacher rationale retained for review, excluded from JSON training targets. */
   teacherReasoning: string | null;
   /** Admin-corrected label. Overrides teacherResponse in training export when set. */
   humanCorrectedResponse: Phase1BuildingAssessment | null;

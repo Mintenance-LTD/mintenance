@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { logger } from '@mintenance/shared';
@@ -47,14 +47,9 @@ function JobPaymentPageContent() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (jobId) {
-      loadJobDetails();
-    }
-  }, [jobId]);
-
-  const loadJobDetails = async () => {
+  const loadJobDetails = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -162,7 +157,11 @@ function JobPaymentPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [jobId, router]);
+
+  useEffect(() => {
+    if (jobId) void loadJobDetails();
+  }, [jobId, loadJobDetails]);
 
   const handlePaymentSuccess = async (_paymentIntentId: string) => {
     toast.success(
@@ -179,7 +178,7 @@ function JobPaymentPageContent() {
   };
 
   const handlePaymentError = (errorMsg: string) => {
-    setError(errorMsg);
+    setPaymentError(errorMsg || null);
   };
 
   const handleCancel = () => {
@@ -322,10 +321,10 @@ function JobPaymentPageContent() {
             </MotionDiv>
 
             {/* Error banner */}
-            {error && (
+            {paymentError && (
               <div className='flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700'>
                 <AlertTriangle size={16} className='shrink-0' />
-                {error}
+                {paymentError}
               </div>
             )}
 
@@ -398,7 +397,9 @@ function JobPaymentPageContent() {
                     <span className='text-gray-600'>{fmtGBP(platformFee)}</span>
                   </div>
                   <div className='flex justify-between text-sm'>
-                    <span className='text-gray-500'>Processing fee</span>
+                    <span className='text-gray-500'>
+                      Estimated processing cost (paid by Mintenance)
+                    </span>
                     <span className='text-gray-600'>{fmtGBP(stripeFee)}</span>
                   </div>
                   <div className='border-t border-gray-100 pt-3 flex justify-between'>

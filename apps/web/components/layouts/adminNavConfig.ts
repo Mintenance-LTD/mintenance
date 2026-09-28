@@ -17,6 +17,11 @@ export const adminNavSections: readonly NavSection[] = Object.freeze([
       { icon: 'dashboard', label: 'Dashboard', href: '/admin' },
       { icon: 'briefcase', label: 'Jobs', href: '/admin/jobs' },
       { icon: 'scale', label: 'Disputes', href: '/admin/disputes' },
+      {
+        icon: 'scale',
+        label: 'Evidence reviews',
+        href: '/admin/evidence-retention',
+      },
     ],
   },
   {

@@ -11,6 +11,7 @@ import { SafetyExperimentHealthSection } from '@/components/admin/SafetyExperime
 import { YOLOLearningStatusCard } from '@/components/admin/YOLOLearningStatusCard';
 import { Icon } from '@/components/ui/Icon';
 import { logger } from '@mintenance/shared';
+import { RecoveryHealthCard } from './RecoveryHealthCard';
 
 interface ChartDataPoint {
   date: string;
@@ -80,11 +81,6 @@ export function DashboardClient({
     }
   }, [metrics, initialMetrics]);
 
-  const efficiency =
-    metrics.totalJobs > 0
-      ? Math.min(99.99, 95 + (metrics.totalJobs / (metrics.totalJobs + 50)) * 5)
-      : 0;
-
   return (
     <div className='min-h-screen bg-[#f7f9fb] px-6 md:px-10 py-8 max-w-[1440px] mx-auto'>
       {/* ── Hero Section ───────────────────────────────────────────────── */}
@@ -95,11 +91,7 @@ export function DashboardClient({
               {getGreeting()}, Admin.
             </h2>
             <p className='text-[#566166] text-base md:text-lg max-w-2xl font-light'>
-              Your infrastructure is operating at{' '}
-              <span className='font-semibold text-[#565e74]'>
-                {efficiency.toFixed(2)}% efficiency
-              </span>
-              .
+              Review platform activity and recovery jobs.
               {mounted && lastUpdated && (
                 <span className='text-sm ml-2 text-[#717c82]'>
                   Updated {lastUpdated.toLocaleTimeString('en-GB')}
@@ -124,6 +116,9 @@ export function DashboardClient({
           </div>
         </div>
 
+        <div className='mt-6'>
+          <RecoveryHealthCard />
+        </div>
         {/* ── Bento Stats Grid ─────────────────────────────────────────── */}
         <div className='grid grid-cols-1 md:grid-cols-5 gap-5 mt-8'>
           {/* Hero revenue card — 2 cols */}

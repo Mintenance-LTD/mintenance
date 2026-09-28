@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -87,6 +87,11 @@ export function RegisterForm() {
     errorMessage,
     onSubmit,
     initialRole,
+    verificationRequired,
+    verificationLoginPath,
+    resendVerification,
+    resending,
+    resendMessage,
   } = useRegisterSubmit();
   const [mounted, setMounted] = React.useState(false);
 
@@ -99,7 +104,7 @@ export function RegisterForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setValue,
-    watch,
+    control,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerFormSchema),
     mode: 'onSubmit',
@@ -116,7 +121,7 @@ export function RegisterForm() {
     },
   });
 
-  const selectedRole = watch('role');
+  const selectedRole = useWatch({ control, name: 'role' });
   const submitting = isSubmitting || csrfLoading;
 
   return (
@@ -200,7 +205,29 @@ export function RegisterForm() {
               style={{ flexShrink: 0, marginTop: 1 }}
             />
             <span>
-              <strong>Account created.</strong> Taking you to your dashboard…
+              <strong>Account created.</strong>{' '}
+              {verificationRequired ? (
+                <>
+                  Check your inbox and verify your email before signing in.
+                  Check your spam folder if it has not arrived.{' '}
+                  <Link className='underline' href={verificationLoginPath}>
+                    Sign in after verification
+                  </Link>{' '}
+                  <button
+                    type='button'
+                    className='underline'
+                    disabled={resending || csrfLoading}
+                    onClick={resendVerification}
+                  >
+                    {resending
+                      ? 'Requesting email…'
+                      : 'Resend verification email'}
+                  </button>
+                  {resendMessage && <span role='status'> {resendMessage}</span>}
+                </>
+              ) : (
+                'Taking you to your account…'
+              )}
             </span>
           </div>
         )}

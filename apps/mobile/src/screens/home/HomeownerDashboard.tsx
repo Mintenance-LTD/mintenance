@@ -54,6 +54,7 @@ export const HomeownerDashboard: React.FC = () => {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showExtras, setShowExtras] = useState(false);
 
   // Jobs query
   const {
@@ -121,13 +122,13 @@ export const HomeownerDashboard: React.FC = () => {
     queryFn: async () => {
       if (!user) throw new Error('Not signed in');
       const response = await mobileApiClient.get<{
-        appointments?: Array<{
+        appointments?: {
           id: string;
           title?: string | null;
           date?: string | null;
           time?: string | null;
           contractor?: { name?: string | null };
-        }>;
+        }[];
       }>('/api/appointments?limit=10');
       const rows = response.appointments ?? [];
       return rows.map((r) => {
@@ -338,11 +339,11 @@ export const HomeownerDashboard: React.FC = () => {
                     label: 'Painting',
                   },
                   { id: 'garden', icon: 'leaf-outline', label: 'Garden' },
-                ] as Array<{
+                ] as {
                   id: string;
                   icon: keyof typeof Ionicons.glyphMap;
                   label: string;
-                }>
+                }[]
               ).map((trade) => (
                 <TouchableOpacity
                   key={trade.id}
@@ -408,16 +409,6 @@ export const HomeownerDashboard: React.FC = () => {
             <LandlordPayerJobsCard />
           </FadeIn>
 
-          {/* R5 deferred #6 — Home Health subscribe CTA (self-hides when active) */}
-          <FadeIn duration={400} delay={430}>
-            <HomeHealthCtaCard />
-          </FadeIn>
-
-          {/* R7 #8 neighbour referral */}
-          <FadeIn duration={400} delay={450}>
-            <ReferralCard />
-          </FadeIn>
-
           {/* Recent Jobs */}
           <FadeIn duration={400} delay={500}>
             <RecentJobs
@@ -432,6 +423,29 @@ export const HomeownerDashboard: React.FC = () => {
               }
             />
           </FadeIn>
+          <TouchableOpacity
+            onPress={() => setShowExtras((value) => !value)}
+            accessibilityRole='button'
+            accessibilityState={{ expanded: showExtras }}
+            style={{ paddingVertical: 16 }}
+          >
+            <Text style={{ color: me.brand, fontWeight: '600' }}>
+              {showExtras ? 'Hide extras' : 'Home care plans & referrals'}
+            </Text>
+          </TouchableOpacity>
+          {showExtras && (
+            <View>
+              {/* R5 deferred #6 — Home Health subscribe CTA (self-hides when active) */}
+              <FadeIn duration={400} delay={430}>
+                <HomeHealthCtaCard />
+              </FadeIn>
+
+              {/* R7 #8 neighbour referral */}
+              <FadeIn duration={400} delay={450}>
+                <ReferralCard />
+              </FadeIn>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>

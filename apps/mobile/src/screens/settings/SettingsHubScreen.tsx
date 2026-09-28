@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   View,
+  Alert,
   Text,
   ScrollView,
   StyleSheet,
@@ -55,32 +56,16 @@ export const SettingsHubScreen: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: settings } = useQuery({
+  const {
+    data: settings,
+    isError,
+    isPending,
+    refetch,
+  } = useQuery({
     queryKey: ['user-settings', user?.id],
     queryFn: async (): Promise<UserSettings> => {
       if (!user?.id) throw new Error('Not authenticated');
-      try {
-        // 2026-06-06 audit: GET /api/users/settings returns the settings
-        // object at the top level ({ ...defaults, ...stored }), NOT wrapped
-        // in { data }. Reading res.data was always undefined, so saved
-        // privacy/notification toggles never displayed — the screen always
-        // showed the hardcoded defaults and a disabled "Profile Visible"
-        // flipped back on after refetch. Read the response directly.
-        const res = await mobileApiClient.get<UserSettings>(
-          '/api/users/settings'
-        );
-        return (
-          res || {
-            notifications: { email: true, push: true, sms: false },
-            privacy: { profileVisible: true, shareActivityData: false },
-          }
-        );
-      } catch {
-        return {
-          notifications: { email: true, push: true, sms: false },
-          privacy: { profileVisible: true, shareActivityData: false },
-        };
-      }
+      return mobileApiClient.get<UserSettings>('/api/users/settings');
     },
     enabled: !!user?.id,
   });
@@ -94,13 +79,21 @@ export const SettingsHubScreen: React.FC = () => {
         merged
       );
     },
+    onError: () => {
+      Alert.alert(
+        'Settings not saved',
+        'Please try again. Your previous settings are unchanged.'
+      );
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-settings', user?.id] });
+      return queryClient.invalidateQueries({
+        queryKey: ['user-settings', user?.id],
+      });
     },
   });
 
   const togglePrivacy = (key: keyof UserSettings['privacy']) => {
-    if (!settings) return;
+    if (!settings || isError || updateSettingMutation.isPending) return;
     updateSettingMutation.mutate({
       privacy: { ...settings.privacy, [key]: !settings.privacy[key] },
     });
@@ -217,6 +210,7 @@ export const SettingsHubScreen: React.FC = () => {
       iconBg: '#DBEAFE',
       rightElement: (
         <Switch
+          disabled={isPending || isError || updateSettingMutation.isPending}
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
           trackColor={{
@@ -234,6 +228,7 @@ export const SettingsHubScreen: React.FC = () => {
       iconBg: '#EDE9FE',
       rightElement: (
         <Switch
+          disabled={isPending || isError || updateSettingMutation.isPending}
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
           trackColor={{
@@ -314,6 +309,15 @@ export const SettingsHubScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
+        {isPending && <Text>Loading your settings...</Text>}
+        {isError && (
+          <TouchableOpacity
+            onPress={() => void refetch()}
+            accessibilityRole='button'
+          >
+            <Text>Could not load your privacy settings. Tap to retry.</Text>
+          </TouchableOpacity>
+        )}
         {renderSection('Account & Security', securityItems)}
         {renderSection('Privacy', privacyItems)}
         {renderSection('Legal', legalItems)}

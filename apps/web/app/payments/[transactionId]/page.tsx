@@ -21,9 +21,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
+import { downloadPaymentRecord } from '@/lib/payments/payment-record';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { computeVat } from '@mintenance/shared';
 
 // Animation variants
 const fadeIn = {
@@ -39,6 +38,7 @@ interface Transaction {
     | 'pending'
     | 'failed'
     | 'refunded'
+    | 'disputed'
     | 'held'
     | 'released'
     | 'release_pending';
@@ -75,12 +75,6 @@ interface Transaction {
     date: string;
     description: string;
   }[];
-  metadata: {
-    processingFee: number;
-    platformFee: number;
-    netAmount: number;
-    taxAmount: number;
-  };
 }
 
 export default function TransactionDetailPage2025() {
@@ -139,14 +133,6 @@ export default function TransactionDetailPage2025() {
             last4: found.payment_method_last4 || '••••',
             brand: found.payment_method_brand || 'Card',
           },
-          invoice: {
-            id: `inv_${found.id}`,
-            number: `INV-2025-${found.id.substring(0, 6)}`,
-            url: `/invoices/${found.id}.pdf`,
-          },
-          receipt: {
-            url: `/receipts/${found.id}.pdf`,
-          },
           refundable:
             found.payerId === user.id &&
             !found.refundNeedsReview &&
@@ -167,16 +153,6 @@ export default function TransactionDetailPage2025() {
               description: `Transaction ${found.status}`,
             },
           ],
-          metadata: {
-            processingFee:
-              found.platform_fee_stripe ?? found.amount * 0.015 + 0.2,
-            platformFee: found.platform_fee ?? found.amount * 0.05,
-            netAmount: found.contractor_amount ?? found.amount * 0.935 - 0.2,
-            // Prefer the stored VAT; legacy rows without it were all at the
-            // UK standard rate (20% inclusive) — sourced from the shared rate.
-            taxAmount:
-              found.vat_amount ?? computeVat(found.amount / 1.2, 'standard'),
-          },
         });
       } catch {
         toast.error('Failed to load transaction details');
@@ -206,6 +182,7 @@ export default function TransactionDetailPage2025() {
       case 'pending':
         return <Clock className='w-6 h-6 text-yellow-500' />;
       case 'failed':
+      case 'disputed':
         return <XCircle className='w-6 h-6 text-red-500' />;
       case 'refunded':
         return <RefreshCw className='w-6 h-6 text-blue-500' />;
@@ -222,6 +199,7 @@ export default function TransactionDetailPage2025() {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'failed':
+      case 'disputed':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'refunded':
         return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -229,12 +207,15 @@ export default function TransactionDetailPage2025() {
   };
 
   const handleDownloadReceipt = () => {
-    toast.success('Downloading receipt...');
-    // Download logic here
-  };
-
-  const handleDownloadInvoice = () => {
-    toast.success('Downloading invoice...');
+    if (!transaction) return;
+    downloadPaymentRecord({
+      id: transaction.id,
+      amount: transaction.amount,
+      status: transaction.status,
+      created_at: transaction.date,
+      job_title: transaction.jobTitle,
+      contractor_name: transaction.contractor.name,
+    });
   };
 
   const handlePrint = () => {
@@ -355,6 +336,14 @@ export default function TransactionDetailPage2025() {
               </div>
 
               <div className='flex flex-wrap gap-3'>
+                {transaction.status === 'disputed' && (
+                  <button
+                    onClick={() => router.push(`/disputes/${transaction.id}`)}
+                    className='px-4 py-2 border rounded-lg'
+                  >
+                    View dispute
+                  </button>
+                )}
                 <button
                   onClick={handleDownloadReceipt}
                   className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
@@ -461,53 +450,16 @@ export default function TransactionDetailPage2025() {
                         </p>
                       </div>
                     </div>
-
-                    {transaction.invoice && (
-                      <div className='flex items-start gap-3'>
-                        <FileText className='w-5 h-5 text-gray-400 mt-1' />
-                        <div>
-                          <p className='text-sm text-gray-600'>Invoice</p>
-                          <button
-                            onClick={handleDownloadInvoice}
-                            className='font-medium text-teal-600 hover:text-teal-700'
-                          >
-                            {transaction.invoice.number}
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {/* Pricing Breakdown */}
                 <div className='mt-6'>
-                  <PricingBreakdown
-                    items={[
-                      {
-                        id: '1',
-                        label: 'Service Cost',
-                        amount: transaction.amount / 1.2,
-                      },
-                      {
-                        id: '2',
-                        label: 'VAT (20%)',
-                        amount: transaction.metadata.taxAmount,
-                      },
-                      {
-                        id: '3',
-                        label: 'Platform Fee (5%)',
-                        amount: transaction.metadata.platformFee,
-                      },
-                      {
-                        id: '4',
-                        label: 'Processing Fee',
-                        amount: transaction.metadata.processingFee,
-                      },
-                    ]}
-                    subtotal={transaction.amount / 1.2}
-                    total={transaction.amount}
-                    currency='£'
-                  />
+                  <p>Recorded amount: £{transaction.amount.toFixed(2)}</p>
+                  <p className='text-sm text-gray-600 mt-2'>
+                    This is a payment record, not a VAT invoice. Request any tax
+                    invoice from the contractor.
+                  </p>
                 </div>
               </MotionDiv>
             </div>
@@ -593,11 +545,11 @@ export default function TransactionDetailPage2025() {
 
                 <div className='space-y-3'>
                   <button
-                    onClick={handleDownloadInvoice}
+                    onClick={handleDownloadReceipt}
                     className='w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2'
                   >
                     <Download className='w-4 h-4' />
-                    Download Invoice
+                    Download payment record
                   </button>
 
                   {transaction.refundable && (

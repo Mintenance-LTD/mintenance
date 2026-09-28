@@ -55,9 +55,10 @@ interface Props {
   // input that begs a guess. Defaults to true so existing owner
   // call sites work unchanged.
   canEditKeySafeCode?: boolean;
+  onAccessDenied?: () => void;
 }
 
-const MODES: Array<{ key: AccessMode; label: string; sub: string }> = [
+const MODES: { key: AccessMode; label: string; sub: string }[] = [
   {
     key: 'key_safe',
     label: 'Key safe',
@@ -82,6 +83,7 @@ export const PropertyAccessSection: React.FC<Props> = ({
   propertyId,
   initial,
   canEditKeySafeCode = true,
+  onAccessDenied,
 }) => {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<AccessMode | null>(
@@ -159,14 +161,25 @@ export const PropertyAccessSection: React.FC<Props> = ({
     onError: (err: unknown) => {
       type ApiErr = {
         status?: number;
+        statusCode?: number;
         response?: { status?: number; data?: { error?: string } };
       };
       const apiErr = err as ApiErr;
-      const status = apiErr.response?.status ?? apiErr.status;
-      if (status === 403) {
+      const status =
+        apiErr.response?.status ?? apiErr.statusCode ?? apiErr.status;
+      if (status === 401 || status === 403 || status === 404) {
+        setCode('');
+        setNotes('');
+        setStopcock('');
+        setGas('');
+        setConsumer('');
+        queryClient.removeQueries({
+          predicate: (query) => query.queryKey.includes(propertyId),
+        });
+        onAccessDenied?.();
         Alert.alert(
           'Not allowed',
-          'Only the property owner or a manager-role team member can edit access info.'
+          'Your access could not be confirmed. Return to your properties and try again.'
         );
         return;
       }

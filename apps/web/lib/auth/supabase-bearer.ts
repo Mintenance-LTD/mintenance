@@ -8,7 +8,7 @@ export async function verifySupabaseBearer(
 ): Promise<JWTPayload | null> {
   try {
     const { data, error } = await createAnonClient().auth.getUser(token);
-    if (error || !data.user) return null;
+    if (error || !data.user?.email_confirmed_at) return null;
     const claims = decodeJwt(token);
     if (
       claims.sub !== data.user.id ||

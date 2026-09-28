@@ -42,6 +42,12 @@ import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '@/lib/services/agents/NotificationAgent';
 import { sendPushToDevice } from './NotificationPushDispatcher';
 import {
+  bumpRetryOrFail,
+  claimQueuedNotification,
+  MAX_RETRY_COUNT,
+  type QueuedNotificationRow,
+} from './NotificationQueueRetry';
+import {
   loadPreferences,
   isTypeDisabled,
 } from './NotificationPreferenceResolver';
@@ -53,19 +59,6 @@ interface ProcessingResults {
   queuedErrors: number;
   learningProcessed: number;
   learningErrors: number;
-}
-
-interface QueuedNotificationRow {
-  id: string;
-  user_id: string;
-  notification_type: string;
-  title: string;
-  message: string;
-  action_url: string | null;
-  metadata: Record<string, unknown> | null;
-  status: 'pending' | 'failed_push' | string;
-  retry_count: number | null;
-  scheduled_for: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -82,25 +75,6 @@ const ENGAGEMENT_LOOKBACK_DAYS = 30;
 /** Maximum engagement rows to fetch for user-id extraction. */
 const ENGAGEMENT_FETCH_LIMIT = 100;
 
-/**
- * Maximum number of retries before a queue row is marked terminally
- * failed. Six attempts with the backoff schedule below is ~32 minutes
- * of total wall-clock — long enough to ride out a brief Expo outage
- * but short enough that we don't keep a permanently-broken token in
- * the queue forever.
- */
-const MAX_RETRY_COUNT = 6;
-
-/**
- * Compute the next scheduled_for timestamp from the current retry
- * count using exponential backoff (1m, 2m, 4m, 8m, 16m, 32m). Capped
- * at 1 hour to bound worst-case lag for transient Expo failures.
- */
-function nextRetryAt(retryCount: number): Date {
-  const delayMinutes = Math.min(60, 2 ** retryCount);
-  return new Date(Date.now() + delayMinutes * 60 * 1000);
-}
-
 // ── Service ──────────────────────────────────────────────────────────
 
 export class NotificationProcessorService {
@@ -112,6 +86,7 @@ export class NotificationProcessorService {
     Pick<ProcessingResults, 'queuedProcessed' | 'queuedErrors'>
   > {
     const counts = { queuedProcessed: 0, queuedErrors: 0 };
+    const claimDeadline = Date.now() + 25_000;
 
     try {
       const now = new Date();
@@ -138,8 +113,12 @@ export class NotificationProcessorService {
       }
 
       for (const raw of readyNotifications) {
+        // Leave remaining rows due for the next run instead of starting work
+        // too close to the function's 60-second execution limit.
+        if (Date.now() >= claimDeadline) break;
         const queuedNotif = raw as QueuedNotificationRow;
         try {
+          if (!(await claimQueuedNotification(queuedNotif))) continue;
           if (queuedNotif.status === 'failed_push') {
             await NotificationProcessorService.retryFailedPush(queuedNotif);
           } else {
@@ -194,7 +173,8 @@ export class NotificationProcessorService {
           updated_at: new Date().toISOString(),
           error_message: 'type_disabled_by_user',
         })
-        .eq('id', queuedNotif.id);
+        .eq('id', queuedNotif.id)
+        .eq('scheduled_for', queuedNotif.scheduled_for);
       logger.info('Queued notification cancelled — type muted by user', {
         service: 'notification-processor',
         queueId: queuedNotif.id,
@@ -220,6 +200,7 @@ export class NotificationProcessorService {
       const { data: notification, error: createError } = await serverSupabase
         .from('notifications')
         .insert({
+          id: queuedNotif.id,
           user_id: queuedNotif.user_id,
           type: queuedNotif.notification_type,
           title: queuedNotif.title,
@@ -236,21 +217,30 @@ export class NotificationProcessorService {
         .select('id')
         .single();
 
-      if (createError) {
+      if (createError && createError.code !== '23505') {
         logger.error('Error creating notification from queue', {
           service: 'notification-processor',
           error: createError.message,
           queueId: queuedNotif.id,
         });
 
-        await NotificationProcessorService.bumpRetryOrFail(
-          queuedNotif,
-          createError.message
-        );
+        await bumpRetryOrFail(queuedNotif, createError.message);
         throw new Error(createError.message);
       }
 
-      notificationId = notification.id;
+      // A worker can stop after insert but before checkpointing the queue.
+      // A deterministic id makes that replay safe without resetting read state.
+      if (createError?.code === '23505') {
+        const { data: existing, error } = await serverSupabase
+          .from('notifications')
+          .select('id')
+          .eq('id', queuedNotif.id)
+          .eq('user_id', queuedNotif.user_id)
+          .single();
+        if (error || !existing)
+          throw new Error('notification_replay_lookup_failed');
+      }
+      notificationId = notification?.id ?? queuedNotif.id;
     } else {
       logger.info('Queued notification: skipping in-app (user disabled)', {
         service: 'notification-processor',
@@ -259,37 +249,34 @@ export class NotificationProcessorService {
       });
     }
 
-    // Mark the queue row sent BEFORE firing push: push is
-    // fire-and-forget here (failures get re-enqueued by the
-    // dispatcher itself), so we shouldn't block the queue update on
-    // the network round-trip to Expo.
-    await serverSupabase
+    // Checkpoint in-app creation before contacting Expo. Failed push stays on
+    // this durable row, including if the worker stops before sending.
+    const needsPush = prefs.push_enabled && !inAppOnly;
+    const retryMetadata = {
+      ...cleanMetadata,
+      original_notification_id: notificationId,
+      push_accepted_device_ids: [],
+    };
+    const { error: checkpointError } = await serverSupabase
       .from('notification_queue')
       .update({
-        status: 'sent',
-        sent_at: new Date().toISOString(),
+        status: needsPush ? 'failed_push' : 'sent',
+        ...(needsPush
+          ? { metadata: retryMetadata }
+          : { sent_at: new Date().toISOString() }),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', queuedNotif.id);
+      .eq('id', queuedNotif.id)
+      .eq('scheduled_for', queuedNotif.scheduled_for);
+    if (checkpointError) throw new Error('notification_checkpoint_failed');
 
     // Push parity with fireImmediately (added 2026-05-01); gated on
     // freshly-loaded push_enabled + the _in_app_only flag (audit-42).
-    if (prefs.push_enabled && !inAppOnly) {
-      void sendPushToDevice({
-        userId: queuedNotif.user_id,
-        title: queuedNotif.title,
-        body: queuedNotif.message,
-        // audit-54 P1: spread metadata so mobile router has IDs.
-        data: {
-          ...(hasMetadata ? cleanMetadata : {}),
-          notificationId: notificationId ?? undefined,
-          type: queuedNotif.notification_type,
-          actionUrl: queuedNotif.action_url ?? undefined,
-        },
-        notificationType: queuedNotif.notification_type,
-        actionUrl: queuedNotif.action_url ?? undefined,
-        metadata: hasMetadata ? cleanMetadata : undefined,
-        notificationId: notificationId ?? undefined,
+    if (needsPush) {
+      await NotificationProcessorService.retryFailedPush({
+        ...queuedNotif,
+        status: 'failed_push',
+        metadata: retryMetadata,
       });
     } else {
       logger.info('Queued notification: skipping push', {
@@ -328,6 +315,23 @@ export class NotificationProcessorService {
   private static async retryFailedPush(
     queuedNotif: QueuedNotificationRow
   ): Promise<void> {
+    const prefs = await loadPreferences(queuedNotif.user_id);
+    if (
+      !prefs.push_enabled ||
+      isTypeDisabled(prefs, queuedNotif.notification_type)
+    ) {
+      const { error } = await serverSupabase
+        .from('notification_queue')
+        .update({
+          status: 'cancelled',
+          error_message: 'push_disabled_by_user',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', queuedNotif.id)
+        .eq('scheduled_for', queuedNotif.scheduled_for);
+      if (error) throw new Error('notification_cancel_failed');
+      return;
+    }
     const metadata = queuedNotif.metadata ?? {};
     const originalId =
       typeof metadata['original_notification_id'] === 'string'
@@ -338,6 +342,7 @@ export class NotificationProcessorService {
     // diagnostic fields we use internally.
     const pushData: Record<string, unknown> = { ...metadata };
     delete pushData.original_notification_id;
+    delete pushData.push_accepted_device_ids;
     if (queuedNotif.action_url) {
       pushData.actionUrl = queuedNotif.action_url;
     }
@@ -357,17 +362,31 @@ export class NotificationProcessorService {
       actionUrl: queuedNotif.action_url ?? undefined,
       metadata: queuedNotif.metadata ?? undefined,
       notificationId: originalId,
+      acceptedDeviceIds: Array.isArray(metadata.push_accepted_device_ids)
+        ? metadata.push_accepted_device_ids.filter(
+            (id): id is string => typeof id === 'string'
+          )
+        : [],
     });
 
+    queuedNotif.metadata = {
+      ...metadata,
+      push_accepted_device_ids: result.acceptedDeviceIds ?? [],
+    };
+
     if (result.sent) {
-      await serverSupabase
+      const { error } = await serverSupabase
         .from('notification_queue')
         .update({
           status: 'sent',
           sent_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          metadata: queuedNotif.metadata,
         })
-        .eq('id', queuedNotif.id);
+        .eq('id', queuedNotif.id)
+        .eq('scheduled_for', queuedNotif.scheduled_for);
+
+      if (error) throw new Error('notification_completion_failed');
 
       logger.info('Failed-push retry succeeded', {
         service: 'notification-processor',
@@ -378,66 +397,7 @@ export class NotificationProcessorService {
       return;
     }
 
-    await NotificationProcessorService.bumpRetryOrFail(
-      queuedNotif,
-      result.reason ?? 'unknown_push_failure'
-    );
-  }
-
-  /**
-   * Increment retry_count + reschedule (or mark terminally failed if
-   * the budget is exhausted). Shared between the pending and
-   * failed_push paths so retry semantics stay identical.
-   */
-  private static async bumpRetryOrFail(
-    queuedNotif: QueuedNotificationRow,
-    reason: string
-  ): Promise<void> {
-    const nextCount = (queuedNotif.retry_count ?? 0) + 1;
-    const terminal = nextCount >= MAX_RETRY_COUNT;
-
-    if (terminal) {
-      await serverSupabase
-        .from('notification_queue')
-        .update({
-          status: 'failed',
-          error_message: reason,
-          retry_count: nextCount,
-          last_retry_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', queuedNotif.id);
-      logger.warn('Queued notification exhausted retries', {
-        service: 'notification-processor',
-        queueId: queuedNotif.id,
-        userId: queuedNotif.user_id,
-        reason,
-      });
-      return;
-    }
-
-    const next = nextRetryAt(nextCount);
-    await serverSupabase
-      .from('notification_queue')
-      .update({
-        // Preserve the original status so the next pass routes it
-        // through the same branch (pending vs failed_push).
-        error_message: reason,
-        retry_count: nextCount,
-        last_retry_at: new Date().toISOString(),
-        scheduled_for: next.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', queuedNotif.id);
-
-    logger.info('Queued notification rescheduled for retry', {
-      service: 'notification-processor',
-      queueId: queuedNotif.id,
-      userId: queuedNotif.user_id,
-      retryCount: nextCount,
-      nextAt: next.toISOString(),
-      reason,
-    });
+    await bumpRetryOrFail(queuedNotif, result.reason ?? 'unknown_push_failure');
   }
 
   /**

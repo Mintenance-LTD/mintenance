@@ -78,6 +78,12 @@ export async function canAutoValidate(
   assessment: Phase1BuildingAssessment,
   assessmentId: string
 ): Promise<{ canAutoValidate: boolean; reason?: string }> {
+  if (assessment.visualEvidence)
+    return {
+      canAutoValidate: false,
+      reason:
+        'Visible evidence requires human review; diagnosis is not established',
+    };
   try {
     if (AUTO_VALIDATION_CONFIG.SHADOW_PHASE_ENABLED) {
       const shadowDecision = await getShadowPhaseDecision(
@@ -276,7 +282,7 @@ export async function getStatistics() {
     const { data: stats, error } = await serverSupabase
       .from('building_assessments')
       .select(
-        'validation_status, severity, damage_type, auto_validated, auto_validation_review_status'
+        'validation_status, severity, damage_type, confidence, assessment_data, auto_validated, auto_validation_review_status'
       )
       .limit(10000);
 
@@ -292,16 +298,23 @@ export async function getStatistics() {
     const rejected =
       stats?.filter((s) => s.validation_status === 'rejected').length || 0;
 
+    const scored = stats?.filter(
+      (s) =>
+        s.confidence > 0 &&
+        !s.assessment_data?.visualEvidence &&
+        s.assessment_data?.protocol !== 'observation-only-v1'
+    );
     const bySeverity = {
-      early: stats?.filter((s) => s.severity === 'early').length || 0,
-      developing: stats?.filter((s) => s.severity === 'developing').length || 0,
+      early: scored?.filter((s) => s.severity === 'early').length || 0,
+      developing:
+        scored?.filter((s) => s.severity === 'developing').length || 0,
       significant:
-        stats?.filter((s) => s.severity === 'significant').length || 0,
-      dangerous: stats?.filter((s) => s.severity === 'dangerous').length || 0,
+        scored?.filter((s) => s.severity === 'significant').length || 0,
+      dangerous: scored?.filter((s) => s.severity === 'dangerous').length || 0,
     };
 
     const byDamageType: Record<string, number> = {};
-    stats?.forEach((s) => {
+    scored?.forEach((s) => {
       byDamageType[s.damage_type] = (byDamageType[s.damage_type] || 0) + 1;
     });
 

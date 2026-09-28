@@ -35,3 +35,23 @@ outputs
 audit-reports
 *.docx
 .claude/worktrees
+
+# Local credentials, model datasets and device audit artifacts are not app source.
+**/.env*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.zip
+**/*.tar
+**/*.tar.gz
+/audit
+.vercel
+**/*.log
+**/*.tsbuildinfo
+/yolo_dataset*
+/training_data*
+/.design-bundle
+/.turbo
+/public
+/*.pdf

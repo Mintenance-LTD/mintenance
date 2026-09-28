@@ -5,22 +5,7 @@ import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { HeroMock } from './HeroMock';
 
-/**
- * Landing hero — Direction A · Mint Editorial.
- * Source of truth: redesign-v2/landing.html `.hero`.
- *
- * 2026-05-13 design-system rebuild. Replaces the previous bespoke
- * emerald/slate hero. Left column: brand-soft eyebrow pill, Instrument
- * Serif headline with an italic brand-coloured emphasis, lede, two
- * CTAs, a trust line. Right column: the browser + phone device mock
- * (HeroMock). Scoped under `data-theme="mint-editorial"` so the
- * `--me-*` tokens resolve; styling is inline-token so it needs no
- * `.me-root` primitive layer.
- *
- * The vestigial `activeContractors` / `hasRealStats` / `statsLoading`
- * props are gone — page.tsx never wired them and the spec uses a
- * static trust line.
- */
+/** Landing introduction and responsive illustrative project preview. */
 
 const EASE_SMOOTH: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -119,8 +104,9 @@ export function HeroSection() {
             }}
           >
             Snap a photo of what&apos;s broken. Post a job once and get honest
-            quotes from local tradespeople on the platform. Pay only when the
-            job&apos;s done — properly.
+            quotes from local tradespeople on the platform. Fund the agreed work
+            securely, then approve payment release after reviewing the finished
+            job.
           </motion.p>
 
           <motion.div
@@ -200,7 +186,7 @@ export function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* ── Right column — device mock ──────────────────────── */}
+        {/* ── Right column — project preview ──────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -210,13 +196,11 @@ export function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Responsive: single column below 1024px, mock hidden (it's a
-          fixed-size desktop composition — the text hero stands alone
-          on mobile). */}
+      {/* Stack the preview beneath the introduction on smaller screens. */}
       <style>{`
         @media (max-width: 1023px) {
-          .hero-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
-          .hero-mock-wrap { display: none !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
+
         }
       `}</style>
     </section>

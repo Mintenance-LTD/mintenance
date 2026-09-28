@@ -99,3 +99,52 @@ customer records were changed. The observed deployed application already supplie
 cycle fields; the new scheduler recovery and UI copy still need the application deployment. This is
 the 56th migration in the recorded rollout. Full web suite: 3,849 tests / 372 files passed; local
 overlapping transactions produced one job and all synthetic fixtures were removed.
+
+## Team administration serialization
+
+Applied `20260922182831_serialize_property_team_management.sql` to MintEnance
+(`ukrjudtlvapiajkjbcrd`) after local concurrency diagnostics, migration replay/diff, type checks,
+focused native tests, and 3,929 passing web tests. Dry-run and execution listed only this migration,
+with no seeds or roles; vault changes skipped.
+
+Read-only MCP verification: migration recorded=true; property_team_capacity enabled=true;
+manage_property_team EXECUTE for anon=false, authenticated=false, service_role=true. No real team
+invitations, emails, or synthetic hosted records were created. The trigger protects legacy direct
+inserts while the new application uses the serialized function. No application deployment or
+promotion command was run.
+
+## Dispute evidence object protection
+
+Applied `20260922190036_protect_dispute_evidence_objects.sql` to the authorized MintEnance project
+after isolated storage-role diagnostics and full migration replay/diff. Dry-run and execution listed
+only this migration, no seeds/roles, with vault updates skipped. MCP confirmed restrictive INSERT,
+UPDATE and DELETE policies for authenticated clients. No objects were created, changed or removed
+remotely during verification. Service-role retention remains possible; archival retrieval and
+retention review are still open work.
+
+# Retention archive and review rollout — 22 September, 20:35 UTC
+
+Applied only 20260922195828_retain_deleted_dispute_records and
+20260922202042_add_evidence_retention_review after isolated replay/diff returned no changes. Linked
+CLI push skipped vault changes and ran no seeds or roles. No application deployment or production
+fixture/backfill was performed.
+
+Read-only Supabase MCP verification confirmed both migration versions, all four enabled archive
+triggers, RLS on all four new tables, denied authenticated execution of archive/review RPCs, allowed
+service-role review execution, and denied service-role deletion of review history.
+
+Local tests cover actual account-deletion HTTP, private evidence byte preservation and unrelated
+access denial; two independent database connections racing the first review produced exactly one
+success and one revision conflict. Local advisors report existing PostGIS public-schema/RLS and
+duplicate service_areas index findings; none concern the new archive/review objects.
+
+Retention disposal and legacy reconciliation remain unimplemented. Review dates do not authorize
+automatic deletion. Hosted schema verification is not proof of the live web/native journey.
+
+## Invitation concurrency rollout — 22 September, 20:56 UTC
+
+Applied 20260922204117 alone after local concurrent tests and empty replay/diff. No seeds, roles,
+vault changes or backfills. Read-only MCP confirmed migration history, the valid active-email unique
+index, invitation-attempt RLS, denied authenticated claim execution and allowed service execution.
+Full web coverage: 391 files / 3,966 tests; native contact recovery: four tests. Provider delivery
+after an ambiguous response still cannot be claimed exactly once across a later explicit retry.

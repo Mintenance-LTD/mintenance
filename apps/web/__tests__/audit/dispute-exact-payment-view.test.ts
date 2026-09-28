@@ -7,6 +7,7 @@ const s = vi.hoisted(() => ({
   recordError: null as null | { code: string },
   filters: vi.fn(),
   reads: vi.fn(),
+  sign: vi.fn(),
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler: (_: unknown, fn: Function) => (req: NextRequest) =>
@@ -17,6 +18,7 @@ vi.mock('@/lib/api/with-api-handler', () => ({
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
+    storage: { from: () => ({ createSignedUrl: s.sign }) },
     from: (table: string) => {
       s.reads(table);
       const q = {
@@ -27,7 +29,15 @@ vi.mock('@/lib/api/supabaseServer', () => ({
         },
         order: () => q,
         limit: async () => ({
-          data: [{ id: 'canonical', reason: 'Exact payment reason' }],
+          data: [
+            {
+              id: 'canonical',
+              reason: 'Exact payment reason',
+              raised_by: 'claimant',
+              description:
+                'Claim\n\nEvidence:\n1. job-attachments:job/disputes/claimant/photo.jpg',
+            },
+          ],
           error: s.recordError,
         }),
         maybeSingle: async () => ({
@@ -61,11 +71,18 @@ beforeEach(() => {
   vi.clearAllMocks();
   s.owner = s.actor;
   s.recordError = null;
+  s.sign.mockResolvedValue({
+    data: { signedUrl: 'https://example.test/fresh' },
+    error: null,
+  });
 });
 it('lets the current homeowner view a delegated-payment dispute and binds details to its escrow', async () => {
   expect(await (await send()).json()).toMatchObject({
     id: s.escrow,
     dispute_record_id: 'canonical',
+    dispute_evidence: [
+      { label: 'Evidence 1', url: 'https://example.test/fresh' },
+    ],
   });
   expect(s.filters).toHaveBeenCalledWith(
     'disputes',
@@ -78,6 +95,7 @@ it('denies unrelated users before reading canonical details', async () => {
   s.owner = 'unrelated-owner';
   await expect(send()).rejects.toMatchObject({ statusCode: 403 });
   expect(s.reads).not.toHaveBeenCalledWith('disputes');
+  expect(s.sign).not.toHaveBeenCalled();
 });
 it('does not present a record lookup failure as empty dispute details', async () => {
   s.recordError = { code: '08006' };

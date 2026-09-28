@@ -169,6 +169,14 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.screenHeader}>
         <Text style={styles.eyebrow}>Payments</Text>
         <Text style={styles.headline}>Payment history</Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          onPress={() => {
+            goToTab(navigation, 'JobsTab', { screen: 'RetainedDisputes' });
+          }}
+        >
+          <Text style={styles.sub}>Retained dispute records</Text>
+        </TouchableOpacity>
         <Text style={styles.sub}>
           {allPayments.length} {allPayments.length === 1 ? 'record' : 'records'}
         </Text>
@@ -255,6 +263,12 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
           renderItem={({ item }) => (
             <PaymentCard
               payment={item}
+              onDisputePress={(payment) =>
+                goToTab(navigation, 'JobsTab', {
+                  screen: 'DisputeDetails',
+                  params: { escrowId: payment.id },
+                })
+              }
               onReceiptPress={(p) => {
                 // 2026-05-24 audit-27 P2: cross-stack jump from
                 // ProfileTab → JobsTab → JobDetails. Replaces the

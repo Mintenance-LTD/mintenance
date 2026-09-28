@@ -20,6 +20,7 @@ export type EscrowStatus =
   | 'refunded'
   | 'awaiting_homeowner_approval'
   | 'pending_review'
+  | 'disputed'
   | 'failed'
   | 'cancelled';
 

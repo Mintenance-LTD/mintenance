@@ -57,6 +57,8 @@ const linkingConfig = {
             JobDetails: 'jobs/:jobId',
             JobPayment: 'payment/:jobId',
             ContractView: 'contracts/:jobId',
+            RetainedDisputes: 'disputes',
+            DisputeDetails: 'disputes/:escrowId',
             BidSubmission: 'jobs/:jobId/bid',
             BidReview: 'jobs/:jobId/bids',
             PhotoReview: 'jobs/:jobId/photos',
@@ -146,7 +148,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
   async getInitialURL(): Promise<string | null> {
     const url = await Linking.getInitialURL();
     if (url) {
-      logger.info('DeepLink', `App opened from URL: ${url}`);
+      logger.info('DeepLink', 'App opened from a link');
     }
     return url;
   },
@@ -170,7 +172,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
    */
   subscribe(listener: (url: string) => void) {
     const urlSubscription = Linking.addEventListener('url', ({ url }) => {
-      logger.info('DeepLink', `URL event received: ${url}`);
+      logger.info('DeepLink', 'Link event received');
       listener(url);
     });
     return () => {

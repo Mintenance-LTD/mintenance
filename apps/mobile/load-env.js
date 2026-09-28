@@ -14,11 +14,13 @@ const fs = require('fs');
 const path = require('path');
 
 const logger = {
-  info: (...args) => console.log('[INFO]', ...args), // eslint-disable-line no-console
+  info: (...args) => console.log('[INFO]', ...args),
   warn: (...args) => console.warn('[WARN]', ...args),
   error: (...args) => console.error('[ERROR]', ...args),
 };
 
+// Shared files supply defaults only. Explicit mobile/EAS settings, including
+// empty values, must never be replaced with another environment's backend.
 // Paths to check for .env files (in order of priority)
 const envPaths = [
   path.join(__dirname, '../web/.env.local'),  // Web app's .env.local
@@ -58,19 +60,19 @@ if (envPath) {
       // Map NEXT_PUBLIC_* to EXPO_PUBLIC_* for Supabase and Stripe
       if (key.startsWith('NEXT_PUBLIC_SUPABASE_')) {
         const expoKey = key.replace('NEXT_PUBLIC_', 'EXPO_PUBLIC_');
-        process.env[expoKey] = value;
+        process.env[expoKey] ??= value;
         logger.info(`   ✓ Mapped ${key} → ${expoKey}`);
       } else if (key.startsWith('NEXT_PUBLIC_STRIPE_')) {
         const expoKey = key.replace('NEXT_PUBLIC_', 'EXPO_PUBLIC_');
-        process.env[expoKey] = value;
+        process.env[expoKey] ??= value;
         logger.info(`   ✓ Mapped ${key} → ${expoKey}`);
       } else if (key.startsWith('EXPO_PUBLIC_')) {
         // Directly use EXPO_PUBLIC_* variables (already in correct format)
-        process.env[key] = value;
+        process.env[key] ??= value;
         logger.info(`   ✓ Loaded ${key}`);
       } else if (key === 'SUPABASE_URL' || key === 'SUPABASE_ANON_KEY') {
         // Also support non-prefixed versions
-        process.env[`EXPO_PUBLIC_${key}`] = value;
+        process.env[`EXPO_PUBLIC_${key}`] ??= value;
         logger.info(`   ✓ Mapped ${key} → EXPO_PUBLIC_${key}`);
       }
     }

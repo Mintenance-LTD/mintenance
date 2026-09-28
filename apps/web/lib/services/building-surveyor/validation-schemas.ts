@@ -34,9 +34,10 @@ const hazardSeverityEnum = z
 // our canonical three-value enum so validation never rejects a valid response.
 const complianceSeverityEnum = z.preprocess(
   (val) => {
-    if (val === 'low') return 'minor';
-    if (val === 'medium') return 'moderate';
-    if (val === 'high' || val === 'critical') return 'major';
+    if (val === 'low' || val === 'info') return 'minor';
+    if (val === 'medium' || val === 'warning') return 'moderate';
+    if (val === 'high' || val === 'critical' || val === 'violation')
+      return 'major';
     return val;
   },
   z.enum(['minor', 'moderate', 'major']).optional()
@@ -63,25 +64,6 @@ const damageSeverityEnum = z.preprocess(
   },
   z.enum(['early', 'developing', 'significant', 'dangerous']).optional()
 );
-
-const CANONICAL_DAMAGE_TYPES = [
-  'pipe_leak',
-  'water_damage',
-  'wall_crack',
-  'roof_damage',
-  'electrical_fault',
-  'mold_damp',
-  'fire_damage',
-  'window_broken',
-  'door_damaged',
-  'floor_damage',
-  'ceiling_damage',
-  'foundation_crack',
-  'hvac_issue',
-  'gutter_blocked',
-  'general_damage',
-  'none',
-] as const;
 
 const CONTRACTOR_TRADES = [
   'plumber',
@@ -147,11 +129,15 @@ const contractorAdviceSchema = z.object({
     })
     .optional(),
   complexity: complexityEnum,
-  recommendedTrades: z
-    .array(z.enum(CONTRACTOR_TRADES))
-    .max(5)
-    .optional()
-    .default([]),
+  // Unsupported optional trade suggestions must not discard valid safety evidence.
+  // Preserve recognised codes without guessing a replacement trade.
+  recommendedTrades: z.preprocess(
+    (value) =>
+      Array.isArray(value)
+        ? value.filter((trade) => CONTRACTOR_TRADES.includes(trade))
+        : value,
+    z.array(z.enum(CONTRACTOR_TRADES)).max(5).optional().default([])
+  ),
 });
 
 const specialistReferralSchema = z.object({
@@ -187,6 +173,7 @@ const findingSchema = z.object({
 });
 
 export const AI_ASSESSMENT_SCHEMA = z.object({
+  evidenceSufficient: z.boolean().optional(),
   damageType: z.string().optional(),
   // v3 surveyor taxonomy class — tolerant: anything outside the canonical id
   // set (including null, the prompt's "no match" value) degrades to undefined

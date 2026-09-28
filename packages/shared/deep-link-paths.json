@@ -28,6 +28,7 @@
     { "path": "/jobs", "exact": true, "children": true },
     { "path": "/payment", "exact": false, "children": true },
     { "path": "/contracts", "exact": false, "children": true },
+    { "path": "/disputes", "exact": false, "children": true },
     { "path": "/messages", "exact": true, "children": true },
     { "path": "/contractors", "exact": false, "children": true },
     { "path": "/properties", "exact": true, "children": true },

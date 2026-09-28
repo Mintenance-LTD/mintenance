@@ -5,6 +5,7 @@ export interface AuthResult {
   user?: User;
   error?: string;
   cookieHeaders?: Headers;
+  requiresEmailVerification?: boolean;
 }
 
 export interface LoginCredentials {
@@ -12,4 +13,4 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterData extends CreateUserData {}
+export type RegisterData = CreateUserData;

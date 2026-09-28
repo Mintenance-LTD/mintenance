@@ -116,7 +116,10 @@ describe('BiometricLoginButton Component', () => {
     it('should check biometric status on mount', async () => {
       const isAvailableSpy = jest.spyOn(BiometricService, 'isAvailable');
       const isEnabledSpy = jest.spyOn(BiometricService, 'isBiometricEnabled');
-      const getSupportedTypesSpy = jest.spyOn(BiometricService, 'getSupportedTypes');
+      const getSupportedTypesSpy = jest.spyOn(
+        BiometricService,
+        'getSupportedTypes'
+      );
 
       isAvailableSpy.mockResolvedValue(true);
       isEnabledSpy.mockResolvedValue(true);
@@ -133,7 +136,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should render button when biometrics are available and enabled', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
 
       const { getByText } = render(<BiometricLoginButton />);
@@ -146,7 +151,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should not render when biometrics are not available', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(false);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
 
       const { queryByText } = render(<BiometricLoginButton />);
 
@@ -159,7 +166,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should not render when biometrics are not enabled', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(false);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(false);
 
       const { queryByText } = render(<BiometricLoginButton />);
 
@@ -169,7 +178,9 @@ describe('BiometricLoginButton Component', () => {
     });
 
     it('should handle errors during status check gracefully', async () => {
-      jest.spyOn(BiometricService, 'isAvailable').mockRejectedValue(new Error('Hardware error'));
+      jest
+        .spyOn(BiometricService, 'isAvailable')
+        .mockRejectedValue(new Error('Hardware error'));
 
       const { queryByText } = render(<BiometricLoginButton />);
 
@@ -186,7 +197,9 @@ describe('BiometricLoginButton Component', () => {
   describe('Biometric Type Display', () => {
     it('should display Fingerprint for fingerprint type', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
 
       const { getByText } = render(<BiometricLoginButton />);
@@ -198,7 +211,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should display Face ID for facial recognition type', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([2]);
 
       const { getByText } = render(<BiometricLoginButton />);
@@ -210,7 +225,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should display Iris for iris scanner type', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([3]);
 
       const { getByText } = render(<BiometricLoginButton />);
@@ -222,8 +239,12 @@ describe('BiometricLoginButton Component', () => {
 
     it('should display multiple types joined with "or"', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1, 2]);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'getSupportedTypes')
+        .mockResolvedValue([1, 2]);
 
       const { getByText } = render(<BiometricLoginButton />);
 
@@ -234,8 +255,12 @@ describe('BiometricLoginButton Component', () => {
 
     it('should handle unknown biometric type', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([999 as any]);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'getSupportedTypes')
+        .mockResolvedValue([999 as any]);
 
       const { getByText } = render(<BiometricLoginButton />);
 
@@ -248,7 +273,9 @@ describe('BiometricLoginButton Component', () => {
   describe('Authentication Flow', () => {
     beforeEach(() => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
     });
 
@@ -339,9 +366,7 @@ describe('BiometricLoginButton Component', () => {
     it('should reset loading state after successful authentication', async () => {
       mockSignInWithBiometrics.mockResolvedValue(undefined);
 
-      const { getByText, queryByText } = render(
-        <BiometricLoginButton />
-      );
+      const { getByText, queryByText } = render(<BiometricLoginButton />);
 
       await waitFor(() => {
         expect(getByText('Use Fingerprint')).toBeTruthy();
@@ -360,13 +385,32 @@ describe('BiometricLoginButton Component', () => {
   describe('Error Handling', () => {
     beforeEach(() => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
+    });
+
+    it('explains an expired saved session without blaming the fingerprint sensor', async () => {
+      mockSignInWithBiometrics.mockRejectedValue(
+        new Error('Your session has expired. Please sign in again.')
+      );
+      const { getByText } = render(<BiometricLoginButton />);
+      await waitFor(() => expect(getByText('Use Fingerprint')).toBeTruthy());
+      fireEvent.press(getByText('Use Fingerprint'));
+      await waitFor(() =>
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Please sign in again',
+          'Your saved sign-in could not be restored. Sign in with your password, then enable biometric sign-in again in Settings.'
+        )
+      );
     });
 
     it('should show alert on authentication failure', async () => {
       const mockAlert = Alert.alert as jest.Mock;
-      mockSignInWithBiometrics.mockRejectedValue(new Error('Authentication failed'));
+      mockSignInWithBiometrics.mockRejectedValue(
+        new Error('Authentication failed')
+      );
 
       const { getByText } = render(<BiometricLoginButton />);
 
@@ -390,9 +434,7 @@ describe('BiometricLoginButton Component', () => {
       const error = new Error('Authentication failed');
       mockSignInWithBiometrics.mockRejectedValue(error);
 
-      const { getByText } = render(
-        <BiometricLoginButton onError={onError} />
-      );
+      const { getByText } = render(<BiometricLoginButton onError={onError} />);
 
       await waitFor(() => {
         expect(getByText('Use Fingerprint')).toBeTruthy();
@@ -408,7 +450,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should not show alert when user cancels authentication', async () => {
       const mockAlert = Alert.alert as jest.Mock;
-      mockSignInWithBiometrics.mockRejectedValue(new Error('User cancelled authentication'));
+      mockSignInWithBiometrics.mockRejectedValue(
+        new Error('User cancelled authentication')
+      );
 
       const { getByText } = render(<BiometricLoginButton />);
 
@@ -426,7 +470,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should not show alert when user canceled authentication (American spelling)', async () => {
       const mockAlert = Alert.alert as jest.Mock;
-      mockSignInWithBiometrics.mockRejectedValue(new Error('Authentication canceled by user'));
+      mockSignInWithBiometrics.mockRejectedValue(
+        new Error('Authentication canceled by user')
+      );
 
       const { getByText } = render(<BiometricLoginButton />);
 
@@ -446,9 +492,7 @@ describe('BiometricLoginButton Component', () => {
       const onError = jest.fn();
       mockSignInWithBiometrics.mockRejectedValue(new Error('User cancelled'));
 
-      const { getByText } = render(
-        <BiometricLoginButton onError={onError} />
-      );
+      const { getByText } = render(<BiometricLoginButton onError={onError} />);
 
       await waitFor(() => {
         expect(getByText('Use Fingerprint')).toBeTruthy();
@@ -463,11 +507,11 @@ describe('BiometricLoginButton Component', () => {
     });
 
     it('should reset loading state after error', async () => {
-      mockSignInWithBiometrics.mockRejectedValue(new Error('Authentication failed'));
-
-      const { getByText, queryByText } = render(
-        <BiometricLoginButton />
+      mockSignInWithBiometrics.mockRejectedValue(
+        new Error('Authentication failed')
       );
+
+      const { getByText, queryByText } = render(<BiometricLoginButton />);
 
       await waitFor(() => {
         expect(getByText('Use Fingerprint')).toBeTruthy();
@@ -477,10 +521,13 @@ describe('BiometricLoginButton Component', () => {
       fireEvent.press(button);
 
       // Wait for error to be processed and loading state to reset
-      await waitFor(() => {
-        // After error, should show button text again (not Authenticating...)
-        expect(getByText('Use Fingerprint')).toBeTruthy();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          // After error, should show button text again (not Authenticating...)
+          expect(getByText('Use Fingerprint')).toBeTruthy();
+        },
+        { timeout: 3000 }
+      );
 
       // Verify loading text is gone
       expect(queryByText('Authenticating...')).toBeNull();
@@ -489,7 +536,9 @@ describe('BiometricLoginButton Component', () => {
     it('should show alert with Face ID in error message for Face ID type', async () => {
       const mockAlert = Alert.alert as jest.Mock;
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([2]);
-      mockSignInWithBiometrics.mockRejectedValue(new Error('Authentication failed'));
+      mockSignInWithBiometrics.mockRejectedValue(
+        new Error('Authentication failed')
+      );
 
       const { getByText } = render(<BiometricLoginButton />);
 
@@ -512,7 +561,9 @@ describe('BiometricLoginButton Component', () => {
   describe('Edge Cases and Guards', () => {
     it('should not attempt authentication if not available', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(false);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
 
       const { queryByText } = render(<BiometricLoginButton />);
 
@@ -525,7 +576,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should not attempt authentication if not enabled', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(false);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(false);
 
       const { queryByText } = render(<BiometricLoginButton />);
 
@@ -545,7 +598,9 @@ describe('BiometricLoginButton Component', () => {
       mockSignInWithBiometrics.mockReturnValue(authPromise);
 
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
 
       const { getByText } = render(<BiometricLoginButton />);
@@ -576,7 +631,9 @@ describe('BiometricLoginButton Component', () => {
 
     it('should handle empty supported types array', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([]);
 
       const { queryByText } = render(<BiometricLoginButton />);
@@ -592,7 +649,9 @@ describe('BiometricLoginButton Component', () => {
   describe('Accessibility', () => {
     beforeEach(() => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
     });
 
@@ -616,7 +675,9 @@ describe('BiometricLoginButton Component', () => {
         expect(buttonText).toBeTruthy();
         // Check the parent TouchableOpacity has correct accessibility label
         const button = buttonText.parent;
-        expect(button.props.accessibilityLabel).toBe('Sign in with Fingerprint');
+        expect(button.props.accessibilityLabel).toBe(
+          'Sign in with Fingerprint'
+        );
       });
     });
 
@@ -628,7 +689,9 @@ describe('BiometricLoginButton Component', () => {
         expect(buttonText).toBeTruthy();
         // Check the parent TouchableOpacity has accessibility hint
         const button = buttonText.parent;
-        expect(button.props.accessibilityHint).toBe('Use biometric authentication to sign in quickly');
+        expect(button.props.accessibilityHint).toBe(
+          'Use biometric authentication to sign in quickly'
+        );
       });
     });
 
@@ -646,7 +709,9 @@ describe('BiometricLoginButton Component', () => {
   describe('Component Lifecycle', () => {
     it('should clean up properly on unmount', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
 
       const { unmount } = render(<BiometricLoginButton />);
@@ -664,8 +729,12 @@ describe('BiometricLoginButton Component', () => {
         resolveAvailable = resolve;
       });
 
-      jest.spyOn(BiometricService, 'isAvailable').mockReturnValue(availablePromise);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isAvailable')
+        .mockReturnValue(availablePromise);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
 
       const { unmount } = render(<BiometricLoginButton />);
 
@@ -683,7 +752,9 @@ describe('BiometricLoginButton Component', () => {
   describe('Visual States', () => {
     beforeEach(() => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
       jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1]);
     });
 
@@ -730,8 +801,12 @@ describe('BiometricLoginButton Component', () => {
   describe('Integration with Multiple Biometric Types', () => {
     it('should handle all three biometric types together', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1, 2, 3]);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'getSupportedTypes')
+        .mockResolvedValue([1, 2, 3]);
 
       const { getByText } = render(<BiometricLoginButton />);
 
@@ -742,8 +817,12 @@ describe('BiometricLoginButton Component', () => {
 
     it('should handle Fingerprint and Iris combination', async () => {
       jest.spyOn(BiometricService, 'isAvailable').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'isBiometricEnabled').mockResolvedValue(true);
-      jest.spyOn(BiometricService, 'getSupportedTypes').mockResolvedValue([1, 3]);
+      jest
+        .spyOn(BiometricService, 'isBiometricEnabled')
+        .mockResolvedValue(true);
+      jest
+        .spyOn(BiometricService, 'getSupportedTypes')
+        .mockResolvedValue([1, 3]);
 
       const { getByText } = render(<BiometricLoginButton />);
 
