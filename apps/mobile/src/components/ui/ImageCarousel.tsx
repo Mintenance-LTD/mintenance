@@ -143,6 +143,9 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = memo(
           renderItem={renderImage}
           keyExtractor={(_, i) => `carousel-${i}`}
           horizontal
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          windowSize={3}
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           onScroll={onScroll}

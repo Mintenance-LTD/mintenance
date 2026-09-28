@@ -20,6 +20,11 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
 // ============================================================================
+// import after mocks
+// ============================================================================
+import { HomeownerDashboard } from '../HomeownerDashboard';
+
+// ============================================================================
 // react-query mock — keyed query state, controllable per test
 // ============================================================================
 
@@ -145,8 +150,8 @@ jest.mock('../../../components/animations/primitives', () => ({
 
 // Ionicons -> Text node with testID icon-<name>
 jest.mock('@expo/vector-icons', () => {
-  const React2 = require('react');
-  const { Text } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
   return {
     Ionicons: ({ name }: { name: string }) =>
       React2.createElement(Text, { testID: `icon-${name}` }, name),
@@ -185,8 +190,8 @@ jest.mock('../../../services/NotificationService', () => ({
 // ----------------------------------------------------------------------------
 
 jest.mock('../RecentJobs', () => {
-  const React2 = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text, TouchableOpacity } = jest.requireActual('react-native');
   return {
     RecentJobs: (props: {
       isLoading: boolean;
@@ -222,12 +227,12 @@ jest.mock('../RecentJobs', () => {
 });
 
 jest.mock('../BidsReceived', () => {
-  const React2 = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text, TouchableOpacity } = jest.requireActual('react-native');
   return {
     BidsReceived: (props: {
       isLoading: boolean;
-      bids: Array<{ id: string }>;
+      bids: { id: string }[];
       onViewAllPress: () => void;
       onReviewPress: (bidId: string) => void;
     }) =>
@@ -266,8 +271,8 @@ jest.mock('../BidsReceived', () => {
 });
 
 jest.mock('../components/DashboardProfileMenu', () => {
-  const React2 = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text, TouchableOpacity } = jest.requireActual('react-native');
   return {
     DashboardProfileMenu: (props: {
       visible: boolean;
@@ -297,8 +302,8 @@ jest.mock('../components/DashboardProfileMenu', () => {
 });
 
 jest.mock('../components/DashboardAppointmentsSection', () => {
-  const React2 = require('react');
-  const { Text } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
   return {
     DashboardAppointmentsSection: (props: { appointments?: unknown[] }) =>
       React2.createElement(
@@ -310,40 +315,40 @@ jest.mock('../components/DashboardAppointmentsSection', () => {
 });
 
 jest.mock('../components/ReferralCard', () => {
-  const React2 = require('react');
-  const { Text } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
   return {
     ReferralCard: () =>
       React2.createElement(Text, { testID: 'referral-card' }, 'referral'),
   };
 });
 jest.mock('../components/LandlordPayerJobsCard', () => {
-  const React2 = require('react');
-  const { Text } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
   return {
     LandlordPayerJobsCard: () =>
       React2.createElement(Text, { testID: 'landlord-card' }, 'landlord'),
   };
 });
 jest.mock('../components/HomeHealthCtaCard', () => {
-  const React2 = require('react');
-  const { Text } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
   return {
     HomeHealthCtaCard: () =>
       React2.createElement(Text, { testID: 'homehealth-card' }, 'homehealth'),
   };
 });
 jest.mock('../components/FinishSetupCard', () => {
-  const React2 = require('react');
-  const { Text } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
   return {
     FinishSetupCard: () =>
       React2.createElement(Text, { testID: 'finishsetup-card' }, 'finishsetup'),
   };
 });
 jest.mock('../../../components/onboarding/PushPermissionRecoveryBanner', () => {
-  const React2 = require('react');
-  const { Text } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
   return {
     PushPermissionRecoveryBanner: () =>
       React2.createElement(Text, { testID: 'push-banner' }, 'push-banner'),
@@ -360,11 +365,6 @@ jest.mock('../homeownerDashboardStyles', () => ({
     }
   ),
 }));
-
-// ============================================================================
-// import after mocks
-// ============================================================================
-import { HomeownerDashboard } from '../HomeownerDashboard';
 
 // helpers ---------------------------------------------------------------------
 
@@ -712,10 +712,14 @@ describe('HomeownerDashboard', () => {
     });
 
     it('renders the static self-hiding sub-cards + banner', () => {
-      const { getByTestId } = render(<HomeownerDashboard />);
+      const { getByTestId, queryByTestId, getByText } = render(
+        <HomeownerDashboard />
+      );
       expect(getByTestId('finishsetup-card')).toBeTruthy();
       expect(getByTestId('push-banner')).toBeTruthy();
       expect(getByTestId('landlord-card')).toBeTruthy();
+      expect(queryByTestId('homehealth-card')).toBeNull();
+      fireEvent.press(getByText('Home care plans & referrals'));
       expect(getByTestId('homehealth-card')).toBeTruthy();
       expect(getByTestId('referral-card')).toBeTruthy();
     });

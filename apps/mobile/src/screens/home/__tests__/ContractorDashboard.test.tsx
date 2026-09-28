@@ -18,6 +18,8 @@
 import React from 'react';
 import { render, fireEvent, screen } from '@testing-library/react-native';
 
+import { ContractorDashboard } from '../ContractorDashboard';
+
 // ---- Navigation -----------------------------------------------------------
 const mockNavigate = jest.fn();
 const mockParentNavigate = jest.fn();
@@ -61,7 +63,7 @@ const mockQueryEnv: {
     isFetching: boolean;
   };
   unreadCount: number;
-  capturedQueryFns: Array<() => unknown>;
+  capturedQueryFns: (() => unknown)[];
 } = {
   statsState: {
     data: null,
@@ -98,7 +100,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 20, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('../../../components/animations/primitives', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     FadeIn: ({ children }: { children: React.ReactNode }) =>
       React.createElement('View', { testID: 'fade-in' }, children),
@@ -107,7 +109,7 @@ jest.mock('../../../components/animations/primitives', () => {
   };
 });
 jest.mock('../../../components/LoadingSpinner', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     FullScreenLoading: ({ message }: { message: string }) =>
       React.createElement('Text', { testID: 'full-screen-loading' }, message),
@@ -129,7 +131,7 @@ jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 // Each stub renders a TouchableOpacity per callback so fireEvent.press can
 // invoke the screen-owned handler. We pass representative args where needed.
 jest.mock('../QuickActions', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     QuickActions: (props: Record<string, () => void>) =>
       React.createElement(
@@ -149,7 +151,7 @@ jest.mock('../QuickActions', () => {
 });
 
 jest.mock('../components/TodayRow', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     TodayRow: ({ stats }: { stats: unknown }) =>
       React.createElement(
@@ -161,10 +163,10 @@ jest.mock('../components/TodayRow', () => {
 });
 
 jest.mock('../ScheduleSection', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     ScheduleSection: (props: {
-      upcomingJobs: Array<{ id: string }>;
+      upcomingJobs: { id: string }[];
       onViewAllPress: () => void;
       onJobDetailsPress: (id: string) => void;
       onFindJobsPress: () => void;
@@ -195,14 +197,14 @@ jest.mock('../ScheduleSection', () => {
 });
 
 jest.mock('../components/FinishSetupCard', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     FinishSetupCard: () =>
       React.createElement('View', { testID: 'finish-setup' }),
   };
 });
 jest.mock('../components/ContractorBadgesCard', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     ContractorBadgesCard: () =>
       React.createElement('View', { testID: 'badges' }),
@@ -210,7 +212,7 @@ jest.mock('../components/ContractorBadgesCard', () => {
 });
 
 jest.mock('../components/NextUpCard', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     NextUpCard: (props: {
       next: { jobId: string } | null;
@@ -238,7 +240,7 @@ jest.mock('../components/NextUpCard', () => {
 });
 
 jest.mock('../components/HotLeadsRail', () => {
-  const React = require('react');
+  const React = jest.requireActual('react');
   return {
     HotLeadsRail: (props: {
       onOpenJob: (id: string) => void;
@@ -261,8 +263,6 @@ jest.mock('../components/HotLeadsRail', () => {
 
 // The icon-image require
 jest.mock('../../../../assets/icon.png', () => 1, { virtual: true });
-
-import { ContractorDashboard } from '../ContractorDashboard';
 
 const fullStats = {
   nextAppointment: {
@@ -330,7 +330,6 @@ describe('ContractorDashboard — time-of-day greeting branches', () => {
     // @ts-expect-error override global Date for deterministic getHours()
     global.Date = class extends RealDate {
       constructor(...args: unknown[]) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         super(...(args as []));
       }
       getHours() {
@@ -521,7 +520,7 @@ describe('ContractorDashboard — NextUpCard / HotLeadsRail handlers', () => {
 });
 
 describe('ContractorDashboard — QuickActions handlers', () => {
-  const cases: Array<[string, unknown[]]> = [
+  const cases: [string, unknown[]][] = [
     ['qa-onBrowseJobsPress', ['AddTab']],
     ['qa-onInboxPress', ['MessagingTab', { screen: 'MessagesList' }]],
     ['qa-onQuotesPress', ['BusinessTab', { screen: 'QuoteBuilder' }]],
@@ -536,6 +535,8 @@ describe('ContractorDashboard — QuickActions handlers', () => {
 
   it.each(cases)('%s navigates correctly', (testID, expected) => {
     render(<ContractorDashboard />);
+    expect(screen.queryByTestId(testID)).toBeNull();
+    fireEvent.press(screen.getByText('Business tools'));
     fireEvent.press(screen.getByTestId(testID));
     expect(mockNavigate).toHaveBeenCalledWith(
       ...(expected as [string, object?])

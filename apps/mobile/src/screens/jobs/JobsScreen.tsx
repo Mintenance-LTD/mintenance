@@ -79,6 +79,7 @@ const JobsScreen: React.FC = () => {
     isError,
     error: queryError,
     isFetching,
+    isPending,
     refetch,
   } = useQuery<Job[]>({
     // 2026-05-20 audit fix: align the read-side cache key with what
@@ -390,18 +391,25 @@ const JobsScreen: React.FC = () => {
       >
         <FlatList
           data={filteredJobs}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
           renderItem={renderItem}
           keyExtractor={(it) => it.id}
           contentContainerStyle={styles.listContainer}
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={
-            <JobsEmptyState
-              isContractor={isContractor}
-              selectedFilter={selectedFilter}
-              onClearSearch={() => setSearchQuery('')}
-              onSortModeChange={setSortMode}
-              onAddJob={handleAddJob}
-            />
+            isPending ? (
+              <Text style={{ padding: 24 }}>Loading your jobs…</Text>
+            ) : (
+              <JobsEmptyState
+                isContractor={isContractor}
+                selectedFilter={selectedFilter}
+                onClearSearch={() => setSearchQuery('')}
+                onSortModeChange={setSortMode}
+                onAddJob={handleAddJob}
+              />
+            )
           }
           refreshControl={
             <RefreshControl

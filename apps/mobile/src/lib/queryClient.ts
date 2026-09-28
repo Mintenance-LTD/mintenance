@@ -73,7 +73,9 @@ export const queryClient = new QueryClient({
 
       // Retry configuration
       retry: (failureCount, error: unknown) => {
-        const status = (error as { status?: number })?.status;
+        const status =
+          (error as { statusCode?: number })?.statusCode ??
+          (error as { status?: number })?.status;
         const name = (error as { name?: string })?.name;
         const message = (error as { message?: string })?.message;
 
@@ -112,7 +114,9 @@ export const queryClient = new QueryClient({
     mutations: {
       // Retry failed mutations once, but not client errors
       retry: (failureCount, error: unknown) => {
-        const status = (error as { status?: number })?.status;
+        const status =
+          (error as { statusCode?: number })?.statusCode ??
+          (error as { status?: number })?.status;
         const name = (error as { name?: string })?.name;
 
         if (typeof status === 'number' && status >= 400 && status < 500)
