@@ -27,16 +27,19 @@ function isNonceMode(): boolean {
 
 function buildScriptSrc(
   nonce: string | undefined,
-  extraHosts: string[]
+  extraHosts: string[],
+  isDevelopment = false
 ): string {
   const baseHosts = extraHosts.join(' ');
+  // Next's development source maps execute through eval; production never needs it.
+  const developmentSourceMaps = isDevelopment ? " 'unsafe-eval'" : '';
   if (isNonceMode() && nonce) {
     // Modern browsers honor the nonce + strict-dynamic, ignoring
     // 'unsafe-inline'. Legacy browsers fall back to 'unsafe-inline' so
     // the site continues to work during a gradual rollout.
-    return `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' ${baseHosts}`;
+    return `script-src 'self'${developmentSourceMaps} 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' ${baseHosts}`;
   }
-  return `script-src 'self' 'unsafe-inline' ${baseHosts}`;
+  return `script-src 'self'${developmentSourceMaps} 'unsafe-inline' ${baseHosts}`;
 }
 
 // Sentry JS SDK POSTs error envelopes to
@@ -96,11 +99,15 @@ export function buildAuthenticatedCSP(
   const connectSrc = isDevelopment ? CONNECT_SRC_DEV : CONNECT_SRC_PROD;
   return [
     "default-src 'self'",
-    buildScriptSrc(nonce, [
-      'https://js.stripe.com',
-      'https://maps.googleapis.com',
-      'https://vercel.live',
-    ]),
+    buildScriptSrc(
+      nonce,
+      [
+        'https://js.stripe.com',
+        'https://maps.googleapis.com',
+        'https://vercel.live',
+      ],
+      isDevelopment
+    ),
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
     "font-src 'self' data: https://fonts.gstatic.com",
@@ -125,10 +132,11 @@ export function buildStrictReportOnlyCSP(
   const connectSrc = isDevelopment ? CONNECT_SRC_DEV : CONNECT_SRC_PROD;
   return [
     "default-src 'self'",
-    buildScriptSrc(nonce, [
-      'https://js.stripe.com',
-      'https://maps.googleapis.com',
-    ]),
+    buildScriptSrc(
+      nonce,
+      ['https://js.stripe.com', 'https://maps.googleapis.com'],
+      isDevelopment
+    ),
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
     "font-src 'self' data: https://fonts.gstatic.com",

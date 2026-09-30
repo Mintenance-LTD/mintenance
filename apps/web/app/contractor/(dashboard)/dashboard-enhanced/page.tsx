@@ -2,7 +2,6 @@ import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { formatMoney } from '@/lib/utils/currency';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { OnboardingService } from '@/lib/services/OnboardingService';
 import { ContractorDashboardProfessional } from './components/ContractorDashboardProfessional';
@@ -30,8 +29,6 @@ export default async function ContractorDashboard2025() {
     jobsResponse,
     availableJobsResponse,
     bidsResponse,
-    quotesResponse,
-    paymentsResponse,
     trialStatus,
     escrowsResponse,
     notificationsResponse,
@@ -55,6 +52,7 @@ export default async function ContractorDashboard2025() {
         budget_max,
         created_at,
         updated_at,
+        archived_at,
         category,
         urgency,
         homeowner:profiles!homeowner_id (
@@ -88,6 +86,7 @@ export default async function ContractorDashboard2025() {
       `
       )
       .is('contractor_id', null)
+      .is('archived_at', null)
       .in('status', ['open', 'posted'])
       .order('created_at', { ascending: false })
       .limit(10),
@@ -96,16 +95,6 @@ export default async function ContractorDashboard2025() {
       .select('id, status, amount, created_at, job_id')
       .eq('contractor_id', user.id)
       .limit(50),
-    serverSupabase
-      .from('contractor_quotes')
-      .select('id, status, total_amount, created_at, updated_at')
-      .eq('contractor_id', user.id)
-      .limit(50),
-    serverSupabase
-      .from('payments')
-      .select('amount, status, created_at')
-      .eq('payee_id', user.id)
-      .limit(100),
     TrialService.getTrialStatus(user.id),
     serverSupabase
       .from('escrow_transactions')
@@ -130,14 +119,13 @@ export default async function ContractorDashboard2025() {
   const jobs = jobsResponse.data || [];
   const availableJobs = availableJobsResponse.data || [];
   const bids = bidsResponse.data || [];
-  const quotes = quotesResponse.data || [];
-  const payments = paymentsResponse.data || [];
   const escrows = escrowsResponse.data || [];
   const notifications = notificationsResponse.data || [];
 
   const completedJobs = jobs.filter((j) => j.status === 'completed');
   const activeJobs = jobs.filter(
-    (j) => j.status === 'in_progress' || j.status === 'assigned'
+    (j) =>
+      !j.archived_at && (j.status === 'in_progress' || j.status === 'assigned')
   );
   const pendingBids = bids.filter((b) => b.status === 'pending');
 
@@ -165,8 +153,7 @@ export default async function ContractorDashboard2025() {
   const hasPaymentSetup = !!contractor?.stripe_connect_account_id;
 
   // ✅ FIXED: Progress trend data from real monthly aggregations
-  const now = new Date();
-  const progressTrendData = monthlyRevenue.map((monthData, index) => {
+  const progressTrendData = monthlyRevenue.map((monthData) => {
     // Count jobs created in this month
     const monthStart = new Date(
       monthData.year,

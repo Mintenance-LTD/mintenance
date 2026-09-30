@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Job } from '@mintenance/types';
 import { ImageCarousel } from '../../components/ui/ImageCarousel';
 import { me } from '../../design-system/mint-editorial';
 import {
@@ -135,7 +134,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       </TouchableOpacity>
 
       {/* Status badge -- homeowner only */}
-      {!isContractor && statusStyle && (
+      {statusStyle && (
         <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
           <Ionicons
             name={statusStyle.icon}
@@ -143,7 +142,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             color={statusStyle.text}
           />
           <Text style={[styles.statusBadgeText, { color: statusStyle.text }]}>
-            {statusStyle.label}
+            {item.archived_at ? 'Archived' : statusStyle.label}
           </Text>
         </View>
       )}

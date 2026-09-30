@@ -107,6 +107,14 @@ describe('isPublicRoute', () => {
 });
 
 describe('CSP builders', () => {
+  it('allows development source maps without allowing eval in production', () => {
+    expect(buildAuthenticatedCSP(true)).toContain("'unsafe-eval'");
+    expect(buildStrictReportOnlyCSP(true)).toContain("'unsafe-eval'");
+    expect(buildAuthenticatedCSP(false)).not.toContain("'unsafe-eval'");
+    expect(buildStrictReportOnlyCSP(false)).not.toContain("'unsafe-eval'");
+    expect(buildPublicCSP()).not.toContain("'unsafe-eval'");
+  });
+
   it('public CSP contains required Stripe + Maps origins', () => {
     const csp = buildPublicCSP();
     expect(csp).toContain("default-src 'self'");

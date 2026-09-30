@@ -10,6 +10,7 @@ export interface Job {
   /** Server-managed landlord/agent payer for tenancy jobs. */
   payer_user_id?: string | null;
   contractor_id?: string; // Database field (snake_case)
+  archived_at?: string | null;
   status:
     | 'draft'
     | 'posted'
