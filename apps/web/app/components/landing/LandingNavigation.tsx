@@ -27,11 +27,12 @@ export function LandingNavigation() {
           if (targetElement) {
             const headerOffset = 80; // Account for fixed header
             const elementPosition = targetElement.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+            const offsetPosition =
+              elementPosition + window.pageYOffset - headerOffset;
 
             window.scrollTo({
               top: offsetPosition,
-              behavior: 'smooth'
+              behavior: 'smooth',
             });
           }
         }
@@ -42,23 +43,26 @@ export function LandingNavigation() {
     const observerOptions = {
       root: null,
       rootMargin: '-80px 0px -50% 0px', // Account for fixed header
-      threshold: 0.3
+      threshold: 0.3,
     };
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
           setActiveSection(entry.target.id);
         }
       });
     };
 
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    const observer = new IntersectionObserver(
+      observerCallback,
+      observerOptions
+    );
 
     // Observe all sections - delay to ensure DOM is ready
     const observeSections = () => {
       const sections = ['how-it-works', 'services', 'features'];
-      sections.forEach(id => {
+      sections.forEach((id) => {
         const element = document.getElementById(id);
         if (element) {
           observer.observe(element);
@@ -90,77 +94,75 @@ export function LandingNavigation() {
     <>
       {/* Skip to main content link for keyboard navigation */}
       <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+        href='#main-content'
+        className='sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
       >
         Skip to main content
       </a>
 
       <nav
-        id="navigation"
-        className="block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200"
-        role="navigation"
-        aria-label="Main navigation"
+        id='navigation'
+        className='block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200'
+        role='navigation'
+        aria-label='Main navigation'
       >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo - links to landing page */}
-          <Link
-            href="/"
-            className="flex items-center gap-3 hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-lg"
-            aria-label="Mintenance – go to home"
-          >
-            <Image
-              src="/assets/icon.png"
-              alt=""
-              width={40}
-              height={40}
-              className="w-10 h-10 flex-shrink-0"
-              priority
-            />
-            <span className="text-xl font-bold text-primary">
-              Mintenance
-            </span>
-          </Link>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex justify-between items-center h-16'>
+            {/* Logo - links to landing page */}
+            <Link
+              href='/'
+              className='flex items-center gap-3 hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-lg'
+              aria-label='Mintenance – go to home'
+            >
+              <Image
+                src='/assets/icon.png'
+                alt=''
+                width={40}
+                height={40}
+                className='w-10 h-10 flex-shrink-0'
+                priority
+              />
+              <span className='text-xl font-bold text-primary'>Mintenance</span>
+            </Link>
 
-          {/* Navigation Links */}
-          <div className="flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.href}
-                className={cn(
-                  "transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded px-1",
-                  activeSection === link.id
-                    ? "text-secondary font-semibold"
-                    : "text-gray-700 hover:text-secondary"
-                )}
-                aria-current={activeSection === link.id ? 'page' : undefined}
-                suppressHydrationWarning
+            {/* Navigation Links */}
+            <div className='flex items-center space-x-8'>
+              {navLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  className={cn(
+                    'transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded px-1',
+                    activeSection === link.id
+                      ? 'text-secondary font-semibold'
+                      : 'text-gray-700 hover:text-secondary'
+                  )}
+                  aria-current={activeSection === link.id ? 'page' : undefined}
+                  suppressHydrationWarning
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+
+            {/* Auth Buttons */}
+            <div className='flex items-center space-x-4'>
+              <Link
+                href='/login'
+                className='text-primary hover:text-secondary font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded px-2 py-1'
               >
-                {link.label}
-              </a>
-            ))}
-          </div>
-
-          {/* Auth Buttons */}
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/login"
-              className="text-primary hover:text-secondary font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded px-2 py-1"
-            >
-              Log In
-            </Link>
-            <Link
-              href="/register"
-              className="bg-secondary text-white px-6 py-2 rounded-lg font-medium hover:bg-secondary-dark transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-            >
-              Get Started
-            </Link>
+                Log In
+              </Link>
+              <Link
+                href='/register'
+                className='bg-teal-700 text-white px-6 py-2 rounded-lg font-medium hover:bg-teal-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
     </>
   );
 }

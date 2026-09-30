@@ -296,6 +296,7 @@ export function Footer2025() {
                         setEmailError('');
                       }}
                       placeholder='Your email'
+                      className='placeholder:text-white/80'
                       required
                       disabled={isSubmitting}
                       aria-invalid={!!emailError}

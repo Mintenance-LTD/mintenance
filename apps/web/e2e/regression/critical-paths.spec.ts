@@ -77,11 +77,9 @@ test.describe('Regression: Job Creation Flow', () => {
   test('homeowner can navigate to job creation page', async ({ page }) => {
     await auth(page, TEST_USERS.homeowner);
     await navigateAuthenticated(page, '/jobs/create');
-    await expect(
-      page
-        .locator('[data-testid="job-create-form"]')
-        .or(page.getByText(/What do you need done/i))
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('job-create-form')).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('homeowner can fill and submit job form', async ({ page }) => {
