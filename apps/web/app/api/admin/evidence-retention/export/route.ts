@@ -24,7 +24,7 @@ export const POST = withApiHandler(
   {
     roles: ['admin'],
     requireMfaVerifiedWithinMinutes: 15,
-    rateLimit: { maxRequests: 5 },
+    rateLimit: { maxRequests: 30 },
   },
   async (request, { user }) => {
     await requireAdminFromDatabase(user.id);
