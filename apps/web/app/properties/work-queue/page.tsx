@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FollowupForm } from './FollowupForm';
 import { PortfolioReport } from './PortfolioReport';
+import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 
 interface Item {
   id: string;
@@ -52,103 +53,124 @@ export default function PropertyWorkQueuePage() {
     return () => controller.abort();
   }, [offset, attempt]);
   return (
-    <main className='mx-auto max-w-5xl space-y-6 p-6'>
-      <Link href='/properties' className='underline'>
-        Back to properties
-      </Link>
-      <h1 className='text-3xl font-semibold'>Maintenance action queue</h1>
-      <details>
-        <summary>Portfolio reporting and export</summary>
-        <PortfolioReport />
-      </details>
-      <p>
-        Open work across your properties, ordered by urgency and date. Upcoming
-        maintenance and certificate renewals cover the next 30 days.
-      </p>
-      {error ? (
-        <div role='alert'>
-          {error}{' '}
-          <button
-            onClick={() => setAttempt((value) => value + 1)}
-            className='underline'
-          >
-            Retry
-          </button>
-        </div>
-      ) : !data ? (
-        <p role='status'>Loading your queue…</p>
-      ) : (
-        <>
-          <p>
-            {data.total} actions · {data.overdue} priority actions
-          </p>
-          {data.items.length === 0 ? (
-            <p>No actions on this page.</p>
-          ) : (
-            <ul className='divide-y rounded-xl border bg-white'>
-              {data.items.map((item) => (
-                <li key={`${item.kind}:${item.id}`} className='p-4'>
-                  <p className='text-sm text-gray-600'>
-                    {item.property_name} · {item.kind}
-                  </p>
-                  <h2 className='font-semibold'>{item.title}</h2>
-                  <button
-                    className='underline'
-                    onClick={() =>
-                      setEditing(editing === item.id ? null : item.id)
-                    }
-                  >
-                    Manage follow-up
-                  </button>
-                  {editing === item.id && (
-                    <FollowupForm
-                      propertyId={item.property_id}
-                      kind={item.kind}
-                      sourceId={item.id}
-                      onSaved={() => setAttempt((value) => value + 1)}
-                    />
-                  )}
-                  <p>
-                    {item.next_action}
-                    {item.due_at
-                      ? ` · ${new Date(item.due_at).toLocaleDateString('en-GB')}`
-                      : ''}
-                  </p>
-                  <Link
-                    className='mt-2 inline-block underline'
-                    href={
-                      item.kind === 'job' && item.can_open_job
-                        ? `/jobs/${item.id}`
-                        : item.kind === 'report'
-                          ? '/landlord/reports'
-                          : `/properties/${item.property_id}`
-                    }
-                  >
-                    Review {item.kind}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <nav aria-label='Queue pages' className='flex items-center gap-4'>
+    <HomeownerPageWrapper className='me-legacy-fit'>
+      <main className='mx-auto max-w-6xl space-y-6 py-6'>
+        <Link href='/properties' className='text-sm font-medium text-teal-800'>
+          Back to properties
+        </Link>
+        <h1 className='text-3xl font-semibold'>Maintenance action queue</h1>
+        <details className='rounded-2xl border bg-white p-5'>
+          <summary className='cursor-pointer font-semibold'>
+            Portfolio reporting and export
+          </summary>
+          <PortfolioReport />
+        </details>
+        <p>
+          Open work across your properties, ordered by urgency and date.
+          Upcoming maintenance and certificate renewals cover the next 30 days.
+        </p>
+        {error ? (
+          <div role='alert'>
+            {error}{' '}
             <button
-              disabled={offset === 0}
-              onClick={() => setOffset((value) => Math.max(0, value - 25))}
-              className='rounded border px-4 py-2 disabled:opacity-40'
+              onClick={() => setAttempt((value) => value + 1)}
+              className='underline'
             >
-              Previous
+              Retry
             </button>
-            <span>Page {Math.floor(offset / 25) + 1}</span>
-            <button
-              disabled={!data.hasMore}
-              onClick={() => setOffset((value) => value + 25)}
-              className='rounded border px-4 py-2 disabled:opacity-40'
-            >
-              Next
-            </button>
-          </nav>
-        </>
-      )}
-    </main>
+          </div>
+        ) : !data ? (
+          <p role='status'>Loading your queue…</p>
+        ) : (
+          <>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+              <div className='rounded-2xl border bg-white p-5'>
+                <p className='text-sm text-slate-600'>Open actions</p>
+                <p className='mt-2 text-3xl font-semibold'>{data.total}</p>
+              </div>
+              <div className='rounded-2xl border bg-teal-50 p-5'>
+                <p className='text-sm text-teal-900'>Priority actions</p>
+                <p className='mt-2 text-3xl font-semibold text-teal-900'>
+                  {data.overdue}
+                </p>
+              </div>
+            </div>
+            {data.items.length === 0 ? (
+              <div className='rounded-2xl border bg-white p-10 text-center'>
+                <h2 className='text-xl font-semibold'>
+                  Nothing waiting on this page
+                </h2>
+                <p className='mt-2 text-slate-600'>
+                  New reports, maintenance and renewals will appear here when
+                  they need attention.
+                </p>
+              </div>
+            ) : (
+              <ul className='divide-y rounded-xl border bg-white'>
+                {data.items.map((item) => (
+                  <li key={`${item.kind}:${item.id}`} className='p-6 space-y-3'>
+                    <p className='text-sm text-gray-600'>
+                      {item.property_name} · {item.kind}
+                    </p>
+                    <h2 className='text-lg font-semibold'>{item.title}</h2>
+                    <button
+                      className='rounded-lg border px-3 py-2 text-sm font-medium hover:bg-slate-50'
+                      onClick={() =>
+                        setEditing(editing === item.id ? null : item.id)
+                      }
+                    >
+                      Manage follow-up
+                    </button>
+                    {editing === item.id && (
+                      <FollowupForm
+                        propertyId={item.property_id}
+                        kind={item.kind}
+                        sourceId={item.id}
+                        onSaved={() => setAttempt((value) => value + 1)}
+                      />
+                    )}
+                    <p>
+                      {item.next_action}
+                      {item.due_at
+                        ? ` · ${new Date(item.due_at).toLocaleDateString('en-GB')}`
+                        : ''}
+                    </p>
+                    <Link
+                      className='mt-2 inline-flex rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white'
+                      href={
+                        item.kind === 'job' && item.can_open_job
+                          ? `/jobs/${item.id}`
+                          : item.kind === 'report'
+                            ? '/landlord/reports'
+                            : `/properties/${item.property_id}`
+                      }
+                    >
+                      Review {item.kind}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <nav aria-label='Queue pages' className='flex items-center gap-4'>
+              <button
+                disabled={offset === 0}
+                onClick={() => setOffset((value) => Math.max(0, value - 25))}
+                className='rounded border px-4 py-2 disabled:opacity-40'
+              >
+                Previous
+              </button>
+              <span>Page {Math.floor(offset / 25) + 1}</span>
+              <button
+                disabled={!data.hasMore}
+                onClick={() => setOffset((value) => value + 25)}
+                className='rounded border px-4 py-2 disabled:opacity-40'
+              >
+                Next
+              </button>
+            </nav>
+          </>
+        )}
+      </main>
+    </HomeownerPageWrapper>
   );
 }

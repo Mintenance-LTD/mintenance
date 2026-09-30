@@ -21,6 +21,7 @@ interface JobApiResponse {
   budget_min?: number | null;
   budget_max?: number | null;
   status: string;
+  archived_at?: string | null;
   photos?: string[];
   created_at: string;
   scheduled_start_date?: string | null;
@@ -105,6 +106,7 @@ function transformJob(job: JobApiResponse) {
     budget: budget ?? budgetMax ?? budgetMin ?? 0,
     total_amount: totalAmount,
     status: job.status,
+    archived_at: job.archived_at ?? null,
     photos: getJobPhotos(job),
     created_at: job.created_at,
     scheduled_start_date: job.scheduled_start_date ?? null,
@@ -138,6 +140,7 @@ const JOB_SELECT_FIELDS = `
   priority,
   urgency,
   status,
+  archived_at,
   photos,
   created_at,
   scheduled_start_date,
@@ -237,7 +240,9 @@ export const GET = withApiHandler(
         .eq('contractor_id', user.id);
 
       if (status === 'active') {
-        query = query.in('status', ['in_progress', 'assigned', 'pending']);
+        query = query
+          .in('status', ['in_progress', 'assigned'])
+          .is('archived_at', null);
       } else if (status === 'completed') {
         query = query.eq('status', 'completed');
       }

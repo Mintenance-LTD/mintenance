@@ -5,7 +5,7 @@
  * price-tag markers, and budget-first preview card.
  */
 
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import {
   formatCurrency,
   formatCurrencyRange,
@@ -70,7 +70,7 @@ const emptyStateStyles = StyleSheet.create({
   },
   card: {
     backgroundColor: me.surface,
-    borderRadius: 16,
+    borderRadius: 24,
     paddingHorizontal: 18,
     paddingVertical: 16,
     maxWidth: 420,
@@ -104,6 +104,7 @@ const emptyStateStyles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   ctaButton: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -113,6 +114,7 @@ const emptyStateStyles = StyleSheet.create({
     borderRadius: 10,
   },
   ctaButtonSecondary: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -519,6 +521,19 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const viewModel = useExploreMapViewModel();
+  const [emptyCardHeight, setEmptyCardHeight] = useState(224);
+  const showEmptyCard =
+    !viewModel.loading &&
+    !viewModel.verificationRequired &&
+    !viewModel.errorMessage &&
+    viewModel.jobs.length === 0;
+  const controlsBottom =
+    insets.bottom +
+    (viewModel.jobs.length > 0
+      ? 260
+      : showEmptyCard
+        ? emptyCardHeight + 40
+        : 24);
   const navigation =
     useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const mapRef = useRef<MapView>(null);
@@ -666,6 +681,8 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
             onPress={() => viewModel.handleJobSelect(null)}
             showsUserLocation={viewModel.locationGranted}
             showsMyLocationButton={false}
+            userInterfaceStyle='light'
+            showsPointsOfInterests={false}
           >
             {/* Coverage overlay — the contractor's active service
                 areas (matches the notify-audience gating radius:
@@ -1008,10 +1025,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
         style={[
           styles.jobCountPill,
           {
-            bottom:
-              viewModel.jobs.length > 0
-                ? insets.bottom + 260
-                : insets.bottom + 16,
+            bottom: controlsBottom,
           },
         ]}
       >
@@ -1025,10 +1039,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
         style={[
           styles.locationButton,
           {
-            bottom:
-              viewModel.jobs.length > 0
-                ? insets.bottom + 260
-                : insets.bottom + 16,
+            bottom: controlsBottom,
           },
         ]}
         accessibilityRole='button'
@@ -1051,6 +1062,10 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
         !viewModel.errorMessage &&
         viewModel.jobs.length === 0 && (
           <View
+            testID='map-empty-card'
+            onLayout={(event) =>
+              setEmptyCardHeight(event.nativeEvent.layout.height)
+            }
             style={[emptyStateStyles.wrapper, { bottom: insets.bottom + 24 }]}
             pointerEvents='box-none'
           >
@@ -1069,8 +1084,8 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                   hardcoded, so the copy can't drift from the query. */}
               <Text style={emptyStateStyles.body}>
                 {viewModel.selectedCategory
-                  ? `Mintenance searches within ~${DEFAULT_SEARCH_RADIUS_LABEL} of where the map is centred. Try removing the category filter or panning the map to a different area.`
-                  : `Mintenance searches within ~${DEFAULT_SEARCH_RADIUS_LABEL} of where the map is centred. Try panning the map to a different location, then tap “Search again”.`}
+                  ? `No matches within ~${DEFAULT_SEARCH_RADIUS_LABEL}. Clear your trade filter or move the map to explore another area.`
+                  : `No matches within ~${DEFAULT_SEARCH_RADIUS_LABEL}. Move the map, then search again to explore another area.`}
               </Text>
               <View style={emptyStateStyles.ctaRow}>
                 {viewModel.selectedCategory ? (

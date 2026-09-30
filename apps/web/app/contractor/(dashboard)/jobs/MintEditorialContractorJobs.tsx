@@ -59,7 +59,9 @@ const CATEGORIES = [
 
 function statusBadge(status: string) {
   const s = (status || '').toLowerCase();
-  if (s === 'in_progress' || s === 'assigned')
+  if (s === 'assigned')
+    return <span className='badge badge-info'>Assigned</span>;
+  if (s === 'in_progress')
     return <span className='badge badge-info'>In progress</span>;
   if (s === 'completed')
     return <span className='badge badge-ok'>Completed</span>;

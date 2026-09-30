@@ -324,7 +324,7 @@ describe('ExploreMapScreen — empty-state guidance card', () => {
         // 2026-07-20: the radius is stated in miles and derived from
         // DEFAULT_MATCH_RADIUS_KM, so this asserts the same derivation rather
         // than a hardcoded number that could drift from the query.
-        `Mintenance searches within ~${formatMilesFromKm(DEFAULT_MATCH_RADIUS_KM)} of where the map is centred. Try removing the category filter or panning the map to a different area.`
+        `No matches within ~${formatMilesFromKm(DEFAULT_MATCH_RADIUS_KM)}. Clear your trade filter or move the map to explore another area.`
       )
     ).toBeTruthy();
     fireEvent.press(getByLabelText('Clear category filter'));
@@ -356,6 +356,23 @@ describe('ExploreMapScreen — search-this-area pill', () => {
     mockVmState = makeVm({ hasPanned: true, jobs: [] });
     const { getByLabelText } = render(<ExploreMapScreen />);
     expect(getByLabelText('Search this area')).toBeTruthy();
+  });
+
+  it('keeps map controls above a tall empty-results card', () => {
+    mockVmState = makeVm({ hasPanned: true, jobs: [] });
+    const { getByTestId, getByLabelText } = render(<ExploreMapScreen />);
+    fireEvent(getByTestId('map-empty-card'), 'layout', {
+      nativeEvent: { layout: { height: 360, width: 320, x: 0, y: 0 } },
+    });
+    const cardBottom = Object.assign(
+      {},
+      ...getByTestId('map-empty-card').props.style
+    ).bottom;
+    const locationBottom = Object.assign(
+      {},
+      ...getByLabelText('Center on my location').props.style
+    ).bottom;
+    expect(locationBottom).toBeGreaterThan(cardBottom + 360);
   });
 
   it('hides the pill while loading', () => {
