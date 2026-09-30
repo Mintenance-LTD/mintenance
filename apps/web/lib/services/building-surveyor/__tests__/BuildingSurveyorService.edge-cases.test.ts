@@ -31,7 +31,8 @@ vi.mock('../config/BuildingSurveyorConfig', () => ({
     visionTimeoutMs: 9000,
   })),
 }));
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
@@ -54,9 +55,12 @@ vi.mock('@/lib/api/supabaseServer', () => ({
       range: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      then: vi.fn().mockImplementation((cb: (val: { data: never[], error: null }) => unknown) =>
-        Promise.resolve(cb({ data: [], error: null }))
-      ),
+      then: vi
+        .fn()
+        .mockImplementation(
+          (cb: (val: { data: never[]; error: null }) => unknown) =>
+            Promise.resolve(cb({ data: [], error: null }))
+        ),
     }),
     rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
@@ -81,7 +85,11 @@ vi.mock('../stages/extract-features', () => ({
   }),
 }));
 vi.mock('../stages/call-gpt-assessment', () => ({
-  callGptAssessment: vi.fn().mockResolvedValue('{"damageAssessment":{"damageType":"cosmetic","severity":"early","confidence":50,"location":"Unknown","description":"Test","detectedItems":[]},"safetyHazards":{"hazards":[],"hasCriticalHazards":false,"overallSafetyScore":100},"compliance":{"complianceIssues":[],"requiresProfessionalInspection":false,"complianceScore":100},"insuranceRisk":{"riskFactors":[],"riskScore":10,"premiumImpact":"low","mitigationSuggestions":[]},"urgency":{"urgency":"routine","recommendedActionTimeline":"No rush","reasoning":"Minor issue","priorityScore":20},"homeownerExplanation":{"whatIsIt":"Minor cosmetic issue","whyItHappened":"Normal wear","whatToDo":"Monitor"},"contractorAdvice":{"repairNeeded":[],"materials":[],"tools":[],"estimatedTime":"N/A","estimatedCost":{"min":0,"max":100,"recommended":50},"complexity":"low"}}'),
+  callGptAssessment: vi
+    .fn()
+    .mockResolvedValue(
+      '{"damageAssessment":{"damageType":"cosmetic","severity":"early","confidence":50,"location":"Unknown","description":"Test","detectedItems":[]},"safetyHazards":{"hazards":[],"hasCriticalHazards":false,"overallSafetyScore":100},"compliance":{"complianceIssues":[],"requiresProfessionalInspection":false,"complianceScore":100},"insuranceRisk":{"riskFactors":[],"riskScore":10,"premiumImpact":"low","mitigationSuggestions":[]},"urgency":{"urgency":"routine","recommendedActionTimeline":"No rush","reasoning":"Minor issue","priorityScore":20},"homeownerExplanation":{"whatIsIt":"Minor cosmetic issue","whyItHappened":"Normal wear","whatToDo":"Monitor"},"contractorAdvice":{"repairNeeded":[],"materials":[],"tools":[],"estimatedTime":"N/A","estimatedCost":{"min":0,"max":100,"recommended":50},"complexity":"low"}}'
+    ),
 }));
 vi.mock('../stages/post-process-assessment', () => ({
   postProcessAssessment: vi.fn().mockResolvedValue({
@@ -93,12 +101,41 @@ vi.mock('../stages/post-process-assessment', () => ({
       description: 'Test assessment',
       detectedItems: [],
     },
-    safetyHazards: { hazards: [], hasCriticalHazards: false, overallSafetyScore: 100 },
-    compliance: { complianceIssues: [], requiresProfessionalInspection: false, complianceScore: 100 },
-    insuranceRisk: { riskFactors: [], riskScore: 10, premiumImpact: 'low', mitigationSuggestions: [] },
-    urgency: { urgency: 'routine', recommendedActionTimeline: 'No rush', reasoning: 'Minor', priorityScore: 20 },
-    homeownerExplanation: { whatIsIt: 'Minor issue', whyItHappened: 'Normal wear', whatToDo: 'Monitor' },
-    contractorAdvice: { repairNeeded: [], materials: [], tools: [], estimatedTime: 'N/A', estimatedCost: { min: 0, max: 100, recommended: 50 }, complexity: 'low' },
+    safetyHazards: {
+      hazards: [],
+      hasCriticalHazards: false,
+      overallSafetyScore: 100,
+    },
+    compliance: {
+      complianceIssues: [],
+      requiresProfessionalInspection: false,
+      complianceScore: 100,
+    },
+    insuranceRisk: {
+      riskFactors: [],
+      riskScore: 10,
+      premiumImpact: 'low',
+      mitigationSuggestions: [],
+    },
+    urgency: {
+      urgency: 'routine',
+      recommendedActionTimeline: 'No rush',
+      reasoning: 'Minor',
+      priorityScore: 20,
+    },
+    homeownerExplanation: {
+      whatIsIt: 'Minor issue',
+      whyItHappened: 'Normal wear',
+      whatToDo: 'Monitor',
+    },
+    contractorAdvice: {
+      repairNeeded: [],
+      materials: [],
+      tools: [],
+      estimatedTime: 'N/A',
+      estimatedCost: { min: 0, max: 100, recommended: 50 },
+      complexity: 'low',
+    },
   }),
 }));
 vi.mock('../initialization/BuildingSurveyorInitializationService', () => ({
@@ -116,12 +153,41 @@ const mockAssessment = {
     description: 'Test assessment',
     detectedItems: [],
   },
-  safetyHazards: { hazards: [], hasCriticalHazards: false, overallSafetyScore: 100 },
-  compliance: { complianceIssues: [], requiresProfessionalInspection: false, complianceScore: 100 },
-  insuranceRisk: { riskFactors: [], riskScore: 10, premiumImpact: 'low', mitigationSuggestions: [] },
-  urgency: { urgency: 'routine', recommendedActionTimeline: 'No rush', reasoning: 'Minor', priorityScore: 20 },
-  homeownerExplanation: { whatIsIt: 'Minor issue', whyItHappened: 'Normal wear', whatToDo: 'Monitor' },
-  contractorAdvice: { repairNeeded: [], materials: [], tools: [], estimatedTime: 'N/A', estimatedCost: { min: 0, max: 100, recommended: 50 }, complexity: 'low' },
+  safetyHazards: {
+    hazards: [],
+    hasCriticalHazards: false,
+    overallSafetyScore: 100,
+  },
+  compliance: {
+    complianceIssues: [],
+    requiresProfessionalInspection: false,
+    complianceScore: 100,
+  },
+  insuranceRisk: {
+    riskFactors: [],
+    riskScore: 10,
+    premiumImpact: 'low',
+    mitigationSuggestions: [],
+  },
+  urgency: {
+    urgency: 'routine',
+    recommendedActionTimeline: 'No rush',
+    reasoning: 'Minor',
+    priorityScore: 20,
+  },
+  homeownerExplanation: {
+    whatIsIt: 'Minor issue',
+    whyItHappened: 'Normal wear',
+    whatToDo: 'Monitor',
+  },
+  contractorAdvice: {
+    repairNeeded: [],
+    materials: [],
+    tools: [],
+    estimatedTime: 'N/A',
+    estimatedCost: { min: 0, max: 100, recommended: 50 },
+    complexity: 'low',
+  },
 };
 
 describe('BuildingSurveyorService - Edge Cases', () => {
@@ -140,7 +206,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       memoryAdjustments: [],
       imageQuality: null,
     } as any);
-    vi.mocked(callGptAssessment).mockResolvedValue(JSON.stringify(mockAssessment));
+    vi.mocked(callGptAssessment).mockResolvedValue(
+      JSON.stringify(mockAssessment)
+    );
     vi.mocked(postProcessAssessment).mockResolvedValue(mockAssessment as any);
     vi.mocked(getConfig).mockReturnValue({
       openaiApiKey: 'test-key',
@@ -151,9 +219,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
 
   describe('assessDamage - Error Handling', () => {
     it('should throw error when no images provided', async () => {
-      await expect(
-        BuildingSurveyorService.assessDamage([])
-      ).rejects.toThrow('At least one image is required');
+      await expect(BuildingSurveyorService.assessDamage([])).rejects.toThrow(
+        'At least one image is required'
+      );
     });
 
     it('should throw error when imageUrls is null', async () => {
@@ -201,11 +269,13 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = vi.fn(() =>
-        new Promise((resolve) => setTimeout(() => resolve([]), 10000))
+      RoboflowDetectionService.detect = vi.fn(
+        () => new Promise((resolve) => setTimeout(() => resolve([]), 10000))
       );
 
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockResolvedValue({});
 
       // Should not throw, but handle timeout gracefully
       await expect(
@@ -221,8 +291,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       });
 
       RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = vi.fn(() =>
-        new Promise((resolve) => setTimeout(() => resolve({}), 10000))
+      ImageAnalysisService.analyzePropertyImages = vi.fn(
+        () => new Promise((resolve) => setTimeout(() => resolve({}), 10000))
       );
 
       // Should not throw, but handle timeout gracefully
@@ -238,10 +308,12 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = vi.fn().mockRejectedValue(
-        new Error('Roboflow API error')
-      );
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
+      RoboflowDetectionService.detect = vi
+        .fn()
+        .mockRejectedValue(new Error('Roboflow API error'));
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockResolvedValue({});
 
       // Should handle failure gracefully and continue with vision analysis
       await expect(
@@ -257,9 +329,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       });
 
       RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockRejectedValue(
-        new Error('Vision API error')
-      );
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockRejectedValue(new Error('Vision API error'));
 
       // Should handle failure gracefully and continue with Roboflow detections
       await expect(
@@ -274,12 +346,12 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = vi.fn().mockRejectedValue(
-        new Error('Roboflow error')
-      );
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockRejectedValue(
-        new Error('Vision error')
-      );
+      RoboflowDetectionService.detect = vi
+        .fn()
+        .mockRejectedValue(new Error('Roboflow error'));
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockRejectedValue(new Error('Vision error'));
 
       // Should still attempt to create assessment with available data
       await expect(
@@ -297,7 +369,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       });
 
       RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockResolvedValue({});
 
       await expect(
         BuildingSurveyorService.assessDamage(['https://example.com/image.jpg'])
@@ -313,7 +387,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       });
 
       RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockResolvedValue({});
 
       await expect(
         BuildingSurveyorService.assessDamage(manyImages)
@@ -329,7 +405,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       });
 
       RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockResolvedValue({});
 
       await expect(
         BuildingSurveyorService.assessDamage([longUrl])
@@ -344,10 +422,15 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       });
 
       RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockResolvedValue({});
 
       await expect(
-        BuildingSurveyorService.assessDamage(['https://example.com/image.jpg'], undefined)
+        BuildingSurveyorService.assessDamage(
+          ['https://example.com/image.jpg'],
+          undefined
+        )
       ).resolves.toBeDefined();
     });
   });
@@ -381,7 +464,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
       memoryManager.queryMemory = vi.fn().mockResolvedValue(null);
 
       RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi
+        .fn()
+        .mockResolvedValue({});
 
       // Should handle null memory results gracefully
       await expect(
@@ -390,4 +475,3 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
   });
 });
-

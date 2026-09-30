@@ -41,14 +41,14 @@ export const GET = withApiHandler(
       .select(
         `
         id, title, appointment_date, start_time, end_time,
-        location_type, location_address, status, notes,
+        location_type, location_address, status, notes, client_id, client_response,
         contractor:profiles!contractor_id(id, first_name, last_name),
         client:profiles!client_id(id, first_name, last_name),
         job:jobs!job_id(id, title)
       `
       )
       .gte('appointment_date', today)
-      .in('status', ['scheduled', 'confirmed'])
+      .in('status', ['scheduled', 'confirmed', 'rescheduled'])
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true })
       .limit(limit);
@@ -122,6 +122,8 @@ export const GET = withApiHandler(
         locationType: apt.location_type,
         locationAddress: apt.location_address,
         status: apt.status,
+        clientResponse: apt.client_response,
+        canRespond: apt.client_id === user.id,
         notes: apt.notes,
         contractor: contractor
           ? {

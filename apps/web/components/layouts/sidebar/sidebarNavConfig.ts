@@ -74,6 +74,11 @@ export function useNavSections(
           },
           { label: 'Documents', href: '/documents', icon: FolderOpen },
           {
+            label: 'Visit confirmations',
+            href: '/appointments/response',
+            icon: Calendar,
+          },
+          {
             label: 'Scheduling',
             href: '/scheduling',
             icon: Calendar,

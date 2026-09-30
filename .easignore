@@ -8,6 +8,10 @@
 .agents/
 .windsurf/
 .claude/
+.codex/
+audit/
+output/
+tmp/
 
 # ============================================================================
 # LARGE DATASET DIRECTORIES (These are the main size contributors)

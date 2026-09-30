@@ -59,6 +59,9 @@ afterEach(() => {
 async function fillReview() {
   await screen.findByText('Inspected photo 1');
   fireEvent.click(screen.getByLabelText(/Inspected photo 1/));
+  fireEvent.change(screen.getByLabelText('Evidence quality'), {
+    target: { value: 'sufficient' },
+  });
   fireEvent.change(screen.getByLabelText('Primary defect category'), {
     target: { value: 'water_damage' },
   });
@@ -71,10 +74,9 @@ async function fillReview() {
   fireEvent.change(screen.getByLabelText('Critical hazard visible?'), {
     target: { value: 'false' },
   });
-  fireEvent.change(
-    screen.getByLabelText('Your relevant qualification or experience'),
-    { target: { value: 'Building surveyor' } }
-  );
+  fireEvent.change(screen.getByLabelText(/Your role and relevant experience/), {
+    target: { value: 'Building surveyor' },
+  });
   fireEvent.change(screen.getByLabelText('Evidence and reasoning'), {
     target: { value: 'Visible water staining on the wall.' },
   });
@@ -84,7 +86,7 @@ describe('expert review interface', () => {
   it('submits deliberate labels and selected evidence with CSRF protection', async () => {
     render(<ExpertReviewForm assessmentId='test-id' />);
     await fillReview();
-    fireEvent.click(screen.getByRole('button', { name: 'Save expert review' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save my review' }));
     await screen.findByText(/Review saved/);
     const [, options] = fetchMock.mock.calls.find(
       (call) =>
@@ -104,7 +106,8 @@ describe('expert review interface', () => {
     fireEvent.change(screen.getByLabelText('Evidence quality'), {
       target: { value: 'insufficient' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save expert review' }));
+    fireEvent.click(screen.getByLabelText(/I inspected the selected photos/));
+    fireEvent.click(screen.getByRole('button', { name: 'Save my review' }));
     await screen.findByText(/Review saved/);
     const call = fetchMock.mock.calls.find(
       (call) => ((call as unknown[])[1] as RequestInit)?.method === 'POST'
@@ -125,7 +128,7 @@ describe('expert review interface', () => {
       status: 409,
       json: async () => ({}),
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save expert review' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save my review' }));
     await screen.findByText(/The source changed/);
     expect(screen.queryByText(/Review saved/)).toBeNull();
   });
@@ -137,7 +140,7 @@ describe('expert review interface', () => {
       status: 403,
       json: async () => ({ requiresStepUp: true }),
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save expert review' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save my review' }));
     await screen.findByRole('dialog');
     expect(screen.queryByText(/Review saved/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Verify test MFA' }));
@@ -155,9 +158,7 @@ describe('expert review interface', () => {
     });
     render(<ExpertReviewForm assessmentId='test-id' />);
     await screen.findByText(/No source photos/);
-    expect(
-      screen.queryByRole('button', { name: 'Save expert review' })
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save my review' })).toBeNull();
   });
   it('shows an honest empty evaluation state', async () => {
     fetchMock.mockResolvedValue({

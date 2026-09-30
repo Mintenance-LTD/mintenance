@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { ActionFollowup } from './ActionFollowup';
 import { PortfolioReport } from './PortfolioReport';
+import { IssueConversation } from './IssueConversation';
 interface Item {
   id: string;
   kind: string;
@@ -86,6 +87,9 @@ export function PortfolioActionQueue({
                   >
                     <Text>Manage follow-up</Text>
                   </TouchableOpacity>
+                  {item.kind === 'report' && (
+                    <IssueConversation reportId={item.id} />
+                  )}
                   {editing === item.id && (
                     <ActionFollowup
                       propertyId={item.property_id}

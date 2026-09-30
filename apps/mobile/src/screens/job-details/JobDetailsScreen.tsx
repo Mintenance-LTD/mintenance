@@ -1,3 +1,4 @@
+import { JobIssueConversations } from '../properties/components/JobIssueConversations';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
@@ -700,6 +701,9 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             job.status === 'completed'
           }
         />
+        {(isOwner || job.contractor_id === user?.id) && (
+          <JobIssueConversations jobId={job.id} />
+        )}
       </ScrollView>
 
       {getPriorityCTA({

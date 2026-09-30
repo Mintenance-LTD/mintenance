@@ -1,0 +1,209 @@
+NOT READY FOR PUBLIC USERS.
+
+30 September 2026 — fresh verification checkpoint, not a launch certificate.
+Branch: codex/migrate-next-proxy. Starting commit: 98c8e633e.
+Changes described below were uncommitted when tested. Existing edits to the
+27 September checkpoint/scheduler documents, backup runbook and output folder
+were preserved and are not evidence of newly completed verification.
+
+A. COVERAGE AND LIMITATIONS
+
+Executed the entire configured web Vitest suite: 440 suites / 4,271 tests pass.
+The initial run had 11 failing suites. Repairs preserve real shared-module
+exports in mocks, update the schema fixture for the new migration, exercise
+explicit evidence-quality selection/reconfirmation, and verify webhook
+notification delegation instead of an obsolete direct database insert.
+Afterward an additional seven web export failure/success regressions pass.
+Web ESLint: zero errors, 821 warnings. Root ESLint initially ignored web files;
+that invocation is not counted as web lint evidence.
+Web and mobile TypeScript checks completed without diagnostics. The production
+web build completed successfully with isolated placeholder configuration,
+including compilation, type checking and generation of 528 static pages.
+No deployment credentials or provider integration was validated by that build.
+
+Entire configured mobile Jest run: 478 suites passed, one suite failed to load,
+12,384 tests passed. The failing suite imported an unavailable native filesystem
+module through the new portfolio UI. With that native boundary mocked, the
+account-isolation suite passed separately (one test). The full run left timers
+open and was stopped after reporting results; it was not a clean process exit.
+These tests do not substitute for testing an installed release APK or iOS app.
+
+Local SQL regression ran against supabase_db_mintenance-audit-20260906 and
+rolled back all regression fixtures. It verified wrong-receipt denial,
+unassigned-contractor denial, payload-bound message retries, one notification
+per message, client-only confirmation, retry safety, reset on start/end-time
+changes, stale-time rejection and report status history. A separate local
+authenticated-role attempt confirmed direct client-response writes are denied.
+
+Browser: isolated local app on localhost:3028, synthetic report only. A resident
+sent a message, reloaded and saw it persist. A manager reply inserted through
+the same database function and a status update appeared in the resident UI.
+This is not a signed-in manager/contractor browser acceptance test.
+
+Repository-required supabase db diff --local completed. It replayed all current
+migrations into its shadow database, including the new conversation migration.
+The root local database remains behind: the diff proposes dropping many newer
+tables/functions to match that stale database. The generated diff was NOT applied.
+
+Hosted Supabase: applied additive migration
+20260930115354_issue_conversations_and_visit_confirmation, then confirmed
+authenticated cannot execute either service-only conversation/response RPC.
+No production business rows or live payments were changed. Security advisor and
+selected privileged-function definitions were read. No fresh Stripe challenge,
+payout, refund, physical-device, backup restoration or production alert test was
+performed in this checkpoint. Prior audit claims are not counted as fresh proof.
+
+B. IMPLEMENTATION AND NEW WORK
+
+Web: Next.js App Router, API handlers, cookie/Bearer authentication, privileged
+Supabase server access. Mobile: Expo/React Native, mobileApiClient and direct
+Supabase auth/session integration. PostgreSQL migrations contain transactional
+payment, retention and property rules; Storage holds private evidence. Stripe
+webhook handlers and reconciliation coordinate payment state. Notification queues
+and cron routes provide background work. AI assessment has schema/error handling
+and a human review form; passing mocks establish no model-accuracy claim.
+
+Property management now adds paginated report conversations to manager report
+screens and mobile portfolio/job screens. Residents receive a random private
+receipt link; only its hash is stored. Managers and the currently assigned
+contractor are checked against database records. Message insertion and queued
+notifications are atomic. Stable message IDs reject changed retry payloads.
+Report status changes create system history entries. Receipt links are bearer
+capabilities: anyone given the link can read/write that report. Do not share them.
+Residents refresh the receipt page; outbound resident email is not implemented.
+
+Visit confirmations appear on the web Visit confirmations page and mobile
+calendar. Client identity and exact date/start/end are verified under a row lock.
+Rescheduling resets confirmation; direct client-role writes cannot forge it.
+Existing appointments lacking an explicit client_id are visible through legacy
+list matching but intentionally cannot be confirmed on someone else's behalf.
+New workflows still require current-release browser/device acceptance.
+
+C. PRIORITISED FINDINGS
+
+R1 — High impact, high confidence; web export falsely succeeded after read errors.
+FIXED IN THIS CHANGE, not yet verified in a deployed release.
+apps/web/app/api/user/export-data/route.ts, POST: profile/property/job/message
+reads and secondary category reads previously discarded errors and used empty
+arrays. The active caller is app/settings/_components/settings-api.ts:162.
+A database outage on contracts/payments could yield HTTP 200 and an apparently
+complete download. The route now rejects any failed requested category; seven
+tests cover six failed categories and successful export. Mobile's distinct
+api/gdpr/export-data route already rejects failed secondary categories, despite
+an obsolete best-effort comment. Do not report both routes as having this defect.
+Acceptance: deployed web shows a retryable error and offers no completed export
+when any required read fails.
+
+R2 — Medium impact, high confidence; export completeness beyond row limits and
+new/retained categories remains unresolved.
+apps/web/app/api/user/export-data/route.ts, POST reads use unpaginated select;
+api/gdpr/export-data/route.ts also has unpaginated supplemental category reads.
+Neither inspected export assembles the new report_messages or the retained
+dispute archive. A large account can reach the backend row cap; a user expecting
+all conversation/retained evidence will not receive it from these code paths.
+This is distinct from the already fixed retained-record LIST pagination.
+Fix: shared, bounded paginated export service with explicit inclusion/access
+rules and a manifest of categories and file availability. Test more than one
+backend page, all participant roles and failed middle-page recovery. Closed
+accounts need an authenticated operator-assisted access/export path; an archived
+record list for a still-signed-in participant is not sufficient proof.
+
+R3 — Release blocker, high confidence in missing evidence; backup/recovery.
+A separate encrypted backup approach was requested, but this run establishes no
+configured destination, successful scheduled backup or restoration exercise.
+No amount of local emulator/cache cleanup supplies production disaster recovery.
+Before public use: select destination, configure limited credentials/encryption,
+produce and restore database plus required storage evidence into isolation,
+measure recovery, test expiry and restoration-time deletion suppression.
+This is an operational gap, not a claim that the database has already lost data.
+
+R4 — Retention operating gap, high confidence; external evidence disposal.
+supabase/migrations/20260924084212_add_retained_evidence_disposal_queue.sql:133
+explicitly routes external evidence to reconciliation. api/cron/evidence-disposal
+returns a failure when reconciliation remains, rather than falsely reporting
+deletion. That is a useful safeguard, but not proof that files are actually
+disposed of. lib/properties/cleanup-document-files.ts separately deletes orphaned
+property documents in batches through Storage, then removes their database row.
+Acceptance: synthetic external-file disposal including provider-success/DB-failure,
+legal hold, retry, missing object, backup expiry and restored deleted record.
+Do not clear reconciliation merely by removing database storage metadata.
+
+R5 — Security hardening and release maintenance, advisor-confirmed configuration.
+Hosted advisor still reports leaked-password protection disabled and available
+Postgres security updates. It also flags spatial_ref_sys RLS, public PostGIS and
+callable SECURITY DEFINER helpers. These are not all exploitable vulnerabilities.
+Reviewed has_org_management_access and is_org_member bind supplied user IDs to
+auth.uid; is_admin(uuid) does likewise; is_job_participant checks current identity.
+RLS-without-policy on service-only tables is fail-closed, not a permission leak.
+Remaining helpers/grants need individual caller and search_path review. Enable
+supported password protection and plan the supported DB update with backup and
+restore evidence. Never weaken RLS merely to remove an advisor warning.
+
+R6 — High launch significance, verification gap; current-release native behavior.
+No new APK was built/installed in this checkpoint. Physical Android and iOS are
+unverified. New management components passed type checking, not process-kill,
+offline, permission, deep-link or account-switch acceptance on a release build.
+Acceptance: exact commit/build ID, homeowner/contractor/manager flows, pending-save
+termination, refresh/relogin, thumbnails, back navigation, notification routing,
+biometrics per account, and receipt/appointment parity. Do not count emulator-only
+or mocked component success as physical-device coverage.
+
+R7 — Operational/release alignment, verification gap.
+vercel.json includes five-minute notification/recovery schedules. Code configuration
+does not prove execution. PaymentReconciliationService creates durable run records,
+claims bounded work and reports errors. AccountDeletionRecoveryService validates
+provider ownership and persists leased cleanup outcomes. Fresh scheduled-run,
+failure-alert and push-receipt evidence against the final deployed commit is still
+required. The hosted schema now includes the additive conversation migration;
+the running web and APK must be aligned before calling the feature available.
+
+D. JOURNEY READINESS MATRIX (THIS CHECKPOINT)
+
+Registration/login/logout/reset/session/MFA — partially verified: web/mobile suites;
+  no fresh complete role-separated browser/device lifecycle.
+Profiles/onboarding/payout setup — partially verified: suites, no fresh provider run.
+Properties/team access/documents — partially verified: current code/tests; actual
+  file round-trip and manager release acceptance still required.
+Tenant conversation — partially verified: real local resident UI + PostgreSQL;
+  signed-in manager/contractor UI and installed mobile not exercised end-to-end.
+Visit confirmation — partially verified: real PostgreSQL identity/retry/stale-time
+  checks, UI implementation/type checking; no installed release acceptance.
+Jobs/bids/contracts — partially verified: full configured web/mobile regression;
+  no new complete UI-to-provider-to-UI run with separate roles this checkpoint.
+Messages/notifications — partially verified: queue/code/tests; resident outbound
+  email not implemented, live delivery/receipt durability not re-exercised.
+Payments/escrow/payout/refund/disputes — partially verified: configured regression
+  suites including escrow lifecycle; no fresh sandbox 3DS/payout this checkpoint.
+Work evidence/completion/approval/reviews — partially verified by suites.
+Deletion/retention/export — confirmed export defect fixed locally; remaining
+  completeness/disposal/backup operating evidence unresolved.
+AI assessment — partially verified: tests/review form; model accuracy unverified.
+Maps/location/biometrics/accessibility — static/test coverage only in this run;
+  no device claims. Performance/load and full accessibility audit not completed.
+
+E. IMPLEMENTED SAFEGUARDS SUPPORTED BY CODE
+
+lib/services/disputes/evidence.ts: exact configured origin and job/claimant path
+validation, rejection of traversal, and short-lived re-signing after authorization.
+lib/services/stripe-webhook/stripe-webhook-service.ts: raw signed payload validation,
+duplicate handling, and errors propagated when processed-state persistence fails.
+lib/services/account/AccountDeletionRecoveryService.ts: provider resource ownership
+checks, bounded work and durable lease completion; unknown outcomes remain work.
+api/disputes/retained/route.ts: participant filter and validated composite cursor.
+New report/visit functions: transactional history, authorization and retry behavior
+verified against PostgreSQL, not only fluent query mocks.
+
+F. REMEDIATION ORDER AND CANDID ASSESSMENT
+
+Before public users/real-money launch: establish restore-tested encrypted backups;
+finish export/retention evidence handling; verify exact deployed money/contract
+recovery journey; align deployed code/migrations and build current native release.
+Before broader launch: complete role-separated native/browser management acceptance,
+scheduled failure/alert/receipt evidence, security maintenance, accessibility and
+measured slow-network performance. Then improve resident notification delivery,
+portfolio reporting depth and staff workflow ergonomics based on pilot feedback.
+
+I would continue synthetic testing. I would not declare this version publicly ready
+from these results, and I would not recommend a rewrite: targeted repair and release
+verification remain appropriate. This checkpoint improves test confidence but leaves
+essential operational and device evidence open. The full overall goal is unfinished.

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { InternalServerError } from '@/lib/errors/api-error';
 import {
   serverSupabase,
   createRequestScopedClient,
@@ -28,18 +29,18 @@ export const POST = withApiHandler({}, async (request, { user }) => {
   // discarded error made this GDPR export silently ship profile: null.
   // The export is the user's OWN row (explicit id filter on an auth-gated
   // route), and a subject-access export should include every column.
-  const { data: userData } = await serverSupabase
+  const { data: userData, error: profileError } = await serverSupabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
-  const { data: properties } = await userDb
+  const { data: properties, error: propertyError } = await userDb
     .from('properties')
     .select('*')
     .eq('owner_id', user.id);
 
-  const { data: jobs } = await userDb
+  const { data: jobs, error: jobError } = await userDb
     .from('jobs')
     .select('*')
     // Designated payers are first-class participants in a job. Include them
@@ -49,7 +50,7 @@ export const POST = withApiHandler({}, async (request, { user }) => {
       `homeowner_id.eq.${user.id},contractor_id.eq.${user.id},payer_user_id.eq.${user.id}`
     );
 
-  const { data: messages } = await userDb
+  const { data: messages, error: messageError } = await userDb
     .from('messages')
     .select('*')
     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
@@ -107,6 +108,31 @@ export const POST = withApiHandler({}, async (request, { user }) => {
       .eq('homeowner_id', user.id),
     userDb.from('property_contacts').select('*').eq('owner_id', user.id),
   ]);
+
+  if (
+    profileError ||
+    propertyError ||
+    jobError ||
+    messageError ||
+    !userData ||
+    [
+      bids,
+      escrow,
+      invoicesCtr,
+      invoicesClient,
+      reviewsReviewer,
+      reviewsContractor,
+      contractsHomeowner,
+      contractsContractor,
+      contractorSubs,
+      homeownerSubs,
+      propertyContacts,
+    ].some((result) => result.error)
+  ) {
+    throw new InternalServerError(
+      'A complete export is unavailable. Please retry.'
+    );
+  }
 
   const exportData = {
     exported_at: new Date().toISOString(),

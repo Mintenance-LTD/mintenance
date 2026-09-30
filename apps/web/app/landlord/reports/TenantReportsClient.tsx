@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   CheckCircle2,
   FileText,
@@ -277,6 +278,12 @@ export function TenantReportsClient({
                   {new Date(selectedReport.created_at).toLocaleString('en-GB')}
                 </p>
               </div>
+              <Link
+                className='underline'
+                href={`/maintenance/reports/${selectedReport.id}`}
+              >
+                Open shared issue conversation
+              </Link>
               {/* Status mutation row — buttons depend on the current
                   state. Audit fix (2026-05-12): the filter tabs implied
                   the user could change a report's status, but there

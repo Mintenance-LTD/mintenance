@@ -15,7 +15,10 @@ const mocks = vi.hoisted(() => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock('@mintenance/shared', () => ({ logger: mocks.logger }));
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
+  logger: mocks.logger,
+}));
 vi.mock('@/lib/cors', () => ({ getCorsHeaders: () => ({}) }));
 
 import { handleAPIError } from '@/lib/errors/api-error';
