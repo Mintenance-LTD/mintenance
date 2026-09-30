@@ -21,6 +21,7 @@ training_data*.jsonl*
 /ui.xml
 apps/mobile/test-results*.txt
 apps/mobile/test-results*.json
+test-results/
 
 # ============================================================================
 # LARGE DATASET DIRECTORIES (These are the main size contributors)
