@@ -12,6 +12,15 @@
 audit/
 output/
 tmp/
+.playwright*/
+.remember/
+.design-bundle/
+training_data*.jsonl*
+/*-screen.png
+/relaunch.png
+/ui.xml
+apps/mobile/test-results*.txt
+apps/mobile/test-results*.json
 
 # ============================================================================
 # LARGE DATASET DIRECTORIES (These are the main size contributors)
