@@ -102,6 +102,10 @@ const GROUPS: readonly PurposeGroup[] = [
     fg: me.warnFg,
     events: [
       { type: 'contract_signed', label: 'Contract signed' },
+      {
+        type: 'property_followup',
+        label: 'Property follow-ups assigned to you',
+      },
       { type: 'job_completed', label: 'Job marked complete by contractor' },
       { type: 'changes_requested', label: 'Changes requested on your work' },
     ],

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PropertyFileHub } from './PropertyFileHub';
 import { PROPERTY_JOB_STATUS_LABELS } from '@mintenance/shared';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { TenantReportingCard } from './TenantReportingCard';
@@ -45,6 +46,7 @@ export function SharedPropertyDetail({
         </p>
       </header>
       <div className='space-y-5'>
+        {role !== 'viewer' && <PropertyFileHub propertyId={property.id} />}
         <section className='card card-pad'>
           <h2 className='t-h2'>Recorded work</h2>
           <p>

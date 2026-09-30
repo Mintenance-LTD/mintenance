@@ -29,7 +29,7 @@ import {
   Megaphone,
   BarChart3,
 } from 'lucide-react';
-import type { NavItem, NavSection } from './SidebarNavItems';
+import type { NavSection } from './SidebarNavItems';
 
 export function useNavSections(
   userRole: 'homeowner' | 'contractor' | 'admin'
@@ -111,6 +111,11 @@ export function useNavSections(
             label: 'Reporting Links',
             href: '/landlord/reporting-links',
             icon: Link2,
+          },
+          {
+            label: 'Action queue',
+            href: '/properties/work-queue',
+            icon: RefreshCw,
           },
           { label: 'Contacts', href: '/landlord/contacts', icon: Contact },
           {

@@ -2,6 +2,7 @@ import { withCronHandler } from '@/lib/cron-handler';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ServiceUnavailableError } from '@/lib/errors/api-error';
+import { cleanupPropertyDocumentFiles } from '@/lib/properties/cleanup-document-files';
 
 /**
  * Cron endpoint for data retention cleanup (Issue 29)
@@ -27,5 +28,6 @@ export const GET = withCronHandler('retention-cleanup', async () => {
     throw new ServiceUnavailableError('Retention cleanup');
   }
 
-  return { method: 'rpc', processed: 1 };
+  const removedFiles = await cleanupPropertyDocumentFiles();
+  return { method: 'rpc', processed: 1, removedFiles };
 });
