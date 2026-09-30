@@ -168,15 +168,6 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to export user data');
     }
 
-    await serverSupabase
-      .from('dsr_requests')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        data_export_path: 'exported',
-      })
-      .eq('id', dsrRequest.id);
-
     const formattedData: FormattedExportData = {
       user_id: user.id,
       export_date: new Date().toISOString(),
@@ -210,26 +201,31 @@ export const POST = withApiHandler(
       }
       return out;
     };
-    const logEmpty = (label: string, err: unknown) => {
-      if (err) {
-        logger.warn('GDPR export: table fetch failed (continuing)', {
-          service: 'gdpr',
-          userId: user.id,
-          table: label,
-          err: err instanceof Error ? err.message : String(err),
-        });
-      }
-    };
-    logEmpty('escrow_transactions', escrowResult.error);
-    logEmpty('invoices(contractor)', invoicesContractorResult.error);
-    logEmpty('invoices(client)', invoicesClientResult.error);
-    logEmpty('reviews(reviewer)', reviewsAsReviewerResult.error);
-    logEmpty('reviews(contractor)', reviewsAsContractorResult.error);
-    logEmpty('contracts(homeowner)', contractsAsHomeownerResult.error);
-    logEmpty('contracts(contractor)', contractsAsContractorResult.error);
-    logEmpty('contractor_subscriptions', contractorSubsResult.error);
-    logEmpty('homeowner_subscriptions', homeownerSubsResult.error);
-    logEmpty('property_contacts', propertyContactsResult.error);
+    const categoryResults = [
+      escrowResult,
+      invoicesContractorResult,
+      invoicesClientResult,
+      reviewsAsReviewerResult,
+      reviewsAsContractorResult,
+      contractsAsHomeownerResult,
+      contractsAsContractorResult,
+      contractorSubsResult,
+      homeownerSubsResult,
+      propertyContactsResult,
+    ];
+    if (categoryResults.some((result) => result.error)) {
+      await serverSupabase
+        .from('dsr_requests')
+        .update({
+          status: 'rejected',
+          completed_at: new Date().toISOString(),
+          notes: 'Export category unavailable; retry required',
+        })
+        .eq('id', dsrRequest.id);
+      throw new InternalServerError(
+        'Your complete export is unavailable. Please retry.'
+      );
+    }
 
     formattedData.data.escrow_transactions = dedupeById(escrowResult.data);
     formattedData.data.invoices = dedupeById([
@@ -253,6 +249,19 @@ export const POST = withApiHandler(
     formattedData.data.property_contacts = dedupeById(
       propertyContactsResult.data
     );
+
+    const { error: completionError } = await serverSupabase
+      .from('dsr_requests')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        data_export_path: 'exported',
+      })
+      .eq('id', dsrRequest.id);
+    if (completionError)
+      throw new InternalServerError(
+        'Unable to finalize export. Please retry later.'
+      );
 
     logger.info('Data export completed successfully', {
       service: 'gdpr',

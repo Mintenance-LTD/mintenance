@@ -21,28 +21,32 @@ const BiometricSettings: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    checkBiometricStatus();
-  }, []);
-
-  const checkBiometricStatus = async () => {
-    try {
-      const available = await BiometricService.isAvailable();
-      const enabled = await BiometricService.isBiometricEnabled();
-
-      setIsAvailable(available);
-      setIsEnabled(enabled);
-
-      if (available) {
-        const types = await BiometricService.getSupportedTypes();
-        const typeNames = types.map((type) =>
-          BiometricService.getTypeDisplayName(type)
+    let active = true;
+    setIsEnabled(false);
+    const check = async () => {
+      try {
+        const available = await BiometricService.isAvailable();
+        const enabled = user?.email
+          ? await BiometricService.isBiometricEnabled(user.email)
+          : false;
+        const types = available
+          ? await BiometricService.getSupportedTypes()
+          : [];
+        if (!active) return;
+        setIsAvailable(available);
+        setIsEnabled(enabled);
+        setBiometricTypes(
+          types.map((type) => BiometricService.getTypeDisplayName(type))
         );
-        setBiometricTypes(typeNames);
+      } catch (error) {
+        logger.error('Error checking biometric status:', error);
       }
-    } catch (error) {
-      logger.error('Error checking biometric status:', error);
-    }
-  };
+    };
+    void check();
+    return () => {
+      active = false;
+    };
+  }, [user?.email]);
 
   const handleToggleBiometric = async (value: boolean) => {
     if (!user) return;
@@ -54,7 +58,7 @@ const BiometricSettings: React.FC = () => {
         setIsEnabled(true);
         Alert.alert(
           'Success',
-          `${biometricTypes.join(' and ')} authentication has been enabled for your account.`
+          `${biometricTypes.join(' and ')} authentication has been enabled for ${user.email}. This replaces any other account remembered on this phone.`
         );
       } else {
         Alert.alert(
@@ -66,8 +70,15 @@ const BiometricSettings: React.FC = () => {
               text: 'Disable',
               style: 'destructive',
               onPress: async () => {
-                await disableBiometric();
-                setIsEnabled(false);
+                setLoading(true);
+                try {
+                  await disableBiometric();
+                  setIsEnabled(false);
+                } catch {
+                  Alert.alert('Not disabled', 'Please try again.');
+                } finally {
+                  setLoading(false);
+                }
               },
             },
           ]
@@ -87,7 +98,10 @@ const BiometricSettings: React.FC = () => {
   const testBiometric = async () => {
     try {
       setLoading(true);
-      await BiometricService.authenticate('Test your biometric authentication');
+      const credentials = await BiometricService.authenticate(
+        'Test your biometric authentication'
+      );
+      if (!credentials) return;
       Alert.alert('Success', 'Biometric authentication test successful!');
     } catch (error) {
       const errorMessage = (error as Error).message;
@@ -139,7 +153,8 @@ const BiometricSettings: React.FC = () => {
         <View style={styles.settingInfo}>
           <Text style={styles.settingLabel}>Enable Biometric Sign-In</Text>
           <Text style={styles.settingDescription}>
-            Use {biometricTypes.join(' or ')} to sign in quickly and securely
+            Sign in as {user?.email}. One account can be remembered on this
+            phone. Enabling this replaces the previously remembered account.
           </Text>
         </View>
         <Switch

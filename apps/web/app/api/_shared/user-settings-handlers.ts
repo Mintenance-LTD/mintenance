@@ -134,34 +134,52 @@ export const userSettingsPatch = withApiHandler(
       );
     }
 
-    // Shallow-merge the patch on top of stored settings. Nested
-    // objects (notifications/privacy/display) are replaced wholesale
-    // — callers must include every key they want preserved within a
-    // group, mirroring the previous behaviour of both routes.
-    const { data: current } = await serverSupabase
-      .from('profiles')
-      .select('settings')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    const merged = {
-      ...((current?.settings as Record<string, unknown>) || {}),
-      ...parsed.data,
-    };
-
-    const { error } = await serverSupabase
-      .from('profiles')
-      .update({ settings: merged, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
-
-    if (error) {
-      logger.error('Failed to save user settings', error, {
-        service: 'api/users/settings',
-        userId: user.id,
-      });
-      return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
+    // Compare-and-swap prevents concurrent requests from replacing each other's
+    // settings. Retry only a conflict, never a failed read or write.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: current, error: readError } = await serverSupabase
+        .from('profiles')
+        .select('settings')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (readError || !current) {
+        return NextResponse.json(
+          { error: 'Unable to load saved settings' },
+          { status: 503 }
+        );
+      }
+      const stored = (current.settings as Record<string, unknown>) ?? {};
+      const merged: Record<string, unknown> = { ...stored, ...parsed.data };
+      for (const key of ['privacy', 'notifications', 'display'] as const) {
+        if (parsed.data[key])
+          merged[key] = {
+            ...((stored[key] as Record<string, unknown>) ?? {}),
+            ...parsed.data[key],
+          };
+      }
+      let update = serverSupabase
+        .from('profiles')
+        .update({ settings: merged, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+      update =
+        current.settings == null
+          ? update.is('settings', null)
+          : update.eq('settings', JSON.stringify(current.settings));
+      const { data: saved, error: writeError } = await update
+        .select('id')
+        .maybeSingle();
+      if (writeError) {
+        logger.error('Failed to save user settings', writeError, {
+          service: 'api/users/settings',
+          userId: user.id,
+        });
+        return NextResponse.json({ error: 'Failed to save' }, { status: 503 });
+      }
+      if (saved) return NextResponse.json(merged);
     }
-
-    return NextResponse.json(merged);
+    return NextResponse.json(
+      { error: 'Settings changed elsewhere. Reload and try again.' },
+      { status: 409 }
+    );
   }
 );

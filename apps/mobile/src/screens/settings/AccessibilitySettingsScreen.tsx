@@ -14,6 +14,7 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSilverMode } from '../../hooks/useSilverMode';
@@ -22,7 +23,7 @@ import { MintScreenBackBar } from '../../components/shared';
 
 export const AccessibilitySettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const { silverMode, toggle, loading } = useSilverMode();
+  const { silverMode, toggle, loading, saving, error, retry } = useSilverMode();
 
   if (loading) {
     return (
@@ -36,16 +37,25 @@ export const AccessibilitySettingsScreen: React.FC = () => {
     <View style={styles.container}>
       <MintScreenBackBar title='Accessibility' fallbackScreen='ProfileMain' />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}>
+        {error && (
+          <View style={styles.section}>
+            <Text accessibilityRole='alert'>{error}</Text>
+            <TouchableOpacity accessibilityRole='button' onPress={retry}>
+              <Text>Reload saved setting</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.section}>
           <View style={styles.rowTop}>
             <View style={styles.rowLabelGroup}>
               <Text style={styles.rowTitle}>Silver mode</Text>
               <Text style={styles.rowDesc}>
-                Larger fonts and bigger taps across key flows. Best if you find
-                the standard layout hard to read or hit.
+                Larger text and controls in the job posting form. Your phone�s
+                accessibility settings control text size elsewhere.
               </Text>
             </View>
             <Switch
+              disabled={loading || saving || !!error}
               value={silverMode}
               onValueChange={() => {
                 void toggle();

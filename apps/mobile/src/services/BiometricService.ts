@@ -86,10 +86,14 @@ export class BiometricService {
   }
 
   // Check if biometric login is enabled for the user
-  static async isBiometricEnabled(): Promise<boolean> {
+  static async isBiometricEnabled(email?: string): Promise<boolean> {
     try {
       const enabled = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
-      return enabled === 'true';
+      if (enabled !== 'true') return false;
+      if (!email) return true;
+      const stored = await SecureStore.getItemAsync(BIOMETRIC_CREDENTIALS_KEY);
+      if (!stored) return false;
+      return JSON.parse(stored).email?.toLowerCase() === email.toLowerCase();
     } catch (error) {
       logger.error('Error checking biometric enabled status:', error);
       return false;
@@ -156,7 +160,10 @@ export class BiometricService {
    * successful refresh: it's a no-op when biometric is disabled or no
    * credentials are stored, and never throws into the auth flow.
    */
-  static async updateStoredRefreshToken(refreshToken: string): Promise<void> {
+  static async updateStoredRefreshToken(
+    refreshToken: string,
+    email?: string
+  ): Promise<void> {
     try {
       if (!refreshToken) return;
 
@@ -175,6 +182,8 @@ export class BiometricService {
         return;
       }
 
+      if (email && credentials.email.toLowerCase() !== email.toLowerCase())
+        return;
       credentials.refreshToken = refreshToken;
       credentials.storedAt = Date.now();
 
@@ -250,7 +259,7 @@ export class BiometricService {
         let credentials: BiometricCredentials;
         try {
           credentials = JSON.parse(credentialsStr) as BiometricCredentials;
-        } catch (parseError) {
+        } catch {
           // If JSON is corrupted, clear the credentials and throw
           await BiometricService.clearBiometricData();
           throw new Error(
@@ -350,7 +359,7 @@ export class BiometricService {
                 'Success',
                 `${biometricName} has been enabled for your account.`
               );
-            } catch (error) {
+            } catch {
               Alert.alert(
                 'Error',
                 `Failed to enable ${biometricName}. Please try again.`

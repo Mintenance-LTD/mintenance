@@ -48,11 +48,17 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-const mockLocalAuth = LocalAuthentication as jest.Mocked<typeof LocalAuthentication>;
+const mockLocalAuth = LocalAuthentication as jest.Mocked<
+  typeof LocalAuthentication
+>;
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
 const mockAlert = Alert as jest.Mocked<typeof Alert>;
-const mockTrackUserAction = trackUserAction as jest.MockedFunction<typeof trackUserAction>;
-const mockAddBreadcrumb = addBreadcrumb as jest.MockedFunction<typeof addBreadcrumb>;
+const mockTrackUserAction = trackUserAction as jest.MockedFunction<
+  typeof trackUserAction
+>;
+const mockAddBreadcrumb = addBreadcrumb as jest.MockedFunction<
+  typeof addBreadcrumb
+>;
 const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe('BiometricService', () => {
@@ -79,7 +85,9 @@ describe('BiometricService', () => {
       expect(result).toBe(true);
       expect(mockLocalAuth.hasHardwareAsync).toHaveBeenCalled();
       expect(mockLocalAuth.isEnrolledAsync).toHaveBeenCalled();
-      expect(mockLocalAuth.supportedAuthenticationTypesAsync).toHaveBeenCalled();
+      expect(
+        mockLocalAuth.supportedAuthenticationTypesAsync
+      ).toHaveBeenCalled();
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Biometric availability check: true',
         'biometric',
@@ -125,7 +133,9 @@ describe('BiometricService', () => {
     });
 
     it('handles errors and returns false', async () => {
-      mockLocalAuth.hasHardwareAsync.mockRejectedValue(new Error('Hardware check failed'));
+      mockLocalAuth.hasHardwareAsync.mockRejectedValue(
+        new Error('Hardware check failed')
+      );
 
       const result = await BiometricService.isAvailable();
 
@@ -143,12 +153,16 @@ describe('BiometricService', () => {
         LocalAuthentication.AuthenticationType.FINGERPRINT,
         LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION,
       ];
-      mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue(supportedTypes);
+      mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue(
+        supportedTypes
+      );
 
       const result = await BiometricService.getSupportedTypes();
 
       expect(result).toEqual(supportedTypes);
-      expect(mockLocalAuth.supportedAuthenticationTypesAsync).toHaveBeenCalled();
+      expect(
+        mockLocalAuth.supportedAuthenticationTypesAsync
+      ).toHaveBeenCalled();
     });
 
     it('returns empty array on error', async () => {
@@ -201,7 +215,9 @@ describe('BiometricService', () => {
       const result = await BiometricService.isBiometricEnabled();
 
       expect(result).toBe(true);
-      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith('biometric_enabled');
+      expect(mockSecureStore.getItemAsync).toHaveBeenCalledWith(
+        'biometric_enabled'
+      );
     });
 
     it('returns false when biometric is disabled', async () => {
@@ -221,7 +237,9 @@ describe('BiometricService', () => {
     });
 
     it('handles errors and returns false', async () => {
-      mockSecureStore.getItemAsync.mockRejectedValue(new Error('Storage error'));
+      mockSecureStore.getItemAsync.mockRejectedValue(
+        new Error('Storage error')
+      );
 
       const result = await BiometricService.isBiometricEnabled();
 
@@ -258,7 +276,10 @@ describe('BiometricService', () => {
 
       await BiometricService.enableBiometric(email, tokens);
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.enable_attempt', { email });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.enable_attempt',
+        { email }
+      );
 
       const expectedCredentials: BiometricCredentials = {
         email,
@@ -270,8 +291,14 @@ describe('BiometricService', () => {
         'biometric_credentials',
         JSON.stringify(expectedCredentials)
       );
-      expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith('biometric_enabled', 'true');
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.enable_success', { email });
+      expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+        'biometric_enabled',
+        'true'
+      );
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.enable_success',
+        { email }
+      );
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Biometric authentication enabled',
         'biometric'
@@ -281,32 +308,50 @@ describe('BiometricService', () => {
     it('throws error when biometrics not available', async () => {
       mockLocalAuth.hasHardwareAsync.mockResolvedValue(false);
 
-      await expect(BiometricService.enableBiometric(email, tokens)).rejects.toThrow(
+      await expect(
+        BiometricService.enableBiometric(email, tokens)
+      ).rejects.toThrow(
         'Biometric authentication is not available on this device'
       );
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.enable_attempt', { email });
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.enable_failed', {
-        email,
-        error: 'Biometric authentication is not available on this device',
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.enable_attempt',
+        { email }
+      );
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.enable_failed',
+        {
+          email,
+          error: 'Biometric authentication is not available on this device',
+        }
+      );
     });
 
     it('throws error when refresh token is missing', async () => {
-      const tokensWithoutRefresh = { accessToken: 'access-token', refreshToken: '' };
+      const tokensWithoutRefresh = {
+        accessToken: 'access-token',
+        refreshToken: '',
+      };
 
-      await expect(BiometricService.enableBiometric(email, tokensWithoutRefresh)).rejects.toThrow(
+      await expect(
+        BiometricService.enableBiometric(email, tokensWithoutRefresh)
+      ).rejects.toThrow(
         'Refresh token is required to enable biometric authentication'
       );
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.enable_failed', {
-        email,
-        error: 'Refresh token is required to enable biometric authentication',
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.enable_failed',
+        {
+          email,
+          error: 'Refresh token is required to enable biometric authentication',
+        }
+      );
     });
 
     it('throws error when tokens object is null', async () => {
-      await expect(BiometricService.enableBiometric(email, null as any)).rejects.toThrow(
+      await expect(
+        BiometricService.enableBiometric(email, null as any)
+      ).rejects.toThrow(
         'Refresh token is required to enable biometric authentication'
       );
     });
@@ -314,14 +359,17 @@ describe('BiometricService', () => {
     it('handles SecureStore errors', async () => {
       mockSecureStore.setItemAsync.mockRejectedValue(new Error('Storage full'));
 
-      await expect(BiometricService.enableBiometric(email, tokens)).rejects.toThrow(
-        'Storage full'
-      );
+      await expect(
+        BiometricService.enableBiometric(email, tokens)
+      ).rejects.toThrow('Storage full');
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.enable_failed', {
-        email,
-        error: 'Storage full',
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.enable_failed',
+        {
+          email,
+          error: 'Storage full',
+        }
+      );
     });
   });
 
@@ -329,10 +377,18 @@ describe('BiometricService', () => {
     it('disables biometric authentication successfully', async () => {
       await BiometricService.disableBiometric();
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.disable_attempt');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('biometric_credentials');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('biometric_enabled');
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.disable_success');
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.disable_attempt'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'biometric_credentials'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        'biometric_enabled'
+      );
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.disable_success'
+      );
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Biometric authentication disabled',
         'biometric'
@@ -340,13 +396,20 @@ describe('BiometricService', () => {
     });
 
     it('handles errors during disable', async () => {
-      mockSecureStore.deleteItemAsync.mockRejectedValue(new Error('Delete failed'));
+      mockSecureStore.deleteItemAsync.mockRejectedValue(
+        new Error('Delete failed')
+      );
 
-      await expect(BiometricService.disableBiometric()).rejects.toThrow('Delete failed');
+      await expect(BiometricService.disableBiometric()).rejects.toThrow(
+        'Delete failed'
+      );
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.disable_failed', {
-        error: 'Delete failed',
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.disable_failed',
+        {
+          error: 'Delete failed',
+        }
+      );
     });
   });
 
@@ -360,7 +423,8 @@ describe('BiometricService', () => {
     beforeEach(() => {
       mockSecureStore.getItemAsync.mockImplementation((key) => {
         if (key === 'biometric_enabled') return Promise.resolve('true');
-        if (key === 'biometric_credentials') return Promise.resolve(JSON.stringify(mockCredentials));
+        if (key === 'biometric_credentials')
+          return Promise.resolve(JSON.stringify(mockCredentials));
         return Promise.resolve(null);
       });
     });
@@ -373,17 +437,22 @@ describe('BiometricService', () => {
 
       const result = await BiometricService.authenticate();
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.auth_attempt');
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.auth_attempt'
+      );
       expect(mockLocalAuth.authenticateAsync).toHaveBeenCalledWith({
         promptMessage: 'Use your Fingerprint to sign in',
         disableDeviceFallback: false,
         fallbackLabel: 'Use Passcode',
       });
       expect(result).toEqual(mockCredentials);
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.auth_success', {
-        email: mockCredentials.email,
-        tokenAgeInDays: 0,
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.auth_success',
+        {
+          email: mockCredentials.email,
+          tokenAgeInDays: 0,
+        }
+      );
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Biometric authentication successful',
         'biometric'
@@ -450,9 +519,12 @@ describe('BiometricService', () => {
         'Biometric authentication is not available'
       );
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.auth_failed', {
-        error: 'Biometric authentication is not available',
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.auth_failed',
+        {
+          error: 'Biometric authentication is not available',
+        }
+      );
     });
 
     it('returns null when authentication is cancelled', async () => {
@@ -464,9 +536,12 @@ describe('BiometricService', () => {
       const result = await BiometricService.authenticate();
 
       expect(result).toBeNull();
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.auth_cancelled', {
-        error: 'user_cancel',
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.auth_cancelled',
+        {
+          error: 'user_cancel',
+        }
+      );
     });
 
     it('throws error when credentials not found', async () => {
@@ -486,7 +561,8 @@ describe('BiometricService', () => {
       mockLocalAuth.authenticateAsync.mockResolvedValue({ success: true });
       mockSecureStore.getItemAsync.mockImplementation((key) => {
         if (key === 'biometric_enabled') return Promise.resolve('true');
-        if (key === 'biometric_credentials') return Promise.resolve('invalid-json{');
+        if (key === 'biometric_credentials')
+          return Promise.resolve('invalid-json{');
         return Promise.resolve(null);
       });
       // Ensure deleteItemAsync succeeds so both deletes happen
@@ -498,13 +574,22 @@ describe('BiometricService', () => {
 
       // clearBiometricData should delete both items
       expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledTimes(2);
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(1, 'biometric_credentials');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(2, 'biometric_enabled');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        1,
+        'biometric_credentials'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        2,
+        'biometric_enabled'
+      );
     });
 
     it('throws error when credentials are incomplete', async () => {
       mockLocalAuth.authenticateAsync.mockResolvedValue({ success: true });
-      const incompleteCredentials = { email: 'test@example.com', storedAt: Date.now() };
+      const incompleteCredentials = {
+        email: 'test@example.com',
+        storedAt: Date.now(),
+      };
       mockSecureStore.getItemAsync.mockImplementation((key) => {
         if (key === 'biometric_enabled') return Promise.resolve('true');
         if (key === 'biometric_credentials')
@@ -536,12 +621,21 @@ describe('BiometricService', () => {
       );
 
       // clearBiometricData deletes in this specific order
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(1, 'biometric_credentials');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(2, 'biometric_enabled');
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.token_expired', {
-        email: expiredCredentials.email,
-        ageInDays: 31,
-      });
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        1,
+        'biometric_credentials'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        2,
+        'biometric_enabled'
+      );
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.token_expired',
+        {
+          email: expiredCredentials.email,
+          ageInDays: 31,
+        }
+      );
     });
 
     it('logs token age for valid credentials', async () => {
@@ -571,13 +665,20 @@ describe('BiometricService', () => {
     });
 
     it('handles authentication errors', async () => {
-      mockLocalAuth.authenticateAsync.mockRejectedValue(new Error('Authentication failed'));
+      mockLocalAuth.authenticateAsync.mockRejectedValue(
+        new Error('Authentication failed')
+      );
 
-      await expect(BiometricService.authenticate()).rejects.toThrow('Authentication failed');
+      await expect(BiometricService.authenticate()).rejects.toThrow(
+        'Authentication failed'
+      );
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.auth_failed', {
-        error: 'Authentication failed',
-      });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.auth_failed',
+        {
+          error: 'Authentication failed',
+        }
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Biometric authentication error:',
         expect.any(Error)
@@ -638,7 +739,10 @@ describe('BiometricService', () => {
         notNowButton.onPress();
       }
 
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.setup_declined', { email });
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.setup_declined',
+        { email }
+      );
     });
 
     it('calls onEnable callback when user clicks Enable', async () => {
@@ -713,14 +817,27 @@ describe('BiometricService', () => {
       await BiometricService.clearBiometricData();
 
       // Verify items are deleted in the correct order
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(1, 'biometric_credentials');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(2, 'biometric_enabled');
-      expect(mockTrackUserAction).toHaveBeenCalledWith('biometric.data_cleared');
-      expect(mockAddBreadcrumb).toHaveBeenCalledWith('Biometric data cleared', 'biometric');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        1,
+        'biometric_credentials'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        2,
+        'biometric_enabled'
+      );
+      expect(mockTrackUserAction).toHaveBeenCalledWith(
+        'biometric.data_cleared'
+      );
+      expect(mockAddBreadcrumb).toHaveBeenCalledWith(
+        'Biometric data cleared',
+        'biometric'
+      );
     });
 
     it('handles errors silently', async () => {
-      mockSecureStore.deleteItemAsync.mockRejectedValue(new Error('Delete failed'));
+      mockSecureStore.deleteItemAsync.mockRejectedValue(
+        new Error('Delete failed')
+      );
 
       // Should not throw
       await BiometricService.clearBiometricData();
@@ -779,7 +896,8 @@ describe('BiometricService', () => {
     it('prevents credential tampering with malformed JSON', async () => {
       mockSecureStore.getItemAsync.mockImplementation((key) => {
         if (key === 'biometric_enabled') return Promise.resolve('true');
-        if (key === 'biometric_credentials') return Promise.resolve('}{malformed');
+        if (key === 'biometric_credentials')
+          return Promise.resolve('}{malformed');
         return Promise.resolve(null);
       });
       // Ensure deleteItemAsync succeeds so both deletes happen
@@ -792,8 +910,14 @@ describe('BiometricService', () => {
       );
 
       // Should clear corrupted data in correct order
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(1, 'biometric_credentials');
-      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(2, 'biometric_enabled');
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        1,
+        'biometric_credentials'
+      );
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenNthCalledWith(
+        2,
+        'biometric_enabled'
+      );
     });
 
     it('only stores refresh token, not access token', async () => {
@@ -819,10 +943,13 @@ describe('BiometricService', () => {
 
       await BiometricService.enableBiometric('test@example.com', tokens);
 
-      const storedCredentialsCall = mockSecureStore.setItemAsync.mock.calls.find(
-        (call) => call[0] === 'biometric_credentials'
+      const storedCredentialsCall =
+        mockSecureStore.setItemAsync.mock.calls.find(
+          (call) => call[0] === 'biometric_credentials'
+        );
+      const storedCredentials = JSON.parse(
+        storedCredentialsCall?.[1] as string
       );
-      const storedCredentials = JSON.parse(storedCredentialsCall?.[1] as string);
 
       expect(storedCredentials).toHaveProperty('refreshToken');
       expect(storedCredentials).not.toHaveProperty('accessToken');
@@ -869,7 +996,8 @@ describe('BiometricService', () => {
 
       mockSecureStore.getItemAsync.mockImplementation((key) => {
         if (key === 'biometric_enabled') return Promise.resolve('true');
-        if (key === 'biometric_credentials') return Promise.resolve(JSON.stringify(credentials));
+        if (key === 'biometric_credentials')
+          return Promise.resolve(JSON.stringify(credentials));
         return Promise.resolve(null);
       });
 
@@ -897,7 +1025,8 @@ describe('BiometricService', () => {
 
       mockSecureStore.getItemAsync.mockImplementation((key) => {
         if (key === 'biometric_enabled') return Promise.resolve('true');
-        if (key === 'biometric_credentials') return Promise.resolve(JSON.stringify(credentials));
+        if (key === 'biometric_credentials')
+          return Promise.resolve(JSON.stringify(credentials));
         return Promise.resolve(null);
       });
 
@@ -925,7 +1054,8 @@ describe('BiometricService', () => {
 
       mockSecureStore.getItemAsync.mockImplementation((key) => {
         if (key === 'biometric_enabled') return Promise.resolve('true');
-        if (key === 'biometric_credentials') return Promise.resolve(JSON.stringify(credentials));
+        if (key === 'biometric_credentials')
+          return Promise.resolve(JSON.stringify(credentials));
         return Promise.resolve(null);
       });
 
@@ -939,5 +1069,43 @@ describe('BiometricService', () => {
         fallbackLabel: 'Use Passcode',
       });
     });
+  });
+});
+
+describe('Biometric account binding', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSecureStore.getItemAsync.mockImplementation(async (key) =>
+      key === 'biometric_enabled'
+        ? 'true'
+        : JSON.stringify({
+            email: 'homeowner@example.invalid',
+            refreshToken: 'synthetic-old',
+            storedAt: Date.now(),
+          })
+    );
+  });
+  it('does not show the homeowner enrollment as enabled for the contractor', async () => {
+    expect(
+      await BiometricService.isBiometricEnabled('homeowner@example.invalid')
+    ).toBe(true);
+    expect(
+      await BiometricService.isBiometricEnabled('contractor@example.invalid')
+    ).toBe(false);
+  });
+  it('does not replace the remembered token with another account refresh', async () => {
+    await BiometricService.updateStoredRefreshToken(
+      'synthetic-new',
+      'contractor@example.invalid'
+    );
+    expect(mockSecureStore.setItemAsync).not.toHaveBeenCalled();
+    await BiometricService.updateStoredRefreshToken(
+      'synthetic-new',
+      'homeowner@example.invalid'
+    );
+    expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+      'biometric_credentials',
+      expect.stringContaining('synthetic-new')
+    );
   });
 });

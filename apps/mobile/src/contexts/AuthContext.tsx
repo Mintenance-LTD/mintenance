@@ -1,3 +1,4 @@
+import { BiometricService } from '../services/BiometricService';
 import React, {
   createContext,
   useContext,
@@ -50,6 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const biometricAuth = useBiometricAuth();
+  const { checkBiometricAvailability } = biometricAuth;
   const dispatch = useMemo(() => ({ setUser, setSession, setLoading }), []);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initialize = async (): Promise<void> => {
       if (mounted) {
         await restoreSession(dispatch);
-        await biometricAuth.checkBiometricAvailability();
+        await checkBiometricAvailability();
       }
 
       const subscription = AuthService.onAuthStateChange(
@@ -73,6 +75,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (event === 'TOKEN_REFRESHED' && newSession) {
             setSession(newSession as AuthSession);
             await saveSessionToSecureStore(newSession);
+            const refreshed = newSession as {
+              refresh_token?: string;
+              user?: { email?: string };
+            };
+            if (refreshed.refresh_token && refreshed.user?.email) {
+              await BiometricService.updateStoredRefreshToken(
+                refreshed.refresh_token,
+                refreshed.user.email
+              );
+            }
           }
 
           if (event === 'SIGNED_OUT') {
@@ -104,7 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       mounted = false;
       unsubscribe?.();
     };
-  }, []);
+  }, [dispatch, checkBiometricAvailability]);
 
   const signIn = useCallback(
     (email: string, password: string) =>

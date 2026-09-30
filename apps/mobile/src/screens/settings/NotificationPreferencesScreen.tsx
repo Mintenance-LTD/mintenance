@@ -1,24 +1,5 @@
-/**
- * NotificationPreferencesScreen — settings UI for
- * `user_notification_preferences`, backed by
- * `/api/user/notification-preferences`.
- *
- * Reference: redesign-v2 homeowner-deck screen 04 "Notification
- * preferences" + R2 retention roadmap.
- *
- * Design choices that diverge from the old per-event grid:
- *  - Events are grouped by *purpose* (Bids, Messages, Payment &
- *    escrow, Job updates, Discovery & tips) so a homeowner can mute
- *    "marketing-ish" stuff without losing critical alerts.
- *  - An always-on banner makes it explicit that payment confirmations,
- *    escrow holds, and contractor "I'm on the way" pings will *always*
- *    reach the user — they are not opt-outable. This avoids the
- *    confusion that follows from "I turned everything off, why did
- *    Mint just text me?"
- *  - Quiet hours moved inline. We previously punted to "edit on web"
- *    which was a polite way of saying "we never finished this".
- */
-import React, { useEffect, useMemo, useState } from 'react';
+// Account-scoped notification delivery preferences with failure-safe saving.
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
 import { MintScreenBackBar } from '../../components/shared';
 import { logger } from '../../utils/logger';
@@ -158,8 +140,12 @@ function stripAlwaysOnFromDisabled(disabledTypes: string[]): string[] {
 
 export const NotificationPreferencesScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const saveInFlight = useRef(false);
   const [saving, setSaving] = useState(false);
   const [quietStartDraft, setQuietStartDraft] = useState<string>('');
   const [quietEndDraft, setQuietEndDraft] = useState<string>('');
@@ -170,11 +156,15 @@ export const NotificationPreferencesScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError(false);
     (async () => {
       try {
         const body = await mobileApiClient.get<Prefs>(
           '/api/user/notification-preferences'
         );
+        if (!active) return;
         const merged = {
           ...DEFAULTS,
           ...body,
@@ -186,12 +176,16 @@ export const NotificationPreferencesScreen: React.FC = () => {
         setQuietStartDraft(merged.quiet_hours_start ?? '');
         setQuietEndDraft(merged.quiet_hours_end ?? '');
       } catch (err) {
+        if (active) setLoadError(true);
         logger.warn('Failed to load notification preferences', { err });
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     })();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [attempt, user?.id]);
 
   const toggleType = (type: string) => {
     // audit-71 P1: ALWAYS_ON types render as a static "Always on" pill
@@ -224,6 +218,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
   };
 
   const save = async () => {
+    if (loading || loadError || saveInFlight.current) return;
     if (quietStartDraft && !HHMM.test(quietStartDraft)) {
       Alert.alert('Quiet hours', 'Use 24-hour time, e.g. 22:00');
       return;
@@ -239,6 +234,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
     const quietEnd = quietEndDraft ? normaliseHHMM(quietEndDraft) : '';
     if (quietStart !== quietStartDraft) setQuietStartDraft(quietStart);
     if (quietEnd !== quietEndDraft) setQuietEndDraft(quietEnd);
+    saveInFlight.current = true;
     setSaving(true);
     try {
       // audit-71 P1: never persist always-on types in disabled_types.
@@ -267,6 +263,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
         err instanceof Error ? err.message : 'Please try again.'
       );
     } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   };
@@ -279,10 +276,27 @@ export const NotificationPreferencesScreen: React.FC = () => {
     );
   }
 
+  if (loadError)
+    return (
+      <View style={styles.container}>
+        <MintScreenBackBar fallbackScreen='ProfileMain' />
+        <Text>
+          Unable to load your saved preferences. Nothing has been changed.
+        </Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          onPress={() => setAttempt((value) => value + 1)}
+        >
+          <Text>Try again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+
   return (
     <View style={styles.container}>
       <MintScreenBackBar fallbackScreen='ProfileMain' />
       <ScrollView
+        pointerEvents={saving ? 'none' : 'auto'}
         style={{ flex: 1 }}
         contentContainerStyle={[
           styles.scrollContent,
@@ -293,7 +307,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
         <View style={styles.headerWrap}>
           <Text style={styles.headline}>Notifications</Text>
           <Text style={styles.sub}>
-            Tell us what's worth a buzz. Less is more — only the things you
+            Tell us what&apos;s worth a buzz. Less is more — only the things you
             actually want to know about.
           </Text>
         </View>
@@ -304,8 +318,9 @@ export const NotificationPreferencesScreen: React.FC = () => {
           </View>
           <Text style={styles.urgentBannerText}>
             <Text style={styles.urgentBannerStrong}>Always on:</Text> payment
-            confirmations, escrow holds, and your contractor's "I'm on the way"
-            messages reach you even in quiet hours. Mute the rest — these stay.
+            confirmations, escrow holds, and your contractor&apos;s
+            &quot;I&apos;m on the way&quot; messages reach you even in quiet
+            hours. Mute the rest — these stay.
           </Text>
         </View>
 
@@ -395,8 +410,8 @@ export const NotificationPreferencesScreen: React.FC = () => {
         <View style={styles.quietCard}>
           <Text style={styles.quietTitle}>Quiet hours</Text>
           <Text style={styles.quietDesc}>
-            We won't push during these hours. Use 24-hour time, e.g. 22:00 to
-            07:00. Critical alerts (above) still come through.
+            We won&apos;t push during these hours. Use 24-hour time, e.g. 22:00
+            to 07:00. Critical alerts (above) still come through.
           </Text>
           <View style={styles.quietRow}>
             <View style={styles.quietInputBlock}>

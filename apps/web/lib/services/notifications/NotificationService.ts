@@ -27,6 +27,7 @@ import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '../agents/NotificationAgent';
 import {
   loadPreferences,
+  NotificationPreferencesUnavailableError,
   isTypeDisabled,
   isAlwaysOnType,
   nextQuietHoursEndUTC,
@@ -158,6 +159,16 @@ export class NotificationService {
 
       return this.scheduleForLater(params, scheduledFor, sendDecision.reason);
     } catch (error) {
+      if (error instanceof NotificationPreferencesUnavailableError) {
+        const retryAt = new Date(
+          Math.max(Date.now() + 5 * 60_000, params.deferUntil?.getTime() ?? 0)
+        );
+        return this.scheduleForLater(
+          params,
+          retryAt,
+          'Preference lookup unavailable'
+        );
+      }
       logger.error('Error in createNotification', error, {
         service: 'NotificationService',
         userId: params.userId,
