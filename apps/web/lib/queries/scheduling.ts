@@ -64,6 +64,7 @@ export async function fetchJobsWithRelations(
       `
       )
       .eq('homeowner_id', userId)
+      .is('archived_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -99,6 +100,7 @@ export async function fetchJobsWithRelations(
       `
       )
       .eq('contractor_id', userId)
+      .is('archived_at', null)
       .order('created_at', { ascending: false });
 
     if (assignedError) {
@@ -144,6 +146,7 @@ export async function fetchJobsWithRelations(
         `
         )
         .in('id', bidJobIds)
+        .is('archived_at', null)
         .order('created_at', { ascending: false });
 
       if (bidJobsError) {

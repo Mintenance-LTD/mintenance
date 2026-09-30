@@ -401,11 +401,6 @@ export default async function JobDetailPage2025({
           buildingAssessment={buildingAssessment}
           userId={user.id}
         />
-        {showRecommended && (
-          <div className='mx-auto max-w-7xl px-6 pb-8'>
-            <RecommendedContractors jobId={job.id} />
-          </div>
-        )}
       </>
     );
   }

@@ -15,6 +15,7 @@ export const getCachedUserJobs = unstable_cache(
         'id, title, status, budget, scheduled_start_date, scheduled_end_date, created_at, updated_at, category, location, homeowner_id, contractor_id'
       )
       .eq('homeowner_id', userId)
+      .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(limit);
 

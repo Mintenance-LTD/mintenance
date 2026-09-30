@@ -47,6 +47,9 @@ export const GET = withApiHandler(
     // existed in the schema — the auto-create flow now populates it,
     // and the contractor "Edit Contract" dialog has been populating
     // it for months. This embed activates that data.
+    // scoping-check: ok — before awaiting, the role branch below restricts this
+    // query to this contractor, homeowner, or server-assigned payer's jobs;
+    // all other roles throw. The query builder is not executed before then.
     let query = serverSupabase.from('contracts').select(`
       id, job_id, contractor_id, homeowner_id, status, title, description, amount,
       start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,

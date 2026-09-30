@@ -11,6 +11,7 @@
  * when there are no matches, so it can never break the page around it.
  */
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface MatchedContractor {
   contractor: {
@@ -34,21 +35,18 @@ interface MatchedContractorsResponse {
   matches: MatchedContractor[];
 }
 
-const CONFIDENCE_STYLES: Record<MatchedContractor['confidenceLevel'], string> =
-  {
-    high: 'bg-emerald-100 text-emerald-800',
-    medium: 'bg-amber-100 text-amber-800',
-    low: 'bg-neutral-100 text-neutral-600',
-  };
-
 export function RecommendedContractors({ jobId }: { jobId: string }) {
   const [matches, setMatches] = useState<MatchedContractor[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
+    setMatches(null);
     const load = async () => {
       try {
-        const res = await fetch(`/api/jobs/${jobId}/matched-contractors`);
+        const res = await fetch(`/api/jobs/${jobId}/matched-contractors`, {
+          signal: controller.signal,
+        });
         if (!res.ok) return;
         const data = (await res.json()) as MatchedContractorsResponse;
         if (!cancelled && Array.isArray(data.matches)) {
@@ -61,6 +59,7 @@ export function RecommendedContractors({ jobId }: { jobId: string }) {
     void load();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [jobId]);
 
@@ -69,46 +68,72 @@ export function RecommendedContractors({ jobId }: { jobId: string }) {
   return (
     <section
       aria-label='Recommended contractors'
-      className='rounded-xl border border-neutral-200 bg-white p-6 shadow-sm'
+      className='card card-pad rounded-xl border border-neutral-200 bg-white p-5'
     >
-      <h2 className='text-lg font-semibold text-neutral-900'>
-        Recommended contractors
-      </h2>
-      <p className='mt-1 text-sm text-neutral-500'>
-        Ranked by skills, coverage, rating and availability. They may bid on
-        your job — you always choose the winner from the bids you receive.
+      <h2 className='t-h4'>Contractors to consider</h2>
+      <p className='t-meta' style={{ marginTop: 6, maxWidth: 560 }}>
+        Suggested for this job using skills, service area, ratings and
+        availability. These are suggestions, not bids. Review their profiles and
+        choose from the quotes you receive.
       </p>
-      <ul className='mt-4 divide-y divide-neutral-100'>
+      <ul style={{ listStyle: 'none', padding: 0, margin: '16px 0 0' }}>
         {matches.map((match) => {
+          const contractor = match.contractor;
           const name =
-            match.contractor.companyName ||
-            [match.contractor.firstName, match.contractor.lastName]
+            contractor.companyName ||
+            [contractor.firstName, contractor.lastName]
               .filter(Boolean)
               .join(' ') ||
             'Contractor';
           return (
             <li
-              key={match.contractor.id}
-              className='flex items-start justify-between gap-4 py-3'
+              key={contractor.id}
+              style={{
+                padding: '14px 0',
+                borderTop: '1px solid var(--me-line-2)',
+              }}
             >
-              <div className='min-w-0'>
-                <p className='truncate font-medium text-neutral-900'>{name}</p>
-                <p className='mt-0.5 text-sm text-neutral-500'>
-                  {match.contractor.rating !== null &&
-                    `★ ${match.contractor.rating.toFixed(1)} (${match.contractor.reviewCount}) · `}
-                  {match.contractor.skills.slice(0, 3).join(', ')}
-                </p>
-                {match.reasons.length > 0 && (
-                  <p className='mt-0.5 text-xs text-neutral-400'>
-                    {match.reasons.slice(0, 2).join(' · ')}
-                  </p>
-                )}
-              </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${CONFIDENCE_STYLES[match.confidenceLevel]}`}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}
               >
-                {match.matchScore}% match
-              </span>
+                <span
+                  aria-hidden='true'
+                  className='avatar avatar-md'
+                  style={{
+                    background: 'var(--me-brand-soft)',
+                    color: 'var(--me-brand)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {name.slice(0, 1).toUpperCase()}
+                </span>
+                <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                  <h3 className='t-h4' style={{ overflowWrap: 'anywhere' }}>
+                    {name}
+                  </h3>
+                  <p className='t-meta' style={{ marginTop: 3 }}>
+                    {contractor.skills.slice(0, 3).join(' · ')}
+                  </p>
+                  {contractor.rating !== null && contractor.reviewCount > 0 && (
+                    <p className='t-meta' style={{ marginTop: 3 }}>
+                      {contractor.rating.toFixed(1)} / 5 ·{' '}
+                      {contractor.reviewCount} reviews
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href={`/contractors/${contractor.id}`}
+                  className='btn btn-secondary btn-sm'
+                  aria-label={`View ${name}'s profile`}
+                >
+                  View profile
+                </Link>
+              </div>
             </li>
           );
         })}

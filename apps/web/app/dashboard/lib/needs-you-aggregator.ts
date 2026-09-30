@@ -59,7 +59,6 @@ export function buildNeedsYouFeed({
   pendingBids,
   allBids,
   postedJobs,
-  properties,
   maxItems = 4,
 }: {
   pendingBids: PendingBidInput[];
@@ -110,18 +109,8 @@ export function buildNeedsYouFeed({
     });
   }
 
-  // 3) Unverified properties.
-  for (const prop of properties) {
-    if (items.length >= maxItems) break;
-    const verified = prop.verified === true || prop.is_verified === true;
-    if (verified) continue;
-    items.push({
-      kind: 'verifyProp',
-      id: String(prop.id ?? ''),
-      propertyName: prop.property_name || 'Untitled property',
-      address: prop.address || '',
-    });
-  }
+  // Property editing is not ownership verification. Do not invent an
+  // outstanding verification requirement from absent profile flags.
 
   return items;
 }

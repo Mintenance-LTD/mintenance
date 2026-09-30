@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
+import AccountEvidenceExport from './AccountEvidenceExport';
 
 type Request = {
   kind: string;
@@ -80,6 +81,7 @@ export default function RetainedEvidenceExportPage() {
         Back to retention reviews
       </Link>
       <h1 className='text-2xl font-semibold'>Closed-account evidence export</h1>
+      <AccountEvidenceExport />
       <p>
         Prepare a restricted staff review packet for one archived contract or
         dispute. Verify the requester outside the app and record the case

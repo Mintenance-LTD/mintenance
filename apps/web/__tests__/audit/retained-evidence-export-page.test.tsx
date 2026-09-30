@@ -24,7 +24,7 @@ function fill() {
   fireEvent.change(screen.getByLabelText('Verified request case reference'), {
     target: { value: 'CASE-TEST' },
   });
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByLabelText(/I verified the requester/));
   fireEvent.click(screen.getByText('Download staff review packet'));
 }
 it('preserves the exact request through MFA and an export failure', async () => {
