@@ -207,3 +207,26 @@ I would continue synthetic testing. I would not declare this version publicly re
 from these results, and I would not recommend a rewrite: targeted repair and release
 verification remain appropriate. This checkpoint improves test confidence but leaves
 essential operational and device evidence open. The full overall goal is unfinished.
+
+RELEASE ALIGNMENT ADDENDUM
+Verified through Vercel's connected API after the code push:
+- www.mintenance.co.uk is an alias of dpl_29t7ymG4nwjtRtt5V5Q91JSWrf2u,
+  production main commit c0d3674e057bbade15b01180639bd0ae5abe2fed (READY).
+- 08ade72c597b463ec5ab97fe3245136c06b0fb17 had only a preview deployment,
+  dpl_F28P3e9iMoQhgLfhS42tL1jjdrGH (BUILDING at inspection).
+- Source and audit changes are pushed through 7e9099542916d24acf85998cc46ef8d76b8fb401.
+  All repository pre-commit checks passed; earlier hook failures were corrected,
+  not bypassed. Existing unrelated user edits remain outside these commits.
+- EAS latest completed Android build remains internal 26, ID
+  953059e7-32b8-49ce-9aa1-179748336343, source 30dcc14c30b9c8cc51ec9abec148cc89f32a35fd.
+  Version 27 is prepared, but submission was deferred: its production API target
+  currently lacks the new conversation/confirmation APIs. No emulator is connected.
+- Archive inspection verified no audit/environment/credential files in the upload.
+  Additional exclusions remove unrelated training JSONL, test captures and browser
+  run metadata. Empty excluded directory scaffolding is not uploaded user content.
+- Draft PR creation failed: connected GitHub identity returned collaborator denial;
+  the repository credential could read the repo but two create attempts returned
+  HTTP 500. No PR success was reported. Reviewable comparison:
+  https://github.com/Mintenance-LTD/mintenance/compare/main...codex/migrate-next-proxy
+- Approval was requested before changing the live deployment; backup destination
+  information was requested separately. No live release was performed.
