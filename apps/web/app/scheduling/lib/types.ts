@@ -11,6 +11,7 @@ export interface CalendarEvent {
 }
 
 export interface JobWithContract {
+  contractor_id?: string | null;
   id: string;
   title: string | null;
   created_at: string;
@@ -48,4 +49,3 @@ export interface SubscriptionWithName {
   status: string;
   created_at: string;
 }
-

@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import styles from './transaction-list.module.css';
 import { useRouter } from 'next/navigation';
 import { formatMoney } from '@/lib/utils/currency';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
@@ -61,7 +62,7 @@ function statusBadge(status: string) {
     case 'pending':
       return { label: 'Pending', className: 'badge badge-warn' };
     case 'held':
-      return { label: 'Held in escrow', className: 'badge badge-info' };
+      return { label: 'Held in escrow', className: `badge ${styles.held}` };
     case 'refunded':
       return { label: 'Refunded', className: 'badge badge-mute' };
     case 'disputed':
@@ -106,7 +107,7 @@ export function MintEditorialTransactionList({
     <div className='card'>
       {/* Column header */}
       <div
-        className='row me-tx-head'
+        className={`row me-tx-head ${styles.header}`}
         style={{
           padding: '12px 20px',
           borderBottom: '1px solid var(--me-line-2)',
@@ -120,8 +121,8 @@ export function MintEditorialTransactionList({
         <div style={{ flex: 1 }}>Description</div>
         <div style={{ width: 120 }}>Date</div>
         <div style={{ width: 110, textAlign: 'right' }}>Amount</div>
-        <div style={{ width: 140, textAlign: 'right' }}>Status</div>
-        <div style={{ width: 140, textAlign: 'right' }}>Actions</div>
+        <div className={styles.status}>Status</div>
+        <div className={styles.actions}>Actions</div>
       </div>
 
       {transactions.map((tx, i) => {
@@ -136,7 +137,7 @@ export function MintEditorialTransactionList({
             onKeyDown={(e) => {
               if (e.key === 'Enter') router.push(`/payments/${tx.id}`);
             }}
-            className='me-tx-row'
+            className={`me-tx-row ${styles.row}`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -197,17 +198,13 @@ export function MintEditorialTransactionList({
             </div>
 
             {/* Status */}
-            <div
-              className='me-tx-status'
-              style={{ width: 140, textAlign: 'right' }}
-            >
+            <div className={`me-tx-status ${styles.status}`}>
               <span className={badge.className}>{badge.label}</span>
             </div>
 
             {/* Actions */}
             <div
-              className='row me-tx-actions'
-              style={{ width: 140, gap: 6, justifyContent: 'flex-end' }}
+              className={`row me-tx-actions ${styles.actions}`}
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
               role='presentation'
