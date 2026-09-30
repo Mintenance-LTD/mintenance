@@ -141,6 +141,9 @@ export default function EvidenceRetentionPage() {
   return (
     <main className='mx-auto max-w-4xl space-y-5 p-6'>
       <h1 className='text-2xl font-semibold'>Evidence retention reviews</h1>
+      <Link className='block underline' href='/admin/evidence-retention/export'>
+        Prepare a closed-account evidence export
+      </Link>
       <Link
         className='inline-block underline'
         href='/admin/evidence-retention/disposal'

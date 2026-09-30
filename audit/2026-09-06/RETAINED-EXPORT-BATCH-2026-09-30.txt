@@ -1,0 +1,54 @@
+Retained evidence export and disposal verification — 2026-09-30
+
+Implemented
+- Reachable staff export screen at /admin/evidence-retention/export, linked
+  from the retention review screen. Requires a case reference and an explicit
+  identity-verification attestation; it does not infer identity from email.
+- POST requires the administrator role, current database role verification,
+  recent MFA (15 minutes), normal CSRF protection and rate limiting.
+- Reads one exact archived contract/dispute filtered by the historical
+  participant UUID. The historical account need not still exist.
+- A durable GDPR audit write must succeed before the response is returned.
+  The closed subject is recorded in audit metadata, avoiding the profile FK.
+- JSON staff packet includes the archived record, SHA-256 digest and actual
+  base64 file bytes/digests for recognised, exact-job/exact-claimant dispute
+  references. No arbitrary URL is fetched. Expiring links are not the only
+  copy of these recognised attachments in the packet.
+- Unknown references are inventoried and marked incomplete. Unavailable
+  recognised files and oversized packets fail explicitly. The response is
+  private/no-store. Packets require privacy review/redaction before delivery.
+- UI preserves the request through MFA/failure and prevents overlapping
+  exports; navigating away aborts the pending download.
+
+Verified
+- 24 unit/UI tests pass, covering authorization configuration, subject/record
+  query scoping, identity attestation, audit failure, missing/oversized files,
+  external origin and wrong-claimant rejection, MFA retry, duplicate clicks,
+  existing disposal API and cron behavior.
+- 1 real local Supabase Storage test passes: a synthetic PNG is uploaded,
+  exported byte-for-byte, removed, and then correctly unavailable for export.
+  Only the randomly named synthetic object was removed.
+- Rollback-only SQL diagnostic passes: archived evidence survives subject
+  removal; unrelated subject lookup returns nothing; the audit insert works
+  without a closed-profile FK; authenticated clients cannot read raw archives.
+- Existing disposal SQL diagnostic rerun passes: notice periods, retries,
+  cancellation, holds, revision changes, external references and retention
+  deadlines prevent inappropriate deletion. Eligible database-only evidence
+  is removed once, and external evidence is not falsely marked completed.
+- Web type check and changed-source lint pass.
+- No production business data changed. No new migration required.
+
+Remaining limits
+- This is a per-record STAFF REVIEW packet, not a complete account-wide
+  subject-access response. Secure delivery, identity verification and redaction
+  are operator actions; no email or message was sent.
+- Unknown file locations, processor copies, contract external attachments,
+  large packets and backup copies still need separate handling. Storage
+  metadata cannot establish ownership/retention of arbitrary external files.
+- External-file disposal remains blocked in needs_reconciliation. We verified
+  the safeguard, not a completed external-file erasure. A future worker needs
+  an approved object inventory, shared-reference checks, hold-safe claims and
+  durable provider deletion receipts before this gate can be closed.
+- No physical-device or signed-in browser acceptance of the new screen was
+  performed in this batch. Changes are not a production release.
+- Public-launch readiness is unchanged.
