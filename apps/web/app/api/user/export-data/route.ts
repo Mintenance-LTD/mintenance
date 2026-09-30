@@ -1,3 +1,4 @@
+import { readExportRows } from '@/lib/privacy/read-export-rows';
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError } from '@/lib/errors/api-error';
@@ -35,25 +36,28 @@ export const POST = withApiHandler({}, async (request, { user }) => {
     .eq('id', user.id)
     .single();
 
-  const { data: properties, error: propertyError } = await userDb
-    .from('properties')
-    .select('*')
-    .eq('owner_id', user.id);
+  const { data: properties, error: propertyError } = await readExportRows(() =>
+    userDb.from('properties').select('*').eq('owner_id', user.id)
+  );
 
-  const { data: jobs, error: jobError } = await userDb
-    .from('jobs')
-    .select('*')
-    // Designated payers are first-class participants in a job. Include them
-    // here so property managers and landlord payers receive the complete
-    // repair history in their portability export.
-    .or(
-      `homeowner_id.eq.${user.id},contractor_id.eq.${user.id},payer_user_id.eq.${user.id}`
-    );
+  const { data: jobs, error: jobError } = await readExportRows(() =>
+    userDb
+      .from('jobs')
+      .select('*')
+      // Designated payers are first-class participants in a job. Include them
+      // here so property managers and landlord payers receive the complete
+      // repair history in their portability export.
+      .or(
+        `homeowner_id.eq.${user.id},contractor_id.eq.${user.id},payer_user_id.eq.${user.id}`
+      )
+  );
 
-  const { data: messages, error: messageError } = await userDb
-    .from('messages')
-    .select('*')
-    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+  const { data: messages, error: messageError } = await readExportRows(() =>
+    userDb
+      .from('messages')
+      .select('*')
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+  );
 
   // 2026-05-26 audit-64 P2: previously only profile/properties/jobs/
   // messages. Mobile + web GDPR copy promises payment / invoice /
@@ -87,26 +91,48 @@ export const POST = withApiHandler({}, async (request, { user }) => {
     homeownerSubs,
     propertyContacts,
   ] = await Promise.all([
-    userDb.from('bids').select('*').eq('contractor_id', user.id),
-    userDb
-      .from('escrow_transactions')
-      .select('*')
-      .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`),
-    userDb.from('invoices').select('*').eq('contractor_id', user.id),
-    userDb.from('invoices').select('*').eq('client_id', user.id),
-    userDb.from('reviews').select('*').eq('reviewer_id', user.id),
-    userDb.from('reviews').select('*').eq('reviewee_id', user.id),
-    userDb.from('contracts').select('*').eq('homeowner_id', user.id),
-    userDb.from('contracts').select('*').eq('contractor_id', user.id),
-    userDb
-      .from('contractor_subscriptions')
-      .select('*')
-      .eq('contractor_id', user.id),
-    userDb
-      .from('homeowner_subscriptions')
-      .select('*')
-      .eq('homeowner_id', user.id),
-    userDb.from('property_contacts').select('*').eq('owner_id', user.id),
+    readExportRows(() =>
+      userDb.from('bids').select('*').eq('contractor_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb
+        .from('escrow_transactions')
+        .select('*')
+        .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
+    ),
+    readExportRows(() =>
+      userDb.from('invoices').select('*').eq('contractor_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb.from('invoices').select('*').eq('client_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb.from('reviews').select('*').eq('reviewer_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb.from('reviews').select('*').eq('reviewee_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb.from('contracts').select('*').eq('homeowner_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb.from('contracts').select('*').eq('contractor_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb
+        .from('contractor_subscriptions')
+        .select('*')
+        .eq('contractor_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb
+        .from('homeowner_subscriptions')
+        .select('*')
+        .eq('homeowner_id', user.id)
+    ),
+    readExportRows(() =>
+      userDb.from('property_contacts').select('*').eq('owner_id', user.id)
+    ),
   ]);
 
   if (

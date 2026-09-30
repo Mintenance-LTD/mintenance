@@ -42,6 +42,9 @@ beforeEach(() => {
     let inserted = false;
     const chain = {
       select: () => chain,
+      order: () => chain,
+      limit: () => chain,
+      gt: () => chain,
       eq: () => chain,
       in: () => chain,
       or: () => chain,
@@ -54,7 +57,11 @@ beforeEach(() => {
         return chain;
       },
       single: async () => ({
-        data: inserted ? { id: 'synthetic-request' } : null,
+        data: inserted
+          ? { id: 'synthetic-request' }
+          : table === 'profiles'
+            ? { id: 'synthetic-user' }
+            : null,
         error: null,
       }),
       then: (resolve: (result: unknown) => unknown) =>
@@ -84,7 +91,7 @@ it('rejects and records an incomplete export instead of returning empty payment 
 it('only marks completed after all categories are read successfully', async () => {
   const response = await call();
   expect(response.status).toBe(200);
-  expect((await response.json()).data.data.profiles).toEqual([
+  expect((await response.json()).data.data.users).toEqual([
     { id: 'synthetic-user' },
   ]);
   expect(mocks.update).toHaveBeenCalledWith(

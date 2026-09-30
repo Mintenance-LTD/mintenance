@@ -19,6 +19,9 @@ beforeEach(() => {
     });
     const chain = {
       select: () => chain,
+      order: () => chain,
+      limit: () => chain,
+      gt: () => chain,
       eq: () => chain,
       or: () => chain,
       insert: () => chain,
