@@ -7,12 +7,18 @@ on:
       - 'apps/web/**'
       - 'packages/**'
       - '.github/workflows/e2e-tests.yml'
+      - 'scripts/ci/*e2e*'
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'apps/web/**'
       - 'packages/**'
       - '.github/workflows/e2e-tests.yml'
+      - 'scripts/ci/*e2e*'
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
   workflow_dispatch:
 
 jobs:
@@ -50,65 +56,40 @@ jobs:
         working-directory: apps/web
         run: npx playwright install --with-deps
 
-      # lib/env.ts hard-requires ENCRYPTION_MASTER_KEY + CSRF_SECRET at
-      # production runtime (`next start` sets NODE_ENV=production). These are
-      # test-run-only values — nothing encrypted in CI outlives the job — so
-      # generate them per run instead of storing more repo secrets.
-      - name: Generate ephemeral CI-only secrets
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          version: 2.118.0
+
+      - name: Prepare disposable database
+        run: node scripts/ci/prepare-e2e-stack.cjs
+
+      - name: Start disposable database and apply migrations
+        run: supabase start --workdir output/e2e-stack > output/e2e-stack/start.log 2>&1
+
+      - name: Seed synthetic accounts and generate isolated credentials
         run: |
-          echo "ENCRYPTION_MASTER_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
-          echo "CSRF_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          supabase status --workdir output/e2e-stack --output json > output/e2e-stack/status.json
+          node scripts/ci/bootstrap-e2e.cjs output/e2e-stack/status.json
+
+      - name: Verify environment isolation
+        run: |
+          node --test scripts/ci/check-e2e-environment.test.cjs
+          node scripts/ci/check-e2e-environment.cjs
 
       - name: Build web app
         working-directory: apps/web
         run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # Fail-closed config (packages/auth) throws at build-time page-data
-          # collection when JWT_SECRET is absent (2026-07-27 hardening).
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          # NEXT_PUBLIC_* values are inlined into client bundles at build time,
-          # so the publishable key must be present HERE, not just at runtime.
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
 
       - name: Run E2E tests
         working-directory: apps/web
         run: npx playwright test --shard=${{ matrix.shard }}/2
         env:
-          # --- lib/env.ts runtime validation (run 30366471487 failed on the
-          # --- Stripe pair; the webServer 500'd every route that imports env)
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-          # ENCRYPTION_MASTER_KEY + CSRF_SECRET come from GITHUB_ENV (see
-          # "Generate ephemeral CI-only secrets" step above).
-          #
-          # No Upstash Redis in CI. REDIS_REQUIRED=false is the documented
-          # operator opt-out in lib/rate-limiter/core.ts — without it the
-          # limiter throws at init under NODE_ENV=production and every
-          # request is BLOCKED (fail-closed). Request-path limits are then
-          # bypassed via the E2E_TESTING gate in both limiters.
-          REDIS_REQUIRED: 'false'
-          # E2E auth fixture: activates the gated /api/test-auth/login endpoint
-          # (see app/api/test-auth/login/route.ts). Both are read at runtime by
-          # the webServer AND by global-setup, which inherits this env.
-          # E2E_TESTING also disables rate limiting (lib/rate-limiter.ts,
-          # lib/rate-limiter/core.ts) — production per-IP limits (5 logins/15min)
-          # cannot hold for a serial suite driving everything from localhost.
-          E2E_TESTING: 'true'
-          E2E_AUTH_SECRET: ${{ secrets.E2E_AUTH_SECRET }}
-          # Cross-browser projects (firefox/webkit/mobile) only on pushes to
-          # main — PRs run Chromium-only to fit the CI budget
-          # (see playwright.config.ts).
           E2E_ALL_BROWSERS: ${{ github.event_name == 'push' && 'true' || 'false' }}
+
+      - name: Stop disposable database
+        if: always()
+        run: supabase stop --workdir output/e2e-stack --no-backup
 
       - name: Upload test results
         if: always()

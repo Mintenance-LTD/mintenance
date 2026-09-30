@@ -21,6 +21,7 @@ import { TEST_USERS } from './helpers/auth';
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { validateE2EEnvironment } from '../../../scripts/ci/check-e2e-environment.cjs';
 
 /**
  * Authenticate a test user via the E2E-only server endpoint and persist the
@@ -251,6 +252,13 @@ function isAuthTokenValid(
 }
 
 async function globalSetup(config: FullConfig) {
+  // Enforce the same boundary for local Playwright runs, before login or seeding.
+  validateE2EEnvironment({
+    ...process.env,
+    E2E_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    E2E_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    E2E_SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
 
   console.log('🔐 Setting up authenticated sessions...');
@@ -259,8 +267,10 @@ async function globalSetup(config: FullConfig) {
   const homeownerAuthPath = path.resolve(__dirname, '.auth/homeowner.json');
   const contractorAuthPath = path.resolve(__dirname, '.auth/contractor.json');
 
-  const homeownerTokenValid = isAuthTokenValid(homeownerAuthPath);
-  const contractorTokenValid = isAuthTokenValid(contractorAuthPath);
+  const homeownerTokenValid =
+    process.env.E2E_TESTING !== 'true' && isAuthTokenValid(homeownerAuthPath);
+  const contractorTokenValid =
+    process.env.E2E_TESTING !== 'true' && isAuthTokenValid(contractorAuthPath);
 
   if (homeownerTokenValid && contractorTokenValid) {
     console.log(
@@ -298,7 +308,7 @@ async function globalSetup(config: FullConfig) {
     console.log('  ✅ Homeowner token still valid - skipping authentication');
   }
 
-  // Setup contractor session (optional - skip if fails)
+  // Both roles are required for an acceptance run.
   if (!contractorTokenValid) {
     try {
       console.log('  → Authenticating contractor...');
@@ -311,10 +321,11 @@ async function globalSetup(config: FullConfig) {
       console.log('  ✅ Contractor session saved');
     } catch (error) {
       console.error(
-        '  ⚠️  Failed to setup contractor session (skipping):',
+        '  ❌ Failed to setup contractor session:',
         (error as Error).message
       );
-      // Don't throw - contractor tests will be skipped if no session file exists
+      await browser.close();
+      throw error;
     }
   } else {
     console.log('  ✅ Contractor token still valid - skipping authentication');
@@ -336,8 +347,7 @@ async function seedTestData() {
 
   const supabase = getSupabaseClient();
   if (!supabase) {
-    console.log('  ⏭️  Skipping test data seeding (no Supabase client)');
-    return;
+    throw new Error('Supabase client is required for synthetic test data');
   }
 
   try {
@@ -350,8 +360,7 @@ async function seedTestData() {
       .single();
 
     if (userError || !users) {
-      console.warn('  ⚠️  Homeowner user not found - cannot seed properties');
-      return;
+      throw new Error('Synthetic homeowner profile is missing');
     }
 
     const homeownerId = users.id;
@@ -395,15 +404,14 @@ async function seedTestData() {
       .select();
 
     if (error) {
-      console.error('  ❌ Failed to seed properties:', error.message);
-      return;
+      throw new Error('Failed to seed synthetic properties: ' + error.message);
     }
 
     console.log(
       `  ✅ Created ${createdProperties?.length || 0} test properties`
     );
   } catch (error) {
-    console.error('  ❌ Error seeding test data:', (error as Error).message);
+    throw error;
   }
 }
 

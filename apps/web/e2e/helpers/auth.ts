@@ -146,7 +146,7 @@ async function loginAsAdmin(page: Page): Promise<void> {
  */
 export async function login(page: Page, user: TestUser): Promise<void> {
   // Navigate to login page
-  await page.goto('/auth/login');
+  await page.goto('/login');
 
   // Wait for page to be fully loaded
   await page.waitForLoadState('networkidle');
@@ -175,12 +175,22 @@ export async function login(page: Page, user: TestUser): Promise<void> {
   await page.getByRole('textbox', { name: /password/i }).fill(user.password);
 
   // Submit form and wait for navigation
-  await Promise.all([
-    page.waitForURL((url) => !url.pathname.includes('/auth/login'), {
-      timeout: 30000,
-    }),
+  const [loginResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/auth/login' &&
+        response.request().method() === 'POST'
+    ),
     page.getByRole('button', { name: /log in|sign in/i }).click(),
   ]);
+  if (!loginResponse.ok()) {
+    throw new Error(`UI login failed with HTTP ${loginResponse.status()}`);
+  }
+  await page.waitForURL(
+    (url) =>
+      !['/login', '/auth/login'].includes(url.pathname.replace(/\/$/, '')),
+    { timeout: 30000 }
+  );
 
   // Wait for any additional navigation/redirects to complete
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {

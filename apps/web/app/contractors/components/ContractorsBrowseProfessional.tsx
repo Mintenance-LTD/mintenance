@@ -18,8 +18,6 @@ import {
 import {
   ContractorGridCard,
   ContractorListCard,
-  SkeletonGridCard,
-  SkeletonListCard,
 } from './ContractorBrowseCards';
 import {
   EmptyState,
@@ -375,7 +373,7 @@ export function ContractorsBrowseProfessional({
                 </div>
                 <button
                   onClick={clearAllFilters}
-                  className='text-sm text-teal-600 hover:text-teal-700 font-semibold transition-colors'
+                  className='text-sm text-teal-700 hover:text-teal-800 font-semibold transition-colors'
                 >
                   Clear all
                 </button>
