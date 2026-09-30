@@ -50,6 +50,7 @@ vi.mock('../NotificationPushDispatcher', () => ({
 }));
 
 import { NotificationService } from '../NotificationService';
+import { NotificationPreferencesUnavailableError } from '../NotificationPreferenceResolver';
 
 const PERMISSIVE_PREFS = {
   user_id: 'u-1',
@@ -80,6 +81,23 @@ describe('NotificationService.createNotification — deferUntil', () => {
     mockShouldSendImmediately.mockResolvedValue({ immediate: true });
     mockQueueNotification.mockResolvedValue('queue-1');
     mockFrom.mockReturnValue(buildInsertChain());
+  });
+
+  it('queues rather than sending with defaults when preference lookup fails', async () => {
+    mockLoadPreferences.mockRejectedValueOnce(
+      new NotificationPreferencesUnavailableError()
+    );
+    const before = Date.now();
+    expect(await NotificationService.createNotification(baseParams())).toBe(
+      'queue-1'
+    );
+    expect(mockQueueNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u-1' })
+    );
+    expect(
+      mockQueueNotification.mock.calls.at(-1)?.[0].scheduledFor.getTime()
+    ).toBeGreaterThanOrEqual(before + 5 * 60_000);
+    expect(mockSendPush).not.toHaveBeenCalled();
   });
 
   it('awaits push dispatch or retry persistence before returning from immediate delivery', async () => {

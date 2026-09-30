@@ -1,13 +1,22 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
-const { mockFrom, mockLoggerError } = vi.hoisted(() => ({
+const { mockFrom, mockLoggerError, mockCreate } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
+  mockCreate: vi.fn(),
   mockLoggerError: vi.fn(),
 }));
 
 vi.mock('@/lib/api/supabaseServer', () => {
   const chain: Record<string, any> = {};
-  for (const m of ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'or']) {
+  for (const m of [
+    'select',
+    'insert',
+    'update',
+    'delete',
+    'upsert',
+    'eq',
+    'or',
+  ]) {
     chain[m] = vi.fn().mockReturnValue(chain);
   }
   chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -17,6 +26,10 @@ vi.mock('@/lib/api/supabaseServer', () => {
 
 vi.mock('@mintenance/shared', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: mockLoggerError },
+}));
+
+vi.mock('@/lib/services/notifications/NotificationService', () => ({
+  NotificationService: { createNotification: mockCreate },
 }));
 
 import { isValidUUID, sendNotification } from '../webhook-helpers';
@@ -59,40 +72,53 @@ describe('isValidUUID', () => {
 describe('sendNotification', () => {
   beforeEach(() => {
     const chain: Record<string, any> = {};
-    for (const m of ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'or']) {
+    for (const m of [
+      'select',
+      'insert',
+      'update',
+      'delete',
+      'upsert',
+      'eq',
+      'or',
+    ]) {
       chain[m] = vi.fn().mockReturnValue(chain);
     }
     chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
     mockFrom.mockReturnValue(chain);
   });
 
-  it('inserts notification into notifications table', async () => {
-    await sendNotification('user-123', 'Test Title', 'Test message', 'test_type');
-
-    expect(mockFrom).toHaveBeenCalledWith('notifications');
-    const chain = mockFrom.mock.results[0].value;
-    expect(chain.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: 'user-123',
-        title: 'Test Title',
-        message: 'Test message',
-        type: 'test_type',
-        read: false,
-      })
+  it('uses the preference-aware notification service and preserves routing metadata', async () => {
+    mockCreate.mockResolvedValue(undefined);
+    await sendNotification(
+      'user-123',
+      'Test Title',
+      'Test message',
+      'test_type',
+      '/jobs/job-1',
+      { jobId: 'job-1' }
     );
+    expect(mockCreate).toHaveBeenCalledWith({
+      userId: 'user-123',
+      title: 'Test Title',
+      message: 'Test message',
+      type: 'test_type',
+      actionUrl: '/jobs/job-1',
+      metadata: { source: 'stripe-webhook', jobId: 'job-1' },
+    });
   });
-
   it('fails silently when insert throws', async () => {
-    mockFrom.mockImplementation(() => {
+    mockCreate.mockImplementation(() => {
       throw new Error('DB connection lost');
     });
 
     // Should not throw
-    await expect(sendNotification('user-1', 'Title', 'Msg', 'type')).resolves.toBeUndefined();
+    await expect(
+      sendNotification('user-1', 'Title', 'Msg', 'type')
+    ).resolves.toBeUndefined();
     expect(mockLoggerError).toHaveBeenCalledWith(
       'Failed to send notification',
       expect.any(Error),
-      expect.objectContaining({ userId: 'user-1', type: 'type' }),
+      expect.objectContaining({ userId: 'user-1', type: 'type' })
     );
   });
 });

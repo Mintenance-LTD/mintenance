@@ -6,7 +6,8 @@ const m = vi.hoisted(() => ({
   warn: vi.fn(),
   handler: vi.fn(),
 }));
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: { info: vi.fn(), warn: m.warn, error: vi.fn() },
 }));
 vi.mock('@/lib/cron-auth', () => ({ requireCronAuth: () => null }));

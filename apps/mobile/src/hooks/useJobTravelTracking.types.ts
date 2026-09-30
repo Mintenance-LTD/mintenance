@@ -19,14 +19,8 @@ export interface UseJobTravelTrackingOptions {
   onLocationUpdate?: (location: TravelLocation) => void;
   onArrival?: () => void;
   /**
-   * When true, automatically start tracking on mount IF location
-   * permission is already 'granted' (no OS prompt). Falls back to the
-   * manual button in `undetermined`/`denied` states. Live audit
-   * (2026-04-28) showed `contractor_locations = 0` in prod because
-   * the manual "Share My Location" button on the job detail page sat
-   * at the bottom and was rarely tapped — auto-start removes the gap
-   * for contractors who already granted permission via the
-   * AlwaysLocationSoftAsk modal or a prior session.
+   * Resume an existing en-route trip for this job when GPS permission
+   * is already granted. Never creates a trip or prompts on screen mount.
    */
   autoStartIfPermitted?: boolean;
 }

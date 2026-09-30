@@ -1,0 +1,73 @@
+Settings remediation — 30 September 2026
+
+Implemented against codex/migrate-next-proxy, starting at 1f4da3202.
+Existing unrelated checkpoint, scheduler and backup work preserved.
+
+Changes:
+- Mobile MFA uses the application MFA status/enrollment envelope, accepts and
+  verifies the authenticator code, requires password confirmation to disable,
+  and shows read errors instead of pretending MFA is disabled. Recovery codes
+  are shown only when actually available from enrollment. This does not establish
+  parity of every login/challenge path across custom MFA and Supabase sessions.
+- Notification load failures expose retry, not editable defaults. Saves are
+  guarded against duplicate submission; screen edits pause during saving.
+- Notification preference-store failures defer through the existing durable
+  notification queue rather than bypassing opt-outs. The processor rechecks
+  preferences before delivery, and its five-minute lease makes read failures
+  retryable. Queue storage failure still cannot guarantee enqueue success.
+- Generic settings PATCH checks failed/missing reads, deep-merges known groups,
+  and conditionally updates the JSON snapshot. A conflicting update is re-read
+  up to three times; exhaustion returns 409 instead of false success.
+- Accessibility cache is account-scoped. Failed saves retain the old value and
+  show an error/reload control. Description accurately scopes larger controls
+  to job posting; this is not a new app-wide accessibility implementation.
+- Unsupported profile-visibility/activity-sharing switches removed from mobile
+  and web, replaced by an explanation. Their enforcement is NOT implemented;
+  removal prevents new misleading claims but does not change old installed APKs.
+- Biometrics enabled status checks the signed-in account; the UI explicitly
+  supports one remembered account per device. Normal token refresh updates only
+  a matching remembered email. Cancelled biometric tests no longer report success.
+  This is not multiple saved accounts or a new account picker.
+- Selecting a card calls the existing server/Stripe default operation, with
+  duplicate-save guard, pending state and previous selection preserved on error.
+- Pending releases remain pending in history; summary amounts explicitly cover
+  loaded records, with a contractor Received label rather than Paid.
+- Export category failures reject the request instead of returning a supposedly
+  complete empty category. Completion is recorded after category assembly.
+  Unique account/request-time filenames avoid same-day overwrites. Android uses
+  Storage Access Framework to save a user-accessible copy; iOS uses native Share.
+  History query errors are visible. No new native dependency required.
+- Privacy/Terms revision dates are fixed to each document's last source commit
+  (18 / 22 May 2026), rather than fabricated from each render/build date. No legal
+  content approval or legal-compliance conclusion is implied.
+
+Validation:
+- Focused mobile regression suites cover MFA enrollment/verification/disable and
+  failed status, notification failed-load retry with saved values preserved,
+  failed accessibility save, matching biometric account/token rotation, card
+  persistence/error handling, and existing auth/biometric paths.
+- Web regression suites cover failed reads, concurrency conflicts and bounded
+  retries; incomplete export rejection; preference outage queueing; MFA service
+  failures and authenticated identity checks.
+- Both application type checks passed during implementation. Targeted lint had
+  no errors; remaining existing JSX apostrophe and unused page-argument warnings.
+- No SQL schema changes or live payment/data mutations. No production migration
+  required for these changes. Conditional JSON update tested with a DB-client
+  fixture, not a fresh deployed PostgREST round trip.
+
+Still required before closing readiness:
+1. Install a fresh build containing these changes and repeat each setting with
+   synthetic homeowner/contractor accounts, including force-stop, offline save,
+   account switch, real biometric prompts, token revocation and file picking.
+2. Verify native MFA login/challenge enforcement and session compatibility end to
+   end; settings-flow tests do not prove protection of every authentication path.
+3. If profile hiding/activity consent controls are desired, define and implement
+   complete server/profile/discovery/analytics enforcement before restoring them.
+4. Verify actual notification queue retry against isolated services and confirm
+   deployed application version before release. Provider outage and terminal
+   export completion-write recovery remain broader operational checks.
+5. Physical Android and iOS checks remain outstanding. This record is not a public
+   launch sign-off and does not mean the existing installed APK has been updated.
+
+Final focused regression results: 107 mobile tests (7 suites) and 22 web tests
+(5 suites) passed. No live credentials used in the synthetic tests.

@@ -1,0 +1,34 @@
+Workspace cleanup — 30 September 2026
+
+The initial inventory counted 531,134 files (6.24 GiB) under .claude alone.
+These were predominantly duplicated dependency installations, not application
+backups. The root node_modules contained 211,567 files and was preserved.
+
+Removed only untracked node_modules from these obsolete .claude/worktrees:
+  adoring-volhard-c4d7e2
+  confident-austin-d25819
+  reverent-pike-96875d
+  sad-jemison-348502
+Their source directories were preserved. None was a registered Git worktree.
+Resolved paths, directory names, reparse points and tracked-file checks were
+checked before native PowerShell Remove-Item operations.
+
+Afterward .claude contained 5,556 files / 100,588,464 bytes: 525,578 fewer files.
+The initial size was rounded, so a precise byte saving cannot be claimed.
+
+Also removed only snapshots directories from three stopped audit emulators:
+  audit/2026-09-06/isolated-stack/android-avd/Mintenance_Audit_20260922.avd
+  audit/2026-09-06/isolated-stack/avd/Mintenance_Release_Audit.avd
+  audit/2026-09-06/isolated-stack/avd/MintenanceAudit.avd
+No emulator/qemu process was running. User-data disk images were retained.
+Snapshot RAM images accounted for roughly 8 GiB. Emulators will cold-boot.
+
+Preserved: application source, Git history, registered worktrees, root
+dependencies, datasets, APKs, audit evidence, credentials and database volumes.
+The audit folder remains large (12,613,796,415 bytes at the second inventory),
+principally retained emulator disk images. Do not mistake these for redundant
+production backups or remove them while tests may still need their state.
+
+Ignored machine-readable inventories: isolated-stack/disk-inventory.json and
+isolated-stack/disk-after.json. Dependency folders can be regenerated with the
+repository's package manager; removed emulator snapshots require a cold boot.

@@ -35,6 +35,7 @@ import { mobileApiClient } from '../utils/mobileApiClient';
 import { goToTab } from '../navigation/hooks';
 import { me } from '../design-system/mint-editorial';
 import { styles } from './CalendarStyles';
+import { VisitResponse } from './VisitResponse';
 
 interface ScheduleItem {
   id: string;
@@ -51,6 +52,8 @@ interface ScheduleItem {
   duration_minutes?: number;
   status: string;
   address?: string;
+  clientResponse?: string;
+  canRespond?: boolean;
 }
 
 interface Props {
@@ -121,10 +124,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const weekDays = useMemo(
-    () => getWeekDays(selectedDate),
-    [selectedDate.toISOString().slice(0, 10)]
-  );
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   const selectedDateKey = toDateKey(selectedDate);
 
   const {
@@ -145,20 +145,22 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       // still shows the full set instead of the 10-row default the
       // dashboard widget uses.
       const res = await mobileApiClient.get<{
-        appointments: Array<{
+        appointments: {
           id: string;
           title: string;
           date: string;
           time: string;
           endTime?: string;
           status?: string;
+          clientResponse?: string;
+          canRespond?: boolean;
           locationAddress?: string;
           job?: { id: string; title?: string } | null;
           // Older contractor-route shape, kept for backward compatibility
           jobId?: string;
           jobTitle?: string;
           location?: string;
-        }>;
+        }[];
       }>('/api/appointments?daysAhead=180&limit=500');
 
       return (res.appointments || []).map(
@@ -176,6 +178,8 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           time_end: a.endTime,
           status: a.status || 'scheduled',
           address: a.locationAddress || a.location,
+          clientResponse: a.clientResponse,
+          canRespond: a.canRespond,
         })
       );
     },
@@ -390,6 +394,15 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                       </View>
                     ) : null}
                   </TouchableOpacity>
+                  <VisitResponse
+                    id={item.id}
+                    date={item.date}
+                    start={item.time_start}
+                    end={item.time_end}
+                    response={item.clientResponse}
+                    canRespond={item.canRespond}
+                    onSaved={() => void handleRefresh()}
+                  />
                 </View>
               </View>
             );

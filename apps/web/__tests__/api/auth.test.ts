@@ -119,7 +119,8 @@ vi.mock('next/headers', () => ({
   cookies: mocks.cookies,
 }));
 
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: mocks.logger,
 }));
 
@@ -164,7 +165,10 @@ vi.mock('@/lib/auth', () => ({
   verifyToken: vi.fn(),
   setAuthCookie: vi.fn(),
   clearAuthCookie: vi.fn(),
-  createTokenPair: vi.fn(async () => ({ accessToken: 'at', refreshToken: 'rt' })),
+  createTokenPair: vi.fn(async () => ({
+    accessToken: 'at',
+    refreshToken: 'rt',
+  })),
   rotateTokens: vi.fn(),
   revokeAllTokens: vi.fn(),
   createAuthCookieHeaders: vi.fn(() => new Headers()),
@@ -176,7 +180,8 @@ vi.mock('@/lib/config', () => ({
 }));
 
 vi.mock('@/lib/errors/api-error', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/errors/api-error')>();
+  const actual =
+    await importOriginal<typeof import('@/lib/errors/api-error')>();
   return actual;
 });
 
@@ -226,7 +231,10 @@ describe('Authentication API Routes', () => {
       mocks.serverSupabase.from.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn(() => ({ data: { mfa_enabled: false }, error: null })),
+            single: vi.fn(() => ({
+              data: { mfa_enabled: false },
+              error: null,
+            })),
           })),
         })),
       });
@@ -311,7 +319,8 @@ describe('Authentication API Routes', () => {
         delete: vi.fn(),
       });
 
-      const { POST: logoutHandler } = await import('@/app/api/auth/logout/route');
+      const { POST: logoutHandler } =
+        await import('@/app/api/auth/logout/route');
 
       const request = new NextRequest('http://localhost/api/auth/logout', {
         method: 'POST',

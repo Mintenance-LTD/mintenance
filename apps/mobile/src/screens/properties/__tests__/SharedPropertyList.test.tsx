@@ -3,6 +3,14 @@ import { FlatList } from 'react-native';
 import { act, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PropertiesScreen } from '../PropertiesScreen';
+// This suite verifies account isolation of the property list; native file
+// export is covered separately and is not available in the Jest runtime.
+jest.mock('expo-file-system/legacy', () => ({
+  cacheDirectory: 'file:///test-cache/',
+  writeAsStringAsync: jest.fn(),
+  StorageAccessFramework: {},
+  EncodingType: { UTF8: 'utf8' },
+}));
 jest.mock('../components/PropertyInvitations', () => ({
   PropertyInvitations: () => null,
 }));

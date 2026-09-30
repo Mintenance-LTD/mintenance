@@ -31,7 +31,7 @@
 
 export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
   appointments:
-    'appointment_date,cancellation_reason,cancelled_at,client_email,client_id,client_name,client_phone,completed_at,contractor_id,created_at,description,duration_minutes,end_time,id,job_id,location_address,location_type,notes,reminder_sent,reminder_sent_at,start_time,status,title,updated_at,video_call_url'.split(
+    'appointment_date,cancellation_reason,cancelled_at,client_email,client_id,client_response,client_response_at,client_name,client_phone,completed_at,contractor_id,created_at,description,duration_minutes,end_time,id,job_id,location_address,location_type,notes,reminder_sent,reminder_sent_at,start_time,status,title,updated_at,video_call_url'.split(
       ','
     ),
   bids: 'amount,bid_to_budget_ratio,competitiveness_score,contractor_id,created_at,description,estimated_duration_days,expires_at,has_itemization,id,itemization_quality_score,job_id,labor_breakdown,line_items,materials_breakdown,materials_included,message,other_costs_breakdown,pricing_recommendation_id,proposed_start_date,quote_id,rejection_reason,status,suggested_price_range,tax_rate,terms,updated_at,warranty_months,was_price_recommended,within_typical_range'.split(

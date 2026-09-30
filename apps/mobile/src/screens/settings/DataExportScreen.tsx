@@ -1,3 +1,4 @@
+import { styles } from './DataExportScreen.styles';
 /**
  * Data Export Screen (GDPR Compliance)
  *
@@ -12,12 +13,12 @@ import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
   StatusBar,
-  Linking,
+  Platform,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +31,8 @@ import {
   documentDirectory,
   EncodingType,
   writeAsStringAsync,
+  readAsStringAsync,
+  StorageAccessFramework,
 } from 'expo-file-system/legacy';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -141,7 +144,12 @@ export const DataExportScreen: React.FC = () => {
   // request type is filtered with request_type='portability'. The
   // download URL lives in `data_export_path`. Fixed both ends so
   // the screen actually lists prior requests + submits valid ones.
-  const { data: exports, isLoading } = useQuery<ExportStatus[]>({
+  const {
+    data: exports,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<ExportStatus[]>({
     queryKey: ['data-exports', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not signed in');
@@ -151,7 +159,7 @@ export const DataExportScreen: React.FC = () => {
         .eq('user_id', user.id)
         .eq('request_type', 'portability')
         .order('requested_at', { ascending: false });
-      if (error) return [];
+      if (error) throw new Error('Unable to load export history');
       return (data || []).map((d: Record<string, unknown>) => ({
         id: d.id as string,
         status: ((d.status as string) || 'pending') as ExportStatus['status'],
@@ -191,7 +199,7 @@ export const DataExportScreen: React.FC = () => {
           // be cleared by the OS). The file name carries the date so
           // multiple exports don't collide.
           const dateStamp = new Date().toISOString().split('T')[0];
-          const fileName = `mintenance-data-export-${dateStamp}.json`;
+          const fileName = `mintenance-data-export-${user.id}-${dateStamp}-${Date.now()}.json`;
           const base = documentDirectory ?? '';
           if (base) {
             const target = base + fileName;
@@ -218,18 +226,40 @@ export const DataExportScreen: React.FC = () => {
       if (savedPath) {
         Alert.alert(
           'Export Saved',
-          `Your data export has been saved to your device. Tap "Open" to view it now, or find it later in the Files app.`,
+          `Your data export has been saved to your device. Tap "Save or share" to choose where to keep a copy.`,
           [
             { text: 'Done', style: 'default' },
             {
-              text: 'Open',
+              text: 'Save or share',
               onPress: () => {
-                Linking.openURL(savedPath).catch(() => {
+                void (async () => {
+                  if (Platform.OS === 'android') {
+                    const permission =
+                      await StorageAccessFramework.requestDirectoryPermissionsAsync();
+                    if (!permission.granted) return;
+                    const uri = await StorageAccessFramework.createFileAsync(
+                      permission.directoryUri,
+                      savedPath.split('/').pop()!,
+                      'application/json'
+                    );
+                    await writeAsStringAsync(
+                      uri,
+                      await readAsStringAsync(savedPath),
+                      { encoding: EncodingType.UTF8 }
+                    );
+                    Alert.alert(
+                      'Export saved',
+                      'Your export is in the folder you selected.'
+                    );
+                  } else {
+                    await Share.share({ url: savedPath });
+                  }
+                })().catch(() =>
                   Alert.alert(
-                    'File saved',
-                    `Saved to: ${savedPath}\n\nUse the Files app to open it.`
-                  );
-                });
+                    'Unable to save export',
+                    'Please retry or download it from the web app.'
+                  )
+                );
               },
             },
           ]
@@ -268,6 +298,24 @@ export const DataExportScreen: React.FC = () => {
       e.status === 'processing' ||
       e.status === 'in_progress'
   );
+
+  if (isError)
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScreenHeader
+          title='Export data'
+          showBack
+          onBack={() => navigation.goBack()}
+        />
+        <Text>Unable to load export history.</Text>
+        <TouchableOpacity
+          onPress={() => void refetch()}
+          accessibilityRole='button'
+        >
+          <Text>Try again</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -400,100 +448,3 @@ export const DataExportScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: me.bg2 },
-  scrollView: { flex: 1 },
-  content: { padding: 16, paddingBottom: 40 },
-  card: {
-    backgroundColor: me.surface,
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-    ...me.shadow.card,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    paddingBottom: 8,
-  },
-  iconChip: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 16, fontWeight: '600', color: me.ink },
-  bodyText: {
-    fontSize: 13,
-    color: me.ink2,
-    lineHeight: 20,
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: me.ink3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  catRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-  },
-  catBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
-  },
-  catLabel: {
-    fontSize: 14,
-    color: me.ink,
-    fontWeight: '400',
-  },
-  exportRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
-  exportDate: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: me.ink,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 3,
-  },
-  statusText: { fontSize: 12, fontWeight: '500' },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: me.ink,
-    borderRadius: 12,
-    paddingVertical: 15,
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  buttonDisabled: { backgroundColor: me.ink3 },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: me.onBrand,
-  },
-  footnote: {
-    fontSize: 12,
-    color: me.ink3,
-    lineHeight: 18,
-    paddingHorizontal: 4,
-    textAlign: 'center',
-  },
-});

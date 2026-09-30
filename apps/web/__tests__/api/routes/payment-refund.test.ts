@@ -47,7 +47,8 @@ vi.mock('@/lib/rate-limiter', () => ({
   checkApiRateLimit: mocks.checkApiRateLimit,
 }));
 
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: mocks.logger,
   BUSINESS_RULES: {},
   RATE_LIMITS: {},

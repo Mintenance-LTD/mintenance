@@ -23,6 +23,7 @@ import type { Property } from '@mintenance/types';
 import { me } from '../../design-system/mint-editorial';
 import { styles } from './PropertiesStyles';
 import { PropertyInvitations } from './components/PropertyInvitations';
+import { PortfolioActionQueue } from './components/PortfolioActionQueue';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Properties'>;
@@ -348,7 +349,16 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
       ) : (
         <FlatList
-          ListHeaderComponent={PropertyInvitations}
+          ListHeaderComponent={
+            <>
+              <PropertyInvitations />
+              <PortfolioActionQueue
+                onOpenProperty={(propertyId) =>
+                  navigation.navigate('PropertyDetail', { propertyId })
+                }
+              />
+            </>
+          }
           data={sortedProperties}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (

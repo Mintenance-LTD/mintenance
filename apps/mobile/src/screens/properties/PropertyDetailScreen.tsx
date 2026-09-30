@@ -38,6 +38,7 @@ import { TeamAccess } from './components/TeamAccess';
 import { ComplianceCertificates } from './components/ComplianceCertificates';
 import { PropertyRoomsSection } from './components/PropertyRoomsSection';
 import { PropertyAccessSection } from './components/PropertyAccessSection';
+import { PropertyFiles } from './components/PropertyFiles';
 
 // 2026-05-23 audit: added 'access' tab. Mobile previously had no
 // access-editing surface at all; the homeowner had to switch to web
@@ -750,6 +751,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     <>
       <RecurringMaintenance propertyId={propertyId} />
       <ComplianceCertificates propertyId={propertyId} />
+      {caps.canManageMaintenance && <PropertyFiles propertyId={propertyId} />}
     </>
   );
 

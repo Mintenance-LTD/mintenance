@@ -1,4 +1,5 @@
 'use client';
+import { PropertyFileHub } from './PropertyFileHub';
 
 /**
  * Mint Editorial /properties/[id] orchestrator.
@@ -191,7 +192,10 @@ export function MintEditorialPropertyDetail({
       ) : null}
 
       {activeTab === 'documents' ? (
-        <MintEditorialPropertyDocuments certificates={certificates} />
+        <>
+          <PropertyFileHub propertyId={property.id} />
+          <MintEditorialPropertyDocuments certificates={certificates} />
+        </>
       ) : null}
 
       {activeTab === 'timeline' ? (

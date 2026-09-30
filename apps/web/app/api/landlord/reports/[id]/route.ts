@@ -68,7 +68,7 @@ export const PATCH = withApiHandler(
     const { data: report } = await serverSupabase
       .from('anonymous_reports')
       .select(
-        'id, status, acknowledged_at, resolved_at, anonymous_report_tokens!inner(owner_id)'
+        'id, property_id, status, acknowledged_at, resolved_at, anonymous_report_tokens!inner(owner_id)'
       )
       .eq('id', reportId)
       .single();
@@ -109,6 +109,20 @@ export const PATCH = withApiHandler(
           : null;
     }
     if (job_id !== undefined) {
+      if (job_id) {
+        const { data: job, error: jobError } = await serverSupabase
+          .from('jobs')
+          .select('id')
+          .eq('id', job_id)
+          .eq('property_id', report.property_id)
+          .eq('homeowner_id', ownerId)
+          .maybeSingle();
+        if (jobError || !job)
+          return NextResponse.json(
+            { error: 'Job must belong to this property and owner' },
+            { status: 400 }
+          );
+      }
       update.job_id = typeof job_id === 'string' && job_id ? job_id : null;
     }
 

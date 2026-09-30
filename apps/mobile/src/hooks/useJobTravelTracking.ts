@@ -14,7 +14,6 @@ import { Alert } from 'react-native';
 import * as Location from 'expo-location';
 import {
   JobContextLocationService,
-  ContractorLocationContext,
   acquireJobTrackingService,
   releaseJobTrackingService,
 } from '../services/JobContextLocationService';
@@ -56,6 +55,8 @@ export function useJobTravelTracking({
   const [eta, setEta] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const startingRef = useRef(false);
+  const stoppedRef = useRef(false);
   const locationServiceRef = useRef<JobContextLocationService | null>(null);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
@@ -69,12 +70,14 @@ export function useJobTravelTracking({
         return;
       }
 
+      if (startingRef.current || locationServiceRef.current) return;
+      startingRef.current = true;
       try {
         setError(null);
+        if (opts.createTrip) stoppedRef.current = false;
         // A fresh start (manual tap or auto-start) means a new journey —
         // clear any prior arrived state for this job session.
         setHasArrived(false);
-        setIsTracking(true);
 
         const handleLocationUpdate = (locationUpdate: {
           latitude: number;
@@ -113,35 +116,22 @@ export function useJobTravelTracking({
             throw new Error('Job location is not available for tracking');
           }
 
-          // 2026-05-28 U4: web parity. An explicit "I'm on my way" tap
-          // (opts.createTrip) creates a contractor_trips en_route row,
-          // mirroring web's OnMyWayButton. The trip POST notifies the
-          // homeowner ("X is on the way") + all admins ("Trip started")
-          // and lights up the web trip card and the global auto-start
-          // hook (useAssignedJobLocationAutoStart is gated on an en_route
-          // trip existing). Best-effort: an "already have an active trip"
-          // 400 just means a trip is already live (homeowner already
-          // notified), so we still suppress the redundant share notify.
-          // Other failures fall back to the enable-location-sharing
-          // notify inside startJobTracking. The silent auto-start path
-          // never passes createTrip — opening the screen shouldn't tell
-          // the homeowner the contractor is on the way.
-          let tripNotified = false;
+          // Permission to use GPS is not consent to start a journey.
+          // Only an explicit tap creates a trip; screen mounts may resume
+          // an existing trip for this exact job, never silently create one.
           if (opts.createTrip) {
-            try {
-              await mobileApiClient.post('/api/contractor/trips', { jobId });
-              tripNotified = true;
-            } catch (tripErr) {
-              const msg =
-                tripErr instanceof Error ? tripErr.message : String(tripErr);
-              if (/already have an active trip/i.test(msg)) {
-                tripNotified = true;
-              } else {
-                logger.warn(
-                  'Trip creation failed; falling back to location-sharing notify',
-                  { jobId, error: msg }
-                );
-              }
+            await mobileApiClient.post('/api/contractor/trips', { jobId });
+          } else {
+            const response = await mobileApiClient.get<{
+              trips?: { job_id: string; status: string }[];
+            }>(`/api/contractor/trips?status=en_route&jobId=${jobId}`);
+            if (
+              !response.trips?.some(
+                (trip) => trip.job_id === jobId && trip.status === 'en_route'
+              )
+            ) {
+              setIsTracking(false);
+              return;
             }
           }
 
@@ -153,6 +143,7 @@ export function useJobTravelTracking({
           // auto-start beat us to it) we skip a second startJobTracking
           // and just attach the callback so the section UI updates.
           locationService = acquireJobTrackingService(user.id, jobId);
+          locationServiceRef.current = locationService;
           const status = locationService.getTrackingStatus();
           if (!status.isTracking) {
             await locationService.startJobTracking(
@@ -167,7 +158,7 @@ export function useJobTravelTracking({
                   eta,
                 });
               },
-              { skipShareNotify: tripNotified }
+              { skipShareNotify: true }
             );
           }
         } else {
@@ -175,6 +166,7 @@ export function useJobTravelTracking({
         }
 
         locationServiceRef.current = locationService;
+        setIsTracking(true);
 
         // Subscribe to real-time updates
         if (meetingId) {
@@ -209,19 +201,18 @@ export function useJobTravelTracking({
           contractorId: user.id,
         });
       } catch (err) {
+        if (jobId && !meetingId && locationServiceRef.current) {
+          await releaseJobTrackingService(user.id, jobId).catch(
+            () => undefined
+          );
+          locationServiceRef.current = null;
+        }
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to start tracking';
         setError(errorMessage);
         setIsTracking(false);
-        // 2026-06-11 P1: only surface a blocking modal for an explicit
-        // "I'm on my way" tap (opts.createTrip). The silent auto-start
-        // path re-runs every time the assigned-job screen mounts / when
-        // isTracking flips, so popping an Alert here spammed a blocking
-        // "Error / OK" dialog every ~30s whenever GPS was unavailable
-        // (indoors, permission off, emulator) — it covered the contract
-        // + job-detail screens on a loop and made them unusable. The
-        // error is still kept in state + logged; the en-route section UI
-        // reflects it without hijacking the whole screen.
+        // Explicit departure failures are actionable; background resume
+        // failures stay inline so they cannot trap users behind repeated alerts.
         if (opts.createTrip) {
           // Explicit "I'm on my way" tap — the user is waiting on this, so
           // surface it loudly (modal + error-level capture).
@@ -238,52 +229,64 @@ export function useJobTravelTracking({
             error: errorMessage,
           });
         }
+      } finally {
+        startingRef.current = false;
       }
     },
     [destination, jobId, meetingId, user, onLocationUpdate]
   );
 
-  /**
-   * Stop tracking.
-   *
-   * 2026-05-26 audit-50 P1: for jobId-scoped tracking we now release a
-   * reference to the (contractor, job) singleton instead of stopping
-   * the service directly. The service is only torn down when the last
-   * consumer releases — protects the global auto-start hook from
-   * being prematurely stopped when the contractor merely closes the
-   * job detail screen.
-   */
-  const stopTracking = useCallback(async () => {
-    try {
-      if (locationServiceRef.current) {
-        if (jobId && !meetingId && user?.id) {
-          await releaseJobTrackingService(user.id, jobId);
-        } else {
-          // Meeting-based path retains its own lifecycle; the registry
-          // is jobId-keyed and doesn't apply.
-          await locationServiceRef.current.stopJobTracking();
+  /** Explicit stop cancels the journey; unmount only releases this consumer. */
+  const stopTracking = useCallback(
+    async (cancelTrip = true) => {
+      try {
+        if (locationServiceRef.current) {
+          if (cancelTrip && jobId && !meetingId) {
+            stoppedRef.current = true;
+            // Stop the shared watcher itself, not just this screen's reference.
+            await locationServiceRef.current.stopJobTracking();
+            const response = await mobileApiClient.get<{
+              trips?: { id: string; job_id: string }[];
+            }>(`/api/contractor/trips?status=en_route&jobId=${jobId}`);
+            for (const trip of response.trips ?? []) {
+              if (trip.id && trip.job_id === jobId) {
+                await mobileApiClient.patch(
+                  `/api/contractor/trips/${trip.id}`,
+                  { status: 'cancelled' }
+                );
+              }
+            }
+          }
+          if (jobId && !meetingId && user?.id) {
+            await releaseJobTrackingService(user.id, jobId);
+          } else {
+            // Meeting-based path retains its own lifecycle; the registry
+            // is jobId-keyed and doesn't apply.
+            await locationServiceRef.current.stopJobTracking();
+          }
+          locationServiceRef.current = null;
         }
-        locationServiceRef.current = null;
+
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        }
+
+        setIsTracking(false);
+        setCurrentLocation(null);
+        setEta(null);
+        setError(null);
+
+        logger.info('Stopped travel tracking', { meetingId, jobId });
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to stop tracking';
+        setError(errorMessage);
+        logger.error('Error stopping travel tracking', err);
       }
-
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
-      }
-
-      setIsTracking(false);
-      setCurrentLocation(null);
-      setEta(null);
-      setError(null);
-
-      logger.info('Stopped travel tracking', { meetingId, jobId });
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to stop tracking';
-      setError(errorMessage);
-      logger.error('Error stopping travel tracking', err);
-    }
-  }, [jobId, meetingId, user?.id]);
+    },
+    [jobId, meetingId, user?.id]
+  );
 
   /**
    * Mark contractor as arrived
@@ -321,7 +324,7 @@ export function useJobTravelTracking({
       // Stop tracking (service-side markArrived already preserved the
       // is_active=true row via arrivalCommitted, so the homeowner keeps
       // seeing the on-site card).
-      await stopTracking();
+      await stopTracking(false);
 
       if (onArrival) {
         onArrival();
@@ -383,7 +386,7 @@ export function useJobTravelTracking({
         }
       }
     };
-  }, []);
+  }, [jobId, meetingId, user?.id]);
 
   // On mount, restore the arrived state from the DB. If a prior session
   // already marked this job as arrived (context='on_job', row still
@@ -434,7 +437,7 @@ export function useJobTravelTracking({
   // AlwaysLocationSoftAsk modal. We never trigger the OS prompt from
   // here — that path stays manual via the "Share My Location" button.
   useEffect(() => {
-    if (!autoStartIfPermitted) return;
+    if (!autoStartIfPermitted || stoppedRef.current) return;
     // Wait for the arrived-state restore, then never auto-start once the
     // contractor has arrived (terminal for the job session).
     if (!arrivedChecked) return;

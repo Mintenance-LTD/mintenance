@@ -44,6 +44,7 @@ const PUBLIC_PAGE_ROUTES = [
 
 /** Exact-match public API routes. Sub-paths are NOT allowed. */
 const PUBLIC_API_ROUTES_EXACT = new Set([
+  '/api/report-conversation/receipt',
   '/api/csrf',
   '/api/stats/platform',
   '/api/diag',
@@ -93,6 +94,8 @@ const TENANT_REPORT_RE = /^\/(?:api\/)?report\/[0-9a-f]{32}$/i;
  * Returns true when the given pathname requires no authentication.
  */
 export function isPublicRoute(pathname: string): boolean {
+  // The shell exposes no report data; the API requires a private receipt.
+  if (/^\/maintenance\/reports\/[0-9a-f-]{36}$/i.test(pathname)) return true;
   if (pathname === '/') return true;
   // Confirmation links must work before login; the handler verifies the token
   // and then requires normal sign-in. Do not expose other /auth subpaths.

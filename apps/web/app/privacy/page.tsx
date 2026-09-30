@@ -6,13 +6,8 @@ export const metadata = {
     'Privacy Policy for Mintenance - How we collect, use, and protect your personal information',
 };
 
-function formatDate() {
-  return new Date().toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
+// Date of the last committed document revision, not the build date.
+const POLICY_REVISION_DATE = '18 May 2026';
 
 const h2Style: React.CSSProperties = {
   fontFamily: 'var(--me-font-display)',
@@ -47,7 +42,7 @@ const listStyle: React.CSSProperties = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalPageLayout title='Privacy Policy' lastUpdated={formatDate()}>
+    <LegalPageLayout title='Privacy Policy' lastUpdated={POLICY_REVISION_DATE}>
       <div data-theme='mint-editorial'>
         <section className='mb-8'>
           <h2 style={h2Style}>1. Introduction</h2>

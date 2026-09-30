@@ -7,13 +7,8 @@ export const metadata = {
     'Terms of Service for Mintenance - Rules and guidelines for using our platform',
 };
 
-function formatDate() {
-  return new Date().toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
+// Date of the last committed document revision, not the build date.
+const POLICY_REVISION_DATE = '22 May 2026';
 
 const h2Style: React.CSSProperties = {
   fontFamily: 'var(--me-font-display)',
@@ -48,7 +43,10 @@ const listStyle: React.CSSProperties = {
 
 export default function TermsOfServicePage() {
   return (
-    <LegalPageLayout title='Terms of Service' lastUpdated={formatDate()}>
+    <LegalPageLayout
+      title='Terms of Service'
+      lastUpdated={POLICY_REVISION_DATE}
+    >
       <div data-theme='mint-editorial'>
         <section className='mb-8'>
           <h2 style={h2Style}>1. Agreement to Terms</h2>

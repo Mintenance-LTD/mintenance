@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, AlertCircle, Loader2, X } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,20 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
   const [error, setError] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
 
+  const checkSharingStatus = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/contractors/${contractorId}/location?job_id=${jobId}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setIsSharing(!!data.location?.is_sharing_location);
+      }
+    } catch {
+      // Ignore errors - location might not be set up yet
+    }
+  }, [jobId, contractorId]);
+
   useEffect(() => {
     // Check current sharing status
     checkSharingStatus();
@@ -30,21 +44,7 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
         watchIdRef.current = null;
       }
     };
-  }, [jobId]);
-
-  const checkSharingStatus = async () => {
-    try {
-      const response = await fetch(
-        `/api/contractors/${contractorId}/location?job_id=${jobId}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setIsSharing(!!data.location?.is_sharing_location);
-      }
-    } catch (err) {
-      // Ignore errors - location might not be set up yet
-    }
-  };
+  }, [checkSharingStatus]);
 
   const startLocationSharing = () => {
     if (!navigator.geolocation) {
@@ -151,28 +151,23 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
     if (isSharing) {
       await stopLocationSharing();
     } else {
-      // First enable sharing on server, then start watching.
-      // 2026-05-23 audit: this branch used plain `fetch` while the
-      // sibling stop-sharing + per-ping calls in this same file
-      // already use fetchWithCsrf. /api/jobs/:id/enable-location-sharing
-      // is mutating — without the CSRF header it returns 403 and
-      // the geolocation watch never starts, so the contractor sees
-      // "Enable location sharing" stuck on the button with no
-      // explanation.
+      // This explicit departure uses the same funded-trip gate as mobile.
+      setIsLoading(true);
       try {
-        const response = await fetchWithCsrf(
-          `/api/jobs/${jobId}/enable-location-sharing`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ enabled: true }),
-          }
-        );
+        const response = await fetchWithCsrf('/api/contractor/trips', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ jobId }),
+        });
 
         if (!response.ok) {
-          throw new Error('Failed to enable location sharing');
+          const body = await response.json();
+          throw new Error(
+            body.error?.message ||
+              'Unable to start the journey. Check that payment is confirmed.'
+          );
         }
 
         startLocationSharing();
@@ -320,7 +315,7 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
             : 'Starting...'
           : isSharing
             ? 'Stop Sharing Location'
-            : 'Start Sharing Location'}
+            : 'Going to site'}
       </Button>
 
       <style jsx>{`

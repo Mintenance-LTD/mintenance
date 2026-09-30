@@ -1,0 +1,203 @@
+MOBILE SETTINGS AUDIT — 30 September 2026
+
+Verdict: Not ready to sign off the highlighted settings for public users.
+Scope: homeowner and contractor settings, current local implementation.
+Branch: codex/migrate-next-proxy. Commit: 1f4da3202.
+Existing checkpoint/scheduler edits, backup runbook and output/ preserved.
+No application behaviour, production data, SQL, payment or deployment changed.
+Added this report and settings-audit-characterization.test.ts only.
+
+EVIDENCE / LIMITATIONS
+Traced settings navigation, screen/hook/service/API contracts and selected
+notification delivery, payment and export consumers. The shared profile
+navigator exposes these settings to both roles; defects below generally affect
+both unless stated otherwise. Tests use synthetic values and mocked providers.
+Executed: 129 mobile tests across six files; 13 web tests across three files.
+All passed. One new characterization test reproduces an existing defect; its
+passing result is NOT an acceptance result. No Android device/emulator was
+connected (ADB checked). No fresh two-account native or real biometric test.
+No fresh deployed RLS/provider end-to-end verification. Public www privacy/terms
+content was retrievable through web tooling; this does not verify Android's
+non-www browser redirect or offline handling. No full build/lint was needed
+for this audit-only change. No migration introduced, so no database diff/apply.
+
+CONFIRMED DEFECTS — paths relative to repository root
+
+S1 HIGH / HIGH confidence: Mobile MFA settings cannot complete their workflow.
+apps/mobile/src/screens/settings/MFASecurityScreen.tsx:55 (status query),
+:74 (enrol mutation), :86 (disable mutation), :170 (setup instructions).
+apps/web/app/api/auth/mfa/enroll/totp/route.ts:62; disable/route.ts:24.
+apps/mobile/src/utils/mobileApiClient.ts:328.
+Status uses Supabase factors/AAL; enrol/disable use custom application MFA.
+Enrol expects top-level secret/recoveryCodes while API returns data.secret and
+data.backupCodes. Client returns raw JSON, so no implicit unwrap fixes this.
+Instructions request a verification code but screen has no code input or
+verification action. Disable sends {} while server requires password.
+Failed status can also look like Disabled instead of an error.
+Impact: users cannot reliably enable/inspect/disable MFA from this screen.
+No authentication-bypass claim is made by this audit.
+Fix: one authoritative MFA status/enrol/verify/disable contract, correct response
+mapping, password confirmation and explicit fetch/error/pending states.
+Acceptance: each role enrols, verifies, restarts, challenges, uses recovery and
+disables; wrong code/password/network failure never reports success.
+
+S2 HIGH / HIGH confidence: Privacy switches have no discovered enforcement.
+apps/mobile/src/screens/settings/SettingsHubScreen.tsx:214,232;
+apps/web/app/api/_shared/user-settings-handlers.ts:35,65.
+profileVisible and shareActivityData are stored under profiles.settings.
+Repository consumer searches found UI/schema/persistence references only, no
+discovery/access or activity-collection decision using these flags.
+Impact: saved controls imply a privacy effect the implementation does not supply.
+Fix: define exact scope and enforce at server discovery/profile boundaries and
+optional telemetry collection; keep essential transaction/security processing
+separately explained. Hide unsupported controls until implemented.
+Acceptance: unrelated-user discovery/read checks change as specified; optional
+analytics is not emitted while disabled, including after restart/account switch.
+
+S3 MEDIUM / HIGH confidence: Notification load failure exposes savable defaults.
+apps/mobile/src/screens/settings/NotificationPreferencesScreen.tsx:158-193,
+save function below line 236. GET failure only logs, then ends loading.
+User with existing muted types opens offline, sees initial defaults, later saves
+one adjustment: complete default-based payload can overwrite previous choices.
+API upsert is real and user-scoped; happy-path storage is not the problem.
+Fix: block edits/saving until successful read; retry and preserve drafts on failed
+save. Bind loading state to account identity and prevent stale responses.
+Acceptance: failed initial GET cannot PATCH; reopening successful save preserves
+channels, muted events and quiet hours for separate accounts.
+
+S4 HIGH / HIGH confidence: Notification lookup failure restores permissive delivery.
+apps/web/lib/services/notifications/NotificationPreferenceResolver.ts:37,57,73,104.
+Database errors return defaults enabling channels and no muted types, same as a
+new user. Existing opt-outs can be bypassed during a preference-store outage.
+Fix: distinguish absent row from lookup failure; defer optional delivery or use
+last confirmed preferences. Explicit essential-event policy must be separate.
+Acceptance: preference read error cannot send optional alerts to an opted-out
+synthetic account; deferred work retries without duplicate delivery.
+
+S5 MEDIUM / REPRODUCED: Accessibility setting silently resets after save failure.
+apps/mobile/src/hooks/useSilverMode.ts:20,75; AccessibilitySettingsScreen.tsx:25.
+Hook changes UI/cache, catches PATCH failure and resolves without unsaved/error
+state. Reopening successfully fetches old server value and resets it.
+New settings-audit-characterization.test.ts reproduces false -> enabled after
+failed save -> false after remount using the real hook and synthetic API failure.
+Cache/global state is also not account-scoped. Actual size changes discovered
+only in the job-posting form, not an app-wide accessibility mode.
+Fix: per-user state, visible save/retry or rollback, and accurate scope text (or
+consistent application across promised screens).
+Acceptance: failed save remains visibly unsaved; persisted setting survives
+restart, two-account switching and failed reads without adopting another user.
+
+S6 MEDIUM / HIGH confidence: Generic settings patch can lose existing settings.
+apps/web/app/api/_shared/user-settings-handlers.ts:141-154.
+Reads current JSON but ignores read error, then replaces settings with merged
+JSON. A failed read plus successful update loses other saved keys. Concurrent
+read-modify-write requests can overwrite each other; nested groups are replaced.
+Fix: reject read failures and use atomic field/deep patch or version precondition.
+Acceptance: injected read failure does not write; concurrent independent privacy
+and accessibility changes both survive, including from web and mobile.
+
+S7 MEDIUM / HIGH confidence: Biometrics are device-global, not per account.
+apps/mobile/src/services/BiometricService.ts:7,91,129,159;
+apps/mobile/src/components/BiometricSettings.tsx:87.
+Only one enabled flag and one credential object exist. Enabling for account B
+replaces A; B can see Enabled inherited from A before explicitly enabling B.
+No account selector explains which identity a fingerprint restores. Ordinary
+refresh paths did not call updateStoredRefreshToken in the inspected call graph;
+only biometric restore does. Token longevity needs provider/device verification.
+Additionally Test Biometrics reports success after authenticate returns null on
+cancel (authenticate returns null at BiometricService.ts:299).
+Fix: visibly bind biometric credentials to user ID/account label; offer explicit
+replacement or account selection, update tokens only for matching identity, and
+handle cancelled tests separately. Revalidate before installing a session.
+Acceptance: A enable -> B password login -> status/test -> A/B biometric selection,
+cancel, token rotation, logout/revocation and reinstall all yield expected identity.
+Current answer: one remembered account, last explicitly enabled. A fingerprint
+does not distinguish homeowner from contractor; the restored account determines
+the role. Do not describe current implementation as supporting two saved accounts.
+
+S8 MEDIUM / HIGH confidence: Card selection is cosmetic, not saved default.
+apps/mobile/src/screens/payment-methods/PaymentMethodsScreen.tsx:116;
+viewmodels/PaymentMethodsViewModel.ts:106,126.
+Tap calls selectMethod (local state only). Real setDefaultCard exists but screen
+does not call it. A selected radio can revert after remount and never changes
+Stripe's default. List/add/delete have real service paths; static unused payment
+options were not counted as user-facing defects.
+Fix: explicit Set as default action calling existing operation; pending/error
+states and refresh from Stripe, or remove misleading selection affordance.
+Acceptance: select/save card B, remount, confirm server default B; failure retains A.
+
+S9 MEDIUM / HIGH confidence: Payment-history classification and summaries mislead.
+apps/mobile/src/screens/payment/PaymentHistoryScreen.tsx:54,121,131,190.
+release_pending belongs to completed and contributes to Paid. Totals cover only
+loaded pages; label does not say so. Contractor also sees Paid rather than a
+received/payout-specific distinction. These are real escrow rows, not documents.
+Fix: release_pending stays pending; define payer/payee labels and use authoritative
+totals or label loaded-record totals. Preserve existing pagination implementation.
+Acceptance: pending release never implies completed payout; totals stable across
+page loads or explicitly scoped; homeowner and contractor direction is correct.
+
+S10 MEDIUM / HIGH confidence: Export can silently omit categories and overwrite files.
+apps/web/app/api/gdpr/export-data/route.ts:213 (logEmpty), subsequent bucket merge.
+Optional category query failures logged but response says export completed and
+contains empty buckets without incompleteness metadata. Mobile filename at
+apps/mobile/src/screens/settings/DataExportScreen.tsx:193 contains date only:
+same-day exports (including different accounts) overwrite the same local file.
+History query failure returns [] (:153), hiding failure as no history.
+Android delivery concern: private documentDirectory plus Linking.openURL(:227)
+has no SAF/share export. Actual user-openable file remains device-unverified.
+Fix: fail/retry incomplete exports or list missing categories; unique per-account
+request filenames; explicit save/share flow and visible history errors.
+Acceptance: injected category failure cannot be called complete; both accounts'
+same-day exports coexist; Android Files/share opens correct JSON after restart.
+
+S11 LOW / HIGH confidence: Legal version dates are generated, not real revision dates.
+apps/web/app/privacy/page.tsx:9,50; apps/web/app/terms/page.tsx:10,51.
+lastUpdated uses current date during rendering/build, not document revision.
+Fix: explicit version and approved revision date. Legal text is a real webpage,
+not a switch; opening it does not by itself record agreement or change preferences.
+Acceptance: unchanged document keeps same date across rebuilds; policy promises
+are reconciled with actual privacy and retention controls before sign-off.
+
+WHAT WORKS IN THE INSPECTED IMPLEMENTATION
+- Shared profile navigation registers the highlighted destinations for both roles.
+- SettingsHub has account-keyed query, error/retry and disabled controls while saving.
+- Notification API uses authenticated user ID and validated upsert payload.
+- Payment-method service reads Stripe-backed list; server set-default checks
+  payment-method.customer against authenticated user's linked Stripe customer
+  (apps/web/app/api/payments/set-default/route.ts:69).
+- GDPR export compares submitted email to authenticated identity and scopes queries.
+- Privacy/Terms point to actual public document pages via Expo browser.
+
+READINESS MATRIX
+Notifications: partially verified; confirmed failed-load/delivery-outage defects.
+Accessibility: confirmed failing under interrupted save (local reproduction).
+MFA: confirmed contract failures; native complete flow not verified.
+Biometrics: unit tested components/service; two-account semantics defective;
+  real OS prompt/token lifecycle still device-unverified.
+Payment methods: partially verified; selection persistence confirmed failing.
+Payment history: static inspection; incorrect pending classification confirmed.
+Profile visibility / share activity: stored controls, enforcement unverified/absent
+  from discovered consumers; cannot claim functional.
+Privacy / Terms: source and public content inspected; Android opening unverified.
+Export: source inspected; completeness and filename defects confirmed;
+  physical delivery/complete per-role export not verified.
+
+REPAIR ORDER / COMPLETION CRITERIA
+1. Unify mobile MFA, enforce/hide privacy switches and preserve notification opt-outs.
+2. Make settings updates atomic and failure-aware; fix accessibility/account binding.
+3. Fix saved-card action and truthful payment-history states/totals.
+4. Deliver complete usable exports and stable legal document versions.
+5. Native acceptance on current release with separate synthetic homeowner and
+   contractor: change -> leave -> reopen -> force stop -> restart -> account switch;
+   repeat with expired sessions, offline saves, double taps and provider failures.
+   Test biometric cancellation/rotation and payment-card setup in sandbox only.
+Do not mark complete based solely on existing passing mock-based tests.
+
+EXECUTED TEST FILES
+Mobile: BiometricService.test.ts, useBiometricAuth.test.ts,
+BiometricSettings.test.tsx, quietHoursNormalisation.test.ts,
+NotificationPreferencesManager.test.ts, settings-audit-characterization.test.ts.
+Web: remediation-mfa-status.test.ts, remediation-mfa-disable-identity.test.ts,
+remediation-notification-preferences-client.test.tsx.
+The web preferences tests already enforce failure-safe behaviour in the WEB UI;
+their success does not establish parity with the separate mobile implementation.
