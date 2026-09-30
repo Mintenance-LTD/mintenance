@@ -20,6 +20,9 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import { supabase } from '../../config/supabase';
+import { useJobTravelTracking } from '../useJobTravelTracking';
+
 const mockUseAuth = jest.fn();
 jest.mock('../../contexts/AuthContext', () => ({
   __esModule: true,
@@ -76,10 +79,14 @@ jest.mock('expo-location', () => ({
 }));
 
 const mockApiPost = jest.fn();
+const mockApiGet = jest.fn();
+const mockApiPatch = jest.fn();
 jest.mock('../../utils/mobileApiClient', () => ({
   __esModule: true,
   mobileApiClient: {
     post: (...a: unknown[]) => mockApiPost(...a),
+    get: (...a: unknown[]) => mockApiGet(...a),
+    patch: (...a: unknown[]) => mockApiPatch(...a),
   },
 }));
 
@@ -132,9 +139,6 @@ jest.mock('../../config/supabase', () => {
   };
 });
 
-import { supabase } from '../../config/supabase';
-import { useJobTravelTracking } from '../useJobTravelTracking';
-
 const destination = { latitude: 51.5, longitude: -0.12 };
 
 function fakeService() {
@@ -163,6 +167,10 @@ beforeEach(() => {
   });
   mockGetForegroundPermissions.mockResolvedValue({ status: 'denied' });
   mockApiPost.mockResolvedValue({ ok: true });
+  mockApiPatch.mockResolvedValue({});
+  mockApiGet.mockResolvedValue({
+    trips: [{ job_id: 'job-1', status: 'en_route' }],
+  });
   mockMaybeSingle.mockResolvedValue({ data: null });
   mockMeetingStart.mockResolvedValue(fakeService());
   mockMeetingSubscribe.mockReturnValue({ unsubscribe: jest.fn() });
@@ -348,7 +356,7 @@ describe('jobId registry path', () => {
     );
   });
 
-  it('releases the registry reference on stop (does not hard-stop the service)', async () => {
+  it('stops the shared watcher and releases the reference on explicit stop', async () => {
     const { result } = renderHook(() =>
       useJobTravelTracking({ jobId: 'job-1', destination })
     );
@@ -359,7 +367,7 @@ describe('jobId registry path', () => {
       await result.current.stopTracking();
     });
     expect(mockRelease).toHaveBeenCalledWith('c-1', 'job-1');
-    expect(mockServiceStop).not.toHaveBeenCalled();
+    expect(mockServiceStop).toHaveBeenCalledTimes(1);
     expect(result.current.isTracking).toBe(false);
     expect(result.current.currentLocation).toBeNull();
     expect(result.current.eta).toBeNull();
@@ -404,48 +412,82 @@ describe('createTrip ("I\'m on my way") path', () => {
     );
   });
 
-  it('treats an "already have an active trip" 400 as already-notified', async () => {
-    mockApiPost.mockRejectedValue(new Error('You already have an active trip'));
+  it.each([
+    'Payment must be confirmed',
+    'You already have an active trip',
+    'Network unavailable',
+  ])('does not start GPS when departure is rejected: %s', async (message) => {
+    mockApiPost.mockRejectedValue(new Error(message));
     const { result } = renderHook(() =>
       useJobTravelTracking({ jobId: 'job-1', destination })
     );
     await act(async () => {
       await result.current.startTracking({ createTrip: true });
     });
-    expect(mockServiceStartJob).toHaveBeenCalledWith(
-      'c-1',
-      'job-1',
-      null,
-      destination,
-      expect.any(Function),
-      { skipShareNotify: true }
-    );
-    expect(mockLoggerWarn).not.toHaveBeenCalledWith(
-      'Trip creation failed; falling back to location-sharing notify',
-      expect.anything()
-    );
+    expect(mockAcquire).not.toHaveBeenCalled();
+    expect(mockServiceStartJob).not.toHaveBeenCalled();
+    expect(result.current.error).toBe(message);
   });
 
-  it('falls back to share notify (skipShareNotify=false) on other trip errors', async () => {
-    mockApiPost.mockRejectedValue(new Error('boom'));
+  it.each([
+    { trips: [] },
+    { trips: [{ job_id: 'another-job', status: 'en_route' }] },
+  ])(
+    'does not resume without an en-route trip for this job: %j',
+    async ({ trips }) => {
+      mockApiGet.mockResolvedValue({ trips });
+      const { result } = renderHook(() =>
+        useJobTravelTracking({ jobId: 'job-1', destination })
+      );
+      await act(async () => {
+        await result.current.startTracking();
+      });
+      expect(mockAcquire).not.toHaveBeenCalled();
+      expect(mockApiPost).not.toHaveBeenCalled();
+      expect(result.current.isTracking).toBe(false);
+    }
+  );
+});
+
+describe('explicit departure lifecycle', () => {
+  it('ignores a second departure tap while the first request is pending', async () => {
+    let resolve!: (value: unknown) => void;
+    mockApiPost.mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        })
+    );
+    const { result } = renderHook(() =>
+      useJobTravelTracking({ jobId: 'job-1', destination })
+    );
+    await act(async () => {
+      const first = result.current.startTracking({ createTrip: true });
+      await result.current.startTracking({ createTrip: true });
+      resolve({});
+      await first;
+    });
+    expect(mockApiPost).toHaveBeenCalledTimes(1);
+    expect(mockAcquire).toHaveBeenCalledTimes(1);
+  });
+  it('cancels the same trip and stops the shared watcher on Stop', async () => {
+    mockApiGet.mockResolvedValue({
+      trips: [{ id: 'trip-1', job_id: 'job-1', status: 'en_route' }],
+    });
     const { result } = renderHook(() =>
       useJobTravelTracking({ jobId: 'job-1', destination })
     );
     await act(async () => {
       await result.current.startTracking({ createTrip: true });
     });
-    expect(mockLoggerWarn).toHaveBeenCalledWith(
-      'Trip creation failed; falling back to location-sharing notify',
-      expect.objectContaining({ jobId: 'job-1' })
-    );
-    expect(mockServiceStartJob).toHaveBeenCalledWith(
-      'c-1',
-      'job-1',
-      null,
-      destination,
-      expect.any(Function),
-      { skipShareNotify: false }
-    );
+    await act(async () => {
+      await result.current.stopTracking();
+    });
+    expect(mockServiceStop).toHaveBeenCalledTimes(1);
+    expect(mockApiPatch).toHaveBeenCalledWith('/api/contractor/trips/trip-1', {
+      status: 'cancelled',
+    });
+    expect(result.current.isTracking).toBe(false);
   });
 });
 

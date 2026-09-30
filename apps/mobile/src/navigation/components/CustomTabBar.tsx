@@ -15,10 +15,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { StackActions } from '@react-navigation/native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { NAVIGATION_CONSTANTS, TAB_CONFIG } from '../constants';
+import { TAB_CONFIG } from '../constants';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
 
 const TabBadge: React.FC<{ badge: number | string | boolean | undefined }> = ({
   badge,
@@ -87,37 +87,21 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             });
 
             if (!event.defaultPrevented) {
-              if (isFocused) {
-                // Already on this tab — pop the nested stack back to its
-                // root screen. `navigation.navigate(name, { screen: undefined })`
-                // is a no-op (React Navigation requires a real screen name
-                // in nested navigation actions), which left users stranded
-                // on deep-stack screens like EditProfile and JobDetails —
-                // tapping the tab did nothing and they thought they were
-                // locked. Target the first route in the focused tab's
-                // own stack state to actually pop back to root.
-                const focusedRouteState = state.routes[index]?.state;
-                const rootScreenName = focusedRouteState?.routes?.[0]?.name;
-                if (
-                  focusedRouteState &&
-                  rootScreenName &&
-                  // Only dispatch when the stack has pushed at least one
-                  // screen on top of the root — otherwise this would loop
-                  // the tab back to itself with no effect.
-                  (focusedRouteState.index ?? 0) > 0
-                ) {
-                  (
-                    navigation as unknown as {
-                      navigate: (
-                        name: string,
-                        params: { screen: string }
-                      ) => void;
-                    }
-                  ).navigate(route.name, { screen: rootScreenName });
-                }
-              } else {
-                navigation.navigate(route.name);
+              // A Jobs tab press always returns to the existing list. Target
+              // its stack so React Navigation 7 does not push another list
+              // above the detail screen and leave a misleading back history.
+              const nested = route.state;
+              if (
+                (isFocused || route.name === 'JobsTab') &&
+                nested?.key &&
+                (nested.index ?? 0) > 0
+              ) {
+                navigation.dispatch({
+                  ...StackActions.popToTop(),
+                  target: nested.key,
+                });
               }
+              if (!isFocused) navigation.navigate(route.name);
             }
           };
 

@@ -99,6 +99,21 @@ export const POST = withApiHandler(
         throw new BadRequestError('Job is not in an active state');
       }
 
+      // A travel notification must never imply the contractor should start
+      // work while funding is pending, refunded, or disputed.
+      const { data: funding, error: fundingError } = await serverSupabase
+        .from('escrow_transactions')
+        .select('id')
+        .eq('job_id', jobId)
+        .eq('status', 'held')
+        .limit(1)
+        .maybeSingle();
+      if (fundingError) throw fundingError;
+      if (!funding)
+        throw new BadRequestError(
+          'Payment must be confirmed before going to site'
+        );
+
       homeownerId = job.homeowner_id;
       jobTitle = job.title;
       destinationLat = job.latitude;
@@ -146,13 +161,17 @@ export const POST = withApiHandler(
     const STALE_TRIP_MINUTES = 10;
     const { data: existingTrip } = await serverSupabase
       .from('contractor_trips')
-      .select('id, started_at, job_id')
+      .select('*')
       .eq('contractor_id', user.id)
       .eq('status', 'en_route')
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
+    if (existingTrip && jobId && existingTrip.job_id === jobId) {
+      // Retry of the same explicit departure: reuse the trip, no second push.
+      return NextResponse.json({ trip: existingTrip });
+    }
     if (existingTrip) {
       const startedAt = new Date(existingTrip.started_at);
       const ageMinutes = (Date.now() - startedAt.getTime()) / 60000;
@@ -262,7 +281,6 @@ export const POST = withApiHandler(
           context: 'traveling',
           is_active: true,
           is_sharing_location: true,
-          location_timestamp: new Date().toISOString(),
         })
         .eq('contractor_id', user.id)
         .eq('job_id', jobId)
@@ -299,8 +317,8 @@ export const POST = withApiHandler(
         type: 'contractor_en_route',
         title: `${contractorName} is on the way`,
         message: jobTitle
-          ? `Heading to ${jobTitle}. Tap to follow them in.`
-          : `Tap to follow them in.`,
+          ? `Heading to ${jobTitle}. Live location appears when available.`
+          : `Live location appears when available.`,
         metadata: { tripId: trip.id, jobId, contractorId: user.id },
       });
     }

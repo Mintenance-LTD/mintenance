@@ -85,6 +85,26 @@ interface Props {
  * preserved; only the orchestration + state remain here.
  */
 export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
+  const pendingScreen = (content: React.ReactNode) => (
+    <View style={{ flex: 1, paddingTop: insets.top }}>
+      <TouchableOpacity
+        accessibilityRole='button'
+        accessibilityLabel='Back to jobs'
+        onPress={() => goBackSafe(navigation, 'JobsList')}
+        style={{
+          padding: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Ionicons name='arrow-back' size={24} />
+        <Text>Back to jobs</Text>
+      </TouchableOpacity>
+      {content}
+    </View>
+  );
+
   // 2026-05-26 audit-58 P3: previously `const { jobId } = route.params`
   // would throw if a deep link / notification / fallback route landed
   // here without params (or with an empty/undefined jobId). The
@@ -154,28 +174,13 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
-  // The contractor only travels to the property once the job is under way
-  // (`in_progress`) or the homeowner has secured payment — contract accepted
-  // AND escrow funded. Before that the job sits at the Contract/pre-payment
-  // step, so the "on the way" banner, ETA card, live map and location section
-  // must stay hidden even if a `contractor_locations` row exists.
-  //   - 2026-06-18: gate ignored contract acceptance → banner showed during
-  //     the unsigned Contract phase.
-  //   - 2026-07-18: gate ignored escrow → contractor appeared "on the way" to
-  //     a job the homeowner hadn't paid into escrow ("Pay Now" still visible).
-  //     `in_progress` already implies escrow was funded (a job can't start
-  //     without it), so the escrow check only constrains the `assigned` branch.
-  //     Freshness of the fix itself is handled in useContractorLiveLocation.
+  // Check current funding even for in-progress jobs: an old status alone
+  // is not proof that payment is still held.
   const contractAccepted = viewModel.contractStatus === 'accepted';
-  const escrowFunded = [
-    'held',
-    'release_pending',
-    'released',
-    'completed',
-  ].includes(viewModel.escrowStatus ?? '');
   const canShowContractorTravel =
-    job?.status === 'in_progress' ||
-    (job?.status === 'assigned' && contractAccepted && escrowFunded);
+    ['assigned', 'in_progress'].includes(job?.status ?? '') &&
+    contractAccepted &&
+    viewModel.escrowStatus === 'held';
 
   // Live contractor position for the homeowner's "on the way" banner + map.
   // One subscription, fed to the banner, the ETA card and JobLocationMap.
@@ -284,10 +289,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
   if (viewModel.jobLoading && !loadingTimedOut) {
-    return <LoadingSpinner message='Loading job details...' />;
+    return pendingScreen(<LoadingSpinner message='Loading job details...' />);
   }
   if (viewModel.jobError || (viewModel.jobLoading && loadingTimedOut)) {
-    return (
+    return pendingScreen(
       <ErrorView
         message={
           viewModel.jobError

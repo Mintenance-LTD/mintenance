@@ -1,0 +1,18 @@
+Travel intent and mobile Jobs navigation — 30 September 2026
+Base: codex/migrate-next-proxy, 30dcc14c30b9c8cc51ec9abec148cc89f32a35fd.
+
+Changes:
+- Explicit Going to site creates a funded trip. Trip API rejects missing/failed funding and unrelated contractors; same-job retries reuse the trip without another notification.
+- Mobile screen mounts resume only a matching en-route trip. A rejected departure never falls back to GPS sharing. Double taps are guarded.
+- Stop ends the shared watcher and cancels the trip; navigating away only releases the screen reference. Dashboard starts suppress duplicate sharing notifications.
+- Web location sharing uses the same trip gate before watching GPS.
+- Jobs tab presses pop the existing Jobs stack to its list, including when coming from another tab. Job loading/error screens now have a visible Back to jobs action.
+- Existing homeowner map consumes fresh coordinates, straight-line distance and estimated arrival. These are estimates, not measured road-routing accuracy.
+
+Verification:
+Mobile tracking/navigation, auto-resume and live-location derivation: 81 tests across four suites (79 initial, then two added departure lifecycle tests). Web route and sharing tests run separately. Mobile and web TypeScript checks passed. Targeted lint passed before final tests/comments.
+No connected Android device/emulator at verification; real GPS, background interruption and on-device navigation remain unverified. No production data/payment changes, no SQL migration. New APK not built in this change.
+
+Limits:
+Tests mock database/provider access; they do not prove deployed database policies, cross-device concurrent trip uniqueness or all legacy location-writing paths. API payment check is authoritative for the changed departure path. A cancelled trip whose cancellation request fails must be retried; durable offline cancellation is not established by these tests.
+Other readiness work and unrelated uncommitted audit files are preserved.

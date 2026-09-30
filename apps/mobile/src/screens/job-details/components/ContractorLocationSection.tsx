@@ -1,23 +1,3 @@
-/**
- * ContractorLocationSection — toggle location tracking for active jobs.
- *
- * Mint Editorial polish per redesign-v2 homeowner-deck "Schedule &
- * live tracking" surface. Visual upgrades only — `useJobTravelTracking`
- * behaviour, autoStartIfPermitted, ETA calculation, and the
- * mark-arrived flow are unchanged.
- *
- * Layout:
- *   - Section eyebrow ("Location tracking").
- *   - Active state: brand-soft card with a live-dot row, large serif
- *     ETA, and primary "Arrived" + secondary "Stop" buttons.
- *   - Idle state: brand-fill "Share my location" button (was `me.ink`
- *     before — the editorial direction puts primary actions in mint).
- *
- * P0 reminder: `contractor_locations = 0` in prod is a shipping gap
- * (EAS release pending), not a code gap — the `autoStartIfPermitted`
- * default added in the 2026-05-09 audit removed the manual-tap
- * dependency that left the table empty.
- */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +59,7 @@ export const ContractorLocationSection: React.FC<Props> = ({
             <Text style={styles.trackingText}>On site</Text>
           </View>
           <Text style={styles.arrivedSubtext}>
-            The homeowner has been notified that you've arrived.
+            The homeowner has been notified that you have arrived.
           </Text>
         </View>
       ) : isTracking ? (
@@ -111,7 +91,7 @@ export const ContractorLocationSection: React.FC<Props> = ({
 
             <TouchableOpacity
               style={styles.stopButton}
-              onPress={stopTracking}
+              onPress={() => stopTracking()}
               accessibilityRole='button'
               accessibilityLabel='Stop tracking'
             >
@@ -126,11 +106,11 @@ export const ContractorLocationSection: React.FC<Props> = ({
           onPress={() => startTracking({ createTrip: true })}
           disabled={!hasDestination}
           accessibilityRole='button'
-          accessibilityLabel='Start location tracking'
+          accessibilityLabel='Going to site'
         >
           <Ionicons name='navigate' size={18} color={me.onBrand} />
           <Text style={styles.startButtonText}>
-            {hasDestination ? 'Share my location' : 'Job location unavailable'}
+            {hasDestination ? 'Going to site' : 'Job location unavailable'}
           </Text>
         </TouchableOpacity>
       )}
