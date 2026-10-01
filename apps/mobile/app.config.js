@@ -279,8 +279,11 @@ module.exports = {
     updates: {
       url: 'https://u.expo.dev/1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
     },
-    runtimeVersion: '1.2.4',
+    // SQLCipher and expo-crypto require a rebuilt native binary. Keep these
+    // updates off older 1.2.4 runtimes that lack the required native code.
+    runtimeVersion: '1.2.4-sqlcipher1',
     plugins: [
+      ['expo-sqlite', { useSQLCipher: true }],
       // Android security hardening: allowBackup=false, usesCleartextTraffic=false,
       // NSC (reject user CAs), backup/data-extraction exclusions for session
       // storage / SQLite / AsyncStorage, and SYSTEM_ALERT_WINDOW stripping.

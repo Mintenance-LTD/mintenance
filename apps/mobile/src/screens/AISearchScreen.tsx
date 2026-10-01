@@ -51,6 +51,15 @@ export const AISearchScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestRef = useRef(0);
+
+  useEffect(
+    () => () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      searchRequestRef.current++;
+    },
+    []
+  );
 
   useEffect(() => {
     AISearchService.getTrendingSearches(10)
@@ -73,9 +82,10 @@ export const AISearchScreen: React.FC = () => {
   }, [query]);
 
   const performSearch = useCallback(
-    async (searchQuery: string) => {
+    async (searchQuery: string, searchFilters: SearchFilters = filters) => {
       const trimmed = searchQuery.trim();
       if (!trimmed) return;
+      const requestId = ++searchRequestRef.current;
 
       setLoading(true);
       setError(null);
@@ -84,15 +94,16 @@ export const AISearchScreen: React.FC = () => {
       try {
         const searchResults = await AISearchService.search(
           trimmed,
-          filters,
+          searchFilters,
           20
         );
-        setResults(searchResults);
+        if (requestId === searchRequestRef.current) setResults(searchResults);
       } catch (err) {
-        setError('Search failed. Please try again.');
+        if (requestId === searchRequestRef.current)
+          setError('Search failed. Please try again.');
         logger.error('Search failed', err);
       } finally {
-        setLoading(false);
+        if (requestId === searchRequestRef.current) setLoading(false);
       }
     },
     [filters]
@@ -151,7 +162,15 @@ export const AISearchScreen: React.FC = () => {
       />
 
       {showFilters && (
-        <FiltersPanel filters={filters} onClear={() => setFilters({})} />
+        <FiltersPanel
+          filters={filters}
+          onApply={(next) => {
+            if (searchTimeoutRef.current)
+              clearTimeout(searchTimeoutRef.current);
+            setFilters(next);
+            performSearch(query, next);
+          }}
+        />
       )}
 
       {loading ? (
