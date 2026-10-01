@@ -80,13 +80,15 @@ export function SignatureCanvas({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         activeStroke.current = `M${locationX.toFixed(1)} ${locationY.toFixed(1)}`;
         strokeInProgress.current = true;
         // Push a fresh stroke onto the list — onPanResponderMove will
         // mutate this tail entry as the finger moves.
-        setStrokes((prev) => [...prev, { path: activeStroke.current }]);
+        const path = activeStroke.current;
+        setStrokes((prev) => [...prev, { path }]);
       },
       onPanResponderMove: (evt) => {
         if (!strokeInProgress.current) return;
@@ -95,10 +97,11 @@ export function SignatureCanvas({
         segmentCount.current += 1;
         // Replace the tail entry with the updated path. New array
         // reference so React re-renders.
+        const path = activeStroke.current;
         setStrokes((prev) => {
           if (prev.length === 0) return prev;
           const next = prev.slice(0, -1);
-          next.push({ path: activeStroke.current });
+          next.push({ path });
           return next;
         });
       },
@@ -116,6 +119,8 @@ export function SignatureCanvas({
   function handleClear() {
     setStrokes([]);
     segmentCount.current = 0;
+    activeStroke.current = '';
+    strokeInProgress.current = false;
   }
 
   function handleSign() {
@@ -142,7 +147,12 @@ export function SignatureCanvas({
         onLayout={handleLayout}
         {...panResponder.panHandlers}
       >
-        <Svg width='100%' height='100%' viewBox={`0 0 ${size.w} ${size.h}`}>
+        <Svg
+          pointerEvents='none'
+          width='100%'
+          height='100%'
+          viewBox={`0 0 ${size.w} ${size.h}`}
+        >
           {strokes.map((s, i) => (
             <Path
               key={i}

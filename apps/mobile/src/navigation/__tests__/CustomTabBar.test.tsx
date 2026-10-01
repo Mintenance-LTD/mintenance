@@ -47,7 +47,8 @@ it.each([0, 1])(
     const screen = render(<CustomTabBar {...props} />);
     fireEvent.press(screen.getByLabelText('Jobs tab'));
     expect(dispatch).toHaveBeenCalledWith({
-      type: 'POP_TO_TOP',
+      type: 'POP_TO',
+      payload: { name: 'JobsList', params: undefined, merge: undefined },
       target: 'jobs-stack',
     });
     if (index === 0) expect(navigate).toHaveBeenCalledWith('JobsTab');

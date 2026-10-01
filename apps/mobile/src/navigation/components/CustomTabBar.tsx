@@ -94,10 +94,14 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
               if (
                 (isFocused || route.name === 'JobsTab') &&
                 nested?.key &&
-                (nested.index ?? 0) > 0
+                ((nested.index ?? 0) > 0 ||
+                  (route.name === 'JobsTab' &&
+                    nested.routes?.[0]?.name !== 'JobsList'))
               ) {
                 navigation.dispatch({
-                  ...StackActions.popToTop(),
+                  ...(route.name === 'JobsTab'
+                    ? StackActions.popTo('JobsList')
+                    : StackActions.popToTop()),
                   target: nested.key,
                 });
               }

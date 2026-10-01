@@ -248,7 +248,7 @@ export const POST = withApiHandler(
     // Check if a contract already exists for this job and contractor
     const { data: existingContract } = await serverSupabase
       .from('contracts')
-      .select('id, status, contractor_signed_at, homeowner_signed_at')
+      .select('id, status, contractor_signed_at, homeowner_signed_at, terms')
       .eq('job_id', job_id)
       .neq('status', 'cancelled')
       .eq('contractor_id', user.id)
@@ -261,6 +261,10 @@ export const POST = withApiHandler(
       start_date: start_date || null,
       end_date: end_date || null,
       terms: {
+        ...(existingContract?.terms &&
+        typeof existingContract.terms === 'object'
+          ? existingContract.terms
+          : {}),
         ...(terms || {}),
         ...(insurance_provider ? { insurance_provider } : {}),
         ...(insurance_policy_number ? { insurance_policy_number } : {}),

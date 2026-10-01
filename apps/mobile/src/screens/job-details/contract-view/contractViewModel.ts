@@ -38,7 +38,9 @@ export interface QuoteLineItem {
 }
 
 export const formatContractDate = (dateStr: string): string =>
-  new Date(dateStr).toLocaleDateString('en-GB', {
+  new Date(dateStr).toLocaleString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
     weekday: 'short',
     year: 'numeric',
     month: 'short',

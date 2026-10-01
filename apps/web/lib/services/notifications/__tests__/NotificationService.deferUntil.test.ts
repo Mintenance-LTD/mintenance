@@ -191,3 +191,42 @@ describe('NotificationService.createNotification — deferUntil', () => {
     );
   });
 });
+
+describe('durable scheduled notifications', () => {
+  it('inserts a fixed ID without resetting an existing delivery on retry', async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    mockFrom.mockReturnValue({ upsert });
+    const at = new Date('2030-01-01T10:00:00Z');
+    await NotificationService.enqueueScheduled({
+      id: 'stable',
+      userId: 'u',
+      type: 'system',
+      title: 'Call',
+      message: 'Reminder',
+      scheduledFor: at,
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'stable',
+        scheduled_for: at.toISOString(),
+        status: 'pending',
+      }),
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+  });
+  it('does not silently discard a failed scheduled write', async () => {
+    mockFrom.mockReturnValue({
+      upsert: vi.fn().mockResolvedValue({ error: { message: 'unavailable' } }),
+    });
+    await expect(
+      NotificationService.enqueueScheduled({
+        id: 'stable',
+        userId: 'u',
+        type: 'system',
+        title: 'Call',
+        message: 'Reminder',
+        scheduledFor: new Date(),
+      })
+    ).rejects.toThrow('Could not save scheduled notification');
+  });
+});

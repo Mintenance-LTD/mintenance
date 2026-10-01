@@ -545,7 +545,7 @@ describe('useOfflineQuery', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const initialCalls = queryFn.mock.calls.length;
-    let refetched: { data?: Array<{ id: string }> } = {};
+    let refetched: { data?: { id: string }[] } = {};
     await act(async () => {
       refetched = await result.current.refetch();
     });
@@ -756,10 +756,42 @@ describe('useOfflineMutation', () => {
     });
 
     // onMutate appended temp, onSuccess replaced temp_ with real data
-    const finalData = queryClient.getQueryData(queryKey) as Array<{
+    const finalData = queryClient.getQueryData(queryKey) as {
       id: string;
-    }>;
+    }[];
     expect(finalData).toEqual([{ id: 'existing' }, realJob]);
+  });
+
+  it('reconciles a realtime echo without replacing another pending send', async () => {
+    setNetwork(true, 'good');
+    const { wrapper, queryClient } = makeWrapper();
+    const queryKey = ['messages', 'race'];
+    queryClient.setQueryData(queryKey, [{ id: 'temp_other' }]);
+    const realMessage = { id: 'confirmed' };
+    const { result } = renderHook(
+      () =>
+        useOfflineMutation({
+          mutationFn: async () => {
+            queryClient.setQueryData(queryKey, (old: unknown) => [
+              ...(old as object[]),
+              realMessage,
+            ]);
+            return realMessage;
+          },
+          entity: 'message',
+          actionType: 'CREATE',
+          optimisticUpdate: () => ({ id: 'temp_this' }),
+          getQueryKey: () => queryKey,
+        }),
+      { wrapper }
+    );
+    await act(async () => {
+      await result.current.mutateAsync({} as never);
+    });
+    expect(queryClient.getQueryData(queryKey)).toEqual([
+      { id: 'temp_other' },
+      realMessage,
+    ]);
   });
 
   it('optimistic CREATE seeds a new array when cache is empty', async () => {

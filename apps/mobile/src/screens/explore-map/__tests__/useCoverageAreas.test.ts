@@ -1,4 +1,6 @@
-import { mapCoverageAreas } from '../useCoverageAreas';
+import { renderHook, act, waitFor } from '@testing-library/react-native';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
+import { useCoverageAreas, mapCoverageAreas } from '../useCoverageAreas';
 
 describe('mapCoverageAreas', () => {
   it('keeps active rows with usable center + radius, primary first', () => {
@@ -64,4 +66,34 @@ describe('mapCoverageAreas', () => {
     ]);
     expect(areas).toEqual([]);
   });
+});
+
+let mockFocus: (() => void | (() => void)) | undefined;
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (callback: () => void | (() => void)) => {
+    mockFocus = callback;
+  },
+}));
+jest.mock('../../../utils/mobileApiClient', () => ({
+  mobileApiClient: { get: jest.fn() },
+}));
+it('refreshes coverage after leaving settings and returning to the map', async () => {
+  const get = mobileApiClient.get as jest.Mock;
+  const row = {
+    id: 'zone',
+    center_latitude: 52,
+    center_longitude: -2,
+    radius_km: 8,
+  };
+  get.mockResolvedValueOnce({ data: [row] });
+  const { result } = renderHook(() => useCoverageAreas(true));
+  act(() => {
+    mockFocus?.();
+  });
+  await waitFor(() => expect(result.current[0]?.radiusKm).toBe(8));
+  get.mockResolvedValueOnce({ data: [{ ...row, radius_km: 18 }] });
+  act(() => {
+    mockFocus?.();
+  });
+  await waitFor(() => expect(result.current[0]?.radiusKm).toBe(18));
 });

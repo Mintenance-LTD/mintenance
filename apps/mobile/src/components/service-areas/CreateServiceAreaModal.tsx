@@ -76,6 +76,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
       hasPrefilledRef.current = true;
       if (defaultAddress.city) setAreaName(defaultAddress.city);
       if (defaultAddress.postcode) setPostcode(defaultAddress.postcode);
+      setPrefilledCoords(null);
       if (defaultAddress.latitude != null && defaultAddress.longitude != null) {
         setPrefilledCoords({
           lat: defaultAddress.latitude,
@@ -92,6 +93,7 @@ export const CreateServiceAreaModal: React.FC<CreateServiceAreaModalProps> = ({
     if (!defaultAddress) return;
     if (defaultAddress.city) setAreaName(defaultAddress.city);
     if (defaultAddress.postcode) setPostcode(defaultAddress.postcode);
+    setPrefilledCoords(null);
     if (defaultAddress.latitude != null && defaultAddress.longitude != null) {
       setPrefilledCoords({
         lat: defaultAddress.latitude,

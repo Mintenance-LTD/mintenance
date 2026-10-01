@@ -7,6 +7,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { DatePicker } from '../../components/ui/DatePicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../design-system/mint-editorial';
@@ -193,6 +194,34 @@ export const DateRangePicker: React.FC<DateRangeProps> = ({
             <Ionicons name='calendar-outline' size={18} color={me.ink3} />
           </TouchableOpacity>
           {endError ? <Text style={styles.fieldError}>{endError}</Text> : null}
+        </View>
+      </View>
+      <View style={styles.dateRow}>
+        <View style={styles.dateField}>
+          <DatePicker
+            label='Start time'
+            mode='time'
+            placeholder='Select time'
+            value={startDate}
+            onChange={(time) => {
+              const next = new Date(startDate ?? time);
+              next.setHours(time.getHours(), time.getMinutes(), 0, 0);
+              onStartChange(next);
+            }}
+          />
+        </View>
+        <View style={styles.dateField}>
+          <DatePicker
+            label='Finish time'
+            mode='time'
+            placeholder='Select time'
+            value={endDate}
+            onChange={(time) => {
+              const next = new Date(endDate ?? startDate ?? time);
+              next.setHours(time.getHours(), time.getMinutes(), 0, 0);
+              onEndChange(next);
+            }}
+          />
         </View>
       </View>
       {showStart && (

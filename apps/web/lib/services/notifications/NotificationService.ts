@@ -96,6 +96,29 @@ async function insertInAppNotification(
 }
 
 export class NotificationService {
+  /** Durable, idempotent scheduled delivery. Preferences are checked by the queue processor. */
+  static async enqueueScheduled(
+    params: CreateNotificationParams & { id: string; scheduledFor: Date }
+  ): Promise<void> {
+    const { error } = await serverSupabase.from('notification_queue').upsert(
+      {
+        id: params.id,
+        user_id: params.userId,
+        notification_type: params.type,
+        title: params.title,
+        message: params.message,
+        action_url: params.actionUrl,
+        metadata: params.metadata ?? {},
+        scheduled_for: params.scheduledFor.toISOString(),
+        priority: 'high',
+        status: 'pending',
+        retry_count: 0,
+      },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+    if (error) throw new Error('Could not save scheduled notification');
+  }
+
   /**
    * Create a notification (intelligent routing + preference-aware).
    * Public API — use this instead of any direct DB insert.

@@ -93,9 +93,12 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     isLoading: loading,
     error,
   } = useJobMessages(jobId);
-  const messages = (Array.isArray(rawMessages) ? rawMessages : []) as Message[];
+  const messages = useMemo(
+    () => (Array.isArray(rawMessages) ? rawMessages : []) as Message[],
+    [rawMessages]
+  );
   const sendMessageMutation = useSendMessage();
-  const markAsReadMutation = useMarkMessagesAsRead();
+  const { mutate: markAsRead } = useMarkMessagesAsRead();
   const queryClient = useQueryClient();
 
   // Build a set of indices that should show a date separator
@@ -160,7 +163,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     (incomingMessage) => {
       scrollToEnd();
       if (incomingMessage.senderId !== user?.id && user?.id) {
-        markAsReadMutation.mutate({ jobId, userId: user.id });
+        markAsRead({ jobId, userId: user.id });
       }
     },
     () => {},
@@ -229,10 +232,10 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
         (msg: Message) => !msg.read && msg.receiverId === user.id
       );
       if (hasUnread) {
-        markAsReadMutation.mutate({ jobId, userId: user.id });
+        markAsRead({ jobId, userId: user.id });
       }
     }
-  }, [messages, user?.id, jobId]);
+  }, [messages, user?.id, jobId, markAsRead]);
 
   const markMessageFailed = useCallback(
     (tempId: string) => {
@@ -490,21 +493,8 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             userId={user?.id || ''}
             jobId={jobId}
             onGoBack={() => goBackSafe(navigation, 'MessagesList')}
-            // 2026-04-30 audit P1: video call backend is unbuilt
-            // (call_participants table doesn't exist in live schema —
-            // see audit P0-1 disposition for CallManager.ts).
-            // Replace the live-call CTA with a "coming soon" alert
-            // instead of letting the user trigger a broken flow.
-            // VideoCallScheduler still works because it writes to
-            // `video_calls` (which exists) for async scheduling, so
-            // we keep onScheduleCall live.
             onScheduleCall={() => videoCall.setShowScheduler(true)}
-            onStartVideoCall={() =>
-              Alert.alert(
-                'Video calls coming soon',
-                'Live video calls aren’t available yet. Tap the calendar icon to schedule a call instead.'
-              )
-            }
+            onStartVideoCall={() => videoCall.setShowScheduler(true)}
             onViewJobDetails={() => {
               navigation.getParent?.()?.navigate('JobsTab', {
                 screen: 'JobDetails',

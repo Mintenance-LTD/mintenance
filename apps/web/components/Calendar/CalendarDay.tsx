@@ -18,6 +18,7 @@ interface CalendarDayProps {
   events: CalendarEvent[];
   index: number;
   getEventColor: (type: string) => string;
+  onSelect?: () => void;
   onDayHover?: (day: number | null, isCurrentMonth: boolean) => void;
 }
 
@@ -29,17 +30,23 @@ export function CalendarDay({
   index,
   getEventColor,
   onDayHover,
+  onSelect,
 }: CalendarDayProps) {
-  const postedJobs = isCurrentMonth ? events.filter(e => e.id.startsWith('job-posted-')) : [];
+  const postedJobs = isCurrentMonth
+    ? events.filter((e) => e.id.startsWith('job-posted-'))
+    : [];
   const hasPostedJobs = postedJobs.length > 0;
-  const displayEvents = events.filter(e => !e.id.startsWith('job-posted-'));
+  const displayEvents = events.filter((e) => !e.id.startsWith('job-posted-'));
 
   return (
     <div
       style={{
-        minHeight: '120px',
-        padding: theme.spacing[3],
-        borderRight: index % 7 !== 6 ? `1px solid ${theme.colors.border}` : 'none',
+        height: '132px',
+        minWidth: 0,
+        overflow: 'hidden',
+        padding: '8px 6px',
+        borderRight:
+          index % 7 !== 6 ? `1px solid ${theme.colors.border}` : 'none',
         borderBottom: `1px solid ${theme.colors.border}`,
         backgroundColor: (() => {
           if (!day || !isCurrentMonth) return theme.colors.backgroundSecondary;
@@ -61,8 +68,13 @@ export function CalendarDay({
     >
       {day && (
         <>
-          <div
+          <button
+            type='button'
+            onClick={onSelect}
+            aria-label={`View schedule for day ${day}`}
             style={{
+              border: 0,
+              cursor: 'pointer',
               width: '32px',
               height: '32px',
               display: 'flex',
@@ -88,7 +100,7 @@ export function CalendarDay({
             }}
           >
             {day}
-          </div>
+          </button>
 
           {/* Posted Jobs Badge */}
           {hasPostedJobs && (
@@ -114,8 +126,14 @@ export function CalendarDay({
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1.5] }}>
-            {displayEvents.map((event) => (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[1.5],
+            }}
+          >
+            {displayEvents.slice(0, 2).map((event) => (
               <CalendarEventComponent
                 key={event.id}
                 event={event}
@@ -123,9 +141,21 @@ export function CalendarDay({
               />
             ))}
           </div>
+          {displayEvents.length > 2 && (
+            <button
+              type='button'
+              onClick={onSelect}
+              style={{
+                fontSize: 11,
+                color: `var(--me-brand, ${theme.colors.teal[800]})`,
+                marginTop: 4,
+              }}
+            >
+              +{displayEvents.length - 2} more
+            </button>
+          )}
         </>
       )}
     </div>
   );
 }
-

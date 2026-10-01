@@ -1,212 +1,113 @@
 'use client';
-
 import { theme } from '@/lib/theme';
-import { Icon } from '@/components/ui/Icon';
-
-type CalendarView = 'month' | 'week' | 'day';
-
-interface CalendarHeaderProps {
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+interface Props {
   month: number;
   year: number;
   monthNames: string[];
+  label?: string;
   onPreviousMonth: () => void;
   onNextMonth: () => void;
   onToday: () => void;
-  view?: CalendarView;
-  onViewChange?: (view: CalendarView) => void;
+  view?: 'month' | 'week' | 'day';
+  onViewChange?: (view: 'month' | 'week' | 'day') => void;
 }
-
+const buttonStyle = {
+  border: '1px solid var(--me-line, #dfe7e2)',
+  borderRadius: 10,
+  padding: '9px 12px',
+  minHeight: 40,
+  background: 'var(--me-surface, #fff)',
+  color: `var(--me-ink, ${theme.colors.textPrimary})`,
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+};
 export function CalendarHeader({
   month,
   year,
   monthNames,
+  label,
   onPreviousMonth,
   onNextMonth,
   onToday,
   view = 'month',
   onViewChange,
-}: CalendarHeaderProps) {
+}: Props) {
   return (
-    <div
+    <header
       style={{
         display: 'flex',
+        flexWrap: 'wrap',
+        gap: 16,
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: theme.spacing[6],
-        borderBottom: `1px solid ${theme.colors.border}`,
+        padding: 18,
+        borderBottom: '1px solid var(--me-line, #dfe7e2)',
       }}
     >
       <h2
+        aria-live='polite'
+        style={{ margin: 0, fontSize: 18, fontWeight: 650 }}
+      >
+        {label ?? `${monthNames[month]} ${year}`}
+      </h2>
+      <div
         style={{
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-          margin: 0,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+          alignItems: 'center',
         }}
       >
-        {monthNames[month]} {year}
-      </h2>
-
-      <div
-        style={{ display: 'flex', gap: theme.spacing[2], alignItems: 'center' }}
-      >
-        {/* View Toggle Buttons */}
         {onViewChange && (
           <div
-            style={{
-              display: 'flex',
-              gap: theme.spacing[1],
-              marginRight: theme.spacing[2],
-            }}
+            role='group'
+            aria-label='Calendar view'
+            style={{ display: 'flex', gap: 4 }}
           >
-            {(['month', 'week', 'day'] as CalendarView[]).map((viewOption) => (
+            {(['month', 'week', 'day'] as const).map((option) => (
               <button
-                key={viewOption}
-                onClick={() => onViewChange(viewOption)}
+                key={option}
                 type='button'
+                aria-pressed={view === option}
+                onClick={() => onViewChange(option)}
                 style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                  backgroundColor:
-                    view === viewOption
-                      ? theme.colors.primary
-                      : theme.colors.backgroundSecondary,
+                  ...buttonStyle,
+                  background:
+                    view === option
+                      ? `var(--me-brand, ${theme.colors.teal[800]})`
+                      : buttonStyle.background,
                   color:
-                    view === viewOption
-                      ? theme.colors.white
-                      : theme.colors.textPrimary,
-                  border: `1px solid ${view === viewOption ? theme.colors.primary : theme.colors.border}`,
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                    view === option ? theme.colors.white : buttonStyle.color,
                   textTransform: 'capitalize',
                 }}
-                onMouseEnter={(e) => {
-                  if (view !== viewOption) {
-                    e.currentTarget.style.backgroundColor =
-                      theme.colors.backgroundTertiary;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (view !== viewOption) {
-                    e.currentTarget.style.backgroundColor =
-                      theme.colors.backgroundSecondary;
-                  }
-                }}
               >
-                {viewOption}
+                {option}
               </button>
             ))}
           </div>
         )}
-
-        <button
-          onClick={onToday}
-          style={{
-            padding: `${theme.spacing[2.5]} ${theme.spacing[4]}`,
-            backgroundColor: theme.colors.backgroundSecondary,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.borderRadius.lg,
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor =
-              theme.colors.backgroundTertiary;
-            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor =
-              theme.colors.backgroundSecondary;
-            e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-        >
+        <button type='button' onClick={onToday} style={buttonStyle}>
           Today
         </button>
-
-        <div style={{ display: 'flex', gap: theme.spacing[1] }}>
-          <button
-            onClick={onPreviousMonth}
-            type='button'
-            aria-label='Previous month'
-            style={{
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.colors.backgroundSecondary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor =
-                theme.colors.backgroundTertiary;
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor =
-                theme.colors.backgroundSecondary;
-              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <Icon
-              name='chevronLeft'
-              size={20}
-              color={theme.colors.textPrimary}
-            />
-          </button>
-
-          <button
-            onClick={onNextMonth}
-            type='button'
-            aria-label='Next month'
-            style={{
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.colors.backgroundSecondary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.lg,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor =
-                theme.colors.backgroundTertiary;
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor =
-                theme.colors.backgroundSecondary;
-              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <Icon
-              name='chevronRight'
-              size={20}
-              color={theme.colors.textPrimary}
-            />
-          </button>
-        </div>
+        <button
+          type='button'
+          aria-label={`Previous ${view}`}
+          onClick={onPreviousMonth}
+          style={buttonStyle}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <button
+          type='button'
+          aria-label={`Next ${view}`}
+          onClick={onNextMonth}
+          style={buttonStyle}
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
-    </div>
+    </header>
   );
 }

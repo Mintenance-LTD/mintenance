@@ -5,8 +5,9 @@
  * project names, and photo counts.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Modal,
   View,
   Text,
   Image,
@@ -22,22 +23,26 @@ const CARD_WIDTH = Dimensions.get('window').width * 0.6;
 
 interface PhotoGalleryProps {
   photos: string[];
+  projects?: { id: string; title: string; images: string[] }[];
   onAddPhoto: () => void;
 }
 
 export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   photos,
   onAddPhoto,
+  projects: savedProjects = [],
 }) => {
-  // Group photos into "projects" (chunks of 3-4)
-  const projects = [];
-  for (let i = 0; i < photos.length; i += 3) {
-    projects.push(photos.slice(i, i + 3));
-  }
-
-  if (projects.length === 0) {
-    projects.push([]);
-  }
+  const [selected, setSelected] = useState<{
+    title: string;
+    images: string[];
+  } | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const projects =
+    savedProjects.length > 0
+      ? savedProjects
+      : photos.length > 0
+        ? [{ id: 'other-work', title: 'Other past work', images: photos }]
+        : [{ id: 'empty', title: 'Portfolio', images: [] as string[] }];
 
   return (
     <View style={styles.container}>
@@ -47,7 +52,13 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         </Text>
         <TouchableOpacity
           style={styles.seeAllBtn}
-          onPress={onAddPhoto}
+          onPress={() => {
+            onAddPhoto?.();
+            setSelected({
+              title: 'Portfolio',
+              images: projects.flatMap((project) => project.images),
+            });
+          }}
           accessibilityRole='button'
           accessibilityLabel='See all photos'
         >
@@ -56,34 +67,75 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         </TouchableOpacity>
       </View>
 
+      {selected && (
+        <Modal animationType='slide' onRequestClose={() => setSelected(null)}>
+          <View
+            style={{ flex: 1, backgroundColor: me.surface, paddingTop: 48 }}
+          >
+            <TouchableOpacity
+              accessibilityRole='button'
+              accessibilityLabel='Close portfolio'
+              onPress={() => setSelected(null)}
+              style={{ padding: 20 }}
+            >
+              <Text style={{ color: me.brand, fontWeight: '700' }}>
+                Close portfolio
+              </Text>
+            </TouchableOpacity>
+            <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+              <Text style={styles.title}>{selected.title}</Text>
+              {selected.images.length === 0 && (
+                <Text>No portfolio photos yet.</Text>
+              )}
+              {selected.images.map((uri, index) => (
+                <Image
+                  key={`${uri}-${index}`}
+                  source={{ uri }}
+                  resizeMode='contain'
+                  style={{ width: '100%', height: 320 }}
+                  accessibilityLabel={`${selected.title}, photo ${index + 1}`}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {projects.map((project, index) => (
+        {projects.map((project) => (
           <TouchableOpacity
-            key={index}
+            key={project.id}
             style={styles.projectCard}
             activeOpacity={0.9}
+            onPress={() => setSelected(project)}
+            accessibilityRole='button'
+            accessibilityLabel={`View ${project.title}`}
           >
             <View style={styles.coverImage}>
-              {project[0] ? (
+              {project.images[0] && !failedImages[project.id] ? (
                 <Image
-                  source={{ uri: project[0] }}
+                  source={{ uri: project.images[0] }}
                   style={styles.coverPhoto}
                   resizeMode='cover'
+                  onError={() =>
+                    setFailedImages((previous) => ({
+                      ...previous,
+                      [project.id]: true,
+                    }))
+                  }
                   accessibilityIgnoresInvertColors
                 />
               ) : (
                 <View style={styles.emptyCover}>
                   <Ionicons name='image-outline' size={32} color={me.ink3} />
-                  <Text style={styles.emptyCoverText}>No photos yet</Text>
-                </View>
-              )}
-              {index === 0 && project.length > 0 && (
-                <View style={styles.beforeAfterBadge}>
-                  <Text style={styles.beforeAfterText}>Before/After</Text>
+                  <Text style={styles.emptyCoverText}>
+                    {project.images.length
+                      ? 'Photo unavailable'
+                      : 'No photos yet'}
+                  </Text>
                 </View>
               )}
             </View>
@@ -91,12 +143,13 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             {/* Project info */}
             <View style={styles.projectInfo}>
               <Text style={styles.projectName} numberOfLines={1}>
-                {project.length > 0 ? `Project ${index + 1}` : 'Portfolio'}
+                {project.title}
               </Text>
               <View style={styles.photoCountRow}>
                 <Ionicons name='camera-outline' size={12} color={me.ink2} />
                 <Text style={styles.photoCountText}>
-                  {project.length} {project.length === 1 ? 'photo' : 'photos'}
+                  {project.images.length}{' '}
+                  {project.images.length === 1 ? 'photo' : 'photos'}
                 </Text>
               </View>
             </View>

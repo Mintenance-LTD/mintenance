@@ -20,8 +20,12 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
   const router = useRouter();
 
   // Extract job ID from event ID
-  const jobId = event.id.replace(/^(job-posted-|appointment-|appointment-end-|meeting-|job-scheduled-|maintenance-)/, '');
-  const isJobEvent = event.id.startsWith('job-posted-') ||
+  const jobId = event.id.replace(
+    /^(job-posted-|appointment-end-|appointment-|meeting-|job-scheduled-|maintenance-)/,
+    ''
+  );
+  const isJobEvent =
+    event.id.startsWith('job-posted-') ||
     event.id.startsWith('job-scheduled-') ||
     event.id.startsWith('appointment-') ||
     (!event.id.includes('-') && !event.id.startsWith('maintenance-'));
@@ -33,7 +37,7 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
 
   return (
     <button
-      type="button"
+      type='button'
       onClick={() => {
         if (isJobEvent && jobId) {
           router.push(`/jobs/${jobId}`);
@@ -47,7 +51,6 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
         }
       }}
       style={{
-        padding: `${theme.spacing[1.5]} ${theme.spacing[2]}`,
         backgroundColor: `${eventColor}15`,
         border: `1px solid ${eventColor}30`,
         borderLeft: `3px solid ${eventColor}`,
@@ -62,6 +65,10 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
         whiteSpace: 'nowrap',
         textAlign: 'left',
         width: '100%',
+        minWidth: 0,
+        maxWidth: '100%',
+        display: 'block',
+        padding: '4px 6px',
         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
       }}
       onMouseEnter={(e) => {
@@ -79,10 +86,11 @@ export function CalendarEvent({ event, eventColor }: CalendarEventProps) {
         e.currentTarget.style.backgroundColor = `${eventColor}15`;
       }}
       title={event.title}
-      aria-label={isJobEvent && jobId ? `View job: ${event.title}` : event.title}
+      aria-label={
+        isJobEvent && jobId ? `View job: ${event.title}` : event.title
+      }
     >
       {event.title}
     </button>
   );
 }
-

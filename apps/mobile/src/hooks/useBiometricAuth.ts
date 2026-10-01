@@ -7,7 +7,7 @@
  * - Signing in with biometrics
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { BiometricService } from '../services/BiometricService';
 import { AuthService } from '../services/AuthService';
 import { User } from '@mintenance/types';
@@ -29,6 +29,13 @@ interface BiometricAuthHook {
 }
 
 export const useBiometricAuth = (): BiometricAuthHook => {
+  const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (promptTimer.current) clearTimeout(promptTimer.current);
+    },
+    []
+  );
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   const checkBiometricAvailability = useCallback(async () => {
@@ -55,7 +62,10 @@ export const useBiometricAuth = (): BiometricAuthHook => {
           refreshToken: credentials.refreshToken,
         });
 
-      if (!restoredUser || restoredUser.email !== credentials.email) {
+      if (
+        !restoredUser ||
+        restoredUser.email.toLowerCase() !== credentials.email.toLowerCase()
+      ) {
         // MSV-P1-10: mismatch means the SecureStore-stored email is stale
         // (e.g. user signed into a different account on another device,
         // or refresh_token rotated owners). Wipe biometric credentials so
@@ -106,10 +116,23 @@ export const useBiometricAuth = (): BiometricAuthHook => {
         );
       }
 
-      await BiometricService.enableBiometric(user.email, {
-        accessToken: session.access_token,
-        refreshToken: session.refresh_token,
-      });
+      await BiometricService.enableBiometric(
+        user.email,
+        {
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token,
+        },
+        async () => {
+          const current =
+            (await AuthService.getCurrentSession()) as Session | null;
+          if (
+            current?.user?.id !== user.id ||
+            current.refresh_token !== session.refresh_token
+          ) {
+            throw new Error('Your session changed. Please try again.');
+          }
+        }
+      );
     },
     []
   );
@@ -125,22 +148,49 @@ export const useBiometricAuth = (): BiometricAuthHook => {
         return;
       }
 
-      setTimeout(() => {
-        void BiometricService.promptEnableBiometric(user.email, async () => {
-          const latestSession = ((await AuthService.getCurrentSession()) ??
-            s) as Session | null;
+      if (promptTimer.current) clearTimeout(promptTimer.current);
+      promptTimer.current = setTimeout(async () => {
+        try {
+          const active =
+            (await AuthService.getCurrentSession()) as Session | null;
+          if (active?.user?.id !== user.id) return;
+          await BiometricService.promptEnableBiometric(user.email, async () => {
+            const latestSession =
+              (await AuthService.getCurrentSession()) as Session | null;
 
-          if (!latestSession?.access_token || !latestSession?.refresh_token) {
-            throw new Error(
-              'Session tokens are required to enable biometric authentication'
+            if (
+              !latestSession?.access_token ||
+              !latestSession?.refresh_token ||
+              latestSession.user?.id !== user.id
+            ) {
+              throw new Error(
+                'Session tokens are required to enable biometric authentication'
+              );
+            }
+
+            await BiometricService.enableBiometric(
+              user.email,
+              {
+                accessToken: latestSession.access_token,
+                refreshToken: latestSession.refresh_token,
+              },
+              async () => {
+                const current =
+                  (await AuthService.getCurrentSession()) as Session | null;
+                if (
+                  current?.user?.id !== user.id ||
+                  current.refresh_token !== latestSession.refresh_token
+                ) {
+                  throw new Error(
+                    'Your session changed. Please enable biometrics again in Settings.'
+                  );
+                }
+              }
             );
-          }
-
-          await BiometricService.enableBiometric(user.email, {
-            accessToken: latestSession.access_token,
-            refreshToken: latestSession.refresh_token,
           });
-        });
+        } catch (error) {
+          logger.warn('Biometric setup prompt could not be shown', { error });
+        }
       }, 1000);
     },
     [biometricAvailable]

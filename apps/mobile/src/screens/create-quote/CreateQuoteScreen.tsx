@@ -3,6 +3,7 @@
  * White header, card sections, sticky floating total bar.
  */
 
+import { QuoteItemEditor } from './components/QuoteItemEditor';
 import React, { useState } from 'react';
 import {
   ScrollView,
@@ -197,6 +198,27 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
               setClientPhone={viewModel.setClientPhone}
             />
 
+            {viewModel.showLineItemModal && (
+              <QuoteItemEditor
+                item={
+                  viewModel.editingItemIndex === null
+                    ? undefined
+                    : viewModel.lineItems[viewModel.editingItemIndex]
+                }
+                onCancel={() => {
+                  viewModel.setShowLineItemModal(false);
+                  viewModel.setEditingItemIndex(null);
+                }}
+                onSave={(item) => {
+                  if (viewModel.editingItemIndex === null)
+                    viewModel.addLineItem(item);
+                  else
+                    viewModel.updateLineItem(viewModel.editingItemIndex, item);
+                  viewModel.setShowLineItemModal(false);
+                  viewModel.setEditingItemIndex(null);
+                }}
+              />
+            )}
             <QuoteItemsList
               lineItems={viewModel.lineItems}
               onAddItem={() => viewModel.setShowLineItemModal(true)}

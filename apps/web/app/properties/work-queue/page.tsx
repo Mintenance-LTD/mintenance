@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FollowupForm } from './FollowupForm';
 import { PortfolioReport } from './PortfolioReport';
-import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+import { OperationsPage } from '@/components/property-operations/OperationsPage';
+import styles from '@/components/property-operations/operations.module.css';
+import { ClipboardList, ArrowRight, Clock3 } from 'lucide-react';
 
 interface Item {
   id: string;
@@ -53,90 +55,86 @@ export default function PropertyWorkQueuePage() {
     return () => controller.abort();
   }, [offset, attempt]);
   return (
-    <HomeownerPageWrapper className='me-legacy-fit'>
-      <main className='mx-auto max-w-6xl space-y-6 py-6'>
-        <Link href='/properties' className='text-sm font-medium text-teal-800'>
-          Back to properties
-        </Link>
-        <h1 className='text-3xl font-semibold'>Maintenance action queue</h1>
-        <details className='rounded-2xl border bg-white p-5'>
-          <summary className='cursor-pointer font-semibold'>
-            Portfolio reporting and export
-          </summary>
-          <PortfolioReport />
-        </details>
-        <p>
-          Open work across your properties, ordered by urgency and date.
-          Upcoming maintenance and certificate renewals cover the next 30 days.
-        </p>
-        {error ? (
-          <div role='alert'>
-            {error}{' '}
-            <button
-              onClick={() => setAttempt((value) => value + 1)}
-              className='underline'
-            >
-              Retry
-            </button>
-          </div>
-        ) : !data ? (
-          <p role='status'>Loading your queue…</p>
-        ) : (
-          <>
-            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-              <div className='rounded-2xl border bg-white p-5'>
-                <p className='text-sm text-slate-600'>Open actions</p>
-                <p className='mt-2 text-3xl font-semibold'>{data.total}</p>
-              </div>
-              <div className='rounded-2xl border bg-teal-50 p-5'>
-                <p className='text-sm text-teal-900'>Priority actions</p>
-                <p className='mt-2 text-3xl font-semibold text-teal-900'>
-                  {data.overdue}
-                </p>
-              </div>
+    <OperationsPage
+      title='Maintenance action queue'
+      eyebrow='Your property to-do list'
+      backHref='/properties'
+      backLabel='Back to properties'
+      description='See what needs attention across your properties. Review the work, choose the next step, and keep your team up to date.'
+    >
+      <div className={styles.note}>
+        Start with the priority items below. <strong>Review</strong> opens the
+        related job or property; <strong>Manage follow-up</strong> lets you
+        assign responsibility, set a due date and record an update. Maintenance
+        and certificate renewals cover the next 30 days.
+      </div>
+      {error ? (
+        <div role='alert' className={styles.error}>
+          {error}{' '}
+          <button
+            onClick={() => setAttempt((value) => value + 1)}
+            className='underline'
+          >
+            Retry
+          </button>
+        </div>
+      ) : !data ? (
+        <p role='status'>Loading your queue…</p>
+      ) : (
+        <>
+          <div className={styles.stats}>
+            <div className={styles.stat}>
+              <p className='text-sm text-slate-600'>Open actions</p>
+              <strong>{data.total}</strong>
             </div>
-            {data.items.length === 0 ? (
-              <div className='rounded-2xl border bg-white p-10 text-center'>
-                <h2 className='text-xl font-semibold'>
-                  Nothing waiting on this page
-                </h2>
-                <p className='mt-2 text-slate-600'>
-                  New reports, maintenance and renewals will appear here when
-                  they need attention.
-                </p>
-              </div>
-            ) : (
-              <ul className='divide-y rounded-xl border bg-white'>
-                {data.items.map((item) => (
-                  <li key={`${item.kind}:${item.id}`} className='p-6 space-y-3'>
-                    <p className='text-sm text-gray-600'>
-                      {item.property_name} · {item.kind}
-                    </p>
-                    <h2 className='text-lg font-semibold'>{item.title}</h2>
-                    <button
-                      className='rounded-lg border px-3 py-2 text-sm font-medium hover:bg-slate-50'
-                      onClick={() =>
-                        setEditing(editing === item.id ? null : item.id)
-                      }
-                    >
-                      Manage follow-up
-                    </button>
-                    {editing === item.id && (
-                      <FollowupForm
-                        propertyId={item.property_id}
-                        kind={item.kind}
-                        sourceId={item.id}
-                        onSaved={() => setAttempt((value) => value + 1)}
-                      />
+            <div className={styles.stat}>
+              <p className='text-sm text-teal-900'>Priority actions</p>
+              <strong>{data.overdue}</strong>
+            </div>
+          </div>
+          {data.items.length === 0 ? (
+            <div className={styles.empty}>
+              <h2 className='text-xl font-semibold'>
+                Nothing waiting on this page
+              </h2>
+              <p className='mt-2 text-slate-600'>
+                New reports, maintenance and renewals will appear here when they
+                need attention.
+              </p>
+            </div>
+          ) : (
+            <ul className={styles.list}>
+              {data.items.map((item) => (
+                <li key={`${item.kind}:${item.id}`} className={styles.card}>
+                  <div className={styles.cardTop}>
+                    <span className={styles.icon}>
+                      <ClipboardList size={22} />
+                    </span>
+                    <div className={styles.content}>
+                      <p className={styles.meta}>
+                        {item.property_name} · {item.kind}
+                      </p>
+                      <h2>{item.title}</h2>
+                    </div>
+                  </div>
+                  <div className={styles.next}>
+                    <Clock3 size={16} />
+                    <strong>{item.next_action}</strong>
+                    {item.due_at && (
+                      <span>
+                        {' '}
+                        ·{' '}
+                        {new Date(item.due_at).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </span>
                     )}
-                    <p>
-                      {item.next_action}
-                      {item.due_at
-                        ? ` · ${new Date(item.due_at).toLocaleDateString('en-GB')}`
-                        : ''}
-                    </p>
+                  </div>
+                  <div className={styles.actions}>
                     <Link
-                      className='mt-2 inline-flex rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white'
+                      className={styles.primary}
                       href={
                         item.kind === 'job' && item.can_open_job
                           ? `/jobs/${item.id}`
@@ -146,31 +144,57 @@ export default function PropertyWorkQueuePage() {
                       }
                     >
                       Review {item.kind}
+                      <ArrowRight size={16} />
                     </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <nav aria-label='Queue pages' className='flex items-center gap-4'>
-              <button
-                disabled={offset === 0}
-                onClick={() => setOffset((value) => Math.max(0, value - 25))}
-                className='rounded border px-4 py-2 disabled:opacity-40'
-              >
-                Previous
-              </button>
-              <span>Page {Math.floor(offset / 25) + 1}</span>
-              <button
-                disabled={!data.hasMore}
-                onClick={() => setOffset((value) => value + 25)}
-                className='rounded border px-4 py-2 disabled:opacity-40'
-              >
-                Next
-              </button>
-            </nav>
-          </>
-        )}
-      </main>
-    </HomeownerPageWrapper>
+                    <button
+                      className={styles.secondary}
+                      aria-expanded={editing === `${item.kind}:${item.id}`}
+                      onClick={() =>
+                        setEditing(
+                          editing === `${item.kind}:${item.id}`
+                            ? null
+                            : `${item.kind}:${item.id}`
+                        )
+                      }
+                    >
+                      Manage follow-up
+                    </button>
+                  </div>
+                  {editing === `${item.kind}:${item.id}` && (
+                    <FollowupForm
+                      propertyId={item.property_id}
+                      kind={item.kind}
+                      sourceId={item.id}
+                      onSaved={() => setAttempt((value) => value + 1)}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <nav aria-label='Queue pages' className='flex items-center gap-4'>
+            <button
+              disabled={offset === 0}
+              onClick={() => setOffset((value) => Math.max(0, value - 25))}
+              className={styles.secondary}
+            >
+              Previous
+            </button>
+            <span>Page {Math.floor(offset / 25) + 1}</span>
+            <button
+              disabled={!data.hasMore}
+              onClick={() => setOffset((value) => value + 25)}
+              className={styles.secondary}
+            >
+              Next
+            </button>
+          </nav>
+        </>
+      )}
+      <details className={styles.report}>
+        <summary>Portfolio reporting and export</summary>
+        <PortfolioReport />
+      </details>
+    </OperationsPage>
   );
 }
