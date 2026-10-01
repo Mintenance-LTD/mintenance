@@ -323,18 +323,30 @@ export function withApiHandler(
         }
       }
 
-      // 2. Detect Bearer token auth (mobile clients)
+      // Resolve the credential before deciding whether CSRF applies. A bearer
+      // header must never exempt a request that falls back to cookie identity.
       const hasBearerToken = request.headers
         .get('authorization')
         ?.startsWith('Bearer ');
-
-      // 3. CSRF (default: on for mutating methods, skip for Bearer-authenticated requests)
-      // CSRF protects against cookie-based cross-site attacks, not needed for Bearer tokens
       const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(
         request.method
       );
+      let user: AuthUser | null = null;
+      let authenticatedWithBearer = false;
+      if (hasBearerToken && (auth || (isMutating && csrf === undefined))) {
+        user = await getCurrentUserFromBearerToken(request);
+        if (!user) throw new UnauthorizedError('Invalid bearer credentials');
+        authenticatedWithBearer = true;
+      } else if (auth) {
+        user = await getCurrentUserFromCookies();
+      }
+      if (auth && !user) {
+        throw new UnauthorizedError('Authentication required');
+      }
+      resolvedUserId = user?.id ?? null;
+
       const shouldCheckCSRF =
-        csrf !== undefined ? csrf : isMutating && !hasBearerToken;
+        csrf !== undefined ? csrf : isMutating && !authenticatedWithBearer;
       if (shouldCheckCSRF) {
         await requireCSRF(request);
       }
@@ -343,19 +355,7 @@ export function withApiHandler(
       const params = segmentData?.params ? await segmentData.params : {};
       resolvedParams = params;
 
-      // 5. Authentication (cookie-first, then Bearer token fallback for mobile)
-      if (auth) {
-        let user = await getCurrentUserFromCookies();
-
-        if (!user && hasBearerToken) {
-          user = await getCurrentUserFromBearerToken(request);
-        }
-
-        if (!user) {
-          throw new UnauthorizedError('Authentication required');
-        }
-        resolvedUserId = user.id;
-
+      if (auth && user) {
         // 6. Role check
         if (roles && roles.length > 0 && !roles.includes(user.role)) {
           throw new ForbiddenError(
