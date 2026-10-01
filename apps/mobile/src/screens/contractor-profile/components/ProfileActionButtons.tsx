@@ -52,7 +52,11 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
   canMessage = true,
   hasActiveBid = false,
 }) => {
-  const primaryLabel = hasActiveBid ? 'Message Contractor' : 'Request a Quote';
+  const primaryLabel = hasActiveBid
+    ? canMessage
+      ? 'Message Contractor'
+      : 'Chat opens after acceptance'
+    : 'Request a Quote';
   const primaryIcon: keyof typeof Ionicons.glyphMap = hasActiveBid
     ? 'chatbubble-outline'
     : 'document-text-outline';
@@ -65,9 +69,9 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
   };
 
   // Hide the Message action when the user has no accepted bid / active job with this contractor
-  const visibleActions = canMessage
-    ? SECONDARY_ACTIONS
-    : SECONDARY_ACTIONS.filter((a) => a.key !== 'message');
+  const visibleActions = SECONDARY_ACTIONS.filter(
+    (action) => action.key !== 'message' || (canMessage && !hasActiveBid)
+  );
 
   return (
     <View style={styles.container}>
@@ -75,7 +79,12 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
           "Message Contractor" depending on whether the user already has
           an open/accepted bid from this contractor (see hasActiveBid). */}
       <TouchableOpacity
-        style={styles.primaryBtn}
+        style={[
+          styles.primaryBtn,
+          hasActiveBid && !canMessage && { opacity: 0.5 },
+        ]}
+        disabled={hasActiveBid && !canMessage}
+        accessibilityState={{ disabled: hasActiveBid && !canMessage }}
         onPress={primaryHandler}
         activeOpacity={0.85}
         accessibilityRole='button'

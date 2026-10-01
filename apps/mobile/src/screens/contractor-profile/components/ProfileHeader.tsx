@@ -143,14 +143,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <Text style={styles.chipText}>Verified</Text>
             </View>
           ) : null}
-          <View style={styles.chip}>
-            <Ionicons name='flash' size={12} color={me.accent} />
-            <Text style={styles.chipText}>&lt; 1hr response</Text>
-          </View>
-          <View style={styles.chip}>
-            <Ionicons name='ribbon' size={12} color={me.brand} />
-            <Text style={styles.chipText}>Insured</Text>
-          </View>
         </View>
 
         {/* Service pills */}

@@ -2,6 +2,8 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '../..//test-utils';
 import { Alert } from 'react-native';
 
+import BidSubmissionScreen from '../BidSubmissionScreen';
+
 // ---------------------------------------------------------------------------
 // Mutable test doubles (declared before mock factories via jest.mock hoisting
 // pattern — we use module-level let refs assigned inside the factories).
@@ -14,7 +16,9 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+  jest.requireActual(
+    '@react-native-async-storage/async-storage/jest/async-storage-mock'
+  )
 );
 
 // Icons — render nothing, avoid font/native deps.
@@ -36,14 +40,20 @@ jest.mock('../components/JobRoomScope', () => ({
 // DatePicker — replace with a button that fires onChange(fixed date) so we can
 // satisfy the proposedStartDate validation deterministically.
 jest.mock('../../components/ui/DatePicker', () => {
-  const React = require('react');
-  const { TouchableOpacity, Text } = require('react-native');
+  const React = jest.requireActual('react');
+  const { TouchableOpacity, Text } = jest.requireMock('react-native');
   return {
-    DatePicker: ({ onChange }: { onChange: (d: Date) => void }) =>
+    DatePicker: ({
+      onChange,
+      mode,
+    }: {
+      onChange: (d: Date) => void;
+      mode?: string;
+    }) =>
       React.createElement(
         TouchableOpacity,
         {
-          testID: 'date-picker',
+          testID: mode === 'time' ? 'time-picker' : 'date-picker',
           onPress: () => onChange(new Date('2026-08-01T00:00:00.000Z')),
         },
         React.createElement(Text, null, 'pick-date')
@@ -53,8 +63,8 @@ jest.mock('../../components/ui/DatePicker', () => {
 
 // QuoteItemsList — expose buttons to drive add/remove/scope callbacks.
 jest.mock('../create-quote/components/QuoteItemsList', () => {
-  const React = require('react');
-  const { TouchableOpacity, Text, View } = require('react-native');
+  const React = jest.requireActual('react');
+  const { TouchableOpacity, Text, View } = jest.requireMock('react-native');
   return {
     QuoteItemsList: ({
       lineItems,
@@ -113,8 +123,8 @@ jest.mock('../create-quote/components/QuoteItemsList', () => {
 });
 
 jest.mock('../create-quote/components/PricingSummary', () => {
-  const React = require('react');
-  const { Text, View } = require('react-native');
+  const React = jest.requireActual('react');
+  const { Text, View } = jest.requireMock('react-native');
   return {
     PricingSummary: ({ totalAmount }: { totalAmount: number }) =>
       React.createElement(
@@ -208,8 +218,6 @@ jest.mock('../../config/supabase', () => ({
     })),
   },
 }));
-
-import BidSubmissionScreen from '../BidSubmissionScreen';
 
 const mockNavigation = {
   navigate: jest.fn(),
@@ -310,7 +318,7 @@ describe('BidSubmissionScreen', () => {
   // --- Loaded form render ----------------------------------------------------
 
   it('renders on iOS (KeyboardAvoidingView padding branch)', async () => {
-    const RN = require('react-native');
+    const RN = jest.requireMock('react-native');
     const original = RN.Platform.OS;
     RN.Platform.OS = 'ios';
     try {
@@ -478,6 +486,9 @@ describe('BidSubmissionScreen', () => {
 
     // Add a line item (Alert.prompt is undefined in RN test env -> default item)
     fireEvent.press(utils.getByTestId('add-line-item'));
+    fireEvent.changeText(utils.getByLabelText('Item description'), 'Labour');
+    fireEvent.changeText(utils.getByLabelText('Unit price (£)'), '0');
+    fireEvent.press(utils.getByText('Save item'));
     await waitFor(() =>
       expect(utils.getByTestId('line-item-count').props.children).toBe('1')
     );
@@ -515,6 +526,9 @@ describe('BidSubmissionScreen', () => {
     fireEvent.press(utils.getByText('Detailed Quote'));
     await waitFor(() => utils.getByTestId('quote-items-list'));
     fireEvent.press(utils.getByTestId('add-line-item'));
+    fireEvent.changeText(utils.getByLabelText('Item description'), 'Labour');
+    fireEvent.changeText(utils.getByLabelText('Unit price (£)'), '0');
+    fireEvent.press(utils.getByText('Save item'));
     // Set scope to sqm + room-1 -> quantity snaps to 12.5 (from string '12.50')
     fireEvent.press(utils.getByTestId('scope-sqm'));
     // unit_price is still 0, so total is 0. We need a non-zero unit price; the
@@ -699,6 +713,9 @@ describe('BidSubmissionScreen', () => {
     fireEvent.press(utils.getByText('Detailed Quote'));
     await waitFor(() => utils.getByTestId('quote-items-list'));
     fireEvent.press(utils.getByTestId('add-line-item'));
+    fireEvent.changeText(utils.getByLabelText('Item description'), 'Labour');
+    fireEvent.changeText(utils.getByLabelText('Unit price (£)'), '0');
+    fireEvent.press(utils.getByText('Save item'));
     // scope to sqm + room r1 (size 12) snaps quantity from a finite number
     fireEvent.press(utils.getByTestId('scope-sqm'));
     expect(utils.getByTestId('quote-items-list')).toBeTruthy();
@@ -713,6 +730,9 @@ describe('BidSubmissionScreen', () => {
     fireEvent.press(utils.getByText('Detailed Quote'));
     await waitFor(() => utils.getByTestId('quote-items-list'));
     fireEvent.press(utils.getByTestId('add-line-item'));
+    fireEvent.changeText(utils.getByLabelText('Item description'), 'Labour');
+    fireEvent.changeText(utils.getByLabelText('Unit price (£)'), '0');
+    fireEvent.press(utils.getByText('Save item'));
     // scope-item fires { unit: 'item', room_id: null } -> unit branch + room null
     fireEvent.press(utils.getByTestId('scope-item'));
     expect(utils.getByTestId('quote-items-list')).toBeTruthy();
@@ -759,7 +779,7 @@ describe('BidSubmissionScreen', () => {
     expect(mockSubmitBid).not.toHaveBeenCalled();
   });
 
-  it('adds a line item via Alert.prompt when available', async () => {
+  it('adds a line item using the editor even when Alert.prompt exists', async () => {
     // Provide an iOS-style Alert.prompt that invokes the callback with a name.
     (Alert as unknown as { prompt: unknown }).prompt = jest.fn(
       (_t: string, _m: string, cb: (v: string) => void) => cb('New labour line')
@@ -769,12 +789,15 @@ describe('BidSubmissionScreen', () => {
     fireEvent.press(utils.getByText('Detailed Quote'));
     await waitFor(() => utils.getByTestId('quote-items-list'));
     fireEvent.press(utils.getByTestId('add-line-item'));
+    fireEvent.changeText(utils.getByLabelText('Item description'), 'Labour');
+    fireEvent.changeText(utils.getByLabelText('Unit price (£)'), '0');
+    fireEvent.press(utils.getByText('Save item'));
     await waitFor(() =>
       expect(utils.getByTestId('line-item-count').props.children).toBe('1')
     );
   });
 
-  it('Alert.prompt with empty input does not add a line item', async () => {
+  it('rejects a blank description in the line item editor', async () => {
     (Alert as unknown as { prompt: unknown }).prompt = jest.fn(
       (_t: string, _m: string, cb: (v: string) => void) => cb('   ')
     );
@@ -783,6 +806,9 @@ describe('BidSubmissionScreen', () => {
     fireEvent.press(utils.getByText('Detailed Quote'));
     await waitFor(() => utils.getByTestId('quote-items-list'));
     fireEvent.press(utils.getByTestId('add-line-item'));
+    fireEvent.changeText(utils.getByLabelText('Item description'), '   ');
+    fireEvent.changeText(utils.getByLabelText('Unit price (£)'), '0');
+    fireEvent.press(utils.getByText('Save item'));
     await waitFor(() =>
       expect(utils.getByTestId('line-item-count').props.children).toBe('0')
     );
@@ -800,6 +826,9 @@ describe('BidSubmissionScreen', () => {
     fireEvent.press(utils.getByText('Detailed Quote'));
     await waitFor(() => utils.getByTestId('quote-items-list'));
     fireEvent.press(utils.getByTestId('add-line-item'));
+    fireEvent.changeText(utils.getByLabelText('Item description'), 'Labour');
+    fireEvent.changeText(utils.getByLabelText('Unit price (£)'), '0');
+    fireEvent.press(utils.getByText('Save item'));
     fireEvent.press(utils.getByTestId('scope-sqm'));
     // pricing summary renders in detailed mode regardless of total
     expect(utils.getByTestId('pricing-summary')).toBeTruthy();

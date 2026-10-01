@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,26 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { VideoCallService } from '../../services/VideoCallService';
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import haptics from '../../utils/haptics';
 import { theme } from '../../theme';
+import {
+  getQuickOptions,
+  type ScheduleOption,
+} from './phoneCallScheduleOptions';
 import { styles } from './VideoCallScheduler.styles';
+
+// A request identifier, not a credential; stable across network retries.
+const requestId = () =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16);
+    return (c === 'x' ? r : (r & 3) | 8).toString(16);
+  });
 
 interface VideoCallSchedulerProps {
   jobId: string;
@@ -24,12 +37,6 @@ interface VideoCallSchedulerProps {
   isVisible: boolean;
   onClose: () => void;
   onScheduled: (callId: string, scheduledTime: Date) => void;
-}
-
-interface ScheduleOption {
-  id: string;
-  label: string;
-  time: Date;
 }
 
 const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
@@ -41,6 +48,45 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   onScheduled,
 }) => {
   const { user } = useAuth();
+  const pendingRequest = useRef<{ key: string; id: string } | null>(null);
+  const busy = useRef(false);
+  const [arrangedCalls, setArrangedCalls] = useState<
+    { id: string; scheduled_at: string }[]
+  >([]);
+  const [callsError, setCallsError] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (isVisible) {
+      setCallsError(false);
+      mobileApiClient
+        .get<{ calls: { id: string; scheduled_at: string }[] }>(
+          `/api/phone-calls?jobId=${encodeURIComponent(jobId)}`
+        )
+        .then((data) => {
+          if (!cancelled) setArrangedCalls(data.calls);
+        })
+        .catch(() => {
+          if (!cancelled) setCallsError(true);
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [isVisible, jobId]);
+  const cancelArrangedCall = async (id: string) => {
+    try {
+      await mobileApiClient.delete(
+        `/api/phone-calls?id=${encodeURIComponent(id)}`
+      );
+      setArrangedCalls((calls) => calls.filter((call) => call.id !== id));
+      Alert.alert(
+        'Call cancelled',
+        'The call reminder has been cancelled. Let the other person know in your conversation.'
+      );
+    } catch {
+      Alert.alert('Could not cancel', 'Please try again.');
+    }
+  };
   const [selectedTime, setSelectedTime] = useState<Date>(
     new Date(Date.now() + 30 * 60 * 1000)
   ); // 30 minutes from now
@@ -50,40 +96,6 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   const [callType, setCallType] = useState<
     'consultation' | 'update' | 'review'
   >('consultation');
-
-  // Generate quick schedule options
-  const getQuickOptions = useCallback((): ScheduleOption[] => {
-    const now = new Date();
-    const options: ScheduleOption[] = [
-      {
-        id: 'in_15',
-        label: 'In 15 minutes',
-        time: new Date(now.getTime() + 15 * 60 * 1000),
-      },
-      {
-        id: 'in_30',
-        label: 'In 30 minutes',
-        time: new Date(now.getTime() + 30 * 60 * 1000),
-      },
-      {
-        id: 'in_1hr',
-        label: 'In 1 hour',
-        time: new Date(now.getTime() + 60 * 60 * 1000),
-      },
-      {
-        id: 'tomorrow_9am',
-        label: 'Tomorrow at 9 AM',
-        time: (() => {
-          const tomorrow = new Date(now);
-          tomorrow.setDate(now.getDate() + 1);
-          tomorrow.setHours(9, 0, 0, 0);
-          return tomorrow;
-        })(),
-      },
-    ];
-
-    return options.filter((option) => option.time > now);
-  }, []);
 
   const formatDateTime = useCallback((date: Date): string => {
     const now = new Date();
@@ -121,7 +133,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   }, []);
 
   const handleScheduleCall = useCallback(async () => {
-    if (!user) return;
+    if (!user || busy.current) return;
 
     const now = new Date();
     if (selectedTime <= now) {
@@ -129,23 +141,34 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
       return;
     }
 
+    busy.current = true;
     setIsScheduling(true);
 
     try {
       await haptics.medium();
 
-      const participantIds = [user.id, otherUserId];
-
-      const scheduledCall = await VideoCallService.scheduleCall(
-        jobId,
+      const key = JSON.stringify([
         user.id,
-        participantIds,
+        jobId,
+        otherUserId,
         selectedTime.toISOString(),
-        callType
+        callType,
+      ]);
+      if (pendingRequest.current?.key !== key)
+        pendingRequest.current = { key, id: requestId() };
+      const scheduledCall = await mobileApiClient.post<{ id: string }>(
+        '/api/phone-calls',
+        {
+          requestId: pendingRequest.current.id,
+          jobId,
+          otherUserId,
+          scheduledTime: selectedTime.toISOString(),
+          purpose: callType,
+        }
       );
 
       if (scheduledCall?.id) {
-        logger.info('Video call scheduled successfully', {
+        logger.info('Phone call scheduled successfully', {
           callId: scheduledCall.id,
           scheduledTime: selectedTime,
           callType,
@@ -156,20 +179,21 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
 
         Alert.alert(
           'Call Scheduled',
-          `Your ${callType} call with ${otherUserName} has been scheduled for ${formatDateTime(selectedTime)}.`,
+          `Your phone call with ${otherUserName || 'the other participant'} is arranged for ${formatDateTime(selectedTime)}. Both of you will receive reminders, subject to your notification settings. Agree the phone number in chat.`,
           [{ text: 'OK' }]
         );
       } else {
         throw new Error('Failed to schedule call');
       }
     } catch (error) {
-      logger.error('Failed to schedule video call:', error);
+      logger.error('Failed to schedule phone call:', error);
       Alert.alert(
         'Scheduling Failed',
         'Unable to schedule the call. Please try again.',
         [{ text: 'OK' }]
       );
     } finally {
+      busy.current = false;
       setIsScheduling(false);
     }
   }, [
@@ -184,14 +208,13 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
     formatDateTime,
   ]);
 
-  const onDateChange = useCallback((event: unknown, date?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    setShowTimePicker(Platform.OS === 'ios');
-
-    if (date) {
-      setSelectedTime(date);
+  const onDateChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      setShowTimePicker(event.type === 'set' && !showTimePicker);
     }
-  }, []);
+    if (event.type === 'set' && date) setSelectedTime(date);
+  };
 
   const callTypeOptions = [
     { value: 'consultation', label: 'Consultation', icon: 'chatbubbles' },
@@ -212,11 +235,57 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Schedule a Call</Text>
+          <Text style={styles.headerTitle}>Arrange a phone call</Text>
           <View style={styles.placeholder} />
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>A reminder to call by phone</Text>
+            <Text>
+              Agree the time and phone number in your conversation. Mintenance
+              reminds both people around the scheduled time; it does not start a
+              call. Reminders can take a few minutes and follow your
+              notification settings.
+            </Text>
+          </View>
+          {callsError && (
+            <Text>
+              Could not load your arranged calls. Close and reopen to retry.
+            </Text>
+          )}
+          {arrangedCalls.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Arranged calls</Text>
+              {arrangedCalls.map((call) => (
+                <View key={call.id} style={styles.participantRow}>
+                  <Text style={styles.participantName}>
+                    {formatDateTime(new Date(call.scheduled_at))}
+                  </Text>
+                  <TouchableOpacity
+                    accessibilityRole='button'
+                    accessibilityLabel='Cancel arranged call'
+                    onPress={() =>
+                      Alert.alert(
+                        'Cancel this call?',
+                        'Both participants’ reminders will be stopped.',
+                        [
+                          { text: 'Keep call', style: 'cancel' },
+                          {
+                            text: 'Cancel call',
+                            style: 'destructive',
+                            onPress: () => cancelArrangedCall(call.id),
+                          },
+                        ]
+                      )
+                    }
+                  >
+                    <Text>Cancel call</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
           {/* Participant Info */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Participants</Text>
@@ -242,7 +311,9 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                     color={theme.colors.textSecondary}
                   />
                 </View>
-                <Text style={styles.participantName}>{otherUserName}</Text>
+                <Text style={styles.participantName}>
+                  {otherUserName || 'Other participant'}
+                </Text>
               </View>
             </View>
           </View>
@@ -328,6 +399,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             <View style={styles.customTimeContainer}>
               <TouchableOpacity
                 style={styles.dateTimeButton}
+                accessibilityLabel='Choose call date and time'
                 onPress={() => {
                   haptics.light();
                   setShowDatePicker(true);
@@ -396,10 +468,17 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
         </View>
 
         {/* Date/Time Pickers */}
-        {showDatePicker && (
+        {(showDatePicker || showTimePicker) && (
           <DateTimePicker
+            testID='call-date-time-picker'
             value={selectedTime}
-            mode='datetime'
+            mode={
+              Platform.OS === 'ios'
+                ? 'datetime'
+                : showTimePicker
+                  ? 'time'
+                  : 'date'
+            }
             display={Platform.OS === 'ios' ? 'compact' : 'default'}
             onChange={onDateChange}
             minimumDate={new Date()}

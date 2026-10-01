@@ -8,7 +8,6 @@ import {
 import { useNetworkState } from './useNetworkState';
 import { OfflineManager, OfflineAction } from '../services/OfflineManager';
 import { LocalDatabase } from '../services/LocalDatabase';
-import { SyncManager } from '../services/SyncManager';
 import { logger } from '../utils/logger';
 import type { Job, User } from '@mintenance/types';
 
@@ -272,7 +271,7 @@ export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
           queryClient.setQueryData(queryKey, optimisticData);
         }
 
-        return { previousData, queryKey };
+        return { previousData, queryKey, optimisticData };
       }
     },
     onError: (error, variables, context: unknown) => {
@@ -290,19 +289,25 @@ export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
         variables,
       });
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data, variables, context) => {
       // For CREATE actions, replace the temp optimistic entry with real data
       // instead of invalidating (which clears the cache and causes flashing)
       if (getQueryKey && actionType === 'CREATE' && data) {
         const queryKey = getQueryKey(variables);
         queryClient.setQueryData(queryKey, (old: unknown) => {
           if (Array.isArray(old)) {
-            // Replace temp entries (id starts with 'temp_') with real data
-            return old.map((item: Record<string, unknown>) =>
-              typeof item?.id === 'string' && item.id.startsWith('temp_')
-                ? data
-                : item
+            const pending = (
+              context as { optimisticData?: { id?: unknown } } | undefined
+            )?.optimisticData;
+            const confirmedId = (data as { id?: unknown }).id;
+            // Realtime may already have inserted the confirmed message. Replace
+            // only this mutation's temporary row, preserving other pending sends.
+            const reconciled = old.filter(
+              (item: Record<string, unknown>) =>
+                item?.id !== pending?.id &&
+                (confirmedId == null || item?.id !== confirmedId)
             );
+            return [...reconciled, data];
           }
           return old;
         });
@@ -480,25 +485,4 @@ const cacheMessagesData = async (
       );
     }
   }
-};
-
-// Hook to get offline sync status
-const useOfflineSyncStatus = () => {
-  const { isOnline } = useNetworkState();
-  const [syncStatus, setSyncStatus] = React.useState<unknown>(null);
-
-  React.useEffect(() => {
-    const unsubscribe = SyncManager.onSyncStatusChange(setSyncStatus);
-    return unsubscribe;
-  }, []);
-
-  return {
-    isOnline,
-    syncStatus,
-    hasPendingActions: async () => await OfflineManager.hasPendingActions(),
-    getPendingCount: async () => await OfflineManager.getPendingActionsCount(),
-    syncNow: () => SyncManager.forcSync(),
-    clearQueue: () => OfflineManager.clearQueue(),
-    resetAndResync: () => SyncManager.resetAndResync(),
-  };
 };

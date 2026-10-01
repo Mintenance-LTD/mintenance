@@ -2,12 +2,7 @@
  * Notification Routing Table — single source of truth for mapping a
  * notification (type + payload) to a navigation target.
  *
- * 2026-04-30 audit P1: previously two surfaces (`NotificationDeepLink`
- * for OS notification taps + `notificationNavigation` for in-app
- * notification list taps) implemented overlapping switch statements
- * that disagreed on `meeting_scheduled`, `bid_received`, and key
- * casing. This module now owns the mapping and both surfaces delegate
- * here so behaviour is consistent regardless of where the user tapped.
+ * Shared by OS notification taps and the in-app notification list.
  *
  * The returned shape mirrors the `navigation.navigate(<screen>, ...)`
  * call signature React Navigation expects, including the
@@ -27,6 +22,7 @@ export interface NotificationRoute {
 
 interface NormalizedPayload {
   jobId?: string;
+  phoneCallId?: string;
   conversationId?: string;
   meetingId?: string;
   senderId?: string;
@@ -156,6 +152,7 @@ export function normalizePayload(data: unknown): NormalizedPayload {
   const fromUrl = parseActionUrl(actionUrl);
 
   return {
+    phoneCallId: pick('phone_call_id'),
     jobId: pick('jobId', 'job_id') ?? fromUrl.jobId,
     conversationId:
       pick('conversationId', 'conversation_id') ?? fromUrl.conversationId,
@@ -236,6 +233,8 @@ export function routeForNotification(
 ): NotificationRoute {
   if (!type) return NOTIFICATIONS_FALLBACK;
   const p = normalizePayload(data);
+  if (type === 'system' && p.phoneCallId)
+    return routeForNotification('message_received', data);
 
   switch (type) {
     case 'job_update':

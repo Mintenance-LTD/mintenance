@@ -217,7 +217,10 @@ export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
                       style={{ gap: 4, flex: 1, minWidth: 0 }}
                     >
                       <h4 className='t-h4'>{event.title}</h4>
-                      <span className={eventBadgeClass(event.type)}>
+                      <span
+                        style={{ alignSelf: 'flex-start' }}
+                        className={eventBadgeClass(event.type)}
+                      >
                         {getEventTypeLabel(event.type)}
                       </span>
                     </div>

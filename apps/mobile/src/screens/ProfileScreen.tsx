@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Alert,
@@ -41,10 +40,14 @@ const ProfileScreen: React.FC = () => {
   }, [user?.id]);
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut },
-    ]);
+    Alert.alert(
+      'Sign Out',
+      'Signing out removes your saved biometric sign-in on this device. Use your password to sign in again; you can re-enable biometrics in Account & Security.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: signOut },
+      ]
+    );
   };
 
   const accountMenuItems = useMemo(

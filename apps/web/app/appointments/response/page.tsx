@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import Link from 'next/link';
-import { CalendarCheck, RefreshCw } from 'lucide-react';
-import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+import { CalendarCheck, RefreshCw, Clock3 } from 'lucide-react';
+import { OperationsPage } from '@/components/property-operations/OperationsPage';
+import styles from '@/components/property-operations/operations.module.css';
 interface Visit {
   id: string;
   title: string;
@@ -67,104 +68,120 @@ export default function VisitResponses() {
     }
   }
   return (
-    <HomeownerPageWrapper className='me-legacy-fit'>
-      <main className='mx-auto max-w-5xl space-y-6 py-6'>
-        <Link href='/scheduling' className='text-sm font-medium text-teal-800'>
-          ← My schedule
-        </Link>
-        <header className='flex flex-wrap items-center justify-between gap-4'>
-          <div>
-            <p className='text-xs font-semibold uppercase tracking-widest text-teal-800 mb-2'>
-              Plan your next visit
-            </p>
-            <h1 className='text-3xl font-semibold'>Visit confirmations</h1>
-            <p className='mt-2 text-slate-600'>
-              Agree a time before your contractor arrives, or ask for a better
-              one.
-            </p>
+    <OperationsPage
+      title='Visit confirmations'
+      eyebrow='Ready for your next visit'
+      backHref='/scheduling'
+      backLabel='Back to my schedule'
+      description='Confirm the agreed time so your contractor knows you are ready, or request a different time before they travel.'
+      action={
+        <button
+          className={styles.secondary}
+          disabled={loading || busy !== null}
+          onClick={() => setAttempt((x) => x + 1)}
+        >
+          <RefreshCw size={16} />
+          Refresh visits
+        </button>
+      }
+    >
+      {!loading && !error && visits.length > 0 && (
+        <div className={styles.stats}>
+          <div className={styles.stat}>
+            <p>Upcoming visits</p>
+            <strong>{visits.length}</strong>
           </div>
-          <button
-            className='inline-flex items-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50'
-            disabled={loading || busy !== null}
-            onClick={() => setAttempt((x) => x + 1)}
-          >
-            <RefreshCw size={16} />
-            Refresh visits
-          </button>
-        </header>
-        {error && (
-          <p
-            role='alert'
-            className='rounded-xl border border-red-200 bg-red-50 p-4 text-red-800'
-          >
-            {error}
+          <div className={styles.stat}>
+            <p>Awaiting confirmation</p>
+            <strong>
+              {
+                visits.filter(
+                  (v) => v.clientResponse === 'pending' && v.canRespond
+                ).length
+              }
+            </strong>
+          </div>
+        </div>
+      )}
+      {error && (
+        <p role='alert' className={styles.error}>
+          {error}
+        </p>
+      )}
+      {loading && <p role='status'>Loading visits…</p>}
+      {!loading && !error && visits.length === 0 && (
+        <section className={styles.empty}>
+          <CalendarCheck className='mx-auto mb-5 text-teal-800' size={40} />
+          <h2 className='text-xl font-semibold'>
+            Your next visit will appear here
+          </h2>
+          <p className='mt-3 text-slate-600'>
+            No upcoming visits in the next 180 days.
           </p>
-        )}
-        {loading && <p role='status'>Loading visits…</p>}
-        {!loading && !error && visits.length === 0 && (
-          <section className='rounded-2xl border bg-white px-6 py-14 text-center shadow-sm'>
-            <CalendarCheck className='mx-auto mb-5 text-teal-800' size={40} />
-            <h2 className='text-xl font-semibold'>
-              Your next visit will appear here
-            </h2>
-            <p className='mt-3 text-slate-600'>
-              No upcoming visits in the next 180 days.
-            </p>
-            <p className='mt-2 text-sm text-slate-600'>
-              Once a visit is scheduled, you can confirm it or request another
-              time.
-            </p>
-            <Link
-              href='/scheduling'
-              className='mt-6 inline-flex rounded-xl bg-teal-800 px-5 py-3 font-semibold text-white'
-            >
-              View my schedule
-            </Link>
-          </section>
-        )}
-        {visits.map((v) => (
-          <section
-            className='rounded-2xl border bg-white p-6 space-y-4 shadow-sm'
-            key={v.id}
-          >
-            <h2 className='text-lg font-semibold'>{v.title}</h2>
-            <p className='text-slate-600'>
-              {new Date(`${v.date}T12:00:00`).toLocaleDateString('en-GB', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}{' '}
-              · {v.time.slice(0, 5)}–{v.endTime.slice(0, 5)}
-            </p>
-            <p role='status' className='text-sm font-semibold text-teal-800'>
-              {v.clientResponse === 'confirmed'
-                ? 'Visit confirmed'
-                : v.clientResponse === 'change_requested'
-                  ? 'Another time requested'
-                  : 'Awaiting your confirmation'}
-            </p>
-            {v.canRespond && (
-              <div className='flex flex-wrap gap-3'>
-                <button
-                  className='rounded-xl bg-teal-800 px-5 py-3 font-semibold text-white disabled:opacity-50'
-                  disabled={busy !== null}
-                  onClick={() => void respond(v, 'confirmed')}
-                >
-                  Confirm visit
-                </button>
-                <button
-                  className='rounded-xl border px-5 py-3 font-semibold disabled:opacity-50'
-                  disabled={busy !== null}
-                  onClick={() => void respond(v, 'change_requested')}
-                >
-                  Request another time
-                </button>
-              </div>
-            )}
-          </section>
-        ))}
-      </main>
-    </HomeownerPageWrapper>
+          <p className='mt-2 text-sm text-slate-600'>
+            Once a visit is scheduled, you can confirm it or request another
+            time.
+          </p>
+          <Link href='/scheduling' className={styles.primary}>
+            View my schedule
+          </Link>
+        </section>
+      )}
+      {visits.map((v) => (
+        <section className={styles.card} key={v.id}>
+          <div className={styles.cardTop}>
+            <span className={styles.icon}>
+              <CalendarCheck size={22} />
+            </span>
+            <div className={styles.content}>
+              <p className={styles.meta}>Scheduled visit</p>
+              <h2>{v.title}</h2>
+            </div>
+          </div>
+          <p className={styles.next}>
+            <Clock3 size={16} />
+            {new Date(`${v.date}T12:00:00`).toLocaleDateString('en-GB', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}{' '}
+            · {v.time.slice(0, 5)}–{v.endTime.slice(0, 5)}
+          </p>
+          <p role='status' className={styles.badge}>
+            {v.clientResponse === 'confirmed'
+              ? 'Visit confirmed'
+              : v.clientResponse === 'change_requested'
+                ? 'Another time requested'
+                : 'Awaiting your confirmation'}
+          </p>
+          {v.canRespond && (
+            <div className={styles.actions}>
+              <button
+                className={styles.primary}
+                disabled={busy !== null}
+                onClick={() => void respond(v, 'confirmed')}
+              >
+                {busy === v.id ? 'Saving…' : 'Confirm visit'}
+              </button>
+              <button
+                className={styles.secondary}
+                disabled={busy !== null}
+                onClick={() => void respond(v, 'change_requested')}
+              >
+                Request another time
+              </button>
+            </div>
+          )}
+        </section>
+      ))}
+      {!loading && visits.length > 0 && (
+        <p className={styles.note}>
+          Requesting another time lets the contractor know the current slot does
+          not suit you. Agree the replacement time in Messages; this action does
+          not automatically reschedule the visit.
+        </p>
+      )}
+    </OperationsPage>
   );
 }

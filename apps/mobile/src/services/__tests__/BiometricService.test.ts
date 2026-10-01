@@ -687,6 +687,9 @@ describe('BiometricService', () => {
   });
 
   describe('promptEnableBiometric', () => {
+    beforeEach(() => {
+      mockSecureStore.getItemAsync.mockResolvedValue(null);
+    });
     const email = 'test@example.com';
     const mockOnEnable = jest.fn();
 
@@ -705,7 +708,9 @@ describe('BiometricService', () => {
 
       expect(mockAlert.alert).toHaveBeenCalledWith(
         'Enable Fingerprint',
-        'Would you like to enable Fingerprint for faster sign-ins?',
+        expect.stringContaining(
+          'Would you like to enable Fingerprint for faster sign-ins?'
+        ),
         expect.arrayContaining([
           expect.objectContaining({ text: 'Not Now', style: 'cancel' }),
           expect.objectContaining({ text: 'Enable' }),
@@ -806,7 +811,9 @@ describe('BiometricService', () => {
 
       expect(mockAlert.alert).toHaveBeenCalledWith(
         'Enable Fingerprint or Face ID',
-        'Would you like to enable Fingerprint or Face ID for faster sign-ins?',
+        expect.stringContaining(
+          'Would you like to enable Fingerprint or Face ID for faster sign-ins?'
+        ),
         expect.any(Array)
       );
     });
@@ -1107,5 +1114,52 @@ describe('Biometric account binding', () => {
       'biometric_credentials',
       expect.stringContaining('synthetic-new')
     );
+  });
+});
+
+describe('biometric enrollment regressions', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLocalAuth.hasHardwareAsync.mockResolvedValue(true);
+    mockLocalAuth.isEnrolledAsync.mockResolvedValue(true);
+    mockLocalAuth.supportedAuthenticationTypesAsync.mockResolvedValue([1]);
+    mockSecureStore.getItemAsync.mockResolvedValue(null);
+    mockSecureStore.setItemAsync.mockResolvedValue();
+  });
+  it('never saves credentials when native verification is cancelled', async () => {
+    mockLocalAuth.authenticateAsync.mockResolvedValue({
+      success: false,
+      error: 'user_cancel',
+    });
+    await expect(
+      BiometricService.enableBiometric('a@example.com', {
+        accessToken: 'a',
+        refreshToken: 'r',
+      })
+    ).rejects.toThrow('cancelled');
+    expect(mockSecureStore.setItemAsync).not.toHaveBeenCalled();
+  });
+  it('remembers setup for one account without retaining its session after sign-out', async () => {
+    const store = new Map<string, string>();
+    mockSecureStore.getItemAsync.mockImplementation(
+      async (key) => store.get(key) ?? null
+    );
+    mockSecureStore.setItemAsync.mockImplementation(async (key, value) => {
+      store.set(key, value);
+    });
+    mockSecureStore.deleteItemAsync.mockImplementation(async (key) => {
+      store.delete(key);
+    });
+    mockLocalAuth.authenticateAsync.mockResolvedValue({ success: true });
+    await BiometricService.enableBiometric('a@example.com', {
+      accessToken: 'a',
+      refreshToken: 'r',
+    });
+    await BiometricService.clearBiometricData();
+    await BiometricService.promptEnableBiometric('a@example.com', jest.fn());
+    expect(mockAlert.alert).not.toHaveBeenCalled();
+    expect(store.has('biometric_credentials')).toBe(false);
+    await BiometricService.promptEnableBiometric('b@example.com', jest.fn());
+    expect(mockAlert.alert).toHaveBeenCalled();
   });
 });

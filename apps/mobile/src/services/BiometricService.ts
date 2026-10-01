@@ -4,6 +4,12 @@ import { Alert } from 'react-native';
 import { trackUserAction, addBreadcrumb } from '../config/sentry';
 import { logger } from '../utils/logger';
 
+const setupKey = (email: string) =>
+  'biometric_setup_' +
+  Array.from(email.trim().toLowerCase())
+    .map((c) => c.charCodeAt(0).toString(16).padStart(4, '0'))
+    .join('');
+
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
 const MAX_TOKEN_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -103,7 +109,8 @@ export class BiometricService {
   // Enable biometric authentication
   static async enableBiometric(
     email: string,
-    tokens: { accessToken: string; refreshToken: string }
+    tokens: { accessToken: string; refreshToken: string },
+    validateSession?: () => Promise<void>
   ): Promise<void> {
     try {
       trackUserAction('biometric.enable_attempt', { email });
@@ -122,6 +129,16 @@ export class BiometricService {
         );
       }
 
+      const verification = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirm biometric sign-in setup',
+        disableDeviceFallback: true,
+      });
+      if (!verification.success)
+        throw new Error(
+          'Biometric setup was cancelled or could not be verified.'
+        );
+      await validateSession?.();
+
       // Security: Only store refresh token, not access token
       // Include timestamp for age validation
       const credentials: BiometricCredentials = {
@@ -135,6 +152,7 @@ export class BiometricService {
         JSON.stringify(credentials)
       );
       await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+      await SecureStore.setItemAsync(setupKey(email), 'true');
 
       // Enabling resets the auto-prompt decline backoff.
       await this.clearPromptDecline();
@@ -326,6 +344,10 @@ export class BiometricService {
       return;
     }
 
+    if (await this.isBiometricEnabled(email)) return;
+    // Remember successful setup across explicit sign-outs, without retaining revoked tokens.
+    if ((await SecureStore.getItemAsync(setupKey(email))) === 'true') return;
+
     // Respect the user's recent "Not Now" choices — don't nag every login.
     if (await this.shouldSuppressPrompt()) {
       return;
@@ -339,7 +361,7 @@ export class BiometricService {
 
     Alert.alert(
       `Enable ${biometricName}`,
-      `Would you like to enable ${biometricName} for faster sign-ins?`,
+      `Would you like to enable ${biometricName} for faster sign-ins? Signing out removes the saved sign-in; you can enable it again in Account & Security.`,
       [
         {
           text: 'Not Now',

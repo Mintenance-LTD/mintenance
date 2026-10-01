@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { me } from '../../../design-system/mint-editorial';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
@@ -17,12 +19,41 @@ export function JobIssueConversations({ jobId }: { jobId: string }) {
       ),
   });
   return (
-    <View>
+    <View
+      style={{
+        margin: 16,
+        padding: 16,
+        borderRadius: 18,
+        backgroundColor: me.surface,
+        borderWidth: 1,
+        borderColor: me.line,
+      }}
+    >
       <TouchableOpacity
         accessibilityRole='button'
+        accessibilityState={{ expanded: open }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          minHeight: 48,
+        }}
         onPress={() => setOpen(!open)}
       >
-        <Text>Resident issue conversations {open ? '−' : '+'}</Text>
+        <Ionicons name='chatbubbles-outline' size={22} color={me.brand} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: '700', color: me.ink, fontSize: 16 }}>
+            Resident updates
+          </Text>
+          <Text style={{ color: me.ink2, marginTop: 4 }}>
+            Reports and conversations linked to this job
+          </Text>
+        </View>
+        <Ionicons
+          name={open ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={me.ink2}
+        />
       </TouchableOpacity>
       {open && (
         <>
@@ -35,23 +66,40 @@ export function JobIssueConversations({ jobId }: { jobId: string }) {
           ) : (
             <>
               {query.data?.reports.length === 0 && (
-                <Text>No linked resident reports.</Text>
+                <Text style={{ color: me.ink2, paddingVertical: 16 }}>
+                  No resident reports are linked to this job yet.
+                </Text>
               )}
               {query.data?.reports.map((r) => (
                 <IssueConversation key={r.id} reportId={r.id} />
               ))}
-              <TouchableOpacity
-                disabled={offset === 0}
-                onPress={() => setOffset(Math.max(0, offset - 25))}
-              >
-                <Text>Previous reports</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                disabled={!query.data?.hasMore}
-                onPress={() => setOffset(offset + 25)}
-              >
-                <Text>Next reports</Text>
-              </TouchableOpacity>
+              {(offset > 0 || query.data?.hasMore) && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginTop: 12,
+                  }}
+                >
+                  <TouchableOpacity
+                    style={{ padding: 12, opacity: offset === 0 ? 0.4 : 1 }}
+                    disabled={offset === 0}
+                    onPress={() => setOffset(Math.max(0, offset - 25))}
+                  >
+                    <Text>Previous reports</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      padding: 12,
+                      opacity: query.data?.hasMore ? 1 : 0.4,
+                    }}
+                    disabled={!query.data?.hasMore}
+                    onPress={() => setOffset(offset + 25)}
+                  >
+                    <Text>Next reports</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </>
           )}
         </>

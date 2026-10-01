@@ -149,70 +149,7 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with di
           "marginTop": 10,
         }
       }
-    >
-      <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#D8E2DA",
-            "borderRadius": 16,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "gap": 4,
-            "paddingHorizontal": 10,
-            "paddingVertical": 5,
-          }
-        }
-      >
-        <View
-          accessibilityLabel="Icon: flash, size: 12, color: #E26B4F"
-          testID="ionicon-flash"
-        />
-        <Text
-          style={
-            {
-              "color": "#1A2520",
-              "fontSize": 11,
-              "fontWeight": "600",
-            }
-          }
-        >
-          &lt; 1hr response
-        </Text>
-      </View>
-      <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#D8E2DA",
-            "borderRadius": 16,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "gap": 4,
-            "paddingHorizontal": 10,
-            "paddingVertical": 5,
-          }
-        }
-      >
-        <View
-          accessibilityLabel="Icon: ribbon, size: 12, color: #3F8C7A"
-          testID="ionicon-ribbon"
-        />
-        <Text
-          style={
-            {
-              "color": "#1A2520",
-              "fontSize": 11,
-              "fontWeight": "600",
-            }
-          }
-        >
-          Insured
-        </Text>
-      </View>
-    </View>
+    />
   </View>
 </View>
 `;
@@ -366,70 +303,7 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with ed
           "marginTop": 10,
         }
       }
-    >
-      <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#D8E2DA",
-            "borderRadius": 16,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "gap": 4,
-            "paddingHorizontal": 10,
-            "paddingVertical": 5,
-          }
-        }
-      >
-        <View
-          accessibilityLabel="Icon: flash, size: 12, color: #E26B4F"
-          testID="ionicon-flash"
-        />
-        <Text
-          style={
-            {
-              "color": "#1A2520",
-              "fontSize": 11,
-              "fontWeight": "600",
-            }
-          }
-        >
-          &lt; 1hr response
-        </Text>
-      </View>
-      <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#D8E2DA",
-            "borderRadius": 16,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "gap": 4,
-            "paddingHorizontal": 10,
-            "paddingVertical": 5,
-          }
-        }
-      >
-        <View
-          accessibilityLabel="Icon: ribbon, size: 12, color: #3F8C7A"
-          testID="ionicon-ribbon"
-        />
-        <Text
-          style={
-            {
-              "color": "#1A2520",
-              "fontSize": 11,
-              "fontWeight": "600",
-            }
-          }
-        >
-          Insured
-        </Text>
-      </View>
-    </View>
+    />
   </View>
 </View>
 `;
@@ -583,70 +457,7 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently without
           "marginTop": 10,
         }
       }
-    >
-      <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#D8E2DA",
-            "borderRadius": 16,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "gap": 4,
-            "paddingHorizontal": 10,
-            "paddingVertical": 5,
-          }
-        }
-      >
-        <View
-          accessibilityLabel="Icon: flash, size: 12, color: #E26B4F"
-          testID="ionicon-flash"
-        />
-        <Text
-          style={
-            {
-              "color": "#1A2520",
-              "fontSize": 11,
-              "fontWeight": "600",
-            }
-          }
-        >
-          &lt; 1hr response
-        </Text>
-      </View>
-      <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#D8E2DA",
-            "borderRadius": 16,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "gap": 4,
-            "paddingHorizontal": 10,
-            "paddingVertical": 5,
-          }
-        }
-      >
-        <View
-          accessibilityLabel="Icon: ribbon, size: 12, color: #3F8C7A"
-          testID="ionicon-ribbon"
-        />
-        <Text
-          style={
-            {
-              "color": "#1A2520",
-              "fontSize": 11,
-              "fontWeight": "600",
-            }
-          }
-        >
-          Insured
-        </Text>
-      </View>
-    </View>
+    />
   </View>
 </View>
 `;

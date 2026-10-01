@@ -8,13 +8,14 @@ import {
   Dimensions,
   Share,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
-import { goBackSafe } from '../../navigation/hooks';
+import { useFocusEffect } from '@react-navigation/native';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import { useJobBids, useMyBidForJob } from '../../hooks/useJobs';
 import { BidService } from '../../services/BidService';
@@ -86,12 +87,25 @@ interface Props {
  * preserved; only the orchestration + state remain here.
  */
 export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          navigation.popTo('JobsList');
+          return true;
+        }
+      );
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
   const pendingScreen = (content: React.ReactNode) => (
     <View style={{ flex: 1, paddingTop: insets.top }}>
       <TouchableOpacity
         accessibilityRole='button'
         accessibilityLabel='Back to jobs'
-        onPress={() => goBackSafe(navigation, 'JobsList')}
+        onPress={() => navigation.popTo('JobsList')}
         style={{
           padding: 16,
           flexDirection: 'row',
@@ -285,7 +299,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <ErrorView
         message='Missing job reference. The link you opened did not include a job id.'
-        onRetry={() => goBackSafe(navigation, 'JobsList')}
+        onRetry={() => navigation.popTo('JobsList')}
       />
     );
   }
@@ -311,7 +325,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <ErrorView
         message='Job not found'
-        onRetry={() => goBackSafe(navigation, 'JobsList')}
+        onRetry={() => navigation.popTo('JobsList')}
       />
     );
   }
@@ -374,7 +388,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + 8 }]}
-          onPress={() => goBackSafe(navigation, 'JobsList')}
+          onPress={() => navigation.popTo('JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
