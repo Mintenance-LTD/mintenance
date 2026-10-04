@@ -26,14 +26,10 @@
         "NODE_ENV": "development",
         "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "EXPO_PUBLIC_USE_MOCK": "false",
-        "SENTRY_ORG": "${SENTRY_ORG}",
-        "SENTRY_PROJECT": "${SENTRY_PROJECT}",
-        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
-      "channel": "development"
+      "channel": "development",
+      "environment": "development"
     },
     "stable": {
       "distribution": "internal",
@@ -62,12 +58,7 @@
         "EXPO_PUBLIC_ENVIRONMENT": "production",
         "EXPO_PUBLIC_API_URL": "https://www.mintenance.co.uk",
         "EXPO_PUBLIC_API_BASE_URL": "https://www.mintenance.co.uk",
-        "SENTRY_ORG": "${SENTRY_ORG}",
-        "SENTRY_PROJECT": "${SENTRY_PROJECT}",
-        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "stable"
     },
@@ -88,24 +79,14 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "NODE_ENV": "staging",
+        "NODE_ENV": "production",
         "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
         "EXPO_PUBLIC_USE_MOCK": "false",
         "EXPO_PUBLIC_ENVIRONMENT": "staging",
-        "EXPO_PUBLIC_SUPABASE_URL": "${STAGING_SUPABASE_URL}",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${STAGING_SUPABASE_ANON_KEY}",
-        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${STAGING_STRIPE_PUBLISHABLE_KEY}",
-        "EXPO_PUBLIC_API_URL": "${STAGING_API_BASE_URL}",
-        "EXPO_PUBLIC_API_BASE_URL": "${STAGING_API_BASE_URL}",
-        "EXPO_PUBLIC_SENTRY_DSN": "${SENTRY_DSN}",
-        "SENTRY_ORG": "${SENTRY_ORG}",
-        "SENTRY_PROJECT": "${SENTRY_PROJECT}",
-        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
-      "channel": "staging"
+      "channel": "staging",
+      "environment": "preview"
     },
     "preview": {
       "distribution": "internal",
@@ -133,12 +114,7 @@
         "EXPO_PUBLIC_ENVIRONMENT": "production",
         "EXPO_PUBLIC_API_URL": "https://www.mintenance.co.uk",
         "EXPO_PUBLIC_API_BASE_URL": "https://www.mintenance.co.uk",
-        "SENTRY_ORG": "${SENTRY_ORG}",
-        "SENTRY_PROJECT": "${SENTRY_PROJECT}",
-        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "preview"
     },
@@ -170,8 +146,7 @@
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_ENABLE_CRASH_REPORTING": "false",
         "EXPO_PUBLIC_API_URL": "https://www.mintenance.co.uk",
-        "EXPO_PUBLIC_API_BASE_URL": "https://www.mintenance.co.uk",
-        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.mintenance.co.uk"
       },
       "channel": "internal"
     },
