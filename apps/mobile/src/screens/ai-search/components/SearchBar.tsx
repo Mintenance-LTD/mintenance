@@ -29,14 +29,14 @@ export function SearchBar({
         <Ionicons name='search-outline' size={20} color={me.ink3} />
         <TextInput
           style={styles.searchInput}
-          placeholder='Search jobs, contractors, services...'
+          placeholder='Search contractors...'
           placeholderTextColor={me.ink3}
           value={query}
           onChangeText={onChangeQuery}
           onSubmitEditing={onSubmit}
           returnKeyType='search'
-          accessibilityLabel='AI search'
-          accessibilityHint='Type to search for jobs, contractors, or services'
+          accessibilityLabel='Search contractors'
+          accessibilityHint='Type a contractor name or keyword'
         />
         {query.length > 0 && (
           <TouchableOpacity

@@ -1,0 +1,15 @@
+
+ RUN  v4.1.8 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web
+
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > returns only verified active contractor directory fields, never jobs or private contacts 15ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > uses city, skills and hourly-rate filters without searching private location 17ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > rejects malformed search parameters {"query":""} 1ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > rejects malformed search parameters {"query":"Discovery1791136728528","limit":101} 1ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > rejects malformed search parameters {"query":"Discovery1791136728528","filters":{"rating":"invalid"}} 1ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > includes verified new contractors in browse without exposing deleted or unverified profiles 28ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  18:58:46
+   Duration  3.22s (transform 638ms, setup 0ms, import 916ms, tests 1.63s, environment 0ms)
+

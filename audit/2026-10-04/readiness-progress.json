@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-04T16:48:22.679Z",
+  "updatedAt": "2026-10-04T18:05:14.7989197Z",
   "releaseDecision": "Hold external beta",
   "completionRule": "Complete (implementation) means scoped fixes and acceptance evidence are complete locally. Open release gates still block beta access; deployment and phone verification are tracked separately.",
   "phases": [
@@ -199,29 +199,40 @@
     {
       "id": 5,
       "name": "Public routes and core user journeys",
-      "status": "In progress",
+      "status": "Complete (implementation)",
       "completed": [
         "Public endpoint allowlist corrected for exact contact, health, version and search-suggestion paths",
         "Search suggestions use curated service categories; raw user searches and private job locations are no longer queried",
         "Health monitoring directly probes Redis and reports configured outages as failures instead of hiding fallback behavior",
-        "35 public-route/search tests and 6 isolated health tests passed without external service calls"
+        "35 public-route/search tests and 6 isolated health tests passed without external service calls",
+        "Browser verified registration, email confirmation, login, password recovery, photo-backed job creation, bid submission and two-way assigned-job messaging against isolated local Supabase",
+        "Fixed recovery CSRF submission, required both recovery session tokens, and removed unsafe administrative email confirmation; old password rejected and new password accepted",
+        "Mobile search now accurately describes contractor keyword search and cancels pending results when cleared",
+        "Public directory includes verified new contractors through the restricted directory view, excludes deleted/unverified profiles, and no longer invents response-time claims",
+        "Required job-photo wording corrected; bid-stage messaging explains that acceptance is required",
+        "Final validation: 105 targeted web tests, 35 real-database tests across five suites, 6 mobile search tests; both type checks and changed-file lint passed"
       ],
       "remaining": [
-        "Verify complete registration, recovery, job, bid, messaging and completion journeys in browser",
-        "Verify deployment behavior and monitoring with approved test infrastructure",
-        "Verify search UI communicates contractor-only keyword search for beta; unified semantic job search requires a separately authorized implementation",
-        "R4: separately owned after-photo completion regression remains unresolved"
+        "Release verification: successful bid acceptance, contracts and paid completion require Stripe sandbox setup in Phase 6; local attempt correctly rejected an unconfigured contractor account",
+        "R4: separately owned after-photo completion remains unresolved and was not modified",
+        "Deployed public/auth/recovery and monitoring checks transfer to Phase 8; mobile release search check transfers to Phase 7"
       ],
       "evidence": [
-        "phase5-public-routes-tests.log",
-        "phase5-health-tests.log",
-        "phase5-types-web.log"
+        "phase5-closeout.txt",
+        "phase5-results.json",
+        "phase5-final-web-tests.log",
+        "phase5-directory-database-tests.log",
+        "phase5-database-journeys.log",
+        "phase5-search-mobile-tests.log"
       ]
     },
     {
       "id": 6,
       "name": "Payments and reconciliation",
-      "status": "Not started"
+      "status": "Not started",
+      "remaining": [
+        "R7: configure sandbox credentials and verify successful acceptance through payment and reconciliation"
+      ]
     },
     {
       "id": 7,
@@ -294,6 +305,13 @@
       "status": "Open",
       "phase": 8,
       "requirement": "Verify recoverable hosted backups/PITR and a separate Storage object recovery plan, then schedule a supported database upgrade and recovery checks. The successful local restore does not prove hosted recovery."
+    },
+    {
+      "id": "R7",
+      "title": "Stripe sandbox journey and reconciliation",
+      "status": "Open",
+      "requirement": "Verify connected contractor onboarding, successful bid acceptance, payment/escrow, refunds and reconciliation with sandbox credentials before beta",
+      "phase": 6
     }
   ]
 }

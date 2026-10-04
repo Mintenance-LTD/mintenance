@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContractorsPage() {
-  const contractors = await getFeaturedContractors(50);
+  const contractors = await getFeaturedContractors(50, true);
   const platformStats = await getPlatformStats();
 
   const formattedContractors = contractors.map((contractor) => ({
