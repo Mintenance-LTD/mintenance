@@ -2,7 +2,7 @@
  * FinanceEditorialHero — dark forest-mint hero card for the Finance
  * dashboard, per redesign-v2 contractor business deck screen 02.
  *
- * Shows: "NET REVENUE · <month>" eyebrow, big serif amount, growth
+ * Shows: "RELEASED REVENUE · <month>" eyebrow, big serif amount, growth
  * delta vs prior month, then a sparkline of the trailing series.
  *
  * The delta calculation is deliberately defensive: if we have fewer
@@ -63,7 +63,7 @@ export const FinanceEditorialHero: React.FC<Props> = ({
   return (
     <View style={styles.card}>
       <Text style={styles.eyebrow}>
-        Net revenue · {monthLabel.toUpperCase()}
+        Released revenue · {monthLabel.toUpperCase()}
       </Text>
       <Text style={styles.amount}>{formatCurrency(latest)}</Text>
       {hasDelta && (

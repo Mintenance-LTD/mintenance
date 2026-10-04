@@ -826,7 +826,7 @@ describe('Quote analytics', () => {
         total_value: 3500, // 1000+2000+500
         accepted_value: 4000,
         average_quote_value: 350, // 3500/10
-        acceptance_rate: 80, // 4/5*100
+        acceptance_rate: 50, // 4/(10-2)*100
         conversion_rate: 40, // 4/10*100
       });
     });

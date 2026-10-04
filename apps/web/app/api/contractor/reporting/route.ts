@@ -1,156 +1,126 @@
-/**
- * GET /api/contractor/reporting
- * Aggregated reporting data for the contractor dashboard
- */
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import { InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { InternalServerError } from '@/lib/errors/api-error';
 
+/** The same report feeds the web dashboard and mobile app. */
 export const GET = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 20 } },
   async (request, { user }) => {
-    const url = new URL(request.url);
-    const range = url.searchParams.get('range') || '30d';
-
-    const daysMap: Record<string, number> = {
-      '7d': 7,
-      '30d': 30,
-      '90d': 90,
-      '1y': 365,
-    };
-    const days = daysMap[range] || 30;
-    const since = new Date(
-      Date.now() - days * 24 * 60 * 60 * 1000
-    ).toISOString();
-
-    try {
-      const [
-        profileRes,
-        reviewsRes,
-        reviewCountRes,
-        bidsRes,
-        jobsRes,
-        earningsRes,
-      ] = await Promise.all([
-        serverSupabase
-          .from('profiles')
-          .select('rating, total_jobs_completed')
-          .eq('id', user.id)
-          .single(),
-        serverSupabase
-          .from('reviews')
-          .select('id, rating, comment, created_at, reviewer_id')
-          .eq('reviewee_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(10),
-        serverSupabase
-          .from('reviews')
-          .select('id', { count: 'exact', head: true })
-          .eq('reviewee_id', user.id),
-        serverSupabase
-          .from('bids')
-          .select('id, status, amount, created_at')
-          .eq('contractor_id', user.id)
-          .gte('created_at', since),
-        serverSupabase
-          .from('jobs')
-          .select('id, category, status, completed_at, created_at')
-          .eq('contractor_id', user.id)
-          .gte('created_at', since)
-          .limit(200),
-        serverSupabase
-          .from('escrow_transactions')
-          // Terminal released escrows are stored as 'completed' (the release
-          // paths write 'completed', not 'released'); match both so earnings
-          // aren't £0.
-          .select('amount')
-          .eq('payee_id', user.id)
-          .in('status', ['released', 'completed'])
-          .limit(500),
-      ]);
-
-      const profile = profileRes.data;
-      const reviews = reviewsRes.data || [];
-      const totalReviews = reviewCountRes.count || 0;
-      const bids = bidsRes.data || [];
-      const jobs = jobsRes.data || [];
-      const earnings = earningsRes.data || [];
-
-      // Calculate metrics
-      const completedJobs = jobs.filter((j) => j.status === 'completed').length;
-      const acceptedBids = bids.filter((b) => b.status === 'accepted').length;
-      const winRate = bids.length > 0 ? acceptedBids / bids.length : 0;
-      const totalEarnings = earnings.reduce(
-        (sum, e) => sum + Number(e.amount || 0),
-        0
+    const range = new URL(request.url).searchParams.get('range') || '30d';
+    const days =
+      ({ '7d': 7, '30d': 30, '90d': 90, '1y': 365 } as Record<string, number>)[
+        range
+      ] ?? 30;
+    const since = new Date(Date.now() - days * 86400000).toISOString();
+    const results = await Promise.all([
+      serverSupabase
+        .from('jobs')
+        .select('id, status, category, created_at, completed_at')
+        .eq('contractor_id', user.id)
+        .or(`created_at.gte.${since},completed_at.gte.${since}`),
+      serverSupabase
+        .from('bids')
+        .select('id, status')
+        .eq('contractor_id', user.id)
+        .gte('created_at', since),
+      serverSupabase
+        .from('reviews')
+        .select('id, rating, comment, created_at')
+        .eq('reviewee_id', user.id)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false }),
+      serverSupabase
+        .from('escrow_transactions')
+        .select('amount, contractor_payout, platform_fee, status, released_at')
+        .eq('payee_id', user.id)
+        .in('status', ['released', 'completed'])
+        .gte('released_at', since),
+    ]);
+    // An unavailable data source must not look like an empty business.
+    if (results.some((result) => result.error))
+      throw new InternalServerError(
+        'Could not load all report data. Please retry.'
       );
-
-      // Monthly trend (last 6 months)
-      const monthlyTrend: { month: string; count: number }[] = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const month = d.toLocaleString('en-GB', {
-          month: 'short',
-          year: '2-digit',
-        });
-        const count = jobs.filter((j) => {
-          const jd = new Date(j.created_at);
-          return (
-            jd.getMonth() === d.getMonth() &&
-            jd.getFullYear() === d.getFullYear()
-          );
-        }).length;
-        monthlyTrend.push({ month, count });
-      }
-
-      // Category breakdown
-      const catMap = new Map<string, number>();
-      for (const j of jobs) {
-        const cat = j.category || 'general';
-        catMap.set(cat, (catMap.get(cat) || 0) + 1);
-      }
-      const categoryBreakdown = Array.from(catMap.entries())
-        .map(([category, count]) => ({ category, count }))
-        .sort((a, b) => b.count - a.count);
-
-      // Rating distribution
-      const ratingDistribution: Record<string, number> = {
-        '1': 0,
-        '2': 0,
-        '3': 0,
-        '4': 0,
-        '5': 0,
-      };
-      for (const r of reviews) {
-        const key = String(r.rating);
-        if (key in ratingDistribution) ratingDistribution[key]++;
-      }
-
-      return NextResponse.json({
-        completedJobs,
-        winRate: Math.round(winRate * 100) / 100,
-        totalEarnings: Math.round(totalEarnings * 100) / 100,
-        averageRating: profile?.rating || 0,
-        totalReviews,
-        monthlyTrend,
-        categoryBreakdown,
-        ratingDistribution,
-        recentReviews: reviews.map((r) => ({
-          id: r.id,
-          rating: r.rating,
-          comment: r.comment || '',
-          created_at: r.created_at,
+    const jobs = results[0].data ?? [];
+    const bids = results[1].data ?? [];
+    const reviews = results[2].data ?? [];
+    const earnings = results[3].data ?? [];
+    const completed = jobs.filter(
+      (job) =>
+        job.status === 'completed' &&
+        job.completed_at &&
+        job.completed_at >= since
+    );
+    const net = (row: (typeof earnings)[number]) =>
+      Number(
+        row.contractor_payout ??
+          Number(row.amount) - Number(row.platform_fee ?? 0)
+      );
+    const monthMap = new Map<string, { count: number; earnings: number }>();
+    const month = (date: string) => {
+      const key = date.slice(0, 7);
+      if (!monthMap.has(key)) monthMap.set(key, { count: 0, earnings: 0 });
+      return monthMap.get(key)!;
+    };
+    completed.forEach((job) => {
+      month(job.completed_at!).count++;
+    });
+    earnings.forEach((row) => {
+      if (row.released_at) month(row.released_at).earnings += net(row);
+    });
+    const categories = new Map<string, number>();
+    completed.forEach((job) =>
+      categories.set(
+        job.category || 'Other',
+        (categories.get(job.category || 'Other') ?? 0) + 1
+      )
+    );
+    const ratingDistribution: Record<string, number> = {
+      '1': 0,
+      '2': 0,
+      '3': 0,
+      '4': 0,
+      '5': 0,
+    };
+    reviews.forEach((review) => {
+      const key = String(Math.round(Number(review.rating)));
+      if (key in ratingDistribution) ratingDistribution[key]++;
+    });
+    return NextResponse.json({
+      completedJobs: completed.length,
+      totalJobs: jobs.length,
+      winRate: bids.length
+        ? bids.filter((bid) => bid.status === 'accepted').length / bids.length
+        : 0,
+      totalEarnings:
+        Math.round(earnings.reduce((sum, row) => sum + net(row), 0) * 100) /
+        100,
+      averageRating: reviews.length
+        ? reviews.reduce((sum, review) => sum + Number(review.rating), 0) /
+          reviews.length
+        : 0,
+      totalReviews: reviews.length,
+      monthlyTrend: [...monthMap]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => ({
+          month: new Date(`${key}-01T12:00:00Z`).toLocaleDateString('en-GB', {
+            month: 'short',
+            year: '2-digit',
+          }),
+          ...value,
         })),
-      });
-    } catch (err) {
-      logger.error('Failed to generate reporting data', err, {
-        service: 'contractor-reporting',
-        userId: user.id,
-      });
-      throw new InternalServerError('Failed to generate report');
-    }
+      categoryBreakdown: [...categories]
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count),
+      ratingDistribution,
+      recentReviews: reviews
+        .slice(0, 10)
+        .map((review) => ({
+          ...review,
+          comment: review.comment || '',
+          reviewer_name: 'Customer',
+        })),
+    });
   }
 );

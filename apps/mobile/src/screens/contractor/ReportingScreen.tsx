@@ -7,7 +7,7 @@
  *      period-aware sub line.
  *   2. Quarter switcher pills (This quarter / Last 30 days /
  *      Last 12 months / 7 days). Dark = active.
- *   3. NET REVENUE card with embedded monthly bar chart. The most
+ *   3. RELEASED EARNINGS card with embedded monthly bar chart. The most
  *      recent 3 months (current quarter) are rendered with the
  *      stronger brand fill, prior months with the soft mint pastel,
  *      matching the deck's "current quarter highlighted" treatment.
@@ -56,12 +56,14 @@ interface RangeSpec {
 const RANGES: readonly RangeSpec[] = [
   { key: '7d', label: '7 days', days: 7 },
   { key: '30d', label: 'Last 30 days', days: 30 },
-  { key: 'this-q', label: 'This quarter', days: 90 },
+  { key: 'this-q', label: 'Last 90 days', days: 90 },
   { key: '12mo', label: 'Last 12 months', days: 365 },
 ];
 
 const fmtGBP = (n: number): string =>
-  `£${Math.round(n).toLocaleString('en-GB')}`;
+  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
+    n
+  );
 
 export const ReportingScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -103,7 +105,7 @@ export const ReportingScreen: React.FC = () => {
       'Mintenance — contractor report',
       selectedRange.label,
       '',
-      `Net revenue: ${fmtGBP(stats.totalEarnings)}`,
+      `Released earnings: ${fmtGBP(stats.totalEarnings)}`,
       `Jobs completed: ${stats.completedJobs}`,
     ];
 
@@ -229,7 +231,7 @@ export const ReportingScreen: React.FC = () => {
         ) : (
           <>
             <View style={styles.revenueCard}>
-              <Text style={styles.revenueEyebrow}>Net revenue</Text>
+              <Text style={styles.revenueEyebrow}>Released earnings</Text>
               <Text style={styles.revenueAmount}>
                 {fmtGBP(stats.totalEarnings)}
               </Text>
@@ -241,7 +243,9 @@ export const ReportingScreen: React.FC = () => {
                       const ratio = Math.max(item.earnings / maxEarnings, 0.06);
                       const heightPct =
                         `${Math.round(ratio * 100)}%` as `${number}%`;
-                      const inQuarter = currentQuarterMonths.has(item.month);
+                      const inQuarter = currentQuarterMonths.has(
+                        item.month.split(' ')[0] ?? item.month
+                      );
                       return (
                         <View key={i} style={styles.chartCol}>
                           <View
@@ -271,7 +275,8 @@ export const ReportingScreen: React.FC = () => {
                     color={me.ink3}
                   />
                   <Text style={styles.chartEmptyText}>
-                    Bars appear once you have completed jobs in this window.
+                    Earnings appear when escrow is released. Held payments are
+                    shown in Escrow.
                   </Text>
                 </View>
               )}

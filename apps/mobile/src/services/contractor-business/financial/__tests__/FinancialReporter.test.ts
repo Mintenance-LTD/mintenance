@@ -274,7 +274,7 @@ describe('calculateFinancialTotals', () => {
     expect(result.totalExpenses).toBe(0);
   });
 
-  it('logs and treats query errors as empty results (paid invoices error path)', async () => {
+  it('rejects failed financial queries instead of reporting zero', async () => {
     configureTables({
       invoices: { result: { data: null, error: { message: 'boom-invoices' } } },
       contractor_expenses: {
@@ -282,15 +282,9 @@ describe('calculateFinancialTotals', () => {
       },
     });
 
-    const result = await calculateFinancialTotals(
-      'contractor-1',
-      periodStart,
-      periodEnd
-    );
-
-    expect(result.totalRevenue).toBe(0);
-    expect(result.totalExpenses).toBe(0);
-    expect(result.outstandingInvoices).toBe(0);
+    await expect(
+      calculateFinancialTotals('contractor-1', periodStart, periodEnd)
+    ).rejects.toThrow('Failed to calculate financial totals');
     // Errors logged for invoices (paid + outstanding) and expenses
     expect(mockedLoggerError).toHaveBeenCalledWith(
       'Error fetching paid invoices',
@@ -503,8 +497,8 @@ describe('getFinancialSummary', () => {
 
     const summary = await getFinancialSummary('contractor-1');
 
-    // in-flight = 1000 + 500.5 + 250 + 0 = 1750.5
-    expect(summary.escrow_in_flight).toBe(1750.5);
+    // in-flight = 1000 + 500.5 + 250 + 0 = 1250
+    expect(summary.escrow_in_flight).toBe(1250);
     // earned = 2000 + 3000 + 0 = 5000
     expect(summary.escrow_revenue).toBe(5000);
     // 2026-07-20: `outstanding_invoices` used to roll escrow in-flight into
@@ -514,12 +508,12 @@ describe('getFinancialSummary', () => {
     // outstanding invoices = 200 + 100 = 300
     expect(summary.outstanding_invoices).toBe(300);
     // combined "owed to me" still available, and still equals the old total
-    expect(summary.total_owed).toBe(300 + 1750.5);
+    expect(summary.total_owed).toBe(300 + 1250);
     // overdue: only the past-due overdue row (200), and status !== 'paid'
     expect(summary.overdue_amount).toBe(200);
   });
 
-  it('logs and zeroes escrow when escrow query errors', async () => {
+  it('rejects unavailable escrow balances instead of showing zero', async () => {
     configureTables({
       invoices: { result: { data: [], error: null } },
       contractor_expenses: { result: { data: [], error: null } },
@@ -528,10 +522,9 @@ describe('getFinancialSummary', () => {
       },
     });
 
-    const summary = await getFinancialSummary('contractor-1');
-
-    expect(summary.escrow_in_flight).toBe(0);
-    expect(summary.escrow_revenue).toBe(0);
+    await expect(getFinancialSummary('contractor-1')).rejects.toThrow(
+      'Failed to get financial summary'
+    );
     // fetchContractorEscrow + fetchReleasedEscrowByMonth both hit escrow_transactions
     expect(mockedLoggerError).toHaveBeenCalledWith(
       'Error fetching contractor escrow',
@@ -572,7 +565,7 @@ describe('getFinancialSummary', () => {
             {
               amount: 600,
               status: 'released',
-              created_at: PINNED_NOW.toISOString(), // June 2026 bucket
+              released_at: PINNED_NOW.toISOString(), // June 2026 bucket
             },
           ],
           error: null,
@@ -725,7 +718,7 @@ describe('getFinancialSummary', () => {
             {
               amount: 400,
               status: 'completed',
-              created_at: PINNED_NOW.toISOString(),
+              released_at: PINNED_NOW.toISOString(),
             },
           ],
           error: null,
@@ -759,13 +752,13 @@ describe('getFinancialSummary', () => {
             {
               amount: '250',
               status: 'released',
-              created_at: PINNED_NOW.toISOString(),
+              released_at: PINNED_NOW.toISOString(),
             },
             // null amount in current month bucket -> contributes 0
             {
               amount: null,
               status: 'completed',
-              created_at: PINNED_NOW.toISOString(),
+              released_at: PINNED_NOW.toISOString(),
             },
           ],
           error: null,

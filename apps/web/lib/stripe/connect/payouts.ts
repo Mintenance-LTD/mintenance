@@ -37,11 +37,15 @@ export async function accumulateEarnings(params: {
   });
 
   if (error) {
-    logger.error('Atomic payout credit RPC failed; refusing unsafe fallback', error, {
-      service: 'payouts',
-      contractorId: params.contractorId,
-      jobId: params.jobId,
-    });
+    logger.error(
+      'Atomic payout credit RPC failed; refusing unsafe fallback',
+      error,
+      {
+        service: 'payouts',
+        contractorId: params.contractorId,
+        jobId: params.jobId,
+      }
+    );
     throw new Error('Unable to credit contractor payout balance atomically');
   }
 
@@ -68,7 +72,8 @@ export async function getPayoutBalance(
     .eq('currency', currency.toUpperCase())
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) throw new Error('Could not load payout balance');
+  if (!data) return null;
 
   const threshold = getPayoutThreshold(currency);
 
