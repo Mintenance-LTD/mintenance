@@ -122,6 +122,10 @@ performance-dashboard.html
 # ============================================================================
 scripts/
 **/scripts/
+# Required by the root package's npm prepare lifecycle during EAS installs.
+!/scripts/
+/scripts/*
+!/scripts/rebuild-native.mjs
 week3-test-plan.js
 analyze-coverage.js
 performance-budgets.json

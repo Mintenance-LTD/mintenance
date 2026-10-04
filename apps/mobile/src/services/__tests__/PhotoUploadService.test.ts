@@ -11,6 +11,14 @@ import * as Location from 'expo-location';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { __setMockData, __resetSupabaseMock } from '../../config/supabase';
 
+import { PhotoUploadService } from '../PhotoUploadService';
+jest.mock('../prepareJobPhoto', () => ({
+  prepareJobPhoto: jest.fn(async (photo) => photo.uri),
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  deleteAsync: jest.fn(async () => {}),
+}));
+
 jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
@@ -20,13 +28,11 @@ jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getLastKnownPositionAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
-  Accuracy: { Balanced: 3 },
+  Accuracy: { Balanced: 3, High: 4 },
 }));
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: { post: jest.fn(), postFormData: jest.fn() },
 }));
-
-import { PhotoUploadService } from '../PhotoUploadService';
 
 const mockReqCam = ImagePicker.requestCameraPermissionsAsync as jest.Mock;
 const mockLaunchLib = ImagePicker.launchImageLibraryAsync as jest.Mock;
@@ -256,5 +262,19 @@ describe('getJobPhotos', () => {
     // The list path never errors in the mock, so assert it resolves to [] instead.
     const photos = await PhotoUploadService.getJobPhotos('j1');
     expect(photos).toEqual([]);
+  });
+});
+
+it('keeps the server location rejection actionable', async () => {
+  mockPostFormData.mockRejectedValue(
+    Object.assign(
+      new Error('You are approximately 1156m away (maximum allowed: 100m).'),
+      { statusCode: 400 }
+    )
+  );
+  const results = await PhotoUploadService.uploadBeforePhotos('job', [asset()]);
+  expect(results[0]).toMatchObject({
+    success: false,
+    error: 'You are approximately 1156m away (maximum allowed: 100m).',
   });
 });

@@ -1,3 +1,4 @@
+import { CompleteWorkCTA } from './CompleteWorkCTA';
 /**
  * JobDetailsCTA - Priority-based sticky bottom CTA for job details.
  *
@@ -308,15 +309,14 @@ export function getPriorityCTA({
 
   if (isAssignedContractor && job.status === 'in_progress') {
     return (
-      <StickyBottomCTA
-        buttonText='Upload After Photos'
-        onPress={() =>
+      <CompleteWorkCTA
+        jobId={job.id}
+        onUpload={() =>
           navigation.navigate('PhotoUpload', {
             jobId: job.id,
             photoType: 'after',
           })
         }
-        secondaryText='Document completed work'
       />
     );
   }

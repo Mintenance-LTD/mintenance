@@ -123,11 +123,15 @@ export function useJobTravelTracking({
             await mobileApiClient.post('/api/contractor/trips', { jobId });
           } else {
             const response = await mobileApiClient.get<{
-              trips?: { job_id: string; status: string }[];
+              trips?: { job_id: string; status: string; started_at?: string }[];
             }>(`/api/contractor/trips?status=en_route&jobId=${jobId}`);
             if (
               !response.trips?.some(
-                (trip) => trip.job_id === jobId && trip.status === 'en_route'
+                (trip) =>
+                  trip.job_id === jobId &&
+                  trip.status === 'en_route' &&
+                  Date.now() - new Date(trip.started_at ?? '').getTime() <=
+                    24 * 60 * 60 * 1000
               )
             ) {
               setIsTracking(false);

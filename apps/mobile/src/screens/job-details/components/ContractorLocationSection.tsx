@@ -71,10 +71,12 @@ export const ContractorLocationSection: React.FC<Props> = ({
             </Text>
           </View>
 
-          {eta != null && eta > 0 && (
+          {eta != null && eta >= 0 && (
             <View style={styles.etaBlock}>
               <Text style={styles.etaLabel}>ETA</Text>
-              <Text style={styles.etaValue}>{formatEta(eta)}</Text>
+              <Text style={styles.etaValue}>
+                {eta === 0 ? 'At destination' : formatEta(eta)}
+              </Text>
             </View>
           )}
 

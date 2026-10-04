@@ -169,7 +169,13 @@ beforeEach(() => {
   mockApiPost.mockResolvedValue({ ok: true });
   mockApiPatch.mockResolvedValue({});
   mockApiGet.mockResolvedValue({
-    trips: [{ job_id: 'job-1', status: 'en_route' }],
+    trips: [
+      {
+        job_id: 'job-1',
+        status: 'en_route',
+        started_at: new Date().toISOString(),
+      },
+    ],
   });
   mockMaybeSingle.mockResolvedValue({ data: null });
   mockMeetingStart.mockResolvedValue(fakeService());
@@ -431,7 +437,15 @@ describe('createTrip ("I\'m on my way") path', () => {
 
   it.each([
     { trips: [] },
-    { trips: [{ job_id: 'another-job', status: 'en_route' }] },
+    {
+      trips: [
+        {
+          job_id: 'another-job',
+          status: 'en_route',
+          started_at: new Date().toISOString(),
+        },
+      ],
+    },
   ])(
     'does not resume without an en-route trip for this job: %j',
     async ({ trips }) => {
@@ -472,7 +486,14 @@ describe('explicit departure lifecycle', () => {
   });
   it('cancels the same trip and stops the shared watcher on Stop', async () => {
     mockApiGet.mockResolvedValue({
-      trips: [{ id: 'trip-1', job_id: 'job-1', status: 'en_route' }],
+      trips: [
+        {
+          id: 'trip-1',
+          job_id: 'job-1',
+          status: 'en_route',
+          started_at: new Date().toISOString(),
+        },
+      ],
     });
     const { result } = renderHook(() =>
       useJobTravelTracking({ jobId: 'job-1', destination })

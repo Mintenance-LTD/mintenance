@@ -268,7 +268,11 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 value={address1}
-                onChangeText={setAddress1}
+                onChangeText={(value) => {
+                  setAddress1(value);
+                  setLatitude(undefined);
+                  setLongitude(undefined);
+                }}
                 placeholder='e.g. 42 High Street'
                 placeholderTextColor={me.ink3}
               />
@@ -279,7 +283,11 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 value={address2}
-                onChangeText={setAddress2}
+                onChangeText={(value) => {
+                  setAddress2(value);
+                  setLatitude(undefined);
+                  setLongitude(undefined);
+                }}
                 placeholder='e.g. Apartment 3B'
                 placeholderTextColor={me.ink3}
               />
@@ -291,7 +299,11 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   value={city}
-                  onChangeText={setCity}
+                  onChangeText={(value) => {
+                    setCity(value);
+                    setLatitude(undefined);
+                    setLongitude(undefined);
+                  }}
                   placeholder='e.g. London'
                   placeholderTextColor={me.ink3}
                 />
@@ -302,7 +314,11 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   value={county}
-                  onChangeText={setCounty}
+                  onChangeText={(value) => {
+                    setCounty(value);
+                    setLatitude(undefined);
+                    setLongitude(undefined);
+                  }}
                   placeholder='e.g. Greater London'
                   placeholderTextColor={me.ink3}
                 />
@@ -314,7 +330,11 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               <TextInput
                 style={[styles.input, styles.postcodeInput]}
                 value={postcode}
-                onChangeText={setPostcode}
+                onChangeText={(value) => {
+                  setPostcode(value);
+                  setLatitude(undefined);
+                  setLongitude(undefined);
+                }}
                 placeholder='e.g. SW1A 1AA'
                 placeholderTextColor={me.ink3}
                 autoCapitalize='characters'

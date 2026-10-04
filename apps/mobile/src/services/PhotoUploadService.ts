@@ -1,3 +1,5 @@
+import { prepareJobPhoto } from './prepareJobPhoto';
+import * as FileSystem from 'expo-file-system/legacy';
 /**
  * Enhanced Photo Upload Service for Mobile App
  * Handles before/after photos, video walkthroughs, and photo metadata
@@ -100,21 +102,7 @@ export class PhotoUploadService {
     };
   }
 
-  /**
-   * Upload before photos at job start.
-   *
-   * AUDIT_PUNCH_LIST P2 #57 (B-P2-1) — geolocation hoisted out of
-   * the per-photo loop 2026-05-09. Was firing
-   * `Location.getCurrentPositionAsync` once per photo (10 photos =
-   * 10 sequential 1-3s GPS fetches AND a possible mid-upload
-   * permission prompt). Now resolved once before the loop and
-   * reused for the whole batch — all photos in one upload session
-   * are at the same job site, so the location is identical anyway.
-   * iOS strips EXIF metadata via ImagePicker so the
-   * `getCurrentLocation()` fetch is the canonical capture path —
-   * the `exif: true` flag in JobPhotoUploadScreen is a defensive
-   * fallback for the rare Android case but doesn't ship coords on iOS.
-   */
+  /** Upload before photos with one location fix per batch. */
   static async uploadBeforePhotos(
     jobId: string,
     photos: ImagePicker.ImagePickerAsset[]
@@ -123,7 +111,9 @@ export class PhotoUploadService {
     const location = await this.getCurrentLocation();
 
     for (const photo of photos) {
+      let preparedUri: string | undefined;
       try {
+        preparedUri = await prepareJobPhoto(photo);
         const metadata: PhotoMetadata = {
           url: photo.uri,
           type: 'before',
@@ -132,18 +122,11 @@ export class PhotoUploadService {
           quality: this.assessPhotoQuality(photo),
         };
 
-        const ext = photo.uri.split('.').pop()?.toLowerCase();
-        const mimeType =
-          ext === 'png'
-            ? 'image/png'
-            : ext === 'heic'
-              ? 'image/heic'
-              : 'image/jpeg';
         const formData = new FormData();
         formData.append('photo', {
-          uri: photo.uri,
-          type: mimeType,
-          name: `before_${Date.now()}.${ext || 'jpg'}`,
+          uri: preparedUri,
+          type: 'image/jpeg',
+          name: `before_${Date.now()}.jpg`,
         } as unknown as Blob);
         formData.append('metadata', JSON.stringify(metadata));
 
@@ -165,7 +148,10 @@ export class PhotoUploadService {
           const apiError = parseError(uploadError);
           results.push({
             success: false,
-            error: getUserFriendlyMessage(apiError),
+            error:
+              apiError.statusCode === 400
+                ? apiError.message
+                : getUserFriendlyMessage(apiError),
           });
           continue;
         }
@@ -181,20 +167,23 @@ export class PhotoUploadService {
         logger.error('Error uploading before photo', { error: apiError });
         results.push({
           success: false,
-          error: getUserFriendlyMessage(apiError),
+          error:
+            apiError.statusCode === 400
+              ? apiError.message
+              : getUserFriendlyMessage(apiError),
         });
+      } finally {
+        if (preparedUri)
+          await FileSystem.deleteAsync(preparedUri, { idempotent: true }).catch(
+            () => {}
+          );
       }
     }
 
     return results;
   }
 
-  /**
-   * Upload after photos at job completion.
-   *
-   * AUDIT_PUNCH_LIST P2 #57 (B-P2-1) — see `uploadBeforePhotos` for
-   * rationale. Geolocation hoisted out of the per-photo loop.
-   */
+  /** Upload after photos with one location fix per batch. */
   static async uploadAfterPhotos(
     jobId: string,
     photos: ImagePicker.ImagePickerAsset[]
@@ -203,7 +192,9 @@ export class PhotoUploadService {
     const location = await this.getCurrentLocation();
 
     for (const photo of photos) {
+      let preparedUri: string | undefined;
       try {
+        preparedUri = await prepareJobPhoto(photo);
         const metadata: PhotoMetadata = {
           url: photo.uri,
           type: 'after',
@@ -212,18 +203,11 @@ export class PhotoUploadService {
           quality: this.assessPhotoQuality(photo),
         };
 
-        const ext = photo.uri.split('.').pop()?.toLowerCase();
-        const mimeType =
-          ext === 'png'
-            ? 'image/png'
-            : ext === 'heic'
-              ? 'image/heic'
-              : 'image/jpeg';
         const formData = new FormData();
         formData.append('photo', {
-          uri: photo.uri,
-          type: mimeType,
-          name: `after_${Date.now()}.${ext || 'jpg'}`,
+          uri: preparedUri,
+          type: 'image/jpeg',
+          name: `after_${Date.now()}.jpg`,
         } as unknown as Blob);
         formData.append('metadata', JSON.stringify(metadata));
 
@@ -247,7 +231,10 @@ export class PhotoUploadService {
           const apiError = parseError(uploadError);
           results.push({
             success: false,
-            error: getUserFriendlyMessage(apiError),
+            error:
+              apiError.statusCode === 400
+                ? apiError.message
+                : getUserFriendlyMessage(apiError),
           });
           continue;
         }
@@ -266,8 +253,16 @@ export class PhotoUploadService {
         logger.error('Error uploading after photo', { error: apiError });
         results.push({
           success: false,
-          error: getUserFriendlyMessage(apiError),
+          error:
+            apiError.statusCode === 400
+              ? apiError.message
+              : getUserFriendlyMessage(apiError),
         });
+      } finally {
+        if (preparedUri)
+          await FileSystem.deleteAsync(preparedUri, { idempotent: true }).catch(
+            () => {}
+          );
       }
     }
 
@@ -316,7 +311,10 @@ export class PhotoUploadService {
       logger.error('Error uploading video walkthrough', { error: apiError });
       return {
         success: false,
-        error: getUserFriendlyMessage(apiError),
+        error:
+          apiError.statusCode === 400
+            ? apiError.message
+            : getUserFriendlyMessage(apiError),
       };
     }
   }
@@ -362,8 +360,8 @@ export class PhotoUploadService {
       }
 
       const cached = await Location.getLastKnownPositionAsync({
-        maxAge: 60_000, // 1 min — fresh enough for photo timestamping
-        requiredAccuracy: 100, // metres — beyond this, force fresh fix
+        maxAge: 10_000, // Evidence near a 100m boundary needs a recent fix
+        requiredAccuracy: 25, // metres — request a fresh precise fix otherwise
       });
       if (cached) {
         return {
@@ -373,7 +371,7 @@ export class PhotoUploadService {
       }
 
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
       });
       return {
         latitude: location.coords.latitude,
@@ -474,12 +472,12 @@ export class PhotoUploadService {
   }
 
   static async getJobPhotos(jobId: string): Promise<
-    Array<{
+    {
       id: string;
       photo_url: string;
       photo_type: string;
       created_at: string;
-    }>
+    }[]
   > {
     const { data, error } = await supabase
       .from('job_photos_metadata')
@@ -488,11 +486,11 @@ export class PhotoUploadService {
       .in('photo_type', ['before', 'after'])
       .order('created_at', { ascending: true });
     if (error) throw new Error(error.message);
-    return (data || []) as Array<{
+    return (data || []) as {
       id: string;
       photo_url: string;
       photo_type: string;
       created_at: string;
-    }>;
+    }[];
   }
 }

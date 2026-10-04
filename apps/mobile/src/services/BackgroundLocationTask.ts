@@ -1,3 +1,4 @@
+import { estimateTravelMinutes } from './travelEta';
 /**
  * Background Location Task
  *
@@ -102,14 +103,7 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
     ctx.destination.latitude,
     ctx.destination.longitude
   );
-  const speedKmh =
-    location.coords.speed && location.coords.speed > 0
-      ? location.coords.speed * 3.6
-      : 30; // default assumption for urban travel
-  const etaMinutes = Math.min(
-    120,
-    Math.max(1, Math.ceil((distanceKm / speedKmh) * 60 * 1.2))
-  );
+  const etaMinutes = estimateTravelMinutes(distanceKm, location.coords.speed);
 
   try {
     const geohash = encodeGeohash(

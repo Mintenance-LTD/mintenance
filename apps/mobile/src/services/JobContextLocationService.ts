@@ -1,3 +1,4 @@
+import { estimateTravelMinutes } from './travelEta';
 /**
  * Job Context Location Service — context-aware GPS tracking only while
  * the contractor is traveling to a job, on a job, or opted-in to
@@ -290,26 +291,7 @@ export class JobContextLocationService {
       destination.longitude
     );
 
-    // Use speed from location if available, otherwise estimate based on movement
-    let speed = currentLocation.coords.speed; // m/s
-
-    if (!speed || speed === 0) {
-      // Estimate speed based on movement state
-      speed = this.isMoving ? 13.9 : 0; // ~50 km/h when moving, 0 when stationary
-    }
-
-    // Convert m/s to km/h
-    const speedKmh = speed * 3.6;
-
-    // Calculate base ETA (distance in km / speed in km/h * 60 minutes)
-    const baseETA = speedKmh > 0 ? (distance / speedKmh) * 60 : 999; // minutes
-
-    // Add traffic buffer (20% buffer for urban areas)
-    const trafficMultiplier = 1.2;
-    const eta = Math.ceil(baseETA * trafficMultiplier);
-
-    // Cap at reasonable maximum (e.g., 2 hours)
-    return Math.min(eta, 120);
+    return estimateTravelMinutes(distance, currentLocation.coords.speed);
   }
 
   /**

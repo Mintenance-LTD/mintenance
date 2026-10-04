@@ -37,6 +37,7 @@ const ACTIVE_JOB_STATUSES = ['assigned', 'in_progress'];
 interface EnRouteTrip {
   id: string;
   status: string;
+  started_at?: string;
   job_id: string | null;
   destination_lat: number | null;
   destination_lng: number | null;
@@ -105,6 +106,8 @@ export function useAssignedJobLocationAutoStart(): void {
 
         const trip = (tripsResp?.trips ?? []).find((t) => {
           if (!t.job_id) return false;
+          const age = Date.now() - new Date(t.started_at ?? '').getTime();
+          if (!Number.isFinite(age) || age > 24 * 60 * 60 * 1000) return false;
           // Prefer trip-level destination; fall back to joined job
           // coords when the trip row is missing them (legacy rows).
           const lat = t.destination_lat ?? t.job?.latitude ?? null;
