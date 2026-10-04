@@ -1,6 +1,9 @@
 const path = require('path');
 const fs = require('fs');
 const { buildAndroidIntentData } = require('./deepLinkIntentFilters');
+const {
+  validatePublicBuildEnvironment,
+} = require('./validate-public-build-env');
 
 // Simple console logger for config file
 const logger = {
@@ -30,6 +33,9 @@ try {
     );
   }
 }
+
+// Fail before bundling if a server credential was put in a public setting.
+validatePublicBuildEnvironment();
 
 // Validate required environment variables at build time
 const validateEnvironment = () => {
@@ -229,7 +235,7 @@ module.exports = {
       // Bumped 2026-08-06: 22 and 23 are both already consumed on Play (22
       // rejected build 148c5786; 23 uploaded from chore/mobile-versioncode-23).
       // 24 carries the mobile Delete Job feature to the store.
-      versionCode: 29,
+      versionCode: 32,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',

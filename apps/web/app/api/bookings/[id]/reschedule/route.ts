@@ -1,3 +1,4 @@
+import { appointmentLocalTime } from '@/lib/utils/appointment-local-time';
 /**
  * PATCH /api/bookings/:id/reschedule
  * Reschedule a booking to a new date/time.
@@ -111,13 +112,13 @@ export const PATCH = withApiHandler(
         .neq('status', 'cancelled');
 
       if (linkedAppointments && linkedAppointments.length > 0) {
-        const newDateStr = newDate.toISOString().split('T')[0];
-        const newStartTime = newDate.toISOString().split('T')[1].slice(0, 8);
+        const { date: newDateStr, time: newStartTime } =
+          appointmentLocalTime(newDate);
         const updates = linkedAppointments.map((apt) => {
           const durationMin =
             (apt.duration_minutes as number | null | undefined) ?? 60;
           const endDate = new Date(newDate.getTime() + durationMin * 60 * 1000);
-          const newEndTime = endDate.toISOString().split('T')[1].slice(0, 8);
+          const newEndTime = appointmentLocalTime(endDate).time;
           return serverSupabase
             .from('appointments')
             .update({

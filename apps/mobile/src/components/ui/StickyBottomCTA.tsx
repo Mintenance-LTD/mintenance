@@ -24,6 +24,7 @@ interface StickyBottomCTAProps {
   loading?: boolean;
   disabled?: boolean;
   secondaryText?: string;
+  secondaryAction?: { label: string; onPress: () => void };
   style?: ViewStyle;
   testID?: string;
 }
@@ -37,6 +38,7 @@ export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(
     loading = false,
     disabled = false,
     secondaryText,
+    secondaryAction,
     style,
     testID,
   }) => {
@@ -76,6 +78,16 @@ export const StickyBottomCTA: React.FC<StickyBottomCTAProps> = memo(
               <Text style={styles.buttonText}>{buttonText}</Text>
             )}
           </TouchableOpacity>
+          {secondaryAction && (
+            <TouchableOpacity
+              accessibilityRole='button'
+              onPress={secondaryAction.onPress}
+              disabled={disabled || loading}
+              style={{ paddingVertical: 12 }}
+            >
+              <Text style={styles.secondaryText}>{secondaryAction.label}</Text>
+            </TouchableOpacity>
+          )}
           {secondaryText && (
             <Text style={styles.secondaryText}>{secondaryText}</Text>
           )}

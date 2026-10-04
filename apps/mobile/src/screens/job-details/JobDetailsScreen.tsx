@@ -15,7 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
-import { useFocusEffect } from '@react-navigation/native';
+import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import { useJobBids, useMyBidForJob } from '../../hooks/useJobs';
 import { BidService } from '../../services/BidService';
@@ -647,6 +647,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                       | { navigate: (name: string, params?: unknown) => void }
                       | undefined;
                     parent?.navigate('ProfileTab', {
+                      initial: false,
                       screen: 'Expenses',
                       params: { jobId: job.id, jobTitle: job.title },
                     });
@@ -659,6 +660,17 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.divider} />
 
         <JobQuickActions
+          onReschedulePress={
+            (canManageJob || job.contractor_id === user?.id) &&
+            job.status === 'assigned'
+              ? () =>
+                  navigation.dispatch(
+                    CommonActions.navigate('RescheduleBooking', {
+                      bookingId: job.id,
+                    })
+                  )
+              : undefined
+          }
           jobId={job.id}
           onDisputeDetailsPress={
             viewModel.escrowStatus &&

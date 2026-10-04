@@ -105,3 +105,71 @@ it('creates a funded trip and notifies the homeowner only after insertion', asyn
     expect.objectContaining({ userId: 'owner', type: 'contractor_en_route' })
   );
 });
+
+for (const scenario of [
+  {
+    title: 'expires a previous-day trip despite a refreshed GPS row',
+    tripHours: 48,
+    locationMinutes: 0,
+    allowed: true,
+  },
+  {
+    title: 'recovers an old trip with a stale active GPS flag',
+    tripHours: 1,
+    locationMinutes: 30,
+    allowed: true,
+  },
+  {
+    title: 'keeps a recent journey with fresh GPS active',
+    tripHours: 1,
+    locationMinutes: 0,
+    allowed: false,
+  },
+]) {
+  it(scenario.title, async () => {
+    const oldTrip = {
+      id: 'old',
+      job_id: 'other',
+      started_at: new Date(
+        Date.now() - scenario.tripHours * 3600000
+      ).toISOString(),
+    };
+    const update = vi.fn();
+    const created = { id: 'new', job_id: jobId };
+    insert.mockImplementation(() => builder(created));
+    m.from.mockImplementation((table: string) => {
+      const b = builder(
+        table === 'jobs'
+          ? assignedJob
+          : table === 'escrow_transactions'
+            ? funding
+            : table === 'contractor_locations'
+              ? {
+                  id: 'loc',
+                  location_timestamp: new Date(
+                    Date.now() - scenario.locationMinutes * 60000
+                  ).toISOString(),
+                }
+              : oldTrip
+      );
+      b.update = vi.fn((value) => {
+        update(value);
+        return b;
+      });
+      b.then = (resolve: Function) =>
+        Promise.resolve({ data: null, error: null }).then(resolve as never);
+      return b;
+    });
+    if (scenario.allowed) {
+      expect((await POST(request(), {} as never)).status).toBe(201);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'cancelled' })
+      );
+    } else {
+      await expect(POST(request(), {} as never)).rejects.toThrow(
+        'already have an active trip'
+      );
+      expect(insert).not.toHaveBeenCalled();
+    }
+  });
+}

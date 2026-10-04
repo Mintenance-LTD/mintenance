@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
+import { JobService } from '../../services/JobService';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
 jest.mock('../../utils/mobileApiClient', () => ({
@@ -20,10 +21,10 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('../../services/JobService', () => ({
   JobService: {
-    getJobById: async () => ({
+    getJobById: jest.fn(async () => ({
       title: 'Synthetic rework',
       completed_at: '2026-09-15T10:00:00Z',
-    }),
+    })),
   },
 }));
 jest.mock('../../services/PhotoUploadService', () => ({
@@ -114,5 +115,36 @@ it('does not show success when the response omits confirmation', async () => {
   expect(Alert.alert).toHaveBeenCalledTimes(1);
   expect(view.getByLabelText('Changes needed description').props.value).toBe(
     ' Repair the seal '
+  );
+});
+
+it('never submits a null completion version', async () => {
+  (JobService.getJobById as jest.Mock).mockResolvedValueOnce({
+    title: 'Job',
+    completed_at: null,
+  });
+  const view = render(<HomeownerPhotoReviewScreen />);
+  fireEvent.press(await view.findByLabelText('Approve the completed work'));
+  expect(post).not.toHaveBeenCalled();
+  expect(Alert.alert).toHaveBeenCalledWith(
+    'Refresh required',
+    expect.any(String),
+    expect.any(Array)
+  );
+});
+it('preserves the exact database completion version including microseconds', async () => {
+  const completed_at = '2026-10-04T15:30:00.123456+00:00';
+  (JobService.getJobById as jest.Mock).mockResolvedValueOnce({
+    title: 'Job',
+    completed_at,
+  });
+  post.mockResolvedValue({ success: true });
+  const view = render(<HomeownerPhotoReviewScreen />);
+  fireEvent.press(await view.findByLabelText('Approve the completed work'));
+  await waitFor(() =>
+    expect(post).toHaveBeenCalledWith(
+      '/api/jobs/synthetic-job/confirm-completion',
+      { completedAt: completed_at }
+    )
   );
 });

@@ -9,7 +9,14 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { __setMockData, __resetSupabaseMock } from '../../config/supabase';
+
+import { PhotoUploadService } from '../PhotoUploadService';
+jest.mock('../prepareJobPhoto', () => ({
+  prepareJobPhoto: jest.fn(async (photo) => photo.uri),
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  deleteAsync: jest.fn(async () => {}),
+}));
 
 jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
@@ -20,13 +27,11 @@ jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getLastKnownPositionAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
-  Accuracy: { Balanced: 3 },
+  Accuracy: { Balanced: 3, High: 4 },
 }));
 jest.mock('../../utils/mobileApiClient', () => ({
-  mobileApiClient: { post: jest.fn(), postFormData: jest.fn() },
+  mobileApiClient: { get: jest.fn(), post: jest.fn(), postFormData: jest.fn() },
 }));
-
-import { PhotoUploadService } from '../PhotoUploadService';
 
 const mockReqCam = ImagePicker.requestCameraPermissionsAsync as jest.Mock;
 const mockLaunchLib = ImagePicker.launchImageLibraryAsync as jest.Mock;
@@ -47,7 +52,6 @@ const asset = (over: Record<string, unknown> = {}) =>
   }) as never;
 
 beforeEach(() => {
-  __resetSupabaseMock();
   jest.clearAllMocks();
   mockReqLoc.mockResolvedValue({ status: 'granted', granted: true });
   mockLastKnown.mockResolvedValue({
@@ -237,24 +241,39 @@ describe('pickImages / takePhoto / pickVideo', () => {
 });
 
 describe('getJobPhotos', () => {
-  it('returns before/after photo rows', async () => {
-    __setMockData([
-      {
-        id: 'p1',
-        photo_url: 'u1',
-        photo_type: 'before',
-        created_at: '2026-01-01',
-      },
-    ]);
-    const photos = await PhotoUploadService.getJobPhotos('j1');
-    expect(photos).toHaveLength(1);
-    expect(photos[0].photo_type).toBe('before');
+  it('uses freshly authorized API URLs and retains before/after identity', async () => {
+    const photo = {
+      id: 'p1',
+      photo_url: 'https://storage.invalid/fresh?token=new',
+      photo_type: 'before',
+      created_at: '2026-01-01',
+    };
+    (mobileApiClient.get as jest.Mock).mockResolvedValue({
+      job: { lifecyclePhotos: [photo, { ...photo, photo_type: 'video' }] },
+    });
+    expect(await PhotoUploadService.getJobPhotos('j1')).toEqual([photo]);
+    expect(mobileApiClient.get).toHaveBeenCalledWith('/api/jobs/j1');
   });
+  it('does not fall back to stale links when authorization fails', async () => {
+    (mobileApiClient.get as jest.Mock).mockRejectedValue(
+      new Error('Access denied')
+    );
+    await expect(PhotoUploadService.getJobPhotos('j1')).rejects.toThrow(
+      'Access denied'
+    );
+  });
+});
 
-  it('throws when the query errors', async () => {
-    __setMockData(null); // shared mock: .single? no — list via then returns []; force error path differently
-    // The list path never errors in the mock, so assert it resolves to [] instead.
-    const photos = await PhotoUploadService.getJobPhotos('j1');
-    expect(photos).toEqual([]);
+it('keeps the server location rejection actionable', async () => {
+  mockPostFormData.mockRejectedValue(
+    Object.assign(
+      new Error('You are approximately 1156m away (maximum allowed: 100m).'),
+      { statusCode: 400 }
+    )
+  );
+  const results = await PhotoUploadService.uploadBeforePhotos('job', [asset()]);
+  expect(results[0]).toMatchObject({
+    success: false,
+    error: 'You are approximately 1156m away (maximum allowed: 100m).',
   });
 });

@@ -62,6 +62,7 @@ jest.mock('../../utils/logger', () => ({
 const enRouteTrip = {
   id: 't1',
   status: 'en_route',
+  started_at: new Date().toISOString(),
   job_id: 'j1',
   destination_lat: 1,
   destination_lng: 2,
@@ -81,6 +82,21 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 describe('mount auto-start', () => {
+  it('does not restart a journey from a previous day', async () => {
+    mockGet.mockResolvedValue({
+      trips: [
+        {
+          ...enRouteTrip,
+          started_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        },
+      ],
+    });
+    renderHook(() => useAssignedJobLocationAutoStart());
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(2000);
+    });
+    expect(mockAcquire).not.toHaveBeenCalled();
+  });
   it('starts tracking for an en_route trip with coordinates', async () => {
     renderHook(() => useAssignedJobLocationAutoStart());
     await act(async () => {

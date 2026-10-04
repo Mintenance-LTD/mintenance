@@ -20,12 +20,14 @@ interface BeforeAfterSliderViewProps {
   photoPairs: PhotoPair[];
   activePairIndex: number;
   onSelectPair: (index: number) => void;
+  onRetry?: () => void;
 }
 
 export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
   photoPairs,
   activePairIndex,
   onSelectPair,
+  onRetry,
 }) => {
   const currentPair = photoPairs[activePairIndex];
   if (!currentPair) return null;
@@ -38,6 +40,7 @@ export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
           beforeUrl={currentPair.before.url}
           afterUrl={currentPair.after.url}
           height={320}
+          onRetry={onRetry}
         />
         {/* Photo Timestamps */}
         {(currentPair.before.timestamp || currentPair.after.timestamp) && (

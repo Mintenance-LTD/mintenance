@@ -87,7 +87,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
       }));
       setPhotos((prev) => [...prev, ...newPhotos]);
     }
-  }, []);
+  }, [t]);
 
   const pickFromGallery = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -126,7 +126,10 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
     // its own per-photo retry (MSV-P1-8) for transient network failures;
     // this covers the "clearly offline when user tapped Upload" case.
     const netState = await NetInfo.fetch();
-    if (!netState.isConnected || !netState.isInternetReachable) {
+    if (
+      netState.isConnected === false ||
+      netState.isInternetReachable === false
+    ) {
       Alert.alert(
         'No Internet Connection',
         'Photo upload requires an internet connection. Please reconnect and try again — your selected photos will remain here.'
@@ -143,7 +146,11 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
         ? PhotoUploadService.uploadBeforePhotos
         : PhotoUploadService.uploadAfterPhotos;
 
-      const results: Array<{ success: boolean; jobCompleted?: boolean }> = [];
+      const results: {
+        success: boolean;
+        jobCompleted?: boolean;
+        error?: string;
+      }[] = [];
       for (let i = 0; i < assets.length; i++) {
         setUploadProgress((i / assets.length) * 100);
         try {
@@ -153,8 +160,11 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
             asset,
           ]);
           results.push(...result);
-        } catch {
-          results.push({ success: false });
+        } catch (error) {
+          results.push({
+            success: false,
+            error: error instanceof Error ? error.message : 'Please try again.',
+          });
         }
         setUploadProgress(((i + 1) / assets.length) * 100);
       }
@@ -181,8 +191,15 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
 
       if (failCount > 0) {
         Alert.alert(
-          'Partial Upload',
-          `${successCount} photo(s) uploaded successfully, ${failCount} failed. You can retry the failed uploads.`
+          successCount ? 'Partial Upload' : 'Upload failed',
+          `${successCount} photo(s) uploaded, ${failCount} failed.\n\n${[
+            ...new Set(
+              results
+                .filter((r) => !r.success)
+                .map((r) => r.error)
+                .filter(Boolean)
+            ),
+          ].join('\n')}\n\nYour selected photos are kept here so you can retry.`
         );
       } else {
         if (isBefore) {

@@ -168,6 +168,7 @@
         "EXPO_PUBLIC_USE_MOCK": "false",
         "EXPO_PUBLIC_ENVIRONMENT": "production",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_ENABLE_CRASH_REPORTING": "false",
         "EXPO_PUBLIC_API_URL": "https://www.mintenance.co.uk",
         "EXPO_PUBLIC_API_BASE_URL": "https://www.mintenance.co.uk",
         "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"

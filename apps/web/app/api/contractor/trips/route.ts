@@ -168,7 +168,17 @@ export const POST = withApiHandler(
       .limit(1)
       .maybeSingle();
 
-    if (existingTrip && jobId && existingTrip.job_id === jobId) {
+    // A departure from a previous day is not renewed by background GPS pings.
+    const tripExpired =
+      existingTrip &&
+      Date.now() - new Date(existingTrip.started_at).getTime() >
+        24 * 60 * 60 * 1000;
+    if (
+      existingTrip &&
+      !tripExpired &&
+      jobId &&
+      existingTrip.job_id === jobId
+    ) {
       // Retry of the same explicit departure: reuse the trip, no second push.
       return NextResponse.json({ trip: existingTrip });
     }
@@ -179,13 +189,17 @@ export const POST = withApiHandler(
       if (existingTrip.job_id) {
         const { data: liveLoc } = await serverSupabase
           .from('contractor_locations')
-          .select('id')
+          .select('id, location_timestamp')
           .eq('contractor_id', user.id)
           .eq('job_id', existingTrip.job_id)
           .eq('is_active', true)
+          .order('location_timestamp', { ascending: false })
           .limit(1)
           .maybeSingle();
-        hasLiveLocation = !!liveLoc;
+        hasLiveLocation =
+          !!liveLoc &&
+          Date.now() - new Date(liveLoc.location_timestamp).getTime() <
+            STALE_TRIP_MINUTES * 60000;
       } else {
         // No job_id on the trip — fall back to any active row for this
         // contractor (availability ping). If anything active exists in
@@ -206,7 +220,10 @@ export const POST = withApiHandler(
         }
       }
 
-      if (hasLiveLocation || ageMinutes < STALE_TRIP_MINUTES) {
+      if (
+        !tripExpired &&
+        (hasLiveLocation || ageMinutes < STALE_TRIP_MINUTES)
+      ) {
         throw new BadRequestError(
           'You already have an active trip. Complete or cancel it first.'
         );
@@ -218,17 +235,19 @@ export const POST = withApiHandler(
         .update({
           status: 'cancelled',
           completed_at: new Date().toISOString(),
-          notes:
-            'Auto-cancelled — stale en_route trip with no recent location ping.',
+          notes: tripExpired
+            ? 'Auto-cancelled — departure expired after 24 hours.'
+            : 'Auto-cancelled — stale en_route trip with no recent location ping.',
         })
         .eq('id', existingTrip.id)
         .eq('contractor_id', user.id);
       if (cancelErr) {
-        logger.warn('Failed to auto-cancel stale trip; falling through', {
+        logger.warn('Failed to auto-cancel stale trip', {
           service: 'trips',
           tripId: existingTrip.id,
           error: cancelErr.message,
         });
+        throw cancelErr;
       } else {
         logger.info('Auto-cancelled stale en_route trip', {
           service: 'trips',

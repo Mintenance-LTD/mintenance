@@ -158,6 +158,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       }
 
       setPhotoPairs(pairs);
+      setActivePairIndex(0);
     } catch (err) {
       logger.error('Failed to fetch photos for review', err);
       Alert.alert('Error', 'Failed to load photos. Please try again.');
@@ -172,6 +173,14 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
   const handleApprove = async () => {
     if (!user?.id || submitting) return;
+    if (!completedAt) {
+      Alert.alert(
+        'Refresh required',
+        'The completion details are unavailable. Reload the review before approving work.',
+        [{ text: 'Reload review', onPress: fetchPhotos }]
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await mobileApiClient.post<{ success: boolean }>(
@@ -197,6 +206,14 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   };
 
   const handleRequestChanges = async () => {
+    if (!completedAt) {
+      Alert.alert(
+        'Refresh required',
+        'The completion details are unavailable. Reload the review before requesting changes.',
+        [{ text: 'Reload review', onPress: fetchPhotos }]
+      );
+      return;
+    }
     if (
       !user?.id ||
       submitting ||
@@ -230,7 +247,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       }
       Alert.alert(
         'Changes Requested',
-        'The contractor has been notified and will review your feedback.',
+        'The job has reopened and the contractor has been notified. Payment approval is on hold. Agree a return visit in Messages if needed; sending this request does not change the agreed price.',
         [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
       );
     } catch (err) {
@@ -324,6 +341,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           photoPairs={photoPairs}
           activePairIndex={activePairIndex}
           onSelectPair={setActivePairIndex}
+          onRetry={fetchPhotos}
         />
 
         {/* Auto-release countdown — only while awaiting homeowner action. */}

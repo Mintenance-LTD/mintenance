@@ -286,6 +286,32 @@ function setupPhotoMocks(
     if (table === 'job_photos_metadata') {
       return {
         insert: vi.fn().mockResolvedValue({ error: null }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    photo_url: 'https://example.com/earlier1.jpg',
+                    angle_type: 'wide',
+                    quality_score: 90,
+                  },
+                  {
+                    photo_url: 'https://example.com/earlier2.jpg',
+                    angle_type: 'close',
+                    quality_score: 90,
+                  },
+                  {
+                    photo_url: 'https://example.com/latest.jpg',
+                    angle_type: 'detail',
+                    quality_score: 90,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
       };
     }
     if (table === 'escrow_transactions') {
@@ -518,6 +544,13 @@ describe('POST /api/jobs/[id]/photos/after', () => {
     );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
+    expect(mocks.validatePhotoRequirements).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.arrayContaining([
+        expect.objectContaining({ url: 'https://example.com/earlier1.jpg' }),
+        expect.objectContaining({ url: 'https://example.com/latest.jpg' }),
+      ])
+    );
 
     const body = await res.json();
     expect(body.success).toBe(true);

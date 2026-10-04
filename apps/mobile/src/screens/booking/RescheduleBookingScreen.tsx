@@ -16,6 +16,8 @@ import type { RouteProp } from '@react-navigation/native';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../lib/queryClient';
 import { me } from '../../design-system/mint-editorial';
 
 interface Props {
@@ -32,12 +34,14 @@ export const RescheduleBookingScreen: React.FC<Props> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const qc = useQueryClient();
   const { bookingId } = route.params;
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const suggestedTime = new Date(Date.now() + 60 * 60 * 1000);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(tomorrow);
+  const [selectedDate, setSelectedDate] = useState<Date>(suggestedTime);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,18 +65,33 @@ export const RescheduleBookingScreen: React.FC<Props> = ({
   };
 
   const handleConfirm = async () => {
+    if (selectedDate.getTime() <= Date.now()) {
+      toast.error(
+        'Choose a future time',
+        'You can choose today, including weekends, with a time later than now.'
+      );
+      return;
+    }
     setLoading(true);
     try {
       await mobileApiClient.patch(`/api/bookings/${bookingId}/reschedule`, {
         newDateTime: selectedDate.toISOString(),
       });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.jobs.all }),
+        qc.invalidateQueries({ queryKey: ['contractor-schedule'] }),
+        qc.invalidateQueries({ queryKey: ['booking-details', bookingId] }),
+      ]);
       toast.success(
         'Booking rescheduled',
         `New date: ${formatDate(selectedDate)}`
       );
       navigation.goBack();
-    } catch {
-      toast.error('Failed to reschedule', 'Please try again.');
+    } catch (error) {
+      toast.error(
+        'Failed to reschedule',
+        error instanceof Error ? error.message : 'Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -145,7 +164,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({
           <DateTimePicker
             value={selectedDate}
             mode='date'
-            minimumDate={tomorrow}
+            minimumDate={today}
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleDateChange}
           />
