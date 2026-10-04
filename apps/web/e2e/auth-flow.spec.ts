@@ -10,6 +10,7 @@
  */
 
 import { test, expect } from './fixtures';
+import { randomInt } from 'node:crypto';
 
 /**
  * Fill every field the register schema requires.
@@ -49,8 +50,7 @@ test.describe('Authentication Flow', () => {
       // Fill signup form with unique email. The role chooser defaults to
       // homeowner (RegisterForm defaultValues), so no selection is needed.
       const timestamp = Date.now();
-      const randomSuffix =
-        crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
+      const randomSuffix = randomInt(10000);
       await fillSignUpForm(page, {
         email: `test${timestamp}${randomSuffix}@example.com`,
         password: 'SecurePass123!',
