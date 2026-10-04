@@ -10,6 +10,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { isTrainingReuseAllowed } from '../training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import type { Phase1BuildingAssessment } from '../types';
 import type {
@@ -33,6 +34,7 @@ export class ExperienceBufferService {
     studentResponse: Phase1BuildingAssessment | null,
     teacherReasoning?: string | null
   ): Promise<string | null> {
+    if (!isTrainingReuseAllowed()) return null;
     try {
       const surpriseScore = this.computeSurpriseScore(comparison);
       const categoryStats = await this.getCategoryCount(

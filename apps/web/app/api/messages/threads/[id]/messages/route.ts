@@ -1,3 +1,4 @@
+import { prepareMessageAttachment, refreshMessageAttachment } from '@/lib/messages/attachments';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -109,7 +110,7 @@ export const GET = withApiHandler(
         // incoming bubble rendered "Unknown User". FK verified:
         // messages_sender_id_fkey -> profiles. Service-role read, so the
         // profiles RLS/grant restrictions don't apply here.
-        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at, sender:profiles!messages_sender_id_fkey(id, first_name, last_name, role, email, company_name)'
+        'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at, sender:profile_directory!messages_sender_id_fkey(id, first_name, last_name, role, company_name)'
       )
       .eq('job_id', jobId)
       .order('created_at', { ascending: false })
@@ -140,7 +141,8 @@ export const GET = withApiHandler(
 
     // Reverse to ASC so the response matches the legacy contract and
     // both existing consumers can render top-to-bottom without sorting.
-    const messages = limitedRows
+    const refreshedRows = await Promise.all(limitedRows.map(refreshMessageAttachment));
+    const messages = refreshedRows
       .slice()
       .reverse()
       .map((row: ActualMessageRow) => mapActualMessageRow(row, jobId, user.id));
@@ -234,94 +236,9 @@ export const POST = withApiHandler(
     }
 
     const messageType = normalizeMessageType(data.messageType);
-    const attachmentUrl = data.attachments?.[0];
-
-    // Validate attachment URL if provided.
-    // Sprint 7 fix (3.4): the legacy check only verified host prefix, which
-    // let any authenticated user reference another user's uploaded file by
-    // pasting their URL. We now also parse the storage path, look the object
-    // up in storage.objects, and verify `owner = user.id`. This closes the
-    // path-traversal / file-reference hijack window.
-    if (attachmentUrl) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      if (!attachmentUrl.startsWith('https://')) {
-        throw new BadRequestError('Attachment URL must use HTTPS');
-      }
-      if (supabaseUrl && !attachmentUrl.startsWith(supabaseUrl)) {
-        throw new BadRequestError('Attachment must be from official storage');
-      }
-
-      const parsed = new URL(attachmentUrl);
-      const pathname = parsed.pathname.toLowerCase();
-      const allowedExtensions = [
-        '.pdf',
-        '.doc',
-        '.docx',
-        '.jpg',
-        '.jpeg',
-        '.png',
-        '.gif',
-        '.webp',
-        '.heic',
-      ];
-      if (!allowedExtensions.some((ext) => pathname.endsWith(ext))) {
-        throw new BadRequestError('File type not allowed');
-      }
-
-      // Extract {bucket} and {objectPath} from Supabase storage URLs.
-      // Known shapes:
-      //   /storage/v1/object/public/<bucket>/<path>
-      //   /storage/v1/object/sign/<bucket>/<path>    (with ?token=...)
-      //   /storage/v1/object/authenticated/<bucket>/<path>
-      const storageMatch = parsed.pathname.match(
-        /^\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/
-      );
-      if (!storageMatch) {
-        throw new BadRequestError(
-          'Attachment URL is not a recognized Supabase storage object'
-        );
-      }
-      const [, bucketId, objectPath] = storageMatch;
-      const decodedPath = decodeURIComponent(objectPath);
-
-      // Verify the current user uploaded this object. Supabase tracks the
-      // uploader in storage.objects.owner (auth.uid() at upload time).
-      const { data: objectRow, error: objectError } = await serverSupabase
-        .schema('storage')
-        .from('objects')
-        .select('owner, bucket_id, name')
-        .eq('bucket_id', bucketId)
-        .eq('name', decodedPath)
-        .maybeSingle();
-
-      if (objectError || !objectRow) {
-        logger.warn('Attachment URL points to unknown storage object', {
-          service: 'messages',
-          userId: user.id,
-          bucketId,
-          decodedPath,
-          error: objectError?.message,
-        });
-        throw new BadRequestError('Attachment not found in storage');
-      }
-
-      if (objectRow.owner && objectRow.owner !== user.id) {
-        logger.warn(
-          'Attachment ownership mismatch — user referencing another user file',
-          {
-            service: 'messages',
-            userId: user.id,
-            ownerId: objectRow.owner,
-            bucketId,
-            decodedPath,
-          }
-        );
-        throw new ForbiddenError(
-          'You may only attach files you uploaded yourself.'
-        );
-      }
-    }
-
+    const attachmentUrl = data.attachments?.[0]
+      ? await prepareMessageAttachment(data.attachments[0], user.id, jobId)
+      : null;
     if (!receiverId) {
       throw new BadRequestError(
         'Cannot determine message receiver — job missing contractor or homeowner'
@@ -360,7 +277,7 @@ export const POST = withApiHandler(
 
     // Map to frontend response format
     const message = mapActualMessageRow(
-      inserted as ActualMessageRow,
+      await refreshMessageAttachment(inserted as ActualMessageRow),
       jobId,
       user.id
     );

@@ -415,7 +415,7 @@ describe('Middleware Security', () => {
       // Use a route NOT in the skipMiddlewareRateLimit list
       // Routes like /api/jobs, /api/payments, etc. skip middleware rate limiting
       // because they have their own per-user rate limiters after auth
-      const request = new NextRequest('https://example.com/api/version', {
+      const request = new NextRequest('https://example.com/api/documents', {
         method: 'GET',
         headers: {
           cookie: 'mintenance-auth=valid-jwt-token',

@@ -34,15 +34,19 @@ export const GET = withCronHandler('pii-cleanup', async () => {
   }
   results.login_attempts_deleted = loginCount ?? 0;
 
-  // 2. Anonymize old IP addresses in security events
+  // 2. Remove old source IPs without dropping the security audit event.
+  // ip_address is INET NOT NULL: a text label such as "anonymized" makes
+  // PostgreSQL reject the entire update. Use the unspecified IPv4 address
+  // as a non-identifying sentinel and exclude it so retries are idempotent.
+  const anonymizedIp = '0.0.0.0';
   const sevenDaysAgo = new Date(
     Date.now() - 7 * 24 * 60 * 60 * 1000
   ).toISOString();
   const { count: anonCount, error: anonErr } = await serverSupabase
     .from('security_events')
-    .update({ ip_address: 'anonymized' }, { count: 'exact' })
+    .update({ ip_address: anonymizedIp }, { count: 'exact' })
     .lt('created_at', sevenDaysAgo)
-    .neq('ip_address', 'anonymized')
+    .neq('ip_address', anonymizedIp)
     .not('ip_address', 'is', null);
 
   if (anonErr) {
@@ -98,5 +102,6 @@ export const GET = withCronHandler('pii-cleanup', async () => {
 
   logger.info('PII cleanup completed', { service: 'pii-cleanup', results });
 
-  return results;
+  return { ...results, processed: Object.values(results).reduce<number>((sum, value) =>
+    sum + (typeof value === 'number' ? value : 0), 0) };
 });

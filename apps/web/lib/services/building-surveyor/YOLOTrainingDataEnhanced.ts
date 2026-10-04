@@ -10,6 +10,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from './training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { YOLOCorrectionService } from './YOLOCorrectionService';
 import { writeFileSync, mkdirSync } from 'fs';
@@ -41,6 +42,7 @@ export class YOLOTrainingDataEnhanced {
   static async exportEnhancedTrainingData(
     options: TrainingDataOptions = {}
   ): Promise<EnhancedDataset> {
+    assertTrainingReuseAllowed();
     const {
       outputDir = 'training-data/continuous-learning',
       trainSplit = 0.8,

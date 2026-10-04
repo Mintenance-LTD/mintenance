@@ -130,8 +130,7 @@ export const POST = withApiHandler(
       // Record exactly which photos were assessed; additional photos stay attached.
       const selected = images.slice(0, 4);
       const imageUrls = await resignAssessmentUrls(
-        selected.map((image) => image.image_url),
-        3600
+        selected.map((image) => image.image_url), 3600, assessmentId
       );
       if (imageUrls.length !== selected.length)
         throw new Error('Assessment photos unavailable');

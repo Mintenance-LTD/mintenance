@@ -46,13 +46,12 @@ export const getCachedUser = unstable_cache(
 export const getCachedContractors = unstable_cache(
   async (limit = 20, offset = 0) => {
     const { data: contractors, error } = await serverSupabase
-      .from('profiles')
+      .from('profile_directory')
       .select(
         `
         id,
         first_name,
         last_name,
-        email,
         profile_image_url,
         bio,
         rating,
@@ -129,13 +128,12 @@ const getCachedServiceCategories = unstable_cache(
 const getCachedContractorById = unstable_cache(
   async (contractorId: string) => {
     const { data: contractor, error } = await serverSupabase
-      .from('profiles')
+      .from('profile_directory')
       .select(
         `
         id,
         first_name,
         last_name,
-        email,
         profile_image_url,
         bio,
         rating,
@@ -152,7 +150,7 @@ const getCachedContractorById = unstable_cache(
           rating,
           comment,
           created_at,
-          reviewer:reviewer_id (
+          reviewer:profile_directory!reviewer_id (
             first_name,
             last_name
           )

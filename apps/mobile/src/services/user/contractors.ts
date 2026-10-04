@@ -41,7 +41,7 @@ export async function getNearbyContractors(
 ): Promise<UserProfile[]> {
   try {
     const query = supabase
-      .from('profiles')
+      .from('profile_directory')
       .select(
         `
           id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, latitude, longitude, created_at,
@@ -117,13 +117,12 @@ export async function getPreviousContractors(
       .select(
         `
           contractor_id,
-          contractor:contractor_id (
+          contractor:profile_directory!contractor_id (
             id,
             first_name,
             last_name,
             bio,
             profile_image_url,
-            phone,
             contractor_skills!contractor_id (
               skill_name
             )

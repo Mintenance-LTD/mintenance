@@ -59,14 +59,10 @@ export const GET = withApiHandler(
     // rather than handing the client a dead link — historical rows pointing at
     // other buckets pass through untouched.
     const imageRows = images || [];
-    const freshUrls = await resignAssessmentUrls(
-      imageRows.map((img) => img.image_url as string | null)
-    );
-    const signedImages = imageRows.map((img, idx) => ({
-      ...img,
-      image_url: freshUrls[idx] ?? img.image_url,
+    const signedImages = await Promise.all(imageRows.map(async (img) => {
+      const [url] = await resignAssessmentUrls([img.image_url], 3600, assessmentId);
+      return { ...img, image_url: url ?? null };
     }));
-
     const status = assessment.validation_status as string;
     const requiresRecapture = isAssessmentUnassessable(
       assessment.assessment_data

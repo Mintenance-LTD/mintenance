@@ -11,6 +11,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from './training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { loadClassNames } from './yolo-class-names';
 import { SAM3Service } from './SAM3Service';
@@ -114,6 +115,7 @@ export class YOLOCorrectionService {
    * Submit a correction
    */
   static async submitCorrection(input: CorrectionInput): Promise<string> {
+    assertTrainingReuseAllowed();
     try {
       // Convert corrected detections to YOLO format
       // Note: We need image dimensions - for now, assume standard size or fetch from image

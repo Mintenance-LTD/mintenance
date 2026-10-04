@@ -277,7 +277,7 @@ describe('UserService', () => {
       });
 
       // Verify correct database calls
-      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
+      expect(mockSupabase.from).toHaveBeenCalledWith('profile_directory');
       expect(mockSupabase.from).toHaveBeenCalledWith('reviews');
     });
 
@@ -324,7 +324,7 @@ describe('UserService', () => {
 
       // Should only query profiles (no reviews lookup for homeowners)
       expect(mockSupabase.from).toHaveBeenCalledTimes(1);
-      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
+      expect(mockSupabase.from).toHaveBeenCalledWith('profile_directory');
     });
 
     it('should return null when user not found', async () => {

@@ -61,6 +61,12 @@ function createMockSupabaseFrom() {
 }
 
 // Mock dependencies
+// Exercise the retained training implementation independently of beta scope.
+// The real fail-closed policy is covered by training-reuse-hold.test.ts.
+vi.mock('../training-reuse-policy', () => ({
+  assertTrainingReuseAllowed: vi.fn(),
+  isTrainingReuseAllowed: () => true,
+}));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: createMockSupabaseFrom(),
