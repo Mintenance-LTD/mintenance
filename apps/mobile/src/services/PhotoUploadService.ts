@@ -10,7 +10,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
-import { supabase } from '../config/supabase';
 import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
 
 interface PhotoMetadata {
@@ -479,18 +478,18 @@ export class PhotoUploadService {
       created_at: string;
     }[]
   > {
-    const { data, error } = await supabase
-      .from('job_photos_metadata')
-      .select('id, photo_url, photo_type, created_at')
-      .eq('job_id', jobId)
-      .in('photo_type', ['before', 'after'])
-      .order('created_at', { ascending: true });
-    if (error) throw new Error(error.message);
-    return (data || []) as {
-      id: string;
-      photo_url: string;
-      photo_type: string;
-      created_at: string;
-    }[];
+    const result = await mobileApiClient.get<{
+      job: {
+        lifecyclePhotos?: {
+          id: string;
+          photo_url: string;
+          photo_type: string;
+          created_at: string;
+        }[];
+      };
+    }>(`/api/jobs/${jobId}`);
+    return (result.job.lifecyclePhotos ?? []).filter(
+      (photo) => photo.photo_type === 'before' || photo.photo_type === 'after'
+    );
   }
 }

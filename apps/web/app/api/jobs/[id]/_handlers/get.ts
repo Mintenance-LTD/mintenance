@@ -40,7 +40,7 @@ export async function handleGet(
       // both fell through silently — a homeowner who'd already approved the
       // work saw "Review Work" again, and the auto-release timer-aware copy
       // never appeared.
-      'id, title, description, status, homeowner_id, payer_user_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completion_confirmed_by_homeowner, created_at, updated_at'
+      'id, title, description, status, homeowner_id, payer_user_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completed_at, completion_confirmed_at, completion_confirmed_by_homeowner, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -122,13 +122,22 @@ export async function handleGet(
       .select('file_url')
       .eq('job_id', id)
       .eq('file_type', 'image'),
-    userDb.from('job_photos_metadata').select('photo_url').eq('job_id', id),
+    userDb
+      .from('job_photos_metadata')
+      .select('id, photo_url, photo_type, created_at')
+      .eq('job_id', id)
+      .order('created_at', { ascending: true }),
   ]);
   const rawPhotos = [
     ...(attachmentsRes.data ?? []).map((a: { file_url: string }) => a.file_url),
     ...(photoMetaRes.data ?? []).map((p: { photo_url: string }) => p.photo_url),
-  ].filter(Boolean);
+  ];
   const signedPhotos = await resignJobStorageUrls(rawPhotos, user.id);
+  // Preserve photo identity/type while returning fresh, viewer-authorized URLs.
+  const lifecyclePhotos = (photoMetaRes.data ?? []).map((photo, index) => ({
+    ...photo,
+    photo_url: signedPhotos[(attachmentsRes.data ?? []).length + index],
+  }));
 
   // Coerce Postgres NUMERIC columns (serialised as strings by
   // supabase-js to preserve precision) into real JS numbers. The
@@ -349,6 +358,9 @@ export async function handleGet(
     scheduledStartDate: row.scheduled_start_date,
     images: signedPhotos,
     photos: signedPhotos,
+    lifecyclePhotos,
+    completed_at: row.completed_at ?? null,
+    completion_confirmed_at: row.completion_confirmed_at ?? null,
     requirements: row.requirements ?? null,
     latitude: toNum(row.latitude),
     longitude: toNum(row.longitude),
