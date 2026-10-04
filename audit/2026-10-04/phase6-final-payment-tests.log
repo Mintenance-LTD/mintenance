@@ -1,0 +1,724 @@
+
+ RUN  v4.1.8 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web
+
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > UK Stripe Fee Rates (1.5% + 20p) > should calculate Stripe fee as 1.5% + 0.20 for a 100 GBP payment 393ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > UK Stripe Fee Rates (1.5% + 20p) > should calculate Stripe fee correctly for 250 GBP 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > UK Stripe Fee Rates (1.5% + 20p) > should calculate Stripe fee correctly for small amounts (10 GBP) 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > UK Stripe Fee Rates (1.5% + 20p) > should calculate Stripe fee correctly for 1000 GBP 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Platform Fee (Basic tier 12%, min 0.50, no max cap) > should apply the 12% Basic-tier platform fee for a standard 100 GBP payment 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Platform Fee (Basic tier 12%, min 0.50, no max cap) > should enforce minimum platform fee of 0.50 for very small payments 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Platform Fee (Basic tier 12%, min 0.50, no max cap) > should NOT cap the platform fee for large payments (£50 cap removed 2026-05-22) 0ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Platform Fee (Basic tier 12%, min 0.50, no max cap) > should apply exactly the minimum fee at the threshold 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Platform Fee (Basic tier 12%, min 0.50, no max cap) > should scale the fee linearly with no upper cap 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Contractor Amount Calculation > should correctly calculate contractor payout for 100 GBP 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Contractor Amount Calculation > should correctly calculate contractor payout for 500 GBP 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Contractor Amount Calculation > should floor contractor amount to zero when fees exceed payment 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Payment Type Variants > should apply the same 12% Basic rate for deposit payments 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Payment Type Variants > should apply the same 12% Basic rate for milestone payments 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Payment Type Variants > should default to final payment type 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Custom Fee Overrides > should accept custom platform fee rate 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Custom Fee Overrides > should accept custom Stripe fee rate 0ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Fee Calculation in Cents > should correctly calculate fees in cents for 10000 (100 GBP) 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Edge Cases > should throw for zero amount 3ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Edge Cases > should throw for negative amount 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Edge Cases > should round all results to two decimal places 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Fee Config Validation > should reject platform fee rate above 1 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Fee Config Validation > should reject negative platform fee rate 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Fee Config Validation > should reject min > max platform fee 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Fee Config Validation > should reject negative Stripe fee rate 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Helper Methods > should return correct platform fee rate for each payment type 0ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Helper Methods > should return Stripe fee rate of 1.5% 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Helper Methods > should return Stripe fixed fee of 0.20 0ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Helper Methods > should calculate platform fee only 0ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Helper Methods > should calculate Stripe fee only 0ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > FeeCalculationService > Helper Methods > should calculate contractor payout 0ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Authentication Required > should reject unauthenticated requests with error status 398ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Authorization - Only Homeowner Can Refund > should reject refund from a contractor who is associated with the job 3ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Authorization - Only Homeowner Can Refund > should reject refund from a user who is neither homeowner nor contractor 6ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Escrow Must Be "held" > should reject refund for already released escrow 5ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Escrow Must Be "held" > should reject refund for already refunded escrow 5ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Job Status Must Be Refundable > should reject refund when job status is "completed" 3ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Job Status Must Be Refundable > should reject refund when job status is "in_progress" 4ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Job Status Must Be Refundable > should reject refund when job status is "assigned" 8ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Job Status Must Be Refundable > should allow refund when job status is "cancelled" 5ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Job Status Must Be Refundable > should allow refund when job status is "disputed" 6ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Job Status Must Be Refundable > should allow refund when job status is "pending" 6ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Refund Status Checks - Job Status Must Be Refundable > should allow refund when job status is "posted" 5ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/refund > Rate Limiting > should return 429 when rate limit is exceeded 5ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeCreated > records dispute and freezes escrow to disputed 36ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeCreated > notifies both payer and payee 2ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeCreated > notifies admins with urgent alert 2ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeUpdated > syncs dispute status 4ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeUpdated > does not send notifications 2ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeClosed > resolves escrow to held when dispute is won 3ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeClosed > resolves escrow to refunded when dispute is lost 2ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeClosed > updates job payment_status based on outcome 2ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeClosed > notifies both parties with outcome message 3ms
+ ✓ lib/services/stripe-webhook/__tests__/dispute-handlers.test.ts > handleDisputeClosed > returns early when payment_intent is missing 2ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return 401 when user is not authenticated 988ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return validation error response when input is invalid 3ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return 400 when payment intent has not succeeded 5ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return 404 when job does not exist 3ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return 403 when user is not the job homeowner 2ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return 404 when escrow transaction not found 2ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return success when escrow is already held 24ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should update escrow from pending to held and return success 5ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > does not report success when the atomic transition returns no escrow 4ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > does not report success when the atomic transition returns no escrow 3ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > does not report success after a failed atomic payment write 3ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > confirms gross escrow funded by cash and trusted credit separately 9ms
+ ✓ __tests__/api/routes/confirm-intent.test.ts > POST /api/payments/confirm-intent > should return 400 when escrow is in an unexpected state 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 1. Creation flow (confirm intent) > should transition escrow from "pending" to "held" when Stripe payment succeeds 1014ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 1. Creation flow (confirm intent) > rejects a succeeded PaymentIntent whose amount differs from escrow 5ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 1. Creation flow (confirm intent) > should handle idempotent confirm when webhook already set escrow to "held" 3ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 1. Creation flow (confirm intent) > should reject confirmation when escrow is in a terminal state (e.g. "failed") 4ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 2. Happy path release > should allow homeowner to approve escrow and return success 328ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 2. Happy path release > should return escrow details after status transitions to "held" 4ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 3. Dispute path > should not allow a non-homeowner to approve escrow (dispute prevention) 8ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 3. Dispute path > should keep escrow status unchanged when approval service throws (dispute scenario) 3ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 3. Dispute path > should allow homeowner to approve after contractor re-submits work 4ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > updates profile subscription_status to active 13ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > maps Stripe past_due to past_due 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > maps Stripe canceled to cancelled (British spelling) 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > syncs contractor_subscriptions (tier source of truth) when user is contractor 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > writes period dates from legacy top-level current_period_* (pre-basil payloads) 3ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > derives period dates from subscription items (basil+ payloads) 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > spans the widest period across multiple subscription items (basil+ payloads) 1ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > writes null period dates when neither payload shape carries them 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > maps trialing to trial and does not write an unknown plan_type from metadata 5ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > sends notification for past_due status 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > sends notification for canceled status 1ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > does not send notification for active status 1ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > returns early when customer ID is missing 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionUpdated > fails so Stripe retries when the customer profile lookup errors 5ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionDeleted > downgrades profile to none and notifies user 2ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionDeleted > cancels the contractor_subscriptions row so tier resolution demotes 1ms
+ ✓ lib/services/stripe-webhook/__tests__/subscription-handlers.test.ts > handleSubscriptionDeleted > returns early when customer ID is missing 1ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > passes the pounds amount straight through to the in-app notification (no /100) 834ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > passes the pounds amount straight through to the payment-released email (no /100) 1ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > preserves pence precision for a fractional pounds amount 1ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > calculates release fees through the shared fee service with the resolved tier 3ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > uses the stable escrow idempotency key and reverts a failed transfer claim 9ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > returns charge IDs in both Stripe response shapes and fails soft on lookup errors 2ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > does not make a fee-transfer failure fail the escrow release 1ms
+ ✓ __tests__/api/payments/release-escrow-helpers.test.ts > notifyAndEmailContractor — payout amount formatting > requires an audit row before allowing an admin bypass to proceed 1ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/release-escrow > Authentication Required > should reject unauthenticated requests 717ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/release-escrow > Authorization - Only Authorized Parties Can Release > should reject release by a user who is not homeowner, contractor, or admin 4ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 4. Seven-day auto-release > should trigger auto-approval when homeowner has not responded after 7 days 242ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 4. Seven-day auto-release > should block release when auto-approval is not yet eligible (less than 7 days) 3ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5. Double-release prevention > should return cached result for duplicate idempotent requests 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5. Double-release prevention > denies a cached release after the caller loses participant access 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5. Double-release prevention > should fail with invalid state transition when escrow is already released 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5. Double-release prevention > should return 409 when concurrent modification is detected on the optimistic update 96ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5b. CAS ordering + reconciliation depth > lets a pending payout reach the guarded recovery claim despite the legacy state validator 6ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5b. CAS ordering + reconciliation depth > recovers a committed fee-only settlement without claiming or transferring again 5ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5b. CAS ordering + reconciliation depth > does not expose a committed fee-only settlement to an unrelated homeowner 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5b. CAS ordering + reconciliation depth > settles a fee-exhausted remainder without creating a transfer 9ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5b. CAS ordering + reconciliation depth > releases only remaining principal after a reconciled partial refund 8ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5b. CAS ordering + reconciliation depth > enforces strict ordering: CAS claim → Stripe transfer → final DB update 7ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 5b. CAS ordering + reconciliation depth > transfer succeeded but final DB update failed → reconciliation audit row + 500, money NOT re-sent 4ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should calculate 12 % Basic-tier platform fee on a 100 GBP payment 1ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should enforce minimum platform fee of 0.50 1ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should apply no maximum cap on large jobs (cap removed in tiered-pricing rollout) 3ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should calculate correct fees for a typical 250 GBP plumbing job 1ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should calculate fees in cents for Stripe API 1ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should handle deposit payment type with same 12 % Basic-tier rate 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should allow custom platform fee rate override 1ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should throw on non-positive amount 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should calculate net platform revenue (platform fee - Stripe fee) 1ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 6. Fee calculation verification > should validate fee configuration bounds 1ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 7. Admin override > should allow admin to release escrow bypassing homeowner approval checks 3ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 7. Admin override > should reject admin release when database role verification fails 4ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 7. Admin override > should allow admin to view escrow for any job 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - 8. Refund flow (before job starts) > should reject release when escrow is already refunded 3ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - Contractor release request > should return 403 because contractors are not allowed to release escrow directly 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - Contractor release request > should reject contractor who is not assigned to the job 2ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/release-escrow > Authorization - Only Authorized Parties Can Release > should allow release by the homeowner of the job 113ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/release-escrow > Escrow Status Validation > should reject release when escrow transaction is not found 4ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/release-escrow > Rate Limiting > should return 429 when rate limit is exceeded 4ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Authentication Required > should reject unauthenticated payment intent creation 157ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Rate Limiting > should return 429 when rate limit is exceeded on create-intent 3ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Rate Limiting > should include rate limit headers in 429 response 3ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Authorization - Only Homeowner Can Create Payment > should reject payment intent when user is not the job homeowner 4ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Authorization - Only Homeowner Can Create Payment > should reject a contractor id that differs from the current job assignment 7ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Payment Amount Validation > should reject a bid exceeding the absolute platform maximum 6ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Payment Amount Validation > should fund a job at the maximum allowed budget (£100,000) end to end 11ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/create-intent > Anomaly Detection > should block payment when anomaly detection flags high risk 4ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > resumes the same pending payment after its escrow insert is visible 72ms
+ ✓ __tests__/api/payments/create-intent-concurrent-dedup.test.ts > create-intent header-less duplicate protection > two CONCURRENT header-less double-taps create exactly ONE PaymentIntent 88ms
+ ✓ __tests__/api/payments/create-intent-concurrent-dedup.test.ts > create-intent header-less duplicate protection > a SEQUENTIAL header-less double-tap returns the cached intent, not a new one 39ms
+ ✓ __tests__/api/payments/create-intent-concurrent-dedup.test.ts > create-intent header-less duplicate protection > recovers when the stored stripe_customer_id is missing under the active key (test-mode customer + live key) 6ms
+ ✓ __tests__/api/payments/create-intent-concurrent-dedup.test.ts > create-intent header-less duplicate protection > a non-customer Stripe error is NOT swallowed by the customer-recovery path 4ms
+ ✓ __tests__/api/payments/create-intent-concurrent-dedup.test.ts > create-intent header-less duplicate protection > a client-supplied Idempotency-Key header still wins over the derived key 2ms
+ ✓ __tests__/api/payments/create-intent-concurrent-dedup.test.ts > create-intent header-less duplicate protection > the header-less fallback is deterministic — no timestamp, no randomness 2ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > GET /api/payments/methods > Authentication Required > should reject unauthenticated requests to list payment methods 65ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > GET /api/payments/methods > Rate Limiting > should return rate limit response when limit exceeded 5ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > GET /api/payments/methods > Successful Response > should return formatted payment methods for authenticated user 6ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/add-method > Authentication Required > should reject unauthenticated request to add payment method 83ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"currency":"usd"} 41ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"amount":1} 42ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"status":"processing"} 30ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/add-method > Rate Limiting > should return 429 when rate limit is exceeded on add-method 4ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/add-method > Successful Add Method > should attach payment method and return card details 7ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > POST /api/payments/add-method > Successful Add Method > should create Stripe customer if one does not exist 8ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Cross-Cutting Payment Security > CSRF Protection > should propagate CSRF failure from refund route 5ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Cross-Cutting Payment Security > Idempotency > recovers the durable result for a duplicate refund request 5ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Cross-Cutting Payment Security > Idempotency > fails closed when the durable refund ledger is unavailable 6ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Cross-Cutting Payment Security > Consistent Auth Rejection Across Endpoints > create-intent: should reject unauthenticated POST requests 11ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Cross-Cutting Payment Security > Consistent Auth Rejection Across Endpoints > refund: should reject unauthenticated POST requests 9ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Cross-Cutting Payment Security > Consistent Auth Rejection Across Endpoints > release-escrow: should reject unauthenticated POST requests 8ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Cross-Cutting Payment Security > Consistent Auth Rejection Across Endpoints > add-method: should reject unauthenticated POST requests 7ms
+ ✓ __tests__/api/payments/payment-flow.test.ts > Refund Durable Retry Recovery > recovers the same operation after an uncertain recording failure 11ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"status":"succeeded"} 31ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"status":"canceled"} 31ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"client_secret":null} 32ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"metadata":{"payerId":"other-payer"}} 32ms
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects unauthorized callers before worker or execution tracking
+[2026-10-04T18:53:27.711Z] WARN  Unauthorized cron request {"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":false,"hasHmacSignature":false}
+[MONITORING] {"level":"warn","message":"Unauthorized cron request","timestamp":"2026-10-04T18:53:27.715Z","context":{"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":false,"hasHmacSignature":false}}
+
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects unauthorized callers before worker or execution tracking
+[2026-10-04T18:53:27.721Z] WARN  Unauthorized cron request {"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":true,"hasHmacSignature":false}
+[MONITORING] {"level":"warn","message":"Unauthorized cron request","timestamp":"2026-10-04T18:53:27.721Z","context":{"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":true,"hasHmacSignature":false}}
+
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects when no cron secret is configured
+[2026-10-04T18:53:27.725Z] ERROR No cron secret configured (checked per-job + CRON_SECRET) {"service":"cron-auth","path":"/api/cron/refund-recovery"}
+[MONITORING] {"level":"error","message":"No cron secret configured (checked per-job + CRON_SECRET)","timestamp":"2026-10-04T18:53:27.725Z","context":{"service":"cron-auth","path":"/api/cron/refund-recovery"}}
+[2026-10-04T18:53:27.725Z] WARN  Unauthorized cron request {"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":true,"hasHmacSignature":false}
+[MONITORING] {"level":"warn","message":"Unauthorized cron request","timestamp":"2026-10-04T18:53:27.725Z","context":{"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":true,"hasHmacSignature":false}}
+
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects an expired HMAC
+[2026-10-04T18:53:27.729Z] WARN  Unauthorized cron request {"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":false,"hasHmacSignature":true}
+[MONITORING] {"level":"warn","message":"Unauthorized cron request","timestamp":"2026-10-04T18:53:27.729Z","context":{"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":false,"hasHmacSignature":true}}
+
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects an wrong-path HMAC
+[2026-10-04T18:53:27.732Z] WARN  Unauthorized cron request {"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":false,"hasHmacSignature":true}
+[MONITORING] {"level":"warn","message":"Unauthorized cron request","timestamp":"2026-10-04T18:53:27.732Z","context":{"service":"cron-auth","path":"/api/cron/refund-recovery","hasAuthHeader":false,"hasHmacSignature":true}}
+
+stderr | __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > recovers a provider ID after a lost response without creating a second refund
+[2026-10-04T18:53:27.733Z] ERROR Operation failed after all retries {"errorDetails":{"operation":"stripe:create-refund","attempts":1,"error":{}}}
+[MONITORING] {"level":"error","message":"Operation failed after all retries","timestamp":"2026-10-04T18:53:27.735Z","context":{"errorDetails":{"operation":"stripe:create-refund","attempts":1,"error":{}}}}
+
+stdout | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > accepts the configured scheduler credential
+[2026-10-04T18:53:27.735Z] INFO  Starting cron job: refund-recovery {"service":"refund-recovery","runId":"run"}
+
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > accepts the configured scheduler credential
+[MONITORING] {"level":"info","message":"Starting cron job: refund-recovery","timestamp":"2026-10-04T18:53:27.735Z","context":{"service":"refund-recovery","runId":"run"}}
+
+stdout | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > accepts the configured scheduler credential
+[2026-10-04T18:53:27.736Z] INFO  Cron job completed: refund-recovery {"service":"refund-recovery","runId":"run","durationMs":2,"result":{"processed":0,"confirmed":0,"pending":0,"failed":0}}
+
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > accepts the configured scheduler credential
+[MONITORING] {"level":"info","message":"Cron job completed: refund-recovery","timestamp":"2026-10-04T18:53:27.737Z","context":{"service":"refund-recovery","runId":"run","durationMs":2,"result":{"processed":0,"confirmed":0,"pending":0,"failed":0}}}
+
+stdout | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > reports recovery failures to cron monitoring
+[2026-10-04T18:53:27.740Z] INFO  Starting cron job: refund-recovery {"service":"refund-recovery","runId":"run"}
+
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > reports recovery failures to cron monitoring
+[MONITORING] {"level":"info","message":"Starting cron job: refund-recovery","timestamp":"2026-10-04T18:53:27.740Z","context":{"service":"refund-recovery","runId":"run"}}
+
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"metadata":{"contractorId":"other-contractor"}} 30ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"metadata":{"jobId":"other-job"}} 44ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"metadata":{"bidId":"other-bid"}} 30ms
+stderr | __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > reports recovery failures to cron monitoring
+[2026-10-04T18:53:27.741Z] ERROR Cron job failed: refund-recovery {"service":"refund-recovery","runId":"run","durationMs":1}
+Error details: {
+  name: 'APIError',
+  message: 'Refund recovery requires attention is temporarily unavailable',
+  stack: undefined
+}
+[MONITORING] {"level":"error","message":"Cron job failed: refund-recovery","timestamp":"2026-10-04T18:53:27.745Z","context":{"service":"refund-recovery","runId":"run","durationMs":1},"error":{"name":"APIError","message":"Refund recovery requires attention is temporarily unavailable"}}
+[2026-10-04T18:53:27.745Z] WARN  API Error {"code":"SERVICE_UNAVAILABLE","message":"Refund recovery requires attention is temporarily unavailable","statusCode":503}
+[MONITORING] {"level":"warn","message":"API Error","timestamp":"2026-10-04T18:53:27.746Z","context":{"code":"SERVICE_UNAVAILABLE","message":"Refund recovery requires attention is temporarily unavailable","statusCode":503}}
+
+ ✓ __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects unauthorized callers before worker or execution tracking 18ms
+ ✓ __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects unauthorized callers before worker or execution tracking 4ms
+ ✓ __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects when no cron secret is configured 4ms
+ ✓ __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects an expired HMAC 3ms
+ ✓ __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > rejects an wrong-path HMAC 3ms
+ ✓ __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > accepts the configured scheduler credential 5ms
+ ✓ __tests__/audit/refund-recovery-cron.test.ts > refund recovery cron authentication > reports recovery failures to cron monitoring 8ms
+stderr | __tests__/audit/payment-reconciliation-worker.test.ts > classifies provider error resource_missing correctly
+[2026-10-04T18:53:27.757Z] ERROR Operation failed after all retries {"errorDetails":{"operation":"stripe:reconcile-payment","attempts":1,"error":{"code":"resource_missing"}}}
+[MONITORING] {"level":"error","message":"Operation failed after all retries","timestamp":"2026-10-04T18:53:27.760Z","context":{"errorDetails":{"operation":"stripe:reconcile-payment","attempts":1,"error":{"code":"resource_missing"}}}}
+
+stderr | __tests__/audit/payment-reconciliation-worker.test.ts > classifies provider error parameter_invalid correctly
+[2026-10-04T18:53:27.763Z] ERROR Operation failed after all retries {"errorDetails":{"operation":"stripe:reconcile-payment","attempts":1,"error":{"code":"parameter_invalid"}}}
+[MONITORING] {"level":"error","message":"Operation failed after all retries","timestamp":"2026-10-04T18:53:27.763Z","context":{"errorDetails":{"operation":"stripe:reconcile-payment","attempts":1,"error":{"code":"parameter_invalid"}}}}
+
+stderr | __tests__/audit/payment-reconciliation-worker.test.ts > bounds a stalled provider call without hidden retries
+[2026-10-04T18:53:35.764Z] ERROR Operation failed after all retries {"errorDetails":{"operation":"stripe:reconcile-payment","attempts":1,"error":{"operation":"stripe:reconcile-payment","timeoutMs":8000,"name":"TimeoutError"}}}
+[MONITORING] {"level":"error","message":"Operation failed after all retries","timestamp":"2026-10-04T18:53:35.764Z","context":{"errorDetails":{"operation":"stripe:reconcile-payment","attempts":1,"error":{"operation":"stripe:reconcile-payment","timeoutMs":8000,"name":"TimeoutError"}}}}
+
+stderr | __tests__/audit/remediation-refund-recovery.test.ts > refund recovery time budget > bounds an unresponsive provider by the remaining budget without hidden retries
+[2026-10-04T18:53:32.771Z] ERROR Operation failed after all retries {"errorDetails":{"operation":"stripe:find-refund","attempts":1,"error":{"operation":"stripe:find-refund","timeoutMs":5000,"name":"TimeoutError"}}}
+[MONITORING] {"level":"error","message":"Operation failed after all retries","timestamp":"2026-10-04T18:53:32.771Z","context":{"errorDetails":{"operation":"stripe:find-refund","attempts":1,"error":{"operation":"stripe:find-refund","timeoutMs":5000,"name":"TimeoutError"}}}}
+
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > compares captured cash, not gross principal, and persists with the claim token 19ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > checks fully refunded retired funding without inventing an outstanding amount 2ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > flags wrong payer 2ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > flags wrong cash 1ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > flags uncaptured 0ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > flags unrecorded refund 0ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > flags missing ledger 0ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > does not report an expired or stale acknowledgement as a match 1ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > classifies provider error resource_missing correctly 6ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > classifies provider error parameter_invalid correctly 2ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > bounds a stalled provider call without hidden retries 8ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > stops after three claims even with a larger backlog 2ms
+ ✓ __tests__/audit/payment-reconciliation-worker.test.ts > fails when result persistence fails instead of claiming success 7ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > does not interpret a missing provider status as success 15ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > rejects changed frozen provider parameters before creating a refund 2ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > does not report a contradictory terminal outcome as successful recovery 2ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > uses frozen provider parameters and one durable operation key 4ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > recovers a provider ID after a lost response without creating a second refund 5ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > recovers when the provider succeeds but the database write fails 2ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > records pending without manufacturing success 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > records requires_action without manufacturing success 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > records failed without manufacturing success 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > records canceled without manufacturing success 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > uses current retrieved state rather than an out-of-order webhook payload 2ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > rejects mismatched provider refund evidence {"amount":10001} 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > rejects mismatched provider refund evidence {"currency":"usd"} 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > rejects mismatched provider refund evidence {"payment_intent":"pi_someone_else"} 2ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > rejects mismatched provider refund evidence {"metadata":{"refundOperationId":"another-operation"}} 2ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > blocks a new refund when an external refund is not accounted for locally 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > does not recreate an unresolved attempt after provider idempotency expiry 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > can reconcile an old attempt when its actual provider refund is found 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > does not assume an incomplete paginated history means no previous refund exists 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > rejects multiple provider refunds attached to one operation 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > returns the credit-only remainder without asking Stripe to refund promotional credit 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > durable refund recovery > rejects reservation results belonging to a different payer 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund route context > uses remaining ledger principal instead of original escrow amount 3ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund route context > uses original principal only when no ledger exists 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund route context > rejects a mismatched operation {"actor_id":"other"} 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund route context > rejects a mismatched operation {"escrow_id":"other"} 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund route context > blocks accounts awaiting reconciliation 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund route context > does not turn a failed balance lookup into full available principal 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > Administrator refund reservation identity > passes the admin authority to the RPC while retaining the payer as money owner 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > Administrator refund reservation identity > rejects mismatched returned operation {"initiated_by":"another-admin"} 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > Administrator refund reservation identity > rejects mismatched returned operation {"actor_id":"another-payer"} 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > Administrator refund reservation identity > rejects mismatched returned operation {"escrow_id":"another-escrow"} 0ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > Administrator refund reservation identity > rejects mismatched returned operation {"gross_minor":10001,"cash_minor":10001} 0ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > Administrator refund reservation identity > stops before provider work when database authorization or reservation fails 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund recovery time budget > bounds an unresponsive provider by the remaining budget without hidden retries 9ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund recovery time budget > does not start a provider request after the worker budget expires 1ms
+ ✓ __tests__/audit/remediation-refund-recovery.test.ts > refund recovery time budget > stops pagination when the total worker budget is exhausted 1ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not resume mismatched or non-resumable payment {"metadata":{"creditAppliedPence":"-1"}} 33ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > fails closed when retrieving a pending payment fails 29ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > supplied keys are isolated across users and resources 1ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > does not return an unscoped cached payment secret 29ms
+ ✓ __tests__/audit/readiness-payment-diagnostics.test.ts > create-intent header-less duplicate protection > keeps the 500 GBP contractor principal when 50 GBP credit reduces card funding to 450 29ms
+stderr | __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > permits the designated payer but denies an unrelated actor
+[2026-10-04T18:53:27.909Z] WARN  [SECURITY] Unauthorized payment details access attempt {"jobId":"job","userId":"unrelated","homeownerId":"owner","payerUserId":"payer"}
+[MONITORING] {"level":"warn","message":"[SECURITY] Unauthorized payment details access attempt","timestamp":"2026-10-04T18:53:27.915Z","context":{"jobId":"job","userId":"unrelated","homeownerId":"owner","payerUserId":"payer"}}
+
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > quotes the resolved basic contractor fee 15ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > quotes the resolved professional contractor fee 2ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > quotes the resolved enterprise contractor fee 2ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > normalizes numeric strings and binds the quote to the assigned contractor 2ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > does not quote the budget when the accepted amount is unavailable: %p 2ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > does not quote the budget when the accepted amount is unavailable: %p 1ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > does not quote the budget when the accepted amount is unavailable: %p 1ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > does not quote the budget when the accepted amount is unavailable: %p 1ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > does not quote the budget when the accepted amount is unavailable: %p 3ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > fails closed on a lookup error instead of quoting the budget 5ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > does not query bids when no contractor is assigned 2ms
+ ✓ __tests__/api/payments/payment-details-quote.test.ts > payment details accepted-bid quote > permits the designated payer but denies an unrelated actor 10ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > requires authentication 14ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects contractor role at the framework boundary 3ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects admin role at the framework boundary 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > enforces CSRF before financial work 3ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rate limits requests 4ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > returns schema validation failures without reading financial records 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > requires an existing job 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > requires an existing escrow 1ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects the former payer before reading durable refund results 4ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > also requires the escrow funding payer 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > accepts the designated payer rather than assuming the homeowner pays 7ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects new refund for completed job 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects new refund for in_progress job 6ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects new refund for assigned job 4ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects unowned released escrow operation 3ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects unowned refunded escrow operation 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects unowned release_pending escrow operation 4ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > requires a provider payment identity 1ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects invalid/excess amount 0 instead of silently refunding a different amount 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects invalid/excess amount -1 instead of silently refunding a different amount 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects invalid/excess amount 251 instead of silently refunding a different amount 1ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > rejects invalid/excess amount NaN instead of silently refunding a different amount 1ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund route authority and validation > uses remaining principal for an omitted amount 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > requires MFA when risk rules require it 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > rejects invalid MFA 3ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > accepts validated MFA 6ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > honors anomaly blocks 3ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > does not call provider recovery after a rejected reservation 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > does not unlock money after an unknown provider result 10ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > does not report pending as success 7ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > does not report requires_action as success 2ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > does not report failed as success 3ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > does not report canceled as success 3ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > returns cash, credit, and remaining totals from the operation and ledger 4ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > recovers the same full-refund operation after escrow becomes terminal 4ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > binds the caller key to actor and escrow while preserving exact retries 6ms
+ ✓ __tests__/api/routes/payment-refund.test.ts > refund security and durable recovery > passes changed payloads to the reservation authority instead of using a stale cache 2ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow pending -> held 1034ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow held -> release_pending 27ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow release_pending -> released 55ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow held -> refunded 14ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should NOT allow released -> held (terminal) 7ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should NOT allow refunded -> released (terminal) 8ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should NOT allow pending -> released (must go through held first) 7ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow held -> awaiting_homeowner_approval 5ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow awaiting_homeowner_approval -> release_pending 9ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow release_pending -> held (rollback on Stripe failure) 7ms
+ ✓ __tests__/api/integration/escrow-lifecycle.test.ts > Escrow Lifecycle - State machine transitions > should allow same-to-same transitions (idempotent) 10ms
+stderr | __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > times out an unknown provider result without saving success or issuing a second request
+[2026-10-04T18:53:33.772Z] ERROR Operation failed after all retries {"errorDetails":{"operation":"stripe:create-escrow-transfer","attempts":1,"error":{"operation":"stripe:create-escrow-transfer","timeoutMs":5000,"name":"TimeoutError"}}}
+[MONITORING] {"level":"error","message":"Operation failed after all retries","timestamp":"2026-10-04T18:53:33.772Z","context":{"errorDetails":{"operation":"stripe:create-escrow-transfer","attempts":1,"error":{"operation":"stripe:create-escrow-transfer","timeoutMs":5000,"name":"TimeoutError"}}}}
+
+stderr | __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > recovers provider success with a lost response without a second transfer
+[2026-10-04T18:53:28.792Z] ERROR Operation failed after all retries {"errorDetails":{"operation":"stripe:create-escrow-transfer","attempts":1,"error":{}}}
+[MONITORING] {"level":"error","message":"Operation failed after all retries","timestamp":"2026-10-04T18:53:28.792Z","context":{"errorDetails":{"operation":"stripe:create-escrow-transfer","attempts":1,"error":{}}}}
+
+stdout | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[2026-10-04T18:53:28.777Z] INFO  Payment failed webhook received {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[MONITORING] {"level":"info","message":"Payment failed webhook received","timestamp":"2026-10-04T18:53:28.783Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[2026-10-04T18:53:28.786Z] ERROR Failed to look up escrow transaction {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","event":"payment_intent.payment_failed","errorDetails":{"message":"synthetic database unavailable"}}
+[MONITORING] {"level":"error","message":"Failed to look up escrow transaction","timestamp":"2026-10-04T18:53:28.786Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","event":"payment_intent.payment_failed","errorDetails":{"message":"synthetic database unavailable"}}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[2026-10-04T18:53:28.787Z] ERROR Error in handlePaymentIntentFailed {"service":"stripe-webhook"}
+Error details: {
+  name: 'Error',
+  message: 'Failed to look up escrow for terminal payment event',
+  stack: undefined
+}
+[MONITORING] {"level":"error","message":"Error in handlePaymentIntentFailed","timestamp":"2026-10-04T18:53:28.790Z","context":{"service":"stripe-webhook"},"error":{"name":"Error","message":"Failed to look up escrow for terminal payment event"}}
+
+stdout | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[2026-10-04T18:53:28.794Z] INFO  Payment canceled webhook received {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[MONITORING] {"level":"info","message":"Payment canceled webhook received","timestamp":"2026-10-04T18:53:28.794Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[2026-10-04T18:53:28.795Z] ERROR Failed to look up escrow transaction {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","event":"payment_intent.canceled","errorDetails":{"message":"synthetic database unavailable"}}
+[MONITORING] {"level":"error","message":"Failed to look up escrow transaction","timestamp":"2026-10-04T18:53:28.795Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","event":"payment_intent.canceled","errorDetails":{"message":"synthetic database unavailable"}}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry
+[2026-10-04T18:53:28.796Z] ERROR Error in handlePaymentIntentCanceled {"service":"stripe-webhook"}
+Error details: {
+  name: 'Error',
+  message: 'Failed to look up escrow for terminal payment event',
+  stack: undefined
+}
+[MONITORING] {"level":"error","message":"Error in handlePaymentIntentCanceled","timestamp":"2026-10-04T18:53:28.796Z","context":{"service":"stripe-webhook"},"error":{"name":"Error","message":"Failed to look up escrow for terminal payment event"}}
+
+stdout | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in pending_review
+[2026-10-04T18:53:28.800Z] INFO  Payment succeeded webhook received {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in pending_review
+[MONITORING] {"level":"info","message":"Payment succeeded webhook received","timestamp":"2026-10-04T18:53:28.801Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in pending_review
+[2026-10-04T18:53:28.804Z] WARN  Ignoring payment_intent.succeeded for escrow already past held {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"pending_review"}
+[MONITORING] {"level":"warn","message":"Ignoring payment_intent.succeeded for escrow already past held","timestamp":"2026-10-04T18:53:28.804Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"pending_review"}}
+
+ ✓ __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > times out an unknown provider result without saving success or issuing a second request 23ms
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in awaiting_homeowner_approval
+[MONITORING] {"level":"info","message":"Payment succeeded webhook received","timestamp":"2026-10-04T18:53:28.806Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in awaiting_homeowner_approval
+[2026-10-04T18:53:28.806Z] WARN  Ignoring payment_intent.succeeded for escrow already past held {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"awaiting_homeowner_approval"}
+[MONITORING] {"level":"warn","message":"Ignoring payment_intent.succeeded for escrow already past held","timestamp":"2026-10-04T18:53:28.806Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"awaiting_homeowner_approval"}}
+
+ ✓ __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > does not transfer when captured funding verification fails 2ms
+ ✓ __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > recovers provider success with a lost response without a second transfer 4ms
+ ✓ __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > recovers a failed DB completion, then retrieves the recorded transfer on further retries 4ms
+ ✓ __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > does not execute an old unresolved operation after provider key retention may expire 1ms
+ ✓ __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > does not treat a reversed transfer as a successful payout 1ms
+ ✓ __tests__/audit/remediation-escrow-transfer-recovery.test.ts > escrow transfer recovery > does not call the provider when the durable reservation fails 2ms
+stdout | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in awaiting_homeowner_approval
+[2026-10-04T18:53:28.806Z] INFO  Payment succeeded webhook received {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}
+
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > accepts 450 GBP captured cash plus a trusted 50 GBP credit reservation for 500 GBP gross 8ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > does not treat legacy or forged credit metadata as funded principal 3ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects restored credits even when the provider cash amount still matches 2ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > requires a matching captured charge for the authorised job participants 5ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > accepts the invoice creator contract with snake-case metadata 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects unmatched intent field status 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects unmatched intent field amount_received 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects unmatched intent field currency 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects unmatched intent field latest_charge 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects another resource/participant in jobId 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects another resource/participant in payerId 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects another resource/participant in contractorId 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects charge field captured 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects charge field paid 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects charge field disputed 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects charge field refunded 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects charge field amount_refunded 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects charge field amount 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > rejects a fabricated held row without a provider reference 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > provider-backed escrow funding > fails closed when the provider is unavailable 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > partial-refund funding reconciliation > accepts an exact committed cash refund with principal remaining 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > partial-refund funding reconciliation > rejects inconsistent/reviewed refund ledger 0 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > partial-refund funding reconciliation > rejects inconsistent/reviewed refund ledger 1 0ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > partial-refund funding reconciliation > rejects inconsistent/reviewed refund ledger 2 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > partial-refund funding reconciliation > rejects inconsistent/reviewed refund ledger 3 0ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > partial-refund funding reconciliation > rejects inconsistent/reviewed refund ledger 4 1ms
+ ✓ __tests__/audit/remediation-escrow-funding.test.ts > keeps only unreturned promotional credit funded after all provider cash is refunded 1ms
+stdout | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in refunded
+[2026-10-04T18:53:28.807Z] INFO  Payment succeeded webhook received {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in refunded
+[MONITORING] {"level":"info","message":"Payment succeeded webhook received","timestamp":"2026-10-04T18:53:28.808Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in refunded
+[2026-10-04T18:53:28.808Z] WARN  Ignoring payment_intent.succeeded for escrow already past held {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"refunded"}
+[MONITORING] {"level":"warn","message":"Ignoring payment_intent.succeeded for escrow already past held","timestamp":"2026-10-04T18:53:28.808Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"refunded"}}
+
+stdout | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in released
+[2026-10-04T18:53:28.809Z] INFO  Payment succeeded webhook received {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in released
+[MONITORING] {"level":"info","message":"Payment succeeded webhook received","timestamp":"2026-10-04T18:53:28.809Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in released
+[2026-10-04T18:53:28.809Z] WARN  Ignoring payment_intent.succeeded for escrow already past held {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"released"}
+[MONITORING] {"level":"warn","message":"Ignoring payment_intent.succeeded for escrow already past held","timestamp":"2026-10-04T18:53:28.809Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"released"}}
+
+stdout | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in disputed
+[2026-10-04T18:53:28.810Z] INFO  Payment succeeded webhook received {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in disputed
+[MONITORING] {"level":"info","message":"Payment succeeded webhook received","timestamp":"2026-10-04T18:53:28.810Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard"}}
+
+stderr | __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in disputed
+[2026-10-04T18:53:28.811Z] WARN  Ignoring payment_intent.succeeded for escrow already past held {"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"disputed"}
+[MONITORING] {"level":"warn","message":"Ignoring payment_intent.succeeded for escrow already past held","timestamp":"2026-10-04T18:53:28.811Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_synthetic_guard","escrowId":"escrow","currentStatus":"disputed"}}
+
+ ✓ __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry 19ms
+ ✓ __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > rejects terminal-event lookup errors for webhook retry 5ms
+ ✓ __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in pending_review 7ms
+ ✓ __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in awaiting_homeowner_approval 2ms
+ ✓ __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in refunded 2ms
+ ✓ __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in released 1ms
+ ✓ __tests__/audit/payment-webhook-state-guards.test.ts > webhook funding state boundaries > does not reopen funded escrow in disputed 1ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentSucceeded > updates escrow to held and job to paid 9ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentSucceeded > reconciles invoice payment and invoice status from webhook metadata 9ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentSucceeded > backfills payer/payee when missing and metadata contains valid UUIDs 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentSucceeded > prefers delegated payer metadata over the homeowner metadata 2ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentSucceeded > warns on invalid UUID in metadata 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentSucceeded > throws for retry when escrow lookup errors 6ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentSucceeded > returns early when no escrow transaction found 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentFailed > updates escrow to failed and notifies homeowner 5ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentFailed > does not mutate a metadata-supplied job outside the authoritative transaction 5ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentFailed > does not notify when no homeowner ID 1ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handlePaymentIntentCanceled > updates escrow to canceled and job to cancelled 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > marks escrow as refunded and records refund 2ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > notifies both payer and payee 2ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > does not close the escrow for a partial cumulative refund 2ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > marks a pending escrow refunded so a late success cannot resurrect it 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > records the refund when escrow finalization fails for reconciliation 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > repairs the job on replay after escrow succeeded but the job write failed 14ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > returns early when charge has no payment_intent 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > out-of-order: a LATE payment_intent.succeeded after refund must not resurrect the escrow 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > handleChargeRefunded > handles refund record failure gracefully 5ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.payment_failed is IGNORED when escrow is 'held' 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.canceled is IGNORED when escrow is 'held' 1ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.payment_failed is IGNORED when escrow is 'release_pending' 1ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.canceled is IGNORED when escrow is 'release_pending' 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.payment_failed is IGNORED when escrow is 'completed' 1ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.canceled is IGNORED when escrow is 'completed' 2ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.payment_failed is IGNORED when escrow is 'refunded' 1ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.canceled is IGNORED when escrow is 'refunded' 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.payment_failed is IGNORED when escrow is 'disputed' 2ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late payment_intent.canceled is IGNORED when escrow is 'disputed' 1ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > late charge.failed is IGNORED when escrow is 'completed' 2ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > charge.failed still applies from 'pending' (legitimate failure ordering) 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > redelivered payment_intent.payment_failed on an already-'failed' escrow is idempotent (no crash, no guard trip) 4ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > delegates write-time state validation to the atomic transaction 4ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > out-of-order event guards > guard lookup error → escrow and job remain untouched 4ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > ledger refund routing > does not perform legacy writes or notifications after ledger reconciliation 3ms
+ ✓ lib/services/stripe-webhook/__tests__/payment-handlers.test.ts > ledger refund routing > propagates ledger recovery failure without legacy fallback 5ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > records invoice payment in invoice_payments table 11ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > reactivates past_due subscription to active 2ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > does not reactivate if subscription is already active 1ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > returns early when customer ID is missing 1ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > fails so Stripe retries when the customer profile lookup errors 3ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > handles customer as object with id 1ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > records the subscription id from the legacy top-level field (pre-basil payloads) 2ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentSucceeded > records the subscription id from invoice.parent.subscription_details (basil+ payloads) 1ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentFailed > records failed invoice payment 3ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentFailed > updates subscription to past_due when subscription exists 2ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentFailed > marks contractor_subscriptions past_due when user is contractor 2ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentFailed > demotes contractor tier from a basil+ payload (subscription id under invoice.parent) 2ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentFailed > sends in-app notification 2ms
+ ✓ lib/services/stripe-webhook/__tests__/invoice-handlers.test.ts > handleInvoicePaymentFailed > returns early when customer ID is missing 1ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Webhook Signature Verification > should verify webhook signature and return 200 21ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Webhook Signature Verification > should reject webhook with invalid signature 6ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Webhook Signature Verification > should reject webhook with missing signature 2ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Event delivery timing > should accept webhook with recent timestamp 3ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Event delivery timing > should accept a delayed but correctly signed webhook event 4ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Idempotency Protection > should process new webhook event 3ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Idempotency Protection > should return duplicate for already-processed event 6ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Rate Limiting > should allow webhook within rate limit 2ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Rate Limiting > should reject webhook exceeding rate limit 3ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Event Processing > should process payment_intent.succeeded event 3ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Event Processing > should process checkout.session.completed event 4ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Event Processing > should handle unsupported event types gracefully 4ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Error Handling > should handle database errors gracefully 4ms
+ ✓ __tests__/stripe-webhook.test.ts > Stripe Webhook Security > Error Handling > should handle missing webhook secret 3ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > payment_intent events > routes payment_intent.succeeded to handlePaymentIntentSucceeded 7ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > payment_intent events > routes payment_intent.payment_failed 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > payment_intent events > routes payment_intent.canceled 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > payment_intent events > routes payment_intent.requires_action 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > charge events > routes charge.refunded 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > charge events > routes charge.succeeded and charge.failed independently 0ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > subscription events > treats customer.subscription.created and customer.subscription.updated as the same handler 0ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > subscription events > routes customer.subscription.deleted distinctly 0ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > invoice events > routes invoice.payment_succeeded and invoice.payment_failed 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > checkout + account events > routes account.updated 0ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > checkout + account events > routes checkout.session.completed and forwards the stripe instance 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > setup-intent events > routes setup_intent.succeeded 0ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > setup-intent events > routes setup_intent.setup_failed 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > setup-intent events > routes payment_method.detached 0ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > dispute events > routes charge.dispute.created/updated/closed to distinct handlers 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > unhandled events > logs an info-level "Unhandled webhook event type" and does not throw 3ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > StripeWebhookEventHandler dispatcher > handler propagation > propagates errors from a downstream handler so the wrapper can mark the row failed 2ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > durable refund events > dispatches refund.created and propagates recovery failures 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > durable refund events > dispatches refund.updated and propagates recovery failures 1ms
+ ✓ lib/services/stripe-webhook/__tests__/stripe-webhook-event-handler.test.ts > durable refund events > dispatches refund.failed and propagates recovery failures 1ms
+ ✓ __tests__/audit/saved-card-payment-routing.test.ts > preserves cookie, CSRF and request identity through both canonical handlers 24ms
+ ✓ __tests__/audit/saved-card-payment-routing.test.ts > returns the canonical authorization failure without charging the card 7ms
+ ✓ __tests__/audit/saved-card-payment-routing.test.ts > does not report a successful payment when persistence fails 5ms
+ ✓ __tests__/audit/saved-card-payment-routing.test.ts > returns additional authentication to the client without marking funds received 5ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > binds completed setup to the provider customer (expanded=false) 7ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > binds completed setup to the provider customer (expanded=true) 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > retries when saving the attached method fails 5ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > does not invent a method for incomplete provider data 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > does not bind an unknown customer to another account 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > records setup failure against the exact provider identifier 5ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > does not acknowledge a failed setup failure write 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > removes only the detached provider method 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > payment method provider events > does not acknowledge failed method removal 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > provider account reconciliation failures > retries a failed customer lookup instead of losing the saved-card event 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > provider account reconciliation failures > ignores accounts with no contractor binding 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > provider account reconciliation failures > retries when profiles account state could not be saved 1ms
+ ✓ lib/services/stripe-webhook/__tests__/setup-intent-handlers.test.ts > provider account reconciliation failures > retries when contractor_payout_accounts account state could not be saved 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > calculates standard fees for a £100 payment 5ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > enforces minimum platform fee of £0.50 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > applies no maximum platform fee cap (£50 cap removed 2026-05-22) 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > throws for zero amount 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > throws for negative amount 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > uses deposit rate when specified 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > uses milestone rate when specified 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > allows custom platform fee rate 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > never allocates more than the remaining principal 0.01 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > never allocates more than the remaining principal 0.25 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > never allocates more than the remaining principal 0.49 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > never allocates more than the remaining principal 0.5 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > contractor amount is never negative 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > calculates net platform revenue correctly 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFees > rounds all amounts to two decimal places 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateFeesInCents > converts from cents and back 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculatePlatformFee > returns just the platform fee 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateStripeFee > returns just the Stripe fee 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > calculateContractorPayout > returns the contractor net amount 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > validateFeeConfig > accepts valid configuration 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > validateFeeConfig > rejects platform fee rate > 1 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > validateFeeConfig > rejects negative platform fee rate 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > validateFeeConfig > rejects min > max platform fee 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > validateFeeConfig > rejects negative stripe fee rate 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > validateFeeConfig > rejects negative stripe fixed fee 1ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > static getters > returns correct platform fee rate 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > static getters > returns correct stripe fee rate 0ms
+ ✓ lib/services/payment/__tests__/FeeCalculationService.test.ts > FeeCalculationService > static getters > returns correct stripe fixed fee 0ms
+ ✓ __tests__/api/payments/stale-customer-recovery.test.ts > isMissingCustomerError > detects the wrong-mode customer error 4ms
+ ✓ __tests__/api/payments/stale-customer-recovery.test.ts > isMissingCustomerError > does NOT swallow other Stripe failures 1ms
+ ✓ __tests__/api/payments/stale-customer-recovery.test.ts > clearStaleStripeCustomerId > nulls the stored id so the next flow provisions a fresh customer 3ms
+ ✓ __tests__/api/payments/stale-customer-recovery.test.ts > clearStaleStripeCustomerId > never throws when the bookkeeping write fails — the caller recovery matters more 2ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > reuses the persisted identity after a lost response and module reload 10ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > rejects changed payloads while an action is unresolved 2ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > uses a new key for another confirmed action and isolates accounts 1ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > retains identity for unconfirmed or malformed response 0 1ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > retains identity for unconfirmed or malformed response 1 1ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > retains identity for unconfirmed or malformed response 2 1ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > retains identity for unconfirmed or malformed response 3 2ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > durable browser refund requests > does not send when persistence fails 2ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > admin browser refund requests > sends the admin contract and retains its key after pending and reload 3ms
+ ✓ __tests__/audit/remediation-refund-request.test.ts > admin browser refund requests > uses a distinct key for a second identical confirmed partial refund 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > uses current provider totals instead of an old event snapshot 7ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > exhausts pagination before reconciling and never creates refunds 2ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > refuses to acknowledge incomplete history 4ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > durably freezes an unrecorded external pending refund 2ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > durably freezes an unrecorded external requires_action refund 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > durably freezes an unrecorded external succeeded refund 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > does not acknowledge a failed review-flag write 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > propagates failed operation recording 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > retries if provider totals changed during reconciliation 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > does not clear a prior reconciliation flag 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > freezes a charge with the wrong payment identity 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > leaves non-ledger charges to the legacy handler 0ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > fails on DB lookup errors instead of selecting the legacy path 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > routes refund status changes to the durable operation 1ms
+ ✓ __tests__/audit/remediation-refund-webhooks.test.ts > ledger refund webhook recovery > checks an unmarked refund against its current charge 1ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > marks event processed and returns received true 10ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > returns duplicate=true when idempotency detects duplicate 3ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > does not acknowledge an unfinished pending event 7ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > does not acknowledge an unfinished failed event 2ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > keeps retrying when duplicate completion cannot be read 2ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > rejects an invalid processing claim 2ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > rejects an invalid processing claim 2ms
+ ✓ __tests__/webhooks/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency > rejects an invalid processing claim 1ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > accepts valid UUID v4 2ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > accepts uppercase UUID 0ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > rejects UUID v1 (wrong version digit) 0ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > rejects empty string 0ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > rejects random string 0ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > rejects UUID with wrong variant bits 0ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > rejects UUID with missing dashes 0ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > isValidUUID > rejects SQL injection attempts 0ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > sendNotification > uses the preference-aware notification service and preserves routing metadata 2ms
+ ✓ lib/services/stripe-webhook/__tests__/webhook-helpers.test.ts > sendNotification > fails silently when insert throws 2ms
+ ✓ __tests__/audit/refund-recovery-worker.test.ts > refund recovery worker > recovers a claimed operation with a deadline and acknowledges the exact token 5ms
+ ✓ __tests__/audit/refund-recovery-worker.test.ts > refund recovery worker > records bounded reconciliation classification instead of dropping failed work 2ms
+ ✓ __tests__/audit/refund-recovery-worker.test.ts > refund recovery worker > does not claim more than three operations in one run 1ms
+ ✓ __tests__/audit/refund-recovery-worker.test.ts > refund recovery worker > reports a lost acknowledgement rather than claiming completion 2ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateAmount > should accept valid amounts 3ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateAmount > should reject zero amount 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateAmount > should reject negative amounts 1ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateAmount > should reject amounts exceeding £10,000 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateAmount > should accept exactly £10,000 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateCardExpiration > should accept a card expiring in the future 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateCardExpiration > should accept a card expiring this month 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateCardExpiration > should reject a card expired last month 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > validateCardExpiration > should reject a card expired last year 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > amountToCents > should convert whole pound amounts to pence 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > amountToCents > should convert fractional amounts correctly 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > amountToCents > should round to avoid floating point issues 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > calculateFees > should calculate correct fees for £100 payment 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > calculateFees > should enforce minimum platform fee of £0.50 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > calculateFees > should enforce maximum platform fee of £50 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > calculateFees > should calculate UK Stripe rate (1.5% + £0.20) 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > calculateFees > should handle small amounts where fees exceed payment 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > calculateFees > should return numbers with at most 2 decimal places 0ms
+ ✓ lib/services/payment/__tests__/PaymentValidation.test.ts > PaymentValidation > calculateFees > should ensure totalFees = platformFee + stripeFee 0ms
+ ✓ __tests__/api/payments/payment-ceiling.test.ts > Payment ceiling — single source of truth > pins the ceiling at £100,000 3ms
+ ✓ __tests__/api/payments/payment-ceiling.test.ts > Payment ceiling — single source of truth > job budget schema accepts exactly the ceiling 3ms
+ ✓ __tests__/api/payments/payment-ceiling.test.ts > Payment ceiling — single source of truth > job budget schema rejects one penny over the ceiling 1ms
+ ✓ __tests__/api/payments/payment-ceiling.test.ts > Payment ceiling — single source of truth > web payment schema accepts exactly the ceiling and rejects over 1ms
+ ✓ __tests__/api/payments/payment-ceiling.test.ts > Payment ceiling — single source of truth > shared api-contract (mobile) payment schema agrees at the boundary 1ms
+ ✓ __tests__/api/payments/payment-ceiling.test.ts > Payment ceiling — single source of truth > there is NO gap: the max postable budget is exactly the max payable amount 0ms
+
+ Test Files  31 passed (31)
+      Tests  544 passed (544)
+   Start at  19:53:23
+   Duration  8.09s (transform 30.59s, setup 14.33s, import 32.49s, tests 8.84s, environment 25.04s)
+

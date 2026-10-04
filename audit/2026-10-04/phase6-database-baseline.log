@@ -1,0 +1,45 @@
+
+ RUN  v4.1.8 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web
+
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > payer (homeowner) CAN read their own payment 28ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > payee (contractor) CAN read their own payment 28ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > admin user CAN read any payment (admin policy) 21ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > third-party user CANNOT read someone else payment 27ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > third-party user CANNOT enumerate payments via list query 10ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > anonymous client CANNOT read any payment 9ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > authenticated user CANNOT insert payment (service-role only) 7ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > payer CANNOT update payment status (service-role only) 15ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > payee CANNOT update payment status (service-role only) 6ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > authenticated user CANNOT delete payment (service-role only) 14ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > service role can transition pending → processing 18ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > service role can transition processing → completed 16ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > service role can set processed_at on completion 18ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > CHECK constraint rejects invalid status value 9ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > FK constraint rejects payment referencing non-existent job 7ms
+ ✓ __tests__/integration-real/payment-flow.integration.test.ts > payments RLS + state machine (real DB) > FK constraint rejects payment referencing non-existent payer 11ms
+ ✓ __tests__/integration-real/escrow-auto-release-cas.integration.test.ts > escrow auto-release CAS (real DB concurrency) > N concurrent cron claims → exactly ONE wins (no double transfer) 112ms
+ ✓ __tests__/integration-real/escrow-auto-release-cas.integration.test.ts > escrow auto-release CAS (real DB concurrency) > cron claim vs manual claim (both status CAS) → mutually exclusive 47ms
+ ✓ __tests__/integration-real/escrow-auto-release-cas.integration.test.ts > escrow auto-release CAS (real DB concurrency) > claim is a true no-op on a row already past `held` 65ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > payer (homeowner) CAN read their escrow record 26ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > payee (contractor) CAN read their escrow record 24ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > third party CANNOT read someone else escrow record 24ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > third party CANNOT enumerate all escrow records 10ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > anonymous client CANNOT read any escrow record 8ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > authenticated user CANNOT insert escrow record (service-role only) 9ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > payer cannot mutate or delete escrow through REST 27ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > payee cannot mutate or delete escrow through REST 22ms
+ ✓ __tests__/integration-real/escrow-rls.integration.test.ts > escrow_transactions RLS (real DB) > unrelated cannot mutate or delete escrow through REST 21ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > new escrow defaults to status="held" when set explicitly 26ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > transition held → released sets timestamp 40ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > refund transition from held is allowed 31ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > CHECK constraint rejects invalid status value 25ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > amount must be non-null (NOT NULL constraint) 27ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > metadata JSONB can be set and retrieved 37ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > amount precision is DECIMAL(10,2) — decimals preserved 29ms
+ ✓ __tests__/integration-real/escrow-lifecycle.integration.test.ts > escrow_transactions lifecycle (real DB) > transition to awaiting_homeowner_approval is valid 31ms
+
+ Test Files  4 passed (4)
+      Tests  36 passed (36)
+   Start at  19:29:17
+   Duration  10.36s (transform 240ms, setup 0ms, import 711ms, tests 7.69s, environment 0ms)
+
