@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-04T19:42:57.722Z",
+  "updatedAt": "2026-10-04T22:06:13.166Z",
   "releaseDecision": "Hold external beta",
   "completionRule": "Complete (implementation) means scoped fixes and acceptance evidence are complete locally. Open release gates still block beta access; deployment and phone verification are tracked separately.",
   "phases": [
@@ -258,18 +258,23 @@
     {
       "id": 7,
       "name": "Mobile release and device verification",
-      "status": "Complete (implementation)",
+      "status": "In progress — device findings",
       "remaining": [
         "R2: user phone verification on the exact candidate after matching web/database deployment",
         "Physical sandbox saved-card/checkout/3DS tests remain pending; Phase 8 must provision a matching sandbox backend",
-        "iOS signed device build and device signoff remain required if iOS joins beta"
+        "iOS signed device build and device signoff remain required if iOS joins beta",
+        "Align deployed payment environment with its connected accounts without mixing test and live data",
+        "Build and install a matching standalone internal APK after backend deployment",
+        "Retest public profile, payouts, finance and header contrast on device",
+        "Complete sandbox checkout and 3DS verification"
       ],
       "completed": [
         "Release configuration rejects missing settings, unresolved placeholders, mixed API URLs, mock data and live Stripe keys in staging",
         "Cloud builds no longer inherit developer web environment defaults; EAS profiles use explicit environments",
         "492 mobile suites: 12,455 tests and 87 snapshots passed; Android and iOS Hermes release bundles exported",
         "Mobile type check and changed-file zero-warning lint passed; implementation committed and pushed as ab718cf6b",
-        "Standalone internal Android APK built successfully; embedded bundle/native libraries and SHA-256 recorded; no local development server required"
+        "Standalone internal Android APK built successfully; embedded bundle/native libraries and SHA-256 recorded; no local development server required",
+        "Build 33 phone screenshots cross-referenced with hosted database, API code and read-only Stripe account retrieval; 92 mobile and 10 API regression tests passed"
       ],
       "evidence": [
         "phase7-closeout.txt",
@@ -280,7 +285,8 @@
         "phase7-export.log",
         "phase7-mobile-types.log",
         "phase7-lint.log",
-        "phase7-expo-doctor.log"
+        "phase7-expo-doctor.log",
+        "phase7-phone-fixes-results.json"
       ]
     },
     {

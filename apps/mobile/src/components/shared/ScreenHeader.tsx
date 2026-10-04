@@ -44,27 +44,49 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   const resolvedRightAction = rightAction ?? rightComponent;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.surface,
+          borderBottomColor: theme.colors.border,
+        },
+      ]}
+    >
       <View style={styles.leftSection}>
         {shouldShowBack && resolvedOnBack && (
           <TouchableOpacity
             onPress={resolvedOnBack}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
+            style={[
+              styles.backButton,
+              { backgroundColor: theme.colors.backgroundSecondary },
+            ]}
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
           >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
         )}
         {leftAction}
       </View>
 
       <View style={styles.centerSection}>
-        <Text style={styles.title} numberOfLines={1} accessibilityRole='header'>
+        <Text
+          style={[styles.title, { color: theme.colors.textPrimary }]}
+          numberOfLines={1}
+          accessibilityRole='header'
+        >
           {title}
         </Text>
         {subtitle && (
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text
+            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            numberOfLines={1}
+          >
             {subtitle}
           </Text>
         )}

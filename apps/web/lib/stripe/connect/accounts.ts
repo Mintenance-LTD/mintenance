@@ -7,6 +7,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EXPRESS_ACCOUNT_DEFAULTS } from './config';
 import type { ConnectAccountStatus } from './types';
+import { throwConnectAccountError } from './account-errors';
 
 /**
  * Get or create a Stripe Connect Express account for a contractor.
@@ -36,18 +37,21 @@ export async function ensureConnectAccount(
 
   // Create Express account. Metadata key `contractor_id` matches the existing
   // handleAccountUpdated webhook handler (see stripe-webhook/checkout-handlers.ts).
-  const account = await stripe.accounts.create({
-    ...EXPRESS_ACCOUNT_DEFAULTS,
-    email,
-    metadata: {
-      contractor_id: contractorId,
+  const account = await stripe.accounts.create(
+    {
+      ...EXPRESS_ACCOUNT_DEFAULTS,
+      email,
+      metadata: {
+        contractor_id: contractorId,
+      },
     },
-  }, {
-    // Account creation is not safe to retry without an idempotency key: two
-    // concurrent onboarding requests can otherwise create two Express
-    // accounts before either profile update wins.
-    idempotencyKey: `connect_account_${contractorId}`,
-  });
+    {
+      // Account creation is not safe to retry without an idempotency key: two
+      // concurrent onboarding requests can otherwise create two Express
+      // accounts before either profile update wins.
+      idempotencyKey: `connect_account_${contractorId}`,
+    }
+  );
 
   const { error: updateError } = await serverSupabase
     .from('profiles')
@@ -120,9 +124,9 @@ export async function syncAccountStatus(
     throw new Error('Contractor has no Connect account');
   }
 
-  const account = await stripe.accounts.retrieve(
-    profile.stripe_connect_account_id
-  );
+  const account = await stripe.accounts
+    .retrieve(profile.stripe_connect_account_id)
+    .catch(throwConnectAccountError);
 
   const chargesEnabled = account.charges_enabled;
   const payoutsEnabled = account.payouts_enabled;
@@ -155,11 +159,15 @@ export async function syncAccountStatus(
   // service-role mirror write failed; callers would show a transient Stripe
   // state while subsequent payout checks continued using stale profile data.
   if (mirrorError) {
-    logger.error('Failed to mirror Stripe Connect account status', mirrorError, {
-      service: 'stripe-connect',
-      contractorId,
-      stripeAccountId: account.id,
-    });
+    logger.error(
+      'Failed to mirror Stripe Connect account status',
+      mirrorError,
+      {
+        service: 'stripe-connect',
+        contractorId,
+        stripeAccountId: account.id,
+      }
+    );
     throw new Error('Failed to synchronize Connect account status');
   }
 
