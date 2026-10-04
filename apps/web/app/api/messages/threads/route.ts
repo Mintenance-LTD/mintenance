@@ -123,8 +123,6 @@ export const GET = withApiHandler(
       }
     }
 
-    const threadIds = Array.from(threadToJob.keys());
-
     // Fetch last messages per job using job_id (actual DB schema)
     const lastMessages = new Map<string, LastMessageInfo>();
 

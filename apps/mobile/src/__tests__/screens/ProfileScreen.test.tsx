@@ -160,7 +160,7 @@ describe('ProfileScreen', () => {
   });
 
   it('should render profile screen with user information', async () => {
-    const { getByText, getByTestId } = render(<ProfileScreen />);
+    const { getByText } = render(<ProfileScreen />);
 
     expect(getByText('John Doe')).toBeTruthy();
     expect(getByText('test@example.com')).toBeTruthy();
@@ -194,14 +194,14 @@ describe('ProfileScreen', () => {
       session: null,
     });
 
-    const { getAllByText, getByText } = render(<ProfileScreen />);
+    const { getByText } = render(<ProfileScreen />);
 
     expect(getByText('Jane Smith')).toBeTruthy();
     expect(getByText('contractor@example.com')).toBeTruthy();
   });
 
   it('should navigate to edit profile when edit button is pressed', () => {
-    const { getAllByText, getByText } = render(<ProfileScreen />);
+    const { getByText } = render(<ProfileScreen />);
 
     const editButton = getByText('Edit Profile');
     act(() => fireEvent.press(editButton));
@@ -228,14 +228,14 @@ describe('ProfileScreen', () => {
       session: null,
     });
 
-    const { getAllByText, getByText } = render(<ProfileScreen />);
+    const { getByText } = render(<ProfileScreen />);
 
     const signOutButton = getByText('Sign Out');
     act(() => fireEvent.press(signOutButton));
 
     expect(Alert.alert).toHaveBeenCalledWith(
       'Sign Out',
-      'Are you sure you want to sign out?',
+      'Signing out removes your saved biometric sign-in on this device. Use your password to sign in again; you can re-enable biometrics in Account & Security.',
       expect.arrayContaining([
         expect.objectContaining({ text: 'Cancel' }),
         expect.objectContaining({ text: 'Sign Out' }),
@@ -252,7 +252,7 @@ describe('ProfileScreen', () => {
   });
 
   it('should open terms and conditions', async () => {
-    const { getAllByText, getByText } = render(<ProfileScreen />);
+    const { getByText } = render(<ProfileScreen />);
 
     const termsButton = getByText('Terms of Service');
     act(() => fireEvent.press(termsButton));
@@ -261,7 +261,7 @@ describe('ProfileScreen', () => {
   });
 
   it('should open privacy policy', async () => {
-    const { getAllByText, getByText } = render(<ProfileScreen />);
+    const { getByText } = render(<ProfileScreen />);
 
     const privacyButton = getByText('Privacy Policy');
     act(() => fireEvent.press(privacyButton));

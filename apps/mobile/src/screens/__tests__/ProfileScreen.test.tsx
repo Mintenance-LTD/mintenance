@@ -16,6 +16,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Reanimated-backed animation primitives — render children straight through.
 jest.mock('../../components/animations/primitives', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const ReactActual = require('react');
   const pass = ({ children }: { children: React.ReactNode }) =>
     ReactActual.createElement(ReactActual.Fragment, null, children);
@@ -30,6 +31,7 @@ jest.mock('../../components/animations/primitives', () => {
 
 // ResponsiveContainer — pass-through wrapper so the menu rows mount.
 jest.mock('../../components/responsive', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const ReactActual = require('react');
   return {
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
@@ -43,7 +45,9 @@ jest.mock('../profile/components/ProfileHeader', () => ({
   ProfileHeader: () => null,
 }));
 jest.mock('../profile/components/HomeownerStats', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const ReactActual = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const { Text } = require('react-native');
   return {
     HomeownerStats: () =>
@@ -51,7 +55,9 @@ jest.mock('../profile/components/HomeownerStats', () => {
   };
 });
 jest.mock('../profile/components/ContractorPerformance', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const ReactActual = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const { Text } = require('react-native');
   return {
     ContractorPerformance: () =>
@@ -67,7 +73,9 @@ jest.mock('../profile/components/ProfileCompleteness', () => ({
 
 // Button — render a pressable Text so we can fire Sign Out.
 jest.mock('../../components/ui/Button', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const ReactActual = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const { Text } = require('react-native');
   return {
     Button: ({ title, onPress, accessibilityLabel }: any) =>
@@ -336,14 +344,14 @@ describe('ProfileScreen', () => {
     fireEvent.press(getByText('Sign Out'));
     expect(alertSpy).toHaveBeenCalledWith(
       'Sign Out',
-      'Are you sure you want to sign out?',
+      'Signing out removes your saved biometric sign-in on this device. Use your password to sign in again; you can re-enable biometrics in Account & Security.',
       expect.any(Array)
     );
     // Invoke the destructive button's onPress to exercise the bound signOut.
-    const buttons = alertSpy.mock.calls[0][2] as Array<{
+    const buttons = alertSpy.mock.calls[0][2] as {
       text: string;
       onPress?: () => void;
-    }>;
+    }[];
     const signOutBtn = buttons.find((b) => b.text === 'Sign Out');
     signOutBtn?.onPress?.();
     expect(mockSignOut).toHaveBeenCalled();

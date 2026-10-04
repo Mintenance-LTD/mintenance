@@ -2,12 +2,16 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { fireEvent, render, waitFor } from '../test-utils';
 
+import ProfileScreen from '../../../screens/ProfileScreen';
+import { JobService } from '../../../services/JobService';
+
 // jest-setup.js mocks `react-native-reanimated` via the upstream
 // `react-native-reanimated/mock`, which throws under this RN/reanimated
 // version (NativeReanimatedModule access at import time). ProfileScreen pulls
 // in `components/animations/primitives` (FadeIn/SlideIn) which imports
 // reanimated, so override with the repo's local passthrough mock.
 jest.mock('react-native-reanimated', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const RN = require('react-native');
   const passthrough = (value: unknown) => value;
   const Easing = new Proxy({}, { get: () => () => {} });
@@ -40,9 +44,6 @@ jest.mock('react-native-reanimated', () => {
     Easing,
   };
 });
-
-import ProfileScreen from '../../../screens/ProfileScreen';
-import { JobService } from '../../../services/JobService';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -106,7 +107,7 @@ describe('ProfileScreen Integration - Comprehensive', () => {
 
     expect(alertSpy).toHaveBeenCalledWith(
       'Sign Out',
-      'Are you sure you want to sign out?',
+      'Signing out removes your saved biometric sign-in on this device. Use your password to sign in again; you can re-enable biometrics in Account & Security.',
       expect.any(Array)
     );
   });

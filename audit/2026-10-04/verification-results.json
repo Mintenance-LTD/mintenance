@@ -22,5 +22,91 @@
     "hostedOperationsExecuted": false
   },
   "rawLogs": "Retained in the local audit directory; not included in Git to avoid publishing diagnostic payloads",
-  "publishingChecks": "Scoped web ESLint: 0 errors, 9 unused-variable warnings; zero-warning gate remains for Phase 4. Shared worktree hooks not run; isolated commit preserves concurrent work. Hex and currency guards passed. Size guard flags the already-over-limit YOLOCorrectionService (only two guard lines added); refactoring remains Phase 4."
+  "publishingChecks": "Scoped web ESLint: 0 errors, 9 unused-variable warnings; zero-warning gate remains for Phase 4. Shared worktree hooks not run; isolated commit preserves concurrent work. Hex and currency guards passed. Size guard flags the already-over-limit YOLOCorrectionService (only two guard lines added); refactoring remains Phase 4.",
+  "phase4": {
+    "date": "2026-10-04",
+    "branch": "codex/beta-readiness-phase-4",
+    "base": "c249aeaf38ae998c2f941d4212d16bad9fe1a637",
+    "node": "20.19.4",
+    "npm": "11.6.2",
+    "versions": {
+      "axios": [
+        "1.20.0"
+      ],
+      "@grpc/grpc-js": [
+        "1.14.5"
+      ],
+      "ws": [
+        "6.2.6",
+        "7.5.13",
+        "8.22.0"
+      ],
+      "form-data": [
+        "2.5.6",
+        "4.0.6"
+      ],
+      "postcss": [
+        "8.5.28"
+      ],
+      "dompurify": [
+        "3.4.16"
+      ],
+      "protobufjs": [
+        "7.6.6"
+      ],
+      "qs": [
+        "6.16.0"
+      ],
+      "fflate": [
+        "0.8.3"
+      ],
+      "lint-staged": [
+        "16.4.0"
+      ]
+    },
+    "security": {
+      "configuredGate": "passed",
+      "critical": 0,
+      "highAffectedPackageEntries": 23,
+      "moderateAffectedPackageEntries": 26,
+      "lowAffectedPackageEntries": 4,
+      "remainingHighAdvisories": 4,
+      "exactExceptionPaths": 14,
+      "exceptionExpiry": "2026-11-03",
+      "expiredExceptionsRejected": true,
+      "blanketExceptions": 0
+    },
+    "mobile": {
+      "suitesPassed": 491,
+      "testsPassed": 12445,
+      "coverage": {
+        "statements": 66.56,
+        "branches": 56.04,
+        "functions": 60.97,
+        "lines": 67.46
+      },
+      "typeCheck": "passed",
+      "lintErrors": 0
+    },
+    "web": {
+      "suitesPassed": 467,
+      "suitesFailed": 1,
+      "testsPassed": 4428,
+      "testsFailed": 1,
+      "remainingFailure": "R4: separately assigned after-photo auto-completion integration test; not changed or skipped",
+      "coverage": {
+        "statements": 53.74,
+        "branches": 47.73,
+        "functions": 58.23,
+        "lines": 54.64
+      },
+      "coverageThresholdErrors": 0,
+      "typeCheck": "passed",
+      "lintErrors": 0,
+      "productionBuild": "passed; 532 static pages; synthetic build-only credentials"
+    },
+    "sharedPackageBuilds": 10,
+    "staticGates": "service role scoping, internal links, API contracts, authentication coverage, notification inserts, banned tables all passed",
+    "releaseDecision": "Hold external beta; full web test command still exits 1 for R4. Not a deployed or device-tested candidate."
+  }
 }
