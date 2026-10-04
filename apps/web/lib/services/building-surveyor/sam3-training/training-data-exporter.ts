@@ -3,6 +3,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from '../training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { loadClassNames } from '../yolo-class-names';
 import { convertSAM3ToYOLO } from './format-converters';
@@ -19,6 +20,7 @@ const DEFAULT_IMAGE_HEIGHT = 640;
 export async function exportEnhancedTrainingData(
   options: TrainingDataExportOptions
 ): Promise<YOLOTrainingExport> {
+  assertTrainingReuseAllowed();
   try {
     const {
       includeYOLOCorrections = true,

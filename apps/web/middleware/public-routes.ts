@@ -46,6 +46,12 @@ const PUBLIC_PAGE_ROUTES = [
 const PUBLIC_API_ROUTES_EXACT = new Set([
   '/api/report-conversation/receipt',
   '/api/csrf',
+  '/api/contact', // validated and rate-limited anonymous support form
+  '/api/health', // monitoring returns aggregate health only
+  '/api/version', // public clients use this to detect an updated build
+  '/api/ai/search-suggestions', // curated categories only, no private search/job data
+  '/api/ai/search', // safe contractor directory only; jobs require authentication
+  '/api/ai/trending-searches', // empty until privacy-safe aggregation is available
   '/api/stats/platform',
   '/api/diag',
   '/api/building-surveyor/demo',

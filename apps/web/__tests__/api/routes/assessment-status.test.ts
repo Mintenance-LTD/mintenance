@@ -420,10 +420,9 @@ describe('GET /api/assessments/:id/status', () => {
       { id: 'i0', image_url: 'quick-ai/f/0.jpg', image_index: 0 },
       { id: 'i1', image_url: 'quick-ai/f/1.jpg', image_index: 1 },
     ]);
-    mocks.resignAssessmentUrls.mockResolvedValue([
-      'https://signed/0.jpg',
-      'https://signed/1.jpg',
-    ]);
+    mocks.resignAssessmentUrls
+      .mockResolvedValueOnce(['https://signed/0.jpg'])
+      .mockResolvedValueOnce(['https://signed/1.jpg']);
 
     const body = await (await get()).json();
 

@@ -1,0 +1,68 @@
+PHASE 2 IMPLEMENTATION CLOSEOUT — 4 October 2026
+
+STATUS: COMPLETE (IMPLEMENTATION). Ready to proceed to Phase 3.
+
+Scope: privacy and access-control implementation for the current beta candidate.
+This is not permission to admit external beta users. Hosted rollout, platform
+remediation and release/device verification remain explicit release gates.
+
+FIXED AND VERIFIED
+- Owner/admin-only private profiles plus a restricted safe directory; mobile
+  cross-user reads use that directory. The restricted view owner is deliberately
+  not postgres and cannot read private contact columns or bypass row security.
+- Storage upload ownership and participating-job boundaries; training images
+  private; payout-credit RLS enabled. Existing dispute evidence restrictions stay.
+- Message attachment ownership, origin/path validation and fresh signed links;
+  contractor document namespace enforcement; scoped assessment photo signing.
+- Internal memory reads restricted to verified admins. Public search excludes
+  jobs/private profiles and raw search analytics. Public map coverage excludes
+  ineligible profiles, postcodes and precise coordinates. Public performance
+  excludes payment amounts. Review categories never fall back to private titles.
+- Organization managers cannot promote or demote owners.
+- Beta training reuse held at teacher-label, shadow, buffer, correction, training
+  job and export entry points. No environment toggle can substitute for consent.
+  Operational assessments remain enabled. Retained implementation tests mock the
+  policy explicitly; separate hold tests exercise the real fail-closed policy.
+
+ACCESS REVIEW METHOD AND LIMITS
+Authentication declaration scan covers all 476 route files. The separate source
+inventory records 313 routes directly referencing serverSupabase, including source
+hashes and access-control statements. This is triage evidence, not automatic proof
+of ownership checks. Delegated/special cases were followed into organization role
+checks, property-team management access, participant queries, upload namespaces
+and actor-bound signing RPCs. Public, profile, attachment, assessment, documents,
+organization and internal-read risks found in this pass were fixed and tested.
+Existing regression suites also exercise job, contract, dispute and payment access.
+This risk-based review is not an exhaustive penetration test or a claim that every
+branch in every service has been dynamically tested.
+
+TRAINING EXCLUSION AND HISTORICAL DATA
+No historic labels, photos or models were deleted or reclassified as consented.
+The guarded exports block reuse of historical data as well as newly submitted
+data. Any reactivation requires contributor provenance, explicit recorded consent,
+withdrawal enforcement and review of existing datasets and separately operated
+workers. Deployment must confirm that older capture/export workers are stopped.
+No training or paid model calls were made for these tests.
+
+VALIDATION
+phase2-training-reuse-hold.log: 4 suites / 85 tests passed.
+phase2-organization-owner-tests.log: 3 tests passed.
+phase2-closeout-integration.log: 21 suites / 113 tests passed against isolated DB.
+phase2-closeout-web-tests.log: 464 suites passed, 1 failed; 4419 tests passed,
+1 failed. The failure is the separate after-photo auto-completion flow that the
+user explicitly asked this task not to modify. That remains a Phase 5 beta gate.
+phase2-closeout-auth-coverage.log: current authentication declaration check.
+phase2-closeout-build.log: production build passed with exit code 0, including
+compilation, TypeScript, all 532 static pages and final tracing.
+
+ROLLOUT HANDOFF
+Already hosted: message attachment ownership function and payout-credit RLS.
+Still local: profile-directory/RLS and storage-boundary migrations plus application
+changes. Retention migration belongs to Phase 3. Match web/mobile versions and
+database migrations; do not relax profile RLS to accommodate old clients.
+The user will execute phase2-phone-checklist.html on the matching phone release.
+PostGIS client mutation grants need Supabase owner-level remediation; they have
+not been fixed by the application changes. No support message has been sent.
+The readiness tracker lists these requirements as OPEN release gates.
+
+Next implementation phase: Phase 3 — retention and database maintenance.

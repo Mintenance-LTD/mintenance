@@ -5,6 +5,7 @@ import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
 import { z } from 'zod';
+import { assertTrainingReuseAllowed } from '@/lib/services/building-surveyor/training-reuse-policy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,7 @@ const feedbackSchema = z.object({
 export const POST = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 10 } },
   async (request) => {
+    assertTrainingReuseAllowed();
     logger.info('Demo feedback: Request received', {
       service: 'demo-feedback',
     });

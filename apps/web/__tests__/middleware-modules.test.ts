@@ -16,6 +16,13 @@ import { isValidJwtFormat, extractBearerToken } from '../middleware/helpers';
 import { NextRequest } from 'next/server';
 
 describe('isPublicRoute', () => {
+  it.each(['/api/contact', '/api/health', '/api/version', '/api/ai/search-suggestions', '/api/ai/search', '/api/ai/trending-searches'])(
+    'allows the exact public endpoint %s without opening adjacent paths', route => {
+      expect(isPublicRoute(route)).toBe(true);
+      expect(isPublicRoute(`${route}/admin`)).toBe(false);
+      expect(isPublicRoute(`${route}-private`)).toBe(false);
+    }
+  );
   it('permits only the exact email confirmation callback before login', () => {
     expect(isPublicRoute('/auth/callback')).toBe(true);
     expect(isPublicRoute('/auth/callback/private')).toBe(false);

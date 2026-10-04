@@ -8,6 +8,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from '../training-reuse-policy';
 import { ExperienceBufferService } from './ExperienceBufferService';
 import type { VLMTrainingExample } from './types';
 import { resignAssessmentUrls } from '@/lib/api/assessment-storage';
@@ -36,6 +37,7 @@ export class TrainingDataExporter {
     count: number;
     ids: string[];
   }> {
+    assertTrainingReuseAllowed();
     const limit = options.maxExamples ?? 500;
     const minQuality = options.minQuality ?? 'medium';
 

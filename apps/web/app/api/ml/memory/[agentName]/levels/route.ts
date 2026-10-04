@@ -6,7 +6,7 @@ import { memoryManager } from '@/lib/services/ml-engine/memory/MemoryManager';
  * GET /api/ml/memory/[agentName]/levels
  * Get all memory levels for agent
  */
-export const GET = withApiHandler({ auth: false }, async (_request, { params }) => {
+export const GET = withApiHandler({ roles: ['admin'], requireDbAdmin: true }, async (_request, { params }) => {
   const levels = memoryManager.getMemoryLevels(params.agentName);
   return NextResponse.json({ levels });
 });

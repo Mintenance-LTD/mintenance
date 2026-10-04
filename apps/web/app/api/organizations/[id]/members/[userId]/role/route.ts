@@ -70,6 +70,10 @@ export const PATCH = withApiHandler(
       throw new BadRequestError('Target user is not an active member');
     }
 
+    if (target.org_role === 'owner' && actor.org_role !== 'owner') {
+      throw new ForbiddenError('Only owners can change an owner role');
+    }
+
     // Prevent removing the last owner.
     if (target.org_role === 'owner' && newRole !== 'owner') {
       const { count, error: ownerCountError } = await serverSupabase

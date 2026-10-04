@@ -5,6 +5,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed, isTrainingReuseAllowed } from './training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import type {
   KnowledgeDistillationJobInput,
@@ -49,6 +50,7 @@ function getDefaultTrainingConfig(
 export async function createTrainingJob(
   input: KnowledgeDistillationJobInput
 ): Promise<string> {
+  assertTrainingReuseAllowed();
   try {
     const jobId = `kd-${Date.now()}-${input.jobType}`;
 
@@ -197,6 +199,7 @@ export async function markDataAsUsed(
 export async function checkAndTriggerTraining(
   jobType: KnowledgeDistillationJobType
 ): Promise<void> {
+  if (!isTrainingReuseAllowed()) return;
   try {
     const stats = await getTrainingStats();
 

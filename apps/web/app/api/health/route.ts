@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { logger } from '@mintenance/shared';
 import { CURRENT_API_VERSION, addVersionHeaders } from '@/lib/api-version';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
@@ -106,28 +105,27 @@ async function checkRedis(): Promise<ServiceCheckResult> {
   const start = Date.now();
   try {
     if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
-      return { status: 'warning', latencyMs: Date.now() - start };
+      return { status: env.NODE_ENV === 'production' ? 'error' : 'warning', latencyMs: Date.now() - start };
     }
 
-    await Promise.race([
-      rateLimiter.checkRateLimit({
-        identifier: 'health-check-probe',
-        windowMs: 60000,
-        maxRequests: 10000,
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Redis timeout')), SERVICE_TIMEOUT_MS)
-      ),
-    ]);
+    // Probe Redis directly: the rate limiter can fall back and conceal an outage.
+    const response = await fetch(`${env.UPSTASH_REDIS_REST_URL.replace(/\/$/, '')}/ping`, {
+      headers: { Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(SERVICE_TIMEOUT_MS),
+    });
+    if (!response.ok || (await response.json()).result !== 'PONG') {
+      throw new Error('Redis health probe failed');
+    }
 
     const latencyMs = Date.now() - start;
     return { status: latencyMs > 2000 ? 'warning' : 'ok', latencyMs };
   } catch (error) {
-    logger.warn('Redis health check failed — rate limiting will use in-memory fallback', {
+    logger.warn('Redis health check failed', {
       service: 'health',
       error: error instanceof Error ? error.message : String(error),
     });
-    return { status: 'warning', latencyMs: Date.now() - start };
+    return { status: 'error', latencyMs: Date.now() - start };
   }
 }
 

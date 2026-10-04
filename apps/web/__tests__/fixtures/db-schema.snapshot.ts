@@ -30,6 +30,8 @@
  */
 
 export const DB_SCHEMA_SNAPSHOT: Readonly<Record<string, readonly string[]>> = {
+  // Generated from isolated readiness migrations on 2026-10-04.
+  profile_directory: 'admin_verified,avatar_url,bio,city,company_name,country,created_at,first_name,hourly_rate,id,is_available,last_name,latitude,longitude,portfolio_images,profile_image_url,rating,role,skills,total_jobs_completed,verified,years_experience'.split(','),
   appointments:
     'appointment_date,cancellation_reason,cancelled_at,client_email,client_id,client_response,client_response_at,client_name,client_phone,completed_at,contractor_id,created_at,description,duration_minutes,end_time,id,job_id,location_address,location_type,notes,reminder_sent,reminder_sent_at,start_time,status,title,updated_at,video_call_url'.split(
       ','

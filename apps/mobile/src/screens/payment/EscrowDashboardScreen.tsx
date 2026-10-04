@@ -138,7 +138,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
       const { data, error } = await supabase
         .from('escrow_transactions')
         .select(
-          'id, amount, status, created_at, payer_id, payee_id, job:jobs!escrow_transactions_job_id_fkey(title), payer:profiles!payer_id(first_name, last_name), payee:profiles!payee_id(first_name, last_name)'
+          'id, amount, status, created_at, payer_id, payee_id, job:jobs!escrow_transactions_job_id_fkey(title), payer:profile_directory!payer_id(first_name, last_name), payee:profile_directory!payee_id(first_name, last_name)'
         )
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false });

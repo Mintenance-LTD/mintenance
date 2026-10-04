@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
-import { BadRequestError } from '@/lib/errors/api-error';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const serviceAreasBatchSchema = z.object({
@@ -34,11 +34,21 @@ export const POST = withApiHandler(
       route: '/api/contractors/service-areas-batch',
     });
 
-    // Fetch service areas for all contractors in one query
+    // Arbitrary supplied IDs must not expose deleted or unverified accounts.
+    const { data: contractors, error: directoryError } = await serverSupabase
+      .from('profile_directory')
+      .select('id')
+      .in('id', contractorIds)
+      .eq('role', 'contractor')
+      .or('verified.eq.true,admin_verified.eq.true');
+    if (directoryError) throw new InternalServerError('Service areas unavailable');
+    const eligibleIds = (contractors ?? []).map(contractor => contractor.id);
+    if (!eligibleIds.length) return NextResponse.json([], { headers: { 'Cache-Control': 'no-store' } });
+
     const { data, error } = await serverSupabase
       .from('service_areas')
-      .select('*')
-      .in('contractor_id', contractorIds)
+      .select('id, contractor_id, city, state, country, center_latitude, center_longitude, radius_km, service_radius, is_active, priority_level')
+      .in('contractor_id', eligibleIds)
       .eq('is_active', true);
 
     if (error) {
@@ -50,7 +60,10 @@ export const POST = withApiHandler(
     }
 
     // Group by contractor_id
-    const groupedByContractor = data.reduce((acc, area) => {
+    const groupedByContractor = (data ?? []).reduce((acc, area) => {
+      // Coverage is approximate. Never disclose the contractor's base postcode,
+      // precise coordinates, boundary polygon or private operating details.
+      if (area.center_latitude == null || area.center_longitude == null) return acc;
       if (!acc[area.contractor_id]) {
         acc[area.contractor_id] = [];
       }
@@ -60,29 +73,28 @@ export const POST = withApiHandler(
         contractorId: area.contractor_id,
         city: area.city,
         state: area.state,
-        zipCode: area.zip_code,
         country: area.country,
-        latitude: area.latitude,
-        longitude: area.longitude,
-        radius_km: area.service_radius || 25,
+        latitude: Math.round(Number(area.center_latitude) * 10) / 10,
+        longitude: Math.round(Number(area.center_longitude) * 10) / 10,
+        radius_km: area.radius_km ?? area.service_radius ?? 25,
         is_active: area.is_active,
-        priority: area.priority,
+        priority: area.priority_level,
       });
 
       return acc;
-    }, {} as Record<string, ({ id: string; contractorId: string; city: string; state: string; zipCode: string; country: string; latitude: number; longitude: number; radius_km: number; is_active: boolean; priority: number })[]>);
+    }, {} as Record<string, ({ id: string; contractorId: string; city: string; state: string; country: string; latitude: number; longitude: number; radius_km: number; is_active: boolean; priority: number })[]>);
 
     const result = Object.entries(groupedByContractor);
 
     logger.info('Service areas fetched successfully', {
       contractorCount: result.length,
-      totalAreas: data.length,
+      totalAreas: data?.length ?? 0,
     });
 
     return NextResponse.json(result, {
       status: 200,
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'Cache-Control': 'no-store',
       },
     });
   },

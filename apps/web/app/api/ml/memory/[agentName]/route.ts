@@ -16,7 +16,7 @@ const memoryUpdateSchema = z.object({
  * GET /api/ml/memory/[agentName]
  * Query memory state for agent
  */
-export const GET = withApiHandler({ auth: false, rateLimit: { maxRequests: 30 } }, async (request, { params }) => {
+export const GET = withApiHandler({ roles: ['admin'], requireDbAdmin: true, rateLimit: { maxRequests: 30 } }, async (request, { params }) => {
   const agentName = params.agentName as string;
   const { searchParams } = new URL(request.url);
   const level = searchParams.get('level') ? parseInt(searchParams.get('level')!) : undefined;

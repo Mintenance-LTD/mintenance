@@ -9,6 +9,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed, isTrainingReuseAllowed } from './training-reuse-policy';
 import type {
   GPT4TrainingLabelInput,
   KnowledgeDistillationJobInput,
@@ -45,6 +46,7 @@ export class KnowledgeDistillationService {
     imageUrls: string[],
     contextData?: Record<string, unknown>
   ): Promise<string> {
+    assertTrainingReuseAllowed();
     try {
       const responseQuality = this.assessGPT4Quality(gpt4Response);
 
@@ -98,6 +100,7 @@ export class KnowledgeDistillationService {
       }>;
     }
   ): Promise<number> {
+    if (!isTrainingReuseAllowed()) return 0;
     try {
       let storedCount = 0;
 

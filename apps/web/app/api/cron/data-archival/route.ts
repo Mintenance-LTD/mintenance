@@ -2,10 +2,20 @@ import { withCronHandler } from '@/lib/cron-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { InternalServerError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
+import { z } from 'zod';
+
+const archivalResult = z
+  .object({
+    processed: z.number().int().nonnegative(),
+    archived: z.number().int().nonnegative(),
+    method: z.literal('in_place'),
+  })
+  .passthrough();
 
 /**
  * Cron endpoint for data archival (Issue 58)
- * Moves completed/cancelled jobs older than 12 months to archive schema.
+ * Archives inactive completed/cancelled jobs older than 12 months in place.
+ * Preserves linked evidence and skips unresolved payments and disputes.
  * Should be called monthly.
  */
 export const GET = withCronHandler(
@@ -28,7 +38,10 @@ export const GET = withCronHandler(
       throw new InternalServerError('Data archival could not be completed');
     }
 
-    return { result: data, processed: 1 };
+    const parsed = archivalResult.safeParse(data);
+    if (!parsed.success)
+      throw new InternalServerError('Invalid data archival result');
+    return { result: parsed.data, processed: parsed.data.processed };
   },
   { maxRequests: 2, windowMs: 3600000 } // 2 per hour (monthly job, generous limit)
 );

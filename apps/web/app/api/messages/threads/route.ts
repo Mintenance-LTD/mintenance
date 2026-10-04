@@ -76,9 +76,9 @@ export const GET = withApiHandler(
       contractor_id,
       created_at,
       updated_at,
-      homeowner:profiles!homeowner_id(id, first_name, last_name, role, email, company_name, profile_image_url),
-      payer:profiles!jobs_payer_user_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url),
-      contractor:profiles!contractor_id(id, first_name, last_name, role, email, company_name, profile_image_url)
+      homeowner:profile_directory!homeowner_id(id, first_name, last_name, role, company_name, profile_image_url),
+      payer:profile_directory!jobs_payer_user_id_fkey(id, first_name, last_name, role, company_name, profile_image_url),
+      contractor:profile_directory!contractor_id(id, first_name, last_name, role, company_name, profile_image_url)
     `
       )
       .or(

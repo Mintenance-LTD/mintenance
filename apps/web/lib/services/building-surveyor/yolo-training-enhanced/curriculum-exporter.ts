@@ -3,6 +3,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from '../training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -25,6 +26,7 @@ export async function exportCurriculumData(
   phases: Array<{ phase: number; difficulty: string; sampleCount: number; outputDir: string }>;
   totalSamples: number;
 }> {
+  assertTrainingReuseAllowed();
   const {
     outputDir = 'training-data/curriculum',
     curriculumPhases = 3,

@@ -12,6 +12,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from './training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { YOLOCorrectionService } from './YOLOCorrectionService';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
@@ -51,6 +52,7 @@ export class YOLOTrainingDataService {
     trainSplit: number = 0.8,
     valSplit: number = 0.1
   ): Promise<MergedDataset> {
+    assertTrainingReuseAllowed();
     try {
       logger.info('Exporting corrections to YOLO format', {
         service: 'YOLOTrainingDataService',

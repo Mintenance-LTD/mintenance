@@ -228,7 +228,7 @@ describe('ContractorService', () => {
 
       const result = await ContractorService.searchContractors('plumbing');
 
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(supabase.from).toHaveBeenCalledWith('profile_directory');
       expect(result).toEqual(searchResults);
     });
 
@@ -250,7 +250,7 @@ describe('ContractorService', () => {
         minRating: 4.0,
       });
 
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(supabase.from).toHaveBeenCalledWith('profile_directory');
       expect(result).toHaveLength(1);
     });
 

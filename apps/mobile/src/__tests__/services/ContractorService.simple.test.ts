@@ -152,7 +152,7 @@ describe('ContractorService - Simple Tests', () => {
       )) as Array<{ skills?: string[] }>;
 
       // Legacy contractor-profiles side table retired 2026-07: keyword search reads profiles.
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(supabase.from).toHaveBeenCalledWith('profile_directory');
       expect(mockChain.or).toHaveBeenCalled();
       expect(result).toHaveLength(1);
       expect(result[0].skills).toContain('plumbing');
