@@ -1,0 +1,43 @@
+{
+  "id": "06c9b289-9cd7-4361-bf36-726aba26f054",
+  "status": "FINISHED",
+  "profile": "internal",
+  "distribution": "INTERNAL",
+  "channel": "internal",
+  "platform": "ANDROID",
+  "version": "1.2.4",
+  "versionCode": "32",
+  "runtimeVersion": "1.2.4-sqlcipher1",
+  "sourceBaseCommit": "35cdd778bec22deb7d435f718f6371a74e587674",
+  "sourceNote": "Includes Phase 7 release configuration changes committed as ab718cf6b; EAS upload preceded that commit.",
+  "bytes": 160088945,
+  "sha256": "67047c08fce3001d869d7a2257c678032531f5054f6d8d59a2aab347e8693ae8",
+  "buildPage": "https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/06c9b289-9cd7-4361-bf36-726aba26f054",
+  "apkUrl": "https://expo.dev/artifacts/eas/nWf1Ahfg_0mHDX8BD_5Piv0zvf788ROKqq9ZZ_Monhc.apk",
+  "embeddedBundle": [
+    "assets/index.android.bundle"
+  ],
+  "nativeArchitectures": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "sqliteLibraries": [
+    "lib/arm64-v8a/libexpo-sqlite.so",
+    "lib/armeabi-v7a/libexpo-sqlite.so",
+    "lib/x86/libexpo-sqlite.so",
+    "lib/x86_64/libexpo-sqlite.so"
+  ],
+  "hermesLibraries": [
+    "lib/arm64-v8a/libhermes.so",
+    "lib/arm64-v8a/libhermestooling.so",
+    "lib/armeabi-v7a/libhermes.so",
+    "lib/armeabi-v7a/libhermestooling.so",
+    "lib/x86/libhermes.so",
+    "lib/x86/libhermestooling.so",
+    "lib/x86_64/libhermes.so",
+    "lib/x86_64/libhermestooling.so"
+  ],
+  "zipIntegrity": "passed"
+}

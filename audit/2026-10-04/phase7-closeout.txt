@@ -1,0 +1,25 @@
+PHASE 7 — MOBILE RELEASE ENGINEERING COMPLETE; DEVICE SIGNOFF PENDING
+
+Standalone internal Android APK: https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/06c9b289-9cd7-4361-bf36-726aba26f054
+Version 1.2.4 (32), runtime 1.2.4-sqlcipher1
+SHA-256: 67047c08fce3001d869d7a2257c678032531f5054f6d8d59a2aab347e8693ae8
+Embedded app bundle and native libraries verified. Does not require Metro or a local development server.
+
+Release fixes: removed literal EAS placeholders; selected explicit EAS environments; disabled shared-web defaults during cloud configuration; fail closed for missing release settings, malformed/insecure URLs, mixed API endpoints, mock data and live Stripe keys in staging.
+Cloud config resolution needs public settings loaded locally before eas build (for example eas env:pull for the selected environment). This run loaded existing EAS public settings into process memory without saving secrets.
+
+Validation: 492 suites / 12,455 tests / 87 snapshots passed; both Hermes exports, mobile type checking, changed-file lint and normal commit hooks passed. Jest retained background handles after printing passing totals and was stopped.
+
+- Phone verification not performed; user owns the device checklist.
+- No signed iOS device build or iOS device signoff.
+- Current internal profile uses production backend and live Stripe configuration; do not use it for sandbox payment tests.
+- EAS preview environment also currently uses production API/live Stripe; staging guard rejects it. Deploy a separate sandbox backend and use matching test keys in Phase 8.
+- Expo Doctor: 16/18 checks passed; custom Metro watchFolders and SDK package recommendations differ. No compatibility exclusions added.
+- Expo web export is unsupported by the native Stripe import; Android/iOS exports passed.
+- Internal profile retains disabled crash reporting/source-map upload; hosted monitoring must be verified before beta.
+- R1-R7 release gates remain applicable; no beta approval is implied.
+
+Next: Phase 8 operations, matching deployment and controlled beta gates. Use phase7-phone-checklist.html for user-owned device verification.
+
+https://docs.expo.dev/eas/environment-variables/usage/
+https://docs.expo.dev/build/eas-json/

@@ -19,6 +19,13 @@ function load(content: string, injected: Record<string, string> = {}) {
 }
 
 describe('mobile shared environment defaults', () => {
+  it('does not fill cloud settings from a developer web environment', () => {
+    expect(
+      load('NEXT_PUBLIC_SUPABASE_URL=https://wrong.example.test', {
+        EAS_BUILD_PROFILE: 'staging',
+      })
+    ).toEqual({ EAS_BUILD_PROFILE: 'staging' });
+  });
   it.each([
     ['NEXT_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_URL'],
     ['NEXT_PUBLIC_SUPABASE_ANON_KEY', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'],

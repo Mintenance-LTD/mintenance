@@ -1,0 +1,90 @@
+[INFO] ⚠️  No shared .env file found. Using mobile-specific .env if it exists.
+[WARN] ⚠️  GOOGLE_SERVICES_PLIST not set and ./GoogleService-Info.plist not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_JSON not set and ./google-services.json not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_PLIST not set and ./GoogleService-Info.plist not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_JSON not set and ./google-services.json not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_PLIST not set and ./GoogleService-Info.plist not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_JSON not set and ./google-services.json not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_PLIST not set and ./GoogleService-Info.plist not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_JSON not set and ./google-services.json not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_PLIST not set and ./GoogleService-Info.plist not found — build will have no Firebase config; push notifications will NOT work in this binary.
+[WARN] ⚠️  GOOGLE_SERVICES_JSON not set and ./google-services.json not found — build will have no Firebase config; push notifications will NOT work in this binary.
+Starting Metro Bundler
+Android apps\mobile\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS apps\mobile\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android apps\mobile\index.ts ▓▓▓▓▓▓▓░░░░░░░░░ 46.0% (1704/2513)
+iOS apps\mobile\index.ts ▓▓▓▓▓░░░░░░░░░░░ 34.1% ( 942/1693)
+Android apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 97.4% (3479/3526)
+iOS apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 96.2% (3292/3356)
+Android apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (3600/3600)
+iOS apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (3590/3590)
+Android Bundled 27170ms apps\mobile\index.ts (3600 modules)
+Android apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (3600/3600)
+iOS apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (3590/3590)
+iOS apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (3590/3590)
+iOS Bundled 40263ms apps\mobile\index.ts (3590 modules)
+iOS apps\mobile\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (3590/3590)
+
+› Assets (70):
+..\..\node_modules\@expo-google-fonts\geist\100Thin_Italic\Geist_100Thin_Italic.ttf (92.6 kB)
+..\..\node_modules\@expo-google-fonts\geist\100Thin\Geist_100Thin.ttf (90.7 kB)
+..\..\node_modules\@expo-google-fonts\geist\200ExtraLight_Italic\Geist_200ExtraLight_Italic.ttf (92.6 kB)
+..\..\node_modules\@expo-google-fonts\geist\200ExtraLight\Geist_200ExtraLight.ttf (90.8 kB)
+..\..\node_modules\@expo-google-fonts\geist\300Light_Italic\Geist_300Light_Italic.ttf (92.6 kB)
+..\..\node_modules\@expo-google-fonts\geist\300Light\Geist_300Light.ttf (90.8 kB)
+..\..\node_modules\@expo-google-fonts\geist\400Regular_Italic\Geist_400Regular_Italic.ttf (92.5 kB)
+..\..\node_modules\@expo-google-fonts\geist\400Regular\Geist_400Regular.ttf (90.8 kB)
+..\..\node_modules\@expo-google-fonts\geist\500Medium_Italic\Geist_500Medium_Italic.ttf (92.6 kB)
+..\..\node_modules\@expo-google-fonts\geist\500Medium\Geist_500Medium.ttf (90.8 kB)
+..\..\node_modules\@expo-google-fonts\geist\600SemiBold_Italic\Geist_600SemiBold_Italic.ttf (92.6 kB)
+..\..\node_modules\@expo-google-fonts\geist\600SemiBold\Geist_600SemiBold.ttf (90.9 kB)
+..\..\node_modules\@expo-google-fonts\geist\700Bold_Italic\Geist_700Bold_Italic.ttf (92.6 kB)
+..\..\node_modules\@expo-google-fonts\geist\700Bold\Geist_700Bold.ttf (90.9 kB)
+..\..\node_modules\@expo-google-fonts\geist\800ExtraBold_Italic\Geist_800ExtraBold_Italic.ttf (92.7 kB)
+..\..\node_modules\@expo-google-fonts\geist\800ExtraBold\Geist_800ExtraBold.ttf (90.8 kB)
+..\..\node_modules\@expo-google-fonts\geist\900Black_Italic\Geist_900Black_Italic.ttf (92.6 kB)
+..\..\node_modules\@expo-google-fonts\geist\900Black\Geist_900Black.ttf (90.8 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\AntDesign.ttf (130 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Entypo.ttf (66.2 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\EvilIcons.ttf (13.5 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Feather.ttf (55.6 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome.ttf (166 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Brands.ttf (134 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Regular.ttf (33.7 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Solid.ttf (203 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Brands.ttf (209 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Regular.ttf (68 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Solid.ttf (424 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Fontisto.ttf (314 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Foundation.ttf (57 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Ionicons.ttf (390 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\MaterialCommunityIcons.ttf (1.31 MB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\MaterialIcons.ttf (357 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Octicons.ttf (69.4 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\SimpleLineIcons.ttf (54.1 kB)
+..\..\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Zocial.ttf (25.8 kB)
+..\..\node_modules\@react-navigation\elements\lib\module\assets\back-icon-mask.png (653 B)
+..\..\node_modules\@react-navigation\elements\lib\module\assets\back-icon.png (8 variations | 359 B)
+..\..\node_modules\@react-navigation\elements\lib\module\assets\clear-icon.png (4 variations | 425 B)
+..\..\node_modules\@react-navigation\elements\lib\module\assets\close-icon.png (4 variations | 235 B)
+..\..\node_modules\@react-navigation\elements\lib\module\assets\search-icon.png (7 variations | 592 B)
+assets\fonts\Inter-Black.ttf (420 kB)
+assets\fonts\Inter-Bold.ttf (420 kB)
+assets\fonts\Inter-ExtraBold.ttf (422 kB)
+assets\fonts\Inter-Medium.ttf (417 kB)
+assets\fonts\Inter-Regular.ttf (412 kB)
+assets\fonts\Inter-SemiBold.ttf (420 kB)
+assets\icon.png (172 kB)
+assets\logo-mark.png (47.6 kB)
+assets\splash.png (302 kB)
+
+› android bundles (1):
+_expo/static/js/android/index-429482117c414519e63c683f35e6724c.hbc (12.1 MB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-8460aeb5cbae1b62653ee402d48c586f.hbc (12.1 MB)
+
+› Files (1):
+metadata.json (8.56 kB)
+
+Exported: ../../output/phase7-export
