@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserFromCookies: vi.fn(),
   getCurrentUserFromBearerToken: vi.fn(),
   supabaseFrom: vi.fn(),
+  supabaseRpc: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   validateRequest: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
   },
 }));
 
@@ -224,6 +226,7 @@ function setupConfirmIntentMocks(
     id: 'pi_test123',
     status: overrides.paymentIntentStatus ?? 'succeeded',
     amount: overrides.paymentAmount ?? 25000,
+    amount_received: overrides.paymentAmount ?? 25000,
     metadata: overrides.paymentMetadata ?? {},
     currency: 'gbp',
   });
@@ -258,6 +261,10 @@ function setupConfirmIntentMocks(
     },
     error: overrides.escrowUpdateError ?? null,
   };
+  mocks.supabaseRpc.mockResolvedValue({
+    data: [escrowUpdateResult.data],
+    error: escrowUpdateResult.error,
+  });
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'jobs') {
@@ -522,6 +529,49 @@ describe('POST /api/payments/confirm-intent', () => {
     expect(body.success).toBe(true);
     expect(body.escrowTransactionId).toBe('escrow-1');
     expect(body.amount).toBe(250);
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'apply_payment_intent_state',
+      {
+        p_intent_id: 'pi_test123',
+        p_outcome: 'succeeded',
+        p_cash_minor: 25000,
+        p_currency: 'gbp',
+      }
+    );
+  });
+
+  it.each([[], null])(
+    'does not report success when the atomic transition returns no escrow',
+    async (data) => {
+      mocks.validateRequest.mockResolvedValue({
+        data: { paymentIntentId: 'pi_test123', jobId: validJobId },
+      });
+      setupConfirmIntentMocks();
+      mocks.supabaseRpc.mockResolvedValue({ data, error: null });
+      const res = await POST(
+        createPostRequest('/api/payments/confirm-intent', {}),
+        { params: Promise.resolve({}) }
+      );
+      expect(res.status).toBe(500);
+      expect(mocks.createNotification).not.toHaveBeenCalled();
+    }
+  );
+
+  it('does not report success after a failed atomic payment write', async () => {
+    mocks.validateRequest.mockResolvedValue({
+      data: { paymentIntentId: 'pi_test123', jobId: validJobId },
+    });
+    setupConfirmIntentMocks();
+    mocks.supabaseRpc.mockResolvedValue({
+      data: null,
+      error: { message: 'transaction rolled back' },
+    });
+    const res = await POST(
+      createPostRequest('/api/payments/confirm-intent', {}),
+      { params: Promise.resolve({}) }
+    );
+    expect(res.status).toBe(500);
+    expect(mocks.createNotification).not.toHaveBeenCalled();
   });
 
   it('confirms gross escrow funded by cash and trusted credit separately', async () => {

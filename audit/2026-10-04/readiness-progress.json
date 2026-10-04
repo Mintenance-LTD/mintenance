@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-04T18:05:14.7989197Z",
+  "updatedAt": "2026-10-04T18:55:12.428Z",
   "releaseDecision": "Hold external beta",
   "completionRule": "Complete (implementation) means scoped fixes and acceptance evidence are complete locally. Open release gates still block beta access; deployment and phone verification are tracked separately.",
   "phases": [
@@ -8,8 +8,7 @@
       "name": "Reproducible release candidate and test environment",
       "status": "In progress",
       "remaining": [
-        "Freeze and record the final release candidate after concurrent application changes settle",
-        "Stripe sandbox credentials needed: current configured secret and publishable keys are live; user asked to configure test keys without sharing secrets in chat"
+        "Freeze and record the final release candidate after concurrent application changes settle"
       ],
       "completed": [
         "Dedicated Supabase stack started on loopback port 57321 without production seed data",
@@ -18,7 +17,8 @@
         "Verified Node 20.19.4 and npm 11.6.2",
         "Real database integration: 13 suites, 79 tests passed",
         "Integration runner restricts credentials and URL to isolated stack",
-        "CI pins Supabase 2.119.0 and npm 11.6.2 and reads actual local credentials"
+        "CI pins Supabase 2.119.0 and npm 11.6.2 and reads actual local credentials",
+        "Phase 6 located valid Stripe sandbox keys in apps/web/.env.test and verified real test payments without exposing keys or using live credentials"
       ],
       "evidence": [
         "phase1-integration.log",
@@ -210,10 +210,10 @@
         "Mobile search now accurately describes contractor keyword search and cancels pending results when cleared",
         "Public directory includes verified new contractors through the restricted directory view, excludes deleted/unverified profiles, and no longer invents response-time claims",
         "Required job-photo wording corrected; bid-stage messaging explains that acceptance is required",
-        "Final validation: 105 targeted web tests, 35 real-database tests across five suites, 6 mobile search tests; both type checks and changed-file lint passed"
+        "Final validation: 105 targeted web tests, 35 real-database tests across five suites, 6 mobile search tests; both type checks and changed-file lint passed",
+        "Phase 6 verified previously blocked bid acceptance, contract signatures and escrow payment using real Stripe sandbox and authenticated API handlers"
       ],
       "remaining": [
-        "Release verification: successful bid acceptance, contracts and paid completion require Stripe sandbox setup in Phase 6; local attempt correctly rejected an unconfigured contractor account",
         "R4: separately owned after-photo completion remains unresolved and was not modified",
         "Deployed public/auth/recovery and monitoring checks transfer to Phase 8; mobile release search check transfers to Phase 7"
       ],
@@ -229,9 +229,30 @@
     {
       "id": 6,
       "name": "Payments and reconciliation",
-      "status": "Not started",
+      "status": "Complete (implementation)",
       "remaining": [
-        "R7: configure sandbox credentials and verify successful acceptance through payment and reconciliation"
+        "Phase 7: phone checkout, saved cards and 3DS challenge on the matching release build",
+        "Phase 8: deployed webhook delivery, retry monitoring, correct sandbox/live configuration and final controlled payment signoff",
+        "R4 separately owned completion flow remains a beta gate; this phase did not change completion/photos"
+      ],
+      "completed": [
+        "Reviewed canonical funding, saved-card confirmation, webhook retries, refund recovery, transfer reservation and reconciliation paths",
+        "Unfinished webhook duplicates return a retryable failure instead of a false acknowledgement; invalid claims fail closed",
+        "Saved-card route preserves security headers through canonical handlers and supplies the Stripe authentication return URL",
+        "Synchronous confirmation uses the atomic job/escrow funding transaction, refusing obsolete and concurrently closed payment state",
+        "Verified real Stripe sandbox: connected contractor status, bid acceptance, contractor contract submission, both signatures and funded escrow through authenticated route handlers",
+        "Verified actual sandbox saved-card charge, signed payment webhook, cash-plus-credit refund replay, provider reconciliation and duplicate transfer recovery",
+        "544 regression tests across 31 suites and 36 real-database tests passed; six rollback-only SQL scripts cover concurrency, stale ownership, partial refunds, credit accounting and a 105-record reconciliation backlog",
+        "Web type check and production-file lint passed; no schema changes or hosted SQL mutations needed"
+      ],
+      "evidence": [
+        "phase6-closeout.txt",
+        "phase6-results.json",
+        "phase6-final-payment-tests.log",
+        "phase6-database-baseline.log",
+        "phase6-ledger-checks.log",
+        "phase6-sandbox-tests.log",
+        "phase6-sandbox-acceptance.log"
       ]
     },
     {
@@ -240,7 +261,8 @@
       "status": "Not started",
       "remaining": [
         "R2: verify Phase 2 phone checklist on the matching release; user will perform device testing",
-        "Build and validate supported mobile release candidate"
+        "Build and validate supported mobile release candidate",
+        "Verify sandbox saved cards, checkout and 3DS challenge on the physical phone release"
       ]
     },
     {
@@ -252,7 +274,8 @@
         "R3: Supabase-supported PostGIS owner-level permissions remediation",
         "Do not admit beta users until all open release gates are verified",
         "R5: deploy maintenance changes and verify scheduled success plus alert delivery",
-        "R6: verify hosted recovery including Storage objects and plan supported Postgres upgrade"
+        "R6: verify hosted recovery including Storage objects and plan supported Postgres upgrade",
+        "R7: verify deployed payment webhook delivery, retry monitoring and environment mode before beta"
       ]
     }
   ],
@@ -309,9 +332,9 @@
     {
       "id": "R7",
       "title": "Stripe sandbox journey and reconciliation",
-      "status": "Open",
-      "requirement": "Verify connected contractor onboarding, successful bid acceptance, payment/escrow, refunds and reconciliation with sandbox credentials before beta",
-      "phase": 6
+      "status": "Local sandbox verified; release checks open",
+      "requirement": "Local acceptance/signature/payment/refund/transfer/reconciliation checks passed in Phase 6. Verify matching mobile checkout/3DS and deployed webhook delivery/monitoring before beta; bank settlement is not asserted by sandbox transfers.",
+      "phase": 8
     }
   ]
 }

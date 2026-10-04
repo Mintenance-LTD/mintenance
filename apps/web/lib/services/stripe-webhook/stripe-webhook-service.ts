@@ -211,7 +211,24 @@ export class StripeWebhookService {
 
     const row =
       (idempotencyResult?.[0] as IdempotencyResultRow | undefined) ?? {};
+    if (
+      typeof row.event_id !== 'string' ||
+      typeof row.is_duplicate !== 'boolean'
+    ) {
+      throw new InternalServerError('Webhook processing claim is invalid');
+    }
     if (row.is_duplicate) {
+      // A claim can be pending after a crash, or failed at its retry cap.
+      // Only acknowledge durable completion; a 2xx for unfinished work
+      // would tell Stripe to stop delivering the event that can recover it.
+      const { data: existing, error } = await serverSupabase
+        .from('webhook_events')
+        .select('status')
+        .eq('id', row.event_id)
+        .single();
+      if (error || existing?.status !== 'processed') {
+        throw new InternalServerError('Webhook processing is not yet complete');
+      }
       logger.info('Duplicate webhook event detected', {
         service: 'stripe-webhook',
         eventType: event.type,

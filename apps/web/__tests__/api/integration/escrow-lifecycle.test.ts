@@ -507,6 +507,10 @@ describe('Escrow Lifecycle - 1. Creation flow (confirm intent)', () => {
 
     const mod = await import('@/app/api/payments/confirm-intent/route');
     confirmIntentPOST = mod.POST;
+    mocks.supabaseRpc.mockResolvedValue({
+      data: [baseEscrowRow('held')],
+      error: null,
+    });
   });
 
   it('should transition escrow from "pending" to "held" when Stripe payment succeeds', async () => {

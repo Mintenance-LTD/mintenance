@@ -1,0 +1,106 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.8 [39m[90mC:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web[39m
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts
+[22m[39m[2026-10-04T18:46:16.102Z] INFO  Environment variables validated successfully (test mode) {"service":"env-validation"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts
+[MONITORING] {"level":"info","message":"Environment variables validated successfully (test mode)","timestamp":"2026-10-04T18:46:16.106Z","context":{"service":"env-validation"}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts
+[2026-10-04T18:46:16.138Z] WARN  Redis not configured, falling back to in-memory rate limiting {"service":"rate_limiter"}
+[MONITORING] {"level":"warn","message":"Redis not configured, falling back to in-memory rate limiting","timestamp":"2026-10-04T18:46:16.138Z","context":{"service":"rate_limiter"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mcaptures cash plus credit, refunds once after replay, and reconciles the provider ledger
+[22m[39m[2026-10-04T18:46:19.628Z] INFO  Processing webhook event {"service":"stripe-webhook","eventType":"payment_intent.succeeded","eventId":"evt_readiness_6a476d5f-e22a-4d4c-b9e5-c01083936c22"}
+[2026-10-04T18:46:19.629Z] INFO  Payment succeeded webhook received {"service":"stripe-webhook","paymentIntentId":"pi_3UMuQRJmZpzAEZO81GGEwu7w"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > captures cash plus credit, refunds once after replay, and reconciles the provider ledger
+[MONITORING] {"level":"info","message":"Processing webhook event","timestamp":"2026-10-04T18:46:19.628Z","context":{"service":"stripe-webhook","eventType":"payment_intent.succeeded","eventId":"evt_readiness_6a476d5f-e22a-4d4c-b9e5-c01083936c22"}}
+[MONITORING] {"level":"info","message":"Payment succeeded webhook received","timestamp":"2026-10-04T18:46:19.629Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_3UMuQRJmZpzAEZO81GGEwu7w"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mcaptures cash plus credit, refunds once after replay, and reconciles the provider ledger
+[22m[39m[2026-10-04T18:46:19.662Z] INFO  Escrow transaction updated to held {"service":"stripe-webhook","escrowId":"016e3b04-f154-4582-a47e-838bf2b6412a"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > captures cash plus credit, refunds once after replay, and reconciles the provider ledger
+[MONITORING] {"level":"info","message":"Escrow transaction updated to held","timestamp":"2026-10-04T18:46:19.662Z","context":{"service":"stripe-webhook","escrowId":"016e3b04-f154-4582-a47e-838bf2b6412a"}}
+
+ [32m✓[39m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mcaptures cash plus credit, refunds once after replay, and reconciles the provider ledger[33m 5492[2mms[22m[39m
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mcreates one connected-account transfer when a payout request is retried
+[22m[39m[2026-10-04T18:46:24.488Z] INFO  Processing webhook event {"service":"stripe-webhook","eventType":"payment_intent.succeeded","eventId":"evt_readiness_13f6451c-53ad-4d48-948f-f9f41ab6b851"}
+[2026-10-04T18:46:24.489Z] INFO  Payment succeeded webhook received {"service":"stripe-webhook","paymentIntentId":"pi_3UMuQWJmZpzAEZO80UEJXnlR"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > creates one connected-account transfer when a payout request is retried
+[MONITORING] {"level":"info","message":"Processing webhook event","timestamp":"2026-10-04T18:46:24.489Z","context":{"service":"stripe-webhook","eventType":"payment_intent.succeeded","eventId":"evt_readiness_13f6451c-53ad-4d48-948f-f9f41ab6b851"}}
+[MONITORING] {"level":"info","message":"Payment succeeded webhook received","timestamp":"2026-10-04T18:46:24.489Z","context":{"service":"stripe-webhook","paymentIntentId":"pi_3UMuQWJmZpzAEZO80UEJXnlR"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mcreates one connected-account transfer when a payout request is retried
+[22m[39m[2026-10-04T18:46:24.505Z] INFO  Escrow transaction updated to held {"service":"stripe-webhook","escrowId":"d21b59ba-621d-4cb4-89b3-0d0d062a5219"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > creates one connected-account transfer when a payout request is retried
+[MONITORING] {"level":"info","message":"Escrow transaction updated to held","timestamp":"2026-10-04T18:46:24.505Z","context":{"service":"stripe-webhook","escrowId":"d21b59ba-621d-4cb4-89b3-0d0d062a5219"}}
+
+(node:34972) Stripe: We recommend building your integration using Accounts v2. See https://docs.stripe.com/api/v2/core/accounts
+(Use `node --trace-warnings ...` to show where the warning was created)
+ [32m✓[39m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mcreates one connected-account transfer when a payout request is retried[33m 6202[2mms[22m[39m
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > rejects bad signatures and acknowledges only durably completed webhook duplicates
+[2026-10-04T18:46:29.100Z] ERROR Webhook signature verification failed {"service":"stripe-webhook"}
+Error details: {
+  name: 'Error',
+  message: 'Unable to extract timestamp and signatures from header',
+  stack: undefined
+}
+[MONITORING] {"level":"error","message":"Webhook signature verification failed","timestamp":"2026-10-04T18:46:29.101Z","context":{"service":"stripe-webhook"},"error":{"name":"Error","message":"Unable to extract timestamp and signatures from header"}}
+[2026-10-04T18:46:29.101Z] WARN  API Error {"code":"BAD_REQUEST","message":"Webhook signature verification failed","statusCode":400}
+[MONITORING] {"level":"warn","message":"API Error","timestamp":"2026-10-04T18:46:29.101Z","context":{"code":"BAD_REQUEST","message":"Webhook signature verification failed","statusCode":400}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mrejects bad signatures and acknowledges only durably completed webhook duplicates
+[22m[39m[2026-10-04T18:46:29.110Z] INFO  Processing webhook event {"service":"stripe-webhook","eventType":"readiness.test","eventId":"evt_readiness_4b4653f7-df41-4261-be2f-ac8572dc359f"}
+[2026-10-04T18:46:29.110Z] INFO  Unhandled webhook event type {"service":"stripe-webhook","eventType":"readiness.test"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > rejects bad signatures and acknowledges only durably completed webhook duplicates
+[MONITORING] {"level":"info","message":"Processing webhook event","timestamp":"2026-10-04T18:46:29.110Z","context":{"service":"stripe-webhook","eventType":"readiness.test","eventId":"evt_readiness_4b4653f7-df41-4261-be2f-ac8572dc359f"}}
+[MONITORING] {"level":"info","message":"Unhandled webhook event type","timestamp":"2026-10-04T18:46:29.110Z","context":{"service":"stripe-webhook","eventType":"readiness.test"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mrejects bad signatures and acknowledges only durably completed webhook duplicates
+[22m[39m[2026-10-04T18:46:29.134Z] INFO  Duplicate webhook event detected {"service":"stripe-webhook","eventType":"readiness.test","eventId":"evt_readiness_4b4653f7-df41-4261-be2f-ac8572dc359f"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > rejects bad signatures and acknowledges only durably completed webhook duplicates
+[MONITORING] {"level":"info","message":"Duplicate webhook event detected","timestamp":"2026-10-04T18:46:29.134Z","context":{"service":"stripe-webhook","eventType":"readiness.test","eventId":"evt_readiness_4b4653f7-df41-4261-be2f-ac8572dc359f"}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > rejects bad signatures and acknowledges only durably completed webhook duplicates
+[2026-10-04T18:46:29.160Z] WARN  API Error {"code":"INTERNAL_SERVER_ERROR","message":"Webhook processing is not yet complete","statusCode":500}
+[MONITORING] {"level":"warn","message":"API Error","timestamp":"2026-10-04T18:46:29.160Z","context":{"code":"INTERNAL_SERVER_ERROR","message":"Webhook processing is not yet complete","statusCode":500}}
+
+ [32m✓[39m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mrejects bad signatures and acknowledges only durably completed webhook duplicates[32m 71[2mms[22m[39m
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mprocesses a saved card through authenticated production route handlers and records both payment states
+[22m[39m[2026-10-04T18:46:31.991Z] INFO  Anomaly detection completed {"service":"payment_monitoring","userId":"6a6dfb1d-b4de-4701-adef-43440e7903bd","transactionType":"payment","amount":5,"isAnomalous":false,"riskScore":0,"confidence":0,"reasonCount":0,"blockedReasonCount":0}
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > processes a saved card through authenticated production route handlers and records both payment states
+[MONITORING] {"level":"info","message":"Anomaly detection completed","timestamp":"2026-10-04T18:46:31.991Z","context":{"service":"payment_monitoring","userId":"6a6dfb1d-b4de-4701-adef-43440e7903bd","transactionType":"payment","amount":5,"isAnomalous":false,"riskScore":0,"confidence":0,"reasonCount":0,"blockedReasonCount":0}}
+
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mprocesses a saved card through authenticated production route handlers and records both payment states
+[22m[39m[2026-10-04T18:46:32.337Z] INFO  Payment intent created successfully {"service":"payments","userId":"6a6dfb1d-b4de-4701-adef-43440e7903bd","jobId":"5c0d9f94-35ed-4123-bd09-0049406c3db9","amount":5,"currency":"gbp","escrowTransactionId":"17ee5337-9622-4d0e-a386-f4b5b73b25ac"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > processes a saved card through authenticated production route handlers and records both payment states
+[MONITORING] {"level":"info","message":"Payment intent created successfully","timestamp":"2026-10-04T18:46:32.337Z","context":{"service":"payments","userId":"6a6dfb1d-b4de-4701-adef-43440e7903bd","jobId":"5c0d9f94-35ed-4123-bd09-0049406c3db9","amount":5,"currency":"gbp","escrowTransactionId":"17ee5337-9622-4d0e-a386-f4b5b73b25ac"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2mprocesses a saved card through authenticated production route handlers and records both payment states
+[22m[39m[2026-10-04T18:46:33.343Z] INFO  Payment confirmed and escrow updated {"service":"payments","userId":"6a6dfb1d-b4de-4701-adef-43440e7903bd","paymentIntentId":"pi_3UMuQeJmZpzAEZO81vnnROyd","jobId":"5c0d9f94-35ed-4123-bd09-0049406c3db9","escrowTransactionId":"17ee5337-9622-4d0e-a386-f4b5b73b25ac","amount":5}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > processes a saved card through authenticated production route handlers and records both payment states
+[MONITORING] {"level":"info","message":"Payment confirmed and escrow updated","timestamp":"2026-10-04T18:46:33.343Z","context":{"service":"payments","userId":"6a6dfb1d-b4de-4701-adef-43440e7903bd","paymentIntentId":"pi_3UMuQeJmZpzAEZO81vnnROyd","jobId":"5c0d9f94-35ed-4123-bd09-0049406c3db9","escrowTransactionId":"17ee5337-9622-4d0e-a386-f4b5b73b25ac","amount":5}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > processes a saved card through authenticated production route handlers and records both payment states
+[2026-10-04T18:46:33.403Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_cfe94a82-e4fe-46c9-8bb8-dd3d09b3f9c6@test.local","subject":"£5 held in escrow for itest_phase6_saved_card."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:46:33.403Z","context":{"service":"email","to":"itest_cfe94a82-e4fe-46c9-8bb8-dd3d09b3f9c6@test.local","subject":"£5 held in escrow for itest_phase6_saved_card."}}
+[2026-10-04T18:46:33.404Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_168737c0-c8ae-4b20-8ba8-544ef1acb7c7@test.local","subject":"itest_homeowner test funded £5 — you're cleared to start."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:46:33.404Z","context":{"service":"email","to":"itest_168737c0-c8ae-4b20-8ba8-544ef1acb7c7@test.local","subject":"itest_homeowner test funded £5 — you're cleared to start."}}
+
+ [32m✓[39m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mprocesses a saved card through authenticated production route handlers and records both payment states[33m 4547[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+[2m   Start at [22m 19:46:14
+[2m   Duration [22m 19.68s[2m (transform 2.81s, setup 0ms, import 2.27s, tests 16.75s, environment 0ms)[22m
+

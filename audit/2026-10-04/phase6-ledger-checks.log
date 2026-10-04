@@ -1,0 +1,88 @@
+CHECK remediation-payment-funding.sql
+BEGIN
+INSERT 0 3
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+SET
+DO
+RESET
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+DO
+RESET
+SET
+DO
+RESET
+ROLLBACK
+CHECK remediation-refund-balances.sql
+BEGIN
+INSERT 0 3
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+CREATE FUNCTION
+CREATE TRIGGER
+SET
+DO
+NOTICE:  PASS: partial/cumulative refunds, cash-credit allocation, replay, pending/failure handling, payer isolation
+RESET
+SET
+DO
+RESET
+ROLLBACK
+CHECK remediation-refund-recovery-leases.sql
+BEGIN
+INSERT 0 3
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+UPDATE 1
+CREATE FUNCTION
+CREATE TRIGGER
+UPDATE 5
+DO
+ROLLBACK
+CHECK remediation-transfer-reservation.sql
+BEGIN
+INSERT 0 2
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+SET
+DO
+RESET
+NOTICE:  PASS: retries retain transfer identity and parameters; changed amount/recipient rejected
+UPDATE 1
+DO
+DELETE 1
+UPDATE 1
+SET
+DO
+NOTICE:  PASS: uncertain payout blocks refund and refund blocks payout
+RESET
+SET
+DO
+RESET
+ROLLBACK
+CHECK remediation-reconciliation-queue.sql
+BEGIN
+CREATE FUNCTION
+CREATE TRIGGER
+NOTICE:  PASS: 105 oldest records, fenced expiry/reclaim, source-change retry, metadata preservation and grants
+DO
+ROLLBACK
+CHECK remediation-webhook-atomic.sql
+BEGIN
+CREATE FUNCTION
+CREATE TRIGGER
+DO
+NOTICE:  PASS: atomic rollback, funding, late failure, seven post-funding states, amount validation, cancellation, client grants
+ROLLBACK

@@ -49,7 +49,22 @@ vi.mock('@/lib/rate-limiter', () => ({
 vi.mock('@/lib/api/supabaseServer', () => {
   const chainable = (): Record<string, any> => {
     const obj: Record<string, any> = {};
-    const methods = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'or', 'single', 'maybeSingle', 'order', 'limit', 'range', 'contains'];
+    const methods = [
+      'select',
+      'insert',
+      'update',
+      'delete',
+      'upsert',
+      'eq',
+      'neq',
+      'or',
+      'single',
+      'maybeSingle',
+      'order',
+      'limit',
+      'range',
+      'contains',
+    ];
     for (const m of methods) {
       if (m === 'single' || m === 'maybeSingle') {
         obj[m] = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -124,7 +139,7 @@ vi.mock('@/lib/errors/api-error', async () => {
       public userMessage: string,
       public statusCode: number = 500,
       public details?: unknown,
-      public field?: string,
+      public field?: string
     ) {
       super(userMessage);
       this.name = 'APIError';
@@ -148,19 +163,40 @@ vi.mock('@/lib/errors/api-error', async () => {
   }
   class RateLimitError extends APIError {
     constructor(retryAfter?: number) {
-      super('RATE_LIMIT_EXCEEDED', 'Too many requests.', 429, retryAfter ? { retryAfter } : undefined);
+      super(
+        'RATE_LIMIT_EXCEEDED',
+        'Too many requests.',
+        429,
+        retryAfter ? { retryAfter } : undefined
+      );
     }
   }
 
   const { NextResponse } = await import('next/server');
   function handleAPIError(error: unknown): any {
     if (error instanceof APIError) {
-      return NextResponse.json(error.toResponse(), { status: error.statusCode });
+      return NextResponse.json(error.toResponse(), {
+        status: error.statusCode,
+      });
     }
-    return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'An unexpected error occurred',
+        },
+      },
+      { status: 500 }
+    );
   }
 
-  return { APIError, BadRequestError, InternalServerError, RateLimitError, handleAPIError };
+  return {
+    APIError,
+    BadRequestError,
+    InternalServerError,
+    RateLimitError,
+    handleAPIError,
+  };
 });
 
 // ---------------------------------------------------------------------------
@@ -191,7 +227,10 @@ function allowRateLimit() {
 function rpcNonDuplicate() {
   mockRpc.mockImplementation(async (fn: string) => {
     if (fn === 'check_webhook_idempotency') {
-      return { data: [{ is_duplicate: false, event_id: 'evt_row_1' }], error: null };
+      return {
+        data: [{ is_duplicate: false, event_id: 'evt_row_1' }],
+        error: null,
+      };
     }
     if (fn === 'mark_webhook_processed') {
       return { data: null, error: null };
@@ -203,7 +242,10 @@ function rpcNonDuplicate() {
 function rpcDuplicate() {
   mockRpc.mockImplementation(async (fn: string) => {
     if (fn === 'check_webhook_idempotency') {
-      return { data: [{ is_duplicate: true, event_id: 'evt_row_1' }], error: null };
+      return {
+        data: [{ is_duplicate: true, event_id: 'evt_row_1' }],
+        error: null,
+      };
     }
     if (fn === 'mark_webhook_processed') {
       return { data: null, error: null };
@@ -212,12 +254,29 @@ function rpcDuplicate() {
   });
 }
 
-function setupFromChain() {
+function setupFromChain(status?: string, error: unknown = null) {
   const chain: Record<string, any> = {};
-  const methods = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'or', 'single', 'maybeSingle', 'order', 'limit', 'range', 'contains'];
+  const methods = [
+    'select',
+    'insert',
+    'update',
+    'delete',
+    'upsert',
+    'eq',
+    'neq',
+    'or',
+    'single',
+    'maybeSingle',
+    'order',
+    'limit',
+    'range',
+    'contains',
+  ];
   for (const m of methods) {
     if (m === 'single' || m === 'maybeSingle') {
-      chain[m] = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain[m] = vi
+        .fn()
+        .mockResolvedValue({ data: status ? { status } : null, error });
     } else {
       chain[m] = vi.fn().mockReturnValue(chain);
     }
@@ -254,7 +313,9 @@ describe('Stripe webhook idempotency', () => {
   });
 
   it('marks event processed and returns received true', async () => {
-    const res = await POST(makeReq({ 'stripe-signature': 'sig', 'x-forwarded-for': '1.1.1.1' }, '{}'));
+    const res = await POST(
+      makeReq({ 'stripe-signature': 'sig', 'x-forwarded-for': '1.1.1.1' }, '{}')
+    );
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.received).toBe(true);
@@ -262,10 +323,47 @@ describe('Stripe webhook idempotency', () => {
 
   it('returns duplicate=true when idempotency detects duplicate', async () => {
     rpcDuplicate();
+    setupFromChain('processed');
 
-    const res = await POST(makeReq({ 'stripe-signature': 'sig', 'x-forwarded-for': '1.1.1.1' }, '{}'));
+    const res = await POST(
+      makeReq({ 'stripe-signature': 'sig', 'x-forwarded-for': '1.1.1.1' }, '{}')
+    );
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.duplicate).toBe(true);
   });
+
+  it.each(['pending', 'failed'])(
+    'does not acknowledge an unfinished %s event',
+    async (status) => {
+      rpcDuplicate();
+      setupFromChain(status);
+      const res = await POST(makeReq({ 'stripe-signature': 'sig' }, '{}'));
+      expect(res.status).toBe(500);
+      expect(mockRpc).not.toHaveBeenCalledWith(
+        'mark_webhook_processed',
+        expect.anything()
+      );
+    }
+  );
+
+  it('keeps retrying when duplicate completion cannot be read', async () => {
+    rpcDuplicate();
+    setupFromChain(undefined, { message: 'database unavailable' });
+    const res = await POST(makeReq({ 'stripe-signature': 'sig' }, '{}'));
+    expect(res.status).toBe(500);
+  });
+
+  it.each([null, [], [{ is_duplicate: false }]])(
+    'rejects an invalid processing claim',
+    async (data) => {
+      mockRpc.mockResolvedValue({ data, error: null });
+      const res = await POST(makeReq({ 'stripe-signature': 'sig' }, '{}'));
+      expect(res.status).toBe(500);
+      expect(mockRpc).not.toHaveBeenCalledWith(
+        'mark_webhook_processed',
+        expect.anything()
+      );
+    }
+  );
 });
