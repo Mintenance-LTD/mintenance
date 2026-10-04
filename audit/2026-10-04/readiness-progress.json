@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-04T15:56:31.7050912Z",
+  "updatedAt": "2026-10-04T16:48:22.679Z",
   "releaseDecision": "Hold external beta",
   "completionRule": "Complete (implementation) means scoped fixes and acceptance evidence are complete locally. Open release gates still block beta access; deployment and phone verification are tracked separately.",
   "phases": [
@@ -171,7 +171,30 @@
     {
       "id": 4,
       "name": "Dependencies and engineering gates",
-      "status": "Not started"
+      "status": "Complete (implementation)",
+      "completed": [
+        "Compatible dependency patches installed and final npm ci dry-run passed on Node 20.19.4/npm 11.6.2; framework majors preserved",
+        "Configured high/critical dependency security gate passed; obsolete exceptions removed and four build-tool advisories limited to 14 exact paths expiring 2026-11-03",
+        "All 491 mobile suites and 12,445 tests passed with existing coverage thresholds; native-boundary mocks and stale UI assertions repaired",
+        "Web regression: 467 suites and 4,428 tests passed; only the separately assigned R4 after-photo test fails; coverage thresholds passed without skipping tests",
+        "Both type checks and full lint commands passed; touched files pass strict zero-warning lint, formatting and related-test checks",
+        "10 shared package builds and production web build passed; all 532 static pages generated with synthetic build-only credentials",
+        "All six existing static API/auth/link gates passed; file-size, hex and currency commit guards passed",
+        "Unused readiness code removed; YOLO correction formatting/types extracted with stable public exports and service below 500 lines",
+        "Pinned missing lint-staged commit tool and npm in CI quality/security workflows; reviewed residual lower-severity dependency debt recorded"
+      ],
+      "remaining": [],
+      "evidence": [
+        "phase4-closeout.txt",
+        "phase4-results.json",
+        "phase4-dependency-review.txt",
+        "phase4-security-gate-final.log",
+        "phase4-lock-final-validation.log",
+        "phase4-mobile-final.log",
+        "phase4-web-final.log",
+        "phase4-production-build.log",
+        "phase4-staged-checks.log"
+      ]
     },
     {
       "id": 5,

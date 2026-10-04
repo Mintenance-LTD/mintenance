@@ -83,7 +83,7 @@ export const GET = withApiHandler(
     const job = jobData as SupabaseJobRow;
 
     // Find message_thread for this job
-    const { data: threadData } = await serverSupabase
+    await serverSupabase
       .from('message_threads')
       .select('id')
       .eq('job_id', jobId)
@@ -122,7 +122,9 @@ export const GET = withApiHandler(
       const rows = (messageData ?? []) as unknown as SupabaseMessageRow[];
       hasMore = rows.length > limit;
       const limitedRows = rows.slice(0, limit);
-      const refreshedRows = await Promise.all(limitedRows.map(refreshMessageAttachment));
+      const refreshedRows = await Promise.all(
+        limitedRows.map(refreshMessageAttachment)
+      );
       const mappedLimited = refreshedRows.map((row) => mapMessageRow(row));
       nextCursorValue = hasMore
         ? limitedRows[limitedRows.length - 1]?.created_at
@@ -136,7 +138,7 @@ export const GET = withApiHandler(
     // Calculate unread count (messages not read, sent by other user)
     let unreadCount = 0;
     {
-      const { data: unreadData, count } = await serverSupabase
+      const { count } = await serverSupabase
         .from('messages')
         .select('id', { count: 'exact', head: true })
         .eq('job_id', jobId)

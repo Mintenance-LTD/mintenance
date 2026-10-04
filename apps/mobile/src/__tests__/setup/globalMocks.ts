@@ -1,3 +1,18 @@
+// Native file access is unavailable in Node. Tests can override these boundaries.
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: 'file:///test/documents/',
+  cacheDirectory: 'file:///test/cache/',
+  getInfoAsync: jest.fn(async () => ({ exists: false })),
+  deleteAsync: jest.fn(async () => undefined),
+  readAsStringAsync: jest.fn(async () => ''),
+  writeAsStringAsync: jest.fn(async () => undefined),
+}));
+jest.mock('expo-crypto', () => ({
+  getRandomBytesAsync: jest.fn(async (length: number) =>
+    new Uint8Array(length).fill(7)
+  ),
+}));
+
 /**
  * Comprehensive Test Mocks
  *
@@ -5,98 +20,124 @@
  */
 
 // Mock TensorFlow.js (optional dependency)
-jest.mock('@tensorflow/tfjs', () => ({
-  tensor2d: jest.fn(() => ({
+jest.mock(
+  '@tensorflow/tfjs',
+  () => ({
+    tensor2d: jest.fn(() => ({
+      dispose: jest.fn(),
+      isDisposed: false,
+      data: jest.fn(() => Promise.resolve([1, 2, 3, 4])),
+      shape: [2, 2],
+    })),
+    Optimizer: class Optimizer {
+      applyGradients(): void {}
+      dispose(): void {}
+      getConfig(): Record<string, unknown> {
+        return {};
+      }
+    },
+    memory: jest.fn(() => ({
+      numTensors: 0,
+      numBytesInGPU: 0,
+      numBytes: 0,
+    })),
+    getBackend: jest.fn(() => 'cpu'),
+    version: { tfjs: '0.0.0' },
+    ready: jest.fn(() => Promise.resolve()),
     dispose: jest.fn(),
-    isDisposed: false,
-    data: jest.fn(() => Promise.resolve([1, 2, 3, 4])),
-    shape: [2, 2],
-  })),
-  Optimizer: class Optimizer {
-    applyGradients(): void {}
-    dispose(): void {}
-    getConfig(): Record<string, unknown> {
-      return {};
-    }
-  },
-  memory: jest.fn(() => ({
-    numTensors: 0,
-    numBytesInGPU: 0,
-    numBytes: 0,
-  })),
-  getBackend: jest.fn(() => 'cpu'),
-  version: { tfjs: '0.0.0' },
-  ready: jest.fn(() => Promise.resolve()),
-  dispose: jest.fn(),
-  tidy: jest.fn((fn) => fn()),
-  nextFrame: jest.fn(() => Promise.resolve()),
-}), { virtual: true });
+    tidy: jest.fn((fn) => fn()),
+    nextFrame: jest.fn(() => Promise.resolve()),
+  }),
+  { virtual: true }
+);
 
 // Mock React Native Maps (optional dependency)
-jest.mock('react-native-maps', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+jest.mock(
+  'react-native-maps',
+  () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Deferred imports are required inside hoisted Jest mock factories.
+    const React = require('react');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Deferred imports are required inside hoisted Jest mock factories.
+    const { View } = require('react-native');
 
-  const MapView = (props: unknown) => React.createElement(View, props);
-  const Marker = (props: unknown) => React.createElement(View, props);
-  const Callout = (props: unknown) => React.createElement(View, props);
+    const MapView = (props: unknown) => React.createElement(View, props);
+    const Marker = (props: unknown) => React.createElement(View, props);
+    const Callout = (props: unknown) => React.createElement(View, props);
 
-  return {
-    __esModule: true,
-    default: MapView,
-    MapView,
-    Marker,
-    Callout,
-    PROVIDER_GOOGLE: 'google',
-    PROVIDER_DEFAULT: 'default',
-  };
-}, { virtual: true });
+    return {
+      __esModule: true,
+      default: MapView,
+      MapView,
+      Marker,
+      Callout,
+      PROVIDER_GOOGLE: 'google',
+      PROVIDER_DEFAULT: 'default',
+    };
+  },
+  { virtual: true }
+);
 
 // Mock React Native WebRTC (optional dependency)
-jest.mock('react-native-webrtc', () => ({
-  RTCPeerConnection: jest.fn().mockImplementation(() => ({
-    createOffer: jest.fn(() => Promise.resolve({})),
-    createAnswer: jest.fn(() => Promise.resolve({})),
-    setLocalDescription: jest.fn(() => Promise.resolve()),
-    setRemoteDescription: jest.fn(() => Promise.resolve()),
-    addIceCandidate: jest.fn(() => Promise.resolve()),
-    close: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  })),
-  getUserMedia: jest.fn(() => Promise.resolve({})),
-  mediaDevices: {
+jest.mock(
+  'react-native-webrtc',
+  () => ({
+    RTCPeerConnection: jest.fn().mockImplementation(() => ({
+      createOffer: jest.fn(() => Promise.resolve({})),
+      createAnswer: jest.fn(() => Promise.resolve({})),
+      setLocalDescription: jest.fn(() => Promise.resolve()),
+      setRemoteDescription: jest.fn(() => Promise.resolve()),
+      addIceCandidate: jest.fn(() => Promise.resolve()),
+      close: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    })),
     getUserMedia: jest.fn(() => Promise.resolve({})),
-  },
-}), { virtual: true });
+    mediaDevices: {
+      getUserMedia: jest.fn(() => Promise.resolve({})),
+    },
+  }),
+  { virtual: true }
+);
 
 // Mock Blockchain SDK (optional dependency)
-jest.mock('@blockchain/sdk', () => ({
-  BlockchainClient: jest.fn().mockImplementation(() => ({
-    createTransaction: jest.fn(() => Promise.resolve({ hash: 'mock-hash' })),
-    verifyReview: jest.fn(() => Promise.resolve(true)),
-    getTransaction: jest.fn(() => Promise.resolve({})),
-  })),
-}), { virtual: true });
+jest.mock(
+  '@blockchain/sdk',
+  () => ({
+    BlockchainClient: jest.fn().mockImplementation(() => ({
+      createTransaction: jest.fn(() => Promise.resolve({ hash: 'mock-hash' })),
+      verifyReview: jest.fn(() => Promise.resolve(true)),
+      getTransaction: jest.fn(() => Promise.resolve({})),
+    })),
+  }),
+  { virtual: true }
+);
 
 // Mock AR/VR SDK (optional dependency)
-jest.mock('@unity/ar-foundation', () => ({
-  ARCamera: jest.fn(),
-  ARPlaneManager: jest.fn(),
-  ARRaycastManager: jest.fn(),
-}), { virtual: true });
+jest.mock(
+  '@unity/ar-foundation',
+  () => ({
+    ARCamera: jest.fn(),
+    ARPlaneManager: jest.fn(),
+    ARRaycastManager: jest.fn(),
+  }),
+  { virtual: true }
+);
 
 // Mock Performance Monitoring (optional dependency)
-jest.mock('react-native-performance', () => ({
-  PerformanceMonitor: {
-    startTransaction: jest.fn(() => ({ finish: jest.fn() })),
-    getCurrentMetrics: jest.fn(() => ({
-      fps: 60,
-      memoryUsage: 100,
-      renderTime: 16.67,
-    })),
-  },
-}), { virtual: true });
+jest.mock(
+  'react-native-performance',
+  () => ({
+    PerformanceMonitor: {
+      startTransaction: jest.fn(() => ({ finish: jest.fn() })),
+      getCurrentMetrics: jest.fn(() => ({
+        fps: 60,
+        memoryUsage: 100,
+        renderTime: 16.67,
+      })),
+    },
+  }),
+  { virtual: true }
+);
 
 // Mock Biometric Authentication
 jest.mock('expo-local-authentication', () => ({
@@ -111,16 +152,22 @@ jest.mock('expo-local-authentication', () => ({
 }));
 
 // Mock Background Tasks
-jest.mock('expo-background-task', () => ({
-  defineTask: jest.fn(),
-  startBackgroundSync: jest.fn(() => Promise.resolve()),
-}), { virtual: true });
+jest.mock(
+  'expo-background-task',
+  () => ({
+    defineTask: jest.fn(),
+    startBackgroundSync: jest.fn(() => Promise.resolve()),
+  }),
+  { virtual: true }
+);
 
 // Mock Push Notifications
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   getNotificationChannelsAsync: jest.fn(() => Promise.resolve([])),
-  requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestPermissionsAsync: jest.fn(() =>
+    Promise.resolve({ status: 'granted' })
+  ),
   scheduleNotificationAsync: jest.fn(() => Promise.resolve('mock-id')),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   getExpoPushTokenAsync: jest.fn(() =>
@@ -128,7 +175,9 @@ jest.mock('expo-notifications', () => ({
   ),
   setNotificationChannelAsync: jest.fn(() => Promise.resolve()),
   addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
-  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationResponseReceivedListener: jest.fn(() => ({
+    remove: jest.fn(),
+  })),
   removeNotificationSubscription: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(() => Promise.resolve()),
   setBadgeCountAsync: jest.fn(() => Promise.resolve()),
@@ -176,120 +225,153 @@ jest.mock('expo-constants', () => ({
 }));
 
 // Mock LinearGradient (optional dependency)
-jest.mock('expo-linear-gradient', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  return {
-    LinearGradient: (props: unknown) => React.createElement(View, props),
-  };
-}, { virtual: true });
+jest.mock(
+  'expo-linear-gradient',
+  () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Deferred imports are required inside hoisted Jest mock factories.
+    const React = require('react');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Deferred imports are required inside hoisted Jest mock factories.
+    const { View } = require('react-native');
+    return {
+      LinearGradient: (props: unknown) => React.createElement(View, props),
+    };
+  },
+  { virtual: true }
+);
 
 // Mock charts (optional dependency)
-jest.mock('react-native-chart-kit', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  const Chart = (props: unknown) => React.createElement(View, props);
-  return {
-    LineChart: Chart,
-    BarChart: Chart,
-    PieChart: Chart,
-  };
-}, { virtual: true });
+jest.mock(
+  'react-native-chart-kit',
+  () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Deferred imports are required inside hoisted Jest mock factories.
+    const React = require('react');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Deferred imports are required inside hoisted Jest mock factories.
+    const { View } = require('react-native');
+    const Chart = (props: unknown) => React.createElement(View, props);
+    return {
+      LineChart: Chart,
+      BarChart: Chart,
+      PieChart: Chart,
+    };
+  },
+  { virtual: true }
+);
 
 // Mock FFmpeg kit (optional dependency)
-jest.mock('react-native-ffmpeg-kit', () => ({
-  FFmpegKit: {
-    execute: jest.fn(() => Promise.resolve({
-      getReturnCode: jest.fn(() => ({ isValueSuccess: () => true })),
-      getAllLogsAsString: jest.fn(() => Promise.resolve('')),
-    })),
-  },
-  FFmpegKitConfig: {
-    enableLogCallback: jest.fn(),
-    enableStatisticsCallback: jest.fn(),
-    enableRedirection: jest.fn(),
-  },
-  ReturnCode: {
-    isSuccess: jest.fn(() => true),
-  },
-}), { virtual: true });
+jest.mock(
+  'react-native-ffmpeg-kit',
+  () => ({
+    FFmpegKit: {
+      execute: jest.fn(() =>
+        Promise.resolve({
+          getReturnCode: jest.fn(() => ({ isValueSuccess: () => true })),
+          getAllLogsAsString: jest.fn(() => Promise.resolve('')),
+        })
+      ),
+    },
+    FFmpegKitConfig: {
+      enableLogCallback: jest.fn(),
+      enableStatisticsCallback: jest.fn(),
+      enableRedirection: jest.fn(),
+    },
+    ReturnCode: {
+      isSuccess: jest.fn(() => true),
+    },
+  }),
+  { virtual: true }
+);
 
 // Mock shared logger config (optional dependency)
-jest.mock('@mintenance/shared/lib/logger-config', () => ({
-  createLogger: jest.fn(() => ({
-    child: jest.fn(() => ({
+jest.mock(
+  '@mintenance/shared/lib/logger-config',
+  () => ({
+    createLogger: jest.fn(() => ({
+      child: jest.fn(() => ({
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+      })),
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
       debug: jest.fn(),
     })),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  })),
-}), { virtual: true });
+  }),
+  { virtual: true }
+);
 
 jest.mock('@mintenance/shared/enhanced-logger', () => ({}), { virtual: true });
 
 // Mock AI core service
-jest.mock('@mintenance/ai-core', () => {
-  class UnifiedAIService {
-    assessBuilding() {
-      return Promise.resolve({ success: true, data: {} });
+jest.mock(
+  '@mintenance/ai-core',
+  () => {
+    class UnifiedAIService {
+      assessBuilding() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      getPricingRecommendation() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      requestAgentDecision() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      search() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      calculateESGScore() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      analyzeImages() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      submitCorrections() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      getUsageMetrics() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      completeAgentAction() {
+        return Promise.resolve({ success: true, data: {} });
+      }
+      clearCache() {}
+      getCacheStats() {
+        return { entries: 0 };
+      }
     }
-    getPricingRecommendation() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    requestAgentDecision() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    search() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    calculateESGScore() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    analyzeImages() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    submitCorrections() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    getUsageMetrics() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    completeAgentAction() {
-      return Promise.resolve({ success: true, data: {} });
-    }
-    clearCache() {}
-    getCacheStats() {
-      return { entries: 0 };
-    }
-  }
 
-  return { UnifiedAIService };
-}, { virtual: true });
+    return { UnifiedAIService };
+  },
+  { virtual: true }
+);
 
 // Mock SQLite for local database access
 jest.mock('expo-sqlite', () => ({
-  openDatabaseAsync: jest.fn(() => Promise.resolve({
-    execAsync: jest.fn(() => Promise.resolve()),
-    runAsync: jest.fn(() => Promise.resolve()),
-    getFirstAsync: jest.fn(() => Promise.resolve(null)),
-    getAllAsync: jest.fn(() => Promise.resolve([])),
-    closeAsync: jest.fn(() => Promise.resolve()),
-  })),
+  openDatabaseAsync: jest.fn(() =>
+    Promise.resolve({
+      execAsync: jest.fn(() => Promise.resolve()),
+      runAsync: jest.fn(() => Promise.resolve()),
+      getFirstAsync: jest.fn(() => Promise.resolve(null)),
+      getAllAsync: jest.fn(() => Promise.resolve([])),
+      closeAsync: jest.fn(() => Promise.resolve()),
+    })
+  ),
 }));
 
 // Global test utilities
-(global as any).mockAsyncFn = (returnValue: any = undefined, shouldReject = false) => {
-  return jest.fn(() => shouldReject ? Promise.reject(returnValue) : Promise.resolve(returnValue));
+(global as any).mockAsyncFn = (
+  returnValue: any = undefined,
+  shouldReject = false
+) => {
+  return jest.fn(() =>
+    shouldReject ? Promise.reject(returnValue) : Promise.resolve(returnValue)
+  );
 };
 
 (global as any).mockServiceWithMethods = (methods: string[]) => {
   const mock: Record<string, unknown> = {};
-  methods.forEach(method => {
+  methods.forEach((method) => {
     mock[method] = jest.fn(() => Promise.resolve());
   });
   return mock;

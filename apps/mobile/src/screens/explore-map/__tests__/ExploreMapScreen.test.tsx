@@ -411,13 +411,13 @@ describe('ExploreMapScreen — populated markers + carousel', () => {
     expect(getByText('£200.00')).toBeTruthy();
   });
 
-  it('renders TBD budget when all budget fields are null', () => {
+  it('explains missing budget when all budget fields are null', () => {
     mockVmState = makeVm({
       jobs: [makeJob({ budget: null, budget_min: null, budget_max: null })],
       jobCount: 1,
     });
     const { getByText } = render(<ExploreMapScreen />);
-    expect(getByText('TBD')).toBeTruthy();
+    expect(getByText('Budget to discuss')).toBeTruthy();
   });
 
   it('falls back to "Recently posted" for null created_at', () => {

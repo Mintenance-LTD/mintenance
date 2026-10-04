@@ -13,9 +13,8 @@
 
 import { logger } from '@mintenance/shared';
 import { assertTrainingReuseAllowed } from './training-reuse-policy';
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import { YOLOCorrectionService } from './YOLOCorrectionService';
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { loadClassNames } from './yolo-class-names';
 
@@ -115,7 +114,6 @@ export class YOLOTrainingDataService {
 
         // Download image (in production, download from URL)
         // For now, we'll just reference the URL
-        const imagePath = join(outputDir, split, 'images', imageFilename);
         const labelPath = join(outputDir, split, 'labels', labelFilename);
 
         // Save label file (YOLO format)
@@ -274,7 +272,7 @@ export class YOLOTrainingDataService {
   /**
    * Get base dataset only (no corrections)
    */
-  private static getBaseDatasetOnly(outputDir: string): MergedDataset {
+  private static getBaseDatasetOnly(_outputDir: string): MergedDataset {
     const classNames = loadClassNames(process.env.YOLO_DATA_YAML_PATH);
     const basePath = 'Building Defect Detection 7.v2i.yolov11';
 
