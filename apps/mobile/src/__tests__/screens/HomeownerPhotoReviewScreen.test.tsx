@@ -5,6 +5,14 @@ import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerP
 import { JobService } from '../../services/JobService';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
+jest.mock('../../lib/queryClient', () => ({
+  queryKeys: { jobs: { all: ['jobs'] } },
+}));
+
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries: jest.fn() }),
+}));
+
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: { post: jest.fn() },
 }));
@@ -147,4 +155,27 @@ it('preserves the exact database completion version including microseconds', asy
       { completedAt: completed_at }
     )
   );
+});
+
+it('shows recorded approval on reopening without approval or rework controls', async () => {
+  (JobService.getJobById as jest.Mock).mockResolvedValueOnce({
+    title: 'Job',
+    completed_at: '2026-10-04T17:00:00Z',
+    completion_confirmed_by_homeowner: true,
+  });
+  const view = render(<HomeownerPhotoReviewScreen />);
+  expect(await view.findByText('Work approved')).toBeTruthy();
+  expect(view.queryByLabelText('Approve the completed work')).toBeNull();
+  expect(view.queryByLabelText('Request changes to the work')).toBeNull();
+  expect(view.queryByText(/days left to approve/)).toBeNull();
+  expect(post).not.toHaveBeenCalled();
+});
+it('switches immediately to the approved receipt after success', async () => {
+  post.mockResolvedValue({ success: true });
+  const view = render(<HomeownerPhotoReviewScreen />);
+  fireEvent.press(await view.findByLabelText('Approve the completed work'));
+  expect(await view.findByText('Work approved')).toBeTruthy();
+  expect(view.queryByLabelText('Approve the completed work')).toBeNull();
+  expect(view.queryByLabelText('Request changes to the work')).toBeNull();
+  expect(post).toHaveBeenCalledTimes(1);
 });

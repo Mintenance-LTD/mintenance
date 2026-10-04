@@ -3,7 +3,11 @@ import type { ContractorProfile } from '@mintenance/types/src/contracts';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
-import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
@@ -137,6 +141,11 @@ export const GET = withApiHandler(
           // (filter-schema audit 2026-08-02).
           .eq('reviewee_id', id);
 
+        if (error && error.code !== 'PGRST116')
+          throw new InternalServerError(
+            'Contractor profile is temporarily unavailable'
+          );
+
         if (error || !contractor) {
           logger.info('Contractor not found', {
             service: 'contractors',
@@ -154,6 +163,15 @@ export const GET = withApiHandler(
         // `contractor_postcode_proof_count` (SECURITY DEFINER) backed
         // by a partial index — no in-memory aggregation. Still gated
         // at >= 2 for privacy.
+        const { count: completedJobCount, error: completedCountError } =
+          await serverSupabase
+            .from('jobs')
+            .select('id', { count: 'exact', head: true })
+            .eq('contractor_id', id)
+            .eq('status', 'completed');
+        if (completedCountError)
+          throw new InternalServerError('Could not load contractor job count');
+
         let postcodeProofCount: number | null = null;
         if (postcodePrefix) {
           const { data: rpcCount, error: rpcErr } = await serverSupabase.rpc(
@@ -288,7 +306,7 @@ export const GET = withApiHandler(
           is_available: contractor.is_available,
           portfolio_images: Array.from(new Set(manualImages)),
           portfolio: portfolioJobs,
-          total_jobs_completed: contractor.total_jobs_completed || 0,
+          total_jobs_completed: completedJobCount ?? 0,
           skills: skills,
           // 2026-07-04: hourly_rate reads from canonical profiles
           // (contractor-profiles side table retired — it only ever

@@ -21,12 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.from.mockImplementation((table: string) => {
     if (
-      [
-        'jobs',
-        'job_photos_metadata',
-        'escrow_transactions',
-        'profiles',
-      ].includes(table)
+      ['job_photos_metadata', 'escrow_transactions', 'profiles'].includes(table)
     ) {
       throw new Error(
         `Public profile must not read private evidence: ${table}`
@@ -49,7 +44,7 @@ beforeEach(() => {
         : table === 'contractor_insurance'
           ? null
           : [];
-    const result = { data, error: null, count: 0 };
+    const result = { data, error: null, count: table === 'jobs' ? 3 : 0 };
     const builder: Record<string, any> = {};
     for (const method of ['select', 'eq', 'gte', 'order', 'limit'])
       builder[method] = vi.fn(() => builder);

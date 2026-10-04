@@ -116,6 +116,17 @@ export const CertificationsScreen: React.FC = () => {
         onBack={() => navigation.goBack()}
       />
 
+      {/* DBS Check entry point */}
+      <TouchableOpacity
+        style={styles.dbsButton}
+        onPress={() => navigation.navigate('DBSCheck')}
+        accessibilityRole='button'
+      >
+        <Ionicons name='shield-checkmark-outline' size={18} color={me.brand} />
+        <Text style={styles.dbsButtonText}>DBS Background Check</Text>
+        <Ionicons name='chevron-forward' size={16} color={me.ink3} />
+      </TouchableOpacity>
+
       <FlatList
         data={certifications}
         keyExtractor={(item) => item.id}
@@ -131,8 +142,8 @@ export const CertificationsScreen: React.FC = () => {
         ListEmptyComponent={
           <EmptyState
             icon='ribbon-outline'
-            title='No Certifications'
-            subtitle='Add your professional certifications.'
+            title='Build trust with your qualifications'
+            subtitle='Add a trade qualification, licence or safety certificate. Your verified credentials help homeowners choose you.'
           />
         }
         renderItem={({ item }) => {
@@ -181,17 +192,6 @@ export const CertificationsScreen: React.FC = () => {
         }}
       />
 
-      {/* DBS Check entry point */}
-      <TouchableOpacity
-        style={styles.dbsButton}
-        onPress={() => navigation.navigate('DBSCheck')}
-        accessibilityRole='button'
-      >
-        <Ionicons name='shield-checkmark-outline' size={18} color={me.brand} />
-        <Text style={styles.dbsButtonText}>DBS Background Check</Text>
-        <Ionicons name='chevron-forward' size={16} color={me.ink3} />
-      </TouchableOpacity>
-
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('AddCertification')}
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     gap: 10,
     marginHorizontal: 16,
-    marginBottom: 80,
+    marginBottom: 8,
     padding: 14,
     backgroundColor: me.surface,
     borderRadius: 14,

@@ -28,6 +28,10 @@ jest.mock('@expo/vector-icons', () => ({
   },
 }));
 
+jest.mock('../../../utils/mobileApiClient', () => ({
+  mobileApiClient: { get: jest.fn().mockResolvedValue({}) },
+}));
+
 // Auth context (jest.config maps contexts/AuthContext -> AuthContext-fallback)
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: jest.fn(),
@@ -99,17 +103,17 @@ describe('ReportingScreen', () => {
 
     expect(Share.share).toHaveBeenCalledTimes(1);
     const [{ title, message }] = (Share.share as jest.Mock).mock.calls[0];
-    expect(title).toBe('Mintenance report — This quarter');
+    expect(title).toBe('Mintenance report — Last 90 days');
 
     // Header + headline figures
     expect(message).toContain('Mintenance — contractor report');
-    expect(message).toContain('This quarter');
-    expect(message).toContain('Net revenue: £1,234');
+    expect(message).toContain('Last 90 days');
+    expect(message).toContain('Released earnings: £1,234');
     expect(message).toContain('Jobs completed: 3');
     // Monthly breakdown with singular/plural job counts
     expect(message).toContain('Monthly breakdown:');
-    expect(message).toContain('May: £500 (1 job)');
-    expect(message).toContain('Jun: £734 (2 jobs)');
+    expect(message).toContain('May: £500.00 (1 job)');
+    expect(message).toContain('Jun: £734.00 (2 jobs)');
     // Category section
     expect(message).toContain('Top categories:');
     expect(message).toContain('Plumbing: 2 jobs');
@@ -131,7 +135,7 @@ describe('ReportingScreen', () => {
     fireEvent.press(getByText('Share report for accountant'));
 
     const [{ message }] = (Share.share as jest.Mock).mock.calls[0];
-    expect(message).toContain('Net revenue: £0');
+    expect(message).toContain('Released earnings: £0');
     expect(message).toContain('Jobs completed: 0');
     expect(message).not.toContain('Monthly breakdown:');
     expect(message).not.toContain('Top categories:');
@@ -183,7 +187,7 @@ describe('ReportingScreen', () => {
     });
 
     const { getByText } = render(<ReportingScreen />);
-    expect(getByText('£2,500')).toBeTruthy();
+    expect(getByText('£2,500.00')).toBeTruthy();
     expect(getByText('Top categories · this period')).toBeTruthy();
     expect(getByText('Plumbing')).toBeTruthy();
     expect(getByText('2 jobs')).toBeTruthy();
@@ -197,7 +201,9 @@ describe('ReportingScreen', () => {
     });
     const { getByText } = render(<ReportingScreen />);
     expect(
-      getByText('Bars appear once you have completed jobs in this window.')
+      getByText(
+        'Earnings appear when escrow is released. Held payments are shown in Escrow.'
+      )
     ).toBeTruthy();
   });
 

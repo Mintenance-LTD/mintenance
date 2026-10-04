@@ -50,7 +50,7 @@ export async function getQuoteSummaryStats(
 
     const s = response.stats;
     const totalValue = (response.quotes ?? []).reduce(
-      (sum, q) => sum + (q.amount || 0),
+      (sum, q) => sum + Number(q.amount || 0),
       0
     );
     return {
@@ -62,7 +62,8 @@ export async function getQuoteSummaryStats(
       total_value: totalValue,
       accepted_value: s.totalRevenue,
       average_quote_value: s.total > 0 ? totalValue / s.total : 0,
-      acceptance_rate: s.sent > 0 ? (s.accepted / s.sent) * 100 : 0,
+      acceptance_rate:
+        s.total > s.draft ? (s.accepted / (s.total - s.draft)) * 100 : 0,
       conversion_rate: s.total > 0 ? (s.accepted / s.total) * 100 : 0,
     };
   } catch (error) {
