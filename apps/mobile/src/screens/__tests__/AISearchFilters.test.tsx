@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 it('applies category and trimmed location to the current search, and clears them', async () => {
   const screen = render(<AISearchScreen />);
-  fireEvent.changeText(screen.getByLabelText('AI search'), 'leak');
+  fireEvent.changeText(screen.getByLabelText('Search contractors'), 'leak');
   await waitFor(() => expect(mockSearch).toHaveBeenCalledWith('leak', {}, 20));
   fireEvent.press(screen.getByLabelText('Show search filters'));
   fireEvent.press(screen.getByLabelText('plumbing'));
@@ -63,7 +63,7 @@ it('does not let an older unfiltered response replace filtered results', async (
       },
     ]);
   const screen = render(<AISearchScreen />);
-  fireEvent.changeText(screen.getByLabelText('AI search'), 'leak');
+  fireEvent.changeText(screen.getByLabelText('Search contractors'), 'leak');
   await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(1));
   fireEvent.press(screen.getByLabelText('Show search filters'));
   fireEvent.press(screen.getByLabelText('plumbing'));

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, waitFor, fireEvent } from '../..//test-utils';
 import { AISearchScreen } from '../AISearchScreen';
+import { AISearchService } from '../../services/AISearchService';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -10,6 +11,8 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () =>
+  // Jest's hoisted factory must load the native mock inside the factory.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
@@ -102,23 +105,26 @@ describe('AISearchScreen', () => {
     });
   });
 
-  it('should handle navigation', () => {
-    renderScreen();
-
-    // Verify navigation prop was passed
-    expect(mockNavigation).toBeDefined();
+  it('describes the contractor-only keyword search available in beta', async () => {
+    const { getByText, getByLabelText, queryByText } = renderScreen();
+    await waitFor(() => expect(getByText('Find a contractor')).toBeTruthy());
+    expect(getByLabelText('Search contractors')).toBeTruthy();
+    expect(queryByText('Find anything')).toBeNull();
   });
 
-  it('should handle user interactions', async () => {
-    const { queryByTestId, queryAllByTestId } = renderScreen();
-
-    await waitFor(() => {
-      // Look for any interactive elements
-      const buttons = queryAllByTestId(/button/i);
-      const touchables = queryAllByTestId(/touchable/i);
-
-      // At minimum, screen should render
-      expect(buttons.length + touchables.length).toBeGreaterThanOrEqual(0);
-    });
+  it('clearing a pending search cancels it and restores the empty state', async () => {
+    jest.useFakeTimers();
+    try {
+      const { getByLabelText, getByText } = renderScreen();
+      fireEvent.changeText(getByLabelText('Search contractors'), 'plumbing');
+      fireEvent.press(getByLabelText('Clear search'));
+      jest.advanceTimersByTime(500);
+      await waitFor(() =>
+        expect(getByText('Search by name or trade')).toBeTruthy()
+      );
+      expect(AISearchService.search).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

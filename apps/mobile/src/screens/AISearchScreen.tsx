@@ -1,5 +1,5 @@
 /**
- * AISearchScreen — advanced search with AI-powered semantic results,
+ * AISearchScreen — contractor keyword search for beta,
  * autocomplete suggestions, filters, and a trending list.
  *
  * Was a 666-line monolith. Split 2026-05-09 (AUDIT_PUNCH_LIST P2 #44e)
@@ -73,12 +73,17 @@ export const AISearchScreen: React.FC = () => {
       setShowSuggestions(false);
       return;
     }
+    let cancelled = false;
     AISearchService.getSearchSuggestions(query, 8)
       .then((next) => {
+        if (cancelled) return;
         setSuggestions(next);
         setShowSuggestions(true);
       })
       .catch((err) => logger.error('Failed to load suggestions', err));
+    return () => {
+      cancelled = true;
+    };
   }, [query]);
 
   const performSearch = useCallback(
@@ -115,6 +120,15 @@ export const AISearchScreen: React.FC = () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+      if (!next.trim()) {
+        searchRequestRef.current++;
+        setResults([]);
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setLoading(false);
+        setError(null);
+        return;
+      }
       searchTimeoutRef.current = setTimeout(() => {
         performSearch(next);
       }, 300);
@@ -146,9 +160,9 @@ export const AISearchScreen: React.FC = () => {
 
       <View style={styles.screenHeader}>
         <Text style={styles.eyebrow}>Search</Text>
-        <Text style={styles.headline}>Find anything</Text>
+        <Text style={styles.headline}>Find a contractor</Text>
         <Text style={styles.sub}>
-          Contractors, jobs, services, properties — search across Mint.
+          Search contractors by name or keyword. For jobs, use Find Jobs.
         </Text>
       </View>
 
@@ -156,7 +170,7 @@ export const AISearchScreen: React.FC = () => {
         query={query}
         onChangeQuery={handleQueryChange}
         onSubmit={() => performSearch(query)}
-        onClear={() => setQuery('')}
+        onClear={() => handleQueryChange('')}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters((prev) => !prev)}
       />
@@ -176,7 +190,7 @@ export const AISearchScreen: React.FC = () => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size='large' color={me.brand} />
-          <Text style={styles.loadingText}>Searching with AI…</Text>
+          <Text style={styles.loadingText}>Searching contractors…</Text>
         </View>
       ) : error ? (
         <ErrorView message={error} onRetry={() => performSearch(query)} />
@@ -205,7 +219,11 @@ export const AISearchScreen: React.FC = () => {
         />
       ) : query.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>Trending searches</Text>
+          <Text style={styles.emptyTitle}>
+            {trendingSearches.length
+              ? 'Trending searches'
+              : 'Search by name or trade'}
+          </Text>
           <FlatList
             data={trendingSearches}
             keyExtractor={(_item, index) => `trending-${index}`}

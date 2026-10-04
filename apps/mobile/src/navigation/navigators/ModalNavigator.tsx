@@ -5,7 +5,6 @@ import type { ModalStackParamList } from '../types';
 // Import existing screens
 import ServiceRequestScreen from '../../screens/ServiceRequestScreen';
 import { ContractorProfileScreen } from '../../screens/contractor-profile';
-import { PaymentMethodsScreen as PaymentMethodsScreenRefactored } from '../../screens/payment-methods';
 import { CreateQuoteScreen } from '../../screens/create-quote';
 import { QuickQuoteScreen } from '../../screens/quick-quote/QuickQuoteScreen';
 import { MeetingScheduleScreen } from '../../screens/meeting-schedule';
@@ -194,7 +193,7 @@ const ModalNavigator: React.FC = () => {
         name='AISearch'
         component={SafeAISearchScreen}
         options={{
-          title: 'AI Search',
+          title: 'Find a contractor',
           gestureEnabled: true,
         }}
       />

@@ -1,0 +1,95 @@
+
+ RUN  v4.1.8 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web
+
+stderr | __tests__/audit/reset-password-form.test.tsx > sends the CSRF token and displays structured API errors as useful text
+Received `true` for a non-boolean attribute `priority`.
+
+If you want to write it to the DOM, pass a string instead: priority="true" or priority={value.toString()}.
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in production: http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.815Z] WARN  HTTP URL used, should use HTTPS {"service":"url-validation","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"HTTP URL used, should use HTTPS","timestamp":"2026-10-04T17:56:01.819Z","context":{"service":"url-validation","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in production: http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.820Z] WARN  Blocked private IP address {"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"Blocked private IP address","timestamp":"2026-10-04T17:56:01.820Z","context":{"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57322/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.822Z] WARN  HTTP URL used, should use HTTPS {"service":"url-validation","url":"http://127.0.0.1:57322/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"HTTP URL used, should use HTTPS","timestamp":"2026-10-04T17:56:01.822Z","context":{"service":"url-validation","url":"http://127.0.0.1:57322/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57322/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.822Z] WARN  Blocked private IP address {"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57322/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"Blocked private IP address","timestamp":"2026-10-04T17:56:01.822Z","context":{"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57322/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57321/storage/v1/object/sign/private/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.823Z] WARN  HTTP URL used, should use HTTPS {"service":"url-validation","url":"http://127.0.0.1:57321/storage/v1/object/sign/private/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"HTTP URL used, should use HTTPS","timestamp":"2026-10-04T17:56:01.823Z","context":{"service":"url-validation","url":"http://127.0.0.1:57321/storage/v1/object/sign/private/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57321/storage/v1/object/sign/private/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.824Z] WARN  Blocked private IP address {"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/storage/v1/object/sign/private/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"Blocked private IP address","timestamp":"2026-10-04T17:56:01.824Z","context":{"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/storage/v1/object/sign/private/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57321/auth/v1/admin/users
+[2026-10-04T17:56:01.825Z] WARN  HTTP URL used, should use HTTPS {"service":"url-validation","url":"http://127.0.0.1:57321/auth/v1/admin/users"}
+[MONITORING] {"level":"warn","message":"HTTP URL used, should use HTTPS","timestamp":"2026-10-04T17:56:01.825Z","context":{"service":"url-validation","url":"http://127.0.0.1:57321/auth/v1/admin/users"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57321/auth/v1/admin/users
+[2026-10-04T17:56:01.825Z] WARN  Blocked private IP address {"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/auth/v1/admin/users"}
+[MONITORING] {"level":"warn","message":"Blocked private IP address","timestamp":"2026-10-04T17:56:01.825Z","context":{"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/auth/v1/admin/users"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://user:password@127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.826Z] WARN  HTTP URL used, should use HTTPS {"service":"url-validation","url":"http://user:password@127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"HTTP URL used, should use HTTPS","timestamp":"2026-10-04T17:56:01.826Z","context":{"service":"url-validation","url":"http://user:password@127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://user:password@127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic
+[2026-10-04T17:56:01.827Z] WARN  Blocked private IP address {"service":"url-validation","hostname":"127.0.0.1","url":"http://user:password@127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"Blocked private IP address","timestamp":"2026-10-04T17:56:01.827Z","context":{"service":"url-validation","hostname":"127.0.0.1","url":"http://user:password@127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/photo.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/%2e%2e/secret.png?token=synthetic
+[2026-10-04T17:56:01.828Z] WARN  HTTP URL used, should use HTTPS {"service":"url-validation","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/%2e%2e/secret.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"HTTP URL used, should use HTTPS","timestamp":"2026-10-04T17:56:01.828Z","context":{"service":"url-validation","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/%2e%2e/secret.png?token=synthetic"}}
+
+stderr | __tests__/audit/local-storage-url-validation.test.ts > blocks unsafe URL in development: http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/%2e%2e/secret.png?token=synthetic
+[2026-10-04T17:56:01.828Z] WARN  Blocked private IP address {"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/%2e%2e/secret.png?token=synthetic"}
+[MONITORING] {"level":"warn","message":"Blocked private IP address","timestamp":"2026-10-04T17:56:01.828Z","context":{"service":"url-validation","hostname":"127.0.0.1","url":"http://127.0.0.1:57321/storage/v1/object/sign/Job-storage/job-photos/%2e%2e/secret.png?token=synthetic"}}
+
+stderr | __tests__/audit/email-verification-callback.test.ts > does not claim success after an invalid token or failed profile synchronization
+[2026-10-04T17:56:01.824Z] ERROR Email verification profile synchronization failed {"service":"auth","userId":"confirmed-user"}
+[MONITORING] {"level":"error","message":"Email verification profile synchronization failed","timestamp":"2026-10-04T17:56:01.828Z","context":{"service":"auth","userId":"confirmed-user"}}
+
+····································································································stdout | __tests__/audit/reset-password-session.test.ts > restores the complete recovery session before changing the password
+[2026-10-04T17:56:02.001Z] INFO  Password reset successful {"service":"auth","userId":"synthetic-user"}
+
+stderr | __tests__/audit/reset-password-session.test.ts > restores the complete recovery session before changing the password
+[MONITORING] {"level":"info","message":"Password reset successful","timestamp":"2026-10-04T17:56:02.004Z","context":{"service":"auth","userId":"synthetic-user"}}
+
+stderr | __tests__/audit/reset-password-session.test.ts > rejects incomplete recovery credentials before updating an account
+[2026-10-04T17:56:02.010Z] WARN  Password reset failed input validation {"service":"auth","ip":"unknown","field":"refreshToken"}
+[MONITORING] {"level":"warn","message":"Password reset failed input validation","timestamp":"2026-10-04T17:56:02.011Z","context":{"service":"auth","ip":"unknown","field":"refreshToken"}}
+
+stderr | __tests__/audit/reset-password-session.test.ts > does not change a password when Supabase rejects the recovery session
+[2026-10-04T17:56:02.013Z] WARN  Invalid or expired password reset token {"service":"auth","error":"Session expired"}
+[MONITORING] {"level":"warn","message":"Invalid or expired password reset token","timestamp":"2026-10-04T17:56:02.013Z","context":{"service":"auth","error":"Session expired"}}
+
+···stdout | __tests__/audit/password-recovery-ownership.test.ts > never verifies account ownership during recovery: null
+[2026-10-04T17:56:02.053Z] INFO  Password reset email requested {"service":"auth","email":"synthetic@example.test","success":true}
+
+stderr | __tests__/audit/password-recovery-ownership.test.ts > never verifies account ownership during recovery: null
+[MONITORING] {"level":"info","message":"Password reset email requested","timestamp":"2026-10-04T17:56:02.055Z","context":{"service":"auth","email":"synthetic@example.test","success":true}}
+
+stdout | __tests__/audit/password-recovery-ownership.test.ts > never verifies account ownership during recovery: {"message":"Email not confirmed","status":400}
+[2026-10-04T17:56:02.060Z] INFO  Password reset email requested {"service":"auth","email":"synthetic@example.test","success":false}
+
+stderr | __tests__/audit/password-recovery-ownership.test.ts > never verifies account ownership during recovery: {"message":"Email not confirmed","status":400}
+[2026-10-04T17:56:02.060Z] ERROR Password reset email failed {"errorDetails":{"service":"auth","email":"synthetic@example.test","errorMessage":"Email not confirmed","redirectUrl":"http://localhost/reset-password","errorCode":400}}
+[MONITORING] {"level":"error","message":"Password reset email failed","timestamp":"2026-10-04T17:56:02.060Z","context":{"errorDetails":{"service":"auth","email":"synthetic@example.test","errorMessage":"Email not confirmed","redirectUrl":"http://localhost/reset-password","errorCode":400}}}
+[MONITORING] {"level":"info","message":"Password reset email requested","timestamp":"2026-10-04T17:56:02.060Z","context":{"service":"auth","email":"synthetic@example.test","success":false}}
+
+··
+
+ Test Files  10 passed (10)
+      Tests  105 passed (105)
+   Start at  18:55:58
+   Duration  3.19s (transform 7.05s, setup 3.58s, import 8.81s, tests 1.06s, environment 9.04s)
+

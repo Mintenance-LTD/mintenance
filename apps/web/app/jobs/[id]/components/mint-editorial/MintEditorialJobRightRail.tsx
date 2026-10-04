@@ -149,17 +149,9 @@ export function SelectedContractorCard({
       >
         View {name.split(' ')[0]}&apos;s work
       </Link>
-      <Link
-        href={`/messages?jobId=${jobId}`}
-        className='btn btn-ghost btn-sm'
-        style={{
-          width: '100%',
-          justifyContent: 'center',
-          marginTop: 6,
-        }}
-      >
-        Message {name.split(' ')[0]}
-      </Link>
+      <p className='t-caption' style={{ textAlign: 'center', marginTop: 6 }}>
+        Messaging opens after you accept the bid.
+      </p>
     </div>
   );
 }

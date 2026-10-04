@@ -49,7 +49,8 @@ test.describe('Authentication Flow', () => {
       // Fill signup form with unique email. The role chooser defaults to
       // homeowner (RegisterForm defaultValues), so no selection is needed.
       const timestamp = Date.now();
-      const randomSuffix = crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
+      const randomSuffix =
+        crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
       await fillSignUpForm(page, {
         email: `test${timestamp}${randomSuffix}@example.com`,
         password: 'SecurePass123!',
@@ -60,20 +61,11 @@ test.describe('Authentication Flow', () => {
         .getByRole('button', { name: /sign up|create account/i })
         .click();
 
-      // Any of these outcomes means the signup flow round-tripped to the
-      // server: the success banner, or a duplicate-email / rate-limit error.
-      // Matched on banner copy rather than role=alert, because the per-field
-      // validation messages are also role=alert and would let this pass
-      // without the form ever submitting. (The old `[class*="bg-red"]` probe
-      // can never match — both banners are inline-styled since the Mint
-      // Editorial rebuild.)
-      await expect(
-        page
-          .getByText(
-            /account created|already exists|rate limit|too many|check your email/i
-          )
-          .first()
-      ).toBeVisible({ timeout: 15000 });
+      // Unique synthetic registration must succeed. A rate-limit or duplicate
+      // response is a failed journey, not acceptance evidence.
+      await expect(page.getByText(/account created/i).first()).toBeVisible({
+        timeout: 15000,
+      });
     });
 
     test('validates password strength requirements', async ({ page }) => {

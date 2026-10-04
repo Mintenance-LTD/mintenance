@@ -9,8 +9,9 @@ import React, { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { resetPasswordSchema, type ResetPasswordFormData } from './schema';
 import Link from 'next/link';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 import Image from 'next/image';
 import {
   AlertCircle,
@@ -29,27 +30,6 @@ import {
  * query param, recovery-type validation) and the platform password
  * complexity rules are preserved verbatim from the pre-redesign page.
  */
-
-const resetPasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/\d/, 'Password must contain at least one number')
-      .regex(
-        /[^A-Za-z0-9]/,
-        'Password must contain at least one special character'
-      ),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
-
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 /** Brand leaf mark — the real Mintenance logo (public/assets/logo-mark.png). */
 function LeafMark({ size = 22 }: { size?: number }) {
@@ -98,7 +78,9 @@ const fieldErrorStyle: React.CSSProperties = {
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { csrfToken, loading: csrfLoading } = useCSRF();
   const [accessToken, setAccessToken] = React.useState('');
+  const [refreshToken, setRefreshToken] = React.useState('');
   const [submitStatus, setSubmitStatus] = React.useState<
     'idle' | 'success' | 'error'
   >('idle');
@@ -121,20 +103,24 @@ export default function ResetPasswordPage() {
       const params = new URLSearchParams(hash.substring(1));
       const token = params.get('access_token');
       const type = params.get('type');
+      const refresh = params.get('refresh_token');
 
-      if (!token || type !== 'recovery') {
+      if (!token || !refresh || type !== 'recovery') {
         setSubmitStatus('error');
         setErrorMessage(
           'Invalid or expired reset link. Please request a new one.'
         );
       } else {
         setAccessToken(token);
+        setRefreshToken(refresh!);
       }
     } else {
       const token =
         searchParams.get('token') || searchParams.get('access_token');
-      if (token) {
+      const refresh = searchParams.get('refresh_token');
+      if (token && refresh) {
         setAccessToken(token);
+        setRefreshToken(refresh);
       } else {
         setSubmitStatus('error');
         setErrorMessage(
@@ -145,7 +131,7 @@ export default function ResetPasswordPage() {
   }, [searchParams]);
 
   const onSubmit = async (data: ResetPasswordFormData) => {
-    if (!accessToken) {
+    if (!accessToken || !refreshToken) {
       setErrorMessage(
         'No reset token found. Please check your email for the reset link.'
       );
@@ -153,20 +139,38 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    if (!csrfToken) {
+      setErrorMessage('Security token not available. Please refresh the page.');
+      setSubmitStatus('error');
+      return;
+    }
     setSubmitStatus('idle');
     setErrorMessage('');
 
     try {
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken, password: data.password }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          accessToken,
+          refreshToken,
+          password: data.password,
+        }),
       });
 
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to reset password');
+        throw new Error(
+          typeof responseData.error === 'string'
+            ? responseData.error
+            : responseData.error?.message ||
+                responseData.message ||
+                'Failed to reset password'
+        );
       }
 
       setSubmitStatus('success');
@@ -315,7 +319,13 @@ export default function ResetPasswordPage() {
                       placeholder='At least 8 characters'
                       autoComplete='new-password'
                       autoFocus
-                      disabled={isSubmitting || !accessToken}
+                      disabled={
+                        isSubmitting ||
+                        csrfLoading ||
+                        !csrfToken ||
+                        !accessToken ||
+                        !refreshToken
+                      }
                       aria-invalid={!!errors.password}
                       style={{ paddingRight: 44 }}
                       {...register('password')}
@@ -357,7 +367,13 @@ export default function ResetPasswordPage() {
                       className='field'
                       placeholder='Re-enter your password'
                       autoComplete='new-password'
-                      disabled={isSubmitting || !accessToken}
+                      disabled={
+                        isSubmitting ||
+                        csrfLoading ||
+                        !csrfToken ||
+                        !accessToken ||
+                        !refreshToken
+                      }
                       aria-invalid={!!errors.confirmPassword}
                       style={{ paddingRight: 44 }}
                       {...register('confirmPassword')}
@@ -388,7 +404,13 @@ export default function ResetPasswordPage() {
                   type='submit'
                   className='btn btn-primary btn-lg'
                   style={{ width: '100%', justifyContent: 'center' }}
-                  disabled={isSubmitting || !accessToken}
+                  disabled={
+                    isSubmitting ||
+                    csrfLoading ||
+                    !csrfToken ||
+                    !accessToken ||
+                    !refreshToken
+                  }
                 >
                   {isSubmitting ? 'Resetting password…' : 'Reset password'}
                 </button>

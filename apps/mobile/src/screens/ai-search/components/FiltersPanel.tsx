@@ -80,7 +80,7 @@ export function FiltersPanel({
       <Text style={styles.filterLabel}>Location</Text>
       <TextInput
         accessibilityLabel='Search location'
-        placeholder='Town or postcode'
+        placeholder='Town or city'
         placeholderTextColor={me.ink3}
         value={location}
         onChangeText={setLocation}
