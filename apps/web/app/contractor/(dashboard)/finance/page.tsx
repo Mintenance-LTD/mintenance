@@ -16,15 +16,15 @@ import type { Transaction, EscrowTransaction } from './_components/types';
 
 function transformPayments(payments: EscrowTransaction[]): Transaction[] {
   return payments.map((p: EscrowTransaction) => {
-    let mappedStatus: 'pending' | 'held' | 'released' | 'completed' = 'pending';
-    if (p.status === 'released') {
+    let mappedStatus: Transaction['status'] = p.status;
+    if (p.status === 'released' || p.status === 'completed') {
       mappedStatus = 'released';
-    } else if (p.status === 'held') {
+    } else if (p.status === 'held' || p.status === 'release_pending') {
       mappedStatus = 'held';
     } else if (p.status === 'pending') {
       mappedStatus = 'pending';
     } else if (p.status === 'refunded') {
-      mappedStatus = 'completed';
+      mappedStatus = 'refunded';
     }
 
     const jobTitle = p.job?.title || 'Payment';
@@ -41,7 +41,7 @@ function transformPayments(payments: EscrowTransaction[]): Transaction[] {
     const processingFee = p.stripeProcessingFee ?? 0;
     const amount = Number(p.amount) || 0;
     const netAmount = feesFinalized
-      ? (p.contractorPayout ?? amount - platformFee - processingFee)
+      ? (p.contractorPayout ?? amount - platformFee)
       : amount;
 
     return {
@@ -51,7 +51,11 @@ function transformPayments(payments: EscrowTransaction[]): Transaction[] {
       client: clientName,
       amount,
       status: mappedStatus,
-      date: p.createdAt || p.created_at || new Date().toISOString(),
+      date:
+        (mappedStatus === 'released' ? p.releasedAt : null) ||
+        p.createdAt ||
+        p.created_at ||
+        '',
       platformFee,
       processingFee,
       netAmount,
@@ -81,9 +85,12 @@ export default function ContractorFinancePage2025() {
     'month'
   );
 
-  const { data: transactions = [], isLoading: loading } = useQuery<
-    Transaction[]
-  >({
+  const {
+    data: transactions = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery<Transaction[]>({
     queryKey: ['contractor', 'finance', 'transactions'],
     queryFn: fetchTransactions,
     enabled: !!user,
@@ -108,15 +115,17 @@ export default function ContractorFinancePage2025() {
     .reduce((sum, t) => sum + t.netAmount, 0);
 
   const pendingPayouts = transactions
-    .filter((t) => t.status === 'held' || t.status === 'pending')
+    .filter((t) => t.status === 'held')
     .reduce((sum, t) => sum + t.netAmount, 0);
 
   const allTimeRevenue = transactions
     .filter((t) => t.status === 'released' || t.status === 'completed')
     .reduce((sum, t) => sum + t.netAmount, 0);
 
-  const avgJobValue =
-    transactions.length > 0 ? allTimeRevenue / transactions.length : 0;
+  const releasedCount = transactions.filter(
+    (t) => t.status === 'released' || t.status === 'completed'
+  ).length;
+  const avgJobValue = releasedCount > 0 ? allTimeRevenue / releasedCount : 0;
 
   // Generate revenue chart data (last 6 months)
   const revenueChartData = useMemo(() => {
@@ -140,7 +149,7 @@ export default function ContractorFinancePage2025() {
 
       months.push({
         month: monthName,
-        revenue: Math.round(revenue),
+        revenue: Math.round(revenue * 100) / 100,
         jobs: transactions.filter((t) => {
           const tDate = new Date(t.date);
           return (
@@ -247,6 +256,25 @@ export default function ContractorFinancePage2025() {
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
+
+  if (error) {
+    return (
+      <ContractorPageWrapper>
+        <div role='alert' className='p-8'>
+          <h1 className='text-xl font-semibold'>Finance could not be loaded</h1>
+          <p className='my-4'>
+            Your balances are unavailable. Please try again.
+          </p>
+          <button
+            onClick={() => void refetch()}
+            className='rounded-lg bg-teal-700 px-4 py-2 text-white'
+          >
+            Try again
+          </button>
+        </div>
+      </ContractorPageWrapper>
+    );
+  }
 
   if (loading) {
     return (

@@ -138,6 +138,7 @@ const ContractorPayoutsScreen: React.FC = () => {
         await WebBrowser.openBrowserAsync(res.url);
       }
     } catch (e) {
+      setError('Could not open Stripe. Please try again.');
       logger.warn('Failed to open dashboard', { error: e });
     }
   };
@@ -281,9 +282,17 @@ const ReadyCard: React.FC<{
           <Text style={styles.cardTitle}>Ready to receive payouts</Text>
         </View>
 
+        <Text style={styles.cardBody}>
+          Funds still held in escrow are shown on the Escrow screen. Only
+          released earnings count towards the payout balance below. Transfers
+          run weekly once the minimum is reached; bank arrival follows Stripe
+          processing.
+        </Text>
         <View style={styles.balanceRow}>
           <View style={styles.balanceCell}>
-            <Text style={styles.balanceLabel}>Pending balance</Text>
+            <Text style={styles.balanceLabel}>
+              Released earnings awaiting transfer
+            </Text>
             <Text style={styles.balanceAmount}>
               {formatMoney(pending, currency)}
             </Text>

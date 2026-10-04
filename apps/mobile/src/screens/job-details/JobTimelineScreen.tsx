@@ -3,6 +3,7 @@
  * Shows status steps: Posted -> Bids -> Assigned -> Contract -> Payment -> In Progress -> Completed -> Review -> Paid
  */
 import React from 'react';
+import { getJobTimelineStep } from './jobTimelineProgress';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,14 +80,6 @@ const LIFECYCLE_STEPS = [
   },
 ];
 
-const STATUS_TO_STEP_INDEX: Record<string, number> = {
-  posted: 0,
-  assigned: 2,
-  in_progress: 5,
-  completed: 6,
-  cancelled: -1,
-};
-
 export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
   const viewModel = useJobDetailsViewModel(jobId);
@@ -104,7 +97,20 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  const currentStepIndex = STATUS_TO_STEP_INDEX[viewModel.job.status] ?? 0;
+  const approved =
+    (
+      viewModel.job as typeof viewModel.job & {
+        completion_confirmed_by_homeowner?: boolean;
+      }
+    ).completion_confirmed_by_homeowner === true;
+  const released = ['released', 'completed'].includes(
+    viewModel.escrowStatus ?? ''
+  );
+  const currentStepIndex = getJobTimelineStep(
+    viewModel.job.status,
+    approved,
+    viewModel.escrowStatus
+  );
 
   const getStepColor = (index: number) => {
     if (index < currentStepIndex) return me.brand;
@@ -180,7 +186,13 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                 >
                   {step.label}
                 </Text>
-                <Text style={styles.stepDescription}>{step.description}</Text>
+                <Text style={styles.stepDescription}>
+                  {step.key === 'review' && approved
+                    ? 'Work approved by homeowner'
+                    : step.key === 'paid' && !released
+                      ? 'Awaiting escrow release; bank payout follows separately'
+                      : step.description}
+                </Text>
               </View>
             </View>
           ))}

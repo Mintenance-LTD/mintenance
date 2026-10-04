@@ -31,6 +31,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
+import { ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
@@ -45,6 +46,7 @@ interface EscrowRecord {
   created_at: string;
   job_title: string;
   counterparty_name?: string;
+  release_blocked_reason?: string;
 }
 
 /**
@@ -122,12 +124,14 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
 
   const [records, setRecords] = useState<EscrowRecord[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchEscrowData = useCallback(async () => {
     if (!user?.id) return;
     try {
+      setLoadError(false);
       // 2026-05-23 audit: use explicit FK form for the job embed —
       // matches PaymentHistoryScreen + the homeowner /financials API
       // route. The payer embed was already explicit (profiles!payer_id).
@@ -138,41 +142,35 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
       const { data, error } = await supabase
         .from('escrow_transactions')
         .select(
-          'id, amount, status, created_at, payer_id, payee_id, job:jobs!escrow_transactions_job_id_fkey(title), payer:profile_directory!payer_id(first_name, last_name), payee:profile_directory!payee_id(first_name, last_name)'
+          'id, amount, status, created_at, payer_id, payee_id, job:jobs!escrow_transactions_job_id_fkey(title), homeowner_approval, release_blocked_reason'
         )
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const fullName = (
-        p: { first_name?: string; last_name?: string } | null
-      ): string =>
-        p ? [p.first_name, p.last_name].filter(Boolean).join(' ') : '';
-
       const mapped: EscrowRecord[] = (data ?? []).map(
         (row: Record<string, unknown>) => {
-          const isPayer = (row.payer_id as string) === user.id;
-          const counterpartyName = fullName(
-            (isPayer ? row.payee : row.payer) as {
-              first_name?: string;
-              last_name?: string;
-            } | null
-          );
           return {
             id: row.id as string,
-            amount: row.amount as number,
-            status: row.status as string,
+            release_blocked_reason: row.release_blocked_reason as
+              | string
+              | undefined,
+            amount: Number(row.amount),
+            status:
+              row.status === 'held' && row.homeowner_approval
+                ? 'release_pending'
+                : (row.status as string),
             created_at: row.created_at as string,
             job_title:
               ((row.job as Record<string, unknown>)?.title as string) ??
               'Untitled job',
-            counterparty_name: counterpartyName || undefined,
           };
         }
       );
       setRecords(mapped);
     } catch (error) {
+      setLoadError(true);
       logger.error('Failed to fetch escrow data', error);
     } finally {
       setLoading(false);
@@ -190,15 +188,23 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   }, [fetchEscrowData]);
 
   const heldRecords = records.filter((r) =>
-    ['pending', 'held'].includes(r.status)
+    ['held', 'release_pending'].includes(r.status)
   );
   const totalHeld = heldRecords.reduce((sum, r) => sum + r.amount, 0);
 
   const renderRecord = ({ item }: { item: EscrowRecord }) => {
     const stage: 0 | 1 | 2 | 3 = STAGE_BY_STATUS[item.status] ?? 1;
-    const subline = item.counterparty_name
-      ? `${item.counterparty_name} · ${heldSinceLabel(item.created_at)}`
-      : heldSinceLabel(item.created_at);
+    const subline =
+      item.release_blocked_reason ||
+      (item.status === 'pending'
+        ? 'Payment not yet confirmed'
+        : item.status === 'release_pending'
+          ? 'Work approved � awaiting release checks'
+          : ['released', 'completed'].includes(item.status)
+            ? 'Released to earnings � bank payout follows separately'
+            : item.counterparty_name
+              ? `${item.counterparty_name} · ${heldSinceLabel(item.created_at)}`
+              : heldSinceLabel(item.created_at));
     return (
       <View style={styles.recordCard}>
         <View style={styles.recordHeader}>
@@ -231,6 +237,11 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size='large' color={me.brand} />
           </View>
+        ) : loadError ? (
+          <ErrorView
+            message='Could not load escrow records'
+            onRetry={handleRefresh}
+          />
         ) : (
           <FlatList
             data={records}
@@ -264,8 +275,8 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
                     </Text>
                     <Text style={styles.heroSub}>
                       {heldRecords.length === 0
-                        ? 'No funds currently held.'
-                        : `${heldRecords.length} ${heldRecords.length === 1 ? 'job' : 'jobs'} · awaiting customer sign-off`}
+                        ? 'No confirmed funds currently held.'
+                        : `${heldRecords.length} ${heldRecords.length === 1 ? 'job' : 'jobs'} · funds held until release checks pass`}
                     </Text>
                   </View>
                   <Ionicons
@@ -298,11 +309,9 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
                     color={me.brand}
                   />
                   <Text style={styles.autoReleaseText}>
-                    Funds release automatically{' '}
-                    <Text style={styles.autoReleaseStrong}>
-                      7 days after job completion
-                    </Text>{' '}
-                    if the customer doesn't flag an issue.
+                    Pending payments are not yet confirmed. Approved work
+                    remains held during the cooling-off period and release
+                    checks. Released earnings then follow the payout schedule.
                   </Text>
                 </View>
               ) : null
