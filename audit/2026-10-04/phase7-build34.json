@@ -5,8 +5,9 @@
   "profile": "internal",
   "developmentClient": false,
   "backend": "https://www.mintenance.co.uk",
-  "status": "Submitted; completion not yet verified",
+  "status": "FINISHED",
   "url": "https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/338b8c51-3d8e-4d29-8d5c-d8afa0673a05",
-  "backendDeployment": "Blocked: Vercel team deployment/log access returns 403",
-  "sandboxCheckout": "Not verified; this build uses existing production configuration"
+  "backendDeployment": "Preview succeeded in Mintenance team; production rollout and sandbox alignment pending",
+  "sandboxCheckout": "Not verified; this build uses existing production configuration",
+  "apkUrl": "https://expo.dev/artifacts/eas/UPFj4Cdk4Q-G-zQUu7FhtmWNM0hHwcfE1YgM2It80Hg.apk"
 }
