@@ -376,3 +376,11 @@ describe('ProfileScreen', () => {
     });
   });
 });
+
+jest.mock('../../components/shared/useMintDialog', () => ({
+  useMintDialog: () => ({
+    alert: (...args: unknown[]) =>
+      jest.requireActual('react-native').Alert.alert(...args),
+    dialog: null,
+  }),
+}));

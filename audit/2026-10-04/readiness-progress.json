@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-05T12:01:56.269Z",
+  "updatedAt": "2026-10-05T14:19:33.313Z",
   "releaseDecision": "Hold external beta",
   "completionRule": "Complete (implementation) means scoped fixes and acceptance evidence are complete locally. Open release gates still block beta access; deployment and phone verification are tracked separately.",
   "phases": [
@@ -266,7 +266,9 @@
         "Align deployed payment environment with its connected accounts without mixing test and live data",
         "Build and install a matching standalone internal APK after backend deployment",
         "Retest public profile, payouts, finance and header contrast on device",
-        "Complete sandbox checkout and 3DS verification"
+        "Complete sandbox checkout and 3DS verification",
+        "Retest Review Work and Stripe payouts against the backend deployed after the October 5 morning screenshots. Cached Stripe flags are not proof of current provider access.",
+        "Install next internal APK for mint header/dialog and legal-link visual verification."
       ],
       "completed": [
         "Release configuration rejects missing settings, unresolved placeholders, mixed API URLs, mock data and live Stripe keys in staging",
@@ -276,7 +278,8 @@
         "Standalone internal Android APK built successfully; embedded bundle/native libraries and SHA-256 recorded; no local development server required",
         "Build 33 phone screenshots cross-referenced with hosted database, API code and read-only Stripe account retrieval; 92 mobile and 10 API regression tests passed",
         "Build 34 finished successfully; PR conflicts resolved and preview deployed on the correct Mintenance Pro team",
-        "CI lifecycle fixture updated for persisted photo query: 23 tests passed. Disposable Redis verified through the app SDK; browser CI rerun pending."
+        "CI lifecycle fixture updated for persisted photo query: 23 tests passed. Disposable Redis verified through the app SDK; browser CI rerun pending.",
+        "APK 34 follow-up: mint headers, branded profile/settings/review dialogs, working www legal links, truthful payment-provider errors, review retry UI, and visible cooling-off explanation implemented. 119 existing mobile checks, 8 review checks, 1 real dialog check and 10 API checks passed."
       ],
       "evidence": [
         "phase7-closeout.txt",

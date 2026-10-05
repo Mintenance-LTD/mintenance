@@ -11,7 +11,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface ScreenHeaderProps {
   title: string;
@@ -48,8 +48,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       style={[
         styles.container,
         {
-          backgroundColor: theme.colors.surface,
-          borderBottomColor: theme.colors.border,
+          backgroundColor: me.bg2,
+          borderBottomColor: me.line,
         },
       ]}
     >
@@ -57,18 +57,11 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         {shouldShowBack && resolvedOnBack && (
           <TouchableOpacity
             onPress={resolvedOnBack}
-            style={[
-              styles.backButton,
-              { backgroundColor: theme.colors.backgroundSecondary },
-            ]}
+            style={[styles.backButton, { backgroundColor: me.bg3 }]}
             accessibilityRole='button'
             accessibilityLabel='Go back'
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
         )}
         {leftAction}
@@ -76,17 +69,14 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 
       <View style={styles.centerSection}>
         <Text
-          style={[styles.title, { color: theme.colors.textPrimary }]}
+          style={[styles.title, { color: me.ink }]}
           numberOfLines={1}
           accessibilityRole='header'
         >
           {title}
         </Text>
         {subtitle && (
-          <Text
-            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.subtitle, { color: me.ink2 }]} numberOfLines={1}>
             {subtitle}
           </Text>
         )}
@@ -104,9 +94,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 20,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    backgroundColor: me.bg2,
+    borderBottomWidth: 0,
+    borderBottomColor: me.line,
   },
   leftSection: {
     flexDirection: 'row',
@@ -117,7 +107,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg3,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -130,11 +120,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   subtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   rightSection: {

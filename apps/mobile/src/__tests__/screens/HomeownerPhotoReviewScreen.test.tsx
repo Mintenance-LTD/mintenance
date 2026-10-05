@@ -179,3 +179,21 @@ it('switches immediately to the approved receipt after success', async () => {
   expect(view.queryByLabelText('Request changes to the work')).toBeNull();
   expect(post).toHaveBeenCalledTimes(1);
 });
+
+jest.mock('../../components/shared/useMintDialog', () => ({
+  useMintDialog: () => ({
+    alert: (...args: unknown[]) =>
+      jest.requireActual('react-native').Alert.alert(...args),
+    dialog: null,
+  }),
+}));
+
+it('shows a recoverable error and retries the photo review', async () => {
+  (JobService.getJobById as jest.Mock).mockRejectedValueOnce(
+    new Error('Connection interrupted')
+  );
+  const view = render(<HomeownerPhotoReviewScreen />);
+  expect(await view.findByText('Connection interrupted')).toBeTruthy();
+  fireEvent.press(view.getByText('Retry loading photos'));
+  expect(await view.findByLabelText('Approve the completed work')).toBeTruthy();
+});

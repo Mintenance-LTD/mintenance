@@ -1,7 +1,7 @@
+import { useMintDialog } from '../../components/shared/useMintDialog';
 import React from 'react';
 import {
   View,
-  Alert,
   Text,
   ScrollView,
   StyleSheet,
@@ -36,6 +36,7 @@ interface SettingsRow {
 
 export const SettingsHubScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const { alert, dialog } = useMintDialog();
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const renderRow = (item: SettingsRow, isLast: boolean) => (
     <TouchableOpacity
@@ -145,7 +146,7 @@ export const SettingsHubScreen: React.FC = () => {
       label: 'How your information is used',
       icon: 'shield-checkmark-outline',
       onPress: () =>
-        Alert.alert(
+        alert(
           'Privacy',
           'Your profile may be visible to other marketplace users. Account-level profile hiding and optional activity-sharing controls are not currently available. Read the Privacy Policy for how your information is used.'
         ),
@@ -189,6 +190,7 @@ export const SettingsHubScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {dialog}
       <StatusBar
         translucent
         backgroundColor='transparent'
