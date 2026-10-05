@@ -1,0 +1,12 @@
+{
+  "version": "1.2.4",
+  "versionCode": 34,
+  "source": "10127d810",
+  "profile": "internal",
+  "developmentClient": false,
+  "backend": "https://www.mintenance.co.uk",
+  "status": "Submitted; completion not yet verified",
+  "url": "https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/338b8c51-3d8e-4d29-8d5c-d8afa0673a05",
+  "backendDeployment": "Blocked: Vercel team deployment/log access returns 403",
+  "sandboxCheckout": "Not verified; this build uses existing production configuration"
+}

@@ -14,7 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
-import Button from '../../components/ui/Button';
+import { Button } from '../../components/ui/Button';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
@@ -78,6 +78,8 @@ const ContractorPayoutsScreen: React.FC = () => {
         setBalance(balRes.balance ?? null);
       }
     } catch (e) {
+      setStatus(null);
+      setBalance(null);
       setError((e as Error).message);
       logger.warn('Failed to load Connect status', { error: e });
     }
@@ -85,7 +87,7 @@ const ContractorPayoutsScreen: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      await loadStatus();
+      await loadStatus(true);
       setLoading(false);
     })();
   }, [loadStatus]);
@@ -129,16 +131,23 @@ const ContractorPayoutsScreen: React.FC = () => {
   };
 
   const openDashboard = async () => {
+    setError(null);
     try {
       const res = await mobileApiClient.post<{
         success: boolean;
         url?: string;
       }>('/api/payments/stripe-connect/dashboard-link', {});
-      if (res.url) {
-        await WebBrowser.openBrowserAsync(res.url);
-      }
+      if (!res.success || !res.url)
+        throw new Error(
+          'Stripe did not provide a dashboard link. Please try again.'
+        );
+      await WebBrowser.openBrowserAsync(res.url);
     } catch (e) {
-      setError('Could not open Stripe. Please try again.');
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Could not open Stripe. Please try again.'
+      );
       logger.warn('Failed to open dashboard', { error: e });
     }
   };
@@ -178,10 +187,14 @@ const ContractorPayoutsScreen: React.FC = () => {
         {error && (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
+            <Button
+              title='Retry payout status'
+              onPress={() => loadStatus(true)}
+            />
           </View>
         )}
 
-        {(!status || !status.detailsSubmitted) && (
+        {!error && (!status || !status.detailsSubmitted) && (
           <>
             <NoAccountCard onStart={startOnboarding} busy={busy} />
             <PayoutInfoSection />

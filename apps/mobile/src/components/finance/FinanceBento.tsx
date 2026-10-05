@@ -39,8 +39,8 @@ export const FinanceBento: React.FC<Props> = ({
     // 2026-07-20: was "Cash in", which overpromises — this is
     // `escrow_revenue`, i.e. escrow that has actually been released to the
     // contractor. "Received" is what that money is.
-    { label: 'Released � all time', amount: cashIn, fg: me.brand },
-    { label: 'Expenses � all time', amount: expenses, fg: me.errFg },
+    { label: 'Released - all time', amount: cashIn, fg: me.brand },
+    { label: 'Expenses - all time', amount: expenses, fg: me.errFg },
     { label: 'In escrow', amount: inEscrow, fg: me.warnFg },
     { label: 'Outstanding', amount: outstanding, fg: me.ink2 },
   ];

@@ -20,12 +20,12 @@ export const GET = withApiHandler(
     const url = new URL(request.url);
     const refresh = url.searchParams.get('refresh') === 'true';
 
-    if (refresh) {
+    const cached = await getCachedAccountStatus(user.id);
+    if (refresh && cached) {
       const status = await syncAccountStatus(user.id);
       return NextResponse.json({ success: true, status });
     }
 
-    const status = await getCachedAccountStatus(user.id);
-    return NextResponse.json({ success: true, status });
-  },
+    return NextResponse.json({ success: true, status: cached });
+  }
 );

@@ -7,6 +7,7 @@ import { stripe } from '@/lib/stripe';
 import { getAppUrl } from '@/lib/env';
 import { getOnboardingReturnUrl, getOnboardingRefreshUrl } from './config';
 import type { OnboardingLinkResponse } from './types';
+import { throwConnectAccountError } from './account-errors';
 
 /**
  * Generate an Account Link for Express onboarding.
@@ -46,6 +47,10 @@ export async function createOnboardingLink(
 export async function createDashboardLoginLink(
   stripeAccountId: string
 ): Promise<{ url: string }> {
-  const link = await stripe.accounts.createLoginLink(stripeAccountId);
-  return { url: link.url };
+  try {
+    const link = await stripe.accounts.createLoginLink(stripeAccountId);
+    return { url: link.url };
+  } catch (error) {
+    return throwConnectAccountError(error);
+  }
 }
