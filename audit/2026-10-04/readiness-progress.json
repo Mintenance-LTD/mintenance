@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-04T22:06:13.166Z",
+  "updatedAt": "2026-10-04T23:05:18.410Z",
   "releaseDecision": "Hold external beta",
   "completionRule": "Complete (implementation) means scoped fixes and acceptance evidence are complete locally. Open release gates still block beta access; deployment and phone verification are tracked separately.",
   "phases": [
@@ -266,7 +266,8 @@
         "Align deployed payment environment with its connected accounts without mixing test and live data",
         "Build and install a matching standalone internal APK after backend deployment",
         "Retest public profile, payouts, finance and header contrast on device",
-        "Complete sandbox checkout and 3DS verification"
+        "Complete sandbox checkout and 3DS verification",
+        "Build 34 submitted from 10127d810; verify cloud completion and device installation. Matching backend deployment blocked by Vercel team access (403)."
       ],
       "completed": [
         "Release configuration rejects missing settings, unresolved placeholders, mixed API URLs, mock data and live Stripe keys in staging",
@@ -286,7 +287,8 @@
         "phase7-mobile-types.log",
         "phase7-lint.log",
         "phase7-expo-doctor.log",
-        "phase7-phone-fixes-results.json"
+        "phase7-phone-fixes-results.json",
+        "phase7-build34.json"
       ]
     },
     {
