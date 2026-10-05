@@ -30,6 +30,25 @@ jobs:
     # + video-on-retry-only should land each shard well under this.
     timeout-minutes: 45
 
+    # Production-mode tests exercise the real limiter against disposable Redis.
+    services:
+      redis:
+        image: redis@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis-http:
+        image: hiett/serverless-redis-http@sha256:65128347949bca511e448fd7238780d624573d74c22b79155a7563db19e9b678
+        env:
+          SRH_MODE: env
+          SRH_TOKEN: isolated-e2e-redis
+          SRH_CONNECTION_STRING: redis://redis:6379
+        ports:
+          - 8079:80
+    env:
+      UPSTASH_REDIS_REST_URL: http://127.0.0.1:8079
+      UPSTASH_REDIS_REST_TOKEN: isolated-e2e-redis
+
     strategy:
       fail-fast: false
       matrix:
@@ -48,6 +67,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts=false
         timeout-minutes: 10
+
+      - name: Verify disposable Redis
+        run: |
+          curl --fail --retry 10 --retry-connrefused --retry-delay 2 \
+            -H "Authorization: Bearer $UPSTASH_REDIS_REST_TOKEN" \
+            "$UPSTASH_REDIS_REST_URL/ping" | grep -q PONG
 
       - name: Build shared packages
         run: npm run build:packages
