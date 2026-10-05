@@ -16,8 +16,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Reanimated-backed animation primitives — render children straight through.
 jest.mock('../../components/animations/primitives', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const ReactActual = require('react');
+  const ReactActual = jest.requireActual('react');
   const pass = ({ children }: { children: React.ReactNode }) =>
     ReactActual.createElement(ReactActual.Fragment, null, children);
   return {
@@ -31,8 +30,7 @@ jest.mock('../../components/animations/primitives', () => {
 
 // ResponsiveContainer — pass-through wrapper so the menu rows mount.
 jest.mock('../../components/responsive', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const ReactActual = require('react');
+  const ReactActual = jest.requireActual('react');
   return {
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
       ReactActual.createElement(ReactActual.Fragment, null, children),
@@ -45,20 +43,18 @@ jest.mock('../profile/components/ProfileHeader', () => ({
   ProfileHeader: () => null,
 }));
 jest.mock('../profile/components/HomeownerStats', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const ReactActual = require('react');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const { Text } = require('react-native');
+  const ReactActual = jest.requireActual('react');
+
+  const { Text } = jest.requireActual('react-native');
   return {
     HomeownerStats: () =>
       ReactActual.createElement(Text, null, 'HOMEOWNER_STATS'),
   };
 });
 jest.mock('../profile/components/ContractorPerformance', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const ReactActual = require('react');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const { Text } = require('react-native');
+  const ReactActual = jest.requireActual('react');
+
+  const { Text } = jest.requireActual('react-native');
   return {
     ContractorPerformance: () =>
       ReactActual.createElement(Text, null, 'CONTRACTOR_PERF'),
@@ -73,10 +69,9 @@ jest.mock('../profile/components/ProfileCompleteness', () => ({
 
 // Button — render a pressable Text so we can fire Sign Out.
 jest.mock('../../components/ui/Button', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const ReactActual = require('react');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
-  const { Text } = require('react-native');
+  const ReactActual = jest.requireActual('react');
+
+  const { Text } = jest.requireActual('react-native');
   return {
     Button: ({ title, onPress, accessibilityLabel }: any) =>
       ReactActual.createElement(
@@ -427,3 +422,11 @@ describe('ProfileScreen', () => {
     expect(queryByText('Quick Access')).toBeNull();
   });
 });
+
+jest.mock('../../components/shared/useMintDialog', () => ({
+  useMintDialog: () => ({
+    alert: (...args: unknown[]) =>
+      jest.requireActual('react-native').Alert.alert(...args),
+    dialog: null,
+  }),
+}));

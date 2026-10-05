@@ -220,7 +220,7 @@ export function handleAPIError(
         error: {
           code: 'PAYMENT_PROVIDER_ERROR',
           message:
-            'Payment service is temporarily unavailable. Your card was not charged.',
+            'The payment service could not complete this request. Please try again.',
         },
         timestamp: new Date().toISOString(),
         ...(requestId && { requestId }),

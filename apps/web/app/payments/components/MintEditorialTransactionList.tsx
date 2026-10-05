@@ -200,6 +200,15 @@ export function MintEditorialTransactionList({
             {/* Status */}
             <div className={`me-tx-status ${styles.status}`}>
               <span className={badge.className}>{badge.label}</span>
+              {tx.cooling_off_ends_at && tx.status === 'held' && (
+                <small>
+                  Review period ends{' '}
+                  {new Date(tx.cooling_off_ends_at).toLocaleString('en-GB', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </small>
+              )}
             </div>
 
             {/* Actions */}

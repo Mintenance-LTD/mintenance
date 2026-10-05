@@ -27,7 +27,7 @@ it.each(['testmode', 'livemode'])(
       createDashboardLoginLink('acct_fixture')
     ).rejects.toMatchObject({
       statusCode: 409,
-      message: expect.stringContaining('different payment environment'),
+      message: expect.stringContaining('payment environment'),
     });
     expect(mocks.login).toHaveBeenCalledTimes(1);
   }
@@ -37,4 +37,16 @@ it('does not misclassify unrelated provider failures as configuration errors', a
   const failure = new Error('provider unavailable');
   mocks.login.mockRejectedValue(failure);
   await expect(createDashboardLoginLink('acct_fixture')).rejects.toBe(failure);
+});
+
+it('reports inaccessible stored accounts as a connection problem', async () => {
+  mocks.login.mockRejectedValue({
+    type: 'StripePermissionError',
+    code: 'account_invalid',
+    message: 'No access to account',
+  });
+  await expect(createDashboardLoginLink('acct_fixture')).rejects.toMatchObject({
+    statusCode: 409,
+    message: expect.stringContaining('connected payout account'),
+  });
 });

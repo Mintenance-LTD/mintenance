@@ -1,3 +1,4 @@
+import { useMintDialog } from '../../components/shared/useMintDialog';
 /**
  * HomeownerPhotoReviewScreen
  *
@@ -21,7 +22,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -84,12 +84,14 @@ function formatDeadline(d: Date): string {
 }
 
 export const HomeownerPhotoReviewScreen: React.FC = () => {
+  const { alert, dialog } = useMintDialog();
   const navigation = useNavigation();
   const route = useRoute<PhotoReviewRouteProp>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { jobId } = route.params;
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
@@ -107,6 +109,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const fetchPhotos = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
 
       const [jobData, photos] = await Promise.all([
         JobService.getJobById(jobId),
@@ -170,7 +173,11 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       setActivePairIndex(0);
     } catch (err) {
       logger.error('Failed to fetch photos for review', err);
-      Alert.alert('Error', 'Failed to load photos. Please try again.');
+      setLoadError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load the review. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -183,7 +190,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const handleApprove = async () => {
     if (!user?.id || submitting || approved || approvalInFlight.current) return;
     if (!completedAt) {
-      Alert.alert(
+      alert(
         'Refresh required',
         'The completion details are unavailable. Reload the review before approving work.',
         [{ text: 'Reload review', onPress: fetchPhotos }]
@@ -202,7 +209,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       setApproved(true);
       setShowChangesForm(false);
       void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
-      Alert.alert(
+      alert(
         'Work Approved',
         'Work approved. Payment release is subject to the cooling-off period and final checks.',
         [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
@@ -212,7 +219,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         err instanceof Error
           ? err.message
           : 'Failed to approve. Please try again.';
-      Alert.alert('Error', msg);
+      alert('Error', msg);
     } finally {
       approvalInFlight.current = false;
       setSubmitting(false);
@@ -222,7 +229,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const handleRequestChanges = async () => {
     if (approved || approvalInFlight.current) return;
     if (!completedAt) {
-      Alert.alert(
+      alert(
         'Refresh required',
         'The completion details are unavailable. Reload the review before requesting changes.',
         [{ text: 'Reload review', onPress: fetchPhotos }]
@@ -260,7 +267,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       if (result?.success !== true) {
         throw new Error('Unable to confirm the change request. Please retry.');
       }
-      Alert.alert(
+      alert(
         'Changes Requested',
         'The job has reopened and the contractor has been notified. Payment approval is on hold. Agree a return visit in Messages if needed; sending this request does not change the agreed price.',
         [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
@@ -270,7 +277,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         err instanceof Error
           ? err.message
           : 'Failed to submit. Please try again.';
-      Alert.alert('Error', msg);
+      alert('Error', msg);
     } finally {
       reworkInFlight.current = false;
       setSubmitting(false);
@@ -293,7 +300,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     );
   }
 
-  if (photoPairs.length === 0) {
+  if (loadError || photoPairs.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -311,11 +318,20 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           <View style={styles.emptyIconWrap}>
             <Ionicons name='images-outline' size={32} color={me.ink3} />
           </View>
-          <Text style={styles.emptyTitle}>No Photos Available</Text>
-          <Text style={styles.emptySubtitle}>
-            Photos will appear here once the contractor uploads before and after
-            photos.
+          <Text style={styles.emptyTitle}>
+            {loadError ? 'Could not load work photos' : 'No Photos Available'}
           </Text>
+          <Text style={styles.emptySubtitle}>
+            {loadError ??
+              'Photos will appear here once the contractor uploads before and after photos.'}
+          </Text>
+          <TouchableOpacity
+            onPress={fetchPhotos}
+            accessibilityRole='button'
+            style={{ padding: 16 }}
+          >
+            <Text style={{ color: me.brand }}>Retry loading photos</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -323,6 +339,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {dialog}
       <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
 
       {/* Header */}
