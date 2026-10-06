@@ -34,7 +34,6 @@ export default function ContractorPayoutOnboardingPage() {
 
   useEffect(() => {
     loadStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadStatus(refresh = false) {
@@ -191,7 +190,7 @@ function NoAccountState({
         </p>
         <ul className='ml-4 list-disc space-y-1 text-sm text-gray-600'>
           <li>Payouts are sent weekly on Fridays</li>
-          <li>Minimum balance of £50 before a payout is sent</li>
+          <li>Minimum balance of £0.01 before a payout is sent</li>
           <li>Stripe handles tax documents (viewable in your dashboard)</li>
         </ul>
         <Button onClick={onStart} disabled={busy} className='mt-2'>
@@ -264,7 +263,7 @@ function ReadyState({
   onRefresh: () => void;
 }) {
   const pending = balance?.pendingAmountMinor ?? 0;
-  const threshold = balance?.threshold ?? 5000;
+  const threshold = balance?.threshold ?? 1;
   const progress = Math.min(100, Math.round((pending / threshold) * 100));
 
   return (
