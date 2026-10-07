@@ -56,6 +56,8 @@ export async function evaluateAutoRelease(
           admin_hold_status,
           homeowner_approval,
           homeowner_approval_at,
+          release_reason,
+          homeowner_inspection_completed,
           cooling_off_ends_at,
           auto_approval_date,
           photo_quality_passed,
@@ -109,7 +111,10 @@ export async function evaluateAutoRelease(
     // is a stronger signal than the automated photo checks, so it satisfies
     // the photo-verification gate below (gate 3). The automated photo gate is
     // the stand-in for human review only on the 7-day auto-approval path.
-    const explicitHomeownerApproval = !!escrow.homeowner_approval;
+    const explicitHomeownerApproval =
+      escrow.homeowner_approval === true &&
+      escrow.release_reason === 'homeowner_approved' &&
+      escrow.homeowner_inspection_completed === true;
     if (!escrow.homeowner_approval) {
       const autoApprovalEligible =
         await HomeownerApprovalService.checkAutoApprovalEligibility(escrowId);
@@ -157,26 +162,28 @@ export async function evaluateAutoRelease(
     }
 
     // 5. Active disputes
-    const { count: disputeCount } = await serverSupabase
+    const { count: disputeCount, error: disputeError } = await serverSupabase
       .from('disputes')
       .select('id', { count: 'exact', head: true })
       .eq('job_id', job.id)
-      .in('status', ['open', 'pending']);
-    if ((disputeCount || 0) > 0) {
+      .in('status', ['open', 'pending', 'under_review']);
+    if (disputeError || (disputeCount || 0) > 0) {
       return null;
     }
 
-    // 6. Trust-based hold period
-    const homeownerApprovalDate = escrow.homeowner_approval_at
-      ? new Date(escrow.homeowner_approval_at)
-      : new Date();
-    const trustBasedReleaseDate =
-      await TrustScoreService.getGraduatedReleaseDate(
-        escrowId,
-        homeownerApprovalDate
-      );
-    if (trustBasedReleaseDate > new Date()) {
-      return null;
+    // Explicit inspection uses the persisted approval deadline. Applying the
+    // contractor trust hold again here silently adds 14 days after the UI's
+    // 48-hour deadline. Keep that fallback only for automatic approval.
+    if (!explicitHomeownerApproval) {
+      const homeownerApprovalDate = escrow.homeowner_approval_at
+        ? new Date(escrow.homeowner_approval_at)
+        : new Date();
+      const trustBasedReleaseDate =
+        await TrustScoreService.getGraduatedReleaseDate(
+          escrowId,
+          homeownerApprovalDate
+        );
+      if (trustBasedReleaseDate > new Date()) return null;
     }
 
     // Legacy auto_release_date check
@@ -232,12 +239,13 @@ export async function evaluateAutoRelease(
     }
 
     // 7. Escrow-status-level dispute check
-    const { count: disputeCount2 } = await serverSupabase
-      .from('escrow_transactions')
-      .select('id', { count: 'exact', head: true })
-      .eq('job_id', job.id)
-      .eq('status', 'disputed');
-    if ((disputeCount2 || 0) > 0) {
+    const { count: disputeCount2, error: escrowDisputeError } =
+      await serverSupabase
+        .from('escrow_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', job.id)
+        .eq('status', 'disputed');
+    if (escrowDisputeError || (disputeCount2 || 0) > 0) {
       return null;
     }
 
@@ -269,22 +277,27 @@ export async function evaluateAutoRelease(
           extendedDate.setDate(extendedDate.getDate() + 7);
           const { data: riskHoldUpdate, error: riskHoldError } =
             await serverSupabase
-            .from('escrow_transactions')
-            .update({
-              auto_release_date: extendedDate.toISOString(),
-              risk_hold_extended: true,
-              risk_hold_reason: 'High dispute risk predicted',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', escrowId)
-            .eq('job_id', job.id)
-            .eq('status', 'held')
-            .select('id')
-            .maybeSingle();
+              .from('escrow_transactions')
+              .update({
+                auto_release_date: extendedDate.toISOString(),
+                risk_hold_extended: true,
+                risk_hold_reason: 'High dispute risk predicted',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', escrowId)
+              .eq('job_id', job.id)
+              .eq('status', 'held')
+              .select('id')
+              .maybeSingle();
           if (riskHoldError || !riskHoldUpdate) {
             logger.warn(
               'Auto-release risk hold was not applied because escrow state changed',
-              { service: 'escrow-evaluation', escrowId, jobId: job.id, error: riskHoldError }
+              {
+                service: 'escrow-evaluation',
+                escrowId,
+                jobId: job.id,
+                error: riskHoldError,
+              }
             );
             return null;
           }
@@ -309,7 +322,7 @@ export async function evaluateAutoRelease(
       decisionType: 'auto_release_approved',
       actionTaken: 'approved_auto_release',
       confidence: 95,
-      reasoning: `Auto-release approved: All conditions met - admin approved, homeowner approved, photo verified (quality/geolocation/timestamp/before-after), cooling-off passed, no disputes, trust-based hold period passed`,
+      reasoning: `Auto-release approved: All conditions met - admin approved, homeowner approved, photo verified (quality/geolocation/timestamp/before-after), cooling-off passed, no disputes, applicable release deadline passed`,
       jobId: job.id,
       userId: job.homeowner_id,
       metadata: {
