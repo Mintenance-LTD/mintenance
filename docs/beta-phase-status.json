@@ -16,7 +16,7 @@
   ],
   "rule": "Finish, verify, commit and push one phase before starting the next.",
   "currentPhase": "F01",
-  "status": "awaiting_distributed_android_build_identifier",
+  "status": "complete",
   "repository": "Mintenance-LTD/mintenance",
   "baseBranch": "main",
   "baseCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
@@ -30,7 +30,12 @@
     "mobileSourceVersion": "1.2.4",
     "mobileSourceIosBuild": "17",
     "mobileSourceAndroidVersionCode": 35,
-    "distributedMobileBuild": "user confirms Android distribution; exact version code/build link requested",
+    "distributedMobileBuild": {
+      "platform": "android",
+      "buildId": "e919866a-57c5-4943-b0e8-60fda46c4243",
+      "url": "https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/e919866a-57c5-4943-b0e8-60fda46c4243",
+      "evidence": "User supplied this exact build as the distributed Android baseline. Expo page metadata was not accessible through web fetch; version code is not independently verified."
+    },
     "productionDatabaseMigrationCount": 391,
     "productionDatabaseLatestMigration": "20261007145410",
     "migrationNote": "All six timestamp-divergent migration counterparts are SQL-identical. The unmatched storage migration is only partly present in production; missing attachment policies added to F02.",
@@ -48,14 +53,12 @@
     "stripeAccountAndMode": "intended account matched; balance.livemode=true",
     "vercelDeployments": "verified using the user-supplied mintenance team scope and production domain"
   },
-  "remainingPhaseOneChecks": [
-    "Record the exact Android build/version distributed to testers."
-  ],
+  "remainingPhaseOneChecks": [],
   "laterPhasesStarted": false,
   "notes": [
     "No production changes, billing actions, environment files or raw audit data are included.",
     "The earlier Main baseline was the repository default, not the production branch. The verified lowercase main baseline matches every tracked file in the audited snapshot.",
-    "Baseline records complete except distributed Android build identity; no Phase 2 implementation started."
+    "F01 baseline complete: exact user-confirmed distributed Android build identified; native execution remains an F12 release check."
   ],
   "acceptanceBaseline": "docs/beta-acceptance-baseline.json"
 }
