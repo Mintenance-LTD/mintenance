@@ -230,7 +230,7 @@ const NoAccountCard: React.FC<{
     </Text>
     <View style={styles.bulletList}>
       <Text style={styles.bullet}>• Payouts sent weekly on Fridays</Text>
-      <Text style={styles.bullet}>• Minimum balance £50 before payout</Text>
+      <Text style={styles.bullet}>• Minimum balance £0.01 before payout</Text>
       <Text style={styles.bullet}>
         • Stripe handles tax documents in your dashboard
       </Text>
@@ -283,7 +283,7 @@ const ReadyCard: React.FC<{
   hasPendingRequirements: boolean;
 }> = ({ balance, onOpenDashboard, hasPendingRequirements }) => {
   const pending = balance?.pendingAmountMinor ?? 0;
-  const threshold = balance?.threshold ?? 5000;
+  const threshold = balance?.threshold ?? 1;
   const currency = balance?.currency ?? 'GBP';
   const progress = Math.min(100, Math.round((pending / threshold) * 100));
 

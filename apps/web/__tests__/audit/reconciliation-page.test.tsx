@@ -45,7 +45,7 @@ it('shows a loading failure and retries rather than displaying an all-clear tabl
   await waitFor(() =>
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   );
-  expect(screen.getByText(/Batch completed/)).toBeInTheDocument();
+  expect(await screen.findByText(/Batch completed/)).toBeInTheDocument();
 });
 it('reports a failed manual batch without announcing completion', async () => {
   const fetcher = vi

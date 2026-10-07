@@ -1,6 +1,6 @@
 import React from 'react';
-import { Alert } from 'react-native';
-import { fireEvent, render, waitFor } from '../test-utils';
+import { Alert, Modal } from 'react-native';
+import { fireEvent, render, waitFor, within } from '../test-utils';
 
 import ProfileScreen from '../../../screens/ProfileScreen';
 import { JobService } from '../../../services/JobService';
@@ -98,17 +98,30 @@ describe('ProfileScreen Integration - Comprehensive', () => {
     });
   });
 
-  it('triggers sign out confirmation', async () => {
+  it('requires confirmation in the themed sign out dialog', async () => {
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const view = render(<ProfileScreen />);
+    await waitFor(() => expect(view.getByText('John Doe')).toBeTruthy());
 
-    const { getByText } = render(<ProfileScreen />);
+    fireEvent.press(view.getByText('Sign Out'));
+    expect(
+      view.getByText(/Signing out removes your saved biometric/)
+    ).toBeTruthy();
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(mockSignOut).not.toHaveBeenCalled();
 
-    fireEvent.press(getByText(/sign out/i));
+    fireEvent.press(view.getByText('Cancel'));
+    expect(
+      view.queryByText(/Signing out removes your saved biometric/)
+    ).toBeNull();
+    expect(mockSignOut).not.toHaveBeenCalled();
 
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Sign Out',
-      'Signing out removes your saved biometric sign-in on this device. Use your password to sign in again; you can re-enable biometrics in Account & Security.',
-      expect.any(Array)
+    fireEvent.press(view.getByText('Sign Out'));
+    const signOutLabels = within(view.UNSAFE_getByType(Modal)).getAllByText(
+      'Sign Out'
     );
+    fireEvent.press(signOutLabels[signOutLabels.length - 1]);
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    alertSpy.mockRestore();
   });
 });
