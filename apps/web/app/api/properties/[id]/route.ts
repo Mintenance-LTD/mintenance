@@ -4,6 +4,7 @@ import {
   createRequestScopedClient,
 } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import {
   NotFoundError,
   ForbiddenError,
@@ -81,6 +82,9 @@ export const GET = withApiHandler(
     // either — they were the most acute case named by the audit.
     const isOwnerOrPlatformAdmin =
       propertyRole === 'owner' || user.role === 'admin';
+    propertyData.key_safe_code = isOwnerOrPlatformAdmin
+      ? await readPropertyEntrySecret(params.id, user.id)
+      : null;
     if (!isOwnerOrPlatformAdmin) {
       const redacted = propertyData;
       // Always strip the code for non-owner/non-platform-admin
@@ -234,6 +238,9 @@ export const PUT = withApiHandler(
     }
 
     const data = await saveProperty(user.id, params.id, updateData);
+    data.key_safe_code = data.owner_id === user.id || user.role === 'admin'
+      ? await readPropertyEntrySecret(params.id, user.id)
+      : null;
 
     // Editing a property does not grant access to its physical-entry secret.
     // Match the GET response policy for managers and property administrators.

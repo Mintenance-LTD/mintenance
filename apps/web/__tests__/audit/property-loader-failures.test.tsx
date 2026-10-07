@@ -30,6 +30,7 @@ vi.mock('@/app/properties/[id]/components/SharedPropertyDetail', () => ({
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
+    rpc: async () => ({ data: 'synthetic-entry-code', error: null }),
     from: (table: string) => {
       const result = () => ({
         data:

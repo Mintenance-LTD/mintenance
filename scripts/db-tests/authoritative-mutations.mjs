@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
 import pg from 'pg';
+import { testPropertyEntrySecrets } from './property-entry-secrets.mjs';
 
 const spawn = childProcess.spawn;
 childProcess.spawn = (command, args, options) => spawn(command, args, { ...options, windowsHide: true });
@@ -155,6 +156,7 @@ try {
     });
   }
   await check('intentional organization deletion can cascade', () => as('service_role',`DELETE FROM organizations WHERE id='${uid(60)}'`));
+  await testPropertyEntrySecrets({ admin, as, check, uid, root });
   console.log(`PASS ${passed} database regression checks on PostgreSQL 17; production untouched.`);
 } finally {
   if(connected) await admin.end();

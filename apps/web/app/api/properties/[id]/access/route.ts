@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { logger } from '@mintenance/shared';
 import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
@@ -194,6 +195,9 @@ export const PATCH = withApiHandler(
     if (!data) {
       throw new NotFoundError('Property not found or not authorized');
     }
+    data.key_safe_code = canEditKeySafeCode
+      ? await readPropertyEntrySecret(params.id, user.id)
+      : null;
 
     logger.info('Property access updated', {
       service: 'properties',
