@@ -1,6 +1,19 @@
 {
   "recordedOn": "2026-10-07",
-  "phaseOrder": ["F01", "F02", "F03", "F04", "F05", "F06", "F07", "F08", "F09", "F10", "F11", "F12"],
+  "phaseOrder": [
+    "F01",
+    "F02",
+    "F03",
+    "F04",
+    "F05",
+    "F06",
+    "F07",
+    "F08",
+    "F09",
+    "F10",
+    "F11",
+    "F12"
+  ],
   "rule": "Finish, verify, commit and push one phase before starting the next.",
   "currentPhase": "F01",
   "status": "blocked_on_external_access",
@@ -20,8 +33,13 @@
     "distributedMobileBuild": "not independently verified",
     "productionDatabaseMigrationCount": 391,
     "productionDatabaseLatestMigration": "20261007145410",
-    "migrationNote": "History count and latest version only; full schema parity is not yet established.",
-    "deployedWebApiCommit": "not verified: Vercel deployment listing returned 403"
+    "migrationNote": "Full version comparison recorded in docs/beta-migration-baseline.json: 377 shared, 14 production-only, 1 repository-only; SQL equivalence not established.",
+    "deployedWebApiCommit": "not verified: Vercel deployment listing returned 403",
+    "commitDeploymentChecks": {
+      "mintenanceWeb": "failure",
+      "mintenanceClean": "success",
+      "note": "GitHub status checks on baseCommit; does not establish currently promoted production build"
+    }
   },
   "accessChecks": {
     "gitPushDryRun": "passed using local Git authentication",
@@ -34,13 +52,13 @@
     "Configure a working authorized Stripe read credential and verify intended account/mode.",
     "Obtain deployment metadata access and record the deployed web/API commit.",
     "Verify distributed mobile build identifiers or explicitly establish that none is distributed.",
-    "Compare the full applied migration history with the candidate schema manifest.",
-    "Record the available user-flow acceptance baseline."
+    "Resolve or document the schema equivalence of the 14 production-only and one repository-only migration versions before changing database invariants."
   ],
   "laterPhasesStarted": false,
   "notes": [
     "This is a preparation checkpoint, not completion of F01 or a beta release approval.",
     "Revalidate audit findings against this baseline before implementation because 350 tracked files differ.",
     "No production changes, billing actions, environment files or raw audit data are included."
-  ]
+  ],
+  "acceptanceBaseline": "docs/beta-acceptance-baseline.json"
 }
