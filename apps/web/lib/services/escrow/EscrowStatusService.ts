@@ -70,6 +70,8 @@ export class EscrowStatusService {
           status,
           admin_hold_status,
           homeowner_approval,
+          release_reason,
+          homeowner_inspection_completed,
           photo_verification_status,
           cooling_off_ends_at,
           auto_approval_date,
@@ -127,6 +129,8 @@ export class EscrowStatusService {
           status,
           admin_hold_status,
           homeowner_approval,
+          release_reason,
+          homeowner_inspection_completed,
           photo_verification_status,
           photo_quality_passed,
           geolocation_verified,
@@ -170,21 +174,28 @@ export class EscrowStatusService {
         }
       }
 
-      // Check photo verification
-      if (escrow.photo_verification_status !== 'verified') {
-        reasons.push('Photo verification pending or failed');
-      }
+      // Human inspection satisfies the photo gate, matching automatic release.
+      const explicitApproval =
+        escrow.homeowner_approval === true &&
+        escrow.release_reason === 'homeowner_approved' &&
+        escrow.homeowner_inspection_completed === true;
+      if (!explicitApproval) {
+        // Check photo verification
+        if (escrow.photo_verification_status !== 'verified') {
+          reasons.push('Photo verification pending or failed');
+        }
 
-      if (!escrow.photo_quality_passed) {
-        reasons.push('Photo quality check failed');
-      }
+        if (!escrow.photo_quality_passed) {
+          reasons.push('Photo quality check failed');
+        }
 
-      if (!escrow.geolocation_verified) {
-        reasons.push('Geolocation verification pending');
-      }
+        if (!escrow.geolocation_verified) {
+          reasons.push('Geolocation verification pending');
+        }
 
-      if (!escrow.timestamp_verified) {
-        reasons.push('Timestamp verification pending');
+        if (!escrow.timestamp_verified) {
+          reasons.push('Timestamp verification pending');
+        }
       }
 
       // Check cooling-off period
@@ -324,7 +335,9 @@ export class EscrowStatusService {
       return 'Waiting for homeowner approval';
     }
 
-    if (escrow.photo_verification_status !== 'verified') {
+    if (
+      blockingReasons.some((reason) => reason.startsWith('Photo verification'))
+    ) {
       return 'Waiting for photo verification';
     }
 
