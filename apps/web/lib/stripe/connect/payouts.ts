@@ -90,245 +90,130 @@ export async function getPayoutBalance(
 }
 
 /**
- * Weekly cron: find all contractors whose pending balance meets the threshold
- * AND whose Connect account can receive payouts, then issue Stripe transfers.
- *
- * Returns a summary of processed / skipped / failed transfers.
+ * Funds remain pending until a provider transfer and its ledger commit succeed.
+ * A stable operation ID survives crashes, retries and week boundaries.
  */
 export async function processEligiblePayouts(): Promise<{
   processed: number;
   skipped: number;
   failed: number;
 }> {
-  const threshold = getPayoutThreshold(PRIMARY_CURRENCY);
-
-  // Find eligible balances.
-  //
-  // 2026-05-25 audit-46 P1: previously omitted lifetime_paid_out_minor
-  // from the SELECT. The UPDATE block below summed
-  // `pending_amount_minor + balance.lifetime_paid_out_minor`, which
-  // returned undefined every time, so `(amount || 0) + (undefined || 0)`
-  // = amount and the lifetime total reset to just this payout. After
-  // months of payouts a contractor's lifetime stat would silently
-  // collapse to whatever last week's transfer was. Pull the column
-  // so the UPDATE has a real cumulative base to add to.
   const { data: balances, error } = await serverSupabase
     .from('contractor_payout_balances')
-    .select(
-      `
-      contractor_id,
-      currency,
-      pending_amount_minor,
-      lifetime_paid_out_minor,
-      profiles!inner (
-        stripe_connect_account_id,
-        stripe_payouts_enabled,
-        stripe_transfers_active
-      )
-    `
-    )
-    .gte('pending_amount_minor', threshold)
+    .select('contractor_id, currency')
+    .gte('pending_amount_minor', getPayoutThreshold(PRIMARY_CURRENCY))
     .eq('currency', PRIMARY_CURRENCY);
-
-  if (error || !balances) {
-    logger.error('Failed to load eligible payout balances', error, {
-      service: 'payouts',
-    });
-    return { processed: 0, skipped: 0, failed: 0 };
-  }
-
-  let processed = 0;
-  let skipped = 0;
-  let failed = 0;
-
+  if (error || !balances) throw new Error('Unable to load payout balances');
+  let processed = 0,
+    skipped = 0,
+    failed = 0;
   for (const balance of balances) {
-    const profile = Array.isArray(balance.profiles)
-      ? balance.profiles[0]
-      : balance.profiles;
-
-    if (
-      !profile?.stripe_connect_account_id ||
-      !profile?.stripe_payouts_enabled ||
-      !profile?.stripe_transfers_active
-    ) {
-      skipped++;
-      continue;
-    }
-
-    const lifetimeBefore =
-      (balance as { lifetime_paid_out_minor?: number | null })
-        .lifetime_paid_out_minor ?? 0;
-    const claimedAmount = balance.pending_amount_minor || 0;
-
-    // ATOMIC CLAIM (audit C1): zero the pending balance in a single
-    // compare-and-swap guarded on the EXACT amount we intend to pay. Only
-    // one concurrent payout run can win this UPDATE; a second overlapping
-    // run matches 0 rows and skips — so the same accumulated balance can
-    // never be transferred to the contractor twice. This mirrors the CAS
-    // the escrow auto-release cron already uses. 2026-05-25 audit-46 P1:
-    // lifetime_paid_out_minor accumulates (base pulled from the SELECT).
-    const { data: claimedRows, error: claimErr } = await serverSupabase
-      .from('contractor_payout_balances')
-      .update({
-        pending_amount_minor: 0,
-        lifetime_paid_out_minor: claimedAmount + lifetimeBefore,
-        last_payout_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('contractor_id', balance.contractor_id)
-      .eq('currency', balance.currency)
-      .eq('pending_amount_minor', claimedAmount)
-      .select('contractor_id');
-
-    if (claimErr || !claimedRows || claimedRows.length === 0) {
-      logger.warn(
-        'Payout balance already claimed or changed under us — skipping to avoid double transfer',
-        {
-          service: 'payouts',
-          contractorId: balance.contractor_id,
-          error: claimErr?.message,
-        }
-      );
-      skipped++;
-      continue;
-    }
-
-    // Keep this distinct from the surrounding catch: once Stripe accepts a
-    // transfer, restoring the claimed balance on a later database error can
-    // cause a second payout on the next weekly run. The transfer record and
-    // balance mirror then require reconciliation, but the money must not be
-    // automatically re-credited.
-    let transferCreated = false;
-
+    let operationId: string | undefined;
     try {
-      // Deterministic per-contractor-per-week idempotency key (audit C1):
-      // a retry of this run returns the same transfer rather than issuing a
-      // second one. The weekly cron pays each contractor at most once per
-      // week (guaranteed by the CAS above), so this key never collides
-      // across two legitimate payouts.
-      const weekBucket = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
-      const transfer = await stripe.transfers.create(
-        {
-          amount: claimedAmount,
-          currency: balance.currency.toLowerCase(),
-          destination: profile.stripe_connect_account_id,
-          metadata: {
-            mintenance_contractor_id: balance.contractor_id,
-            payout_type: 'weekly_threshold',
-          },
-        },
-        {
-          idempotencyKey: `weekly-payout-${balance.contractor_id}-${balance.currency}-${weekBucket}`,
-        }
-      );
-      transferCreated = true;
-
-      // Record the transfer idempotently. Stripe may have completed the
-      // transfer even when this database write failed; an upsert lets a
-      // retry reconcile the same transfer instead of treating the unique
-      // transfer ID as a new failure.
-      const { error: transferRecordError } = await serverSupabase
-        .from('contractor_payout_transfers')
-        .upsert(
-          {
-            contractor_id: balance.contractor_id,
-            stripe_transfer_id: transfer.id,
-            stripe_destination_account: profile.stripe_connect_account_id,
-            amount_minor: claimedAmount,
-            currency: balance.currency,
-            status: 'pending',
-          },
-          { onConflict: 'stripe_transfer_id', ignoreDuplicates: true }
-        );
-
-      if (transferRecordError) {
-        throw transferRecordError;
-      }
-
-      const { error: balanceUpdateError } = await serverSupabase
-        .from('contractor_payout_balances')
-        .update({
-          last_payout_transfer_id: transfer.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('contractor_id', balance.contractor_id)
-        .eq('currency', balance.currency);
-
-      if (balanceUpdateError) {
-        throw balanceUpdateError;
-      }
-
-      processed++;
-    } catch (err) {
-      // Only compensate when no Stripe transfer was accepted. If Stripe
-      // already created the transfer, re-crediting here would make the next
-      // weekly run pay the same earnings again after a DB persistence error.
-      if (transferCreated) {
-        logger.error(
-          'Payout transfer was created but accounting persistence failed; refusing to re-credit automatically',
-          err,
-          {
-            service: 'payouts',
-            contractorId: balance.contractor_id,
-            claimedAmount,
-          }
-        );
-        failed++;
+      const reserved = await serverSupabase.rpc('reserve_weekly_payout', {
+        p_contractor_id: balance.contractor_id,
+        p_currency: balance.currency,
+      });
+      if (reserved.error) throw new Error('Payout reservation failed');
+      if (!reserved.data?.id) {
+        skipped++;
         continue;
       }
-
-      // Transfer was not accepted. Compensate the claim so the next run can
-      // retry this payout rather than silently dropping it.
-      logger.error(
-        'Stripe transfer failed — restoring claimed balance for retry',
-        err,
-        {
-          service: 'payouts',
-          contractorId: balance.contractor_id,
-          claimedAmount,
+      operationId = reserved.data.id;
+      const begun = await serverSupabase.rpc('begin_weekly_payout', {
+        p_operation_id: operationId,
+      });
+      if (begun.error || !begun.data?.id)
+        throw new Error('Payout attempt could not be persisted');
+      const op = begun.data as {
+        id: string;
+        state: string;
+        amount_minor: number;
+        currency: string;
+        destination: string;
+        first_attempt_at: string;
+        contractor_id: string;
+      };
+      if (op.state === 'completed') {
+        skipped++;
+        continue;
+      }
+      let transfer;
+      const age = Date.now() - new Date(op.first_attempt_at).getTime();
+      // Stripe keys may expire after 24h. Never blindly resubmit an old
+      // uncertain operation. Reconcile against provider metadata instead.
+      if (
+        !Number.isFinite(age) ||
+        age >= 23 * 60 * 60 * 1000 ||
+        op.state === 'needs_review'
+      ) {
+        const matches = [];
+        for await (const candidate of stripe.transfers.list({
+          destination: op.destination,
+          created: {
+            gte:
+              Math.floor(new Date(op.first_attempt_at).getTime() / 1000) - 60,
+          },
+          limit: 100,
+        })) {
+          if (candidate.metadata.mintenance_payout_operation === op.id)
+            matches.push(candidate);
         }
-      );
-      const { data: current } = await serverSupabase
-        .from('contractor_payout_balances')
-        .select('pending_amount_minor, lifetime_paid_out_minor')
-        .eq('contractor_id', balance.contractor_id)
-        .eq('currency', balance.currency)
-        .maybeSingle();
-      const { error: restoreError } = await serverSupabase
-        .from('contractor_payout_balances')
-        .update({
-          pending_amount_minor:
-            (current?.pending_amount_minor || 0) + claimedAmount,
-          lifetime_paid_out_minor: Math.max(
-            0,
-            (current?.lifetime_paid_out_minor ??
-              claimedAmount + lifetimeBefore) - claimedAmount
-          ),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('contractor_id', balance.contractor_id)
-        .eq('currency', balance.currency);
-      if (restoreError) {
-        logger.error(
-          'Failed to restore payout balance after transfer rejection',
-          restoreError,
+        if (matches.length !== 1) {
+          const marked = await serverSupabase
+            .from('contractor_payout_operations')
+            .update({ state: 'needs_review' })
+            .eq('id', op.id)
+            .neq('state', 'completed');
+          if (marked.error)
+            throw new Error('Payout review state could not be saved');
+          throw new Error('Payout requires provider reconciliation');
+        }
+        transfer = matches[0];
+      } else {
+        transfer = await stripe.transfers.create(
           {
-            service: 'payouts',
-            contractorId: balance.contractor_id,
-            claimedAmount,
-          }
+            amount: op.amount_minor,
+            currency: op.currency.toLowerCase(),
+            destination: op.destination,
+            metadata: {
+              mintenance_contractor_id: op.contractor_id,
+              mintenance_payout_operation: op.id,
+              payout_type: 'weekly_threshold',
+            },
+          },
+          { idempotencyKey: `weekly-payout-operation-${op.id}` }
         );
       }
+      const destination =
+        typeof transfer.destination === 'string'
+          ? transfer.destination
+          : transfer.destination?.id;
+      if (
+        transfer.amount !== op.amount_minor ||
+        transfer.currency !== op.currency.toLowerCase() ||
+        destination !== op.destination ||
+        transfer.reversed
+      ) {
+        throw new Error('Provider payout does not match reserved terms');
+      }
+      const completed = await serverSupabase.rpc('complete_weekly_payout', {
+        p_operation_id: op.id,
+        p_transfer_id: transfer.id,
+      });
+      if (completed.error)
+        throw new Error('Payout accounting awaits reconciliation');
+      processed++;
+    } catch (error) {
+      // Never restore or spend an uncertain amount. The committed reservation
+      // and pending balance survive for a retry or support reconciliation.
+      logger.error('Payout operation remains pending', error, {
+        service: 'payouts',
+        operationId,
+        contractorId: balance.contractor_id,
+      });
       failed++;
     }
   }
-
-  logger.info('Weekly payout run complete', {
-    service: 'payouts',
-    processed,
-    skipped,
-    failed,
-  });
-
   return { processed, skipped, failed };
 }

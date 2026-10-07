@@ -33,7 +33,7 @@ test.describe('Authenticated Contractor Flow', () => {
 
   test('contractor can access job discovery page', async ({ page }) => {
     await page.goto('/contractor/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // A real session must NOT be bounced to login, and the discover shell must
     // render (previously this only asserted `body` was visible, which is true
@@ -44,7 +44,7 @@ test.describe('Authenticated Contractor Flow', () => {
 
   test('contractor can view job details', async ({ page }) => {
     await page.goto('/contractor/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Find first job card or link
@@ -72,7 +72,7 @@ test.describe('Authenticated Contractor Flow', () => {
   test('contractor can access bid submission form', async ({ page }) => {
     // Navigate to a job (this assumes jobs exist)
     await page.goto('/contractor/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Click on first available job. Both locators are scoped to the
     // #main-content landmark: unscoped, `getByRole('link').first()` resolves to
@@ -93,7 +93,7 @@ test.describe('Authenticated Contractor Flow', () => {
     } else {
       await firstJobLink.click();
     }
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // From a job detail page the bid form must be reachable: either a
     // Submit/Place Bid CTA that opens it, or the form already inline.
@@ -113,7 +113,7 @@ test.describe('Authenticated Contractor Flow', () => {
 
     // Navigate to discover page
     await page.goto('/contractor/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Find and click first job
     const firstJobLink = page.locator('a[href*="/jobs/"]').first();
@@ -124,7 +124,7 @@ test.describe('Authenticated Contractor Flow', () => {
     );
 
     await firstJobLink.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Click bid button
     const bidButton = page.getByRole('button', {
@@ -171,7 +171,7 @@ test.describe('Authenticated Contractor Flow', () => {
 
   test('contractor can view their submitted bids', async ({ page }) => {
     await page.goto('/contractor/dashboard');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     // Auth is guaranteed by beforeEach, so a login redirect here is a real
     // failure (broken session handling), not a reason to skip.
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
@@ -180,7 +180,7 @@ test.describe('Authenticated Contractor Flow', () => {
 
   test('contractor can view their profile', async ({ page }) => {
     await page.goto('/contractor/profile');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
     await expect(
       // .first(): the profile page legitimately matches several elements
@@ -191,7 +191,7 @@ test.describe('Authenticated Contractor Flow', () => {
 
   test('contractor can edit their profile', async ({ page }) => {
     await page.goto('/contractor/profile');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     const editButton = page.getByRole('button', { name: /edit|update/i });
@@ -216,7 +216,7 @@ test.describe('Contractor Job Filtering', () => {
     const authed = await establishSessionInContext(page, TEST_USERS.contractor);
     test.skip(!authed, AUTH_UNAVAILABLE);
     await page.goto('/contractor/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
   });
 

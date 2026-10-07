@@ -142,7 +142,7 @@ export default async function ContractorJobDetailPage({
 
   const { data: escrowTransaction } = await serverSupabase
     .from('escrow_transactions')
-    .select('id, status')
+    .select('id, status, amount, platform_fee, contractor_payout')
     .eq('job_id', resolvedParams.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -325,6 +325,21 @@ export default async function ContractorJobDetailPage({
         escrowHeld={escrowHeld}
         escrowStatus={escrowStatus}
         escrowId={escrowTransaction?.id ?? null}
+        paymentAmounts={
+          escrowTransaction
+            ? {
+                gross: Number(escrowTransaction.amount),
+                fee:
+                  escrowTransaction.platform_fee === null
+                    ? null
+                    : Number(escrowTransaction.platform_fee),
+                net:
+                  escrowTransaction.contractor_payout === null
+                    ? null
+                    : Number(escrowTransaction.contractor_payout),
+              }
+            : undefined
+        }
         jobPhotoUrls={jobPhotoUrls}
         buildingAssessment={buildingAssessment}
         userId={user.id}

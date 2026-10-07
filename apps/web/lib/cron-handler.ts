@@ -204,6 +204,39 @@ export function withCronHandler(
       const result = await handler();
       const durationMs = Date.now() - startTime;
 
+      // A completed loop is not a successful run if individual operations failed.
+      const itemFailures = [result, result.results].some(
+        (part) =>
+          part &&
+          ['failed', 'errors'].some(
+            (key) =>
+              (typeof part[key] === 'number' && part[key] > 0) ||
+              (Array.isArray(part[key]) && part[key].length > 0)
+          )
+      );
+      if (itemFailures) {
+        await completeCronRun(
+          runId,
+          jobName,
+          'failed',
+          durationMs,
+          result,
+          'One or more operations failed'
+        );
+        logger.error('Cron completed with failed operations', {
+          service: jobName,
+          runId,
+          result,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            results: result,
+            error: 'One or more operations failed',
+          },
+          { status: 500 }
+        );
+      }
       // 5. Log success
       await completeCronRun(runId, jobName, 'success', durationMs, result);
 

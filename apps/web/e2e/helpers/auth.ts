@@ -101,7 +101,13 @@ export const TEST_USERS = {
  * });
  */
 export async function loginAsHomeowner(page: Page): Promise<void> {
-  await login(page, TEST_USERS.homeowner);
+  if (process.env.E2E_AUTH_SECRET) {
+    if (!(await establishSessionInContext(page, TEST_USERS.homeowner)))
+      throw new Error('Homeowner fixture session failed');
+    await page.goto('/dashboard');
+  } else {
+    await login(page, TEST_USERS.homeowner);
+  }
 
   // Verify we're on dashboard (homeowners use /dashboard)
   await page.waitForURL(/\/(dashboard|jobs)/, { timeout: 10000 });
@@ -120,7 +126,13 @@ export async function loginAsHomeowner(page: Page): Promise<void> {
  * });
  */
 export async function loginAsContractor(page: Page): Promise<void> {
-  await login(page, TEST_USERS.contractor);
+  if (process.env.E2E_AUTH_SECRET) {
+    if (!(await establishSessionInContext(page, TEST_USERS.contractor)))
+      throw new Error('Contractor fixture session failed');
+    await page.goto('/contractor/dashboard-enhanced');
+  } else {
+    await login(page, TEST_USERS.contractor);
+  }
 
   // Verify we're on contractor dashboard or appropriate page
   await page.waitForURL(/\/contractor/, { timeout: 10000 });

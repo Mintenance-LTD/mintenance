@@ -176,7 +176,7 @@ jobs:
     # yet, so the smoke steps self-skip until they're added (same gating as
     # the Detox jobs in mobile-tests.yml).
     env:
-      HAS_STAGING: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING != '' }}
+      HAS_STAGING: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING != '' && secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY_STAGING != '' && secrets.EXPO_PUBLIC_API_URL_STAGING != '' && secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST != '' }}
 
     steps:
       - name: Checkout code
@@ -201,6 +201,7 @@ jobs:
           cache: 'npm'
 
       - name: Pin npm
+        if: steps.filter.outputs.mobile == 'true'
         run: npm install --global npm@11.6.2 --ignore-scripts
 
       - name: Install dependencies
@@ -226,8 +227,8 @@ jobs:
         if: steps.filter.outputs.mobile == 'true' && env.HAS_STAGING == 'true'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0 (2026-07-27: old pin no longer resolves upstream)
         env:
-          EXPO_PUBLIC_API_BASE_URL: https://www.mintenance.co.uk
-          EXPO_PUBLIC_API_URL: https://www.mintenance.co.uk
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_URL_STAGING }}
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL_STAGING }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
           EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}

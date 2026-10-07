@@ -77,7 +77,7 @@ test.describe('Authenticated Job Posting Flow', () => {
   test('homeowner can save job as draft', async ({ page }) => {
     // Verify we can access job creation page
     await page.goto('/jobs/create');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/login/);
 
     // Wait for page to load
@@ -172,7 +172,7 @@ test.describe('Job Management', () => {
   test('homeowner can edit their own job', async ({ page }) => {
     // Navigate to jobs list
     await page.goto('/jobs');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Find an "Edit" button or link
@@ -189,7 +189,7 @@ test.describe('Job Management', () => {
 
     // Test edit functionality
     await editButton.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should be on edit page
     await expect(page).toHaveURL(/edit/);
@@ -206,7 +206,7 @@ test.describe('Job Management', () => {
   test('homeowner can delete their own job (if no bids)', async ({ page }) => {
     // Navigate to jobs list
     await page.goto('/jobs');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Find a "Delete" button

@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialContractorSidebar } from './MintEditorialContractorSidebar';
@@ -76,12 +75,14 @@ export function MintEditorialContractorShell({
             primitives. Pages that already use canonical classes are
             unaffected — .me-legacy-fit only targets specific Tailwind
             class names. */}
-        <div
+        <main
+          id='main-content'
+          tabIndex={-1}
           className='me-legacy-fit'
           style={{ padding: contentPadding, flex: 1 }}
         >
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );

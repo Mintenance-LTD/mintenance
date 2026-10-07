@@ -6,6 +6,7 @@
  */
 
 import { test, expect } from './fixtures';
+import { loginAsHomeowner, loginAsContractor } from './helpers/auth';
 import AxeBuilder from '@axe-core/playwright';
 
 // ============================================
@@ -29,6 +30,10 @@ const pages = [
 // ============================================
 
 test.describe('Accessibility Tests', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    if (testInfo.title.startsWith('Contractor ')) await loginAsContractor(page);
+    else await loginAsHomeowner(page);
+  });
   // Test each page for accessibility violations
   pages.forEach(({ name, path }) => {
     test(`${name} page should have no accessibility violations`, async ({
@@ -37,7 +42,9 @@ test.describe('Accessibility Tests', () => {
       await page.goto(path);
 
       // Wait for content to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('main').first()).toBeVisible();
+      await expect(page).not.toHaveURL(/\/login/);
 
       // Run axe accessibility checks
       const accessibilityScanResults = await new AxeBuilder({ page })
@@ -288,27 +295,13 @@ test.describe('Accessibility Tests', () => {
     // Check for skip link
     // The layouts render `<a href="#main-content">Skip to content</a>`, which
     // an exact `a[href="#main"]` match never selects.
-    const skipLink = await page.$(
-      'a[href^="#main"], a[href="#content"], .skip-link'
-    );
-    expect(skipLink).toBeTruthy();
-
-    if (skipLink) {
-      // Check that it's accessible via keyboard
+    const skipLink = page.locator('a[href="#main-content"]').first();
+    await expect(skipLink).toBeAttached();
+    await page.keyboard.press('Tab');
+    if (!(await skipLink.evaluate((el) => el === document.activeElement))) {
       await page.keyboard.press('Tab');
-      const isSkipLinkFocused = await skipLink.evaluate(
-        (el) => el === document.activeElement
-      );
-
-      // Skip link should be one of the first focusable elements
-      if (!isSkipLinkFocused) {
-        await page.keyboard.press('Tab');
-        const isNowFocused = await skipLink.evaluate(
-          (el) => el === document.activeElement
-        );
-        expect(isNowFocused).toBeTruthy();
-      }
     }
+    await expect(skipLink).toBeFocused();
   });
 
   // Test responsive design accessibility
@@ -354,6 +347,9 @@ test.describe('Accessibility Tests', () => {
 // ============================================
 
 test.describe('Component Accessibility', () => {
+  test.beforeEach(async ({ page }) => {
+    await loginAsHomeowner(page);
+  });
   test('UnifiedButton should be accessible', async ({ page }) => {
     await page.goto('/dashboard');
 
@@ -431,8 +427,12 @@ test.describe('WCAG Compliance Report', () => {
     const report: any[] = [];
 
     for (const { name, path } of pages) {
+      if (path.startsWith('/contractor/')) await loginAsContractor(page);
+      else await loginAsHomeowner(page);
       await page.goto(path);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('main').first()).toBeVisible();
+      await expect(page).not.toHaveURL(/\/login/);
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
