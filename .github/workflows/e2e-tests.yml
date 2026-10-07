@@ -72,7 +72,7 @@ jobs:
         run: |
           curl --fail --retry 10 --retry-connrefused --retry-delay 2 \
             -H "Authorization: Bearer $UPSTASH_REDIS_REST_TOKEN" \
-            "$UPSTASH_REDIS_REST_URL/ping" | grep -q PONG
+            -H "Content-Type: application/json" --data '["PING"]' "$UPSTASH_REDIS_REST_URL" | grep -q PONG
 
       - name: Build shared packages
         run: npm run build:packages
