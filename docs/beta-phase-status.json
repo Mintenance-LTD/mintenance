@@ -1,0 +1,64 @@
+{
+  "recordedOn": "2026-10-07",
+  "phaseOrder": [
+    "F01",
+    "F02",
+    "F03",
+    "F04",
+    "F05",
+    "F06",
+    "F07",
+    "F08",
+    "F09",
+    "F10",
+    "F11",
+    "F12"
+  ],
+  "rule": "Finish, verify, commit and push one phase before starting the next.",
+  "currentPhase": "F01",
+  "status": "blocked_on_external_access",
+  "repository": "Mintenance-LTD/mintenance",
+  "baseBranch": "Main",
+  "baseCommit": "1f2349ccf98f4702a1b870157660c80fe440588b",
+  "workBranch": "fix/beta-readiness-phases",
+  "baseline": {
+    "trackedFilesAtBase": 6364,
+    "auditedSnapshotChangedTrackedFiles": 350,
+    "auditedSnapshotMissingTrackedFiles": 0,
+    "comparisonIgnoresLineEndings": true,
+    "lockfileSha256": "c30fe80658197d395a75d289ea6e0dfee6ab2086e4b453009f4ebf1ad94fe712",
+    "mobileSourceVersion": "1.2.4",
+    "mobileSourceIosBuild": "17",
+    "mobileSourceAndroidVersionCode": 26,
+    "distributedMobileBuild": "not independently verified",
+    "productionDatabaseMigrationCount": 391,
+    "productionDatabaseLatestMigration": "20261007145410",
+    "migrationNote": "Full version comparison recorded in docs/beta-migration-baseline.json: 377 shared, 14 production-only, 1 repository-only; SQL equivalence not established.",
+    "deployedWebApiCommit": "not verified: Vercel deployment listing returned 403",
+    "commitDeploymentChecks": {
+      "mintenanceWeb": "failure",
+      "mintenanceClean": "success",
+      "note": "GitHub status checks on baseCommit; does not establish currently promoted production build"
+    }
+  },
+  "accessChecks": {
+    "gitPushDryRun": "passed using local Git authentication",
+    "githubConnector": "read-only; local Git supports the authorized push workflow",
+    "stripeRead": "both existing local environment configurations returned HTTP 401 api_key_expired",
+    "stripeAccountAndMode": "not verified",
+    "vercelDeployments": "HTTP 403 for the configured production team/project; no local CLI available"
+  },
+  "remainingPhaseOneChecks": [
+    "Configure a working authorized Stripe read credential and verify intended account/mode.",
+    "Obtain deployment metadata access and record the deployed web/API commit.",
+    "Verify distributed mobile build identifiers or explicitly establish that none is distributed.",
+    "Resolve or document the schema equivalence of the 14 production-only and one repository-only migration versions before changing database invariants."
+  ],
+  "laterPhasesStarted": false,
+  "notes": [
+    "This is a preparation checkpoint, not completion of F01 or a beta release approval.",
+    "Revalidate audit findings against this baseline before implementation because 350 tracked files differ.",
+    "No production changes, billing actions, environment files or raw audit data are included."
+  ],
+  "acceptanceBaseline": "docs/beta-acceptance-baseline.json"
+}
