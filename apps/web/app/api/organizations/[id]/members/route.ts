@@ -139,7 +139,7 @@ export const DELETE = withApiHandler(
       );
     }
 
-    await requireOrgRole(orgId, user.id, ['owner', 'manager']);
+    const actor = await requireOrgRole(orgId, user.id, ['owner', 'manager']);
 
     // Guard last-owner removal.
     const { data: target } = await serverSupabase
@@ -155,6 +155,9 @@ export const DELETE = withApiHandler(
     }
 
     if (target.org_role === 'owner') {
+      if (actor.org_role !== 'owner') {
+        throw new ForbiddenError('Only owners can remove another owner');
+      }
       const { count, error: ownerCountError } = await serverSupabase
         .from('organization_memberships')
         .select('id', { count: 'exact', head: true })

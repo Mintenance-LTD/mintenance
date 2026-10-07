@@ -1,0 +1,12 @@
+{
+  "name": "mintenance-database-regressions",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node authoritative-mutations.mjs"
+  },
+  "dependencies": {
+    "embedded-postgres": "17.10.0-beta.17",
+    "pg": "8.16.3"
+  }
+}
