@@ -1,5 +1,5 @@
 {
-  "recordedOn": "2026-10-07",
+  "recordedOn": "2026-10-08",
   "phaseOrder": [
     "F01",
     "F02",
@@ -16,7 +16,7 @@
   ],
   "rule": "Finish, verify, commit and push one phase before starting the next.",
   "currentPhase": "F01",
-  "status": "blocked_on_external_access",
+  "status": "awaiting_distributed_android_build_identifier",
   "repository": "Mintenance-LTD/mintenance",
   "baseBranch": "main",
   "baseCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
@@ -30,10 +30,10 @@
     "mobileSourceVersion": "1.2.4",
     "mobileSourceIosBuild": "17",
     "mobileSourceAndroidVersionCode": 35,
-    "distributedMobileBuild": "not independently verified",
+    "distributedMobileBuild": "user confirms Android distribution; exact version code/build link requested",
     "productionDatabaseMigrationCount": 391,
     "productionDatabaseLatestMigration": "20261007145410",
-    "migrationNote": "385 shared versions; six production-only versions have same-name repository counterparts; seven repository-only versions. Timestamp matching does not prove SQL equivalence.",
+    "migrationNote": "All six timestamp-divergent migration counterparts are SQL-identical. The unmatched storage migration is only partly present in production; missing attachment policies added to F02.",
     "deployedWebApiCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
     "mobileRuntimeVersion": "1.2.4-sqlcipher1",
     "deploymentId": "dpl_5H5tbYQhmVtuBrwh3dKa85spDdmW",
@@ -44,20 +44,18 @@
   "accessChecks": {
     "gitPushDryRun": "passed using local Git authentication",
     "githubConnector": "read-only; local Git supports the authorized push workflow",
-    "stripeRead": "rechecked both existing environment files against GET /v1/account: HTTP 401 api_key_expired",
-    "stripeAccountAndMode": "not verified",
+    "stripeRead": "GET /v1/account and GET /v1/balance succeeded (HTTP 200)",
+    "stripeAccountAndMode": "intended account matched; balance.livemode=true",
     "vercelDeployments": "verified using the user-supplied mintenance team scope and production domain"
   },
   "remainingPhaseOneChecks": [
-    "Configure a working authorized Stripe read credential and verify intended account/mode.",
-    "Verify distributed mobile build identifiers or explicitly establish that none is distributed.",
-    "Verify SQL equivalence of timestamp-divergent migrations; classify the unmatched repository migration."
+    "Record the exact Android build/version distributed to testers."
   ],
   "laterPhasesStarted": false,
   "notes": [
-    "This is a preparation checkpoint, not completion of F01 or a beta release approval.",
     "No production changes, billing actions, environment files or raw audit data are included.",
-    "The earlier Main baseline was the repository default, not the production branch. The verified lowercase main baseline matches every tracked file in the audited snapshot."
+    "The earlier Main baseline was the repository default, not the production branch. The verified lowercase main baseline matches every tracked file in the audited snapshot.",
+    "Baseline records complete except distributed Android build identity; no Phase 2 implementation started."
   ],
   "acceptanceBaseline": "docs/beta-acceptance-baseline.json"
 }
