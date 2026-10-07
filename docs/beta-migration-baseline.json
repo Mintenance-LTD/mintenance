@@ -1,18 +1,10 @@
 {
   "comparison": "version identifiers only; not SQL/schema equivalence",
   "productionCount": 391,
-  "localCount": 378,
-  "shared": 377,
+  "localCount": 392,
+  "shared": 385,
   "productionOnly": [
     "20260925175927",
-    "20260930105414",
-    "20260930105423",
-    "20260930105433",
-    "20260930105440",
-    "20260930105448",
-    "20260930115354",
-    "20261004142726",
-    "20261004143437",
     "20261004201901",
     "20261004211202",
     "20261007145352",
@@ -20,7 +12,52 @@
     "20261007145410"
   ],
   "repositoryOnly": [
-    "20260924205332"
+    "20260924205332",
+    "20261004121819",
+    "20261004124555",
+    "20261004131937",
+    "20261004180000",
+    "20261007142344",
+    "20261007143307"
   ],
-  "duplicateLocalVersions": []
+  "duplicateLocalVersions": [],
+  "sameNameMappings": [
+    {
+      "productionVersion": "20260925175927",
+      "repositoryVersion": "20260924205332",
+      "name": "resume_journaled_escrow_release",
+      "sqlEquivalence": "not yet verified"
+    },
+    {
+      "productionVersion": "20261004201901",
+      "repositoryVersion": "20261004121819",
+      "name": "private_profiles_and_public_directory",
+      "sqlEquivalence": "not yet verified"
+    },
+    {
+      "productionVersion": "20261004211202",
+      "repositoryVersion": "20261004180000",
+      "name": "prevent_rework_after_approval",
+      "sqlEquivalence": "not yet verified"
+    },
+    {
+      "productionVersion": "20261007145352",
+      "repositoryVersion": "20261004124555",
+      "name": "readiness_retention_and_archival",
+      "sqlEquivalence": "not yet verified"
+    },
+    {
+      "productionVersion": "20261007145358",
+      "repositoryVersion": "20261007142344",
+      "name": "durable_weekly_payout_operations",
+      "sqlEquivalence": "not yet verified"
+    },
+    {
+      "productionVersion": "20261007145410",
+      "repositoryVersion": "20261007143307",
+      "name": "restrict_legacy_training_storage",
+      "sqlEquivalence": "not yet verified"
+    }
+  ],
+  "unmatchedRepositoryVersion": "20261004131937"
 }
