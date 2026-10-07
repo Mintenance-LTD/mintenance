@@ -75,8 +75,8 @@ export class EscrowStatusService {
           photo_verification_status,
           cooling_off_ends_at,
           auto_approval_date,
-          release_blocked_reason,
-          auto_release_date
+          job_id, auto_release_date, risk_hold_extended, risk_hold_reason,
+          release_blocked_reason
         `
         )
         .eq('id', escrowId)
@@ -137,6 +137,7 @@ export class EscrowStatusService {
           timestamp_verified,
           cooling_off_ends_at,
           auto_approval_date,
+          job_id, auto_release_date, risk_hold_extended, risk_hold_reason,
           release_blocked_reason
         `
         )
@@ -216,6 +217,35 @@ export class EscrowStatusService {
         reasons.push(`Escrow status is ${escrow.status}`);
       }
 
+      if (escrow.job_id) {
+        const { count, error: disputeError } = await serverSupabase
+          .from('disputes')
+          .select('id', { count: 'exact', head: true })
+          .eq('job_id', escrow.job_id)
+          .in('status', ['open', 'pending', 'under_review']);
+        if (disputeError) reasons.push('Unable to verify dispute status');
+        else if ((count ?? 0) > 0)
+          reasons.push('An active dispute must be resolved');
+      }
+      if (
+        escrow.auto_release_date &&
+        new Date(escrow.auto_release_date) > new Date()
+      ) {
+        reasons.push(
+          `Release eligibility begins ${new Date(escrow.auto_release_date).toLocaleString()}`
+        );
+      }
+      if (
+        escrow.risk_hold_extended &&
+        escrow.risk_hold_reason &&
+        escrow.auto_release_date &&
+        new Date(escrow.auto_release_date) > new Date()
+      )
+        reasons.push(escrow.risk_hold_reason);
+      if (!explicitApproval)
+        reasons.push(
+          'Automatic approval remains subject to contractor trust and payment risk checks'
+        );
       return reasons;
     } catch (error) {
       logger.error('Error getting blocking reasons', error, {

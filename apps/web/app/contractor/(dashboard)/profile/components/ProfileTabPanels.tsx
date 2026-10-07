@@ -93,6 +93,7 @@ export function ProfileTabPanels({
               <h2 className='t-h3 text-gray-900 mb-4'>About Me</h2>
               {isEditMode ? (
                 <textarea
+                  aria-label='Bio / About me'
                   value={formData.bio}
                   onChange={(e) =>
                     onFormChange({ ...formData, bio: e.target.value })

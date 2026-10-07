@@ -68,3 +68,16 @@ it('keeps the original job failure when completion tracking also fails', async (
   );
   expect(m.handler).toHaveBeenCalledTimes(1);
 });
+it.each([
+  { failed: 1 },
+  { errors: 2 },
+  { results: { errors: ['job failed'] } },
+])('reports partial failures instead of success: %j', async (result) => {
+  m.handler.mockResolvedValue(result);
+  const response = await withCronHandler('example', m.handler)(request);
+  expect(response.status).toBe(500);
+  expect(await response.json()).toMatchObject({
+    success: false,
+    results: result,
+  });
+});

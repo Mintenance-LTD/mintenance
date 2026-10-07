@@ -49,11 +49,11 @@ interface PhotoPair {
   after: { url: string; id: string; timestamp?: string };
 }
 
-/** Days the homeowner has to approve before the cron auto-releases. */
+/** Days the homeowner has to approve before automatic eligibility checks begin. */
 const AUTO_RELEASE_WINDOW_DAYS = 7;
 
 // 2026-05-28 U3: mirror of web computeAutoReleaseInfo (audit-P2-4). The
-// 7-day auto-release window runs from jobs.completed_at (stamped when
+// 7-day review window runs from jobs.completed_at (stamped when
 // the after-photo upload auto-flips the job to 'completed'). Surfacing
 // the deadline reassures homeowners that funds move even with no action.
 function computeAutoReleaseInfo(completedAt: string | null | undefined): {
@@ -430,7 +430,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
                     ]}
                   >
                     {autoRelease.passed
-                      ? 'Funds queued for auto-release'
+                      ? 'Review window ended'
                       : autoRelease.daysRemaining === 1
                         ? '1 day left to approve or request changes'
                         : `${autoRelease.daysRemaining} days left to approve or request changes`}

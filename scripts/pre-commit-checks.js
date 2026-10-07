@@ -19,6 +19,8 @@ const WARNING_LINES = 400;
 // security/business logic that requires careful decomposition. Allowing them
 // through the hook prevents blocking security fixes on pre-existing tech debt.
 const KNOWN_LARGE_FILES = new Set([
+  'apps/web/app/contractor/(dashboard)/jobs/[id]/components/MintEditorialJobDetailView.tsx', // baseline 2b188b6e: 1053 lines; targeted payment/accessibility repair
+  'apps/web/app/contractor/(dashboard)/profile/components/ProfileTabPanels.tsx', // baseline 2b188b6e: 609 lines; targeted payment/accessibility repair
   'apps/web/app/contractor/(dashboard)/jobs/[id]/page.tsx', // baseline 8fec38aa5: 674 lines; viewer identity plumbing only
   // Audit checkpoint: already above 500 lines at b6fda5b8a, before remediation.
   // Keep security fixes reviewable; decompose these flows in a separate change.
