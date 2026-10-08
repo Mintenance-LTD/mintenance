@@ -1,7 +1,8 @@
 import Stripe from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getSubscriptionPeriodBounds } from '@/lib/stripe';
+import { syncHomeownerProviderState } from '../subscription/homeowner-provider-state';
+import { stripe, getSubscriptionPeriodBounds } from '@/lib/stripe';
 import type { SendNotificationFn } from './webhook-helpers';
 
 /**
@@ -57,6 +58,28 @@ export async function handleSubscriptionUpdated(
       return;
     }
 
+    if (user.role === 'homeowner') {
+      // Read current provider state because webhook delivery order is not guaranteed.
+      const current = await stripe.subscriptions.retrieve(subscription.id);
+      const synced = await syncHomeownerProviderState(current, user.id);
+      if (synced.isCurrent && ['past_due', 'unpaid'].includes(current.status)) {
+        await sendNotification(
+          user.id,
+          'Subscription Payment Issue',
+          'Please update your payment method to avoid service interruption.',
+          'subscription_payment_issue'
+        );
+      } else if (synced.isCurrent && current.status === 'canceled') {
+        await sendNotification(
+          user.id,
+          'Subscription Cancelled',
+          'Your subscription has been cancelled. You can resubscribe from your account settings.',
+          'subscription_cancelled'
+        );
+      }
+      return;
+    }
+
     // Map Stripe subscription status to our internal status
     const statusMap: Record<string, string> = {
       active: 'active',
@@ -69,8 +92,6 @@ export async function handleSubscriptionUpdated(
       paused: 'paused',
     };
     const mappedStatus = statusMap[subscription.status] || subscription.status;
-    const homeownerStatus =
-      mappedStatus === 'cancelled' ? 'canceled' : mappedStatus;
 
     // Version-tolerant: the webhook endpoint's dashboard-pinned api_version
     // decides whether the payload carries subscription.current_period_*
@@ -170,34 +191,6 @@ export async function handleSubscriptionUpdated(
           throw new Error('Failed to persist contractor subscription status');
         }
       }
-    } else if (user.role === 'homeowner') {
-      const { error: homeownerSubError } = await serverSupabase
-        .from('homeowner_subscriptions')
-        .update({
-          status: homeownerStatus,
-          current_period_start: currentPeriodStart,
-          current_period_end: currentPeriodEnd,
-          cancel_at_period_end: subscription.cancel_at_period_end || false,
-          canceled_at: subscription.canceled_at
-            ? new Date(subscription.canceled_at * 1000).toISOString()
-            : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('stripe_subscription_id', subscription.id);
-
-      if (homeownerSubError) {
-        logger.error(
-          'Failed to update homeowner_subscriptions subscription',
-          homeownerSubError,
-          {
-            service: 'stripe-webhook',
-            userId: user.id,
-            mappedStatus,
-            homeownerStatus,
-          }
-        );
-        throw new Error('Failed to persist homeowner subscription status');
-      }
     }
 
     // Send notifications for concerning statuses
@@ -266,11 +259,15 @@ export async function handleSubscriptionDeleted(
       .single();
 
     if (userError) {
-      logger.error('Failed to load deleted subscription customer profile', userError, {
-        service: 'stripe-webhook',
-        subscriptionId: subscription.id,
-        customerId,
-      });
+      logger.error(
+        'Failed to load deleted subscription customer profile',
+        userError,
+        {
+          service: 'stripe-webhook',
+          subscriptionId: subscription.id,
+          customerId,
+        }
+      );
       throw new Error('Failed to load deleted subscription customer profile');
     }
 
@@ -280,6 +277,21 @@ export async function handleSubscriptionDeleted(
         subscriptionId: subscription.id,
         customerId,
       });
+      return;
+    }
+
+    if (user.role === 'homeowner') {
+      // Read current provider state because webhook delivery order is not guaranteed.
+      const current = await stripe.subscriptions.retrieve(subscription.id);
+      const synced = await syncHomeownerProviderState(current, user.id);
+      if (synced.isCurrent && current.status === 'canceled') {
+        await sendNotification(
+          user.id,
+          'Subscription Ended',
+          'Your subscription has ended. You can resubscribe from your account settings.',
+          'subscription_ended'
+        );
+      }
       return;
     }
 
@@ -330,27 +342,6 @@ export async function handleSubscriptionDeleted(
           }
         );
         throw new Error('Failed to persist contractor subscription downgrade');
-      }
-    } else if (user.role === 'homeowner') {
-      const { error: homeownerError } = await serverSupabase
-        .from('homeowner_subscriptions')
-        .update({
-          status: 'canceled',
-          canceled_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('stripe_subscription_id', subscription.id);
-
-      if (homeownerError) {
-        logger.error(
-          'Failed to downgrade homeowner subscription',
-          homeownerError,
-          {
-            service: 'stripe-webhook',
-            userId: user.id,
-          }
-        );
-        throw new Error('Failed to persist homeowner subscription downgrade');
       }
     }
 

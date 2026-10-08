@@ -77,17 +77,6 @@ export const POST = withApiHandler(
         );
       }
 
-      const existing =
-        await HomeownerSubscriptionService.getCurrentSubscription(user.id);
-      if (existing?.status === 'active' && existing.plan_type === planType) {
-        return NextResponse.json({
-          success: true,
-          message: `You are already subscribed to the ${planType} plan`,
-          subscriptionId: existing.id,
-          requiresPayment: false,
-        });
-      }
-
       const customerId =
         await HomeownerSubscriptionService.getOrCreateStripeCustomer(
           user.id,
@@ -100,14 +89,6 @@ export const POST = withApiHandler(
         planType as HomeownerPlanType,
         billingCycle || 'monthly'
       );
-
-      await serverSupabase
-        .from('profiles')
-        .update({
-          subscription_status: created.clientSecret ? 'incomplete' : 'active',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
 
       logger.info('Homeowner subscription created', {
         service: 'subscriptions',

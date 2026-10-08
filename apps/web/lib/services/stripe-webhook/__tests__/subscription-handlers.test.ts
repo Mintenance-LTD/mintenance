@@ -1,13 +1,21 @@
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import type Stripe from 'stripe';
 
-const { mockFrom, mockLoggerInfo, mockLoggerWarn, mockLoggerError } =
-  vi.hoisted(() => ({
-    mockFrom: vi.fn(),
-    mockLoggerInfo: vi.fn(),
-    mockLoggerWarn: vi.fn(),
-    mockLoggerError: vi.fn(),
-  }));
+const {
+  mockRetrieve,
+  mockSync,
+  mockFrom,
+  mockLoggerInfo,
+  mockLoggerWarn,
+  mockLoggerError,
+} = vi.hoisted(() => ({
+  mockRetrieve: vi.fn(),
+  mockSync: vi.fn(),
+  mockFrom: vi.fn(),
+  mockLoggerInfo: vi.fn(),
+  mockLoggerWarn: vi.fn(),
+  mockLoggerError: vi.fn(),
+}));
 
 function buildChain(overrides?: {
   singleData?: unknown;
@@ -43,6 +51,14 @@ vi.mock('@/lib/api/supabaseServer', () => {
   mockFrom.mockReturnValue(chain);
   return { serverSupabase: { from: mockFrom } };
 });
+
+vi.mock('@/lib/services/subscription/homeowner-provider-state', () => ({
+  syncHomeownerProviderState: mockSync,
+}));
+vi.mock('@/lib/stripe', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/stripe')>()),
+  stripe: { subscriptions: { retrieve: mockRetrieve } },
+}));
 
 vi.mock('@mintenance/shared', () => ({
   logger: {
@@ -83,7 +99,7 @@ describe('handleSubscriptionUpdated', () => {
 
   it('updates profile subscription_status to active', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -97,7 +113,7 @@ describe('handleSubscriptionUpdated', () => {
 
   it('maps Stripe past_due to past_due', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -113,7 +129,7 @@ describe('handleSubscriptionUpdated', () => {
 
   it('maps Stripe canceled to cancelled (British spelling)', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -206,7 +222,7 @@ describe('handleSubscriptionUpdated', () => {
 
   it('spans the widest period across multiple subscription items (basil+ payloads)', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -277,7 +293,7 @@ describe('handleSubscriptionUpdated', () => {
 
   it('sends notification for past_due status', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -296,7 +312,7 @@ describe('handleSubscriptionUpdated', () => {
 
   it('sends notification for canceled status', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -315,7 +331,7 @@ describe('handleSubscriptionUpdated', () => {
 
   it('does not send notification for active status', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -366,7 +382,7 @@ describe('handleSubscriptionDeleted', () => {
 
   it('downgrades profile to none and notifies user', async () => {
     const chain = buildChain({
-      singleData: { id: USER_ID, role: 'homeowner' },
+      singleData: { id: USER_ID, role: 'contractor' },
     });
     mockFrom.mockReturnValue(chain);
 
@@ -411,5 +427,35 @@ describe('handleSubscriptionDeleted', () => {
       'Subscription missing customer ID',
       expect.any(Object)
     );
+  });
+});
+
+// Homeowner status writes are atomic in the RPC and use fresh provider state.
+describe('homeowner subscription webhook reconciliation', () => {
+  it.each([handleSubscriptionUpdated, handleSubscriptionDeleted])(
+    'reads current Stripe state before syncing a homeowner event',
+    async (handler) => {
+      const chain = buildChain({
+        singleData: { id: USER_ID, role: 'homeowner' },
+      });
+      mockFrom.mockReturnValue(chain);
+      const current = makeSub({ status: 'canceled' });
+      mockRetrieve.mockResolvedValue(current);
+      mockSync.mockResolvedValue({ id: 'row' });
+      await handler(makeSub({ status: 'active' }), vi.fn());
+      expect(mockRetrieve).toHaveBeenCalledWith('sub_test_123');
+      expect(mockSync).toHaveBeenCalledWith(current, USER_ID);
+      expect(chain.update).not.toHaveBeenCalled();
+    }
+  );
+  it('retries on provider lookup failure instead of applying stale event state', async () => {
+    mockFrom.mockReturnValue(
+      buildChain({ singleData: { id: USER_ID, role: 'homeowner' } })
+    );
+    mockRetrieve.mockRejectedValue(new Error('provider offline'));
+    await expect(handleSubscriptionUpdated(makeSub(), vi.fn())).rejects.toThrow(
+      'provider offline'
+    );
+    expect(mockSync).not.toHaveBeenCalled();
   });
 });

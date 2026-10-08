@@ -15,8 +15,8 @@
     "F12"
   ],
   "rule": "Finish, verify, commit and push one phase before starting the next.",
-  "currentPhase": "F03",
-  "status": "implementation_verified",
+  "currentPhase": "F04",
+  "status": "implementation_verified_awaiting_stripe_sandbox",
   "repository": "Mintenance-LTD/mintenance",
   "baseBranch": "main",
   "baseCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
@@ -60,7 +60,8 @@
     "The earlier Main baseline was the repository default, not the production branch. The verified lowercase main baseline matches every tracked file in the audited snapshot.",
     "F01 baseline complete: exact user-confirmed distributed Android build identified; native execution remains an F12 release check.",
     "F02 implementation passed 30 PostgreSQL checks, 27 API tests, all 10 package builds and web type checking. Phase advancement occurs only after remote commit verification.",
-    "F03 implementation passed 47 PostgreSQL checks and web TypeScript. Full web run: 4504 passed, one working-directory-dependent test failed; all 15 tests in that suite passed when rerun from apps/web. Production rollout remains pending."
+    "F03 implementation passed 47 PostgreSQL checks and web TypeScript. Full web run: 4504 passed, one working-directory-dependent test failed; all 15 tests in that suite passed when rerun from apps/web. Production rollout remains pending.",
+    "F04 source changes passed isolated PostgreSQL, focused service/API/webhook tests and the full web suite. Required Stripe sandbox acceptance is pending because only a live credential is configured. F05 remains closed."
   ],
   "acceptanceBaseline": "docs/beta-acceptance-baseline.json",
   "completedPhases": [
@@ -68,5 +69,8 @@
     "F02",
     "F03"
   ],
-  "productionRollout": "pending F12 release gates; no production mutations performed"
+  "productionRollout": "pending F12 release gates; no production mutations performed",
+  "remainingPhaseFourChecks": [
+    "Stripe sandbox plan/cycle, 3DS, failed-payment, retry and webhook acceptance matrix"
+  ]
 }
