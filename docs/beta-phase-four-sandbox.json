@@ -1,0 +1,66 @@
+{
+  "recordedOn": "2026-10-08T10:04:56.948Z",
+  "sandboxMode": true,
+  "productionUntouched": true,
+  "results": [
+    {
+      "name": "first purchase and duplicate request create one Stripe subscription",
+      "passed": true,
+      "invoiceAmountPence": 2499
+    },
+    {
+      "name": "paid transition agency monthly",
+      "passed": true,
+      "invoiceAmountDuePence": 2500,
+      "invoiceTotalPence": 2500,
+      "status": "active"
+    },
+    {
+      "name": "paid transition landlord monthly",
+      "passed": true,
+      "invoiceAmountDuePence": 0,
+      "invoiceTotalPence": -2500,
+      "status": "active"
+    },
+    {
+      "name": "paid transition landlord yearly",
+      "passed": true,
+      "invoiceAmountDuePence": 19901,
+      "invoiceTotalPence": 22401,
+      "status": "active"
+    },
+    {
+      "name": "paid transition landlord monthly",
+      "passed": true,
+      "invoiceAmountDuePence": 0,
+      "invoiceTotalPence": -22401,
+      "status": "active"
+    },
+    {
+      "name": "cancel resubscribe and delayed old deletion preserve the new subscription",
+      "passed": true
+    },
+    {
+      "name": "provider success followed by lost database save recovers without duplicate billing",
+      "passed": true
+    },
+    {
+      "name": "declined and abandoned first payment never grants active entitlement",
+      "passed": true
+    },
+    {
+      "name": "3DS action required leaves entitlement incomplete and is resumable",
+      "passed": true,
+      "paymentIntentStatus": "requires_action",
+      "interactiveChallengeCompleted": false
+    },
+    {
+      "name": "failed upgrade keeps paid tier and recovery applies pending change",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "testCustomersCreated": 5,
+  "testCustomersRemoved": 5,
+  "transport": "Actual application subscription service and webhook functions, real Stripe test API, real isolated PostgreSQL with current migration; minimal SQL adapter substitutes for PostgREST transport. HTTP auth and native UI remain F12."
+}
