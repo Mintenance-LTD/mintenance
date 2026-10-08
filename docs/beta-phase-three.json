@@ -1,0 +1,40 @@
+{
+  "phase": "F03",
+  "auditFindings": [
+    "E04"
+  ],
+  "implementation": [
+    "Move key-safe values into an RLS-protected private table; the old public property column remains NULL for SELECT-star compatibility.",
+    "Atomically redirect authorized server writes, including clearing a code, into private storage.",
+    "Reject direct client secret writes and deny direct access to the private table and secret-reading RPC.",
+    "Use a service-only RPC with independent owner/admin or assigned-contractor/time-window checks.",
+    "Hydrate only authorized API and server-rendered property/job responses; never rely on client-side masking."
+  ],
+  "verification": {
+    "database": "47 PostgreSQL 17 checks passed, including all 30 Phase 2 checks and 17 private-secret checks.",
+    "focusedWeb": "17 tests passed; the strengthened owner-versus-manager RPC assertions also passed.",
+    "coverage": [
+      "backfill",
+      "direct read denial",
+      "owner/admin access",
+      "payer/outsider denial",
+      "contractor assignment",
+      "one-hour reveal",
+      "unscheduled visits",
+      "completed/cancelled/disputed denial",
+      "atomic write/rollback",
+      "clear",
+      "cascade deletion"
+    ],
+    "typescript": "passed",
+    "fullWeb": "4504 passed; one CWD-dependent test failed from repository root. Its full 15-test suite passed from apps/web, with no source change."
+  },
+  "rollout": {
+    "databaseApplied": false,
+    "applicationDeployed": false,
+    "migration": "supabase/migrations/20261007232435_private_property_entry_secrets.sql",
+    "order": "Apply the private-storage migration and deploy the updated readers in a coordinated release window. Old readers safely return NULL after migration; new readers require the RPC to exist. Avoid a prolonged interval between the two.",
+    "rollback": "Preserve the private table and NULL public column. A rollback must not copy physical-entry secrets back into generally readable property rows.",
+    "verificationAfterDeployment": "Confirm grants, public-column NULL invariant and owner/contractor reveal using controlled accounts without logging real codes."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "phase": "F02",
+  "auditFindings": [
+    "B01",
+    "B02",
+    "E01",
+    "E02",
+    "attachment namespace deployment drift"
+  ],
+  "implementation": [
+    "Revoke direct client job inserts and review, membership and appointment mutations, including column grants.",
+    "Add restrictive policies so permissive legacy policies cannot reopen those write paths.",
+    "Preserve service-role API writes and existing reads.",
+    "Serialize active-owner removal using the parent organization row; reject deletion, demotion and reassignment of the last owner.",
+    "Reject manager removal of any owner through the members API.",
+    "Constrain attachment writes to the caller's own namespace or a job where the caller is homeowner, contractor or designated payer."
+  ],
+  "verification": {
+    "database": "30 checks passed on isolated PostgreSQL 17, including separate concurrent connections under READ COMMITTED and REPEATABLE READ.",
+    "databaseCommand": "npm ci --prefix scripts/db-tests && npm test --prefix scripts/db-tests",
+    "linuxPreparation": "Run scripts/hydrate-symlinks.js from the installed @embedded-postgres/linux-x64 package directory; the CI job includes this step.",
+    "api": "27 focused tests passed across owner boundaries, job reviews and payer delegation.",
+    "sharedPackages": "All 10 package builds passed.",
+    "schemaScope": "Focused real-PostgreSQL fixture using the affected table/role/policy shapes; full Supabase-stack release checks remain in F12.",
+    "webTypeCheck": "passed, exit 0 after workspace build and Next.js type generation"
+  },
+  "rollout": {
+    "databaseApplied": false,
+    "applicationDeployed": false,
+    "migration": "supabase/migrations/20261007230825_beta_authoritative_mutations.sql",
+    "instructions": "Deploy the reviewed API change and apply only this migration after checking the recorded timestamp drift. Do not blindly replay all repository-only migration timestamps against production.",
+    "rollback": "Disable a failing feature or roll back compatible application code; do not restore unsafe direct-write grants as an automatic rollback.",
+    "compatibility": "Current source writes use service-role APIs. Native acceptance against the recorded Android build remains a release gate."
+  }
+}

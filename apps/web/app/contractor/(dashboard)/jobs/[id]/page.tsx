@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 import { redirect } from 'next/navigation';
@@ -251,9 +252,7 @@ export default async function ContractorJobDetailPage({
           | 'in_person'
           | null,
         key_safe_code: canSeeKeySafeCode
-          ? (((property as Record<string, unknown>).key_safe_code as
-              | string
-              | null) ?? null)
+          ? await readPropertyEntrySecret(job.property_id, user.id, job.id)
           : null,
         access_notes:
           ((property as Record<string, unknown>).access_notes as

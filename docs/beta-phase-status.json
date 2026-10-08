@@ -1,5 +1,5 @@
 {
-  "recordedOn": "2026-10-07",
+  "recordedOn": "2026-10-08",
   "phaseOrder": [
     "F01",
     "F02",
@@ -15,50 +15,58 @@
     "F12"
   ],
   "rule": "Finish, verify, commit and push one phase before starting the next.",
-  "currentPhase": "F01",
-  "status": "blocked_on_external_access",
+  "currentPhase": "F03",
+  "status": "implementation_verified",
   "repository": "Mintenance-LTD/mintenance",
-  "baseBranch": "Main",
-  "baseCommit": "1f2349ccf98f4702a1b870157660c80fe440588b",
-  "workBranch": "fix/beta-readiness-phases",
+  "baseBranch": "main",
+  "baseCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
+  "workBranch": "fix/beta-readiness-production",
   "baseline": {
-    "trackedFilesAtBase": 6364,
-    "auditedSnapshotChangedTrackedFiles": 350,
+    "trackedFilesAtBase": 6585,
+    "auditedSnapshotChangedTrackedFiles": 0,
     "auditedSnapshotMissingTrackedFiles": 0,
     "comparisonIgnoresLineEndings": true,
-    "lockfileSha256": "c30fe80658197d395a75d289ea6e0dfee6ab2086e4b453009f4ebf1ad94fe712",
+    "lockfileSha256": "0f02c1e915e1aea8dc3c5f30f9f475a292cb6c64677dafe24fe50e4e8d9bd3cb",
     "mobileSourceVersion": "1.2.4",
     "mobileSourceIosBuild": "17",
-    "mobileSourceAndroidVersionCode": 26,
-    "distributedMobileBuild": "not independently verified",
+    "mobileSourceAndroidVersionCode": 35,
+    "distributedMobileBuild": {
+      "platform": "android",
+      "buildId": "e919866a-57c5-4943-b0e8-60fda46c4243",
+      "url": "https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/e919866a-57c5-4943-b0e8-60fda46c4243",
+      "evidence": "User supplied this exact build as the distributed Android baseline. Expo page metadata was not accessible through web fetch; version code is not independently verified."
+    },
     "productionDatabaseMigrationCount": 391,
     "productionDatabaseLatestMigration": "20261007145410",
-    "migrationNote": "Full version comparison recorded in docs/beta-migration-baseline.json: 377 shared, 14 production-only, 1 repository-only; SQL equivalence not established.",
-    "deployedWebApiCommit": "not verified: Vercel deployment listing returned 403",
-    "commitDeploymentChecks": {
-      "mintenanceWeb": "failure",
-      "mintenanceClean": "success",
-      "note": "GitHub status checks on baseCommit; does not establish currently promoted production build"
-    }
+    "migrationNote": "All six timestamp-divergent migration counterparts are SQL-identical. The unmatched storage migration is only partly present in production; missing attachment policies added to F02.",
+    "deployedWebApiCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
+    "mobileRuntimeVersion": "1.2.4-sqlcipher1",
+    "deploymentId": "dpl_5H5tbYQhmVtuBrwh3dKa85spDdmW",
+    "productionDomain": "www.mintenance.co.uk",
+    "vercelTeam": "mintenance",
+    "vercelProject": "mintenance-clean"
   },
   "accessChecks": {
     "gitPushDryRun": "passed using local Git authentication",
     "githubConnector": "read-only; local Git supports the authorized push workflow",
-    "stripeRead": "both existing local environment configurations returned HTTP 401 api_key_expired",
-    "stripeAccountAndMode": "not verified",
-    "vercelDeployments": "HTTP 403 for the configured production team/project; no local CLI available"
+    "stripeRead": "GET /v1/account and GET /v1/balance succeeded (HTTP 200)",
+    "stripeAccountAndMode": "intended account matched; balance.livemode=true",
+    "vercelDeployments": "verified using the user-supplied mintenance team scope and production domain"
   },
-  "remainingPhaseOneChecks": [
-    "Configure a working authorized Stripe read credential and verify intended account/mode.",
-    "Obtain deployment metadata access and record the deployed web/API commit.",
-    "Verify distributed mobile build identifiers or explicitly establish that none is distributed.",
-    "Resolve or document the schema equivalence of the 14 production-only and one repository-only migration versions before changing database invariants."
-  ],
-  "laterPhasesStarted": false,
+  "remainingPhaseOneChecks": [],
+  "laterPhasesStarted": true,
   "notes": [
-    "This is a preparation checkpoint, not completion of F01 or a beta release approval.",
-    "Revalidate audit findings against this baseline before implementation because 350 tracked files differ.",
-    "No production changes, billing actions, environment files or raw audit data are included."
+    "No production changes, billing actions, environment files or raw audit data are included.",
+    "The earlier Main baseline was the repository default, not the production branch. The verified lowercase main baseline matches every tracked file in the audited snapshot.",
+    "F01 baseline complete: exact user-confirmed distributed Android build identified; native execution remains an F12 release check.",
+    "F02 implementation passed 30 PostgreSQL checks, 27 API tests, all 10 package builds and web type checking. Phase advancement occurs only after remote commit verification.",
+    "F03 implementation passed 47 PostgreSQL checks and web TypeScript. Full web run: 4504 passed, one working-directory-dependent test failed; all 15 tests in that suite passed when rerun from apps/web. Production rollout remains pending."
   ],
-  "acceptanceBaseline": "docs/beta-acceptance-baseline.json"
+  "acceptanceBaseline": "docs/beta-acceptance-baseline.json",
+  "completedPhases": [
+    "F01",
+    "F02",
+    "F03"
+  ],
+  "productionRollout": "pending F12 release gates; no production mutations performed"
 }

@@ -1,6 +1,6 @@
 {
   "status": "baseline_defined_not_executed",
-  "sourceCommit": "1f2349ccf98f4702a1b870157660c80fe440588b",
+  "sourceCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
   "source": "Repository journey tests and audited application flows; separate user-authored flow document unavailable",
   "existingTests": [
     "apps/web/e2e/full-user-journey.spec.ts",
@@ -13,12 +13,54 @@
     "apps/mobile/e2e/payment-flow.test.ts"
   ],
   "requiredJourneys": [
-    {"role":"homeowner","platforms":["web","ios","android"],"flow":"Register/verify, property, post job, bids, contract, fund, inspect/rework, approve, review"},
-    {"role":"contractor","platforms":["web","ios","android"],"flow":"Onboard/verify, Connect onboarding, discover, bid, sign, before/after evidence, complete, earnings, transfer and bank payout"},
-    {"role":"designated payer","platforms":["web","ios","android"],"flow":"Authorized job visibility, messaging, funding and receipt; unrelated jobs denied"},
-    {"role":"organization/property team","platforms":["supported web and mobile surfaces"],"flow":"Invite, accept, permitted role changes, property access and restricted entry-secret reveal"},
-    {"role":"tenant","platforms":["supported web and mobile surfaces"],"flow":"Authorized property/job interactions without owner or organization-management privileges"},
-    {"role":"admin","platforms":["web"],"flow":"Verification, holds, disputes, recovery and audited role-appropriate actions"}
+    {
+      "role": "homeowner",
+      "platforms": [
+        "web",
+        "ios",
+        "android"
+      ],
+      "flow": "Register/verify, property, post job, bids, contract, fund, inspect/rework, approve, review"
+    },
+    {
+      "role": "contractor",
+      "platforms": [
+        "web",
+        "ios",
+        "android"
+      ],
+      "flow": "Onboard/verify, Connect onboarding, discover, bid, sign, before/after evidence, complete, earnings, transfer and bank payout"
+    },
+    {
+      "role": "designated payer",
+      "platforms": [
+        "web",
+        "ios",
+        "android"
+      ],
+      "flow": "Authorized job visibility, messaging, funding and receipt; unrelated jobs denied"
+    },
+    {
+      "role": "organization/property team",
+      "platforms": [
+        "supported web and mobile surfaces"
+      ],
+      "flow": "Invite, accept, permitted role changes, property access and restricted entry-secret reveal"
+    },
+    {
+      "role": "tenant",
+      "platforms": [
+        "supported web and mobile surfaces"
+      ],
+      "flow": "Authorized property/job interactions without owner or organization-management privileges"
+    },
+    {
+      "role": "admin",
+      "platforms": [
+        "web"
+      ],
+      "flow": "Verification, holds, disputes, recovery and audited role-appropriate actions"
+    }
   ],
   "crossCutting": [
     "Session restart, password recovery, export and deletion",

@@ -4,6 +4,7 @@ import {
   createRequestScopedClient,
 } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
@@ -242,7 +243,7 @@ export async function handleGet(
         propertyAccess = {
           access_mode: (p.access_mode as string | null) ?? null,
           key_safe_code: canSeeCode
-            ? ((p.key_safe_code as string | null) ?? null)
+            ? await readPropertyEntrySecret(row.property_id as string, user.id, row.id as string)
             : null,
           access_notes: (p.access_notes as string | null) ?? null,
           stopcock_location: (p.stopcock_location as string | null) ?? null,

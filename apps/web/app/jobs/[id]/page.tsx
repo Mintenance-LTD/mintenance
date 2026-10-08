@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { redirect } from 'next/navigation';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
@@ -195,6 +196,9 @@ export default async function JobDetailPage2025({
       .eq('id', user.id)
       .single(),
   ]);
+  if (property && job.property_id) {
+    property.key_safe_code = await readPropertyEntrySecret(job.property_id, user.id, job.id);
+  }
 
   if (bidsError) {
     logger.error('JobDetailPage2025 - Bids query error', {

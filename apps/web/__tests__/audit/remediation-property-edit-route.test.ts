@@ -32,12 +32,14 @@ describe('property edit response and attachment persistence', () => {
     mocks.actor.id = 'manager';
     mocks.actor.role = 'homeowner';
     mocks.authorize.mockResolvedValue({ authorized: true, role: 'manager' });
-    mocks.rpc.mockResolvedValue({
+    mocks.rpc.mockImplementation(async (name: string) => name === 'read_property_entry_secret' ? {
+      data: 'synthetic-entry-code', error: null,
+    } : {
       data: {
         id: 'property',
         owner_id: 'owner',
         property_name: 'Renamed',
-        key_safe_code: 'synthetic-entry-code',
+        key_safe_code: null,
       },
       error: null,
     });
@@ -68,6 +70,7 @@ describe('property edit response and attachment persistence', () => {
         p_create: false,
       })
     );
+    expect(mocks.rpc).not.toHaveBeenCalledWith('read_property_entry_secret', expect.anything());
   });
 
   it('retains owner access to the entry code', async () => {
@@ -77,6 +80,9 @@ describe('property edit response and attachment persistence', () => {
     });
     expect(await response.json()).toMatchObject({
       data: { key_safe_code: 'synthetic-entry-code' },
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith('read_property_entry_secret', {
+      p_property_id: 'property', p_actor_id: 'owner', p_job_id: null,
     });
   });
 
