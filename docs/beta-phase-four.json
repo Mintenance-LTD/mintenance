@@ -1,7 +1,7 @@
 {
   "phase": "F04",
   "recordedOn": "2026-10-08",
-  "status": "implementation_verified_awaiting_stripe_sandbox",
+  "status": "implementation_and_provider_verified",
   "auditFindings": [
     "E03",
     "same-plan billing-cycle equality"
@@ -22,13 +22,10 @@
     "focusedWeb": "45 service, webhook and route tests passed after the final cancellation recovery adjustment.",
     "fullWeb": "483 test files / 4532 tests passed before the final cancellation recovery adjustment; the affected 45-test group was rerun afterward.",
     "types": "Web TypeScript passed, including the final incremental check after cancellation recovery changes.",
-    "providerCalls": "Mocked for service tests. No live Stripe subscription, charge, refund or cancellation was performed."
+    "providerCalls": "10 real Stripe sandbox scenarios passed against the actual application service and local PostgreSQL. All five test customers from the successful run were removed. No live-mode mutation.",
+    "sandboxEvidence": "docs/beta-phase-four-sandbox.json"
   },
-  "requiredBeforePhaseCompletion": [
-    "Configure a Stripe sandbox secret securely as STRIPE_TEST_SECRET_KEY; the only available local Stripe secret is live mode.",
-    "Execute the plan's Stripe sandbox matrix: Landlord to Agency, downgrade, monthly to yearly and back, 3DS, abandoned/failed payment, timeout/retry, cancellation/resubscription and out-of-order webhooks.",
-    "Assert provider subscription count, invoice amounts, local state and entitlement agree. Mocked service tests do not satisfy this provider gate."
-  ],
+  "requiredBeforePhaseCompletion": [],
   "rollout": {
     "databaseApplied": false,
     "applicationDeployed": false,
@@ -41,5 +38,9 @@
   "references": [
     "https://docs.stripe.com/billing/subscriptions/pending-updates",
     "https://supabase.com/docs/reference/javascript/upsert"
+  ],
+  "remainingReleaseChecks": [
+    "Complete the interactive 3DS challenge on the exact web and Android/iOS candidates in F12; this run verified requires_action, incomplete entitlement and resumability.",
+    "Verify deployed HTTP authentication, webhook delivery and PostgREST transport in F12."
   ]
 }
