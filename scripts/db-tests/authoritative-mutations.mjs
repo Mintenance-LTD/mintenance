@@ -1,6 +1,7 @@
 // npm ci --prefix scripts/db-tests && npm test --prefix scripts/db-tests
 // Starts its own loopback-only PostgreSQL 17 cluster; never reads app env files.
 import assert from 'node:assert/strict';
+import { testHomeownerSubscriptions } from './homeowner-subscriptions.mjs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -157,6 +158,7 @@ try {
   }
   await check('intentional organization deletion can cascade', () => as('service_role',`DELETE FROM organizations WHERE id='${uid(60)}'`));
   await testPropertyEntrySecrets({ admin, as, check, uid, root });
+  await testHomeownerSubscriptions({ admin, as, check, uid, root, config });
   console.log(`PASS ${passed} database regression checks on PostgreSQL 17; production untouched.`);
 } finally {
   if(connected) await admin.end();

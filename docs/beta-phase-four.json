@@ -1,0 +1,45 @@
+{
+  "phase": "F04",
+  "recordedOn": "2026-10-08",
+  "status": "implementation_verified_awaiting_stripe_sandbox",
+  "auditFindings": [
+    "E03",
+    "same-plan billing-cycle equality"
+  ],
+  "behavior": [
+    "A first purchase reserves a unique current subscription row before provider writes. Retries use that persisted row ID as the Stripe idempotency key.",
+    "Provider metadata recovers a successful creation after a lost database save. Unresolved creation attempts older than 23 hours fail closed rather than reuse an expired Stripe idempotency key.",
+    "Landlord/Agency and monthly/yearly changes replace the existing subscription item. Stripe always invoices prorations immediately; the new tier takes effect only when the pending update is applied after payment.",
+    "Pending payment retries reuse the existing invoice. A different change is blocked while an update is pending. An unpaid initial subscription must be completed or explicitly canceled before changing its plan.",
+    "Current entitlement is derived from the actual provider item, not the requested tier or stale subscription metadata.",
+    "Homeowner webhooks retrieve current Stripe state and synchronize the subscription and profile atomically. Historical subscription events and stale activation after terminal cancellation cannot restore access.",
+    "Cancellation retries recover a provider cancellation that succeeded before local persistence failed.",
+    "Direct client subscription mutations are revoked and restricted; existing server-mediated web/mobile calls remain available.",
+    "Existing orphaned or multiple provider subscriptions are held for reconciliation; no automatic bulk cancellation is performed."
+  ],
+  "verification": {
+    "database": "56 isolated PostgreSQL 17 checks passed, including simultaneous first-purchase reservations, historical event handling, terminal-state protection, rollback and direct-client denials.",
+    "focusedWeb": "45 service, webhook and route tests passed after the final cancellation recovery adjustment.",
+    "fullWeb": "483 test files / 4532 tests passed before the final cancellation recovery adjustment; the affected 45-test group was rerun afterward.",
+    "types": "Web TypeScript passed, including the final incremental check after cancellation recovery changes.",
+    "providerCalls": "Mocked for service tests. No live Stripe subscription, charge, refund or cancellation was performed."
+  },
+  "requiredBeforePhaseCompletion": [
+    "Configure a Stripe sandbox secret securely as STRIPE_TEST_SECRET_KEY; the only available local Stripe secret is live mode.",
+    "Execute the plan's Stripe sandbox matrix: Landlord to Agency, downgrade, monthly to yearly and back, 3DS, abandoned/failed payment, timeout/retry, cancellation/resubscription and out-of-order webhooks.",
+    "Assert provider subscription count, invoice amounts, local state and entitlement agree. Mocked service tests do not satisfy this provider gate."
+  ],
+  "rollout": {
+    "databaseApplied": false,
+    "applicationDeployed": false,
+    "migration": "supabase/migrations/20261007234517_homeowner_subscription_transitions.sql",
+    "order": "After sandbox verification, release this migration with the updated API/webhook code in a coordinated window. The old API must not serve subscription transitions during the changeover.",
+    "rollback": "Retain billing mutation restrictions. Disable transition writes if rolling back application code; do not restore the duplicate-subscription implementation.",
+    "phaseFiveStarted": false
+  },
+  "followUpFinding": "The separate Home Health service inserts plan_type=home_health, while the inspected canonical homeowner subscription constraint allows only landlord/agency. Verify this optional product's live schema and beta scope in F08; this phase does not certify Home Health.",
+  "references": [
+    "https://docs.stripe.com/billing/subscriptions/pending-updates",
+    "https://supabase.com/docs/reference/javascript/upsert"
+  ]
+}
