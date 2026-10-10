@@ -1,4 +1,5 @@
 'use client';
+import { fetchAllMessageThreads } from '@/lib/messages/fetch-threads';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -77,11 +78,8 @@ interface ApiThread {
 }
 
 async function fetchThreads(userId: string): Promise<Conversation[]> {
-  const response = await fetch('/api/messages/threads');
-  if (!response.ok) throw new Error('Failed to fetch conversations');
-
-  const data = await response.json();
-  return (data.threads || []).map((thread: ApiThread) => {
+  const threads = await fetchAllMessageThreads<ApiThread>();
+  return threads.map((thread: ApiThread) => {
     const otherParticipant = thread.participants.find(
       (p: Participant) => p.id !== userId
     );

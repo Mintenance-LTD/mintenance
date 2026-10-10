@@ -272,13 +272,13 @@ const EditProfileScreen: React.FC = () => {
             text: 'OK',
             onPress: () => {
               allowExit();
-              navigation.goBack();
+              navigation.dispatch({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
             },
           },
         ]);
       } else {
         allowExit();
-        navigation.goBack();
+        navigation.dispatch({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
       }
     } catch (error) {
       const msg =
@@ -361,7 +361,7 @@ const EditProfileScreen: React.FC = () => {
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.dispatch({ type: 'POP_TO', payload: { name: 'ProfileMain' } })}
           accessibilityRole='button'
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -393,7 +393,7 @@ const EditProfileScreen: React.FC = () => {
           photoUri={photoUri}
           firstName={firstName}
           lastName={lastName}
-          profileImageUrl={user?.profile_image_url}
+          profileImageUrl={user?.profile_image_url || user?.avatar_url}
           onPickPhoto={handlePickPhoto}
         />
         <PersonalInfoSection
