@@ -8,6 +8,7 @@
     "F05",
     "F06",
     "F07",
+    "F07A",
     "F08",
     "F09",
     "F10",
@@ -15,8 +16,8 @@
     "F12"
   ],
   "rule": "Finish, verify, commit and push one phase before starting the next.",
-  "currentPhase": "F06",
-  "status": "verified",
+  "currentPhase": "F07",
+  "status": "implementation_verified",
   "repository": "Mintenance-LTD/mintenance",
   "baseBranch": "main",
   "baseCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
@@ -63,7 +64,8 @@
     "F03 implementation passed 47 PostgreSQL checks and web TypeScript. Full web run: 4504 passed, one working-directory-dependent test failed; all 15 tests in that suite passed when rerun from apps/web. Production rollout remains pending.",
     "F04 source checks and all 10 real Stripe sandbox scenarios passed. Interactive client challenge completion and deployed transport remain F12. No live-mode billing mutation.",
     "F05 verified all 7 escrow rows and all 5 homeowner subscriptions against the intended live Stripe account, with test-mode lookup for the missing held intent. No duplicate subscription charges found in the inspected scope. Corrections are review candidates; unresolved holds are documented and no production mutation was performed.",
-    "F06: all 10 actual Stripe test-mode/loopback PostgreSQL payout scenarios passed. Friday production cron independently observed one matching GBP 1.20 transfer and one ledger debit. Bank payout is in_transit, not confirmed settled. No live mutation by audit."
+    "F06: all 10 actual Stripe test-mode/loopback PostgreSQL payout scenarios passed. Friday production cron independently observed one matching GBP 1.20 transfer and one ledger debit. Bank payout is in_transit, not confirmed settled. No live mutation by audit.",
+    "F07 inbox implementation verified with 201 conversations, composite/snapshot cursor, authorized payer projection and paginating clients. New user-reported signup/profile/media/mobile issues prioritized as F07A before F08."
   ],
   "acceptanceBaseline": "docs/beta-acceptance-baseline.json",
   "completedPhases": [
@@ -72,7 +74,8 @@
     "F03",
     "F04",
     "F05",
-    "F06"
+    "F06",
+    "F07"
   ],
   "productionRollout": "pending F12 release gates; no production mutations performed",
   "remainingPhaseFourChecks": []

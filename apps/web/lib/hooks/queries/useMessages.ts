@@ -8,6 +8,7 @@
  */
 
 'use client';
+import { fetchAllMessageThreads } from '@/lib/messages/fetch-threads';
 
 import {
   useQuery,
@@ -57,21 +58,7 @@ interface Conversation {
  * any consumer of this hook would 404.
  */
 async function fetchConversations(): Promise<Conversation[]> {
-  const response = await fetch('/api/messages/threads', {
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ error: 'Failed to fetch conversations' }));
-    throw new Error(error.error || 'Failed to fetch conversations');
-  }
-
-  const data = await response.json();
-  // Both `threads` and `conversations` keys are accepted to stay
-  // compatible with whatever the route returns now and in the future.
-  return data.threads || data.conversations || [];
+  return fetchAllMessageThreads<Conversation>();
 }
 
 /**

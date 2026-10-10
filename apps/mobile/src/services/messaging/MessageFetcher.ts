@@ -91,7 +91,7 @@ export async function getUserMessageThreads(
   _userId: string
 ): Promise<MessageThread[]> {
   try {
-    const { threads } = await mobileApiClient.get<{
+    type ThreadPage = {
       threads: Array<{
         jobId: string;
         jobTitle: string;
@@ -109,8 +109,25 @@ export async function getUserMessageThreads(
           createdAt?: string;
         };
       }>;
-    }>('/api/messages/threads');
-    if (!Array.isArray(threads)) return [];
+      nextCursor?: string;
+    };
+    const byJob = new Map<string, ThreadPage['threads'][number]>();
+    const seenCursors = new Set<string>();
+    let cursor: string | undefined;
+    do {
+      const url = cursor
+        ? '/api/messages/threads?cursor=' + encodeURIComponent(cursor)
+        : '/api/messages/threads';
+      const page: ThreadPage = await mobileApiClient.get<ThreadPage>(url);
+      for (const thread of Array.isArray(page?.threads) ? page.threads : []) {
+        if (!byJob.has(thread.jobId)) byJob.set(thread.jobId, thread);
+      }
+      cursor = page?.nextCursor;
+      if (cursor && seenCursors.has(cursor))
+        throw new Error('Inbox pagination did not advance');
+      if (cursor) seenCursors.add(cursor);
+    } while (cursor);
+    const threads = [...byJob.values()];
 
     return threads.map((t) => ({
       jobId: t.jobId,
