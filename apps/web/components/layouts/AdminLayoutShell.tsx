@@ -78,7 +78,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       : user.email.charAt(0).toUpperCase();
 
   return (
-    <div className='flex min-h-screen bg-[#f7f9fb]'>
+    <div className='flex min-h-screen bg-[#f3f7f4]'>
       {/* Skip to content */}
       <a
         href='#main-content'
@@ -90,19 +90,19 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       {/* Sidebar */}
       <aside
         aria-label='Admin navigation sidebar'
-        className={`fixed left-0 top-0 h-screen z-50 flex flex-col bg-slate-950 shadow-[20px_0_50px_rgba(0,0,0,0.2)] transition-all duration-300 ${
+        className={`fixed left-0 top-0 h-screen z-50 flex flex-col bg-[#e9f1eb] border-r border-[#d8e2da] transition-all duration-300 ${
           isCollapsed ? 'w-20' : 'w-64'
         }`}
       >
         {/* Logo */}
         <div className='px-6 py-5 flex items-center justify-between'>
           <div className='flex items-center gap-3'>
-            <div className='w-8 h-8 rounded-lg bg-[#565e74] flex items-center justify-center flex-shrink-0'>
+            <div className='w-8 h-8 rounded-lg bg-[#2f6f5f] flex items-center justify-center flex-shrink-0'>
               <Icon name='building' size={16} color='#dae2fd' />
             </div>
             {!isCollapsed && (
               <div>
-                <h1 className='text-xl font-bold tracking-tighter text-white leading-none'>
+                <h1 className='text-xl font-bold tracking-tighter text-[#1a2520] leading-none'>
                   Mintenance
                 </h1>
                 <p className='text-[10px] text-slate-500 uppercase tracking-widest mt-0.5'>
@@ -116,7 +116,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className='w-7 h-7 rounded-full bg-white/10 text-white/60 flex items-center justify-center hover:bg-white/20 hover:text-white transition-all flex-shrink-0'
+              className='w-7 h-7 rounded-full bg-[#dceae5] text-[#4a5751] flex items-center justify-center hover:bg-[#dee9e0] hover:text-[#245748] transition-all flex-shrink-0'
             >
               <Icon
                 name={isCollapsed ? 'chevronRight' : 'chevronLeft'}
@@ -143,14 +143,14 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
         </nav>
 
         {/* User + Logout */}
-        <div className='px-4 py-4 border-t border-white/10 mt-auto'>
+        <div className='px-4 py-4 border-t border-[#d8e2da] mt-auto'>
           <div className='flex items-center gap-3 mb-4'>
-            <div className='w-10 h-10 rounded-full bg-[#565e74] flex items-center justify-center text-white font-bold text-sm flex-shrink-0'>
+            <div className='w-10 h-10 rounded-full bg-[#2f6f5f] flex items-center justify-center text-white font-bold text-sm flex-shrink-0'>
               {userInitials}
             </div>
             {!isCollapsed && (
               <div className='flex-1 min-w-0'>
-                <p className='text-sm font-semibold text-white truncate'>
+                <p className='text-sm font-semibold text-[#1a2520] truncate'>
                   {user.first_name && user.last_name
                     ? `${user.first_name} ${user.last_name}`
                     : user.email}
@@ -163,7 +163,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
             onClick={handleLogout}
             disabled={isLoggingOut}
             aria-label='Log out of admin panel'
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all text-sm ${
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[#4a5751] hover:text-[#245748] hover:bg-[#dee9e0] transition-all text-sm ${
               isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
@@ -202,14 +202,14 @@ function SidebarSection({
     <div className='mb-1'>
       {section.title && !isCollapsed && (
         <>
-          <div className='h-px bg-white/[0.08] mx-2 my-2' />
+          <div className='h-px bg-[#d8e2da] mx-2 my-2' />
           <p className='text-[10px] font-bold uppercase tracking-widest text-slate-500 px-4 py-1'>
             {section.title}
           </p>
         </>
       )}
       {section.title && isCollapsed && (
-        <div className='h-px bg-white/[0.08] mx-3 my-2' />
+        <div className='h-px bg-[#d8e2da] mx-3 my-2' />
       )}
       {section.items.map((item) => (
         <SidebarLink
@@ -239,15 +239,15 @@ function SidebarLink({
       aria-current={active ? 'page' : undefined}
       className={`flex items-center gap-3 px-4 py-2.5 my-0.5 rounded-lg text-sm transition-all ${
         active
-          ? 'bg-white/[0.08] text-[#dae2fd] font-semibold'
-          : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.05]'
+          ? 'bg-[#dceae5] text-[#245748] font-semibold'
+          : 'text-[#4a5751] hover:text-[#245748] hover:bg-[#dee9e0]'
       }`}
     >
       <div className='w-5 h-5 flex items-center justify-center flex-shrink-0'>
         <Icon
           name={item.icon}
           size={18}
-          color={active ? '#dae2fd' : 'currentColor'}
+          color={active ? '#245748' : 'currentColor'}
         />
       </div>
       {!isCollapsed && (
