@@ -37,7 +37,7 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div
       style={{
-        textAlign: 'center',
+        textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: theme.spacing[8],
         color: '#64748B',
       }}

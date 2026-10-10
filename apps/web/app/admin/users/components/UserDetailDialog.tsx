@@ -82,15 +82,9 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
     setLoading(true);
     setError(null);
     try {
-      // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
       const response = await adminFetch(`/api/admin/users/${userId}`, {
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      }, 15000);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to fetch user details' }));

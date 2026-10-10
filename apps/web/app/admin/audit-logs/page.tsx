@@ -1,4 +1,5 @@
 'use client';
+import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -81,7 +82,7 @@ interface AuditFilters {
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
-async function fetchAuditLogs(filters: AuditFilters): Promise<AuditLogsResponse> {
+async function fetchAuditLogs(filters: AuditFilters, request: (url: string, options?: RequestInit) => Promise<Response>): Promise<AuditLogsResponse> {
   const params = new URLSearchParams();
   params.set('limit', '100');
   if (filters.search) params.set('search', filters.search);
@@ -89,11 +90,10 @@ async function fetchAuditLogs(filters: AuditFilters): Promise<AuditLogsResponse>
   if (filters.status !== 'all') params.set('status', filters.status);
   if (filters.dateRange !== 'all') params.set('dateRange', filters.dateRange);
 
-  const response = await fetch(`/api/admin/audit-logs?${params.toString()}`);
+  const response = await request(`/api/admin/audit-logs?${params.toString()}`);
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(body || `Failed to fetch audit logs (${response.status})`);
+    throw new Error(response.status === 401 ? 'Your session has expired. Sign in again to view audit logs.' : 'Unable to load audit logs. Please try again.');
   }
 
   return response.json();
@@ -188,7 +188,7 @@ function formatDetails(details: AuditLog['details']): string {
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
-export default function AuditLogsPage() {
+export default function AuditLogsPage() { const adminFetch = useAdminFetch();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAction, setSelectedAction] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -212,10 +212,10 @@ export default function AuditLogsPage() {
     isFetching,
   } = useQuery({
     queryKey: ['admin', 'audit-logs', filters],
-    queryFn: () => fetchAuditLogs(filters),
+    queryFn: () => fetchAuditLogs(filters, adminFetch),
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
+    retry: false,
   });
 
   const errorMessage = queryError instanceof Error ? queryError.message : queryError ? 'Failed to load audit logs' : null;

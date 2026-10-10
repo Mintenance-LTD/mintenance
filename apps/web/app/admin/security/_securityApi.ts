@@ -25,10 +25,10 @@ export interface SecurityDashboardData {
   threatsByType: Array<{ type: string; count: number }>;
 }
 
-export async function fetchSecurityDashboard(): Promise<SecurityDashboardData> {
-  const response = await fetch('/api/admin/security-dashboard');
+export async function fetchSecurityDashboard(request: (url: string, options?: RequestInit) => Promise<Response> = fetch): Promise<SecurityDashboardData> {
+  const response = await request('/api/admin/security-dashboard');
   if (!response.ok) {
-    throw new Error('Failed to fetch security dashboard data');
+    throw new Error(response.status === 401 ? 'Your session has expired. Sign in again to view security events.' : 'Unable to load security events. Please try again.');
   }
   return response.json();
 }
@@ -49,10 +49,10 @@ export type SecurityActionPayload =
   | { action: 'unblock_ip'; ipAddress: string };
 
 export async function postSecurityAction(
-  payload: SecurityActionPayload
+  payload: SecurityActionPayload, request: (url: string, options?: RequestInit) => Promise<Response> = fetch
 ): Promise<{ success: boolean }> {
   const csrfHeaders = await getCsrfHeaders();
-  const response = await fetch('/api/admin/security-dashboard', {
+  const response = await request('/api/admin/security-dashboard', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...csrfHeaders },

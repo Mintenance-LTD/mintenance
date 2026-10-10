@@ -14,3 +14,7 @@
 .admin-verification-bar button { border: 1px solid var(--me-line); background: white; color: var(--me-brand); border-radius: 10px; padding: 8px 12px; font-weight: 600; }
 .admin-theme #main-content h2 { font-size: clamp(24px, 2.5vw, 32px); font-weight: 600; letter-spacing: -.025em; }
 .admin-theme #main-content { background: var(--me-bg); }
+.mfa-step-up-dialog[data-theme='mint-editorial'] { color: var(--me-ink); font-family: var(--font-geist), Arial, sans-serif; border: 1px solid var(--me-line); border-radius: 20px; width: calc(100% - 32px); padding: 28px; }
+.mfa-step-up-dialog[data-theme='mint-editorial'] form > .flex { flex-wrap: wrap; }
+.mfa-step-up-dialog[data-theme='mint-editorial'] input { letter-spacing: .15em; }
+[role='dialog'][data-theme='mint-editorial'] { color: var(--me-ink); font-family: var(--font-geist), Arial, sans-serif; border-color: var(--me-line); border-radius: 20px; max-height: calc(100dvh - 32px); overflow-y: auto; }

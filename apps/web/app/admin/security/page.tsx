@@ -1,5 +1,7 @@
 'use client';
+import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 
+import { Card, Button } from '@mintenance/shared-ui';
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -58,7 +60,7 @@ const staggerItem = {
   visible: { opacity: 1, y: 0 },
 };
 
-export default function AdminSecurityDashboard2025() {
+export default function AdminSecurityDashboard2025() { const adminFetch = useAdminFetch();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,14 +69,14 @@ export default function AdminSecurityDashboard2025() {
 
   const {
     data,
-    isLoading,
+    isLoading, refetch,
     error: queryError,
   } = useQuery({
     queryKey: ['admin', 'security-dashboard'],
-    queryFn: fetchSecurityDashboard,
+    queryFn: () => fetchSecurityDashboard(adminFetch),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    retry: 2,
+    retry: false,
   });
 
   const error =
@@ -85,7 +87,7 @@ export default function AdminSecurityDashboard2025() {
         : null;
 
   const actionMutation = useMutation({
-    mutationFn: postSecurityAction,
+    mutationFn: (payload: Parameters<typeof postSecurityAction>[0]) => postSecurityAction(payload, adminFetch),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['admin', 'security-dashboard'],
@@ -180,21 +182,15 @@ export default function AdminSecurityDashboard2025() {
   }
 
   if (error) {
-    return (
-      <div className='min-h-screen bg-slate-50 flex items-center justify-center'>
-        <div className='text-center'>
-          <p className='text-red-600 mb-4'>{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className='px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700'
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+    return <div className='p-6 md:p-8'>
+      <Card className='mx-auto max-w-xl text-center' padding='lg'>
+        <Shield className='mx-auto mb-4 h-8 w-8 text-[#2f6f5f]' aria-hidden='true' />
+        <h1 className='text-xl font-semibold'>Security data is unavailable</h1>
+        <p role='alert' className='my-4 text-sm text-[#4a5751]'>{error}</p>
+        <Button onClick={() => void refetch()}>Try again</Button>
+      </Card>
+    </div>;
   }
-
   return (
     <div className='min-h-screen bg-slate-50'>
       {/* Hero Header */}

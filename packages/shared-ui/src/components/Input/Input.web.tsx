@@ -5,7 +5,7 @@
  */
 'use client';
 import React, { useState, useId, forwardRef } from 'react';
-import { webTokens } from '@mintenance/design-tokens';
+import { useWebTokens } from '../../ThemeProvider';
 import { cn } from '../../utils/cn';
 import type { WebInputProps, InputSize } from './types';
 /**
@@ -15,6 +15,7 @@ import type { WebInputProps, InputSize } from './types';
  */
 export const Input = forwardRef<HTMLInputElement, WebInputProps>(
   (props, ref) => {
+    const webTokens = useWebTokens();
     const {
       value,
       defaultValue,

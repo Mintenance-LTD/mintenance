@@ -197,7 +197,13 @@ export default async function JobDetailPage2025({
       .single(),
   ]);
   if (property && job.property_id) {
-    property.key_safe_code = await readPropertyEntrySecret(job.property_id, user.id, job.id);
+    // Entry secrets must fail closed without taking down the whole job page.
+    property.key_safe_code = null;
+    try {
+      property.key_safe_code = await readPropertyEntrySecret(job.property_id, user.id, job.id);
+    } catch {
+      logger.warn('Property entry details unavailable', { jobId: job.id });
+    }
   }
 
   if (bidsError) {

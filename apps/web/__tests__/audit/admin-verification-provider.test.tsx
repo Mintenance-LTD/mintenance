@@ -33,3 +33,20 @@ it('never retries an unrelated authorization failure', async () => {
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   expect(screen.queryByText('Verify test identity')).toBeNull();
 });
+
+it('gives the retried request a fresh timeout after waiting for MFA', async () => {
+  function TimedAction() {
+    const request = useAdminFetch();
+    return <button onClick={() => void request('/api/admin/users/test/detail', {}, 20).catch(result)}>Load profile</button>;
+  }
+  const fetchMock = vi.fn().mockResolvedValueOnce(response(403, { requiresStepUp: true })).mockResolvedValue(response(200, {}));
+  vi.stubGlobal('fetch', fetchMock);
+  render(<AdminVerificationProvider><TimedAction /></AdminVerificationProvider>);
+  fireEvent.click(screen.getByText('Load profile'));
+  await screen.findByText('Verify test identity');
+  await new Promise(resolve => setTimeout(resolve, 40));
+  fireEvent.click(screen.getByText('Verify test identity'));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  expect(fetchMock.mock.calls[1][1].signal.aborted).toBe(false);
+  expect(fetchMock.mock.calls[1][1].signal).not.toBe(fetchMock.mock.calls[0][1].signal);
+});
