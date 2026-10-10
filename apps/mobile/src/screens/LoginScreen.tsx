@@ -147,6 +147,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       if ((error as { code?: string })?.code === 'email_not_confirmed') {
         navigation.navigate('EmailVerificationPending', {
           email: email.trim(),
+          source: 'login',
         });
         return;
       }

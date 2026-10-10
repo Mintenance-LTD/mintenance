@@ -179,7 +179,7 @@ export default function AdminRegisterPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="liam@mintenance.co.uk"
+                placeholder="Enter your work email"
                 {...register('email')}
                 errorText={errors.email?.message}
               />
