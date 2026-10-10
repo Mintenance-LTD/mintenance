@@ -1,3 +1,4 @@
+import { PasswordRecoveryRedirect } from './components/PasswordRecoveryRedirect';
 import type { Metadata } from 'next';
 import { HeroSection } from './components/landing/HeroSection';
 import { Footer2025 } from './components/landing/Footer2025';
@@ -65,6 +66,7 @@ export default function LandingPage() {
       data-theme='mint-editorial'
       style={{ background: 'var(--me-bg)' }}
     >
+      <PasswordRecoveryRedirect />
       <LandingNavigation />
 
       {/* No top padding — LandingNavigation is `position: sticky`

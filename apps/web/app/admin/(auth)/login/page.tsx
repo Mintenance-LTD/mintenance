@@ -142,7 +142,7 @@ export default function AdminLoginPage() {
               <Input
                 id='email'
                 type='email'
-                placeholder='admin@mintenance.co.uk'
+                placeholder='Enter your work email'
                 {...register('email')}
                 errorText={errors.email?.message}
               />
