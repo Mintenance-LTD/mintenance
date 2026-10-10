@@ -305,7 +305,7 @@ describe('EditProfileScreen — save success / loading / empty / error', () => {
     const buttons = alertSpy.mock.calls.find((c) => c[0] === 'Success')![2]!;
     act(() => buttons[0].onPress());
     expect(mockAllowExit).toHaveBeenCalled();
-    expect(mockGoBack).toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
   });
 
   it('shows Saving… label while save in flight', async () => {
@@ -356,7 +356,7 @@ describe('EditProfileScreen — save success / loading / empty / error', () => {
     await waitFor(() => expect(mockAllowExit).toHaveBeenCalled());
     expect(mockUpdateUserProfile).not.toHaveBeenCalled();
     expect(mockRefreshUser).not.toHaveBeenCalled();
-    expect(mockGoBack).toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
   });
 
   it('shows Error alert with message when save throws', async () => {
@@ -385,7 +385,7 @@ describe('EditProfileScreen — save success / loading / empty / error', () => {
     fireEvent.press(getByText('Save'));
     await waitFor(() => expect(mockAllowExit).toHaveBeenCalled());
     expect(mockUpdateUserProfile).not.toHaveBeenCalled();
-    expect(mockGoBack).toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
   });
 });
 
@@ -620,7 +620,7 @@ describe('EditProfileScreen — navigation actions', () => {
   it('top-bar back button calls goBack', async () => {
     const { getByLabelText } = await setup();
     fireEvent.press(getByLabelText('Go back'));
-    expect(mockGoBack).toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'POP_TO', payload: { name: 'ProfileMain' } });
   });
 
   it('delete-account routes to DeleteAccount screen', async () => {

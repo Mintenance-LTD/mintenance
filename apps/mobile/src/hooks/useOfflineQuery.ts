@@ -58,9 +58,8 @@ export const useOfflineQuery = <T = unknown>({
         if (!isOnline) return false;
 
         // Don't retry on client errors (4xx)
-        const status = (error as Record<string, unknown>)?.status as
-          | number
-          | undefined;
+        const status = ((error as Record<string, unknown>)?.statusCode ??
+          (error as Record<string, unknown>)?.status) as number | undefined;
         if (status !== undefined && status >= 400 && status < 500) return false;
 
         // Limit retries on slow connections
@@ -139,10 +138,9 @@ export const useOfflineQuery = <T = unknown>({
     // Enhanced refetch configuration
     refetchOnWindowFocus: isOnline,
     refetchOnReconnect: true,
-    refetchOnMount: (query) => {
-      // Only refetch on mount if data is stale or we're online with fresh connection
-      return query.state.isInvalidated || (isOnline && !query.state.data);
-    },
+    // React Query's true policy refreshes stale data while keeping cached content
+    // visible. Checking only for missing data left expired signed photos forever.
+    refetchOnMount: isOnline,
     meta: {
       offline: true,
       networkDependency: true,

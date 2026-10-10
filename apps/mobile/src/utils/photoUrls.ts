@@ -51,3 +51,12 @@ export function normalizePhotoUrls(input: unknown): string[] {
       (url): url is string => typeof url === 'string' && url.trim().length > 0
     );
 }
+
+/** Prefer the first nonempty image field; legacy photos: [] must not hide images. */
+export function firstPhotoUrls(...sources: unknown[]): string[] {
+  for (const source of sources) {
+    const urls = normalizePhotoUrls(source);
+    if (urls.length) return urls;
+  }
+  return [];
+}

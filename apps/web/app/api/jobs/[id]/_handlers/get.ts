@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  serverSupabase,
-  createRequestScopedClient,
-} from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
@@ -19,8 +16,10 @@ export async function handleGet(
     params: Record<string, string>;
   }
 ): Promise<NextResponse> {
-  // Use RLS-enforced client for user-scoped reads; fall back to service role
-  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+  // The explicit participant gate below applies equally to cookie and bearer
+  // sessions. Legacy jobs SELECT policies omit designated payers. Do not return
+  // data or fetch related resources until that gate succeeds.
+  const userDb = serverSupabase;
 
   const { id } = params;
 
@@ -80,7 +79,7 @@ export async function handleGet(
   const isAssignedContractor = row.contractor_id === user.id;
   const isContractorViewingOpenJob =
     user.role === 'contractor' &&
-    row.status === 'posted' &&
+    (row.status === 'posted' || row.status === 'open') &&
     (row.contractor_id === null || row.contractor_id === undefined);
   if (
     !isHomeowner &&
@@ -243,7 +242,11 @@ export async function handleGet(
         propertyAccess = {
           access_mode: (p.access_mode as string | null) ?? null,
           key_safe_code: canSeeCode
-            ? await readPropertyEntrySecret(row.property_id as string, user.id, row.id as string)
+            ? await readPropertyEntrySecret(
+                row.property_id as string,
+                user.id,
+                row.id as string
+              )
             : null,
           access_notes: (p.access_notes as string | null) ?? null,
           stopcock_location: (p.stopcock_location as string | null) ?? null,

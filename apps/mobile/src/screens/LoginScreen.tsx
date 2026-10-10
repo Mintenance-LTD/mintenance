@@ -125,7 +125,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
     try {
       haptics.formSubmit();
-      await signIn(email, password);
+      await signIn(email.trim(), password);
       haptics.loginSuccess();
       try {
         if (rememberEmail) {
@@ -144,6 +144,12 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       }
     } catch (error) {
       haptics.loginFailed();
+      if ((error as { code?: string })?.code === 'email_not_confirmed') {
+        navigation.navigate('EmailVerificationPending', {
+          email: email.trim(),
+        });
+        return;
+      }
       setErrorMessage(
         String(
           getErrorMessage(

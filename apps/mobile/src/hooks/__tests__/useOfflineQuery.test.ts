@@ -94,6 +94,29 @@ beforeEach(() => {
 });
 
 describe('useOfflineQuery', () => {
+  it('refreshes stale cached photos when the screen is reopened online', async () => {
+    const { queryClient, wrapper } = makeWrapper();
+    const queryKey = ['jobs', 'detail', 'stale-photo'];
+    queryClient.setQueryData(
+      queryKey,
+      { id: 'stale-photo', photos: ['expired'] },
+      { updatedAt: Date.now() - 7200000 }
+    );
+    const queryFn = jest
+      .fn()
+      .mockResolvedValue({ id: 'stale-photo', photos: ['fresh'] });
+    const { result } = renderHook(
+      () => useOfflineQuery({ queryKey, queryFn }),
+      { wrapper }
+    );
+    await waitFor(() =>
+      expect(result.current.data).toEqual({
+        id: 'stale-photo',
+        photos: ['fresh'],
+      })
+    );
+    expect(queryFn).toHaveBeenCalledTimes(1);
+  });
   it('fetches remote data when online and caches it locally (jobs list)', async () => {
     const jobs = [{ id: 'j1', title: 'A' }];
     const queryFn = jest.fn().mockResolvedValue(jobs);
@@ -342,7 +365,7 @@ describe('useOfflineQuery', () => {
 
   it('rethrows when online query throws and no local fallback exists', async () => {
     setNetwork(true, 'good');
-    const err = Object.assign(new Error('hard fail'), { status: 404 }); // 4xx => no retry
+    const err = Object.assign(new Error('hard fail'), { statusCode: 404 }); // APIError uses statusCode; permanent failures must not retry
     const queryFn = jest.fn().mockRejectedValue(err);
     mockLocalDb.getJob.mockResolvedValue(null as never);
     const { wrapper } = makeWrapper();
@@ -354,6 +377,7 @@ describe('useOfflineQuery', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect((result.current.error as Error).message).toBe('hard fail');
+    expect(queryFn).toHaveBeenCalledTimes(1);
   });
 
   it('offlineFirst prefers cached data even when online', async () => {

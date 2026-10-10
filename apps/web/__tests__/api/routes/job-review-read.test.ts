@@ -4,7 +4,11 @@ import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({ from: vi.fn(), sign: vi.fn() }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: { from: mocks.from },
-  createRequestScopedClient: () => ({ from: mocks.from }),
+  createRequestScopedClient: () => ({
+    from: () => {
+      throw new Error('Legacy RLS omits payer');
+    },
+  }),
 }));
 vi.mock('@/lib/api/job-storage', () => ({ resignJobStorageUrls: mocks.sign }));
 vi.mock('@mintenance/shared', () => ({
@@ -35,6 +39,7 @@ beforeEach(() => {
           title: 'Work',
           status: 'completed',
           homeowner_id: owner,
+          payer_user_id: 'payer',
           completed_at: version,
           completion_confirmed_at: null,
         };
@@ -80,6 +85,19 @@ beforeEach(() => {
   });
 });
 describe('job review read contract', () => {
+  it('allows the designated payer before loading signed photos without revealing entry secrets', async () => {
+    const response = await handleGet(
+      new NextRequest('https://example.invalid/api/jobs/job'),
+      {
+        user: { id: 'payer', role: 'homeowner' },
+        params: { id: 'job' },
+      }
+    );
+    const { job } = await response.json();
+    expect(job.id).toBe('job');
+    expect(job.propertyAccess).toBeNull();
+    expect(mocks.sign).toHaveBeenCalledWith(expect.any(Array), 'payer');
+  });
   it('returns the completion version and signed lifecycle photos with matching identities', async () => {
     const response = await handleGet(
       new NextRequest('https://example.invalid/api/jobs/job'),

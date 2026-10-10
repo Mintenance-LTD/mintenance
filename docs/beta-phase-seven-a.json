@@ -1,0 +1,36 @@
+{
+  "recordedOn": "2026-10-10",
+  "phase": "F07A",
+  "status": "verified_source_checkpoint_investigation_continues",
+  "scope": "User-reported signup, profile, images, job details and mobile responsiveness",
+  "changes": [
+    "Preserve navigator during interactive authentication so verification-pending navigation survives signup.",
+    "Preserve authentication error codes; unconfirmed email routes to verification instructions instead of a database alert.",
+    "Return profile editor to ProfileMain, including dashboard setup entry.",
+    "Display missing profile fields and calculate completion from editable fields instead of job activity.",
+    "Preserve legacy avatar_url in profile API and mobile editor.",
+    "Use populated image fallback when the first photo field is empty.",
+    "Refresh stale cached jobs on screen reopening; do not retry permanent API statusCode failures.",
+    "Authorize job-detail participants before related reads using the same server projection for bearer/cookie clients; designated payers are no longer hidden by legacy jobs SELECT policies."
+  ],
+  "verification": {
+    "mobileFocused": "151 tests passed across six suites before additional cache remount regression",
+    "navigationAndCache": "40 tests passed including stale-photo remount regression and navigator module smoke",
+    "jobDetailApi": "3 tests passed: owner lifecycle photos, payer access, unrelated viewer denied",
+    "webTypecheck": "passed",
+    "mobileTypecheck": "passed after final cache-remount change",
+    "patchWhitespace": "passed"
+  },
+  "productionReadOnlyEvidence": {
+    "reportedNewAccount": "Auth and profile exist; email is unconfirmed and no successful sign-in recorded. No password verified or changed.",
+    "reportedHomeownerPhoto": "Both profile photo columns and auth metadata photo fields empty. No matching avatar storage object found; job storage objects are not assumed to be profile photos. User confirms photo is currently visible on web; browser inspection failed because the desktop automation sandbox could not initialize.",
+    "archivedJobPhotos": "Matching completed plumbing job has two lifecycle photos; objects exist and authorization RPC permits its owner and assigned contractor."
+  },
+  "remaining": [
+    "Identify the currently visible web avatar source and reconcile it with the empty production photo fields; do not assume a job photo is an avatar.",
+    "User cannot recall the failing job. Reproduce job detail under poor connectivity and inspect deployed request logs before attributing the screenshot to a server failure.",
+    "Measure slow-connection screen performance on Android; eliminating permanent-error retries is not an end-to-end performance benchmark.",
+    "Execute actual signup/email-confirmation/sign-in and Back navigation on a candidate Android build."
+  ],
+  "release": "No deployment, production database write, email send or live billing mutation performed. F07A remains open; F08 not started."
+}

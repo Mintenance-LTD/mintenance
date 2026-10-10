@@ -16,8 +16,8 @@
     "F12"
   ],
   "rule": "Finish, verify, commit and push one phase before starting the next.",
-  "currentPhase": "F07",
-  "status": "implementation_verified",
+  "currentPhase": "F07A",
+  "status": "verified_source_checkpoint_investigation_continues",
   "repository": "Mintenance-LTD/mintenance",
   "baseBranch": "main",
   "baseCommit": "ffd0c54d66cb9d439626741ab9ebc04f84b261eb",
@@ -65,7 +65,8 @@
     "F04 source checks and all 10 real Stripe sandbox scenarios passed. Interactive client challenge completion and deployed transport remain F12. No live-mode billing mutation.",
     "F05 verified all 7 escrow rows and all 5 homeowner subscriptions against the intended live Stripe account, with test-mode lookup for the missing held intent. No duplicate subscription charges found in the inspected scope. Corrections are review candidates; unresolved holds are documented and no production mutation was performed.",
     "F06: all 10 actual Stripe test-mode/loopback PostgreSQL payout scenarios passed. Friday production cron independently observed one matching GBP 1.20 transfer and one ledger debit. Bank payout is in_transit, not confirmed settled. No live mutation by audit.",
-    "F07 inbox implementation verified with 201 conversations, composite/snapshot cursor, authorized payer projection and paginating clients. New user-reported signup/profile/media/mobile issues prioritized as F07A before F08."
+    "F07 inbox implementation verified with 201 conversations, composite/snapshot cursor, authorized payer projection and paginating clients. New user-reported signup/profile/media/mobile issues prioritized as F07A before F08.",
+    "F07A source fixes tested; account-specific photo/job reproduction and candidate-device validation remain open. No later phase started."
   ],
   "acceptanceBaseline": "docs/beta-acceptance-baseline.json",
   "completedPhases": [

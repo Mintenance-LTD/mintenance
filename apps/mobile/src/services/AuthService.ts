@@ -1,3 +1,4 @@
+import { authenticationError } from './auth/authentication-error';
 import { supabase } from '../config/supabase';
 import type { User } from '@mintenance/types';
 import { Session } from '@supabase/supabase-js';
@@ -136,7 +137,7 @@ export class AuthService {
       });
 
       if (error) {
-        throw ServiceErrorHandler.handleDatabaseError(error, context);
+        throw authenticationError(error);
       }
 
       // The handle_new_user trigger creates the profile row. The
@@ -145,10 +146,10 @@ export class AuthService {
       // of here, because signUp may not yield a session immediately
       // when email confirmation is required.
       return data;
-    }, context);
+    }, context, false);
 
     if (!result.success || !result.data) {
-      throw new Error('Failed to sign up user');
+      throw result.error ?? new Error('Failed to sign up user');
     }
     return result.data;
   }
@@ -174,11 +175,11 @@ export class AuthService {
 
       const { error } = await supabase.auth.resend({ type: 'signup', email });
       if (error) {
-        throw ServiceErrorHandler.handleDatabaseError(error, context);
+        throw authenticationError(error);
       }
       logger.info('[AUTH] Resent signup confirmation email');
       return null;
-    }, context);
+    }, context, false);
 
     if (!result.success) {
       throw new Error(result.error?.message || 'Failed to resend email');
@@ -225,7 +226,7 @@ export class AuthService {
         ) {
           throw ServiceErrorHandler.handleNetworkError(error, context);
         }
-        throw ServiceErrorHandler.handleDatabaseError(error, context);
+        throw authenticationError(error);
       }
 
       logger.info('✅ Supabase auth successful');
@@ -236,10 +237,10 @@ export class AuthService {
       }
 
       return data as unknown as { user: User | null; session: Session | null };
-    }, context);
+    }, context, false);
 
     if (!result.success || !result.data) {
-      throw new Error('Failed to sign in user');
+      throw result.error ?? new Error('Failed to sign in user');
     }
     return result.data;
   }
