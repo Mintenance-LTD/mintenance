@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicGoogleMap } from '@/components/maps';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { logger } from '@mintenance/shared';
 

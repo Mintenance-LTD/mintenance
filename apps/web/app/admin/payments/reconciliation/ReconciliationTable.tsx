@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CheckCircle, FileSearch } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 
 interface ReconciliationRecord {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';

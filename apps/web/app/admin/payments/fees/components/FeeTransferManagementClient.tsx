@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { CircleDollarSign } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import { format } from 'date-fns';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';

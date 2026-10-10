@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import Link from 'next/link';
 
 interface AdminNotification {

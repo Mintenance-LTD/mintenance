@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { AdminJobTrackingModal } from './AdminJobTrackingModal';

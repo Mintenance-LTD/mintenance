@@ -10,3 +10,7 @@
 @media (max-width: 767px) {
   .admin-theme .min-h-screen.flex > .w-1\/2 { display: none; }
 }
+.admin-verification-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 32px; border-bottom: 1px solid var(--me-line); background: var(--me-bg-2); color: var(--me-ink-2); font-size: 13px; }
+.admin-verification-bar button { border: 1px solid var(--me-line); background: white; color: var(--me-brand); border-radius: 10px; padding: 8px 12px; font-weight: 600; }
+.admin-theme #main-content h2 { font-size: clamp(24px, 2.5vw, 32px); font-weight: 600; letter-spacing: -.025em; }
+.admin-theme #main-content { background: var(--me-bg); }

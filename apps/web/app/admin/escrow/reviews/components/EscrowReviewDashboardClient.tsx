@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { EscrowReviewDetailModal } from './EscrowReviewDetailModal';
