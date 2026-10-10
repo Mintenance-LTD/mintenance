@@ -52,7 +52,7 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
           type: 'verification',
           title: 'Pending Verifications',
           message: `${verificationsData.count} contractor${verificationsData.count !== 1 ? 's' : ''} awaiting verification`,
-          href: '/admin/users',
+          href: '/admin/verifications',
           createdAt: new Date().toISOString(),
           read: false,
         });
@@ -134,6 +134,9 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
       <button
         type='button'
         aria-label='Admin Notifications'
+        aria-expanded={isOpen}
+        aria-haspopup='dialog'
+        onKeyDown={e => { if (e.key === 'Escape') setIsOpen(false); }}
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'relative',
@@ -155,7 +158,7 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
       >
-        <Icon name='bell' size={20} color='#FFFFFF' />
+        <Icon name='bell' size={20} color={theme.colors.primary} />
         {unreadCount > 0 && (
           <span
             style={{
@@ -173,7 +176,7 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
               fontSize: theme.typography.fontSize.xs,
               fontWeight: theme.typography.fontWeight.bold,
               padding: '0 4px',
-              border: '2px solid #0F172A',
+              border: '2px solid #e9f1eb',
             }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}

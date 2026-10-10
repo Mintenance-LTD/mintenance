@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import {
-  DollarSign,
+  PoundSterling,
   TrendingUp,
   Users,
   Briefcase,
@@ -280,7 +280,7 @@ export default function AdminRevenueDashboard2025() {
           <div className='col-span-12 md:col-span-4 bg-white rounded-[1.5rem] p-8 transition-all hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)]'>
             <div className='flex justify-between items-start mb-6'>
               <div className='p-3 bg-[#dae2fd] rounded-2xl'>
-                <DollarSign className='w-5 h-5 text-[#565e74]' />
+                <PoundSterling className='w-5 h-5 text-[#565e74]' />
               </div>
               {revenueMetrics.growthRate > 0 && (
                 <span className='text-xs font-bold text-[#2e7d32] flex items-center gap-1'>

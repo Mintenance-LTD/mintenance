@@ -186,9 +186,9 @@ export function DashboardClient({
       </section>
 
       {/* ── Main 12-column Layout ──────────────────────────────────────── */}
-      <div className='grid grid-cols-1 lg:grid-cols-12 gap-7 items-start'>
+      <div className='grid grid-cols-1 gap-6'>
         {/* Left column — 8 cols */}
-        <div className='lg:col-span-8 space-y-7'>
+        <div className='space-y-6'>
           {/* Charts */}
           {metrics.charts && (
             <AdminCharts
@@ -255,7 +255,7 @@ export function DashboardClient({
         </div>
 
         {/* Right column — 4 cols */}
-        <div className='lg:col-span-4 space-y-7'>
+        <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start'>
           {/* Security Core — dark card */}
           <Link href='/admin/security'>
             <section className={cn(styles.darkCard, 'p-7')}>

@@ -1,6 +1,7 @@
 export interface ContractorVerification {
   id: string;
   email: string;
+  assigned_admin_email?: string | null;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;

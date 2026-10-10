@@ -18,3 +18,5 @@
 .mfa-step-up-dialog[data-theme='mint-editorial'] form > .flex { flex-wrap: wrap; }
 .mfa-step-up-dialog[data-theme='mint-editorial'] input { letter-spacing: .15em; }
 [role='dialog'][data-theme='mint-editorial'] { color: var(--me-ink); font-family: var(--font-geist), Arial, sans-serif; border-color: var(--me-line); border-radius: 20px; max-height: calc(100dvh - 32px); overflow-y: auto; }
+.admin-verification-control { position: fixed; bottom: 16px; right: 16px; z-index: 40; }
+.admin-verification-control button { background: white; border: 1px solid var(--me-line); color: var(--me-brand); padding: 6px 10px; border-radius: 8px; font-size: 12px; }

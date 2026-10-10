@@ -133,6 +133,7 @@ export function ContractorVerificationCard({
                 }}
               >
                 {contractor.email}
+                {contractor.assigned_admin_email && <span className='block mt-1 text-xs'>Assigned to {contractor.assigned_admin_email}</span>}
               </div>
               {contractor.phone && (
                 <div

@@ -5,30 +5,22 @@ import { MfaStepUpDialog } from '@/components/auth/MfaStepUpDialog';
 const AdminVerificationContext = createContext<(() => Promise<boolean>) | null>(null);
 export function AdminVerificationProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [verified, setVerified] = useState(false);
-  useEffect(() => {
-    if (!verified) return;
-    const timer = setTimeout(() => setVerified(false), 15 * 60 * 1000);
-    return () => clearTimeout(timer);
-  }, [verified]);
   const pending = useRef<((result: boolean) => void) | null>(null);
   const request = useCallback(() => {
     if (pending.current) return Promise.resolve(false);
-    setVerified(false);
     setOpen(true);
     return new Promise<boolean>(resolve => { pending.current = resolve; });
   }, []);
   const finish = (success: boolean) => {
     setOpen(false);
-    setVerified(success);
     pending.current?.(success);
     pending.current = null;
   };
   useEffect(() => () => { pending.current?.(false); pending.current = null; }, []);
   return <AdminVerificationContext.Provider value={request}>
-    <div className='admin-verification-bar'>
-      <span>{verified ? 'Identity confirmed for this session check.' : 'Sensitive actions require a recent identity check.'}</span>
-      <button type='button' onClick={() => void request()}>Confirm identity</button>
+    <div className='admin-verification-control'>
+
+      <button type='button' title='Confirm identity for a protected action' onClick={() => void request()}>Security check</button>
     </div>
     {children}
     {open && <MfaStepUpDialog onCancel={() => finish(false)} onSuccess={() => finish(true)} />}
