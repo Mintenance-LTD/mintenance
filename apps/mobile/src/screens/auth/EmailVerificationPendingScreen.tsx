@@ -68,7 +68,7 @@ export const EmailVerificationPendingScreen: React.FC<Props> = ({
   route,
 }) => {
   const insets = useSafeAreaInsets();
-  const { email } = route.params;
+  const { email, source } = route.params;
 
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -125,7 +125,7 @@ export const EmailVerificationPendingScreen: React.FC<Props> = ({
     setResending(true);
     try {
       await AuthService.resendSignupConfirmation(email);
-      setSuccess('Confirmation email resent — please check your inbox.');
+      setSuccess('Confirmation link requested. Check your inbox and spam folder; delivery may take a few minutes.');
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       const message =
@@ -185,13 +185,14 @@ export const EmailVerificationPendingScreen: React.FC<Props> = ({
         <Text style={styles.title} accessibilityRole='header'>
           Check your email
         </Text>
-        <Text style={styles.subtitle}>We sent a verification link to</Text>
+        <Text style={styles.subtitle}>{source === 'login' ? 'Email confirmation is still required for' : 'We sent a verification link to'}</Text>
         <Text style={styles.emailText} numberOfLines={1} ellipsizeMode='middle'>
           {email}
         </Text>
 
         <Text style={styles.instruction}>
-          Tap the link in that email to confirm your account, then come back
+          {source === 'login' ? 'Signing in does not send a new email. Tap Resend Email below if you need a new link. ' : ''}
+          Tap the link in your confirmation email, then come back
           here to sign in.
         </Text>
 

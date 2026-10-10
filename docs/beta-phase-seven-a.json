@@ -14,7 +14,8 @@
     "Authorize job-detail participants before related reads using the same server projection for bearer/cookie clients; designated payers are no longer hidden by legacy jobs SELECT policies.",
     "Scope intro dismissal to account ID, ignore stale account storage reads, and include onboarding_completed in profile API responses.",
     "Correct the customer detail currency symbol rendered as a literal Unicode escape.",
-    "Honor explicit query retry settings and disable redundant job-detail query retries; the HTTP transport retains its existing retry policy."
+    "Honor explicit query retry settings and disable redundant job-detail query retries; the HTTP transport retains its existing retry policy.",
+    "Restrict the first-job finale to homeowners completing onboarding in this session; suppress existing onboarded accounts and stale account reads. Clarify that login does not send a fresh verification email."
   ],
   "verification": {
     "mobileFocused": "151 tests passed across six suites before additional cache remount regression",
@@ -23,11 +24,11 @@
     "webTypecheck": "passed",
     "mobileTypecheck": "passed after final cache-remount change",
     "patchWhitespace": "passed",
-    "onboarding": "3 account-isolation/completion tests passed; web and mobile type checks passed.",
+    "onboarding": "7 onboarding hook tests passed, including contractor exclusion, returning homeowners, per-account dismissal and delayed reads after account switching. Mobile typecheck passed.",
     "jobRetry": "60 hook tests passed; mobile typecheck passed. Android platform tools installed locally; no device detected yet."
   },
   "productionReadOnlyEvidence": {
-    "reportedNewAccount": "Auth and profile exist; email is unconfirmed and no successful sign-in recorded. No password verified or changed.",
+    "reportedNewAccount": "Still unconfirmed; confirmation_sent_at remains 2026-10-08 18:37:37 UTC. October 10 auth logs show email_not_confirmed and an expired confirmation link; no /resend entries found in the last 24 hours. User reports resend success without delivery; investigation remains open.",
     "reportedHomeownerPhoto": "Resolved from user screenshots and database: the photographed customer is a separate Gmail account (customer URL ID matches that account), while the mintenance.co.uk account has no photo. Screenshots show the Gmail photo on both web and mobile and initials for the company-email account. No cross-account photo transfer or data mutation required.",
     "archivedJobPhotos": "Matching completed plumbing job has two lifecycle photos; objects exist and authorization RPC permits its owner and assigned contractor."
   },

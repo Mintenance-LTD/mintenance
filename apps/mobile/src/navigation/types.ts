@@ -72,7 +72,7 @@ export type AuthStackParamList = {
   // Phase 1.2 (Branch B) — shown after signUp while the Supabase-issued
   // confirmation email is pending. Entirely driven by user action; no
   // silent polling, no session state mutations.
-  EmailVerificationPending: { email: string };
+  EmailVerificationPending: { email: string; source?: 'signup' | 'login' };
   ForgotPassword: undefined;
   ResetPassword: { token?: string } | undefined;
   MFAVerification: { preMfaToken: string; redirectScreen?: string };
