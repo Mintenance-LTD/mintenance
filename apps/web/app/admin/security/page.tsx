@@ -1,4 +1,5 @@
 'use client';
+import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -58,7 +59,7 @@ const staggerItem = {
   visible: { opacity: 1, y: 0 },
 };
 
-export default function AdminSecurityDashboard2025() {
+export default function AdminSecurityDashboard2025() { const adminFetch = useAdminFetch();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,10 +72,10 @@ export default function AdminSecurityDashboard2025() {
     error: queryError,
   } = useQuery({
     queryKey: ['admin', 'security-dashboard'],
-    queryFn: fetchSecurityDashboard,
+    queryFn: () => fetchSecurityDashboard(adminFetch),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    retry: 2,
+    retry: false,
   });
 
   const error =
@@ -85,7 +86,7 @@ export default function AdminSecurityDashboard2025() {
         : null;
 
   const actionMutation = useMutation({
-    mutationFn: postSecurityAction,
+    mutationFn: (payload: Parameters<typeof postSecurityAction>[0]) => postSecurityAction(payload, adminFetch),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['admin', 'security-dashboard'],

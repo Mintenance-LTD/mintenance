@@ -346,8 +346,9 @@ export default function ReconciliationDashboard() {
       </div>
 
       {!error && (
-        <nav aria-label='Reconciliation pages'>
+        <nav aria-label='Reconciliation pages' style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <Button
+            variant='outline'
             disabled={loading || running || cursors.length === 1}
             onClick={() => setCursors((previous) => previous.slice(0, -1))}
           >
@@ -355,6 +356,7 @@ export default function ReconciliationDashboard() {
           </Button>
           <span>Page {cursors.length}</span>
           <Button
+            variant='outline'
             disabled={loading || running || !nextCursor}
             onClick={() => {
               if (nextCursor)
