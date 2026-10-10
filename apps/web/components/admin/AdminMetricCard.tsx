@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import { Card } from '@mintenance/shared-ui';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
-import styles from '../../app/admin/admin.module.css';
+
 
 interface Trend {
   direction: 'up' | 'down';
@@ -33,12 +34,11 @@ export function AdminMetricCard({
   className,
 }: AdminMetricCardProps) {
   return (
-    <div
-      className={cn(
-        'rounded-[1.5rem] bg-white p-6 transition-all duration-300',
-        'hover:-translate-y-1 hover:shadow-[0_12px_32px_-4px_rgba(42,52,57,0.08)]',
+    <Card padding='sm' className={cn(
+        'bg-white transition-shadow',
+        onClick && 'hover:shadow-md',
         onClick && 'cursor-pointer',
-        styles.metricCard,
+
         className
       )}
       onClick={onClick}
@@ -65,9 +65,9 @@ export function AdminMetricCard({
       </div>
       <div>
         <p className='text-[#566166] text-sm font-medium'>{label}</p>
-        <p className='text-3xl font-bold text-[#2a3439] mt-1'>{value}</p>
+        <p className='text-2xl font-semibold text-[#2a3439] mt-1'>{value}</p>
         {subtitle && <p className='text-xs text-[#717c82] mt-2'>{subtitle}</p>}
       </div>
-    </div>
+    </Card>
   );
 }

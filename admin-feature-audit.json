@@ -393,5 +393,21 @@
       "issue": "Other admin endpoints require MFA but clients may not launch a challenge",
       "status": "shared manual identity challenge available; feature-by-feature automatic integration pending"
     }
-  ]
+  ],
+  "uiUpdate": {
+    "date": "2026-10-11",
+    "changes": [
+      "Shared Mint Editorial design tokens and React theme provider for admin buttons, inputs, cards and portalled dialogs",
+      "MFA enrollment uses shared controls; step-up methods have distinct selected and unselected styles",
+      "Profile and quick-view network timeouts exclude time spent entering MFA",
+      "Profile empty states aligned; metric cards compacted; shared card CSS spacing repaired",
+      "Security error screen uses a shared card and in-page retry"
+    ],
+    "validation": "13 targeted tests and web TypeScript pass",
+    "remaining": [
+      "Live visual review of all admin routes on www.mintenance.co.uk",
+      "End-to-end database/API verification of every admin feature",
+      "Responsive sidebar and remaining bespoke page layouts need further review"
+    ]
+  }
 }

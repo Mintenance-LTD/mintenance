@@ -53,14 +53,10 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await adminFetch(`/api/admin/users/${userId}/detail`, {
         credentials: 'include',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      }, 15000);
 
       if (!response.ok) {
         const errorData = await response
@@ -86,7 +82,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, adminFetch]);
 
   useEffect(() => {
     fetchUserDetail();
@@ -193,7 +189,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
         }}
       >
         <AdminCard padding='lg'>
-          <div style={{ textAlign: 'center', padding: theme.spacing[8] }}>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: theme.spacing[8] }}>
             <Icon name='alert' size={48} color='#EF4444' />
             <h3
               style={{
