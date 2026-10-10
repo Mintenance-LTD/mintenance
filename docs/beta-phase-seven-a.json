@@ -11,7 +11,8 @@
     "Preserve legacy avatar_url in profile API and mobile editor.",
     "Use populated image fallback when the first photo field is empty.",
     "Refresh stale cached jobs on screen reopening; do not retry permanent API statusCode failures.",
-    "Authorize job-detail participants before related reads using the same server projection for bearer/cookie clients; designated payers are no longer hidden by legacy jobs SELECT policies."
+    "Authorize job-detail participants before related reads using the same server projection for bearer/cookie clients; designated payers are no longer hidden by legacy jobs SELECT policies.",
+    "Scope intro dismissal to account ID, ignore stale account storage reads, and include onboarding_completed in profile API responses."
   ],
   "verification": {
     "mobileFocused": "151 tests passed across six suites before additional cache remount regression",
@@ -19,7 +20,8 @@
     "jobDetailApi": "3 tests passed: owner lifecycle photos, payer access, unrelated viewer denied",
     "webTypecheck": "passed",
     "mobileTypecheck": "passed after final cache-remount change",
-    "patchWhitespace": "passed"
+    "patchWhitespace": "passed",
+    "onboarding": "3 account-isolation/completion tests passed; web and mobile type checks passed."
   },
   "productionReadOnlyEvidence": {
     "reportedNewAccount": "Auth and profile exist; email is unconfirmed and no successful sign-in recorded. No password verified or changed.",

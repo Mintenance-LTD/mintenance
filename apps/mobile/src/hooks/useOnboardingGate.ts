@@ -29,7 +29,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
-const STORAGE_KEY = 'onboarding_dismissed';
+const storageKey = (userId: string) => `onboarding_dismissed:${userId}`;
 
 export function useOnboardingGate() {
   const { user, refreshUser } = useAuth();
@@ -37,6 +37,9 @@ export function useOnboardingGate() {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    setShouldShow(false);
+    setChecked(false);
     if (!user) {
       setChecked(true);
       return;
@@ -50,16 +53,22 @@ export function useOnboardingGate() {
     }
 
     // Check local flag (covers offline + cross-session)
-    AsyncStorage.getItem(STORAGE_KEY)
+    AsyncStorage.getItem(storageKey(user.id))
       .then((val) => {
+        if (!active) return;
         setShouldShow(val !== '1');
         setChecked(true);
       })
       .catch(() => {
-        // If storage fails, don't show (safe default)
+        if (!active) return;
+        // A storage failure must not hide helpful guidance for a new account.
+        setShouldShow(true);
         setChecked(true);
       });
-  }, [user]);
+    return () => {
+      active = false;
+    };
+  }, [user?.id, user?.onboarding_completed]);
 
   /**
    * AUDIT_PUNCH_LIST P2 #74 (B6-P2-5) — race fix 2026-05-09.
@@ -83,6 +92,7 @@ export function useOnboardingGate() {
    *      user lands online and the sync completes.
    */
   const dismiss = useCallback(async () => {
+    if (!user) return;
     setShouldShow(false);
 
     try {
@@ -90,7 +100,7 @@ export function useOnboardingGate() {
       await refreshUser();
       // Persist locally only after server confirmed.
       try {
-        await AsyncStorage.setItem(STORAGE_KEY, '1');
+        await AsyncStorage.setItem(storageKey(user.id), '1');
       } catch {
         // Non-critical — DB is now source of truth.
       }
@@ -102,7 +112,7 @@ export function useOnboardingGate() {
       // Don't write the local flag. Next mount re-evaluates and the
       // user gets another chance to dismiss when they're back online.
     }
-  }, [refreshUser]);
+  }, [refreshUser, user?.id]);
 
   return { shouldShow: checked && shouldShow, dismiss };
 }

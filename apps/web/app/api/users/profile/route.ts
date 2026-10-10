@@ -83,7 +83,7 @@ export const GET = withApiHandler(
     const { data: profile, error } = await serverSupabase
       .from('profiles')
       .select(
-        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, avatar_url, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified, company_name, skills'
+        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, avatar_url, onboarding_completed, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified, company_name, skills'
       )
       .eq('id', user.id)
       .single();
