@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import {
   DynamicLineChart,
   DynamicAreaChart,

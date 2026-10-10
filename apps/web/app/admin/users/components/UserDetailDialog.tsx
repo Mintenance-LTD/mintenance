@@ -1,5 +1,6 @@
 'use client';
 
+import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
@@ -10,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/Icon';
 import { VerificationBadge } from './VerificationBadge';
 import { Loader2, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 
 interface VerificationCheck {
   name: string;
@@ -62,6 +63,7 @@ interface UserDetailDialogProps {
 }
 
 export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpdate }: UserDetailDialogProps) {
+  const adminFetch = useAdminFetch();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [verification, setVerification] = useState<VerificationData | null>(null);
@@ -84,7 +86,7 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await adminFetch(`/api/admin/users/${userId}`, {
         signal: controller.signal,
       });
 
@@ -119,10 +121,10 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
     setError(null);
 
     try {
-      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const csrfRes = await adminFetch('/api/csrf', { method: 'GET', credentials: 'include' });
       const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
       if (csrfToken) await new Promise(r => setTimeout(r, 50));
-      const response = await fetch(`/api/admin/users/${userId}/verify`, {
+      const response = await adminFetch(`/api/admin/users/${userId}/verify`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -466,4 +468,3 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
     </Dialog>
   );
 }
-

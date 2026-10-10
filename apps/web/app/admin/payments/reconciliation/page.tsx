@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
 import { getCsrfHeaders } from '@/lib/csrf-client';

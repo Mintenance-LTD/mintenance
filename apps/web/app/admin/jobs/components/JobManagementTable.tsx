@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import type { Job } from './JobManagementTypes';
 import { PAGE_SIZE, generatePageNumbers } from './JobManagementTypes';

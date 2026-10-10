@@ -1,0 +1,397 @@
+{
+  "date": "2026-10-10",
+  "status": "source audit checkpoint; live browser and database contract verification incomplete",
+  "navigation": [
+    {
+      "route": "/admin",
+      "pageExists": true,
+      "sourceFiles": 178,
+      "referencedAdminEndpoints": [
+        "/api/admin/ai-monitoring/overview",
+        "/api/admin/ai-monitoring/agents",
+        "/api/admin/ai-monitoring/timeline${selectedAgent",
+        "/api/admin/ai-monitoring/decisions?limit=20",
+        "/api/admin/dashboard/metrics",
+        "/api/admin/revenue?startDate=${startDate}",
+        "/api/admin/audit-logs?${params.toString",
+        "/api/admin/building-assessments?status=${filterStatus",
+        "/api/admin/building-assessments/${assessmentId}/validate",
+        "/api/admin/building-assessments/evaluation",
+        "/api/admin/building-assessments/${assessmentId}/expert-review",
+        "/api/admin/announcements",
+        "/api/admin/announcements/${id}",
+        "/api/admin/announcements/${deleteDialog.id}",
+        "/api/admin/recovery-health",
+        "/api/admin/contractors/send-payment-setup-reminder",
+        "/api/admin/disputes?${searchParams.toString",
+        "/api/admin/disputes/resolve",
+        "/api/admin/escrow/hold",
+        "/api/admin/escrow/pending-reviews?limit=50",
+        "/api/admin/escrow/${escrowId}/review-details",
+        "/api/admin/escrow/approve",
+        "/api/admin/escrow/reject",
+        "/api/admin/evidence-retention/disposal${after",
+        "/api/admin/evidence-retention/disposal",
+        "/api/admin/evidence-retention/export/manifest",
+        "/api/admin/evidence-retention/export",
+        "/api/admin/evidence-retention",
+        "/api/admin/evidence-retention?${next}",
+        "/api/admin/hybrid-inference/stats",
+        "/api/admin/hybrid-inference/stats?range=${timeRange}",
+        "/api/admin/jobs/",
+        "/api/admin/jobs/${jobId}/tracking",
+        "/api/admin/jobs?${searchParams.toString",
+        "/api/admin/migrations/stats",
+        "/api/admin/mint-ai/stats",
+        "/api/admin/escrow/fee-transfer/pending?limit=100",
+        "/api/admin/escrow/fee-transfer/hold",
+        "/api/admin/escrow/fee-transfer/release",
+        "/api/admin/escrow/fee-transfer/batch",
+        "/api/admin/reconciliation?filter=${filter}${cursor",
+        "/api/admin/reconciliation",
+        "/api/admin/pricing-metrics",
+        "/api/admin/pricing-metrics?windowDays=N",
+        "/api/admin/pricing-metrics?windowDays=${windowDays}",
+        "/api/admin/refunds?${params.toString",
+        "/api/admin/refunds/${actionModal.escrow.id}",
+        "/api/admin/retention/push-token-coverage",
+        "/api/admin/revenue?startDate=${startDate.toISOString",
+        "/api/admin/review-moderation",
+        "/api/admin/security-dashboard",
+        "/api/admin/security-dashboard/route.ts.",
+        "/api/admin/settings",
+        "/api/admin/tax/summaries?year=${year}",
+        "/api/admin/tax/generate-statement",
+        "/api/admin/tax/mark-filed",
+        "/api/admin/tax/generate-all",
+        "/api/admin/tax/download-statement?contractorId=${contractorId}",
+        "/api/admin/users/${userId}",
+        "/api/admin/users/${userId}/verify",
+        "/api/admin/users?${searchParams.toString",
+        "/api/admin/users/bulk-verify",
+        "/api/admin/users/export?${params.toString",
+        "/api/admin/users/${userId}/detail",
+        "/api/admin/verifications?${searchParams.toString",
+        "/api/admin/verifications?status=${status}",
+        "/api/admin/verifications/${contractor.id}",
+        "/api/admin/verifications/${rejectDialog.contractorId}",
+        "/api/admin/verifications/credentials?status=${filter}",
+        "/api/admin/verifications/credentials"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/jobs",
+      "pageExists": true,
+      "sourceFiles": 9,
+      "referencedAdminEndpoints": [
+        "/api/admin/jobs/",
+        "/api/admin/jobs/${jobId}/tracking",
+        "/api/admin/jobs?${searchParams.toString"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/disputes",
+      "pageExists": true,
+      "sourceFiles": 9,
+      "referencedAdminEndpoints": [
+        "/api/admin/disputes?${searchParams.toString",
+        "/api/admin/disputes/resolve",
+        "/api/admin/escrow/hold"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/evidence-retention",
+      "pageExists": true,
+      "sourceFiles": 4,
+      "referencedAdminEndpoints": [
+        "/api/admin/evidence-retention/disposal${after",
+        "/api/admin/evidence-retention/disposal",
+        "/api/admin/evidence-retention/export/manifest",
+        "/api/admin/evidence-retention/export",
+        "/api/admin/evidence-retention",
+        "/api/admin/evidence-retention?${next}"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/users",
+      "pageExists": true,
+      "sourceFiles": 17,
+      "referencedAdminEndpoints": [
+        "/api/admin/users/${userId}",
+        "/api/admin/users/${userId}/verify",
+        "/api/admin/users?${searchParams.toString",
+        "/api/admin/users/bulk-verify",
+        "/api/admin/users/export?${params.toString",
+        "/api/admin/users/${userId}/detail"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/verifications",
+      "pageExists": true,
+      "sourceFiles": 10,
+      "referencedAdminEndpoints": [
+        "/api/admin/verifications?${searchParams.toString",
+        "/api/admin/verifications?status=${status}",
+        "/api/admin/verifications/${contractor.id}",
+        "/api/admin/verifications/${rejectDialog.contractorId}",
+        "/api/admin/verifications/credentials?status=${filter}",
+        "/api/admin/verifications/credentials"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/communications",
+      "pageExists": true,
+      "sourceFiles": 7,
+      "referencedAdminEndpoints": [
+        "/api/admin/announcements",
+        "/api/admin/announcements/${id}",
+        "/api/admin/announcements/${deleteDialog.id}"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/revenue",
+      "pageExists": true,
+      "sourceFiles": 4,
+      "referencedAdminEndpoints": [
+        "/api/admin/revenue?startDate=${startDate.toISOString"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/analytics-detail",
+      "pageExists": true,
+      "sourceFiles": 4,
+      "referencedAdminEndpoints": [
+        "/api/admin/dashboard/metrics",
+        "/api/admin/revenue?startDate=${startDate}"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/escrow/reviews",
+      "pageExists": true,
+      "sourceFiles": 8,
+      "referencedAdminEndpoints": [
+        "/api/admin/escrow/pending-reviews?limit=50",
+        "/api/admin/escrow/${escrowId}/review-details",
+        "/api/admin/escrow/approve",
+        "/api/admin/escrow/reject",
+        "/api/admin/escrow/hold"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/payments/fees",
+      "pageExists": true,
+      "sourceFiles": 6,
+      "referencedAdminEndpoints": [
+        "/api/admin/escrow/fee-transfer/pending?limit=100",
+        "/api/admin/escrow/fee-transfer/hold",
+        "/api/admin/escrow/fee-transfer/release",
+        "/api/admin/escrow/fee-transfer/batch"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/refunds",
+      "pageExists": true,
+      "sourceFiles": 6,
+      "referencedAdminEndpoints": [
+        "/api/admin/refunds?${params.toString",
+        "/api/admin/refunds/${actionModal.escrow.id}"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/payments/reconciliation",
+      "pageExists": true,
+      "sourceFiles": 4,
+      "referencedAdminEndpoints": [
+        "/api/admin/reconciliation?filter=${filter}${cursor",
+        "/api/admin/reconciliation"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/contractors/payment-setup",
+      "pageExists": true,
+      "sourceFiles": 4,
+      "referencedAdminEndpoints": [
+        "/api/admin/contractors/send-payment-setup-reminder"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/tax",
+      "pageExists": true,
+      "sourceFiles": 10,
+      "referencedAdminEndpoints": [
+        "/api/admin/tax/summaries?year=${year}",
+        "/api/admin/tax/generate-statement",
+        "/api/admin/tax/mark-filed",
+        "/api/admin/tax/generate-all",
+        "/api/admin/tax/download-statement?contractorId=${contractorId}"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/building-assessments",
+      "pageExists": true,
+      "sourceFiles": 15,
+      "referencedAdminEndpoints": [
+        "/api/admin/building-assessments?status=${filterStatus",
+        "/api/admin/building-assessments/${assessmentId}/validate",
+        "/api/admin/building-assessments/evaluation",
+        "/api/admin/building-assessments/${assessmentId}/expert-review"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/ai-monitoring",
+      "pageExists": true,
+      "sourceFiles": 4,
+      "referencedAdminEndpoints": [
+        "/api/admin/ai-monitoring/overview",
+        "/api/admin/ai-monitoring/agents",
+        "/api/admin/ai-monitoring/timeline${selectedAgent",
+        "/api/admin/ai-monitoring/decisions?limit=20"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/hybrid-inference",
+      "pageExists": true,
+      "sourceFiles": 4,
+      "referencedAdminEndpoints": [
+        "/api/admin/hybrid-inference/stats",
+        "/api/admin/hybrid-inference/stats?range=${timeRange}"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/security",
+      "pageExists": true,
+      "sourceFiles": 5,
+      "referencedAdminEndpoints": [
+        "/api/admin/security-dashboard",
+        "/api/admin/security-dashboard/route.ts."
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/audit-logs",
+      "pageExists": true,
+      "sourceFiles": 3,
+      "referencedAdminEndpoints": [
+        "/api/admin/audit-logs?${params.toString"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/migration-dashboard",
+      "pageExists": true,
+      "sourceFiles": 3,
+      "referencedAdminEndpoints": [
+        "/api/admin/migrations/stats"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/api-documentation",
+      "pageExists": true,
+      "sourceFiles": 9,
+      "referencedAdminEndpoints": [],
+      "validation": "source inventory only; live workflow pending"
+    },
+    {
+      "route": "/admin/settings",
+      "pageExists": true,
+      "sourceFiles": 5,
+      "referencedAdminEndpoints": [
+        "/api/admin/settings"
+      ],
+      "validation": "source inventory only; live workflow pending"
+    }
+  ],
+  "adminApiRoutes": 80,
+  "mfaGatedApiRoutes": [
+    "apps/web/app/api/admin/ai-cache/clear/route.ts",
+    "apps/web/app/api/admin/announcements/route.ts",
+    "apps/web/app/api/admin/announcements/send/route.ts",
+    "apps/web/app/api/admin/announcements/[id]/route.ts",
+    "apps/web/app/api/admin/audit-logs/route.ts",
+    "apps/web/app/api/admin/building-assessments/[id]/correct-vlm-label/route.ts",
+    "apps/web/app/api/admin/building-assessments/[id]/expert-review/route.ts",
+    "apps/web/app/api/admin/building-assessments/[id]/validate/route.ts",
+    "apps/web/app/api/admin/coming-soon/notify/route.ts",
+    "apps/web/app/api/admin/contractors/send-payment-setup-reminder/route.ts",
+    "apps/web/app/api/admin/disputes/resolve/route.ts",
+    "apps/web/app/api/admin/escrow/approve/route.ts",
+    "apps/web/app/api/admin/escrow/fee-transfer/batch/route.ts",
+    "apps/web/app/api/admin/escrow/fee-transfer/hold/route.ts",
+    "apps/web/app/api/admin/escrow/fee-transfer/release/route.ts",
+    "apps/web/app/api/admin/escrow/hold/route.ts",
+    "apps/web/app/api/admin/escrow/reject/route.ts",
+    "apps/web/app/api/admin/escrow/retry-stuck-payouts/route.ts",
+    "apps/web/app/api/admin/evidence-retention/disposal/route.ts",
+    "apps/web/app/api/admin/evidence-retention/export/manifest/route.ts",
+    "apps/web/app/api/admin/evidence-retention/export/route.ts",
+    "apps/web/app/api/admin/evidence-retention/route.ts",
+    "apps/web/app/api/admin/maintenance/rotate-totp-secrets/route.ts",
+    "apps/web/app/api/admin/migrations/apply/route.ts",
+    "apps/web/app/api/admin/notifications/pending-verifications/route.ts",
+    "apps/web/app/api/admin/rag/generate-embeddings/route.ts",
+    "apps/web/app/api/admin/reconciliation/route.ts",
+    "apps/web/app/api/admin/refunds/[id]/route.ts",
+    "apps/web/app/api/admin/revenue/export/route.ts",
+    "apps/web/app/api/admin/review-moderation/route.ts",
+    "apps/web/app/api/admin/security-dashboard/route.ts",
+    "apps/web/app/api/admin/settings/route.ts",
+    "apps/web/app/api/admin/synthetic-data/generate/route.ts",
+    "apps/web/app/api/admin/tax/download-statement/route.ts",
+    "apps/web/app/api/admin/tax/generate-all/route.ts",
+    "apps/web/app/api/admin/tax/generate-statement/route.ts",
+    "apps/web/app/api/admin/tax/mark-filed/route.ts",
+    "apps/web/app/api/admin/users/bulk-verify/route.ts",
+    "apps/web/app/api/admin/users/create-admin/route.ts",
+    "apps/web/app/api/admin/users/export/route.ts",
+    "apps/web/app/api/admin/users/[userId]/detail/route.ts",
+    "apps/web/app/api/admin/users/[userId]/verify/route.ts",
+    "apps/web/app/api/admin/verifications/credentials/route.ts",
+    "apps/web/app/api/admin/verifications/documents/route.ts",
+    "apps/web/app/api/admin/verifications/[id]/route.ts"
+  ],
+  "findings": [
+    {
+      "issue": "Approval clients show step-up error without a challenge",
+      "status": "fixed with identity dialog and a single retry; tests pass"
+    },
+    {
+      "issue": "Initial Users data labels non-contractors pending and bypasses test-user filter",
+      "status": "fixed; filtered query now supplies list"
+    },
+    {
+      "issue": "Admin components use legacy indigo/navy theme",
+      "status": "admin token adapter installed; full visual acceptance still pending"
+    },
+    {
+      "issue": "Refund errors hidden behind modal; release step-up reason lost",
+      "status": "inline errors and actionable release MFA message added; no financial mutation run"
+    },
+    {
+      "issue": "Test-user filtering happens after pagination in API",
+      "status": "open: totals can be misleading across multiple pages"
+    },
+    {
+      "issue": "Other admin endpoints require MFA but clients may not launch a challenge",
+      "status": "shared manual identity challenge available; feature-by-feature automatic integration pending"
+    }
+  ]
+}

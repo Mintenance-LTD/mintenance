@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import type { Job } from './JobManagementTypes';
 import {
   STATUS_COLORS,
