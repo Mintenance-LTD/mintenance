@@ -128,7 +128,7 @@ export function ActionsDropdown({
             <DropdownLink
               href='/admin/escrow/reviews'
               label='Escrow Reviews'
-              icon='dollarSign'
+              icon='currencyPound'
               onClose={() => setOpen(false)}
             />
           )}

@@ -56,6 +56,8 @@
     { "path": "/api/cron/retention-cleanup",            "schedule": "0 3 * * *"   },
     { "path": "/api/cron/evidence-disposal",            "schedule": "30 2 * * *"  },
     { "path": "/api/cron/pii-cleanup",                  "schedule": "0 3 * * *"   },
+    { "path": "/api/cron/admin-verification-assignments", "schedule": "*/10 * * * *" },
+    { "path": "/api/cron/cancelled-job-cleanup", "schedule": "15 3 * * *" },
     { "path": "/api/cron/data-archival",                "schedule": "0 4 1 * *"   },
     { "path": "/api/cron/model-retraining",             "schedule": "0 5 * * *"   },
     { "path": "/api/cron/vlm-retraining",               "schedule": "0 5 * * *"   },

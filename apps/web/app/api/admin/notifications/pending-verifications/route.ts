@@ -11,7 +11,9 @@ export const GET = withApiHandler({ roles: ['admin'] }, async () => {
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .eq('role', 'contractor')
-    .neq('admin_verified', true)
+    .eq('admin_verified', false)
+    .not('company_name', 'is', null)
+    .not('license_number', 'is', null)
     .is('deleted_at', null);
 
   if (error) {

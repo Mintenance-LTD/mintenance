@@ -4,6 +4,7 @@ import { AdminVerificationProvider } from '@/components/admin/AdminVerificationP
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Icon } from '@/components/ui/Icon';
 import { SessionManager } from '@/lib/session-manager';
 import { logger } from '@/lib/logger';
@@ -98,8 +99,8 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
         {/* Logo */}
         <div className='px-6 py-5 flex items-center justify-between'>
           <div className='flex items-center gap-3'>
-            <div className='w-8 h-8 rounded-lg bg-[#2f6f5f] flex items-center justify-center flex-shrink-0'>
-              <Icon name='building' size={16} color='#dae2fd' />
+            <div className='w-8 h-8 rounded-lg bg-white border border-[#d8e2da] flex items-center justify-center flex-shrink-0'>
+              <Image src='/assets/logo-mark.png' alt='Mintenance' width={24} height={24} />
             </div>
             {!isCollapsed && (
               <div>
@@ -254,11 +255,6 @@ function SidebarLink({
       {!isCollapsed && (
         <>
           <span className='flex-1'>{item.label}</span>
-          {item.badge && (
-            <span className='text-[10px] font-bold bg-red-500/90 text-white rounded-full px-1.5 min-w-[18px] text-center leading-[16px]'>
-              !
-            </span>
-          )}
         </>
       )}
     </Link>
