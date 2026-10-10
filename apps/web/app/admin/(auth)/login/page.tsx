@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { AdminMfaSetup } from './AdminMfaSetup';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '@/app/components/Logo';
@@ -23,6 +25,7 @@ type AdminLoginFormData = z.infer<typeof adminLoginSchema>;
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const [setupToken, setSetupToken] = useState<string | null>(null);
   const { csrfToken, loading: csrfLoading } = useCSRF();
 
   const {
@@ -61,6 +64,10 @@ export default function AdminLoginPage() {
 
       const responseData = await response.json();
 
+      if (responseData.requiresMfaSetup && responseData.preMfaToken) {
+        setSetupToken(responseData.preMfaToken);
+        return;
+      }
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error('Too many login attempts. Please try again later.');
@@ -93,6 +100,8 @@ export default function AdminLoginPage() {
       });
     }
   };
+
+  if (setupToken) return <AdminMfaSetup token={setupToken} onComplete={() => setSetupToken(null)} />;
 
   return (
     <div className='min-h-screen flex'>
