@@ -94,6 +94,24 @@ beforeEach(() => {
 });
 
 describe('useOfflineQuery', () => {
+  it('does not multiply transport retries when the caller disables query retries', async () => {
+    const queryFn = jest
+      .fn()
+      .mockRejectedValue(new Error('Transport retries exhausted'));
+    mockLocalDb.getJob.mockResolvedValue(null as never);
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useOfflineQuery({
+          queryKey: ['jobs', 'detail', 'retry-budget'],
+          queryFn,
+          retry: false,
+        }),
+      { wrapper }
+    );
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(queryFn).toHaveBeenCalledTimes(1);
+  });
   it('refreshes stale cached photos when the screen is reopened online', async () => {
     const { queryClient, wrapper } = makeWrapper();
     const queryKey = ['jobs', 'detail', 'stale-photo'];
