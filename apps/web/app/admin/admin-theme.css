@@ -1,0 +1,12 @@
+/* Shared admin foundation: the same mint surfaces and sans typography as the app. */
+.admin-theme { min-height: 100vh; background: var(--me-bg); color: var(--me-ink); font-family: var(--font-geist), Arial, sans-serif; }
+.admin-theme h1, .admin-theme h2, .admin-theme h3 { font-family: var(--font-inter), Arial, sans-serif; }
+.admin-theme button, .admin-theme input, .admin-theme select, .admin-theme textarea { font-family: inherit; }
+.admin-theme .bg-primary { background-color: var(--me-brand); }
+.admin-theme .text-primary { color: var(--me-brand); }
+.admin-theme .min-h-screen.flex > .w-1\/2 { background: var(--me-bg-2); color: var(--me-ink); border-right: 1px solid var(--me-line); }
+.admin-theme .min-h-screen.flex > .w-1\/2 .text-white { color: var(--me-ink); }
+.admin-theme .min-h-screen.flex > .w-1\/2 .text-gray-300 { color: var(--me-ink-2); }
+@media (max-width: 767px) {
+  .admin-theme .min-h-screen.flex > .w-1\/2 { display: none; }
+}

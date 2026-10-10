@@ -1,3 +1,4 @@
+import './admin-theme.css';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { AdminLayoutShell } from '@/components/layouts/AdminLayoutShell';
@@ -25,7 +26,7 @@ export default async function AdminLayout({
 
   if (isAuthRoute) {
     // For auth routes, render without layout shell — no sidebar, no admin nav
-    return <>{children}</>;
+    return <div data-theme="mint-editorial" className="admin-theme">{children}</div>;
   }
 
   // For protected routes, check authentication
@@ -37,8 +38,8 @@ export default async function AdminLayout({
 
   // At this point we know user.role is 'admin' due to the check above
   return (
-    <AdminLayoutShell user={user as typeof user & { role: 'admin' }}>
+    <div data-theme="mint-editorial" className="admin-theme"><AdminLayoutShell user={user as typeof user & { role: 'admin' }}>
       {children}
-    </AdminLayoutShell>
+    </AdminLayoutShell></div>
   );
 }

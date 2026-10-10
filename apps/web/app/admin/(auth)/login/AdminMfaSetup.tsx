@@ -12,14 +12,15 @@ export function AdminMfaSetup({ token, onComplete }: { token: string; onComplete
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [complete, setComplete] = useState(false);
   async function submit(action: 'enroll' | 'verify') {
     setBusy(true); setError('');
     try {
-      const response = await fetch('/api/auth/mfa/setup', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken || '' }, body: JSON.stringify({ action, preMfaToken: token, ...(action === 'verify' ? { code } : {}) }) });
+      const response = await fetch('/api/auth/mfa/setup', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken || '' }, signal: AbortSignal.timeout(20000), body: JSON.stringify({ action, preMfaToken: token, ...(action === 'verify' ? { code } : {}) }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Setup failed. Please try again.');
       if (action === 'enroll') setSetup(data);
-      else onComplete();
+      else setComplete(true);
     } catch (e) { setError(e instanceof Error ? e.message : 'Setup failed'); }
     finally { setBusy(false); }
   }
@@ -34,8 +35,8 @@ export function AdminMfaSetup({ token, onComplete }: { token: string; onComplete
             <h1 id='mfa-title'>Secure your admin account</h1>
             <p>Your password was accepted. Add an authenticator to finish securing your account.</p>
           </header>
-          {error && <p className={styles.error} role='alert'>{error}</p>}
-          {!setup ? <>
+          {!setup && error && <p className={styles.error} role='alert'>{error}</p>}
+          {complete ? <div role='status'><h2>Two-factor authentication is ready</h2><p>Your account is secured. Sign in with your password and authenticator code.</p><button className={styles.primary} onClick={onComplete}>Continue to sign in</button></div> : !setup ? <>
             <div className={styles.intro}>
               <Smartphone size={24} aria-hidden='true' />
               <div><h2>A little extra protection</h2><p>Use an authenticator app to generate a six-digit code when you sign in. We’ll also give you backup codes to keep somewhere private.</p></div>
@@ -63,7 +64,7 @@ export function AdminMfaSetup({ token, onComplete }: { token: string; onComplete
               <label className={styles.label} htmlFor='authenticator-code'>Six-digit authenticator code</label>
               <input id='authenticator-code' className={styles.input} inputMode='numeric' autoComplete='one-time-code' maxLength={6} placeholder='000000' value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} aria-describedby='code-help' />
               <p id='code-help' className={styles.help}>Enter the code from your app. Once verified, sign in again to access the dashboard.</p>
-              {!saved && <p className={styles.help}>Save your backup codes and tick the checkbox above to enable verification.</p>}<button type='submit' className={styles.primary} disabled={busy || !csrfToken || !saved || code.length !== 6}>{busy && <Loader2 className={styles.spinner} size={18} aria-hidden='true' />}{busy ? 'Verifying…' : 'Verify and finish setup'}</button>
+              {error && <p className={styles.error} role='alert'>{error}</p>}{!saved && <p className={styles.help}>Save your backup codes and tick the checkbox above to enable verification.</p>}<button type='submit' className={styles.primary} disabled={busy || !csrfToken || !saved || code.length !== 6}>{busy && <Loader2 className={styles.spinner} size={18} aria-hidden='true' />}{busy ? 'Verifying…' : 'Verify and finish setup'}</button>
             </section>
           </form>}
           <button className={styles.back} disabled={busy} onClick={onComplete}><ArrowLeft size={16} aria-hidden='true' />Return to sign in</button>
@@ -73,4 +74,3 @@ export function AdminMfaSetup({ token, onComplete }: { token: string; onComplete
     </main>
   );
 }
-
