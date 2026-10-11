@@ -31,6 +31,7 @@ export interface Dispute {
   escrowStatus: string;
   adminHoldStatus: string;
   holdReason: string | null;
+  assignedAdmin?: string | null;
   homeownerApproval: boolean;
   photoVerificationStatus: string | null;
   coolingOffEndsAt: string | null;
@@ -258,6 +259,10 @@ export function DisputesTable({
                   >
                     {dispute.holdReason || 'No reason provided'}
                   </div>
+                  <div className='text-xs text-gray-500 mt-1'>
+                    Assigned to:{' '}
+                    {dispute.assignedAdmin || 'Awaiting assignment'}
+                  </div>
                 </td>
                 <td style={tdStyle}>
                   <span style={{ fontSize: '13px', color: '#64748B' }}>
@@ -290,9 +295,10 @@ export function DisputesTable({
                       onClick={() => onResolve(dispute)}
                       disabled={actionLoading}
                       style={{ fontSize: '13px' }}
-                      aria-label={`Resolve dispute for ${dispute.jobTitle}`}
+                      aria-label={`${dispute.resolution ? 'View resolution' : 'Resolve dispute'} for ${dispute.jobTitle}`}
                     >
-                      <Icon name='checkCircle' size={14} /> Resolve
+                      <Icon name='checkCircle' size={14} />{' '}
+                      {dispute.resolution ? 'View resolution' : 'Resolve'}
                     </Button>
                   </div>
                 </td>

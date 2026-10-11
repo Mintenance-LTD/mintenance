@@ -278,7 +278,7 @@ export function MintEditorialJobTimeline({
       hasRealTs: false,
       icon: <Sparkles size={14} strokeWidth={1.75} />,
       title: 'You approved the work',
-      meta: 'Payment will release within 24h.',
+      meta: 'Payment will release after the cooling-off period and final checks.',
       tone: 'brand',
     });
   }

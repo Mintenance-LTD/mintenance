@@ -158,6 +158,18 @@ export function computeNextStep(
     completionConfirmed,
   } = inputs;
 
+  if (escrowStatus === 'disputed' || jobStatus === 'disputed') {
+    return {
+      title: 'Dispute under review',
+      body: 'Payment release is paused while the dispute is reviewed.',
+    };
+  }
+  if (escrowStatus === 'refunded') {
+    return {
+      title: 'Payment refunded',
+      body: 'View payment details for the confirmed refund.',
+    };
+  }
   if (jobStatus === 'posted' && bidCount === 0) {
     return {
       title: 'Waiting for bids',
@@ -206,8 +218,12 @@ export function computeNextStep(
 
   if (jobStatus === 'completed' && completionConfirmed) {
     return {
-      title: 'All done',
-      body: 'You approved the work and the payment has been released. Nothing else to do.',
+      title: isEscrowReleased(escrowStatus)
+        ? 'Payment processed'
+        : 'Work approved',
+      body: isEscrowReleased(escrowStatus)
+        ? 'View payment details for the confirmed release and any refund. Bank arrival may take additional time.'
+        : 'Your approval is recorded. Payment release remains subject to the cooling-off period and final checks.',
     };
   }
 

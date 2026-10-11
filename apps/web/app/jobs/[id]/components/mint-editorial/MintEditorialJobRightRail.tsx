@@ -402,7 +402,7 @@ export function HowPaymentWorksCard({
     'You accept the bid · contract drafted to sign',
     `Both sign · ${escrowDisplay} held in escrow before work starts`,
     'Work is done · you confirm completion in-app',
-    `We release payment to ${contractorFirstName} within 24h`,
+    `We release payment to ${contractorFirstName} after the cooling-off period and final checks`,
   ];
   return (
     <div
