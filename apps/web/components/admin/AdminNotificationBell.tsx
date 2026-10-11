@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
-import { Card } from '@/components/ui/Card.unified';
+import { createPortal } from 'react-dom';
 import { theme } from '@/lib/admin-theme';
 import Link from 'next/link';
 
@@ -29,6 +29,48 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const [panelPosition, setPanelPosition] = useState({
+    left: 8,
+    top: 8,
+    width: 380,
+    maxHeight: 500,
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const positionPanel = () => {
+      const anchor = bellRef.current?.getBoundingClientRect();
+      if (!anchor) return;
+      const width = Math.min(380, Math.max(0, window.innerWidth - 16));
+      const top = Math.max(
+        8,
+        Math.min(anchor.bottom + 8, window.innerHeight - 120)
+      );
+      setPanelPosition({
+        left: Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8)),
+        top,
+        width,
+        maxHeight: Math.min(500, Math.max(0, window.innerHeight - top - 8)),
+      });
+    };
+    const escapePanel = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        bellRef.current?.focus();
+      }
+    };
+    positionPanel();
+    window.addEventListener('resize', positionPanel);
+    window.addEventListener('scroll', positionPanel, true);
+    document.addEventListener('keydown', escapePanel);
+    return () => {
+      window.removeEventListener('resize', positionPanel);
+      window.removeEventListener('scroll', positionPanel, true);
+      document.removeEventListener('keydown', escapePanel);
+    };
+  }, [isOpen]);
 
   // Declared BEFORE the polling useEffect so the React Compiler linter
   // (`react-hooks/immutability`) doesn't flag a temporal-dead-zone read
@@ -76,7 +118,8 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(event.target as Node) &&
+        !panelRef.current?.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -132,11 +175,14 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       {/* Notification Bell Button */}
       <button
+        ref={bellRef}
         type='button'
         aria-label='Admin Notifications'
         aria-expanded={isOpen}
         aria-haspopup='dialog'
-        onKeyDown={e => { if (e.key === 'Escape') setIsOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setIsOpen(false);
+        }}
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'relative',
@@ -185,224 +231,230 @@ export function AdminNotificationBell(props: AdminNotificationBellProps) {
       </button>
 
       {/* Dropdown */}
-      {isOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            right: 0,
-            width: '380px',
-            maxHeight: '500px',
-            backgroundColor: '#FFFFFF',
-            borderRadius: theme.borderRadius.lg,
-            boxShadow:
-              '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: `1px solid ${theme.colors.border}`,
-            zIndex: 1000,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {/* Header */}
+      {isOpen &&
+        createPortal(
           <div
+            ref={panelRef}
+            role='dialog'
+            aria-label='Admin notifications'
             style={{
-              padding: theme.spacing[4],
-              borderBottom: `1px solid ${theme.colors.border}`,
+              position: 'fixed',
+              ...panelPosition,
+              backgroundColor: '#FFFFFF',
+              borderRadius: theme.borderRadius.lg,
+              boxShadow:
+                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: `1px solid ${theme.colors.border}`,
+              zIndex: 1000,
+              overflow: 'hidden',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              flexDirection: 'column',
             }}
           >
-            <h3
+            {/* Header */}
+            <div
               style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
+                padding: theme.spacing[4],
+                borderBottom: `1px solid ${theme.colors.border}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
               }}
             >
-              Notifications
-            </h3>
-            {unreadCount > 0 && (
-              <span
+              <h3
                 style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
+                  fontSize: theme.typography.fontSize.lg,
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.textPrimary,
                 }}
               >
-                {unreadCount} unread
-              </span>
-            )}
-          </div>
-
-          {/* Notifications List */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              maxHeight: '400px',
-            }}
-          >
-            {notifications.length === 0 ? (
-              <div
-                style={{
-                  padding: theme.spacing[8],
-                  textAlign: 'center',
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                <Icon name='bell' size={48} color={theme.colors.textTertiary} />
-                <p
+                Notifications
+              </h3>
+              {unreadCount > 0 && (
+                <span
                   style={{
-                    marginTop: theme.spacing[2],
-                    fontSize: theme.typography.fontSize.sm,
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textSecondary,
                   }}
                 >
-                  No notifications
-                </p>
-              </div>
-            ) : (
-              notifications.map((notification) => {
-                const NotificationContent = (
-                  <div
-                    role='button'
-                    tabIndex={0}
-                    aria-label={`${notification.read ? '' : 'Unread: '}${notification.title || 'Notification'}`}
+                  {unreadCount} unread
+                </span>
+              )}
+            </div>
+
+            {/* Notifications List */}
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                maxHeight: '400px',
+              }}
+            >
+              {notifications.length === 0 ? (
+                <div
+                  style={{
+                    padding: theme.spacing[8],
+                    textAlign: 'center',
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  <Icon
+                    name='bell'
+                    size={48}
+                    color={theme.colors.textTertiary}
+                  />
+                  <p
                     style={{
-                      padding: theme.spacing[4],
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                      backgroundColor: notification.read
-                        ? '#FFFFFF'
-                        : '#F9FAFB',
-                      cursor: notification.href ? 'pointer' : 'default',
-                      transition: 'background-color 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#F3F4F6';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read
-                        ? '#FFFFFF'
-                        : '#F9FAFB';
-                    }}
-                    onClick={() => {
-                      if (!notification.read) {
-                        markAsRead(notification.id);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        if (!notification.read) markAsRead(notification.id);
-                      }
+                      marginTop: theme.spacing[2],
+                      fontSize: theme.typography.fontSize.sm,
                     }}
                   >
+                    No notifications
+                  </p>
+                </div>
+              ) : (
+                notifications.map((notification) => {
+                  const NotificationContent = (
                     <div
+                      role='button'
+                      tabIndex={0}
+                      aria-label={`${notification.read ? '' : 'Unread: '}${notification.title || 'Notification'}`}
                       style={{
-                        display: 'flex',
-                        gap: theme.spacing[3],
+                        padding: theme.spacing[4],
+                        borderBottom: `1px solid ${theme.colors.border}`,
+                        backgroundColor: notification.read
+                          ? '#FFFFFF'
+                          : '#F9FAFB',
+                        cursor: notification.href ? 'pointer' : 'default',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#F3F4F6';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          notification.read ? '#FFFFFF' : '#F9FAFB';
+                      }}
+                      onClick={() => {
+                        if (!notification.read) {
+                          markAsRead(notification.id);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          if (!notification.read) markAsRead(notification.id);
+                        }
                       }}
                     >
                       <div
                         style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: theme.borderRadius.full,
-                          backgroundColor: `${getNotificationColor(notification.type)}20`,
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
+                          gap: theme.spacing[3],
                         }}
                       >
-                        <Icon
-                          name={getNotificationIcon(notification.type)}
-                          size={20}
-                          color={getNotificationColor(notification.type)}
-                        />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: theme.borderRadius.full,
+                            backgroundColor: `${getNotificationColor(notification.type)}20`,
                             display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            marginBottom: theme.spacing[1],
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
                           }}
                         >
-                          <h4
+                          <Icon
+                            name={getNotificationIcon(notification.type)}
+                            size={20}
+                            color={getNotificationColor(notification.type)}
+                          />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
                             style={{
-                              fontSize: theme.typography.fontSize.sm,
-                              fontWeight: theme.typography.fontWeight.semibold,
-                              color: theme.colors.textPrimary,
-                              margin: 0,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              marginBottom: theme.spacing[1],
                             }}
                           >
-                            {notification.title}
-                          </h4>
-                          {!notification.read && (
-                            <div
-                              aria-hidden='true'
+                            <h4
                               style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                backgroundColor: '#3B82F6',
-                                flexShrink: 0,
-                                marginLeft: theme.spacing[2],
+                                fontSize: theme.typography.fontSize.sm,
+                                fontWeight:
+                                  theme.typography.fontWeight.semibold,
+                                color: theme.colors.textPrimary,
+                                margin: 0,
                               }}
-                            />
-                          )}
-                        </div>
-                        <p
-                          style={{
-                            fontSize: theme.typography.fontSize.xs,
-                            color: theme.colors.textSecondary,
-                            margin: 0,
-                            marginBottom: theme.spacing[1],
-                          }}
-                        >
-                          {notification.message}
-                        </p>
-                        <span
-                          style={{
-                            fontSize: theme.typography.fontSize.xs,
-                            color: theme.colors.textTertiary,
-                          }}
-                        >
-                          {new Date(notification.createdAt).toLocaleDateString(
-                            'en-GB',
-                            {
+                            >
+                              {notification.title}
+                            </h4>
+                            {!notification.read && (
+                              <div
+                                aria-hidden='true'
+                                style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#3B82F6',
+                                  flexShrink: 0,
+                                  marginLeft: theme.spacing[2],
+                                }}
+                              />
+                            )}
+                          </div>
+                          <p
+                            style={{
+                              fontSize: theme.typography.fontSize.xs,
+                              color: theme.colors.textSecondary,
+                              margin: 0,
+                              marginBottom: theme.spacing[1],
+                            }}
+                          >
+                            {notification.message}
+                          </p>
+                          <span
+                            style={{
+                              fontSize: theme.typography.fontSize.xs,
+                              color: theme.colors.textTertiary,
+                            }}
+                          >
+                            {new Date(
+                              notification.createdAt
+                            ).toLocaleDateString('en-GB', {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit',
-                            }
-                          )}
-                        </span>
+                            })}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-
-                if (notification.href) {
-                  return (
-                    <Link
-                      key={notification.id}
-                      href={notification.href}
-                      style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                      {NotificationContent}
-                    </Link>
                   );
-                }
 
-                return <div key={notification.id}>{NotificationContent}</div>;
-              })
-            )}
-          </div>
-        </div>
-      )}
+                  if (notification.href) {
+                    return (
+                      <Link
+                        key={notification.id}
+                        href={notification.href}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                      >
+                        {NotificationContent}
+                      </Link>
+                    );
+                  }
+
+                  return <div key={notification.id}>{NotificationContent}</div>;
+                })
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
