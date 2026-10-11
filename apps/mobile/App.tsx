@@ -1,3 +1,5 @@
+import { ToastManager } from './src/components/ui/Toast/ToastManager';
+import { ThemedAlertHost } from './src/components/ui/ThemedAlertHost';
 import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AppState, Text, View } from 'react-native';
@@ -376,7 +378,9 @@ export default function App(): React.JSX.Element {
               <ThemeProvider>
                 <QueryProvider>
                   <AuthProvider>
+                    <ThemedAlertHost />
                     <AppNavigator />
+                    <ToastManager />
                     <StatusBar style='auto' />
                   </AuthProvider>
                 </QueryProvider>

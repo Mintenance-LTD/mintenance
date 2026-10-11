@@ -27,8 +27,8 @@ interface InputProps extends TextInputProps {
   state?: string;
   errorText?: string;
   /**
-   * Opt in to the Direction A · Mint Editorial palette. Off by default
-   * so existing callers render unchanged.
+   * Use the Direction A · Mint Editorial palette. On by default
+   * so validation feedback matches the app.
    */
   mint?: boolean;
 }
@@ -103,7 +103,7 @@ export const Input = forwardRef<TextInput, InputProps>(
       required,
       state,
       errorText,
-      mint = false,
+      mint = true,
       ...props
     },
     ref
