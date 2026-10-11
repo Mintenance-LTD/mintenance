@@ -188,7 +188,9 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div
+    <main
+      id='main-content'
+      tabIndex={-1}
       data-theme='mint-editorial'
       className='me-root'
       style={{
@@ -492,6 +494,6 @@ export default function ResetPasswordPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

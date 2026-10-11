@@ -40,6 +40,9 @@ beforeEach(() => {
             email: 'private@example.test',
             phone: '+447700900123',
             address: 'Private address',
+            latitude: 51.123456,
+            longitude: -0.123456,
+            documents: ['private-document.pdf'],
           }
         : table === 'contractor_insurance'
           ? null
@@ -62,7 +65,7 @@ it('returns a usable public profile without contact data or private job evidence
   expect(response.status).toBe(200);
   const body = await response.json();
   expect(body.contractor.name).toBe('Fixture Plumbing');
-  for (const field of ['email', 'phone', 'address'])
+  for (const field of ['email', 'phone', 'address', 'latitude', 'longitude', 'documents'])
     expect(body.contractor).not.toHaveProperty(field);
   expect(body.contractor.portfolio).toHaveLength(1);
   expect(body.contractor.portfolio[0].images).toEqual([

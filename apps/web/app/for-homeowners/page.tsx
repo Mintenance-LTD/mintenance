@@ -59,8 +59,6 @@ const FEATURES: MarketingFeature[] = [
     screenshot: '/screenshots/homeowner/bids-received.png',
     screenshotAlt:
       'Job detail page showing bids received with contractor profiles',
-    mobileScreenshot: '/screenshots/mobile/homeowner-bids.png',
-    mobileAlt: 'Mobile view of bids received section',
     badge: 'You Decide',
   },
   {
@@ -146,10 +144,10 @@ function HowItWorksSection() {
             const Icon = item.icon;
             return (
               <div key={item.step} className='text-center'>
-                <div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 mb-4'>
+                <div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-100 text-[#2f6f5f] mb-4'>
                   <Icon className='w-6 h-6' />
                 </div>
-                <div className='text-xs font-bold text-teal-600 uppercase tracking-wider mb-2'>
+                <div className='text-xs font-bold text-[#2f6f5f] uppercase tracking-wider mb-2'>
                   Step {item.step}
                 </div>
                 <h3 className='font-semibold text-gray-900 mb-2'>

@@ -58,6 +58,8 @@ export function LandingNavigation() {
 
   return (
     <nav
+      aria-label='Main navigation'
+      className='public-site-navigation'
       data-theme='mint-editorial'
       style={{
         position: 'sticky',
@@ -227,6 +229,13 @@ export function LandingNavigation() {
             </Link>
           ))}
           <Link
+            href='/login'
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{ ...linkStyle, display: 'block', padding: '12px 0' }}
+          >
+            Sign in
+          </Link>
+          <Link
             href='/register'
             onClick={() => setIsMobileMenuOpen(false)}
             style={{
@@ -250,6 +259,7 @@ export function LandingNavigation() {
       {/* Responsive: collapse desktop links/CTAs into the burger menu
           below 900px. */}
       <style>{`
+        .public-site-navigation :is(a, button):focus-visible { outline: 3px solid var(--me-brand); outline-offset: 4px; }
         @media (max-width: 899px) {
           .landing-nav-links,
           .landing-nav-cta { display: none !important; }

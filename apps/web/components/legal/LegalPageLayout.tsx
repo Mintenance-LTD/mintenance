@@ -25,7 +25,11 @@ export function LegalPageLayout({
       }}
     >
       <LandingNavigation />
-      <main className='flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12'>
+      <main
+        id='main-content'
+        tabIndex={-1}
+        className='flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12'
+      >
         <div
           className='p-6 md:p-12'
           style={{
@@ -35,6 +39,14 @@ export function LegalPageLayout({
             boxShadow: 'var(--me-shadow-card)',
           }}
         >
+          <nav
+            aria-label='Legal documents'
+            className='flex flex-wrap gap-3 mb-8 text-sm font-semibold text-[#2f6f5f]'
+          >
+            <Link href='/terms'>Terms</Link>
+            <Link href='/privacy'>Privacy</Link>
+            <Link href='/cookies'>Cookies</Link>
+          </nav>
           <h1
             className='text-4xl mb-2'
             style={{
@@ -49,7 +61,9 @@ export function LegalPageLayout({
           <p className='mb-8' style={{ color: 'var(--me-ink-3)' }}>
             Last updated: {lastUpdated}
           </p>
-          <div className='prose prose-lg max-w-none'>{children}</div>
+          <div className='public-legal-copy prose prose-lg max-w-none'>
+            {children}
+          </div>
         </div>
 
         <div

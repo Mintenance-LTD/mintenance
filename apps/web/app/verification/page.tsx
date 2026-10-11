@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-verification.jpg',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Mintenance Contractor Verification',
@@ -131,7 +131,9 @@ export default function VerificationPage() {
     <ErrorBoundary componentName='VerificationPage'>
       <div>
         <LandingNavigation />
-        <div
+        <main
+          id='main-content'
+          tabIndex={-1}
           data-theme='mint-editorial'
           className='min-h-screen'
           style={{
@@ -432,7 +434,7 @@ export default function VerificationPage() {
               </div>
             </section>
           </div>
-        </div>
+        </main>
         <Footer2025 />
       </div>
     </ErrorBoundary>

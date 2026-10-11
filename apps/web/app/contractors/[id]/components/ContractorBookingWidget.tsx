@@ -61,7 +61,7 @@ export function ContractorBookingWidget({
             <button
               onClick={bidContext.onAccept}
               disabled={bidContext.processing}
-              className='w-full py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold text-lg hover:from-teal-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all mb-3 disabled:opacity-50 disabled:cursor-not-allowed'
+              className='w-full py-4 bg-[#2f6f5f] text-white rounded-xl font-semibold text-lg hover:bg-[#234e43] shadow-lg hover:shadow-xl transition-all mb-3 disabled:opacity-50 disabled:cursor-not-allowed'
             >
               {bidContext.processing ? 'Processing...' : 'Accept Bid'}
             </button>
@@ -76,7 +76,7 @@ export function ContractorBookingWidget({
         ) : (
           <button
             onClick={onRequestQuote}
-            className='w-full py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold text-lg hover:from-teal-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all mb-4'
+            className='w-full py-4 bg-[#2f6f5f] text-white rounded-xl font-semibold text-lg hover:bg-[#234e43] shadow-lg hover:shadow-xl transition-all mb-4'
           >
             Request Quote
           </button>

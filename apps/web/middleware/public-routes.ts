@@ -95,6 +95,10 @@ const ADMIN_AUTH_ROUTES = [
 const UUID_CONTRACTOR_PROFILE_RE =
   /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Only the three privacy-filtered, rate-limited public profile GET endpoints.
+const UUID_PUBLIC_CONTRACTOR_API_RE =
+  /^\/api\/contractors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\/(?:reviews|metrics))?$/i;
+
 // Generated reporting capabilities are 16 random bytes encoded as 32 hex chars.
 // The handler still verifies existence, active status and the linked property,
 // and rate-limits anonymous requests. Never expose reporting management paths.
@@ -143,6 +147,7 @@ export function isPublicRoute(pathname: string): boolean {
   }
 
   if (PUBLIC_API_ROUTES_EXACT.has(pathname)) return true;
+  if (UUID_PUBLIC_CONTRACTOR_API_RE.test(pathname)) return true;
 
   if (
     PUBLIC_API_ROUTES_PREFIXED.some((prefix) => pathname.startsWith(prefix))

@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Star, MapPin, Shield, Award, CheckCircle2, Clock } from 'lucide-react';
 import type { ContractorData } from './ContractorsBrowseProfessional';
 
@@ -74,15 +74,15 @@ export function ContractorGridCard({
 }: {
   contractor: ContractorData;
 }) {
-  const router = useRouter();
   const imageUrl =
     contractor.profile_image ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(contractor.name)}&background=14b8a6&color=fff&size=400`;
 
   return (
-    <div
-      className='bg-white rounded-2xl border-2 border-gray-200 overflow-hidden hover:border-teal-500 hover:shadow-2xl transition-all duration-300 group cursor-pointer relative'
-      onClick={() => router.push(`/contractors/${contractor.id}`)}
+    <Link
+      className='block bg-white rounded-2xl border-2 border-gray-200 overflow-hidden hover:border-teal-500 hover:shadow-2xl transition-all duration-300 group cursor-pointer relative'
+      href={`/contractors/${contractor.id}`}
+      aria-label={`View ${contractor.company_name || contractor.name} profile`}
     >
       {/* Gradient Border Effect on Hover */}
       <div className='absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10' />
@@ -103,7 +103,7 @@ export function ContractorGridCard({
         {/* Verified Badge */}
         {contractor.verified && (
           <div className='absolute top-4 left-4 px-3 py-1.5 bg-white/95 backdrop-blur-sm rounded-full flex items-center gap-1.5 shadow-lg group-hover:scale-110 transition-transform duration-300'>
-            <Shield className='w-4 h-4 text-teal-600' />
+            <Shield className='w-4 h-4 text-[#2f6f5f]' />
             <span className='text-xs font-bold text-slate-900'>Verified</span>
           </div>
         )}
@@ -121,7 +121,7 @@ export function ContractorGridCard({
       <div className='p-6'>
         {/* Header */}
         <div className='mb-3'>
-          <h3 className='text-xl font-bold text-slate-900 mb-1 group-hover:text-teal-600 transition-colors'>
+          <h3 className='text-xl font-bold text-slate-900 mb-1 group-hover:text-[#2f6f5f] transition-colors'>
             {contractor.name}
           </h3>
           <p className='text-sm text-gray-600 font-medium'>
@@ -170,13 +170,13 @@ export function ContractorGridCard({
         {/* Stats */}
         <div className='flex items-center gap-4 mb-4 pb-4 border-b border-gray-100'>
           <div className='flex items-center gap-1.5 text-gray-600'>
-            <CheckCircle2 className='w-4 h-4 text-teal-600' />
+            <CheckCircle2 className='w-4 h-4 text-[#2f6f5f]' />
             <span className='text-xs font-medium'>
               {contractor.completed_jobs} jobs
             </span>
           </div>
           <div className='flex items-center gap-1.5 text-gray-600'>
-            <Clock className='w-4 h-4 text-teal-600' />
+            <Clock className='w-4 h-4 text-[#2f6f5f]' />
             <span className='text-xs font-medium'>
               {contractor.response_time || 'Response time not yet measured'}
             </span>
@@ -187,7 +187,7 @@ export function ContractorGridCard({
         <div className='flex items-center justify-between'>
           {contractor.hourly_rate ? (
             <div>
-              <span className='text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent'>
+              <span className='text-2xl font-bold bg-[#2f6f5f] bg-clip-text text-transparent'>
                 £{contractor.hourly_rate}
               </span>
               <span className='text-sm text-gray-600 ml-1'>/hr</span>
@@ -197,12 +197,12 @@ export function ContractorGridCard({
               Contact for pricing
             </span>
           )}
-          <button className='px-5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95'>
+          <span className='px-5 py-2.5 bg-[#2f6f5f] text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95'>
             View Profile
-          </button>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -211,19 +211,19 @@ export function ContractorListCard({
 }: {
   contractor: ContractorData;
 }) {
-  const router = useRouter();
   const imageUrl =
     contractor.profile_image ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(contractor.name)}&background=14b8a6&color=fff&size=200`;
 
   return (
-    <div
-      className='bg-white rounded-2xl border-2 border-gray-200 p-6 hover:border-teal-500 hover:shadow-2xl transition-all duration-300 group cursor-pointer relative'
-      onClick={() => router.push(`/contractors/${contractor.id}`)}
+    <Link
+      className='block bg-white rounded-2xl border-2 border-gray-200 p-6 hover:border-teal-500 hover:shadow-2xl transition-all duration-300 group cursor-pointer relative'
+      href={`/contractors/${contractor.id}`}
+      aria-label={`View ${contractor.company_name || contractor.name} profile`}
     >
       {/* Gradient Border Effect on Hover */}
       <div className='absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 rounded-2xl' />
-      <div className='flex gap-6'>
+      <div className='flex flex-col sm:flex-row gap-6'>
         {/* Image */}
         <div className='relative w-32 h-32 flex-shrink-0 rounded-xl overflow-hidden'>
           <Image
@@ -235,7 +235,7 @@ export function ContractorListCard({
           />
           {contractor.verified && (
             <div className='absolute top-2 left-2 p-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-lg'>
-              <Shield className='w-4 h-4 text-teal-600' />
+              <Shield className='w-4 h-4 text-[#2f6f5f]' />
             </div>
           )}
         </div>
@@ -244,7 +244,7 @@ export function ContractorListCard({
         <div className='flex-1'>
           <div className='flex items-start justify-between mb-2'>
             <div>
-              <h3 className='text-2xl font-bold text-slate-900 group-hover:text-teal-600 transition-colors'>
+              <h3 className='text-2xl font-bold text-slate-900 group-hover:text-[#2f6f5f] transition-colors'>
                 {contractor.name}
               </h3>
               <p className='text-gray-600 font-medium'>
@@ -276,13 +276,13 @@ export function ContractorListCard({
               </div>
             )}
             <div className='flex items-center gap-1 text-gray-600'>
-              <CheckCircle2 className='w-4 h-4 text-teal-600' />
+              <CheckCircle2 className='w-4 h-4 text-[#2f6f5f]' />
               <span className='text-sm font-medium'>
                 {contractor.completed_jobs} jobs completed
               </span>
             </div>
             <div className='flex items-center gap-1 text-gray-600'>
-              <Clock className='w-4 h-4 text-teal-600' />
+              <Clock className='w-4 h-4 text-[#2f6f5f]' />
               <span className='text-sm font-medium'>
                 {contractor.response_time
                   ? `${contractor.response_time} response`
@@ -309,7 +309,7 @@ export function ContractorListCard({
           <div className='flex items-center justify-between pt-4 border-t border-gray-100'>
             {contractor.hourly_rate ? (
               <div>
-                <span className='text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent'>
+                <span className='text-3xl font-bold bg-[#2f6f5f] bg-clip-text text-transparent'>
                   £{contractor.hourly_rate}
                 </span>
                 <span className='text-gray-600 ml-2'>/hour</span>
@@ -319,12 +319,12 @@ export function ContractorListCard({
                 Contact for pricing
               </span>
             )}
-            <button className='px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95'>
+            <span className='px-6 py-3 bg-[#2f6f5f] text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95'>
               View Profile
-            </button>
+            </span>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
