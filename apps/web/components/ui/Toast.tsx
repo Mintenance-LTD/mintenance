@@ -102,7 +102,7 @@ function ToastContainer({ toasts, hideToast }: ToastContainerProps) {
         display: 'flex',
         flexDirection: 'column',
         gap: theme.spacing[2],
-        maxWidth: '400px',
+        maxWidth: 'min(400px, calc(100vw - 32px))',
         width: '100%',
         pointerEvents: 'none',
       }}
@@ -146,27 +146,27 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
 
   const typeConfig = {
     success: {
-      bgColor: '#ECFDF5',
-      borderColor: '#10B981',
-      iconColor: '#10B981',
+      bgColor: 'var(--me-ok-bg)',
+      borderColor: 'var(--me-ok-fg)',
+      iconColor: 'var(--me-ok-fg)',
       icon: 'checkCircle',
     },
     error: {
-      bgColor: '#FEF2F2',
-      borderColor: '#EF4444',
-      iconColor: '#EF4444',
+      bgColor: 'var(--me-err-bg)',
+      borderColor: 'var(--me-err-fg)',
+      iconColor: 'var(--me-err-fg)',
       icon: 'xCircle',
     },
     warning: {
-      bgColor: '#FFFBEB',
-      borderColor: '#F59E0B',
-      iconColor: '#F59E0B',
+      bgColor: 'var(--me-warn-bg)',
+      borderColor: 'var(--me-warn-fg)',
+      iconColor: 'var(--me-warn-fg)',
       icon: 'alert',
     },
     info: {
-      bgColor: '#EFF6FF',
-      borderColor: '#3B82F6',
-      iconColor: '#3B82F6',
+      bgColor: 'var(--me-info-bg)',
+      borderColor: 'var(--me-info-fg)',
+      iconColor: 'var(--me-info-fg)',
       icon: 'info',
     },
   };
@@ -179,7 +179,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
       style={{
         backgroundColor: config.bgColor,
-        border: `2px solid ${config.borderColor}`,
+        border: `1px solid ${config.borderColor}`,
         borderRadius: theme.borderRadius.lg,
         padding: theme.spacing[3],
         display: 'flex',
@@ -205,7 +205,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
             margin: 0,
             fontSize: theme.typography.fontSize.sm,
             fontWeight: theme.typography.fontWeight.medium,
-            color: theme.colors.textPrimary,
+            color: 'var(--me-ink)',
             lineHeight: theme.typography.lineHeight.normal,
           }}
         >

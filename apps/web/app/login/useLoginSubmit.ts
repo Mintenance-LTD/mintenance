@@ -24,6 +24,18 @@ export const loginFormSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginFormSchema>;
 
+/** API errors may be strings or structured { code, message } objects. */
+export function loginErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== 'object') return fallback;
+  const data = payload as { error?: unknown; message?: unknown };
+  const nested = data.error && typeof data.error === 'object'
+    ? (data.error as { message?: unknown }).message : undefined;
+  for (const value of [data.error, nested, data.message]) {
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return fallback;
+}
+
 export type SubmitStatus = 'idle' | 'success' | 'error';
 
 export function useLoginSubmit() {
@@ -106,11 +118,8 @@ export function useLoginSubmit() {
           // second-guessing it with fragile `includes()` matching that
           // re-introduces the enumeration signal and can be flat wrong
           // (claiming "incorrect password" when the email was bad).
-          const rawError = responseData.error ?? responseData.message;
-          const safeError =
-            typeof rawError === 'string' && rawError.trim().length > 0
-              ? rawError
-              : 'Invalid email or password. Please check your credentials and try again.';
+          const safeError = loginErrorMessage(responseData,
+            'Invalid email or password. Please check your credentials and try again.');
           throw new Error(safeError);
         } else if (response.status === 403) {
           throw new Error(
@@ -118,13 +127,11 @@ export function useLoginSubmit() {
           );
         } else if (response.status === 400) {
           throw new Error(
-            responseData.error ||
-              'Invalid request. Please check your email and password format.'
+            loginErrorMessage(responseData, 'Invalid request. Please check your email and password format.')
           );
         } else {
           throw new Error(
-            responseData.error ||
-              'Login failed. Please try again or contact support if the problem persists.'
+            loginErrorMessage(responseData, 'Login failed. Please try again or contact support if the problem persists.')
           );
         }
       }
