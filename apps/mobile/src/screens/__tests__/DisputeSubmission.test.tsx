@@ -57,7 +57,7 @@ const originalFetch = global.fetch;
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  mockGet.mockResolvedValue({ escrow: { id: 'escrow' } });
+  mockGet.mockResolvedValue({ escrow: { id: 'escrow', status: 'held' } });
   mockPost.mockResolvedValue({
     disputeId: 'escrow',
     disputeRecordId: 'record',
@@ -118,7 +118,7 @@ it('blocks a second tap while submission is pending', async () => {
     fireEvent.press(button);
   });
   expect(mockGet).toHaveBeenCalledTimes(1);
-  await act(async () => finish({ escrow: { id: 'escrow' } }));
+  await act(async () => finish({ escrow: { id: 'escrow', status: 'held' } }));
   expect(mockPost).toHaveBeenCalledTimes(1);
   expect(Alert.alert).toHaveBeenCalledWith(
     'Dispute Submitted',
@@ -153,3 +153,20 @@ it('does not submit after evidence fails and reuses uploaded evidence after an u
     /^job-attachments:job\/disputes\/actor\//
   );
 });
+
+it.each(['completed', 'released', 'refunded', 'disputed'])(
+  'blocks uploads and submission for %s escrow',
+  async (status) => {
+    mockGet.mockResolvedValue({ escrow: { id: 'escrow', status } });
+    const view = form();
+    await act(async () =>
+      fireEvent.press(view.getByLabelText('Add evidence photos'))
+    );
+    await act(async () =>
+      fireEvent.press(view.getByLabelText('Submit dispute'))
+    );
+    expect(mockUpload).not.toHaveBeenCalled();
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(view.getByText(/View the dispute record/)).toBeTruthy();
+  }
+);

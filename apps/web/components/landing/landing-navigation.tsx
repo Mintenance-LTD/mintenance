@@ -14,10 +14,10 @@ import Image from 'next/image';
  */
 
 const NAV_LINKS = [
-  { href: '#how-it-works', label: 'How it works' },
-  { href: '/login?redirect=/dashboard', label: 'For homeowners' },
+  { href: '/how-it-works', label: 'How it works' },
+  { href: '/for-homeowners', label: 'For homeowners' },
   {
-    href: '/login?redirect=/contractor/dashboard-enhanced',
+    href: '/for-contractors',
     label: 'For tradespeople',
   },
   { href: '/about', label: 'About' },
@@ -167,6 +167,7 @@ export function LandingNavigation() {
           className='landing-nav-burger'
           aria-label='Toggle navigation menu'
           aria-expanded={isMobileMenuOpen}
+          aria-controls='public-mobile-menu'
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           style={{
             display: 'none',
@@ -203,6 +204,7 @@ export function LandingNavigation() {
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div
+          id='public-mobile-menu'
           className='landing-nav-mobile'
           style={{
             borderTop: '1px solid var(--me-line)',
@@ -251,7 +253,7 @@ export function LandingNavigation() {
         @media (max-width: 899px) {
           .landing-nav-links,
           .landing-nav-cta { display: none !important; }
-          .landing-nav-burger { display: block !important; }
+          .landing-nav-burger { display: block !important; margin-left: auto; }
         }
       `}</style>
     </nav>
