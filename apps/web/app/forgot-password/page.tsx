@@ -130,7 +130,9 @@ export default function ForgotPasswordPage() {
   const submitting = isSubmitting || csrfLoading;
 
   return (
-    <div
+    <main
+      id='main-content'
+      tabIndex={-1}
       data-theme='mint-editorial'
       className='me-root'
       style={{
@@ -435,6 +437,6 @@ export default function ForgotPasswordPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

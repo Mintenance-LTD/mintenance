@@ -47,3 +47,22 @@ body:has(.public-page-navigation)
     font-size: 2.5rem;
   }
 }
+
+/* Readable document rhythm and consistent public icon weight. */
+.public-legal-copy {
+  overflow-wrap: anywhere;
+}
+.public-legal-copy > div > section + section {
+  padding-top: 2rem;
+  border-top: 1px solid #d8e2da;
+}
+body:has(.public-page-navigation) main svg.lucide {
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  body:has(.public-page-navigation) main * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

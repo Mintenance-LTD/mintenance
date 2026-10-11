@@ -91,8 +91,6 @@ export const GET = withApiHandler(
           company_name,
           city,
           country,
-          latitude,
-          longitude,
           is_available,
           portfolio_images,
           total_jobs_completed,
@@ -252,9 +250,6 @@ export const GET = withApiHandler(
           company_name?: string;
           city?: string;
           country?: string;
-          address?: string;
-          latitude?: number;
-          longitude?: number;
           is_available?: boolean;
           portfolio_images?: string[];
           portfolio?: Array<{
@@ -268,8 +263,6 @@ export const GET = withApiHandler(
             featured: boolean;
           }>;
           total_jobs_completed?: number;
-          phone?: string;
-          email?: string;
           skills?: string[];
           hourly_rate?: number;
           created_at?: string;
@@ -301,8 +294,6 @@ export const GET = withApiHandler(
           company_name: contractor.company_name,
           city: contractor.city,
           country: contractor.country,
-          latitude: contractor.latitude,
-          longitude: contractor.longitude,
           is_available: contractor.is_available,
           portfolio_images: Array.from(new Set(manualImages)),
           portfolio: portfolioJobs,
