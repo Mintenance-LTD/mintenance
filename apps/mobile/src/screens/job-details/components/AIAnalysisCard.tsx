@@ -185,10 +185,13 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
   const data = aiAnalysis.assessmentData as AssessmentData | undefined;
   const hasRichData = Boolean(data?.damageAssessment);
   const rawConf = data?.damageAssessment?.confidence ?? aiAnalysis.confidence;
-  const confPct = Math.min(
-    100,
-    Math.round(rawConf > 1 ? rawConf : rawConf * 100)
-  );
+  const confPct =
+    typeof rawConf === 'number' && Number.isFinite(rawConf)
+      ? Math.max(
+          0,
+          Math.min(100, Math.round(rawConf > 1 ? rawConf : rawConf * 100))
+        )
+      : null;
 
   if (!hasRichData)
     return <LegacyCard aiAnalysis={aiAnalysis} confPct={confPct} />;
@@ -197,7 +200,7 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
   return (
     <View
       style={st.container}
-      accessibilityLabel={`Building Assessment: ${confPct}% confidence`}
+      accessibilityLabel={`Building Assessment: ${confPct === null ? 'confidence unavailable' : `${confPct}% confidence`}`}
     >
       <TouchableOpacity
         style={st.header}
@@ -218,7 +221,11 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
           Building Assessment
         </Text>
         <View style={st.badge}>
-          <Text style={st.badgeText}>{confPct}% confidence</Text>
+          <Text style={st.badgeText}>
+            {confPct === null
+              ? 'Confidence unavailable'
+              : `${confPct}% confidence`}
+          </Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -297,12 +304,12 @@ function LegacyCard({
   confPct,
 }: {
   aiAnalysis: AIAnalysis;
-  confPct: number;
+  confPct: number | null;
 }) {
   return (
     <View
       style={st.container}
-      accessibilityLabel={`AI Analysis: ${aiAnalysis.estimatedComplexity} complexity, ${confPct}% confidence`}
+      accessibilityLabel={`AI Analysis: ${aiAnalysis.estimatedComplexity || 'Unknown'} complexity, ${confPct === null ? 'confidence unavailable' : `${confPct}% confidence`}`}
     >
       <View style={st.header}>
         <Ionicons
@@ -315,14 +322,22 @@ function LegacyCard({
           AI Analysis
         </Text>
         <View style={st.badge}>
-          <Text style={st.badgeText}>{confPct}% confidence</Text>
+          <Text style={st.badgeText}>
+            {confPct === null
+              ? 'Confidence unavailable'
+              : `${confPct}% confidence`}
+          </Text>
         </View>
       </View>
       <View style={st.body}>
         <Text style={st.label}>Estimated Complexity</Text>
-        <Text style={st.value}>{aiAnalysis.estimatedComplexity}</Text>
+        <Text style={st.value}>
+          {aiAnalysis.estimatedComplexity || 'Not available'}
+        </Text>
         <Text style={st.label}>Estimated Duration</Text>
-        <Text style={st.value}>{aiAnalysis.estimatedDuration}</Text>
+        <Text style={st.value}>
+          {aiAnalysis.estimatedDuration || 'Not available'}
+        </Text>
         {aiAnalysis.suggestedTools && aiAnalysis.suggestedTools.length > 0 && (
           <>
             <Text style={st.label}>Suggested Tools</Text>

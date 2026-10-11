@@ -44,11 +44,12 @@ export class TrustScoreService {
       const successfulJobs = completedJobs; // For now, completed = successful
 
       // Get dispute count
-      const { data: disputes } = await serverSupabase
+      const { data: disputes, error: disputesError } = await serverSupabase
         .from('disputes')
-        .select('id')
-        .eq('contractor_id', contractorId)
+        .select('id, jobs!inner(contractor_id)')
+        .eq('jobs.contractor_id', contractorId)
         .in('status', ['open', 'resolved']);
+      if (disputesError) throw disputesError;
 
       const disputeCount = disputes?.length || 0;
 

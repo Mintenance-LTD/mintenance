@@ -17,6 +17,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
+import { File } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { prepareJobPhoto } from '../services/prepareJobPhoto';
 import type { JobsStackParamList } from '../navigation/types';
 import { ScreenHeader, LoadingSpinner } from '../components/shared';
 import { Banner } from '../components/ui/Banner';
@@ -53,15 +56,15 @@ async function uploadDisputeEvidence(
       evidence.push(cached);
       continue;
     }
+    let preparedUri: string | undefined;
     try {
-      const rawExt = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
-      const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : 'jpg';
-      const filePath = `${jobId}/disputes/${userId}/${Date.now()}-${i}.${ext}`;
-      const buf = await (await (await fetch(asset.uri)).blob()).arrayBuffer();
+      preparedUri = await prepareJobPhoto(asset);
+      const filePath = `${jobId}/disputes/${userId}/${Date.now()}-${i}.jpg`;
+      const buf = await new File(preparedUri).arrayBuffer();
       const { error: upErr } = await supabase.storage
         .from('job-attachments')
         .upload(filePath, buf, {
-          contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          contentType: 'image/jpeg',
           upsert: false,
         });
       if (upErr) {
@@ -70,11 +73,21 @@ async function uploadDisputeEvidence(
       const reference = `job-attachments:${filePath}`;
       uploaded.set(cacheKey, reference);
       evidence.push(reference);
-    } catch {
-      logger.warn('Dispute evidence upload failed', { index: i });
+    } catch (error) {
+      logger.warn('Dispute evidence upload failed', {
+        index: i,
+        message:
+          error instanceof Error ? error.message : 'Storage upload failed',
+      });
       throw new Error(
         'Some evidence could not be uploaded. Your dispute has not been submitted. Please retry.'
       );
+    } finally {
+      if (preparedUri) {
+        await FileSystem.deleteAsync(preparedUri, { idempotent: true }).catch(
+          () => {}
+        );
+      }
     }
   }
   return evidence;
