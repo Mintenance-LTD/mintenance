@@ -743,6 +743,51 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
   // concurrent accepts may win.
   // =========================================================================
   describe('atomic RPC race + idempotency depth', () => {
+    it.each(['57014', '40001', '40P01'])(
+      'recovers from a rolled-back %s without repeating side effects',
+      async (code) => {
+        setupAcceptMocks();
+        mocks.supabaseRpc.mockResolvedValueOnce({
+          data: null,
+          error: { code, message: 'transaction aborted' },
+        });
+        const res = await POST(
+          createPostRequest(
+            'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+          ),
+          segmentData('job-1', 'bid-1')
+        );
+        expect(res.status).toBe(200);
+        expect(mocks.supabaseRpc).toHaveBeenCalledTimes(2);
+        expect(mocks.supabaseRpc.mock.calls[0]).toEqual(
+          mocks.supabaseRpc.mock.calls[1]
+        );
+        expect(mocks.sendBidAcceptedEmail).toHaveBeenCalledTimes(1);
+        expect(mocks.storeIdempotencyResult).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it('bounds timeout retries and returns a useful retryable error without side effects', async () => {
+      setupAcceptMocks({
+        acceptError: { code: '57014', message: 'statement timeout' },
+      });
+      const res = await POST(
+        createPostRequest(
+          'http://localhost:3000/api/jobs/job-1/bids/bid-1/accept'
+        ),
+        segmentData('job-1', 'bid-1')
+      );
+      expect(res.status).toBe(503);
+      expect((await res.json()).error).toMatchObject({
+        code: 'BID_ACCEPTANCE_RETRY_REQUIRED',
+        message: expect.stringContaining('Please try again'),
+      });
+      expect(mocks.supabaseRpc).toHaveBeenCalledTimes(2);
+      expect(mocks.createNotification).not.toHaveBeenCalled();
+      expect(mocks.sendBidAcceptedEmail).not.toHaveBeenCalled();
+      expect(mocks.storeIdempotencyResult).not.toHaveBeenCalled();
+    });
+
     it('maps a concurrent-acceptance RPC verdict ("already accepted") to 409', async () => {
       setupAcceptMocks();
       mocks.supabaseRpc.mockResolvedValue({
@@ -904,6 +949,7 @@ describe('POST /api/jobs/[id]/bids/[bidId]/accept', () => {
       expect(res.status).toBe(500);
 
       const { releaseOnError } = await import('@/lib/idempotency');
+      expect(mocks.supabaseRpc).toHaveBeenCalledTimes(1);
       expect(releaseOnError).toHaveBeenCalledWith(
         'idem-key-123',
         'accept_bid',
