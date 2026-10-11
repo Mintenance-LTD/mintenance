@@ -215,8 +215,7 @@ export function PricingClient() {
         animate='visible'
         variants={fadeIn}
         style={{
-          background:
-            'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+          background: '#203d32',
           color: 'var(--me-on-brand)',
         }}
       >
@@ -233,7 +232,7 @@ export function PricingClient() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Simple, Transparent Pricing
+              Room for every home.
             </MotionH1>
             <MotionP
               initial={{ opacity: 0, y: 30 }}
@@ -242,8 +241,7 @@ export function PricingClient() {
               className='text-xl md:text-2xl max-w-3xl mx-auto mb-8'
               style={{ color: 'var(--me-brand-soft)' }}
             >
-              Choose the plan that works best for you. No hidden fees, cancel
-              anytime.
+              Start with the essentials. Choose more tools when you need them.
             </MotionP>
 
             {userType === 'homeowner' && (
@@ -341,6 +339,10 @@ export function PricingClient() {
                   Monthly
                 </span>
                 <button
+                  type='button'
+                  role='switch'
+                  aria-label='Annual billing'
+                  aria-checked={isAnnual}
                   onClick={() => setIsAnnual(!isAnnual)}
                   className='relative inline-flex h-8 w-16 items-center rounded-full'
                   style={{ background: 'rgba(255, 255, 255, 0.2)' }}
@@ -520,12 +522,12 @@ export function PricingClient() {
                     </div>
                   ))}
                   {plan.notIncluded?.map((feature, i) => (
-                    <div key={i} className='flex items-start gap-3 opacity-50'>
+                    <div key={i} className='flex items-start gap-3'>
                       <X
                         className='w-5 h-5 flex-shrink-0 mt-0.5'
-                        style={{ color: 'var(--me-ink-3)' }}
+                        style={{ color: 'var(--me-ink-2)' }}
                       />
-                      <span style={{ color: 'var(--me-ink-3)' }}>
+                      <span style={{ color: 'var(--me-ink-2)' }}>
                         {feature}
                       </span>
                     </div>

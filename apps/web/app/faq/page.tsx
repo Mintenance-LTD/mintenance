@@ -5,11 +5,14 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'FAQs - Frequently Asked Questions | Mintenance',
-  description: 'Find answers to common questions about Mintenance. Learn about our platform, pricing, contractor verification, payment protection, and how to get started.',
-  keywords: 'mintenance faq, help, support, platform questions, contractor verification, payment protection, getting started guide',
+  description:
+    'Find answers to common questions about Mintenance. Learn about our platform, pricing, contractor verification, payment protection, and how to get started.',
+  keywords:
+    'mintenance faq, help, support, platform questions, contractor verification, payment protection, getting started guide',
   openGraph: {
     title: 'FAQs - Frequently Asked Questions | Mintenance',
-    description: 'Get answers to your questions about posting jobs, hiring contractors, payments, safety, and platform features.',
+    description:
+      'Get answers to your questions about posting jobs, hiring contractors, payments, safety, and platform features.',
     type: 'website',
     images: [
       {
@@ -23,7 +26,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Mintenance FAQs | Help Centre',
-    description: 'Common questions about Mintenance platform, pricing, and features.',
+    description:
+      'Common questions about Mintenance platform, pricing, and features.',
   },
 };
 
@@ -31,7 +35,9 @@ export default function FAQPage() {
   return (
     <>
       <LandingNavigation />
-      <FAQPageClient />
+      <main id='main-content'>
+        <FAQPageClient />
+      </main>
       <Footer2025 />
     </>
   );

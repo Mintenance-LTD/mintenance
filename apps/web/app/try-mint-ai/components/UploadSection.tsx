@@ -175,17 +175,12 @@ export function UploadSection({
             borderRadius: 'var(--me-radius-card)',
             background: isDragging ? 'var(--me-brand-soft)' : 'var(--me-bg-2)',
           }}
-          role='button'
-          tabIndex={0}
-          aria-label='Upload area for property damage photos. Drag and drop files or click to browse.'
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              document.getElementById('file-input')?.click();
-            }
-          }}
+          role='group'
+          aria-label='Upload property damage photos'
         >
           <input
             id='file-input'
+            aria-label='Choose property damage photos'
             type='file'
             accept='image/jpeg,image/png,image/heic,.jpg,.jpeg,.png,.heic'
             multiple

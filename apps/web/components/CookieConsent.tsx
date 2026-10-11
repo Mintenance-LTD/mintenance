@@ -207,7 +207,7 @@ export default function CookieConsent() {
                   cookies.{' '}
                   <Link
                     href='/cookies'
-                    className='text-secondary-500 hover:underline font-medium'
+                    className='text-emerald-800 hover:underline font-medium'
                   >
                     Learn more in our Cookie Policy
                   </Link>
@@ -217,20 +217,20 @@ export default function CookieConsent() {
                 <button
                   ref={firstFocusableRef}
                   onClick={() => setShowSettings(true)}
-                  className='px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2'
+                  className='px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:ring-offset-2'
                 >
                   Manage Preferences
                 </button>
                 <button
                   onClick={rejectNonEssential}
-                  className='px-6 py-2 border-2 border-secondary-500 text-secondary-500 rounded-lg font-medium hover:bg-secondary-500 hover:text-white transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2'
+                  className='px-6 py-2 border-2 border-emerald-800 text-emerald-800 rounded-lg font-medium hover:bg-emerald-800 hover:text-white transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:ring-offset-2'
                 >
                   Reject Non-Essential
                 </button>
                 <button
                   ref={lastFocusableRef}
                   onClick={acceptAll}
-                  className='px-6 py-2 bg-secondary-500 text-white rounded-lg font-medium hover:bg-secondary-600 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2'
+                  className='px-6 py-2 bg-emerald-800 text-white rounded-lg font-medium hover:bg-emerald-900 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:ring-offset-2'
                 >
                   Accept All
                 </button>
@@ -246,7 +246,7 @@ export default function CookieConsent() {
                 <button
                   ref={firstFocusableRef}
                   onClick={() => setShowSettings(false)}
-                  className='text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 rounded-lg p-1'
+                  className='text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:ring-offset-2 rounded-lg p-1'
                   aria-label='Close preferences and return to cookie banner'
                 >
                   <svg
@@ -292,7 +292,7 @@ export default function CookieConsent() {
                           checked={true}
                           disabled
                           aria-label='Essential cookies (always active)'
-                          className='w-5 h-5 text-secondary-500 bg-gray-100 border-gray-300 rounded opacity-50 cursor-not-allowed'
+                          className='w-5 h-5 text-emerald-800 bg-gray-100 border-gray-300 rounded opacity-50 cursor-not-allowed'
                         />
                         <label
                           htmlFor='cookie-essential'
@@ -336,7 +336,7 @@ export default function CookieConsent() {
                             })
                           }
                           aria-label='Analytics cookies'
-                          className='w-5 h-5 text-secondary-500 bg-gray-100 border-gray-300 rounded focus:ring-secondary-500 cursor-pointer'
+                          className='w-5 h-5 text-emerald-800 bg-gray-100 border-gray-300 rounded focus:ring-emerald-800 cursor-pointer'
                         />
                         <label htmlFor='cookie-analytics' className='sr-only'>
                           Enable analytics cookies
@@ -377,7 +377,7 @@ export default function CookieConsent() {
                             })
                           }
                           aria-label='Functional cookies'
-                          className='w-5 h-5 text-secondary-500 bg-gray-100 border-gray-300 rounded focus:ring-secondary-500 cursor-pointer'
+                          className='w-5 h-5 text-emerald-800 bg-gray-100 border-gray-300 rounded focus:ring-emerald-800 cursor-pointer'
                         />
                         <label htmlFor='cookie-functional' className='sr-only'>
                           Enable functional cookies
@@ -418,7 +418,7 @@ export default function CookieConsent() {
                             })
                           }
                           aria-label='Marketing cookies'
-                          className='w-5 h-5 text-secondary-500 bg-gray-100 border-gray-300 rounded focus:ring-secondary-500 cursor-pointer'
+                          className='w-5 h-5 text-emerald-800 bg-gray-100 border-gray-300 rounded focus:ring-emerald-800 cursor-pointer'
                         />
                         <label htmlFor='cookie-marketing' className='sr-only'>
                           Enable marketing cookies
@@ -432,14 +432,14 @@ export default function CookieConsent() {
               <div className='flex flex-col sm:flex-row gap-3 justify-end'>
                 <button
                   onClick={rejectNonEssential}
-                  className='px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2'
+                  className='px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:ring-offset-2'
                 >
                   Reject All Non-Essential
                 </button>
                 <button
                   ref={lastFocusableRef}
                   onClick={saveCustomPreferences}
-                  className='px-6 py-2 bg-secondary-500 text-white rounded-lg font-medium hover:bg-secondary-600 transition-colors focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2'
+                  className='px-6 py-2 bg-emerald-800 text-white rounded-lg font-medium hover:bg-emerald-900 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-800 focus:ring-offset-2'
                 >
                   Save Preferences
                 </button>
@@ -451,7 +451,7 @@ export default function CookieConsent() {
                   cookie settings in our{' '}
                   <Link
                     href='/privacy'
-                    className='text-secondary-500 hover:underline'
+                    className='text-emerald-800 hover:underline'
                   >
                     Privacy Policy
                   </Link>
@@ -459,7 +459,7 @@ export default function CookieConsent() {
                   our{' '}
                   <Link
                     href='/cookies'
-                    className='text-secondary-500 hover:underline'
+                    className='text-emerald-800 hover:underline'
                   >
                     Cookie Policy
                   </Link>

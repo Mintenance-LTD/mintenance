@@ -66,7 +66,7 @@ export function HowItWorksFAQs() {
           See It In Action
         </h2>
         <p className='text-xl mb-8' style={{ color: 'var(--me-brand-soft)' }}>
-          Watch how Mintenance simplifies your home maintenance journey
+          Explore how to post a job, compare bids, and review completed work
         </p>
         <button
           className='inline-flex items-center gap-3 px-8 py-4 transition-colors font-semibold text-lg'
@@ -78,7 +78,7 @@ export function HowItWorksFAQs() {
           }}
         >
           <PlayCircle className='w-6 h-6' aria-hidden='true' />
-          Watch Demo Video
+          Explore the guides
         </button>
       </MotionDiv>
 

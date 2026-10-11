@@ -5,15 +5,18 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Contact Us - Get in Touch | Mintenance',
-  description: "Have questions? Contact the Mintenance team. We're here to help homeowners and contractors with support, sales inquiries, and partnership opportunities.",
-  keywords: 'contact mintenance, customer support, get in touch, help centre, partnership opportunities, technical support',
+  description:
+    "Have questions? Contact the Mintenance team. We're here to help homeowners and contractors with support, sales inquiries, and partnership opportunities.",
+  keywords:
+    'contact mintenance, customer support, get in touch, help centre, partnership opportunities, technical support',
   openGraph: {
     title: 'Contact Us - Get in Touch | Mintenance',
-    description: 'Reach out to our team for support, sales inquiries, or partnership opportunities. We respond within 24 hours.',
+    description:
+      'Reach out to our team for support, sales inquiries, or partnership opportunities. We respond within 24 hours.',
     type: 'website',
     images: [
       {
-        url: '/og-contact.jpg',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Contact Mintenance Support Team',
@@ -23,7 +26,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Contact Mintenance | Support',
-    description: "Have questions? We're here to help. Reach out to our support team.",
+    description:
+      "Have questions? We're here to help. Reach out to our support team.",
   },
 };
 
@@ -31,7 +35,9 @@ export default function ContactPage() {
   return (
     <div>
       <LandingNavigation />
-      <ContactPageClient />
+      <main id='main-content'>
+        <ContactPageClient />
+      </main>
       <Footer2025 />
     </div>
   );
