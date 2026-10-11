@@ -73,10 +73,7 @@ export default async function JobDetailPage2025({
   // this page. A landlord/agent payer is a first-class job participant: they
   // can fund escrow and approve completion, so redirecting them here would
   // break the payment-to-completion journey after successful authentication.
-  if (
-    job.homeowner_id !== user.id &&
-    job.payer_user_id !== user.id
-  ) {
+  if (job.homeowner_id !== user.id && job.payer_user_id !== user.id) {
     logger.warn('JobDetailPage2025 - Unauthorized access attempt', {
       jobId: resolvedParams.id,
       userId: user.id,
@@ -203,7 +200,11 @@ export default async function JobDetailPage2025({
     // Entry secrets must fail closed without taking down the whole job page.
     property.key_safe_code = null;
     try {
-      property.key_safe_code = await readPropertyEntrySecret(job.property_id, user.id, job.id);
+      property.key_safe_code = await readPropertyEntrySecret(
+        job.property_id,
+        user.id,
+        job.id
+      );
     } catch {
       logger.warn('Property entry details unavailable', { jobId: job.id });
     }
@@ -222,29 +223,36 @@ export default async function JobDetailPage2025({
   // private since the 2026-04-17 hardening migration, so legacy/expired URLs
   // must be re-signed at render time — external URLs pass through).
   const contractorIds = bids?.map((b) => b.contractor_id).filter(Boolean) || [];
-  const [portfolioResult, reviewResult, jobPhotoUrls] = await Promise.all([
-    contractorIds.length > 0
-      ? serverSupabase
-          .from('contractor_posts')
-          .select('contractor_id, media_urls, title, project_category')
-          .in('contractor_id', contractorIds)
-          .in('post_type', ['portfolio', 'work_showcase'])
-          .eq('is_active', true)
-          .not('media_urls', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(100)
-      : Promise.resolve({ data: [] as PortfolioPostRow[] }),
-    contractorIds.length > 0
-      ? serverSupabase
-          .from('reviews')
-          .select('reviewee_id')
-          .in('reviewee_id', contractorIds)
-      : Promise.resolve({ data: [] as Array<{ reviewee_id: string | null }> }),
-    resignJobStorageUrls(
-      (photos ?? []).map((p) => p.file_url as string | null),
-      user.id
-    ),
-  ]);
+  const [portfolioResult, reviewResult, jobPhotoUrls, evidencePhotoUrls] =
+    await Promise.all([
+      contractorIds.length > 0
+        ? serverSupabase
+            .from('contractor_posts')
+            .select('contractor_id, media_urls, title, project_category')
+            .in('contractor_id', contractorIds)
+            .in('post_type', ['portfolio', 'work_showcase'])
+            .eq('is_active', true)
+            .not('media_urls', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(100)
+        : Promise.resolve({ data: [] as PortfolioPostRow[] }),
+      contractorIds.length > 0
+        ? serverSupabase
+            .from('reviews')
+            .select('reviewee_id')
+            .in('reviewee_id', contractorIds)
+        : Promise.resolve({
+            data: [] as Array<{ reviewee_id: string | null }>,
+          }),
+      resignJobStorageUrls(
+        (photos ?? []).map((p) => p.file_url as string | null),
+        user.id
+      ),
+      resignJobStorageUrls(
+        (photoEvidence ?? []).map((p) => p.photo_url),
+        user.id
+      ),
+    ]);
 
   // Build the portfolio image map from the fetched posts.
   const portfolioMap = new Map();
@@ -308,12 +316,12 @@ export default async function JobDetailPage2025({
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
 
-  const beforePhotos = (photoEvidence || []).filter(
-    (p) => p.photo_type === 'before'
-  );
-  const afterPhotos = (photoEvidence || []).filter(
-    (p) => p.photo_type === 'after'
-  );
+  const signedEvidence = (photoEvidence ?? []).map((photo, index) => ({
+    ...photo,
+    photo_url: evidencePhotoUrls[index],
+  }));
+  const beforePhotos = signedEvidence.filter((p) => p.photo_type === 'before');
+  const afterPhotos = signedEvidence.filter((p) => p.photo_type === 'after');
 
   const contractStatus = !contract
     ? 'none'
