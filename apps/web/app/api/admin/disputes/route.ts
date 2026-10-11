@@ -100,7 +100,12 @@ export const GET = withApiHandler(
       if (canonical.error)
         throw new InternalServerError('Failed to load dispute details');
       for (const row of canonical.data ?? []) {
-        for (const link of row.dispute_escrow_links) {
+        // dispute_id is the link table primary key, so PostgREST returns
+        // a single object for this one-to-one relationship.
+        const links = Array.isArray(row.dispute_escrow_links)
+          ? row.dispute_escrow_links
+          : row.dispute_escrow_links ? [row.dispute_escrow_links] : [];
+        for (const link of links) {
           if (!disputeByEscrow.has(link.escrow_id))
             disputeByEscrow.set(link.escrow_id, row);
         }
