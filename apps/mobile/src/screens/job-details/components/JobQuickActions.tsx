@@ -10,6 +10,7 @@ interface JobQuickActionsProps {
   isOwner: boolean;
   canApprove: boolean;
   status: string;
+  canReportProblem: boolean;
   isCompletionConfirmedByHomeowner: boolean;
   onTimelinePress: () => void;
   onContractPress?: () => void;
@@ -25,7 +26,7 @@ interface JobQuickActionsProps {
  *   - Timeline (always)
  *   - Edit (homeowner, only if posted)
  *   - Sign-off (homeowner, only if completed and not yet confirmed)
- *   - Report a Problem (anyone, only if in_progress or completed)
+ *   - Report a Problem (participants with disputable escrow only)
  *
  * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44c).
  */
@@ -33,6 +34,7 @@ export function JobQuickActions({
   isOwner,
   canApprove,
   status,
+  canReportProblem,
   isCompletionConfirmedByHomeowner,
   onTimelinePress,
   onContractPress,
@@ -119,7 +121,7 @@ export function JobQuickActions({
           </TouchableOpacity>
         )}
 
-      {(status === 'in_progress' || status === 'completed') && (
+      {canReportProblem && (
         <TouchableOpacity
           style={styles.quickActionRow}
           onPress={onDisputePress}

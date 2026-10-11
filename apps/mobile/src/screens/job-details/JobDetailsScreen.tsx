@@ -688,6 +688,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           isOwner={isOwner}
           canApprove={canManageJob}
           status={job.status}
+          canReportProblem={
+            (canManageJob || job.contractor_id === user?.id) &&
+            ['in_progress', 'completed'].includes(job.status) &&
+            ['held', 'awaiting_homeowner_approval'].includes(viewModel.escrowStatus ?? '')
+          }
           isCompletionConfirmedByHomeowner={
             !!(job as CTAContext['job']).completion_confirmed_by_homeowner
           }
