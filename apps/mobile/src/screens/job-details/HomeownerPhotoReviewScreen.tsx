@@ -15,7 +15,7 @@ import { useMintDialog } from '../../components/shared/useMintDialog';
  * land here. Do not re-introduce a parallel sign-off screen.
  */
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,11 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -183,9 +187,13 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     }
   }, [jobId]);
 
-  useEffect(() => {
-    fetchPhotos();
-  }, [fetchPhotos]);
+  // Returning from job details or messaging must reload the completion version.
+  // Keep the feedback draft in state while refreshing the review.
+  useFocusEffect(
+    useCallback(() => {
+      void fetchPhotos();
+    }, [fetchPhotos])
+  );
 
   const handleApprove = async () => {
     if (!user?.id || submitting || approved || approvalInFlight.current) return;

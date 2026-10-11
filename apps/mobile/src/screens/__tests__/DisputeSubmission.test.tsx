@@ -8,6 +8,19 @@ const mockPost = jest.fn();
 const mockUpload = jest.fn();
 const mockSign = jest.fn();
 const mockReplace = jest.fn();
+jest.mock('../../services/prepareJobPhoto', () => ({
+  prepareJobPhoto: async () => 'file:///prepared.jpg',
+}));
+jest.mock('expo-file-system', () => ({
+  File: class {
+    async arrayBuffer() {
+      return new ArrayBuffer(1);
+    }
+  },
+}));
+jest.mock('expo-file-system/legacy', () => ({
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'actor' } }),
 }));

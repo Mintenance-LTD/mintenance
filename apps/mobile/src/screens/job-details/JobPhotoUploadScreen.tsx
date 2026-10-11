@@ -264,7 +264,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
             completed ? 'Job Completed' : 'Photos Uploaded',
             completed
               ? `${successCount} after photo(s) uploaded. The homeowner has been notified to review your work.`
-              : `${successCount} after photo(s) uploaded. The job hasn't been auto-completed yet — usually because escrow isn't held. Contact support if this persists.`,
+              : `${successCount} after photo(s) uploaded. Return to the job and select Mark work complete when your work and evidence are ready for homeowner review.`,
             [{ text: 'OK', onPress: () => navigation.goBack() }]
           );
         }
