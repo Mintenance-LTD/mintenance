@@ -40,6 +40,10 @@ export default async function JobDetailPage2025({
     redirect('/login?redirect=/jobs');
   }
 
+  if (user.role === 'admin') {
+    redirect(`/admin/jobs/${resolvedParams.id}`);
+  }
+
   if (user.role === 'contractor') {
     redirect(`/contractor/bid/${resolvedParams.id}`);
   }
@@ -65,12 +69,11 @@ export default async function JobDetailPage2025({
     redirect('/jobs');
   }
 
-  // Authorization: the homeowner, designated payer, or an admin can view
+  // Authorization: only the homeowner or designated payer can view
   // this page. A landlord/agent payer is a first-class job participant: they
   // can fund escrow and approve completion, so redirecting them here would
   // break the payment-to-completion journey after successful authentication.
   if (
-    user.role !== 'admin' &&
     job.homeowner_id !== user.id &&
     job.payer_user_id !== user.id
   ) {

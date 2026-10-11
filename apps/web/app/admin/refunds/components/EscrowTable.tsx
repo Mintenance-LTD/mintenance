@@ -227,7 +227,7 @@ export function EscrowTable({
                 >
                   <td style={TD_STYLE}>
                     <Link
-                      href={`/jobs/${escrow.jobs.id}`}
+                      href={`/admin/jobs/${escrow.jobs.id}`}
                       style={{
                         color: theme.colors.primary,
                         textDecoration: 'none',

@@ -103,13 +103,13 @@ export function ActionsDropdown({
           }}
         >
           <DropdownLink
-            href={`/jobs/${jobId}`}
+            href={`/admin/jobs/${jobId}`}
             label='View Job'
             icon='eye'
             onClose={() => setOpen(false)}
           />
           <DropdownLink
-            href={`/jobs/${jobId}#bids`}
+            href={`/admin/jobs/${jobId}#bids`}
             label='View Bids'
             icon='fileText'
             onClose={() => setOpen(false)}
