@@ -205,13 +205,13 @@ export function CorrectionForm({
                 style={inputStyle}
               >
                 <option value=''>Select severity</option>
-                <option value='Early'>Early — cosmetic/minor</option>
-                <option value='Developing'>Developing — progressing</option>
+                <option value='Early'>Early: cosmetic/minor</option>
+                <option value='Developing'>Developing: progressing</option>
                 <option value='Significant'>
-                  Significant — serious, repair soon
+                  Significant: serious, repair soon
                 </option>
                 <option value='Dangerous'>
-                  Dangerous — urgent/safety risk
+                  Dangerous: urgent/safety risk
                 </option>
               </select>
             </div>

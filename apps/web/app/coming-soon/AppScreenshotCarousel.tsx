@@ -27,7 +27,7 @@ const HOMEOWNER_SCREENS: AppScreen[] = [
     mobile: '/screenshots/mobile/homeowner-properties.png',
     desktop: '/screenshots/homeowner/job-progress.png',
     title: 'Full Job Visibility',
-    description: 'Follow every step of your project from posting to payment. No guessing, no chasing — you always know where things stand.',
+    description: 'Follow every step of your project from posting to payment. See where things stand without chasing updates.',
     bullets: [
       'Real-time job progress timeline',
       'Manage all your properties in one place',
@@ -52,7 +52,7 @@ const CONTRACTOR_SCREENS: AppScreen[] = [
     mobile: '/screenshots/mobile/contractor-find-jobs.png',
     desktop: '/screenshots/contractor/discover-jobs.png',
     title: 'Jobs on the Map',
-    description: 'See exactly where work is. Filter by trade — plumbing, electrical, roofing, and more. Plan efficient routes between jobs.',
+    description: 'See exactly where work is. Filter by plumbing, electrical, roofing, and other trades. Plan efficient routes between jobs.',
     bullets: [
       'Map view with job pins and your location',
       'Filter by trade, distance, and budget',
@@ -63,7 +63,7 @@ const CONTRACTOR_SCREENS: AppScreen[] = [
     mobile: '/screenshots/mobile/contractor-dashboard.png',
     desktop: '/screenshots/contractor/dashboard.png',
     title: 'Your Business at a Glance',
-    description: 'Track earnings, completion rate, active pipeline, and success rate. Know how your business is performing — not a guess, real data.',
+    description: 'Track earnings, completion rate, active pipeline, and success rate. See how your business is performing with clear reports.',
     bullets: [
       'Revenue overview with monthly breakdown',
       'Active jobs pipeline and pending payouts',
@@ -74,7 +74,7 @@ const CONTRACTOR_SCREENS: AppScreen[] = [
     mobile: '/screenshots/mobile/contractor-business-hub.png',
     desktop: '/screenshots/contractor/marketing.png',
     title: 'Run Your Entire Business',
-    description: 'Finance, invoices, quotes, CRM, expenses, payouts, calendar, and time tracking — all in one app. Replace five tools with one.',
+    description: 'Finance, invoices, quotes, CRM, expenses, payouts, calendar, and time tracking in one app. Replace five tools with one.',
     bullets: [
       'Create and send professional invoices',
       'Track expenses and manage client relationships',
@@ -179,7 +179,7 @@ function ScreenShowcase({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={screen.desktop}
-                  alt={`${screen.title} — desktop view`}
+                  alt={`${screen.title}: desktop view`}
                   className="w-full h-auto"
                   loading="lazy"
                 />
@@ -195,7 +195,7 @@ function ScreenShowcase({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={screen.mobile}
-              alt={`${screen.title} — mobile view`}
+              alt={`${screen.title}: mobile view`}
               className="w-full h-auto"
               loading="lazy"
             />

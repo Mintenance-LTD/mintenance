@@ -57,18 +57,18 @@ const PILLARS = [
 const ROADMAP = [
   {
     title: 'Leaked-password protection',
-    status: 'Planned — Supabase Auth toggle',
+    status: 'Planned: Supabase Auth toggle',
     note: 'Blocks sign-ups that reuse a password leaked in a public breach. Tracked in the dashboard checklist.',
   },
   {
     title: 'Postgres security patches',
-    status: 'Planned — low-traffic window upgrade',
+    status: 'Planned: low-traffic window upgrade',
     note: 'We run the latest Postgres 17 line and patch on the Supabase cadence.',
   },
   {
     title: 'SOC 2 Type I',
     status: 'On roadmap',
-    note: 'Dependent on scale milestones. The control framework is being built up in advance — see audit logs, RBAC, and incident runbooks already in production.',
+    note: 'Dependent on scale milestones. The control framework is being built up in advance: see audit logs, RBAC, and incident runbooks already in production.',
   },
 ];
 
@@ -135,7 +135,7 @@ export default function TrustPage() {
             On the roadmap
           </h2>
           <p className='text-gray-600 max-w-2xl mb-8'>
-            What we haven&rsquo;t done yet — stated out loud. Security works
+            What we haven&rsquo;t done yet: stated out loud. Security works
             best when it&rsquo;s public.
           </p>
           <div className='space-y-3'>

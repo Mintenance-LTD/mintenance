@@ -204,7 +204,7 @@ function ComingSoonContent() {
 
               <p className='mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-navy-500 sm:text-xl'>
                 Mintenance connects homeowners with vetted local contractors.
-                Post a job, compare quotes, and pay securely &mdash; all in one
+                Post a job, compare quotes, and pay securely, all in one
                 platform.
               </p>
 
