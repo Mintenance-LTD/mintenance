@@ -361,7 +361,7 @@ export default function AboutPageClient() {
                 So we built a platform where every contractor submission is
                 reviewed by our team, every payment is held in escrow until the
                 work is done, and AI helps match the right professional to the
-                right job. No surprises, no disputes — just quality work, paid
+                right job. Clear expectations and quality work, paid
                 fairly.
               </p>
               <p className='font-medium' style={{ color: 'var(--me-ink)' }}>

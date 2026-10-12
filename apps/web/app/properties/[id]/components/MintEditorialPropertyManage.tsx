@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TenantReportingCard } from './TenantReportingCard';
 import Link from 'next/link';
-import { BarChart2 } from 'lucide-react';
+import { BarChart2, CalendarDays, Users, FolderOpen } from 'lucide-react';
 import { FeatureGateCard } from '@/components/FeatureGateCard';
 import RecurringMaintenance from './RecurringMaintenance';
 import TenantContacts from './TenantContacts';
@@ -54,6 +54,27 @@ export function MintEditorialPropertyManage({
   propertyName,
   jobs,
 }: Props) {
+  const [section, setSection] = useState('work');
+  const sections = [
+    {
+      id: 'work',
+      title: 'Maintenance',
+      detail: 'Schedules and open jobs',
+      icon: CalendarDays,
+    },
+    {
+      id: 'people',
+      title: 'People and access',
+      detail: 'Tenants, reporting and your team',
+      icon: Users,
+    },
+    {
+      id: 'records',
+      title: 'Property records',
+      detail: 'Photos and compliance',
+      icon: FolderOpen,
+    },
+  ];
   return (
     <div className='col me-legacy-fit' style={{ gap: 24 }}>
       <header>
@@ -64,21 +85,32 @@ export function MintEditorialPropertyManage({
         </p>
         <nav
           aria-label='Property management sections'
-          className='flex flex-wrap gap-3 mt-3'
+          className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6'
         >
-          <a className='btn btn-secondary btn-sm' href='#manage-work'>
-            Plan work
-          </a>
-          <a className='btn btn-secondary btn-sm' href='#manage-people'>
-            People and access
-          </a>
-          <a className='btn btn-secondary btn-sm' href='#manage-records'>
-            Records and compliance
-          </a>
+          {sections.map(({ id, title, detail, icon: Icon }) => (
+            <button
+              key={id}
+              type='button'
+              aria-pressed={section === id}
+              aria-controls={`manage-${id}`}
+              onClick={() => setSection(id)}
+              className='rounded-2xl border p-5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4'
+              style={{
+                background: section === id ? 'var(--me-brand)' : 'white',
+                color: section === id ? 'white' : 'var(--me-ink)',
+                borderColor:
+                  section === id ? 'var(--me-brand)' : 'var(--me-border)',
+              }}
+            >
+              <Icon size={22} aria-hidden='true' className='mb-3' />
+              <span className='block font-semibold'>{title}</span>
+              <span className='block text-sm mt-1'>{detail}</span>
+            </button>
+          ))}
         </nav>
       </header>
-      <PropertyWorkQueue jobs={jobs} />
       <section
+        hidden={section !== 'work'}
         id='manage-work'
         aria-labelledby='manage-work-title'
         className='scroll-mt-24'
@@ -97,8 +129,17 @@ export function MintEditorialPropertyManage({
             <BulkOperations propertyId={propertyId} jobs={jobs} />
           </FeatureGateCard>
         </div>
+        <details className='mt-5 rounded-2xl border bg-white p-5'>
+          <summary className='cursor-pointer font-semibold'>
+            View and follow up property jobs
+          </summary>
+          <div className='mt-4'>
+            <PropertyWorkQueue jobs={jobs} />
+          </div>
+        </details>
       </section>
       <section
+        hidden={section !== 'people'}
         id='manage-people'
         aria-labelledby='manage-people-title'
         className='scroll-mt-24'
@@ -116,7 +157,7 @@ export function MintEditorialPropertyManage({
         >
           Review tenant reports across your properties
         </Link>
-        <div className='grid grid-cols-1 xl:grid-cols-3 gap-4 items-start'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-5 items-start'>
           <FeatureGateCard featureId='HOMEOWNER_TENANT_REPORTING'>
             <TenantReportingCard
               propertyId={propertyId}
@@ -132,6 +173,7 @@ export function MintEditorialPropertyManage({
         </div>
       </section>
       <section
+        hidden={section !== 'records'}
         id='manage-records'
         aria-labelledby='manage-records-title'
         className='scroll-mt-24'

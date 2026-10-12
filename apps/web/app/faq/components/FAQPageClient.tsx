@@ -196,7 +196,7 @@ export default function FAQPageClient() {
       id: '14',
       question: 'How are contractors checked before they can bid?',
       answer:
-        'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance details, and business info during onboarding. Our admin team reviews each submission manually before a contractor can bid — automated lookups against the official registers and a background-check provider are on our roadmap, not live today. Past job history, ratings, and dispute records are visible on every contractor profile so you can judge fit for yourself.',
+        'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance details, and business info during onboarding. Our admin team reviews each submission manually before a contractor can bid: automated lookups against the official registers and a background-check provider are on our roadmap, not live today. Past job history, ratings, and dispute records are visible on every contractor profile so you can judge fit for yourself.',
       category: 'safety',
     },
     {

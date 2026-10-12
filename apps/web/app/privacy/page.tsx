@@ -374,7 +374,7 @@ export default function PrivacyPolicyPage() {
               Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY
             </p>
             <p>
-              <strong>ICO Registration:</strong> Pending &mdash; Mintenance Ltd
+              <strong>ICO Registration:</strong> Pending: Mintenance Ltd
               has applied to the ICO and will update this page with the
               registration number once confirmed. Processing of personal data is
               conducted in compliance with UK GDPR in the interim.

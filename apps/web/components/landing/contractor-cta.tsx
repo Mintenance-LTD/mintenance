@@ -16,7 +16,7 @@ const BENEFITS = [
   {
     title: 'Real jobs, not leads',
     description:
-      'See real posted jobs with budgets and details — no credits, no guessing.',
+      'See real posted jobs with budgets and details: no credits, no guessing.',
   },
   {
     title: 'Escrow-protected payment',

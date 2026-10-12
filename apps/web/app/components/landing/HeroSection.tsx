@@ -129,7 +129,7 @@ export function HeroSection() {
                 boxShadow: 'var(--me-shadow-btn)',
               }}
             >
-              Post your first job — free
+              Post your first job for free
             </Link>
             <a
               href='#how-it-works'
