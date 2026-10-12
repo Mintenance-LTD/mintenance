@@ -1,4 +1,8 @@
 'use client';
+import {
+  RecurringAudienceFields,
+  emptyAudience,
+} from '@/components/recurring/RecurringAudienceFields';
 import { scheduleRequest } from '@/lib/schedule-request-key';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -22,6 +26,8 @@ interface Schedule {
 
   is_active: boolean;
   updated_at: string;
+  preferred_contractor_id?: string | null;
+  notification_audience?: 'matching' | 'preferred';
 }
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -53,6 +59,7 @@ export default function RecurringMaintenance({
 
   const [loading, setLoading] = useState(true);
 
+  const [audience, setAudience] = useState(emptyAudience);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
 
@@ -100,6 +107,13 @@ export default function RecurringMaintenance({
 
   const handleAdd = async () => {
     if (savingRef.current) return;
+    if (
+      audience.notification_audience === 'preferred' &&
+      !audience.preferred_contractor_id
+    ) {
+      toast.error('Choose a favourite contractor.');
+      return;
+    }
     if (editing && !editing.updated_at) {
       toast.error('Reload schedules before editing.');
       return;
@@ -122,7 +136,7 @@ export default function RecurringMaintenance({
     try {
       const operation = editing
         ? null
-        : await scheduleRequest(propertyId, form);
+        : await scheduleRequest(propertyId, { ...form, ...audience });
       const csrfToken = await getCsrfToken();
 
       const res = await fetch(
@@ -139,6 +153,7 @@ export default function RecurringMaintenance({
 
           body: JSON.stringify({
             ...form,
+            ...audience,
             ...(editing
               ? {
                   scheduleId: editing.id,
@@ -334,6 +349,7 @@ export default function RecurringMaintenance({
           disabled={saving}
           onClick={() => {
             setEditing(null);
+            setAudience(emptyAudience);
             setForm({
               title: '',
               category: '',
@@ -361,15 +377,10 @@ export default function RecurringMaintenance({
             className='w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
           />
 
-          <input
-            type='text'
-            placeholder='Category (optional)'
-            aria-label='Category'
-            value={form.category}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, category: e.target.value }))
-            }
-            className='w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500'
+          <RecurringAudienceFields
+            propertyId={propertyId}
+            value={audience}
+            onChange={setAudience}
           />
 
           <div className='grid grid-cols-2 gap-2'>
@@ -413,6 +424,7 @@ export default function RecurringMaintenance({
               onClick={() => {
                 setShowForm(false);
                 setEditing(null);
+                setAudience(emptyAudience);
               }}
               className='px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg'
             >
@@ -442,6 +454,13 @@ export default function RecurringMaintenance({
                     aria-label={`Edit ${s.title}`}
                     onClick={() => {
                       setEditing(s);
+                      setAudience({
+                        category: s.category || 'handyman',
+                        preferred_contractor_id:
+                          s.preferred_contractor_id ?? null,
+                        notification_audience:
+                          s.notification_audience ?? 'matching',
+                      });
                       setForm({
                         title: s.title,
                         category: s.category || '',
