@@ -1,5 +1,6 @@
 import {
   getJobMessages,
+  getJobMessagesPage,
   getUserMessageThreads,
   searchJobMessages,
   getVideoCallMessages,
@@ -432,4 +433,14 @@ describe('inbox cursor pagination', () => {
       'did not advance'
     );
   });
+});
+
+it('fetches only one chat page and preserves the older-history cursor', async () => {
+  mockGet.mockResolvedValueOnce({ messages: [msg()], nextCursor: 'older' });
+  const page = await getJobMessagesPage('job-1');
+  expect(page.nextCursor).toBe('older');
+  expect(mockGet).toHaveBeenCalledTimes(1);
+  mockGet.mockResolvedValueOnce({ messages: [] });
+  await getJobMessagesPage('job-1', 'older');
+  expect(mockGet).toHaveBeenLastCalledWith(expect.stringContaining('cursor=older'));
 });

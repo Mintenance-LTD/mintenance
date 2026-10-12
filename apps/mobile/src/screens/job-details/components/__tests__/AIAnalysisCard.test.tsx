@@ -679,7 +679,9 @@ describe('AIAnalysisCard', () => {
         <AIAnalysisCard aiAnalysis={analysis} aiLoading={false} />
       );
 
-      expect(getByText('AI Analysis')).toBeTruthy();
+      expect(
+        getByText('No assessment details available for this job.')
+      ).toBeTruthy();
       expect(queryByText('Suggested Tools')).toBeNull();
       expect(queryByText('Recommended Actions')).toBeNull();
     });

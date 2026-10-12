@@ -611,6 +611,13 @@ describe('401 refresh-and-retry', () => {
     expect(mockSupabaseAuth.refreshSession).toHaveBeenCalledTimes(1);
   });
 
+  it('does not multiply query retries with hidden HTTP retries on server errors', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(makeResponse({ status: 500, ok: false, jsonBody: { message: 'Unavailable' } }));
+    await expect(client.get('/unavailable')).rejects.toBeDefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseAuth.refreshSession).not.toHaveBeenCalled();
+  });
+
   it('rethrows non-401 errors without refreshing', async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       makeResponse({

@@ -12,7 +12,8 @@
  * dry-run of their public listing, with an Edit shortcut to
  * BusinessProfile + ContractorCardEditor.
  */
-import React, { useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -121,6 +122,12 @@ export const MyPublicProfileScreen: React.FC<Props> = ({ navigation }) => {
     enabled: !!userId,
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) void refetch();
+    }, [userId, refetch])
+  );
+
   const portfolioImages = useMemo(
     () => (data ? collectPortfolioImages(data) : []),
     [data]
@@ -150,7 +157,7 @@ export const MyPublicProfileScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.coverWrap}>
           <View style={styles.cover}>
-            <Text style={styles.coverPlaceholder}>VAN · COVER PHOTO</Text>
+            <Text style={styles.coverPlaceholder}>PUBLIC PROFILE</Text>
           </View>
           <Pressable
             onPress={() => navigation.goBack()}
@@ -219,7 +226,7 @@ export const MyPublicProfileScreen: React.FC<Props> = ({ navigation }) => {
                     size={11}
                     color={me.brand}
                   />
-                  <Text style={styles.pillSoftText}>Premium verified</Text>
+                  <Text style={styles.pillSoftText}>Verified</Text>
                 </View>
               )}
               {insuredLabel && (
@@ -231,22 +238,12 @@ export const MyPublicProfileScreen: React.FC<Props> = ({ navigation }) => {
 
             {data.bio ? <Text style={styles.bio}>{data.bio}</Text> : null}
 
-            {/* Stat trio — Jobs / ★ rating / Avg reply (avg reply omitted
-                until the API exposes it; render two-up when so). */}
             <View style={styles.statRow}>
               <View style={styles.statCard}>
                 <Text style={styles.statValue}>
                   {data.total_jobs_completed ?? 0}
                 </Text>
-                <Text style={styles.statLabel}>Jobs</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>{rating ?? '—'}</Text>
-                <Text style={styles.statLabel}>★ Rating</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>{reviewCount}</Text>
-                <Text style={styles.statLabel}>Reviews</Text>
+                <Text style={styles.statLabel}>Completed jobs</Text>
               </View>
             </View>
 
@@ -299,8 +296,8 @@ export const MyPublicProfileScreen: React.FC<Props> = ({ navigation }) => {
                   style={{ marginBottom: 6 }}
                 />
                 <Text style={styles.emptyPortfolioText}>
-                  No portfolio photos yet. Add after-photos from completed jobs
-                  to show customers your work.
+                  No portfolio photos yet. Publish selected completed-job photos
+                  from your web Company Profile to show customers your work.
                 </Text>
               </Pressable>
             )}

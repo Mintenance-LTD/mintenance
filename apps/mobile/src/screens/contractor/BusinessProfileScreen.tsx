@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { ScreenHeader, LoadingSpinner } from '../../components/shared';
+import {
+  ScreenHeader,
+  LoadingSpinner,
+  ErrorView,
+} from '../../components/shared';
 import { me } from '../../design-system/mint-editorial';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
@@ -36,6 +40,7 @@ interface BusinessProfileResponse {
 
 const LICENSE_TYPES = [
   'General Contractor',
+  'Gas Safe',
   'Electrical',
   'Plumbing',
   'HVAC',
@@ -52,6 +57,7 @@ const toProfileLicenseType = (type: string): string | null => {
     .toLowerCase()
     .replace(/[\s-]+/g, '_');
   if (!normalized) return null;
+  if (normalized === 'gas_safe') return 'gas_safe';
   if (normalized === 'general_contractor') return 'trade';
   if (normalized === 'electrical') return 'electrical';
   if (normalized === 'plumbing') return 'plumbing';
@@ -61,12 +67,17 @@ const toProfileLicenseType = (type: string): string | null => {
 };
 
 const toDisplayLicenseType = (type: string | null | undefined): string => {
-  const normalized = toProfileLicenseType(type || '');
-  if (!normalized) return '';
-  const match = LICENSE_TYPES.find(
-    (option) => toProfileLicenseType(option) === normalized
+  if (!type?.trim()) return '';
+  const exact = LICENSE_TYPES.find(
+    (option) => option.toLowerCase() === type.trim().toLowerCase()
   );
-  return match || 'Other';
+  if (exact) return exact;
+  const stored = type.trim().toLowerCase();
+  if (stored === 'trade') return 'General Contractor';
+  if (stored === 'gas_safe') return 'Gas Safe';
+  return (
+    LICENSE_TYPES.find((option) => option.toLowerCase() === stored) ?? 'Other'
+  );
 };
 
 export const BusinessProfileScreen: React.FC = () => {
@@ -89,34 +100,30 @@ export const BusinessProfileScreen: React.FC = () => {
 
   // Load existing data via the consolidated business-profile endpoint.
   // Server-side does the joined read; client just hydrates the form.
-  const { isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['businessProfile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const data = await mobileApiClient.get<BusinessProfileResponse>(
+    queryFn: () =>
+      mobileApiClient.get<BusinessProfileResponse>(
         '/api/contractor/business-profile'
-      );
-      const p = data.profile;
-      if (p?.company_name) setCompanyName(p.company_name);
-      if (p?.business_address) setBusinessAddress(p.business_address);
-      if (p?.license_number) setLicenseNumber(p.license_number);
-      if (data.insurance?.provider)
-        setInsuranceProvider(data.insurance.provider);
-      if (data.insurance?.policy_number)
-        setPolicyNumber(data.insurance.policy_number);
-      if (data.license?.name || p?.license_type) {
-        setLicenseType(
-          toDisplayLicenseType(data.license?.name || p?.license_type)
-        );
-      }
-      return data;
-    },
+      ),
     enabled: !!user?.id,
   });
+  useEffect(() => {
+    if (!data || hasEdits) return;
+    setCompanyName(data.profile?.company_name ?? '');
+    setBusinessAddress(data.profile?.business_address ?? '');
+    setLicenseNumber(data.profile?.license_number ?? '');
+    setInsuranceProvider(data.insurance?.provider ?? '');
+    setPolicyNumber(data.insurance?.policy_number ?? '');
+    setLicenseType(
+      toDisplayLicenseType(data.license?.name || data.profile?.license_type)
+    );
+  }, [data, hasEdits]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error('Not logged in');
+      if (!user?.id || !data || error)
+        throw new Error('Reload your business profile before saving.');
       // Single PATCH to /api/contractor/business-profile — the server
       // does the profile update + insurance upsert + license upsert in
       // one place, with the same NOT NULL date defaults the client used
@@ -158,6 +165,22 @@ export const BusinessProfileScreen: React.FC = () => {
     },
     onError: (err: Error) => Alert.alert('Error', err.message),
   });
+
+  if (error || (!isLoading && !data))
+    return (
+      <SafeAreaView style={s.container}>
+        <ScreenHeader
+          title='Business Profile'
+          onBack={() => navigation.goBack()}
+        />
+        <ErrorView
+          message='Could not load your saved business details.'
+          onRetry={() => {
+            void refetch();
+          }}
+        />
+      </SafeAreaView>
+    );
 
   if (isLoading)
     return <LoadingSpinner message='Loading business profile...' />;

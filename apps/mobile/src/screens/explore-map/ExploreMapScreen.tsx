@@ -1094,9 +1094,6 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
             pointerEvents='box-none'
           >
             <View style={emptyStateStyles.card}>
-              <View style={emptyStateStyles.iconWrap}>
-                <Ionicons name='search-outline' size={18} color={me.brand} />
-              </View>
               <Text style={emptyStateStyles.title}>No jobs in this area</Text>
               {/* 2026-05-27 audit-88 P2: be honest about the search
                   radius. Without this, a contractor outside the visible
@@ -1108,8 +1105,8 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                   hardcoded, so the copy can't drift from the query. */}
               <Text style={emptyStateStyles.body}>
                 {viewModel.selectedCategory
-                  ? `No matches within ~${formatMilesFromKm(viewModel.searchRadiusKm ?? DEFAULT_MATCH_RADIUS_KM)}. Clear your trade filter or move the map to explore another area.`
-                  : `No matches within ~${formatMilesFromKm(viewModel.searchRadiusKm ?? DEFAULT_MATCH_RADIUS_KM)}. Search distance is separate from your saved coverage. Move the map to explore another area.`}
+                  ? `No matches within ~${formatMilesFromKm(viewModel.searchRadiusKm ?? DEFAULT_MATCH_RADIUS_KM)}. Clear the trade filter or move the map.`
+                  : `No matches within ~${formatMilesFromKm(viewModel.searchRadiusKm ?? DEFAULT_MATCH_RADIUS_KM)}. Move the map to search another area.`}
               </Text>
               <View style={emptyStateStyles.ctaRow}>
                 {viewModel.selectedCategory ? (

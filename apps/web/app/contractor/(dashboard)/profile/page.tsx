@@ -79,7 +79,7 @@ export default async function ContractorProfilePage2025() {
       .from('contractor_posts')
       .select('*')
       .eq('contractor_id', user.id)
-      .in('post_type', ['portfolio', 'work_showcase'])
+      .eq('post_type', 'portfolio')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(20),

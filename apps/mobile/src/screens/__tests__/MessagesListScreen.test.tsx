@@ -23,6 +23,8 @@ jest.mock('react-native', () => {
   };
 });
 const mockNavigate = jest.fn();
+let mockLoadError: Error | undefined;
+beforeEach(() => { mockLoadError = undefined; });
 const mockThreads = [
   {
     jobId: 'recent',
@@ -56,7 +58,7 @@ jest.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'me' } }),
 }));
 jest.mock('../../hooks/useMessaging', () => ({
-  useMessageThreadsWithRealTime: () => ({ data: mockThreads }),
+  useMessageThreadsWithRealTime: () => ({ data: mockThreads, error: mockLoadError }),
 }));
 jest.mock('../../utils/haptics', () => ({
   useHaptics: () => ({ buttonPress: jest.fn() }),
@@ -94,4 +96,11 @@ it('keeps old unread conversations visible and lets users retrieve older history
     'Older job'
   );
   expect(screen.getByText('Retained history')).toBeTruthy();
+});
+
+it('keeps cached conversations available when a background refresh fails', () => {
+  mockLoadError = new Error('Server unavailable');
+  const screen = render(<MessagesListScreen />);
+  expect(screen.getByText('Recent message')).toBeTruthy();
+  expect(screen.queryByLabelText('Retry loading messages')).toBeNull();
 });

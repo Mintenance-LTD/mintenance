@@ -54,8 +54,7 @@ export const useJob = (jobId: string) => {
       signal ? JobService.getJobById(jobId, signal) : JobService.getJobById(jobId),
     enabled: !!jobId,
     staleTime: 30 * 1000, // 30 seconds for individual job details
-    // The HTTP client already retries transient failures. Avoid multiplying
-    // that retry cycle while a user waits for job details.
+    // Fail promptly on details errors; the screen provides an explicit retry.
     retry: false,
     gcTime: 15 * 60 * 1000,
     placeholderData: (prev: Job | null | undefined) => prev,

@@ -184,7 +184,9 @@ class MobileApiClient extends ApiClient {
     super({
       baseURL: API_BASE_URL,
       timeout: 30000,
-      retries: 3,
+      // React Query owns retries. Nested retries multiplied one failed read
+      // into up to sixteen HTTP attempts and also replayed mutations.
+      retries: 0,
       retryDelay: 1000,
     });
   }

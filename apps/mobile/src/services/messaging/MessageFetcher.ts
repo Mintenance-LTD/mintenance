@@ -223,3 +223,17 @@ export async function getUnreadMessageCount(_userId: string): Promise<number> {
     return 0;
   }
 }
+
+/** One bounded page, newest first on the server and chronological for display. */
+export async function getJobMessagesPage(jobId: string, cursor?: string) {
+  const params = new URLSearchParams({ limit: '50' });
+  if (cursor) params.set('cursor', cursor);
+  const page = await mobileApiClient.get<{
+    messages: Message[];
+    nextCursor?: string;
+  }>(`/api/messages/threads/${encodeURIComponent(jobId)}/messages?${params}`);
+  return {
+    messages: Array.isArray(page?.messages) ? page.messages : [],
+    nextCursor: page?.nextCursor,
+  };
+}

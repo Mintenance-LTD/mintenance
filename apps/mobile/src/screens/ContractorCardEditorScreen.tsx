@@ -46,6 +46,7 @@ export const ContractorCardEditorScreen: React.FC<
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [profile, setProfile] = useState<Partial<ContractorProfile>>({
     companyName: '',
@@ -85,17 +86,15 @@ export const ContractorCardEditorScreen: React.FC<
       const contractorProfile = await ContractorService.getContractorProfile(
         user.id
       );
+      if (!contractorProfile) throw new Error('Could not load saved profile');
       if (contractorProfile) {
         let businessAddr = contractorProfile.business_address;
-        if (!businessAddr && user.address) {
-          const parts = [user.address, user.city, user.postcode].filter(
-            Boolean
-          );
-          businessAddr = parts.join(', ');
-        }
 
         setProfile({
           ...contractorProfile,
+          companyName: contractorProfile.company_name ?? '',
+          hourlyRate: contractorProfile.hourly_rate ?? 0,
+          companyLogo: contractorProfile.company_logo,
           businessAddress: businessAddr || '',
           specialties: contractorProfile.specialties || [],
           portfolioImages: contractorProfile.portfolio_images || [],
@@ -103,8 +102,11 @@ export const ContractorCardEditorScreen: React.FC<
         });
       }
     } catch (error) {
+      setLoadFailed(true);
       logger.error('Failed to load contractor profile:', error);
-      Alert.alert('Error', 'Failed to load profile information');
+      Alert.alert('Unable to load profile', 'Please retry before editing.', [
+        { text: 'Go back', onPress: () => navigation.goBack() },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -156,6 +158,39 @@ export const ContractorCardEditorScreen: React.FC<
   };
 
   const removePortfolioImage = (imageUri: string) => {
+    if (!isLocalPortfolioUri(imageUri)) {
+      Alert.alert(
+        'Remove public photo?',
+        'This removes the photo from your web and mobile public profile.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await mobileApiClient.delete(
+                  '/api/contractor/portfolio-image',
+                  { body: JSON.stringify({ url: imageUri }) }
+                );
+                setProfile((previous) => ({
+                  ...previous,
+                  portfolioImages: previous.portfolioImages?.filter(
+                    (image) => image !== imageUri
+                  ),
+                }));
+              } catch {
+                Alert.alert(
+                  'Not removed',
+                  'Could not remove this photo. Please retry.'
+                );
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
     setProfile((prev) => ({
       ...prev,
       portfolioImages:
@@ -165,27 +200,25 @@ export const ContractorCardEditorScreen: React.FC<
   };
 
   const saveProfile = async () => {
-    if (!user) return;
+    if (!user || loadFailed) return;
 
     try {
       setSaving(true);
 
-      // 2026-05-23 audit-21 P1: previously this screen claimed to save
-      // companyLogo / availability (string enum) / serviceRadius /
-      // portfolioImages, but the API route only accepts profile
-      // basics + isAvailable boolean. Local URIs picked via
-      // ImagePicker never reached storage. Now:
-      //   - Local portfolio URIs are uploaded via
-      //     /api/contractor/upload-photos (which appends to
-      //     profiles.portfolio_images server-side).
-      //   - The availability enum maps to is_available boolean
-      //     ('busy' -> false, else true) so the live column reflects
-      //     intent even though the four-bucket string isn't stored.
-      //   - companyLogo and serviceRadius remain local-only — there's
-      //     no column on profiles for them, and service radius lives
-      //     on contractor_service_areas managed elsewhere. The
-      //     sections still render so users can see what's coming, but
-      //     we no longer pretend to persist them on save.
+      // Persist images before reporting a successful profile save.
+      if (profile.companyLogo && isLocalPortfolioUri(profile.companyLogo)) {
+        const logo = await ContractorService.uploadContractorImage(
+          user.id,
+          profile.companyLogo,
+          'logo',
+          {
+            firstName: user.first_name ?? user.firstName ?? '',
+            lastName: user.last_name ?? user.lastName ?? '',
+            isAvailable: profile.availability !== 'busy',
+          }
+        );
+        setProfile((previous) => ({ ...previous, companyLogo: logo }));
+      }
       const existing = profile.portfolioImages ?? [];
       const localUris = existing.filter((u) => isLocalPortfolioUri(u));
       if (localUris.length > 0) {
@@ -200,14 +233,16 @@ export const ContractorCardEditorScreen: React.FC<
             } as unknown as Blob);
             formData.append('title', 'Portfolio update');
             formData.append('category', 'general');
-            await mobileApiClient.postFormData(
-              '/api/contractor/upload-photos',
-              formData
-            );
+            const uploaded = await mobileApiClient.postFormData<{
+              data: { media_urls: string[] };
+            }>('/api/contractor/upload-photos', formData);
+            setProfile((previous) => ({
+              ...previous,
+              portfolioImages: previous.portfolioImages?.flatMap((value) =>
+                value === uri ? uploaded.data.media_urls : [value]
+              ),
+            }));
           } catch (uploadErr) {
-            // Don't block the rest of the save — one image failing
-            // shouldn't take down the basic-info update. Log so the
-            // user can retry that image.
             logger.warn('Portfolio image upload failed', {
               uri,
               error:
@@ -215,6 +250,9 @@ export const ContractorCardEditorScreen: React.FC<
                   ? uploadErr.message
                   : String(uploadErr),
             });
+            throw new Error(
+              'A portfolio photo could not be saved. Your changes have not all been saved.'
+            );
           }
         }
       }
@@ -225,6 +263,10 @@ export const ContractorCardEditorScreen: React.FC<
         firstName: user.first_name ?? user.firstName ?? '',
         lastName: user.last_name ?? user.lastName ?? '',
         isAvailable: availabilityIsAvailable,
+      });
+      await mobileApiClient.patch('/api/contractor/business-profile', {
+        companyName: profile.companyName ?? '',
+        businessAddress: profile.businessAddress ?? '',
       });
       setHasEdits(false);
       Alert.alert('Success', 'Your discovery card has been updated!');
@@ -242,6 +284,22 @@ export const ContractorCardEditorScreen: React.FC<
       setSaving(false);
     }
   };
+
+  if (loadFailed)
+    return (
+      <View style={styles.container}>
+        <Text>Could not load saved profile details.</Text>
+        <TouchableOpacity
+          onPress={() => {
+            setLoadFailed(false);
+            setLoading(true);
+            void loadContractorProfile();
+          }}
+        >
+          <Text>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
 
   if (loading) {
     return <LoadingSpinner message='Loading your profile...' />;

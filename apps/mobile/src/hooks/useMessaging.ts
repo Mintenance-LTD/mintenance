@@ -243,16 +243,27 @@ export const useMessageThreadsWithRealTime = () => {
   const queryClient = useQueryClient();
   const threadsQuery = useMessageThreads();
 
+  // A refresh changes preview/read data, not the set of subscriptions.
+  const threadIds = [
+    ...new Set(
+      ((threadsQuery.data as MessageThread[] | undefined) ?? []).map(
+        (thread) => thread.jobId
+      )
+    ),
+  ]
+    .sort()
+    .join(',');
+
   // Subscribe to message updates that could affect the threads list
   React.useEffect(() => {
-    if (!user?.id || !threadsQuery.data) return;
+    if (!user?.id || !threadIds) return;
 
     const subscriptions: (() => void)[] = [];
 
     // Subscribe to each active conversation
-    (threadsQuery.data as MessageThread[]).forEach((thread: MessageThread) => {
+    threadIds.split(',').forEach((jobId) => {
       const unsubscribe = MessagingService.subscribeToJobMessages(
-        thread.jobId,
+        jobId,
         (newMessage) => {
           // Update the threads list when new messages arrive
           queryClient.invalidateQueries({
@@ -275,7 +286,7 @@ export const useMessageThreadsWithRealTime = () => {
     return () => {
       subscriptions.forEach((unsub) => unsub());
     };
-  }, [user?.id, threadsQuery.data, queryClient]);
+  }, [user?.id, threadIds, queryClient]);
 
   return threadsQuery;
 };

@@ -324,7 +324,7 @@ describe('ExploreMapScreen — empty-state guidance card', () => {
         // 2026-07-20: the radius is stated in miles and derived from
         // DEFAULT_MATCH_RADIUS_KM, so this asserts the same derivation rather
         // than a hardcoded number that could drift from the query.
-        `No matches within ~${formatMilesFromKm(DEFAULT_MATCH_RADIUS_KM)}. Clear your trade filter or move the map to explore another area.`
+        `No matches within ~${formatMilesFromKm(DEFAULT_MATCH_RADIUS_KM)}. Clear the trade filter or move the map.`
       )
     ).toBeTruthy();
     fireEvent.press(getByLabelText('Clear category filter'));
