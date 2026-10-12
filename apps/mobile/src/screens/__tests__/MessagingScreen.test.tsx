@@ -1083,3 +1083,7 @@ describe('MessagingScreen — no authenticated user', () => {
     ).not.toHaveBeenCalled();
   });
 });
+
+jest.mock('../../hooks/usePagedJobMessages', () => ({
+  usePagedJobMessages: (...args: unknown[]) => require('../../hooks/useMessaging').useJobMessages(...args),
+}));

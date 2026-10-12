@@ -976,3 +976,16 @@ describe('useOfflineMutation', () => {
     expect(result.current.isPending).toBe(false);
   });
 });
+
+it('shows remote data while a local cache write is still pending', async () => {
+  const { wrapper } = makeWrapper();
+  let complete!: () => void;
+  mockLocalDb.saveJob.mockReturnValueOnce(new Promise<void>((resolve) => { complete = resolve; }));
+  const jobs = [{ id: 'job-fast', title: 'Ready to display' }];
+  const { result } = renderHook(() => useOfflineQuery({
+    queryKey: ['jobs', 'list', 'available'], queryFn: async () => jobs,
+  }), { wrapper });
+  await waitFor(() => expect(result.current.data).toEqual(jobs));
+  expect(mockLocalDb.saveJob).toHaveBeenCalled();
+  await act(async () => complete());
+});

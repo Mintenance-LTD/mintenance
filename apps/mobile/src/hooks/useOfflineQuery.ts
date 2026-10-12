@@ -101,9 +101,9 @@ export const useOfflineQuery = <T = unknown>({
 
         const remoteData = await queryFn(signal);
 
-        // Cache successful remote data locally
+        // Persist offline data without holding the screen behind sequential disk writes.
         if (remoteData && isOnline) {
-          await cacheLocalData(queryKey, remoteData).catch((error) => {
+          void cacheLocalData(queryKey, remoteData).catch((error) => {
             logger.warn('Failed to cache local data:', error);
           });
         }

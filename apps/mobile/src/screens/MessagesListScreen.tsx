@@ -175,7 +175,7 @@ const MessagesListScreen: React.FC = () => {
         </Text>
         {loading ? (
           <View style={styles.content}>{renderSkeletonMessages()}</View>
-        ) : error ? (
+        ) : error && conversations.length === 0 ? (
           <View style={[styles.content, styles.errorContainer]}>
             <Banner
               message='Failed to load messages'
@@ -199,6 +199,14 @@ const MessagesListScreen: React.FC = () => {
           </View>
         ) : (
           <FlatList
+            ListHeaderComponent={
+              error ? (
+                <Banner
+                  message='Showing saved conversations. Pull to refresh for updates.'
+                  variant='error'
+                />
+              ) : null
+            }
             data={filteredConversations}
             keyExtractor={(item) => item.jobId}
             contentContainerStyle={[
