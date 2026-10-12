@@ -1,3 +1,4 @@
+import { recurringCategory } from '@/lib/services/recurring/recurring-category';
 import { createScheduleOnce } from '@/lib/services/recurring/create-schedule';
 import { portfolioScheduleInput } from '@/lib/services/recurring/schedule-input';
 import { validateRequest } from '@/lib/validation/validator';
@@ -70,6 +71,9 @@ export const POST = withApiHandler(
       frequency,
       next_due_date,
       auto_create_job,
+      category,
+      preferred_contractor_id,
+      notification_audience,
     } = validation.data;
     const property = await getPropertyForManagement(
       user,
@@ -83,7 +87,9 @@ export const POST = withApiHandler(
       title: title.trim(),
       description: description?.trim() || null,
       task_type: task_type || 'general',
-      category: 'general',
+      category: recurringCategory(category, task_type),
+      preferred_contractor_id: preferred_contractor_id ?? null,
+      notification_audience: notification_audience ?? 'matching',
       frequency,
       next_due_date,
       auto_create_job: auto_create_job ?? false,

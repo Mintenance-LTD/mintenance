@@ -1,4 +1,9 @@
 'use client';
+import {
+  RecurringAudienceFields,
+  emptyAudience,
+} from '@/components/recurring/RecurringAudienceFields';
+import { recurringCategory } from '@/lib/services/recurring/recurring-category';
 import { scheduleRequest } from '@/lib/schedule-request-key';
 
 import React, { useState, useRef } from 'react';
@@ -67,6 +72,7 @@ export function RecurringTasksClient({
   schedules: Schedule[];
 }) {
   const [schedules, setSchedules] = useState(initialSchedules);
+  const [audience, setAudience] = useState(emptyAudience);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -86,6 +92,13 @@ export function RecurringTasksClient({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (
+      audience.notification_audience === 'preferred' &&
+      !audience.preferred_contractor_id
+    ) {
+      toast.error('Choose a favourite contractor.');
+      return;
+    }
     if (
       !formData.property_id ||
       !formData.title.trim() ||
@@ -108,7 +121,10 @@ export function RecurringTasksClient({
       // withApiHandler — without an X-CSRF-Token the POST 403s in
       // production. Audit 2026-05-12 caught this. Aligning the legacy
       // path with the Mint Editorial port that already sends CSRF.
-      const operation = await scheduleRequest(formData.property_id, formData);
+      const operation = await scheduleRequest(formData.property_id, {
+        ...formData,
+        ...audience,
+      });
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch('/api/landlord/recurring', {
         method: 'POST',
@@ -119,6 +135,7 @@ export function RecurringTasksClient({
         },
         body: JSON.stringify({
           ...formData,
+          ...audience,
           title: formData.title.trim(),
           description: formData.description.trim() || null,
         }),
@@ -143,6 +160,7 @@ export function RecurringTasksClient({
         )
       );
       setShowForm(false);
+      setAudience(emptyAudience);
       setFormData({
         property_id: '',
         task_type: 'General Inspection',
@@ -242,9 +260,10 @@ export function RecurringTasksClient({
                 required
                 aria-label='Property'
                 value={formData.property_id}
-                onChange={(e) =>
+                onChange={(e) => (
+                  setAudience((a) => ({ ...emptyAudience, category: a.category })),
                   setFormData((p) => ({ ...p, property_id: e.target.value }))
-                }
+                )}
                 className='rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white'
               >
                 <option value=''>Select property...</option>
@@ -257,13 +276,17 @@ export function RecurringTasksClient({
               <select
                 aria-label='Task type'
                 value={formData.task_type}
-                onChange={(e) =>
+                onChange={(e) => {
+                  setAudience((a) => ({
+                    ...a,
+                    category: recurringCategory(undefined, e.target.value),
+                  }));
                   setFormData((p) => ({
                     ...p,
                     task_type: e.target.value,
                     title: e.target.value,
-                  }))
-                }
+                  }));
+                }}
                 className='rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white'
               >
                 {TASK_TYPES.map((t) => (
@@ -310,6 +333,12 @@ export function RecurringTasksClient({
                 className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
               />
             </div>
+            <RecurringAudienceFields
+              key={formData.property_id}
+              propertyId={formData.property_id}
+              value={audience}
+              onChange={setAudience}
+            />
             <label className='flex items-center gap-2 text-sm text-gray-700'>
               <input
                 type='checkbox'

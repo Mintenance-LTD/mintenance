@@ -19,8 +19,15 @@ export async function createScheduleOnce(
     frequency: string;
     next_due_date: string;
     auto_create_job: boolean;
+    preferred_contractor_id?: string | null;
+    notification_audience?: 'matching' | 'preferred';
   }
 ) {
+  if (
+    details.notification_audience === 'preferred' &&
+    !details.preferred_contractor_id
+  )
+    throw new BadRequestError('Choose a favourite contractor.');
   const key = z
     .string()
     .uuid()
@@ -38,6 +45,10 @@ export async function createScheduleOnce(
       p_details: details,
     }
   );
+  if (error?.code === '23514')
+    throw new BadRequestError(
+      'Choose a valid schedule and a contractor previously hired by this owner.'
+    );
   if (error?.code === '42501') throw new NotFoundError('Property not found');
   if (error?.code === '22023' || error?.code === 'P0002')
     throw new ConflictError(

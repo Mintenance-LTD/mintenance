@@ -26,6 +26,8 @@ interface Schedule {
   next_due_date: string;
   is_active: boolean;
   updated_at: string;
+  preferred_contractor_id?: string | null;
+  notification_audience?: 'matching' | 'preferred';
 }
 
 interface Props {
@@ -63,6 +65,27 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   const [editing, setEditing] = useState<Schedule | null>(null);
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('monthly');
+  const [category, setCategory] = useState('handyman');
+  const [preferredId, setPreferredId] = useState<string | null>(null);
+  const [favouriteOnly, setFavouriteOnly] = useState(false);
+  const [contractors, setContractors] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const loadContractors = async () => {
+    try {
+      const result = await mobileApiClient.get<{
+        contractors: { id: string; name: string }[];
+      }>(`/api/properties/${propertyId}/recurring-contractors`);
+      setContractors(result.contractors);
+      if (!result.contractors.length)
+        Alert.alert(
+          'No contractors',
+          'No previously hired contractors are available.'
+        );
+    } catch {
+      Alert.alert('Could not load contractors', 'Please retry.');
+    }
+  };
 
   const {
     data: schedules = [],
@@ -89,6 +112,9 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
         throw new Error('Reload schedules before editing.');
       const payload = {
         title: title.trim(),
+        category,
+        preferred_contractor_id: favouriteOnly ? preferredId : null,
+        notification_audience: favouriteOnly ? 'preferred' : 'matching',
         frequency,
         next_due_date: firstDueDate,
         ...(editing
@@ -247,6 +273,13 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
   };
 
   const handleCreate = () => {
+    if (favouriteOnly && !preferredId) {
+      Alert.alert(
+        'Choose a contractor',
+        'Select a previously hired contractor.'
+      );
+      return;
+    }
     if (title.trim().length < 5 || title.trim().length > 200) {
       Alert.alert(
         'Check the title',
@@ -288,6 +321,9 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
           disabled={createMutation.isPending}
           onPress={() => {
             setEditing(null);
+            setCategory('handyman');
+            setPreferredId(null);
+            setFavouriteOnly(false);
             setTitle('');
             setFirstDueDate('');
             setFrequency('monthly');
@@ -320,6 +356,76 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
             onChangeText={setFirstDueDate}
             autoCapitalize='none'
           />
+          <Text style={styles.emptyText}>Trade category</Text>
+          <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
+
+            {[
+              'plumbing',
+              'electrical',
+              'heating',
+              'carpentry',
+              'painting',
+              'roofing',
+              'flooring',
+              'gardening',
+              'cleaning',
+              'handyman',
+              'hvac',
+              'pest_control',
+              'other',
+            ].map((trade) => (
+              <TouchableOpacity
+                key={trade}
+                style={styles.freqChip}
+                accessibilityRole='radio'
+                accessibilityState={{ checked: category === trade }}
+                onPress={() => setCategory(trade)}
+              >
+                <Text>
+                  {category === trade ? 'Selected: ' : ''}
+                  {trade.replace('_', ' ')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            accessibilityRole='checkbox'
+            accessibilityState={{ checked: favouriteOnly }}
+            onPress={() => setFavouriteOnly(!favouriteOnly)}
+          >
+            <Text style={styles.emptyText}>
+              {favouriteOnly ? 'Selected: ' : ''}Notify my chosen favourite only
+            </Text>
+          </TouchableOpacity>
+          {favouriteOnly && (
+            <View>
+              <TouchableOpacity
+                accessibilityRole='button'
+                onPress={loadContractors}
+              >
+                <Text style={styles.emptyText}>
+                  Load previously hired contractors
+                </Text>
+              </TouchableOpacity>
+              {contractors.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  accessibilityRole='radio'
+                  accessibilityState={{ checked: preferredId === c.id }}
+                  onPress={() => setPreferredId(c.id)}
+                >
+                  <Text style={styles.emptyText}>
+                    {preferredId === c.id ? 'Selected: ' : ''}
+                    {c.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <Text style={styles.emptyText}>
+            Alerts require a matching trade and service area. The job remains
+            open for bids.
+          </Text>
           <Text style={styles.emptyText}>
             A job is created when the task becomes due. This does not charge you
             or book a contractor.
@@ -445,6 +551,9 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
               disabled={createMutation.isPending}
               onPress={() => {
                 setEditing(s);
+                setCategory(s.category || 'handyman');
+                setPreferredId(s.preferred_contractor_id ?? null);
+                setFavouriteOnly(s.notification_audience === 'preferred');
                 setTitle(s.title);
                 setFrequency(s.frequency);
                 setFirstDueDate(s.next_due_date.slice(0, 10));

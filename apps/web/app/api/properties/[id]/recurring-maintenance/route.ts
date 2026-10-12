@@ -1,3 +1,4 @@
+import { recurringCategory } from '@/lib/services/recurring/recurring-category';
 import { createScheduleOnce } from '@/lib/services/recurring/create-schedule';
 import { z } from 'zod';
 import {
@@ -78,7 +79,12 @@ export const GET = withApiHandler(
       );
     }
 
-    return NextResponse.json({ schedules: schedules || [] });
+    return NextResponse.json({
+      schedules: (schedules || []).map((schedule) => ({
+        ...schedule,
+        category: recurringCategory(schedule.category, schedule.task_type),
+      })),
+    });
   }
 );
 
@@ -99,13 +105,22 @@ export const POST = withApiHandler(
 
     const validation = await validateRequest(req, propertyScheduleInput);
     if ('headers' in validation) return validation;
-    const { title, category, frequency, next_due_date } = validation.data;
+    const {
+      title,
+      category,
+      frequency,
+      next_due_date,
+      preferred_contractor_id,
+      notification_audience,
+    } = validation.data;
 
     const schedule = await createScheduleOnce(req, user.id, propertyId, {
       title,
       description: `Recurring maintenance: ${title}`,
       task_type: 'general',
-      category: category || 'general',
+      category: category || 'handyman',
+      preferred_contractor_id: preferred_contractor_id ?? null,
+      notification_audience: notification_audience ?? 'matching',
       frequency,
       next_due_date,
       auto_create_job: true,
@@ -203,8 +218,13 @@ export const PATCH = withApiHandler(
 
     if (error) {
       return NextResponse.json(
-        { error: 'Failed to update schedule' },
-        { status: 500 }
+        {
+          error:
+            error.code === '23514'
+              ? 'Choose a valid contractor previously hired by this property owner.'
+              : 'Failed to update schedule',
+        },
+        { status: error.code === '23514' ? 400 : 500 }
       );
     }
 

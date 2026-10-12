@@ -43,6 +43,8 @@ interface JobCreationPayload {
   // fires an extra "invited bid" notification to this contractor on
   // top of the standard nearby broadcast. Not persisted on the job.
   preferred_contractor_id?: string;
+  /** Server-owned recurring notification scope; never assigns the job. */
+  recurring_notification?: { category: string; contractorId?: string };
   // 2026-05-21 (Property Rooms Slice 1): list of property_rooms.id
   // values the job targets. Snapshotted into the job_rooms table at
   // post time. Validated against the property's actual rooms — any id
@@ -161,6 +163,7 @@ export class JobCreationService {
       },
       {
         required_skills: insertPayload.required_skills,
+        recurring: payload.recurring_notification,
       }
     );
 
@@ -396,11 +399,15 @@ export class JobCreationService {
       .maybeSingle();
 
     if (error) {
-      logger.error('Failed to validate preferred contractor relationship', error, {
-        service: 'jobs',
-        userId,
-        preferredContractorId: payload.preferred_contractor_id,
-      });
+      logger.error(
+        'Failed to validate preferred contractor relationship',
+        error,
+        {
+          service: 'jobs',
+          userId,
+          preferredContractorId: payload.preferred_contractor_id,
+        }
+      );
       throw new InternalServerError(
         'Unable to validate the preferred contractor'
       );
@@ -822,6 +829,15 @@ export class JobCreationService {
             error: error.message,
           });
         } else if (prop) {
+          const propertyAddress = [
+            prop.address,
+            prop.city,
+            prop.postcode,
+            prop.country,
+          ]
+            .filter((part) => typeof part === 'string' && part.trim())
+            .join(', ');
+          if (propertyAddress) insertPayload.location = propertyAddress;
           // Prefer the property's pre-computed coordinates — no API
           // call, no ambiguity, no rate limit consumed.
           const propLat =

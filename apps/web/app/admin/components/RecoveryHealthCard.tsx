@@ -1,4 +1,5 @@
 'use client';
+import { PushAttemptReview } from './PushAttemptReview';
 import { useQuery } from '@tanstack/react-query';
 import { recoveryReportSchema } from '@/lib/operations/recovery-status';
 
@@ -10,6 +11,7 @@ const labels = {
   failed: 'Failed',
   attention: 'Needs review',
   unknown: 'Unverified',
+  awaiting_data: 'Awaiting approved training data',
 };
 
 export function RecoveryHealthCard() {
@@ -77,13 +79,21 @@ export function RecoveryHealthCard() {
                   <h3 className='font-medium text-slate-900'>{job.label}</h3>
                   <p
                     className={
-                      job.state === 'recent_success' || job.state === 'running'
+                      job.state === 'recent_success' ||
+                      job.state === 'running' ||
+                      job.state === 'awaiting_data'
                         ? 'text-slate-700'
                         : 'font-semibold text-red-700'
                     }
                   >
                     {labels[job.state]}
                   </p>
+                  {job.lastStartedAt && (
+                    <p className='mt-1 text-xs text-slate-600'>
+                      Last attempted:{' '}
+                      {new Date(job.lastStartedAt).toLocaleString('en-GB')}
+                    </p>
+                  )}
                   <p className='mt-1 text-xs text-slate-600'>
                     Last completed run:{' '}
                     {job.lastSuccessAt
@@ -96,6 +106,7 @@ export function RecoveryHealthCard() {
           </>
         )
       )}
+      <PushAttemptReview />
     </section>
   );
 }
