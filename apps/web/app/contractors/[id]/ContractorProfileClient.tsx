@@ -89,7 +89,7 @@ function ContractorPublicProfilePage2025() {
 
         setContractor(contractor);
         if (reviews.length > 0) setFetchedReviews(reviews);
-        if (portfolio.length > 0) setFetchedPortfolio(portfolio);
+        setFetchedPortfolio(portfolio);
       } catch (err) {
         logger.error('Error fetching contractor:', err, { service: 'app' });
         setError(
@@ -159,8 +159,7 @@ function ContractorPublicProfilePage2025() {
                   const data = await fetchContractorProfile(contractorId);
                   setContractor(data.contractor);
                   if (data.reviews.length > 0) setFetchedReviews(data.reviews);
-                  if (data.portfolio.length > 0)
-                    setFetchedPortfolio(data.portfolio);
+                  setFetchedPortfolio(data.portfolio);
                 } catch (err) {
                   setError(
                     err instanceof Error

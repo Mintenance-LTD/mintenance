@@ -42,6 +42,9 @@ const mockUpdateProfile = jest.fn();
 jest.mock('../../services/ContractorService', () => ({
   ContractorService: {
     getContractorProfile: (...a: unknown[]) => mockGetProfile(...a),
+    uploadContractorImage: jest
+      .fn()
+      .mockResolvedValue('https://example.test/logo.jpg'),
     updateContractorProfile: (...a: unknown[]) => mockUpdateProfile(...a),
   },
 }));
@@ -50,6 +53,8 @@ jest.mock('../../services/ContractorService', () => ({
 const mockPostFormData = jest.fn();
 jest.mock('../../utils/mobileApiClient', () => ({
   mobileApiClient: {
+    patch: jest.fn().mockResolvedValue({}),
+    delete: jest.fn().mockResolvedValue({}),
     postFormData: (...a: unknown[]) => mockPostFormData(...a),
   },
 }));
@@ -116,9 +121,11 @@ const renderScreen = async () => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockUser = { ...CONTRACTOR };
-  mockGetProfile.mockResolvedValue(null);
+  mockGetProfile.mockResolvedValue({});
   mockUpdateProfile.mockResolvedValue(undefined);
-  mockPostFormData.mockResolvedValue({});
+  mockPostFormData.mockResolvedValue({
+    data: { media_urls: ['https://example.test/upload.jpg'] },
+  });
   mockRequestPerms.mockResolvedValue({ status: 'granted' });
   mockLaunchLibrary.mockResolvedValue({
     canceled: false,
@@ -162,9 +169,9 @@ describe('ContractorCardEditorScreen — loading + hydration', () => {
 
   it('hydrates fields from a loaded profile', async () => {
     mockGetProfile.mockResolvedValueOnce({
-      companyName: 'Acme Repairs',
+      company_name: 'Acme Repairs',
       bio: 'We fix things',
-      hourlyRate: 90,
+      hourly_rate: 90,
       yearsExperience: 12,
       business_address: '5 Fix Rd',
       availability: 'busy',
@@ -179,7 +186,7 @@ describe('ContractorCardEditorScreen — loading + hydration', () => {
     expect(getByDisplayValue('5 Fix Rd')).toBeTruthy();
   });
 
-  it('falls back to user address parts when profile has no business_address', async () => {
+  it('does not copy the personal address into the business address without consent', async () => {
     mockGetProfile.mockResolvedValueOnce({
       companyName: 'NoAddr Co',
       business_address: null,
@@ -187,8 +194,8 @@ describe('ContractorCardEditorScreen — loading + hydration', () => {
       portfolio_images: null,
       certifications: null,
     });
-    const { getByDisplayValue } = await renderScreen();
-    expect(getByDisplayValue('1 Build St, London, E1 6AN')).toBeTruthy();
+    const { queryByDisplayValue } = await renderScreen();
+    expect(queryByDisplayValue('1 Build St, London, E1 6AN')).toBeNull();
   });
 
   it('leaves address blank when both profile and user address are absent', async () => {
@@ -209,8 +216,9 @@ describe('ContractorCardEditorScreen — loading + hydration', () => {
       expect.any(Error)
     );
     expect(alertSpy).toHaveBeenCalledWith(
-      'Error',
-      'Failed to load profile information'
+      'Unable to load profile',
+      'Please retry before editing.',
+      expect.any(Array)
     );
   });
 });
@@ -376,6 +384,8 @@ describe('ContractorCardEditorScreen — portfolio picker + removal', () => {
     expect(getAllByLabelText(/Remove portfolio image/).length).toBe(2);
     await act(async () => {
       fireEvent.press(getAllByLabelText(/Remove portfolio image/)[0]);
+      const buttons = alertSpy.mock.calls.at(-1)?.[2];
+      await buttons?.find((button) => button.text === 'Remove')?.onPress?.();
       await Promise.resolve();
     });
     await waitFor(() =>
@@ -465,7 +475,7 @@ describe('ContractorCardEditorScreen — save', () => {
     );
   });
 
-  it('continues the save when a portfolio upload fails (logs warn, Error branch)', async () => {
+  it('does not claim success or exit when a portfolio upload fails', async () => {
     mockGetProfile.mockResolvedValueOnce({
       portfolio_images: ['file:///tmp/bad.jpg'],
     });
@@ -475,7 +485,12 @@ describe('ContractorCardEditorScreen — save', () => {
       fireEvent.press(getByText('Save Discovery Card'));
       await Promise.resolve();
     });
-    await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalled());
+    expect(mockUpdateProfile).not.toHaveBeenCalled();
+    expect(mockGoBack).not.toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('could not be saved')
+    );
     expect(logger.warn).toHaveBeenCalledWith(
       'Portfolio image upload failed',
       expect.objectContaining({
@@ -495,7 +510,12 @@ describe('ContractorCardEditorScreen — save', () => {
       fireEvent.press(getByText('Save Discovery Card'));
       await Promise.resolve();
     });
-    await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalled());
+    expect(mockUpdateProfile).not.toHaveBeenCalled();
+    expect(mockGoBack).not.toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('could not be saved')
+    );
     expect(logger.warn).toHaveBeenCalledWith(
       'Portfolio image upload failed',
       expect.objectContaining({ error: 'string error' })

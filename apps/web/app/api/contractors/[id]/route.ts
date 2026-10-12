@@ -1,3 +1,4 @@
+import { isPublishedPortfolioImage } from '@/lib/contractor-portfolio';
 import { NextResponse } from 'next/server';
 import type { ContractorProfile } from '@mintenance/types/src/contracts';
 import { logger } from '@mintenance/shared';
@@ -190,36 +191,39 @@ export const GET = withApiHandler(
           }
         }
 
-        // Audit finding #5 (Apr-26 device test): the user asked whether
-        // portfolio entries are based on completed-job before/after photos
-        // OR manual additions. Today they were manual-only via
-        // profiles.portfolio_images. Fold in after-photos from this
-        // contractor's completed jobs so a contractor's track record
-        // automatically populates their portfolio.
-        //
-        // Sequence: list completed jobs → fetch after-photos for those job
-        // ids → re-sign Job-storage URLs (bucket is private since 2026-04-17)
-        // → concat onto manual entries, dedupe.
-        // Job completion photos are private evidence, not publication consent.
-        // Only images explicitly curated into the contractor's portfolio belong
-        // on this public endpoint. Never sign arbitrary completed-job photos.
-        const manualImages = (contractor.portfolio_images || []).filter(
-          (url: string) => Boolean(url)
+        // Only deliberately published portfolio posts are public. Completion
+        // evidence and community work_showcase posts are not publication consent.
+        const { data: publishedPosts, error: portfolioError } = await serverSupabase
+          .from('contractor_posts')
+          .select('id, title, content, media_urls, is_active')
+          .eq('contractor_id', id)
+          .eq('post_type', 'portfolio')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (portfolioError)
+          throw new InternalServerError('Could not load contractor portfolio');
+        const portfolioJobs = (publishedPosts ?? []).filter((post) => post.is_active === true).map((post) => ({
+          id: post.id,
+          title: post.title,
+          category: 'portfolio',
+          images: (post.media_urls ?? []).filter((url: string) =>
+            isPublishedPortfolioImage(url)
+          ),
+          description: post.content ?? '',
+          completionDate: '',
+          featured: false,
+        })).filter((post) => post.images.length > 0);
+        // Keep legacy uploads without duplicating structured projects or
+        // resurrecting media belonging to inactive posts.
+        const postImages = new Set((publishedPosts ?? []).flatMap(post => post.media_urls ?? []));
+        const manualImages: string[] = (publishedPosts?.length === 100 ? [] : contractor.portfolio_images ?? []).filter(
+          (url: unknown) => isPublishedPortfolioImage(url) && !postImages.has(url)
         );
-        const portfolioJobs =
-          manualImages.length > 0
-            ? [
-                {
-                  id: `manual-${id}`,
-                  title: 'Past work',
-                  category: 'portfolio',
-                  images: manualImages,
-                  description: '',
-                  completionDate: '',
-                  featured: false,
-                },
-              ]
-            : [];
+        if (manualImages.length) {
+          portfolioJobs.push({ id: `manual-${id}`, title: 'Past work',
+            category: 'portfolio', images: manualImages, description: '',
+            completionDate: '', featured: false });
+        }
 
         // R7 #11 — dispute history: counts + mean resolution time against
         // this contractor. `disputes.against` references the contractor.
@@ -295,7 +299,7 @@ export const GET = withApiHandler(
           city: contractor.city,
           country: contractor.country,
           is_available: contractor.is_available,
-          portfolio_images: Array.from(new Set(manualImages)),
+          portfolio_images: Array.from(new Set(portfolioJobs.flatMap((post) => post.images))),
           portfolio: portfolioJobs,
           total_jobs_completed: completedJobCount ?? 0,
           skills: skills,

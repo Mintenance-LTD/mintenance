@@ -184,6 +184,23 @@ export const AIAnalysisCard: React.FC<BuildingAssessmentCardProps> = ({
 
   const data = aiAnalysis.assessmentData as AssessmentData | undefined;
   const hasRichData = Boolean(data?.damageAssessment);
+  if (
+    (!data || Object.keys(data).length === 0) &&
+    !aiAnalysis.suggestedTools?.length &&
+    !aiAnalysis.estimatedComplexity &&
+    !aiAnalysis.estimatedDuration &&
+    !aiAnalysis.detectedItems?.length &&
+    !aiAnalysis.safetyConcerns?.length &&
+    !aiAnalysis.recommendedActions?.length
+  ) {
+    return (
+      <View style={{ paddingVertical: 12 }}>
+        <Text style={st.loadingText}>
+          No assessment details available for this job.
+        </Text>
+      </View>
+    );
+  }
   const rawConf = data?.damageAssessment?.confidence ?? aiAnalysis.confidence;
   const confPct =
     typeof rawConf === 'number' && Number.isFinite(rawConf)

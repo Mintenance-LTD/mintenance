@@ -191,8 +191,7 @@ export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
         <DialogHeader>
           <DialogTitle>Upload photos</DialogTitle>
           <DialogDescription>
-            Showcase before/after work, progress shots, or highlight your
-            craftsmanship.
+            These photos will be public on your web and mobile profile. Only upload photos you have permission to share.
           </DialogDescription>
         </DialogHeader>
 

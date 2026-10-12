@@ -130,6 +130,10 @@ async function loadBundle(userId: string): Promise<{
       .maybeSingle(),
   ]);
 
+  if (profileRes.error || insuranceRes.error || licenseRes.error) {
+    throw new InternalServerError('Could not load saved business details');
+  }
+
   return {
     profile: (profileRes.data ?? null) as ProfileShape | null,
     insurance: (insuranceRes.data ?? null) as InsuranceShape | null,
