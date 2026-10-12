@@ -102,7 +102,7 @@ it('matches monitored paths to deployed schedules instead of assuming daily jobs
       'pii-cleanup': ['0 3 * * *', 1560],
       'retention-cleanup': ['0 3 * * *', 1560],
       'data-archival': ['0 4 1 * *', 35 * 24 * 60],
-      'recurring-job-creator': ['0 6 * * *', 1560],
+      'recurring-job-creator': ['*/15 * * * *', 45],
       'model-retraining': ['0 5 * * *', 1560],
     };
     const expected = schedules[job.name] ?? ['*/5 * * * *', 15];

@@ -56,18 +56,21 @@ export default function PropertyWorkQueuePage() {
   }, [offset, attempt]);
   return (
     <OperationsPage
+      compact
       title='Maintenance action queue'
       eyebrow='Your property to-do list'
       backHref='/properties'
       backLabel='Back to properties'
-      description='See what needs attention across your properties. Review the work, choose the next step, and keep your team up to date.'
+      description='Review priority work and manage follow-ups across your properties.'
     >
-      <div className={styles.note}>
-        Start with the priority items below. <strong>Review</strong> opens the
-        related job or property; <strong>Manage follow-up</strong> lets you
-        assign responsibility, set a due date and record an update. Maintenance
-        and certificate renewals cover the next 30 days.
-      </div>
+      <details className={styles.queueHelp}>
+        <summary>How the queue works</summary>
+        <p>
+          Review opens the job or property. Manage follow-up assigns
+          responsibility and records updates. Maintenance and renewals cover the
+          next 30 days.
+        </p>
+      </details>
       {error ? (
         <div role='alert' className={styles.error}>
           {error}{' '}
@@ -82,12 +85,12 @@ export default function PropertyWorkQueuePage() {
         <p role='status'>Loading your queue…</p>
       ) : (
         <>
-          <div className={styles.stats}>
-            <div className={styles.stat}>
+          <div className={styles.queueStats}>
+            <div className={styles.queueStat}>
               <p className='text-sm text-slate-600'>Open actions</p>
               <strong>{data.total}</strong>
             </div>
-            <div className={styles.stat}>
+            <div className={styles.queueStat}>
               <p className='text-sm text-teal-900'>Priority actions</p>
               <strong>{data.overdue}</strong>
             </div>
@@ -103,9 +106,9 @@ export default function PropertyWorkQueuePage() {
               </p>
             </div>
           ) : (
-            <ul className={styles.list}>
+            <ul className={styles.queueList}>
               {data.items.map((item) => (
-                <li key={`${item.kind}:${item.id}`} className={styles.card}>
+                <li key={`${item.kind}:${item.id}`} className={styles.queueRow}>
                   <div className={styles.cardTop}>
                     <span className={styles.icon}>
                       <ClipboardList size={22} />
@@ -161,12 +164,14 @@ export default function PropertyWorkQueuePage() {
                     </button>
                   </div>
                   {editing === `${item.kind}:${item.id}` && (
-                    <FollowupForm
-                      propertyId={item.property_id}
-                      kind={item.kind}
-                      sourceId={item.id}
-                      onSaved={() => setAttempt((value) => value + 1)}
-                    />
+                    <div className={styles.queueFollowup}>
+                      <FollowupForm
+                        propertyId={item.property_id}
+                        kind={item.kind}
+                        sourceId={item.id}
+                        onSaved={() => setAttempt((value) => value + 1)}
+                      />
+                    </div>
                   )}
                 </li>
               ))}

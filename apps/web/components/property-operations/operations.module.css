@@ -229,3 +229,136 @@
     gap: 10px;
   }
 }
+
+/* Compact action queue, scoped so other operations pages keep their layout. */
+.compact {
+  gap: 16px;
+  padding-top: 12px;
+}
+.compact .header h1 {
+  font-size: clamp(24px, 2.5vw, 30px);
+}
+.compact .eyebrow {
+  margin-bottom: 6px;
+}
+.compact .description {
+  margin-top: 6px;
+}
+.queueHelp {
+  font-size: 13px;
+  color: var(--me-ink-2, #59685f);
+}
+.queueHelp summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.queueHelp p {
+  margin-top: 8px;
+  max-width: 760px;
+}
+.queueStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.queueStat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--me-line, #dfe7e2);
+  border-radius: 10px;
+  background: white;
+  padding: 10px 16px;
+}
+.queueStat p {
+  margin: 0;
+}
+.queueStat strong {
+  font-size: 20px;
+}
+.queueList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--me-line, #dfe7e2);
+  border-radius: 14px;
+  overflow: hidden;
+  background: white;
+}
+.queueRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+}
+.queueRow + .queueRow {
+  border-top: 1px solid var(--me-line, #dfe7e2);
+}
+.queueRow .cardTop {
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.queueRow .icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+.queueRow .icon svg {
+  width: 18px;
+  height: 18px;
+}
+.queueRow h2 {
+  font-size: 15px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.queueRow .meta {
+  font-size: 12px;
+}
+.queueRow .next {
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.queueRow .actions {
+  gap: 8px;
+}
+.queueRow .primary,
+.queueRow .secondary {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.queueFollowup {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--me-line, #dfe7e2);
+  padding-top: 16px;
+}
+@media (max-width: 1050px) {
+  .queueRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .queueRow .next {
+    grid-column: 1;
+  }
+  .queueRow .actions {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+}
+@media (max-width: 600px) {
+  .queueRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+  .queueRow .actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
