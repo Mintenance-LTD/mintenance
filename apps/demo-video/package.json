@@ -12,6 +12,6 @@
     "@remotion/player": "^4.0.441",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "remotion": "^4.0.441"
+    "remotion": "^4.0.490"
   }
 }
