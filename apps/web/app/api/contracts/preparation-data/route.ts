@@ -52,7 +52,7 @@ export const GET = withApiHandler(
     ] = await Promise.all([
       serverSupabase
         .from('profiles')
-        .select('company_name, license_number')
+        .select('company_name, license_number, first_name, last_name')
         .eq('id', user.id)
         .maybeSingle(),
       serverSupabase
@@ -73,8 +73,11 @@ export const GET = withApiHandler(
         .maybeSingle(),
       serverSupabase
         .from('contracts')
-        .select('id, amount, title, description, terms, status')
+        .select(
+          'id, amount, title, description, terms, status, start_date, end_date, contractor_company_name, contractor_license_registration, contractor_license_type'
+        )
         .eq('job_id', jobId)
+        .eq('contractor_id', user.id)
         .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(1),

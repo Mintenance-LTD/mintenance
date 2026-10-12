@@ -95,6 +95,14 @@ textarea::placeholder {
   color: #9ca3af !important; /* text-gray-400 */
 }
 
+/* The footer uses a dark surface, unlike ordinary form fields. */
+footer #newsletter-email {
+  color: #ffffff !important;
+}
+footer #newsletter-email::placeholder {
+  color: #d9e5dd !important;
+}
+
 /* Custom theme colors for Tailwind v4 */
 @theme {
   /* Primary Brand Colors (Navy Blue) */

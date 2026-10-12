@@ -86,7 +86,65 @@ export const GET = withApiHandler(
     // Only load resolution decisions for this page; never make a persisted
     // decision appear editable because its lookup failed.
     const resolutionByEscrow = new Map<string, unknown>();
+    const disputeByEscrow = new Map<string, { id: string; reason: string }>();
+    const assigneeByDispute = new Map<string, string>();
     if (disputes?.length) {
+      const canonical = await serverSupabase
+        .from('disputes')
+        .select('id,reason,dispute_escrow_links!inner(escrow_id)')
+        .in(
+          'dispute_escrow_links.escrow_id',
+          disputes.map((d) => d.id)
+        )
+        .order('created_at', { ascending: false });
+      if (canonical.error)
+        throw new InternalServerError('Failed to load dispute details');
+      for (const row of canonical.data ?? []) {
+        // dispute_id is the link table primary key, so PostgREST returns
+        // a single object for this one-to-one relationship.
+        const links = Array.isArray(row.dispute_escrow_links)
+          ? row.dispute_escrow_links
+          : row.dispute_escrow_links ? [row.dispute_escrow_links] : [];
+        for (const link of links) {
+          if (!disputeByEscrow.has(link.escrow_id))
+            disputeByEscrow.set(link.escrow_id, row);
+        }
+      }
+      if (canonical.data?.length) {
+        const tasks = await serverSupabase
+          .from('admin_dispute_tasks')
+          .select('dispute_id,admin_id')
+          .in(
+            'dispute_id',
+            canonical.data.map((d) => d.id)
+          );
+        if (tasks.error)
+          throw new InternalServerError('Failed to load dispute assignments');
+        const ids = [
+          ...new Set(
+            (tasks.data ?? []).flatMap((t) => (t.admin_id ? [t.admin_id] : []))
+          ),
+        ];
+        const admins = ids.length
+          ? await serverSupabase
+              .from('profiles')
+              .select('id,first_name,last_name')
+              .in('id', ids)
+          : { data: [], error: null };
+        if (admins.error)
+          throw new InternalServerError(
+            'Failed to load assigned administrators'
+          );
+        for (const task of tasks.data ?? []) {
+          const admin = admins.data?.find((p) => p.id === task.admin_id);
+          if (admin)
+            assigneeByDispute.set(
+              task.dispute_id,
+              `${admin.first_name ?? ''} ${admin.last_name ?? ''}`.trim() ||
+                'Administrator'
+            );
+        }
+      }
       const resolutions = await serverSupabase
         .from('escrow_dispute_resolutions')
         .select(
@@ -149,6 +207,8 @@ export const GET = withApiHandler(
       return {
         id: d.id,
         resolution: resolutionByEscrow.get(d.id) ?? null,
+        assignedAdmin:
+          assigneeByDispute.get(disputeByEscrow.get(d.id)?.id ?? '') ?? null,
         jobId: d.job_id,
         jobTitle: (job?.title as string) ?? 'Unknown Job',
         jobStatus: (job?.status as string) ?? 'unknown',
@@ -170,9 +230,11 @@ export const GET = withApiHandler(
         escrowStatus: d.status,
         adminHoldStatus: d.admin_hold_status,
         holdReason:
+          disputeByEscrow.get(d.id)?.reason ??
           ((d.metadata as Record<string, unknown>)?.hold_reason as
             | string
-            | null) ?? d.description,
+            | null) ??
+          d.description,
         homeownerApproval: d.homeowner_approval,
         photoVerificationStatus: d.photo_verification_status,
         coolingOffEndsAt: d.cooling_off_ends_at,

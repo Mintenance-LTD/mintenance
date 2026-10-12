@@ -104,17 +104,12 @@ export async function searchContractors(
         return [];
       }
       const sanitized = sanitizeForSQL(searchTerm);
-      // 2026-07-04: repointed from the retired contractor-profiles
-      // side table (it only ever held Stripe/subscription columns, so
-      // this select 400'd). skills/bio/company_name live on `profiles`.
-      // IMPORTANT: `profiles` is column-grant locked for the
-      // authenticated role — the column list below is copied from the
-      // proven advanced-branch select further down; adding an
-      // ungranted column 403s the whole query.
+      // Cross-user discovery uses the safe directory; private profiles are
+      // owner-only. Keep mutations above on the private owner record.
       // `skills` is text[], so keyword matching uses array containment
       // (`cs`) rather than ilike.
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profile_directory')
         .select(
           'id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at'
         )
@@ -136,9 +131,9 @@ export async function searchContractors(
         ? 'contractor_skills!inner(id, skill_name, created_at)'
         : 'contractor_skills!contractor_id(id, skill_name, created_at)';
     let query = supabase
-      .from('profiles')
+      .from('profile_directory')
       .select(
-        `id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at, ${contractorSkillsRelation}, reviews:reviews!reviewee_id(id, rating, comment, created_at)`
+        `id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at, latitude, longitude, ${contractorSkillsRelation}, reviews:reviews!reviewee_id(id, rating, comment, created_at)`
       )
       .eq('role', 'contractor')
       .eq('is_available', true);

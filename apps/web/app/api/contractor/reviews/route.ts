@@ -36,7 +36,7 @@ export const GET = withApiHandler(
         response_published_at,
         response_blocked_by_admin,
         created_at,
-        reviewer:profiles!reviews_reviewer_id_fkey(id, first_name, last_name, profile_image_url),
+        reviewer:profile_directory!reviews_reviewer_id_fkey(id, first_name, last_name, profile_image_url),
         job:jobs!reviews_job_id_fkey(id, title, category)
       `
       )

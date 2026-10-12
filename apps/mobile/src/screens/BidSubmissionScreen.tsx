@@ -23,6 +23,7 @@ import { logger } from '../utils/logger';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { DatePicker } from '../components/ui/DatePicker';
+import { QuoteItemEditor } from './create-quote/components/QuoteItemEditor';
 import { QuoteItemsList } from './create-quote/components/QuoteItemsList';
 import { PricingSummary } from './create-quote/components/PricingSummary';
 import type { LineItem } from './create-quote/viewmodels/CreateQuoteViewModel';
@@ -79,6 +80,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Detailed quote fields
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [editingItem, setEditingItem] = useState<number | null>(null);
   const [includeVAT, setIncludeVAT] = useState(true);
   const [terms, setTerms] = useState('');
 
@@ -143,11 +145,11 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           // breaking type stability on the wire). Coerce once at the
           // read boundary so every downstream consumer sees a number
           // or null.
-          const rows = (data ?? []) as Array<{
+          const rows = (data ?? []) as {
             id: string;
             name: string;
             size_sqm_at_post: number | string | null;
-          }>;
+          }[];
           const normalised = rows.map((r) => {
             const raw = r.size_sqm_at_post;
             const n =
@@ -301,38 +303,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
     "You've reached your monthly bid limit. Upgrade to submit more bids.";
 
   // Line item actions
-  const addLineItem = () => {
-    Alert.prompt
-      ? Alert.prompt('Line Item', 'Description:', (desc) => {
-          if (!desc?.trim()) return;
-          setLineItems((prev) => [
-            ...prev,
-            {
-              item_name: desc.trim(),
-              item_description: '',
-              quantity: 1,
-              unit_price: 0,
-              unit: 'unit',
-              category: 'labour',
-              is_taxable: true,
-              sort_order: prev.length,
-            },
-          ]);
-        })
-      : setLineItems((prev) => [
-          ...prev,
-          {
-            item_name: `Item ${prev.length + 1}`,
-            item_description: '',
-            quantity: 1,
-            unit_price: 0,
-            unit: 'unit',
-            category: 'labour',
-            is_taxable: true,
-            sort_order: prev.length,
-          },
-        ]);
-  };
+  const addLineItem = () => setEditingItem(lineItems.length);
   const removeLineItem = (index: number) =>
     setLineItems((prev) => prev.filter((_, i) => i !== index));
 
@@ -515,7 +486,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           Job reference missing
         </Text>
         <Text style={{ color: me.ink2, marginTop: 6, textAlign: 'center' }}>
-          We couldn't load the job to bid on. Please go back and try again from
+          We could not load the job to bid on. Please go back and try again from
           the job detail screen.
         </Text>
         <TouchableOpacity
@@ -725,10 +696,29 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* DETAILED MODE: line items + pricing */}
           {mode === 'detailed' && (
             <>
+              {editingItem !== null && (
+                <QuoteItemEditor
+                  item={lineItems[editingItem]}
+                  onCancel={() => setEditingItem(null)}
+                  onSave={(item) => {
+                    setLineItems((previous) =>
+                      editingItem === previous.length
+                        ? [
+                            ...previous,
+                            { ...item, sort_order: previous.length },
+                          ]
+                        : previous.map((old, index) =>
+                            index === editingItem ? { ...old, ...item } : old
+                          )
+                    );
+                    setEditingItem(null);
+                  }}
+                />
+              )}
               <QuoteItemsList
                 lineItems={lineItems}
                 onAddItem={addLineItem}
-                onEditItem={() => {}}
+                onEditItem={setEditingItem}
                 onRemoveItem={removeLineItem}
                 roomsInScope={roomsInScope}
                 onItemScopeChange={updateItemScope}
@@ -842,7 +832,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
               <View style={[styles.fieldGroup, styles.flex]}>
                 <Text style={styles.label}>Start Date *</Text>
                 <DatePicker
-                  label='Select date'
+                  label='Start date'
+                  hideLabel
                   value={proposedStartDate}
                   onChange={setProposedStartDate}
                   minimumDate={new Date()}
@@ -851,6 +842,11 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </View>
 
+          <View style={styles.formCard}>
+            <Text style={styles.label}>
+              For work completed the same day, enter 1 day.
+            </Text>
+          </View>
           {/* Terms (detailed mode) */}
           {mode === 'detailed' && (
             <View style={styles.formCard}>

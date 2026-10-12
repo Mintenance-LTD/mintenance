@@ -61,19 +61,20 @@ export interface PlatformStats {
  * Optimized query with rating aggregation
  */
 export async function getFeaturedContractors(
-  limit = 12
+  limit = 12,
+  includeNewContractors = false
 ): Promise<ContractorProfile[]> {
   const supabase = createServerClient();
 
   try {
-    // Get contractors from users table (contractors are users with role='contractor')
-    // Note: Removed admin_verified filter to get all contractors, not just verified ones
+    // Public discovery reads the privacy-limited directory and approved accounts.
     const { data: contractors, error: contractorsError } = await supabase
-      .from('profiles')
+      .from('profile_directory')
       .select(
-        'id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed'
+        'id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed, verified, hourly_rate, skills'
       )
       .eq('role', 'contractor')
+      .or('verified.eq.true,admin_verified.eq.true')
       .order('created_at', { ascending: false })
       .limit(limit * 2); // Get more to filter after
 
@@ -173,7 +174,8 @@ export async function getFeaturedContractors(
           ? ratingData.total / ratingData.count
           : contractor.rating || 0;
         const reviewCount = ratingData?.count || 0;
-        const contractorSkills = skillsMap.get(contractor.id) || [];
+        const contractorSkills =
+          skillsMap.get(contractor.id) || contractor.skills || [];
 
         return {
           id: contractor.id,
@@ -181,17 +183,19 @@ export async function getFeaturedContractors(
           company_name: contractor.company_name,
           city: contractor.city,
           profile_image: contractor.profile_image_url,
-          hourly_rate: null, // Can be fetched from profiles.hourly_rate if needed
+          hourly_rate: contractor.hourly_rate,
           rating: Math.round(rating * 10) / 10, // Round to 1 decimal
           review_count: reviewCount,
-          verified: contractor.admin_verified || false,
+          verified: contractor.admin_verified || contractor.verified || false,
           skills: contractorSkills,
           completed_jobs:
             jobsMap.get(contractor.id) || contractor.total_jobs_completed || 0,
-          response_time: '< 1 hour', // Mock for now
+          response_time: '', // No measured response-time statistic available.
         };
       })
-      .filter((p) => p.rating >= 4.0 || p.completed_jobs >= 5) // Featured criteria
+      .filter(
+        (p) => includeNewContractors || p.rating >= 4.0 || p.completed_jobs >= 5
+      ) // Featured criteria
       .sort((a, b) => {
         // Sort by rating * review_count (relevance score)
         const scoreA = a.rating * Math.log(a.review_count + 1);
@@ -220,14 +224,7 @@ export async function searchContractors(params: {
   limit?: number;
 }): Promise<ContractorProfile[]> {
   const supabase = createServerClient();
-  const {
-    service,
-    location,
-    minRating = 0,
-    maxRate,
-    skills,
-    limit = 20,
-  } = params;
+  const { location, minRating = 0, limit = 20 } = params;
 
   try {
     let query = supabase
@@ -426,9 +423,10 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     const [contractorsResult, jobsResult, homeownersResult, reviewsResult] =
       await Promise.all([
         supabase
-          .from('profiles')
+          .from('profile_directory')
           .select('id', { count: 'exact', head: true })
-          .eq('role', 'contractor'),
+          .eq('role', 'contractor')
+          .or('verified.eq.true,admin_verified.eq.true'),
         supabase.from('jobs').select('id', { count: 'exact', head: true }),
         supabase
           .from('profiles')

@@ -12,26 +12,35 @@ exports[`ProfileActionButtons Component Snapshot Stability renders consistently 
   <TouchableOpacity
     accessibilityLabel="Request a quote from this contractor"
     accessibilityRole="button"
+    accessibilityState={
+      {
+        "disabled": false,
+      }
+    }
     activeOpacity={0.85}
+    disabled={false}
     onPress={[MockFunction]}
     style={
-      {
-        "alignItems": "center",
-        "backgroundColor": "#3F8C7A",
-        "borderRadius": 16,
-        "elevation": 6,
-        "flexDirection": "row",
-        "gap": 8,
-        "justifyContent": "center",
-        "paddingVertical": 16,
-        "shadowColor": "#1F2A24",
-        "shadowOffset": {
-          "height": 8,
-          "width": 0,
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#3F8C7A",
+          "borderRadius": 16,
+          "elevation": 6,
+          "flexDirection": "row",
+          "gap": 8,
+          "justifyContent": "center",
+          "paddingVertical": 16,
+          "shadowColor": "#1F2A24",
+          "shadowOffset": {
+            "height": 8,
+            "width": 0,
+          },
+          "shadowOpacity": 0.1,
+          "shadowRadius": 18,
         },
-        "shadowOpacity": 0.1,
-        "shadowRadius": 18,
-      }
+        false,
+      ]
     }
     testID="request-quote-button"
   >

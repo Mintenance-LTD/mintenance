@@ -64,7 +64,9 @@ export const POST = withApiHandler(
     // 1. Fetch job and verify designated-payer access
     const { data: job, error } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, payer_user_id, contractor_id, title, status')
+      .select(
+        'id, homeowner_id, payer_user_id, contractor_id, title, status, completion_confirmed_by_homeowner'
+      )
       .eq('id', jobId)
       .single();
 
@@ -78,6 +80,11 @@ export const POST = withApiHandler(
     if (!isDesignatedPayer) {
       throw new ForbiddenError(
         'Only the homeowner or designated payer can request changes'
+      );
+    }
+    if (job.completion_confirmed_by_homeowner === true) {
+      throw new ConflictError(
+        'Work is already approved. Contact support or raise a dispute if there is a problem.'
       );
     }
 

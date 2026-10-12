@@ -241,7 +241,7 @@ export function HomeownerPhotoReview({
           <div className='text-sm'>
             <div className='font-medium'>
               {autoRelease.passed
-                ? 'Funds queued for auto-release'
+                ? 'Review window ended'
                 : autoRelease.daysRemaining === 1
                   ? '1 day left to approve or request changes'
                   : `${autoRelease.daysRemaining} days left to approve or request changes`}

@@ -1,0 +1,231 @@
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 0 60px;
+  color: var(--me-ink, #1e2c25);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--me-brand, #406e60);
+  padding: 8px 0;
+  text-decoration: none;
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.header h1 {
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.15;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+.eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--me-brand, #406e60);
+  margin: 0 0 10px;
+}
+.description {
+  margin: 12px 0 0;
+  color: var(--me-ink-2, #59685f);
+  max-width: 680px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.stat,
+.card,
+.report,
+.empty {
+  background: var(--me-surface, #fff);
+  border: 1px solid var(--me-line, #dfe7e2);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 2px #14251b08;
+}
+.stat p {
+  font-size: 13px;
+  color: var(--me-ink-2, #59685f);
+  margin: 0;
+}
+.stat strong {
+  font-size: 30px;
+  display: block;
+  margin-top: 8px;
+}
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 16px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  height: 44px;
+  width: 44px;
+  border-radius: 12px;
+  color: var(--me-brand, #406e60);
+  background: var(--me-brand-soft, #e1ece5);
+}
+.content {
+  flex: 1;
+  min-width: 0;
+}
+.content h2 {
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 650;
+  margin: 4px 0 0;
+}
+.meta {
+  color: var(--me-ink-2, #59685f);
+  font-size: 13px;
+  margin: 0;
+}
+.next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--me-bg-2, #f0f5f1);
+  font-size: 14px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 42px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.primary {
+  background: var(--me-brand, #406e60);
+  color: #fff;
+  border: 1px solid transparent;
+}
+.secondary {
+  background: var(--me-surface, #fff);
+  border: 1px solid var(--me-line, #dfe7e2);
+  color: var(--me-ink, #1e2c25);
+}
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.primary:focus-visible,
+.secondary:focus-visible,
+.back:focus-visible {
+  outline: 3px solid #79ad96;
+  outline-offset: 3px;
+}
+.badge {
+  display: inline-flex;
+  align-self: flex-start;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--me-brand-soft, #e1ece5);
+  color: var(--me-brand, #406e60);
+}
+.note {
+  padding: 18px 22px;
+  background: var(--me-brand-soft, #e1ece5);
+  border-radius: 14px;
+  color: var(--me-ink-2, #59685f);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.empty {
+  text-align: center;
+  padding: 48px 24px;
+}
+.empty svg {
+  margin: 0 auto 16px;
+  color: var(--me-brand, #406e60);
+}
+.empty h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.empty p {
+  margin: 12px auto 20px;
+  color: var(--me-ink-2, #59685f);
+  max-width: 480px;
+}
+.report summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+.error {
+  border: 1px solid #e8b8ae;
+  background: #fff2ed;
+  color: #913e2f;
+  padding: 16px;
+  border-radius: 12px;
+}
+@media (max-width: 600px) {
+  .page {
+    gap: 18px;
+    padding-top: 16px;
+  }
+  .card,
+  .stat,
+  .report {
+    padding: 18px;
+  }
+  .stats {
+    gap: 10px;
+  }
+  .cardTop {
+    gap: 10px;
+  }
+}

@@ -57,7 +57,8 @@ export async function restoreSessionFromBiometricTokens({
       // biometric sign-in fails with "session expired". (2026-07-10 audit P2-3)
       const { BiometricService } = await import('../BiometricService');
       await BiometricService.updateStoredRefreshToken(
-        data.session.refresh_token
+        data.session.refresh_token,
+        data.session.user?.email
       );
 
       const user = await getCurrentUser();

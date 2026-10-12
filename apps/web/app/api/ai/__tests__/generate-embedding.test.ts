@@ -67,7 +67,8 @@ vi.mock('@/lib/services/cache/AIResponseCache', () => ({
   AIResponseCache: mockAIResponseCache,
 }));
 
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

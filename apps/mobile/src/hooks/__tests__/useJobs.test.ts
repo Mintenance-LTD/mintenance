@@ -91,7 +91,7 @@ describe('useJob (detail)', () => {
     expect(opts.queryKey).toEqual(['jobs', 'detail', 'job-1']);
     expect(opts.enabled).toBe(true);
     expect(opts.staleTime).toBe(30 * 1000);
-    expect(opts.retry).toBe(3);
+    expect(opts.retry).toBe(false);
     expect(opts.gcTime).toBe(15 * 60 * 1000);
 
     const result = await opts.queryFn();

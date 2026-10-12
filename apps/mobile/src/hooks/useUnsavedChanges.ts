@@ -58,7 +58,10 @@ export const useUnsavedChanges = (hasUnsavedChanges: boolean) => {
           {
             text: 'Discard',
             style: 'destructive',
-            onPress: () => navigation.dispatch(e.data.action),
+            onPress: () => {
+              allowExitRef.current = true;
+              navigation.dispatch(e.data.action);
+            },
           },
         ]
       );

@@ -97,12 +97,17 @@ it('matches monitored paths to deployed schedules instead of assuming daily jobs
     const entry = config.crons.find(
       (cron: { path: string }) => cron.path === `/api/cron/${job.name}`
     );
-    expect(entry?.schedule).toBe(
-      job.name === 'evidence-disposal' ? '30 2 * * *' : '*/5 * * * *'
-    );
-    expect(job.maxAgeMinutes).toBe(
-      job.name === 'evidence-disposal' ? 1560 : 15
-    );
+    const schedules: Record<string, [string, number]> = {
+      'evidence-disposal': ['30 2 * * *', 1560],
+      'pii-cleanup': ['0 3 * * *', 1560],
+      'retention-cleanup': ['0 3 * * *', 1560],
+      'data-archival': ['0 4 1 * *', 35 * 24 * 60],
+      'recurring-job-creator': ['0 6 * * *', 1560],
+      'model-retraining': ['0 5 * * *', 1560],
+    };
+    const expected = schedules[job.name] ?? ['*/5 * * * *', 15];
+    expect(entry?.schedule).toBe(expected[0]);
+    expect(job.maxAgeMinutes).toBe(expected[1]);
   }
 });
 it('bounds database reads, isolates lookup failures and strips operational payloads', async () => {
@@ -139,8 +144,22 @@ it('bounds database reads, isolates lookup failures and strips operational paylo
   );
   expect(
     report.jobs.filter((job) => job.state === 'recent_success')
-  ).toHaveLength(8);
+  ).toHaveLength(recoveryJobs.length - 1);
   expect(JSON.stringify(report)).not.toMatch(/private|never disclose/);
+});
+it('flags deferred retention accounts for review without exposing account details', () => {
+  const metadata = { results: { profiles_deferred_for_review: 2 } };
+  expect(recoveryState({ ...run(1), metadata }, run(1), 1560, now)).toBe(
+    'attention'
+  );
+  expect(
+    recoveryState(
+      { ...run(1), metadata: { results: { profiles_deferred_for_review: 0 } } },
+      run(1),
+      1560,
+      now
+    )
+  ).toBe('recent_success');
 });
 it('requires database admin verification before reading history', async () => {
   expect(m.options).toContainEqual({
@@ -150,4 +169,23 @@ it('requires database admin verification before reading history', async () => {
   m.admin.mockRejectedValue(new Error('denied'));
   await expect(GET({} as never, {} as never)).rejects.toThrow('denied');
   expect(m.from).not.toHaveBeenCalled();
+});
+
+it('distinguishes awaiting data from a failed training attempt', () => {
+  expect(
+    recoveryState(
+      { ...run(1), metadata: { checkResult: { awaitingTrainingData: true } } },
+      run(1),
+      1560,
+      now
+    )
+  ).toBe('awaiting_data');
+  expect(
+    recoveryState(
+      { ...run(1), metadata: { alerts: [{ severity: 'critical' }] } },
+      run(1),
+      1560,
+      now
+    )
+  ).toBe('attention');
 });

@@ -64,11 +64,9 @@ export function useVideoCall({
       }
     } catch (error) {
       logger.error('Failed to start video call:', error);
-      Alert.alert(
-        'Error',
-        'Failed to start video call. Please try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Failed to start video call. Please try again.', [
+        { text: 'OK' },
+      ]);
     }
   };
 
@@ -97,9 +95,10 @@ export function useVideoCall({
         await sendMessage({
           jobId,
           receiverId: otherUserId,
-          messageText: duration > 0
-            ? `Video call ended (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')})`
-            : 'Video call ended',
+          messageText:
+            duration > 0
+              ? `Video call ended (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')})`
+              : 'Video call ended',
           senderId: userId,
           messageType: 'video_call_ended',
           callId: activeCallId,
@@ -131,15 +130,16 @@ export function useVideoCall({
       await sendMessage({
         jobId,
         receiverId: otherUserId,
-        messageText: `${userName || 'Someone'} scheduled a video call for ${scheduledTime.toLocaleDateString()} at ${scheduledTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
+        messageText: `${userName || 'Someone'} arranged a phone call for ${scheduledTime.toLocaleDateString()} at ${scheduledTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
         senderId: userId,
-        messageType: 'video_call_scheduled',
-        callId,
-        scheduledTime: scheduledTime.toISOString(),
+        messageType: 'text',
       });
 
       scrollToEnd();
-      logger.info('Video call scheduled message sent', { callId, scheduledTime });
+      logger.info('Video call scheduled message sent', {
+        callId,
+        scheduledTime,
+      });
     } catch (error) {
       logger.error('Failed to send scheduled call message:', error);
     }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomBytes, createHash } from 'crypto';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -116,12 +117,13 @@ export const POST = withApiHandler(
     const VALID_URGENCY = new Set(['low', 'medium', 'high', 'emergency']);
     const safeUrgency: 'low' | 'medium' | 'high' | 'emergency' =
       VALID_URGENCY.has(urgency ?? '')
-      ? (urgency as 'low' | 'medium' | 'high' | 'emergency')
-      : urgency === 'urgent'
-        ? 'emergency'
-        : 'medium';
+        ? (urgency as 'low' | 'medium' | 'high' | 'emergency')
+        : urgency === 'urgent'
+          ? 'emergency'
+          : 'medium';
 
-    // Create the anonymous report
+    const receipt = randomBytes(32).toString('hex');
+    // The receipt is returned once; only its hash is persisted.
     const { data: report, error: insertError } = await serverSupabase
       .from('anonymous_reports')
       .insert({
@@ -136,6 +138,9 @@ export const POST = withApiHandler(
         urgency: safeUrgency,
         photos: Array.isArray(photos) ? photos.slice(0, 5) : null,
         status: 'new',
+        conversation_key_hash: createHash('sha256')
+          .update(receipt)
+          .digest('hex'),
       })
       .select('id, created_at')
       .single();
@@ -195,6 +200,7 @@ export const POST = withApiHandler(
       actionUrl: `/landlord/reports?reportId=${report.id}`,
       metadata: {
         report_id: report.id,
+        conversation_url: `/maintenance/reports/${report.id}#${receipt}`,
         category: safeCategory,
         urgency: safeUrgency,
       },

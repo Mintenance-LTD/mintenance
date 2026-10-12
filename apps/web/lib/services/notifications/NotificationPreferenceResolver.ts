@@ -49,11 +49,14 @@ function defaultsFor(userId: string): UserNotificationPreferences {
   return { user_id: userId, ...DEFAULTS };
 }
 
-/**
- * Load a user's notification preferences. Never throws — on any error
- * returns the permissive defaults so we never accidentally silence a
- * user because the preferences read failed.
- */
+export class NotificationPreferencesUnavailableError extends Error {
+  constructor() {
+    super('Notification preferences unavailable');
+    this.name = 'NotificationPreferencesUnavailableError';
+  }
+}
+
+/** A missing row uses defaults. A failed lookup defers delivery, never resets consent. */
 export async function loadPreferences(
   userId: string
 ): Promise<UserNotificationPreferences> {
@@ -65,12 +68,15 @@ export async function loadPreferences(
       .maybeSingle();
 
     if (error) {
-      logger.warn('Failed to load notification preferences — using defaults', {
-        service: 'NotificationPreferenceResolver',
-        userId,
-        error: error.message,
-      });
-      return defaultsFor(userId);
+      logger.warn(
+        'Failed to load notification preferences — deferring delivery',
+        {
+          service: 'NotificationPreferenceResolver',
+          userId,
+          error: error.message,
+        }
+      );
+      throw new NotificationPreferencesUnavailableError();
     }
     if (!data) return defaultsFor(userId);
 
@@ -96,12 +102,12 @@ export async function loadPreferences(
       timezone: data.timezone || 'UTC',
     };
   } catch (err) {
-    logger.warn('Preference load threw — using defaults', {
+    logger.warn('Preference load threw — deferring delivery', {
       service: 'NotificationPreferenceResolver',
       userId,
       err: err instanceof Error ? err.message : String(err),
     });
-    return defaultsFor(userId);
+    throw new NotificationPreferencesUnavailableError();
   }
 }
 

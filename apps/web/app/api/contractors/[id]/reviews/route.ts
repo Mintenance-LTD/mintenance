@@ -35,8 +35,6 @@ export const GET = withApiHandler(
         profile_image_url
       ),
       job:jobs!reviews_job_id_fkey (
-        id,
-        title,
         category
       )
     `
@@ -73,7 +71,8 @@ export const GET = withApiHandler(
         rating: review.rating,
         date: review.created_at,
         comment: review.comment || '',
-        jobType: job?.category || job?.title || 'General Work',
+        // Job titles can contain addresses or other private homeowner details.
+        jobType: job?.category || 'General Work',
         helpful: 0,
         verified: true,
         response: responseIsPublic ? review.response : null,

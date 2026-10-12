@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';

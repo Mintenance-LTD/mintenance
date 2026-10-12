@@ -1,14 +1,10 @@
+import { applyPaymentIntentState } from '@/lib/services/stripe-webhook/payment-state-transition';
 import { getEscrowCashRequirement } from '@/lib/services/payment/PaymentFundingService';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import {
-  logger,
-  ESCROW_STATUS,
-  validateEscrowTransition,
-  type EscrowStatusValue,
-} from '@mintenance/shared';
+import { logger, ESCROW_STATUS } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import {
@@ -194,70 +190,11 @@ export const POST = withApiHandler(
       );
     }
 
-    // FIX CRIT-5: Webhook is the source of truth for escrow status.
-    // If webhook already updated escrow to 'held', just confirm that.
-    // If not yet updated, update here as a fallback (webhook may arrive later).
-    let escrowTransaction = currentEscrow;
-
-    if (currentEscrow.status === ESCROW_STATUS.HELD) {
-      // Webhook already processed — just return success
-      logger.info('Escrow already held (webhook processed first)', {
-        service: 'payments',
-        userId: user.id,
-        paymentIntentId,
-        jobId,
-      });
-    } else if (currentEscrow.status === ESCROW_STATUS.PENDING) {
-      // Validate escrow transition: pending -> held
-      validateEscrowTransition(
-        currentEscrow.status as EscrowStatusValue,
-        ESCROW_STATUS.HELD as EscrowStatusValue
-      );
-
-      // Webhook hasn't arrived yet — update as fallback
-      const { data: updatedEscrow, error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: ESCROW_STATUS.HELD,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('payment_intent_id', paymentIntentId)
-        .eq('job_id', jobId)
-        .eq('status', ESCROW_STATUS.PENDING)
-        .select()
-        .single();
-
-      if (escrowError || !updatedEscrow) {
-        // Likely the webhook updated it between our read and write — re-fetch
-        const { data: refetched } = await serverSupabase
-          .from('escrow_transactions')
-          .select(
-            // Same audit-19 P1 column fix as above — payment_intent_id only.
-            'id, job_id, amount, status, payment_intent_id, created_at, updated_at'
-          )
-          .eq('payment_intent_id', paymentIntentId)
-          .eq('job_id', jobId)
-          .single();
-
-        if (refetched?.status === ESCROW_STATUS.HELD) {
-          escrowTransaction = refetched;
-        } else {
-          logger.error('Error confirming escrow transaction', escrowError, {
-            service: 'payments',
-            userId: user.id,
-            paymentIntentId,
-            jobId,
-          });
-          return NextResponse.json(
-            { error: 'Failed to confirm payment. Please refresh the page.' },
-            { status: 500 }
-          );
-        }
-      } else {
-        escrowTransaction = updatedEscrow;
-      }
-    } else {
-      // Escrow is in an unexpected state (failed, cancelled, etc.)
+    if (
+      ![ESCROW_STATUS.PENDING, ESCROW_STATUS.HELD].includes(
+        currentEscrow.status
+      )
+    ) {
       return NextResponse.json(
         {
           error: `Payment cannot be confirmed. Current status: ${currentEscrow.status}`,
@@ -265,40 +202,23 @@ export const POST = withApiHandler(
         { status: 400 }
       );
     }
-
-    // The webhook normally records this field, but this endpoint is an
-    // intentional fallback for the valid race where Stripe confirmation
-    // reaches the client before the webhook. Keep the job-level payment
-    // state consistent with the escrow transition so dashboards and guards
-    // do not remain stuck on "unpaid".
-    const { error: jobPaymentError } = await serverSupabase
-      .from('jobs')
-      .update({
-        payment_status: 'paid',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-    if (jobPaymentError) {
-      logger.error(
-        'Failed to update job payment status after confirmation',
-        jobPaymentError,
-        {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          paymentIntentId,
-        }
-      );
-      // Stripe and escrow are already successful; do not pretend the full
-      // application state was persisted. Returning an error prevents the
-      // client from advancing as if payment bookkeeping completed and lets
-      // the webhook/reconciliation path repair the job-level flag without
-      // attempting to charge the customer again.
+    // The same database transaction as the webhook locks the job and escrow,
+    // validates funding, and refuses stale intents or a concurrent refund.
+    const escrowTransaction = await applyPaymentIntentState(
+      paymentIntentId,
+      'succeeded',
+      paymentIntent.amount_received,
+      paymentIntent.currency
+    );
+    if (
+      !escrowTransaction ||
+      escrowTransaction.id !== currentEscrow.id ||
+      escrowTransaction.job_id !== jobId
+    ) {
       throw new InternalServerError(
-        'Payment was confirmed but job payment status could not be updated. Our team has been notified.'
+        'Payment state changed. Refresh before retrying confirmation.'
       );
     }
-
     logger.info('Payment confirmed and escrow updated', {
       service: 'payments',
       userId: user.id,

@@ -4,6 +4,12 @@ import { Alert } from 'react-native';
 import { trackUserAction, addBreadcrumb } from '../config/sentry';
 import { logger } from '../utils/logger';
 
+const setupKey = (email: string) =>
+  'biometric_setup_' +
+  Array.from(email.trim().toLowerCase())
+    .map((c) => c.charCodeAt(0).toString(16).padStart(4, '0'))
+    .join('');
+
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 const BIOMETRIC_CREDENTIALS_KEY = 'biometric_credentials';
 const MAX_TOKEN_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -86,10 +92,14 @@ export class BiometricService {
   }
 
   // Check if biometric login is enabled for the user
-  static async isBiometricEnabled(): Promise<boolean> {
+  static async isBiometricEnabled(email?: string): Promise<boolean> {
     try {
       const enabled = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
-      return enabled === 'true';
+      if (enabled !== 'true') return false;
+      if (!email) return true;
+      const stored = await SecureStore.getItemAsync(BIOMETRIC_CREDENTIALS_KEY);
+      if (!stored) return false;
+      return JSON.parse(stored).email?.toLowerCase() === email.toLowerCase();
     } catch (error) {
       logger.error('Error checking biometric enabled status:', error);
       return false;
@@ -99,7 +109,8 @@ export class BiometricService {
   // Enable biometric authentication
   static async enableBiometric(
     email: string,
-    tokens: { accessToken: string; refreshToken: string }
+    tokens: { accessToken: string; refreshToken: string },
+    validateSession?: () => Promise<void>
   ): Promise<void> {
     try {
       trackUserAction('biometric.enable_attempt', { email });
@@ -118,6 +129,16 @@ export class BiometricService {
         );
       }
 
+      const verification = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Confirm biometric sign-in setup',
+        disableDeviceFallback: true,
+      });
+      if (!verification.success)
+        throw new Error(
+          'Biometric setup was cancelled or could not be verified.'
+        );
+      await validateSession?.();
+
       // Security: Only store refresh token, not access token
       // Include timestamp for age validation
       const credentials: BiometricCredentials = {
@@ -131,6 +152,7 @@ export class BiometricService {
         JSON.stringify(credentials)
       );
       await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+      await SecureStore.setItemAsync(setupKey(email), 'true');
 
       // Enabling resets the auto-prompt decline backoff.
       await this.clearPromptDecline();
@@ -156,7 +178,10 @@ export class BiometricService {
    * successful refresh: it's a no-op when biometric is disabled or no
    * credentials are stored, and never throws into the auth flow.
    */
-  static async updateStoredRefreshToken(refreshToken: string): Promise<void> {
+  static async updateStoredRefreshToken(
+    refreshToken: string,
+    email?: string
+  ): Promise<void> {
     try {
       if (!refreshToken) return;
 
@@ -175,6 +200,8 @@ export class BiometricService {
         return;
       }
 
+      if (email && credentials.email.toLowerCase() !== email.toLowerCase())
+        return;
       credentials.refreshToken = refreshToken;
       credentials.storedAt = Date.now();
 
@@ -250,7 +277,7 @@ export class BiometricService {
         let credentials: BiometricCredentials;
         try {
           credentials = JSON.parse(credentialsStr) as BiometricCredentials;
-        } catch (parseError) {
+        } catch {
           // If JSON is corrupted, clear the credentials and throw
           await BiometricService.clearBiometricData();
           throw new Error(
@@ -317,6 +344,10 @@ export class BiometricService {
       return;
     }
 
+    if (await this.isBiometricEnabled(email)) return;
+    // Remember successful setup across explicit sign-outs, without retaining revoked tokens.
+    if ((await SecureStore.getItemAsync(setupKey(email))) === 'true') return;
+
     // Respect the user's recent "Not Now" choices — don't nag every login.
     if (await this.shouldSuppressPrompt()) {
       return;
@@ -330,7 +361,7 @@ export class BiometricService {
 
     Alert.alert(
       `Enable ${biometricName}`,
-      `Would you like to enable ${biometricName} for faster sign-ins?`,
+      `Would you like to enable ${biometricName} for faster sign-ins? Signing out removes the saved sign-in; you can enable it again in Account & Security.`,
       [
         {
           text: 'Not Now',
@@ -350,7 +381,7 @@ export class BiometricService {
                 'Success',
                 `${biometricName} has been enabled for your account.`
               );
-            } catch (error) {
+            } catch {
               Alert.alert(
                 'Error',
                 `Failed to enable ${biometricName}. Please try again.`

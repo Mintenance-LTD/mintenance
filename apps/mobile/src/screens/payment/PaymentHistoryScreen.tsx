@@ -47,13 +47,8 @@ const PAGE_SIZE = 20;
 
 type FilterType = 'all' | 'completed' | 'pending' | 'refunded';
 
-const COMPLETED_STATUSES = [
-  'completed',
-  'succeeded',
-  'released',
-  'release_pending',
-];
-const PENDING_STATUSES = ['pending', 'processing', 'held'];
+const COMPLETED_STATUSES = ['completed', 'succeeded', 'released'];
+const PENDING_STATUSES = ['pending', 'processing', 'held', 'release_pending'];
 
 const fmtGBP = (n: number): string =>
   `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -186,21 +181,24 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.statsRow}>
           {[
             {
-              label: 'Paid',
+              label:
+                user?.role === 'contractor'
+                  ? 'Received (loaded)'
+                  : 'Paid (loaded)',
               value: totalPaid,
               iconBg: me.brandSoft,
               iconColor: me.brand,
               icon: 'checkmark-circle-outline' as const,
             },
             {
-              label: 'Pending',
+              label: 'Pending (loaded)',
               value: totalPending,
               iconBg: me.warnBg,
               iconColor: me.warnFg,
               icon: 'time-outline' as const,
             },
             {
-              label: 'Refunded',
+              label: 'Refunded (loaded)',
               value: totalRefunded,
               iconBg: me.errBg,
               iconColor: me.errFg,

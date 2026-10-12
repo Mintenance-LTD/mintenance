@@ -1,3 +1,4 @@
+import { useMintDialog } from '../../components/shared/useMintDialog';
 /**
  * HomeownerPhotoReviewScreen
  *
@@ -14,20 +15,25 @@
  * land here. Do not re-introduce a parallel sign-off screen.
  */
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../lib/queryClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobService } from '../../services/JobService';
@@ -47,11 +53,11 @@ interface PhotoPair {
   after: { url: string; id: string; timestamp?: string };
 }
 
-/** Days the homeowner has to approve before the cron auto-releases. */
+/** Days the homeowner has to approve before automatic eligibility checks begin. */
 const AUTO_RELEASE_WINDOW_DAYS = 7;
 
 // 2026-05-28 U3: mirror of web computeAutoReleaseInfo (audit-P2-4). The
-// 7-day auto-release window runs from jobs.completed_at (stamped when
+// 7-day review window runs from jobs.completed_at (stamped when
 // the after-photo upload auto-flips the job to 'completed'). Surfacing
 // the deadline reassures homeowners that funds move even with no action.
 function computeAutoReleaseInfo(completedAt: string | null | undefined): {
@@ -82,11 +88,14 @@ function formatDeadline(d: Date): string {
 }
 
 export const HomeownerPhotoReviewScreen: React.FC = () => {
+  const { alert, dialog } = useMintDialog();
   const navigation = useNavigation();
   const route = useRoute<PhotoReviewRouteProp>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { jobId } = route.params;
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
@@ -95,6 +104,8 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const [changesComment, setChangesComment] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [completedAt, setCompletedAt] = useState<string | null>(null);
+  const [approved, setApproved] = useState(false);
+  const approvalInFlight = useRef(false);
   const reworkRequests = useRef(new Map<string, string>());
   const reworkInFlight = useRef(false);
   const autoRelease = computeAutoReleaseInfo(completedAt);
@@ -102,6 +113,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const fetchPhotos = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
 
       const [jobData, photos] = await Promise.all([
         JobService.getJobById(jobId),
@@ -109,6 +121,10 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       ]);
       if (jobData?.title) setJobTitle(jobData.title);
       setCompletedAt(jobData?.completed_at ?? null);
+      setApproved(
+        (jobData as { completion_confirmed_by_homeowner?: boolean } | null)
+          ?.completion_confirmed_by_homeowner === true
+      );
 
       const beforePhotos = (photos || []).filter(
         (p) => p.photo_type === 'before'
@@ -158,20 +174,38 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       }
 
       setPhotoPairs(pairs);
+      setActivePairIndex(0);
     } catch (err) {
       logger.error('Failed to fetch photos for review', err);
-      Alert.alert('Error', 'Failed to load photos. Please try again.');
+      setLoadError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load the review. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   }, [jobId]);
 
-  useEffect(() => {
-    fetchPhotos();
-  }, [fetchPhotos]);
+  // Returning from job details or messaging must reload the completion version.
+  // Keep the feedback draft in state while refreshing the review.
+  useFocusEffect(
+    useCallback(() => {
+      void fetchPhotos();
+    }, [fetchPhotos])
+  );
 
   const handleApprove = async () => {
-    if (!user?.id || submitting) return;
+    if (!user?.id || submitting || approved || approvalInFlight.current) return;
+    if (!completedAt) {
+      alert(
+        'Refresh required',
+        'The completion details are unavailable. Reload the review before approving work.',
+        [{ text: 'Reload review', onPress: fetchPhotos }]
+      );
+      return;
+    }
+    approvalInFlight.current = true;
     setSubmitting(true);
     try {
       const result = await mobileApiClient.post<{ success: boolean }>(
@@ -180,7 +214,10 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       );
       if (result?.success !== true)
         throw new Error('Unable to confirm approval. Please retry.');
-      Alert.alert(
+      setApproved(true);
+      setShowChangesForm(false);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      alert(
         'Work Approved',
         'Work approved. Payment release is subject to the cooling-off period and final checks.',
         [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
@@ -190,13 +227,23 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         err instanceof Error
           ? err.message
           : 'Failed to approve. Please try again.';
-      Alert.alert('Error', msg);
+      alert('Error', msg);
     } finally {
+      approvalInFlight.current = false;
       setSubmitting(false);
     }
   };
 
   const handleRequestChanges = async () => {
+    if (approved || approvalInFlight.current) return;
+    if (!completedAt) {
+      alert(
+        'Refresh required',
+        'The completion details are unavailable. Reload the review before requesting changes.',
+        [{ text: 'Reload review', onPress: fetchPhotos }]
+      );
+      return;
+    }
     if (
       !user?.id ||
       submitting ||
@@ -228,9 +275,9 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       if (result?.success !== true) {
         throw new Error('Unable to confirm the change request. Please retry.');
       }
-      Alert.alert(
+      alert(
         'Changes Requested',
-        'The contractor has been notified and will review your feedback.',
+        'The job has reopened and the contractor has been notified. Payment approval is on hold. Agree a return visit in Messages if needed; sending this request does not change the agreed price.',
         [{ text: 'Done', onPress: () => goBackSafe(navigation, 'JobsList') }]
       );
     } catch (err) {
@@ -238,7 +285,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         err instanceof Error
           ? err.message
           : 'Failed to submit. Please try again.';
-      Alert.alert('Error', msg);
+      alert('Error', msg);
     } finally {
       reworkInFlight.current = false;
       setSubmitting(false);
@@ -261,7 +308,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     );
   }
 
-  if (photoPairs.length === 0) {
+  if (loadError || photoPairs.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -279,11 +326,20 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           <View style={styles.emptyIconWrap}>
             <Ionicons name='images-outline' size={32} color={me.ink3} />
           </View>
-          <Text style={styles.emptyTitle}>No Photos Available</Text>
-          <Text style={styles.emptySubtitle}>
-            Photos will appear here once the contractor uploads before and after
-            photos.
+          <Text style={styles.emptyTitle}>
+            {loadError ? 'Could not load work photos' : 'No Photos Available'}
           </Text>
+          <Text style={styles.emptySubtitle}>
+            {loadError ??
+              'Photos will appear here once the contractor uploads before and after photos.'}
+          </Text>
+          <TouchableOpacity
+            onPress={fetchPhotos}
+            accessibilityRole='button'
+            style={{ padding: 16 }}
+          >
+            <Text style={{ color: me.brand }}>Retry loading photos</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -291,6 +347,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {dialog}
       <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
 
       {/* Header */}
@@ -324,10 +381,34 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           photoPairs={photoPairs}
           activePairIndex={activePairIndex}
           onSelectPair={setActivePairIndex}
+          onRetry={fetchPhotos}
+          approved={approved}
         />
 
+        {approved && (
+          <View
+            style={[
+              styles.autoReleaseBanner,
+              { backgroundColor: me.bg2, borderColor: me.brand },
+            ]}
+            accessibilityRole='summary'
+          >
+            <Ionicons name='checkmark-circle' size={28} color={me.brand} />
+            <View style={styles.autoReleaseTextWrap}>
+              <Text style={styles.autoReleaseTitle}>Work approved</Text>
+              <Text style={styles.autoReleaseBody}>
+                Your approval is recorded. No further approval is needed.
+                Payment becomes eligible for release after the 48-hour
+                cooling-off period and final checks. Bank arrival takes
+                additional time. For a problem after approval, contact support.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Auto-release countdown — only while awaiting homeowner action. */}
-        {!showChangesForm &&
+        {!approved &&
+          !showChangesForm &&
           autoRelease &&
           (() => {
             const isUrgent =
@@ -357,7 +438,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
                     ]}
                   >
                     {autoRelease.passed
-                      ? 'Funds queued for auto-release'
+                      ? 'Review window ended'
                       : autoRelease.daysRemaining === 1
                         ? '1 day left to approve or request changes'
                         : `${autoRelease.daysRemaining} days left to approve or request changes`}
@@ -369,8 +450,8 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
                     ]}
                   >
                     {autoRelease.passed
-                      ? `The ${AUTO_RELEASE_WINDOW_DAYS}-day review window has passed (${formatDeadline(autoRelease.deadline)}). Payment will be released to the contractor on the next automatic run.`
-                      : `If you take no action, payment auto-releases on ${formatDeadline(autoRelease.deadline)}. This protects contractors from indefinite holds.`}
+                      ? `The ${AUTO_RELEASE_WINDOW_DAYS}-day review window has passed (${formatDeadline(autoRelease.deadline)}). Automatic review and payment checks apply before release.`
+                      : `Please review by ${formatDeadline(autoRelease.deadline)}. If you take no action, automatic review applies. Release remains subject to payment checks and any active dispute.`}
                   </Text>
                 </View>
               </View>
@@ -378,7 +459,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           })()}
 
         {/* Changes Form (rendered inside scroll so it's above the keyboard) */}
-        {showChangesForm && (
+        {!approved && showChangesForm && (
           <PhotoReviewControls
             showChangesForm
             changesComment={changesComment}
@@ -393,7 +474,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       </ScrollView>
 
       {/* Action Buttons (fixed footer, hidden while changes form is open) */}
-      {!showChangesForm && (
+      {!approved && !showChangesForm && (
         <PhotoReviewControls
           showChangesForm={false}
           changesComment={changesComment}

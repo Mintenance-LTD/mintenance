@@ -101,7 +101,13 @@ export const TEST_USERS = {
  * });
  */
 export async function loginAsHomeowner(page: Page): Promise<void> {
-  await login(page, TEST_USERS.homeowner);
+  if (process.env.E2E_AUTH_SECRET) {
+    if (!(await establishSessionInContext(page, TEST_USERS.homeowner)))
+      throw new Error('Homeowner fixture session failed');
+    await page.goto('/dashboard');
+  } else {
+    await login(page, TEST_USERS.homeowner);
+  }
 
   // Verify we're on dashboard (homeowners use /dashboard)
   await page.waitForURL(/\/(dashboard|jobs)/, { timeout: 10000 });
@@ -120,7 +126,13 @@ export async function loginAsHomeowner(page: Page): Promise<void> {
  * });
  */
 export async function loginAsContractor(page: Page): Promise<void> {
-  await login(page, TEST_USERS.contractor);
+  if (process.env.E2E_AUTH_SECRET) {
+    if (!(await establishSessionInContext(page, TEST_USERS.contractor)))
+      throw new Error('Contractor fixture session failed');
+    await page.goto('/contractor/dashboard-enhanced');
+  } else {
+    await login(page, TEST_USERS.contractor);
+  }
 
   // Verify we're on contractor dashboard or appropriate page
   await page.waitForURL(/\/contractor/, { timeout: 10000 });
@@ -146,7 +158,7 @@ async function loginAsAdmin(page: Page): Promise<void> {
  */
 export async function login(page: Page, user: TestUser): Promise<void> {
   // Navigate to login page
-  await page.goto('/auth/login');
+  await page.goto('/login');
 
   // Wait for page to be fully loaded
   await page.waitForLoadState('networkidle');
@@ -175,12 +187,22 @@ export async function login(page: Page, user: TestUser): Promise<void> {
   await page.getByRole('textbox', { name: /password/i }).fill(user.password);
 
   // Submit form and wait for navigation
-  await Promise.all([
-    page.waitForURL((url) => !url.pathname.includes('/auth/login'), {
-      timeout: 30000,
-    }),
+  const [loginResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/auth/login' &&
+        response.request().method() === 'POST'
+    ),
     page.getByRole('button', { name: /log in|sign in/i }).click(),
   ]);
+  if (!loginResponse.ok()) {
+    throw new Error(`UI login failed with HTTP ${loginResponse.status()}`);
+  }
+  await page.waitForURL(
+    (url) =>
+      !['/login', '/auth/login'].includes(url.pathname.replace(/\/$/, '')),
+    { timeout: 30000 }
+  );
 
   // Wait for any additional navigation/redirects to complete
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {

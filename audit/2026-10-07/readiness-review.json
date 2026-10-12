@@ -1,0 +1,282 @@
+{
+  "updatedAt": "2026-10-07T15:14:29.8601606Z",
+  "decision": "Hold external launch",
+  "summary": "The Lawn Care job now proves completion, inspection, approval, reciprocal reviews and exactly one automatic escrow release/earnings credit. Weekly Stripe transfer, bank arrival and full device acceptance remain unverified.",
+  "baseline": "Production aa98f790; isolated repair 6d2eed71. Unfinished changes in the main workspace were preserved and not treated as deployed evidence.",
+  "repair": {
+    "status": "Deployed to production: 2b188b6e, READY at 14:14 UTC",
+    "url": "https://github.com/Mintenance-LTD/mintenance/pull/1370",
+    "detail": "Explicit inspected homeowner approval now uses the persisted deadline, without an extra contractor-trust hold. Automatic approvals keep trust checks; dispute reads fail closed and include under-review cases. Human inspection satisfies the photo status gate. No production row or payment was manually changed.",
+    "deployment": "https://vercel.com/mintenance/mintenance-clean/AKerZg4pbjCJKUDZP9YRR1Wo7u7b",
+    "verification": "Production processor released escrow at 2026-10-07 15:00:10 UTC (16:00 BST). Exactly one 50p credit; contractor pending balance 120p GBP, lifetime transferred 0p. Cron evaluated 2, released 1, errors 0."
+  },
+  "job": {
+    "title": "Lawn Care - Landscaping",
+    "id": "dc96dbc5-620f-4db0-b677-e2543b1983a2",
+    "steps": [
+      [
+        "Bid",
+        "One accepted £1.00 bid"
+      ],
+      [
+        "Contract",
+        "Accepted £1.00 contract; both parties signed on 30 September"
+      ],
+      [
+        "Work",
+        "One before photo and two after photos; job completed 4 October"
+      ],
+      [
+        "Approval",
+        "Explicit homeowner inspection and approval recorded 4 October at 18:41 BST"
+      ],
+      [
+        "Deadline",
+        "6 October 2026 at 18:41 BST (17:41 UTC)"
+      ],
+      [
+        "Reviews",
+        "Two 5-star reviews, one in each direction; six job messages"
+      ],
+      [
+        "Escrow",
+        "Completed 7 October at 16:00 BST; gross £1.00, fee £0.50, contractor earnings £0.50. One credit event; Stripe payout not yet verified."
+      ],
+      [
+        "Cause",
+        "Hidden trust hold added beyond the stored 48-hour deadline"
+      ]
+    ]
+  },
+  "checks": [
+    [
+      "Release regression tests",
+      "PASS",
+      "50 tests across three suites, including reported timing, automatic approval, admin hold and dispute failures."
+    ],
+    [
+      "Required code quality",
+      "PASS",
+      "478 web suites; 495 mobile suites / 12,463 tests. Type checks, lint, auth coverage and API contract gates passed."
+    ],
+    [
+      "Real database integration",
+      "PASS",
+      "Run 37631410561 passed on disposable DB. Does not establish production schema parity."
+    ],
+    [
+      "Security, Lighthouse, performance budget",
+      "PASS",
+      "CI workflows passed, but Lighthouse performance was 59/100 (accessibility 95, best practices 98, SEO 100). Workflow success is not a high performance score."
+    ],
+    [
+      "Mobile smoke",
+      "FAILED BEFORE TESTS",
+      "Node setup skipped for web-only change, but unconditional npm installation failed with EACCES. Detox did not run."
+    ],
+    [
+      "Browser E2E",
+      "FAIL",
+      "Shard 2: 8 failed, 40 passed, 11 skipped. Failures include UI login HTTP 429 and missing expected controls in contractor discovery/bids/profile, job creation and escrow access; not all failures are diagnosed. Shard 1 also finished with failure; its detailed failures have not been triaged."
+    ],
+    [
+      "Live public routes",
+      "PASS",
+      "Health healthy 200 at 13:56 UTC; privacy/terms 200; private job and payout APIs 401 anonymously. After production repair, health again healthy 200 at 14:15:54 UTC."
+    ],
+    [
+      "Signed-in web",
+      "PENDING",
+      "Session expired; user sign-in requested. No fresh authenticated-screen claim."
+    ],
+    [
+      "Physical mobile",
+      "NOT VERIFIED",
+      "Source and unit/integration suites reviewed; no new APK or physical-device payment test."
+    ],
+    [
+      "Local schema diff",
+      "DRIFT",
+      "Pinned Supabase CLI 2.118.0 db diff --local completed, with substantial proposed destructive differences. Output saved, not applied. Local diff is not production parity proof."
+    ]
+  ],
+  "flows": [
+    [
+      "Registration/login",
+      "Shared API authentication, role checks, cookie CSRF and verified bearer handling reviewed; anonymous access denied.",
+      "Fresh registration, MFA, recovery and biometrics require candidate acceptance."
+    ],
+    [
+      "Job posting/discovery/bids",
+      "Job API participant/open-job rules and owner/payer bid acceptance reviewed. Contractor payout readiness gated; accepted bid evidenced.",
+      "No claim every validation or cancellation branch was executed."
+    ],
+    [
+      "Contract/funding",
+      "Matching signatures/amount evidenced; server-authoritative accepted bid amount and contractor binding in create-intent; mobile verifies held escrow.",
+      "No fresh live Stripe provider retrieval this audit; database reconciliation is not bank proof."
+    ],
+    [
+      "Photos/completion",
+      "Assigned contractor, valid transition, after-photo and payment gates reviewed. Mobile reads signed lifecycle photos via canonical job API.",
+      "Camera, interrupted uploads and URL expiry require device verification."
+    ],
+    [
+      "Approval/rework",
+      "Versioned completedAt approval and duplicate-submit guards; live inspection=true.",
+      "Automatic window copy still differs from trust-based evaluation."
+    ],
+    [
+      "Release/payout",
+      "Deadline repair tested; Drain has one 70p credit, pending balance 70p, lifetime transferred zero. Minimum 1p in deployed source; Friday schedule remains.",
+      "Observe post-deploy release, then Stripe transfer and bank arrival separately."
+    ],
+    [
+      "Reviews/messages/notifications",
+      "Reciprocal reviews and six messages present; message RLS participant scope reviewed; shared notifications used.",
+      "Push/email receipt and every recipient/privacy combination not executed."
+    ],
+    [
+      "Finance/UI",
+      "Reports use released/completed escrow net amounts; contractor job copy and tiny-payment fee quote diverge.",
+      "Use funded, released, queued, transferred and bank-paid states distinctly."
+    ],
+    [
+      "Privacy/deletion/operations",
+      "Private operational photo buckets, restricted profile directory and public legal pages checked.",
+      "Deletion balance risk, missing retention RPC and historical public training provenance remain."
+    ]
+  ],
+  "findings": [
+    [
+      "P1",
+      "R01",
+      "Hidden hold on inspected escrow",
+      "Lawn Care saved deadline was 6 October 17:41 UTC. Evaluator imposed an additional trust delay after explicit approval.",
+      "evaluate.ts; live escrow record",
+      "RESOLVED: PR 1370 deployed; natural hourly processor released once at 15:00:10 UTC on 7 October, one 50p credit verified."
+    ],
+    [
+      "P1",
+      "R02",
+      "Weekly payout lacks durable pre-transfer journal",
+      "Pending balance is zeroed and lifetime paid increased before Stripe call. Crash before call can strand funds. Lost success response enters restore path; weekly idempotency key later changes. Restore uses read-then-write without concurrency guard.",
+      "apps/web/lib/stripe/connect/payouts.ts:167-327",
+      "Persist stable payout reservation/operation; reconcile uncertain provider result; atomic recovery. Test crash, timeout, new-credit and week-boundary cases. Confirmed code risk, not exercised with real money."
+    ],
+    [
+      "P1",
+      "R03",
+      "Deletion can erase unpaid contractor balance",
+      "API excludes completed escrow from blockers and never checks pending payout balance. Production deletion functions delete profile; payout balance FK cascades. A contractor with only released-but-unpaid earnings can lose the balance.",
+      "api/user/delete-account/route.ts; production delete_user_data and payout FK",
+      "Block or safely settle/journal pending balance atomically; retain required financial records. No account deleted during audit."
+    ],
+    [
+      "P1",
+      "R04",
+      "Production retention function missing",
+      "Daily retention-cleanup failed; deployed route calls run_retention_cleanup, absent from production pg_proc.",
+      "api/cron/retention-cleanup/route.ts; cron_job_runs",
+      "Review/deploy matching retention migration and verify scheduled category results. Local implementation is not deployed evidence."
+    ],
+    [
+      "P1",
+      "R05",
+      "Background success hides item failures",
+      "24 escrow cron runs marked success contain 24 item errors in 24 hours. Recurring-job-creator success has one error and no job created. Payout balance query failure returns zero failed items.",
+      "cron_job_runs; cron-handler.ts; payouts.ts",
+      "Represent partial failure and alert on overdue/failed operations with identifiers."
+    ],
+    [
+      "P1",
+      "R06",
+      "Displayed fee/net differs from actual deduction",
+      "Shared quote helper omits 50p minimum. Actual service applies it: £1.20 at 5% can show £1.14 net but credits £0.70. Contractor page says within 24h, and handles released but not completed accumulation correctly.",
+      "platform-fees.ts:103; FeeCalculationService.ts; MintEditorialJobDetailView.tsx:1027",
+      "Use authoritative fee quote and actual ledger amounts; explain minimum; distinguish queued earnings from Stripe transfer. Do not silently alter pricing policy."
+    ],
+    [
+      "P2",
+      "R07",
+      "Release status and automatic estimates diverge",
+      "Mobile describes seven-day automatic window; evaluator retains trust delay. Status API blocker list lacks all dispute/risk/trust conditions.",
+      "HomeownerPhotoReviewScreen.tsx:54; EscrowStatusService.ts; evaluate.ts",
+      "Share one read-only eligibility explanation across both clients."
+    ],
+    [
+      "P2",
+      "R08",
+      "Legacy completed-job financial data inconsistent",
+      "Five completed jobs include held, pending, failed and missing escrows. Drain job payment_status remains pending despite 70p credit. Lawn paid means funded, not bank-paid.",
+      "Read-only jobs/escrow/credit-event joins",
+      "Classify test/legacy records against provider evidence; reconcile canonical states without blind deletion or rewriting."
+    ],
+    [
+      "P1 verification",
+      "R09",
+      "Historical public training data provenance unresolved",
+      "Public training-images has 1,980 objects; mint-ai-training-public 12,667. New reuse is disabled in source, but historical consent/licence/privacy not established. No images downloaded.",
+      "storage.buckets/objects; training-reuse-policy.ts",
+      "Review provenance/withdrawal and old workers; restrict content lacking a valid publication basis. Public exposure confirmed, sensitivity not determined."
+    ],
+    [
+      "P1 operations",
+      "R10",
+      "Security maintenance and mobile release evidence open",
+      "Supabase flags PostgreSQL security patches and disabled leaked-password protection. Mobile smoke failed before Detox due to unconditional npm pinning.",
+      "Supabase advisors; ci-cd.yml:205; job 112829988187",
+      "Schedule supported DB update; confirm password protection; repair CI gating; run exact-candidate device acceptance."
+    ],
+    [
+      "P1 verification",
+      "R11",
+      "Browser journeys are not green",
+      "Current disposable-stack browser shard has eight failures, including login rate limits and expected controls missing in discovery, bids, profile, job creation and escrow pages. Another shard remains running.",
+      "GitHub E2E run 37631410638, job 112826339287",
+      "Diagnose rate-limit test isolation and UI/fixture failures; rerun complete journeys without weakening production authentication controls."
+    ]
+  ],
+  "security": "Profile-directory definer warning inspected: owner has no login, superuser or RLS bypass; selected public fields and rounded contractor coordinates. Operational photo buckets are private. PostGIS/spatial_ref_sys warnings need owner-supported review. Inspected is_admin and organization helper bind identity to auth.uid(); remaining helper notices require review. Do not infer exploitation from advisory labels alone.",
+  "performance": "Advisor: 26 unindexed foreign keys, four tables without primary keys, one duplicate index, 824 unused-index notices. Tune against observed workload; do not drop indexes merely because beta traffic has not used them. Lighthouse homepage performance score is 59/100 despite a successful workflow; optimize against the detailed trace rather than calling the page performant.",
+  "gates": [
+    "Observe repaired Lawn Care release and exactly one credit",
+    "Durable weekly payout recovery and unpaid-balance deletion protection",
+    "Production schema/retention parity and verified scheduled cleanup",
+    "Consistent fees, deadlines and state labels across web/mobile",
+    "Historical public-data provenance and platform security maintenance",
+    "Browser and physical APK acceptance including 3DS, interrupted payment, photos, rework, refunds/disputes, onboarding",
+    "Verify real Stripe transfer and subsequent bank arrival separately"
+  ],
+  "limits": "Cross-layer review of critical journeys, selected source paths, live schema/data/operations and automated checks. Not every source file, device, permission combination or destructive branch was executed. No real charge, refund, transfer, deletion or production schema mutation was performed for audit testing.",
+  "links": [
+    [
+      "Repair PR",
+      "https://github.com/Mintenance-LTD/mintenance/pull/1370"
+    ],
+    [
+      "Quality checks",
+      "https://github.com/Mintenance-LTD/mintenance/actions/runs/37631410755"
+    ],
+    [
+      "DB integration",
+      "https://github.com/Mintenance-LTD/mintenance/actions/runs/37631410561"
+    ],
+    [
+      "Browser E2E",
+      "https://github.com/Mintenance-LTD/mintenance/actions/runs/37631410638"
+    ],
+    [
+      "Database upgrade guidance",
+      "https://supabase.com/docs/guides/platform/upgrading"
+    ],
+    [
+      "Password protection",
+      "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    ],
+    [
+      "Definer view advisory",
+      "https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view"
+    ]
+  ]
+}

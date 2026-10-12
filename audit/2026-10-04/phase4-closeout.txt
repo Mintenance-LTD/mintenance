@@ -1,0 +1,34 @@
+PHASE 4 — DEPENDENCIES AND ENGINEERING GATES
+Implementation completed on isolated branch codex/beta-readiness-phase-4.
+
+Compatible dependency security updates installed. Broad/stale security exceptions
+replaced by exact build-tool paths with expiry 2026-11-03 and reviewed constraints.
+See phase4-dependency-review.txt and phase4-results.json for versions and residuals.
+
+Mobile test harness now mocks native filesystem/crypto boundaries in its existing
+test setup. Dedicated encryption tests remain real logic tests with native doubles.
+Outdated sign-out, contractor-status and missing-budget assertions corrected.
+Monitoring UI test now checks the actual configured recovery-job count.
+Unused web code removed. YOLO correction types and formatting extracted while
+preserving public exports; the service now satisfies the 500-line commit limit.
+No contractor completion implementation changed. No tests skipped or thresholds
+lowered. The pre-existing user-excluded after-photo test still fails and is R4.
+
+VERIFICATION
+10 shared packages built. Web/mobile types passed. Both full lint commands passed
+with existing repository warnings; changed files pass strict zero-warning lint.
+491 mobile suites / 12,445 tests passed, existing coverage floors passed.
+467 web suites / 4,428 tests passed, one after-photo test failed; web coverage
+53.74 statements / 47.73 branches / 58.23 functions / 54.64 lines, all floors met.
+Production web build passed, all 532 pages generated using synthetic credentials.
+All six existing static API/auth/link gates passed. File-size, hex and currency
+guards passed. Final npm ci dry-run validated lock consistency. The original
+locked installation was clean; final patched dependencies were installed incrementally.
+Raw execution logs remain local rather than publishing diagnostic payloads.
+
+LIMITS / NEXT PHASE
+Phase 4 implementation is ready for Phase 5 user-journey verification. The combined
+web test gate is still red solely for separately assigned R4; beta remains on hold.
+Dependency review documents remaining tooling exceptions and lower-severity debt.
+Final merged-candidate CI, hosted deployment, real payment sandbox and phone checks
+remain required. This work does not certify unrelated concurrent changes or devices.

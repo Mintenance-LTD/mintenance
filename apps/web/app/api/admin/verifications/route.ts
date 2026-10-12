@@ -146,8 +146,22 @@ export const GET = withApiHandler(
       }
     }
 
+    const assignmentLabels = new Map<string, string>();
+    if (contractors?.length) {
+      const { data: tasks } = await serverSupabase.from('admin_verification_tasks')
+        .select('contractor_id,admin_id').eq('status','open').in('contractor_id',contractors.map(c => c.id));
+      if (tasks?.length) {
+        const { data: admins } = await serverSupabase.from('profiles').select('id,email')
+          .eq('role','admin').in('id',tasks.map(t => t.admin_id));
+        for (const task of tasks) {
+          const admin = admins?.find(a => a.id === task.admin_id);
+          if (admin) assignmentLabels.set(task.contractor_id, admin.email);
+        }
+      }
+    }
     const mappedContractors = (contractors ?? []).map((c) => ({
       id: c.id,
+      assigned_admin_email: assignmentLabels.get(c.id) ?? null,
       email: c.email ?? '',
       first_name: c.first_name ?? null,
       last_name: c.last_name ?? null,

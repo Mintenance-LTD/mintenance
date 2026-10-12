@@ -7,18 +7,11 @@
  *   2. Property type grid (House / Flat / Terrace / Bungalow)
  *   3. Top concern chips (Boiler / Plumbing / Garden / etc.)
  *
- * Persistence note: this screen currently keeps form state local
- * and submits a single PATCH /api/users/profile call with the
- * collected `property_type` (stored on profiles.profile_metadata
- * follow-up) + `concern_tags` (job-feed bias preferences). The
- * fields the live `profiles` table doesn't have yet are held on
- * the screen and the route accepts unknown keys silently — wire
- * them properly in a follow-up. The screen is safe to skip
- * (CTA = "Finish setup") so a partial submit doesn't block the
- * user from reaching the dashboard.
+ * Preferences are saved through PUT /api/users/profile. A failed save keeps
+ * the screen and selections available for retry; skipping is explicit.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -47,14 +40,14 @@ interface PropertyTile {
   label: string;
 }
 
-const PROPERTY_TILES: ReadonlyArray<PropertyTile> = [
+const PROPERTY_TILES: readonly PropertyTile[] = [
   { id: 'house', icon: 'home-outline', label: 'House' },
   { id: 'flat', icon: 'business-outline', label: 'Flat' },
   { id: 'terrace', icon: 'grid-outline', label: 'Terrace' },
   { id: 'bungalow', icon: 'home-sharp', label: 'Bungalow' },
 ];
 
-const CONCERN_OPTIONS: ReadonlyArray<string> = [
+const CONCERN_OPTIONS: readonly string[] = [
   'Boiler service',
   'Plumbing',
   'Garden',
@@ -70,6 +63,8 @@ export const HomeownerSetupScreen: React.FC<HomeownerSetupScreenProps> = ({
   const [propertyType, setPropertyType] = useState<PropertyType | null>(null);
   const [concerns, setConcerns] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveInFlight = useRef(false);
 
   const toggleConcern = useCallback((concern: string) => {
     setConcerns((prev) => {
@@ -105,7 +100,10 @@ export const HomeownerSetupScreen: React.FC<HomeownerSetupScreenProps> = ({
   }, []);
 
   const handleFinish = useCallback(async () => {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
     setSubmitting(true);
+    setSaveError(null);
     try {
       // 2026-05-23 audit: previously PATCHed /api/users/profile —
       // that route only exports GET + PUT, so every submission
@@ -117,11 +115,15 @@ export const HomeownerSetupScreen: React.FC<HomeownerSetupScreenProps> = ({
         propertyType: propertyType ?? undefined,
         concernTags: Array.from(concerns),
       });
-    } catch (err) {
-      logger.warn('HomeownerSetup PUT failed; continuing', { error: err });
-    } finally {
-      setSubmitting(false);
       onComplete();
+    } catch (err) {
+      logger.warn('HomeownerSetup PUT failed', { error: err });
+      setSaveError(
+        'Your choices could not be saved. Please try again, or skip setup for now.'
+      );
+    } finally {
+      saveInFlight.current = false;
+      setSubmitting(false);
     }
   }, [propertyType, concerns, onComplete]);
 
@@ -134,6 +136,7 @@ export const HomeownerSetupScreen: React.FC<HomeownerSetupScreenProps> = ({
         <TouchableOpacity
           style={styles.backBtn}
           onPress={onComplete}
+          disabled={submitting}
           accessibilityRole='button'
           accessibilityLabel='Skip setup for now'
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -237,18 +240,42 @@ export const HomeownerSetupScreen: React.FC<HomeownerSetupScreenProps> = ({
       </ScrollView>
 
       <View style={styles.footer}>
+        {saveError ? (
+          <Text
+            accessibilityRole='alert'
+            accessibilityLiveRegion='polite'
+            style={{ color: me.errFg, marginBottom: 12 }}
+          >
+            {saveError}
+          </Text>
+        ) : null}
         <TouchableOpacity
           style={[styles.primaryBtn, submitting && styles.primaryBtnDisabled]}
           onPress={handleFinish}
           activeOpacity={0.9}
           disabled={submitting}
           accessibilityRole='button'
-          accessibilityLabel='Finish setup'
+          accessibilityLabel={saveError ? 'Retry saving setup' : 'Finish setup'}
         >
           <Text style={styles.primaryBtnText}>
-            {submitting ? 'Saving…' : 'Finish setup →'}
+            {submitting
+              ? 'Saving…'
+              : saveError
+                ? 'Retry saving →'
+                : 'Finish setup →'}
           </Text>
         </TouchableOpacity>
+        {saveError ? (
+          <TouchableOpacity
+            onPress={onComplete}
+            disabled={submitting}
+            accessibilityRole='button'
+            accessibilityLabel='Skip setup for now'
+            style={{ paddingVertical: 12, alignItems: 'center' }}
+          >
+            <Text style={{ color: me.ink2 }}>Skip setup for now</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </SafeAreaView>
   );

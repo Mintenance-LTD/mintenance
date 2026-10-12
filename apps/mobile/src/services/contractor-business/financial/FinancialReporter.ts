@@ -141,9 +141,7 @@ async function getMonthlyRevenue(
   return results;
 }
 
-// Sum released escrow rows by `${year}-${month}` of created_at.
-// Schema has no released_at column; created_at is close enough for
-// month-bucketing (release lag is hours, not month-boundary).
+// Recognise earnings when funds are released, including month-boundary releases.
 async function fetchReleasedEscrowByMonth(
   contractorId: string,
   months: number
@@ -155,26 +153,30 @@ async function fetchReleasedEscrowByMonth(
 
   const { data, error } = await supabase
     .from('escrow_transactions')
-    .select('amount, created_at, status')
+    .select('amount, contractor_payout, platform_fee, released_at, status')
     .eq('payee_id', contractorId)
     .in('status', ['released', 'completed'])
-    .gte('created_at', horizon.toISOString());
+    .gte('released_at', horizon.toISOString());
 
   if (error) {
     logger.error('Error fetching released escrow by month', error.message);
-    return new Map();
+    throw new Error('Could not load released earnings');
   }
 
   const buckets = new Map<string, number>();
   for (const row of (data ?? []) as EscrowAmountRow[] &
-    { created_at: string }[]) {
-    if (!row.created_at) continue;
-    const d = new Date(row.created_at);
+    {
+      released_at: string;
+      contractor_payout?: number | string | null;
+      platform_fee?: number | string | null;
+    }[]) {
+    if (!row.released_at) continue;
+    const d = new Date(row.released_at);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const amount =
-      typeof row.amount === 'number'
-        ? row.amount
-        : Number(row.amount ?? 0) || 0;
+    const amount = Number(
+      row.contractor_payout ??
+        Number(row.amount ?? 0) - Number(row.platform_fee ?? 0)
+    );
     buckets.set(key, (buckets.get(key) ?? 0) + amount);
   }
   return buckets;

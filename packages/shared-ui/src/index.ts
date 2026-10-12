@@ -26,3 +26,4 @@ export * from './components/MetricCard';
 export * from './components/DataTable';
 export * from './components/CircularProgress';
 export * from './components/Icon';
+export { SharedThemeProvider, useSharedTheme, useWebTokens } from './ThemeProvider';

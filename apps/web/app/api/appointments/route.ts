@@ -41,14 +41,14 @@ export const GET = withApiHandler(
       .select(
         `
         id, title, appointment_date, start_time, end_time,
-        location_type, location_address, status, notes,
+        location_type, location_address, status, notes, client_id, client_response,
         contractor:profiles!contractor_id(id, first_name, last_name),
         client:profiles!client_id(id, first_name, last_name),
-        job:jobs!job_id(id, title)
+        job:jobs!job_id(id, title, status)
       `
       )
       .gte('appointment_date', today)
-      .in('status', ['scheduled', 'confirmed'])
+      .in('status', ['scheduled', 'confirmed', 'rescheduled'])
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true })
       .limit(limit);
@@ -107,37 +107,44 @@ export const GET = withApiHandler(
     }
 
     // Supabase FK joins return arrays; extract first element
-    const mapped = (appointments || []).map((apt: Record<string, unknown>) => {
-      const contractor = Array.isArray(apt.contractor)
-        ? apt.contractor[0]
-        : apt.contractor;
-      const client = Array.isArray(apt.client) ? apt.client[0] : apt.client;
-      const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
-      return {
-        id: apt.id,
-        title: apt.title,
-        date: apt.appointment_date,
-        time: apt.start_time,
-        endTime: apt.end_time,
-        locationType: apt.location_type,
-        locationAddress: apt.location_address,
-        status: apt.status,
-        notes: apt.notes,
-        contractor: contractor
-          ? {
-              id: contractor.id,
-              name: `${contractor.first_name} ${contractor.last_name}`.trim(),
-            }
-          : undefined,
-        client: client
-          ? {
-              id: client.id,
-              name: `${client.first_name} ${client.last_name}`.trim(),
-            }
-          : undefined,
-        job: job ? { id: job.id, title: job.title } : undefined,
-      };
-    });
+    const mapped = (appointments || [])
+      .filter((apt) => {
+        const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
+        return !job || !['completed', 'cancelled'].includes(job.status);
+      })
+      .map((apt: Record<string, unknown>) => {
+        const contractor = Array.isArray(apt.contractor)
+          ? apt.contractor[0]
+          : apt.contractor;
+        const client = Array.isArray(apt.client) ? apt.client[0] : apt.client;
+        const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
+        return {
+          id: apt.id,
+          title: apt.title,
+          date: apt.appointment_date,
+          time: apt.start_time,
+          endTime: apt.end_time,
+          locationType: apt.location_type,
+          locationAddress: apt.location_address,
+          status: apt.status,
+          clientResponse: apt.client_response,
+          canRespond: apt.client_id === user.id,
+          notes: apt.notes,
+          contractor: contractor
+            ? {
+                id: contractor.id,
+                name: `${contractor.first_name} ${contractor.last_name}`.trim(),
+              }
+            : undefined,
+          client: client
+            ? {
+                id: client.id,
+                name: `${client.first_name} ${client.last_name}`.trim(),
+              }
+            : undefined,
+          job: job ? { id: job.id, title: job.title } : undefined,
+        };
+      });
 
     return NextResponse.json({ appointments: mapped });
   }

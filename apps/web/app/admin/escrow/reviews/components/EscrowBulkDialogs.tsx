@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';

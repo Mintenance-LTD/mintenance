@@ -1,0 +1,53 @@
+{
+  "checkedAt": "2026-10-04T22:06:13.166Z",
+  "testedBuild": {
+    "version": "1.2.4",
+    "versionCode": 33,
+    "source": "73566e2"
+  },
+  "status": "Fixes implemented; deployment and device retest pending",
+  "database": {
+    "source": "Read-only hosted Supabase queries",
+    "heldGBP": 3.52,
+    "pendingGBP": 2.66,
+    "priorHomeownerEscrowGBP": 6.18,
+    "completedJob": {
+      "heldGBP": 1,
+      "homeownerApproved": true,
+      "releaseBlockedReason": "Cooling-off period active (48 hours)"
+    }
+  },
+  "provider": {
+    "method": "Read-only account retrieval using locally configured credentials",
+    "liveKeyResult": "Stripe rejects the stored account as test-mode-only",
+    "availableSandboxKeyResult": "Account inaccessible to this sandbox key",
+    "limitation": "Deployed API key mode was not independently verified. No financial records or provider accounts were changed."
+  },
+  "api": {
+    "publicProfileAnonymousStatus": 401,
+    "limitation": "Anonymous response does not establish the cause of the authenticated phone profile failure. Authenticated device retest remains required."
+  },
+  "fixes": [
+    "Homeowner totals exclude pending and failed payments; held and release-pending remain escrow",
+    "Payout status refreshes provider readiness; environment mismatch returns safe 409",
+    "Dashboard errors retain actionable API message",
+    "Header foreground/background resolve together",
+    "Finance labels use plain separators"
+  ],
+  "tests": {
+    "mobile": {
+      "suites": 4,
+      "passed": 92
+    },
+    "api": {
+      "suites": 4,
+      "passed": 10
+    }
+  },
+  "remaining": [
+    "Align deployed payment environment with its connected accounts without mixing test and live data",
+    "Build and install a matching standalone internal APK after backend deployment",
+    "Retest public profile, payouts, finance and header contrast on device",
+    "Complete sandbox checkout and 3DS verification"
+  ]
+}

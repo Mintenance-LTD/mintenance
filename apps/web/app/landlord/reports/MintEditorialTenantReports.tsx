@@ -19,6 +19,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ReportConversationLink } from './ReportConversationLink';
 import {
   MessageSquare,
   FileText,
@@ -397,6 +398,7 @@ export function MintEditorialTenantReports({
                   <p className='t-meta'>{selected.properties.address}</p>
                 </div>
               ) : null}
+              <ReportConversationLink reportId={selected.id} />
               <div className='col' style={{ gap: 8, marginTop: 6 }}>
                 {/* Status-aware action row — buttons depend on the
                     current state. `converted` is a terminal state

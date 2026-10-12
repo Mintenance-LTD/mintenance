@@ -1,6 +1,9 @@
 const path = require('path');
 const fs = require('fs');
 const { buildAndroidIntentData } = require('./deepLinkIntentFilters');
+const {
+  validatePublicBuildEnvironment,
+} = require('./validate-public-build-env');
 
 // Simple console logger for config file
 const logger = {
@@ -31,94 +34,10 @@ try {
   }
 }
 
-// Validate required environment variables at build time
-const validateEnvironment = () => {
-  // Check if we're in an EAS build context
-  // EAS sets EAS_BUILD=true during builds, and env vars are injected at build time
-  // Also check if we're running via EAS CLI (eas build command)
-  const isEASBuild =
-    process.env.EAS_BUILD === 'true' ||
-    process.env.EAS_BUILD_PROFILE !== undefined ||
-    process.env.EAS_CLI === 'true' ||
-    (typeof process !== 'undefined' &&
-      process.argv &&
-      process.argv.some((arg) => arg.includes('eas')) &&
-      process.argv.some((arg) => arg.includes('build')));
-  const isProductionBuild =
-    process.env.EXPO_PUBLIC_ENVIRONMENT === 'production' ||
-    process.env.NODE_ENV === 'production';
-  const isDev =
-    process.env.NODE_ENV === 'development' ||
-    (!isProductionBuild && !isEASBuild);
+// Fail before bundling if a server credential was put in a public setting.
+validatePublicBuildEnvironment();
 
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-  // During EAS builds, environment variables are injected by EAS at build time
-  // Don't validate during config evaluation - EAS will handle this
-  if (isEASBuild) {
-    // During EAS builds, env vars are injected by the build system
-    // Only warn if they're missing, but don't fail - EAS will handle validation
-    if (!supabaseUrl || !supabaseKey) {
-      logger.warn(
-        '⚠️  Environment variables not yet available during EAS config evaluation.'
-      );
-      logger.warn(
-        '📋 They will be injected by EAS at build time from eas.json env section or EAS secrets.'
-      );
-    }
-    return; // Don't validate during EAS build config evaluation
-  }
-
-  // Only throw errors during local production builds (not EAS builds)
-  if (isProductionBuild && !isEASBuild && (!supabaseUrl || !supabaseKey)) {
-    const missing = [];
-    if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
-    if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
-
-    logger.error(
-      '❌ Missing required environment variables:',
-      missing.join(', ')
-    );
-    logger.error('📋 Set these variables before building for production:');
-    logger.error(
-      '   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co'
-    );
-    logger.error('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
-
-    throw new Error(
-      `Production build requires Supabase credentials: ${missing.join(', ')}`
-    );
-  } else if (isDev && (!supabaseUrl || !supabaseKey)) {
-    // In development, warn if missing but allow to continue
-    const missing = [];
-    if (!supabaseUrl) missing.push('EXPO_PUBLIC_SUPABASE_URL');
-    if (!supabaseKey) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
-
-    logger.warn(
-      '⚠️  Missing Supabase environment variables:',
-      missing.join(', ')
-    );
-    logger.warn('📋 App will use mock client. Set these for real data:');
-    logger.warn('   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
-    logger.warn('   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here');
-  }
-};
-
-// Run validation (suppress errors during EAS CLI execution)
-try {
-  validateEnvironment();
-} catch (error) {
-  // During EAS builds, don't fail on validation - EAS will handle env vars
-  if (
-    process.env.EAS_BUILD_PROFILE ||
-    process.argv.some((arg) => arg.includes('eas'))
-  ) {
-    logger.warn('⚠️  Validation warning (non-fatal):', error.message);
-  } else {
-    throw error;
-  }
-}
+require('./validate-release-env').validateReleaseEnvironment();
 
 // Resolve a Firebase config file for googleServicesFile.
 // EAS file-type env vars contain the absolute path of the file on the build
@@ -229,7 +148,7 @@ module.exports = {
       // Bumped 2026-08-06: 22 and 23 are both already consumed on Play (22
       // rejected build 148c5786; 23 uploaded from chore/mobile-versioncode-23).
       // 24 carries the mobile Delete Job feature to the store.
-      versionCode: 26,
+      versionCode: 38,
       // See iOS googleServicesFile note: env var IS the file path on EAS.
       googleServicesFile: resolveGoogleServicesFile(
         'GOOGLE_SERVICES_JSON',
@@ -279,8 +198,11 @@ module.exports = {
     updates: {
       url: 'https://u.expo.dev/1ee95edc-0cc1-4775-b52e-4af46f9e51d0',
     },
-    runtimeVersion: '1.2.4',
+    // SQLCipher and expo-crypto require a rebuilt native binary. Keep these
+    // updates off older 1.2.4 runtimes that lack the required native code.
+    runtimeVersion: '1.2.4-sqlcipher1',
     plugins: [
+      ['expo-sqlite', { useSQLCipher: true }],
       // Android security hardening: allowBackup=false, usesCleartextTraffic=false,
       // NSC (reject user CAs), backup/data-extraction exclusions for session
       // storage / SQLite / AsyncStorage, and SYSTEM_ALERT_WINDOW stripping.

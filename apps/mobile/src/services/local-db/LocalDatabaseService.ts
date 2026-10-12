@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import { logger } from '../../utils/logger';
 import type { User, Job, Message } from '@mintenance/types';
-import { getDatabaseOpenOptions } from './encryption';
+import { openLocalDatabase } from './encryption';
 import { runMigrations as runVersionedMigrations } from './migrations';
 import { saveUser, getUser, getAllUsers } from './UserStore';
 import {
@@ -33,19 +33,30 @@ import type {
 
 class LocalDatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
-  private readonly DB_NAME = 'mintenance_local.db';
   private isInitialized = false;
+  private initPromise: Promise<void> | null = null;
 
   async init(): Promise<void> {
     if (this.isInitialized) return;
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = this.initialize();
     try {
-      const openOptions = await getDatabaseOpenOptions();
-      this.db = await SQLite.openDatabaseAsync(this.DB_NAME, openOptions);
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      this.db = await openLocalDatabase();
       await this.createTables();
       await this.runMigrations();
       this.isInitialized = true;
       logger.info('Local database initialized successfully');
     } catch (error) {
+      await this.db?.closeAsync().catch(() => undefined);
+      this.db = null;
       logger.error('Failed to initialize local database:', error);
       throw error;
     }

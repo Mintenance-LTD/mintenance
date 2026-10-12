@@ -3,11 +3,14 @@ import type { ContractorProfile } from '@mintenance/types/src/contracts';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
-import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
-import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 /**
  * GET /api/contractors/[id]
@@ -67,21 +70,19 @@ export const GET = withApiHandler(
 
         // First check if user exists at all (without role filter)
         const { data: userCheck } = await serverSupabase
-          .from('profiles')
+          .from('profile_directory')
           .select('id, role')
           .eq('id', id)
           .single();
 
         // Fetch contractor from database with all relevant fields
         const { data: contractor, error } = await serverSupabase
-          .from('profiles')
+          .from('profile_directory')
           .select(
             `
           id,
           first_name,
           last_name,
-          email,
-          phone,
           role,
           bio,
           rating,
@@ -90,9 +91,6 @@ export const GET = withApiHandler(
           company_name,
           city,
           country,
-          address,
-          latitude,
-          longitude,
           is_available,
           portfolio_images,
           total_jobs_completed,
@@ -141,6 +139,11 @@ export const GET = withApiHandler(
           // (filter-schema audit 2026-08-02).
           .eq('reviewee_id', id);
 
+        if (error && error.code !== 'PGRST116')
+          throw new InternalServerError(
+            'Contractor profile is temporarily unavailable'
+          );
+
         if (error || !contractor) {
           logger.info('Contractor not found', {
             service: 'contractors',
@@ -158,6 +161,15 @@ export const GET = withApiHandler(
         // `contractor_postcode_proof_count` (SECURITY DEFINER) backed
         // by a partial index — no in-memory aggregation. Still gated
         // at >= 2 for privacy.
+        const { count: completedJobCount, error: completedCountError } =
+          await serverSupabase
+            .from('jobs')
+            .select('id', { count: 'exact', head: true })
+            .eq('contractor_id', id)
+            .eq('status', 'completed');
+        if (completedCountError)
+          throw new InternalServerError('Could not load contractor job count');
+
         let postcodeProofCount: number | null = null;
         if (postcodePrefix) {
           const { data: rpcCount, error: rpcErr } = await serverSupabase.rpc(
@@ -188,151 +200,26 @@ export const GET = withApiHandler(
         // Sequence: list completed jobs → fetch after-photos for those job
         // ids → re-sign Job-storage URLs (bucket is private since 2026-04-17)
         // → concat onto manual entries, dedupe.
-        // 2026-05-13 portfolio audit fix: the previous implementation
-        // returned only `portfolio_images: string[]` (flat URLs) but the
-        // homeowner-facing `/contractors/[id]` page expects structured
-        // `PortfolioItem[]` (id / title / category / images / completion
-        // date / cost) and dropped the URL list on the floor — so finished
-        // jobs never showed up on the bid-time profile view.
-        //
-        // Now we build structured tiles: one tile per completed job, each
-        // containing its after-photos. Manual `profiles.portfolio_images`
-        // entries that aren't tied to a job are folded in as a synthetic
-        // "Past work" tile so the contractor's manual curation still
-        // surfaces.
-        let jobAfterPhotoUrls: string[] = [];
-        const portfolioJobs: Array<{
-          id: string;
-          title: string;
-          category: string;
-          images: string[];
-          description: string;
-          completionDate: string;
-          cost?: number;
-          featured: boolean;
-        }> = [];
-        try {
-          // 2026-05-23 audit: `jobs.final_price` doesn't exist on
-          // live. Selecting it errored the SELECT and the catch below
-          // silently emptied the portfolio tile list — the public
-          // contractor profile would only show manual portfolio
-          // images, never the completed-jobs tiles. Source `cost`
-          // from realised escrow per job (matches the source-of-truth
-          // used by /api/contractors/[id]/metrics + the CRM client
-          // list).
-          const { data: completedJobs } = await serverSupabase
-            .from('jobs')
-            .select(
-              `id, title, category, description, budget, completed_at,
-               escrow_transactions(amount, status)`
-            )
-            .eq('contractor_id', id)
-            .eq('status', 'completed')
-            .order('completed_at', { ascending: false })
-            .limit(12);
-          const completedJobsArr = (completedJobs ?? []) as Array<{
-            id: string;
-            title?: string | null;
-            category?: string | null;
-            description?: string | null;
-            budget?: number | null;
-            completed_at?: string | null;
-            escrow_transactions?:
-              | Array<{
-                  amount?: number | string | null;
-                  status?: string | null;
-                }>
-              | { amount?: number | string | null; status?: string | null }
-              | null;
-          }>;
-          const completedJobIds = completedJobsArr.map((j) => j.id);
-          if (completedJobIds.length > 0) {
-            const { data: afterPhotos } = await serverSupabase
-              .from('job_photos_metadata')
-              .select('job_id, photo_url, timestamp')
-              .in('job_id', completedJobIds)
-              .eq('photo_type', 'after')
-              .order('timestamp', { ascending: false });
-
-            // Group after-photos by job_id so we can build per-job tiles
-            const byJob = new Map<string, string[]>();
-            for (const row of (afterPhotos ?? []) as Array<{
-              job_id: string;
-              photo_url: string;
-            }>) {
-              if (!row.photo_url) continue;
-              const list = byJob.get(row.job_id) ?? [];
-              list.push(row.photo_url);
-              byJob.set(row.job_id, list);
-            }
-            // Re-sign all URLs in one shot (cheaper than per-tile signing)
-            const allRawUrls = Array.from(byJob.values()).flat();
-            const signed = await resignJobStorageUrls(allRawUrls, null);
-            const signedByRaw = new Map<string, string>();
-            allRawUrls.forEach((raw, i) => signedByRaw.set(raw, signed[i]));
-            jobAfterPhotoUrls = signed;
-
-            for (const job of completedJobsArr) {
-              const rawList = byJob.get(job.id) ?? [];
-              if (rawList.length === 0) continue; // skip jobs with no after-photos
-              const signedList = rawList
-                .map((u) => signedByRaw.get(u))
-                .filter((u): u is string => Boolean(u));
-              // Pick realised escrow as the authoritative cost
-              // figure, with budget as a legacy fallback. Undefined
-              // when neither — the UI hides the cost line.
-              const escrowRows = Array.isArray(job.escrow_transactions)
-                ? job.escrow_transactions
-                : job.escrow_transactions
-                  ? [job.escrow_transactions]
-                  : [];
-              const realised = escrowRows
-                .filter(
-                  (t) => t?.status === 'released' || t?.status === 'completed'
-                )
-                .reduce<number>((acc, t) => acc + Number(t.amount ?? 0), 0);
-              portfolioJobs.push({
-                id: job.id,
-                title: job.title || 'Completed job',
-                category: job.category || 'general',
-                images: signedList,
-                description: job.description || '',
-                completionDate: job.completed_at || '',
-                cost: realised > 0 ? realised : (job.budget ?? undefined),
-                featured: false,
-              });
-            }
-          }
-        } catch (err) {
-          // Non-fatal — manual portfolio_images still render. Logged so
-          // we can spot if the join is silently failing in prod.
-          logger.warn(
-            'Contractor portfolio: completed-jobs photo fetch failed',
-            {
-              service: 'contractors',
-              contractorId: id,
-              err: err instanceof Error ? err.message : String(err),
-            }
-          );
-        }
-
-        // Manual portfolio entries that aren't tied to a specific job —
-        // fold them into a single synthetic "Other past work" tile so
-        // they still appear after the structured per-job tiles.
+        // Job completion photos are private evidence, not publication consent.
+        // Only images explicitly curated into the contractor's portfolio belong
+        // on this public endpoint. Never sign arbitrary completed-job photos.
         const manualImages = (contractor.portfolio_images || []).filter(
-          (url: string) => Boolean(url) && !jobAfterPhotoUrls.includes(url)
+          (url: string) => Boolean(url)
         );
-        if (manualImages.length > 0) {
-          portfolioJobs.push({
-            id: `manual-${id}`,
-            title: 'Other past work',
-            category: 'portfolio',
-            images: manualImages,
-            description: '',
-            completionDate: '',
-            featured: false,
-          });
-        }
+        const portfolioJobs =
+          manualImages.length > 0
+            ? [
+                {
+                  id: `manual-${id}`,
+                  title: 'Past work',
+                  category: 'portfolio',
+                  images: manualImages,
+                  description: '',
+                  completionDate: '',
+                  featured: false,
+                },
+              ]
+            : [];
 
         // R7 #11 — dispute history: counts + mean resolution time against
         // this contractor. `disputes.against` references the contractor.
@@ -363,9 +250,6 @@ export const GET = withApiHandler(
           company_name?: string;
           city?: string;
           country?: string;
-          address?: string;
-          latitude?: number;
-          longitude?: number;
           is_available?: boolean;
           portfolio_images?: string[];
           portfolio?: Array<{
@@ -379,8 +263,6 @@ export const GET = withApiHandler(
             featured: boolean;
           }>;
           total_jobs_completed?: number;
-          phone?: string;
-          email?: string;
           skills?: string[];
           hourly_rate?: number;
           created_at?: string;
@@ -403,7 +285,8 @@ export const GET = withApiHandler(
           id: contractor.id,
           name:
             `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() ||
-            contractor.email,
+            contractor.company_name ||
+            'Contractor',
           avatarUrl: contractor.profile_image_url,
           rating: contractor.rating || 0,
           reviewCount: reviewCount || 0,
@@ -411,29 +294,10 @@ export const GET = withApiHandler(
           company_name: contractor.company_name,
           city: contractor.city,
           country: contractor.country,
-          address: contractor.address,
-          latitude: contractor.latitude,
-          longitude: contractor.longitude,
           is_available: contractor.is_available,
-          // Manual portfolio entries first (contractor curates these),
-          // then auto-derived after-photos from completed jobs. Dedup on
-          // exact-URL match so a contractor who manually re-added one of
-          // their own job photos doesn't get a duplicate tile.
-          // Kept for legacy callers; new callers should consume `portfolio`.
-          portfolio_images: Array.from(
-            new Set([
-              ...(contractor.portfolio_images || []),
-              ...jobAfterPhotoUrls,
-            ])
-          ),
-          // Structured per-job portfolio tiles. One entry per completed
-          // job that has at least one after-photo, plus a single
-          // synthetic "Other past work" tile for manual entries that
-          // aren't tied to a job.
+          portfolio_images: Array.from(new Set(manualImages)),
           portfolio: portfolioJobs,
-          total_jobs_completed: contractor.total_jobs_completed || 0,
-          phone: contractor.phone,
-          email: contractor.email,
+          total_jobs_completed: completedJobCount ?? 0,
           skills: skills,
           // 2026-07-04: hourly_rate reads from canonical profiles
           // (contractor-profiles side table retired — it only ever

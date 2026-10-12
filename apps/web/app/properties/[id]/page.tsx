@@ -4,6 +4,7 @@ import React from 'react';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import PropertyDetailsClient from './components/PropertyDetailsClient';
 import { MintEditorialPropertyDetail } from './components/MintEditorialPropertyDetail';
@@ -128,7 +129,9 @@ export default async function PropertyDetailPage({
       | 'in_person'
       | null,
     key_safe_code:
-      access.role === 'owner' ? (property.key_safe_code ?? null) : null,
+      access.role === 'owner'
+        ? await readPropertyEntrySecret(property.id, user.id)
+        : null,
     access_notes: property.access_notes ?? null,
     stopcock_location: property.stopcock_location ?? null,
     gas_isolator_location: property.gas_isolator_location ?? null,

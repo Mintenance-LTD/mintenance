@@ -4,7 +4,13 @@ export interface Transaction {
   jobTitle: string;
   client: string;
   amount: number;
-  status: 'pending' | 'held' | 'released' | 'completed';
+  status:
+    | 'pending'
+    | 'held'
+    | 'release_pending'
+    | 'released'
+    | 'completed'
+    | 'refunded';
   date: string;
   platformFee: number;
   processingFee: number;
@@ -22,8 +28,15 @@ export interface EscrowTransaction {
   payerId: string;
   payeeId: string;
   amount: number;
-  status: 'pending' | 'held' | 'released' | 'refunded';
+  status:
+    | 'pending'
+    | 'held'
+    | 'release_pending'
+    | 'released'
+    | 'completed'
+    | 'refunded';
   createdAt?: string;
+  releasedAt?: string;
   created_at?: string;
   // Real fee breakdown, populated at escrow release.
   platformFee?: number;

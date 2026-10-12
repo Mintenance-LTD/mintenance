@@ -105,26 +105,31 @@ export const GET = withApiHandler(
 
     // Transform data to match client interface
     const transformedAppointments =
-      appointments?.map((apt) => ({
-        id: apt.id,
-        title: apt.title,
-        client: apt.client
-          ? `${apt.client.first_name} ${apt.client.last_name}`
-          : apt.client_name || 'Unknown Client',
-        clientEmail: apt.client?.email || apt.client_email,
-        clientPhone: apt.client?.phone || apt.client_phone,
-        date: apt.appointment_date,
-        time: apt.start_time,
-        endTime: apt.end_time,
-        duration: apt.duration_minutes ? `${apt.duration_minutes}m` : '60m',
-        location: apt.location_address,
-        type: apt.location_type,
-        status: apt.status,
-        jobTitle: apt.job?.title,
-        jobId: apt.job?.id,
-        notes: apt.notes,
-        createdAt: apt.created_at,
-      })) || [];
+      appointments
+        ?.filter((apt) => {
+          const job = Array.isArray(apt.job) ? apt.job[0] : apt.job;
+          return !job || !['completed', 'cancelled'].includes(job.status);
+        })
+        .map((apt) => ({
+          id: apt.id,
+          title: apt.title,
+          client: apt.client
+            ? `${apt.client.first_name} ${apt.client.last_name}`
+            : apt.client_name || 'Unknown Client',
+          clientEmail: apt.client?.email || apt.client_email,
+          clientPhone: apt.client?.phone || apt.client_phone,
+          date: apt.appointment_date,
+          time: apt.start_time,
+          endTime: apt.end_time,
+          duration: apt.duration_minutes ? `${apt.duration_minutes}m` : '60m',
+          location: apt.location_address,
+          type: apt.location_type,
+          status: apt.status,
+          jobTitle: apt.job?.title,
+          jobId: apt.job?.id,
+          notes: apt.notes,
+          createdAt: apt.created_at,
+        })) || [];
 
     return NextResponse.json({ appointments: transformedAppointments });
   }

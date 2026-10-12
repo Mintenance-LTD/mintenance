@@ -214,7 +214,7 @@ describe('AuthService', () => {
       });
 
       await expect(AuthService.signUp(signUpData)).rejects.toThrow(
-        'Failed to sign up user'
+        'Unable to sign in right now. Please try again.'
       );
     });
 
@@ -333,7 +333,7 @@ describe('AuthService', () => {
 
       await expect(
         AuthService.signIn('test@example.com', 'wrong')
-      ).rejects.toThrow('Failed to sign in user');
+      ).rejects.toThrow('Unable to sign in right now. Please try again.');
     });
 
     it('should handle network errors specially', async () => {
@@ -345,7 +345,7 @@ describe('AuthService', () => {
 
       await expect(
         AuthService.signIn('test@example.com', 'password')
-      ).rejects.toThrow('Failed to sign in user');
+      ).rejects.toThrow('Network request failed');
 
       expect(ServiceErrorHandler.handleNetworkError).toHaveBeenCalledWith(
         error,

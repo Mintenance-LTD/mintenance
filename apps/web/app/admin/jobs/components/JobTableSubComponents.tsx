@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import type { Job } from './JobManagementTypes';
 import {
   STATUS_COLORS,
@@ -116,7 +116,7 @@ export function JobRow({ job }: { job: Job }) {
     >
       <td style={{ padding: `${theme.spacing[3]} ${theme.spacing[4]}` }}>
         <Link
-          href={`/jobs/${job.id}`}
+          href={`/admin/jobs/${job.id}`}
           style={{
             fontSize: theme.typography.fontSize.sm,
             fontWeight: 600,

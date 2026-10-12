@@ -1,0 +1,53 @@
+Account-wide retained evidence and disposal backlog monitoring — 2026-09-30
+
+Changes
+- Staff can enter a historical account ID and verified case reference to
+  discover all retained contracts and disputes, then download one combined
+  review packet. Each record still uses the separately authorized/audited
+  export endpoint; no direct client database access was introduced.
+- Inventory endpoint requires database administrator verification, recent MFA,
+  identity attestation, CSRF protection and rate limiting. Every database page
+  repeats the subject's participant filter. Primary-key pagination uses the
+  actual contract_id/dispute_id columns while returning a common id alias.
+- The browser checks each returned record against its inventory entry, and
+  re-reads the complete inventory before creating a download. A changed
+  inventory, missing known file or failed request creates no partial download.
+- Expired MFA can be renewed without changing the pending account/case request.
+  Navigating away aborts collection. Sequential requests are paced below the
+  record endpoint's 30-per-minute limit.
+- Combined downloads explicitly identify unresolved external references and
+  remain STAFF REVIEW packets requiring privacy review before secure delivery.
+- Disposal cron previously reported healthy after an earlier run had moved
+  external evidence to needs_reconciliation. It now checks that persistent
+  backlog on otherwise successful runs and continues to fail with the admin
+  disposal page location until the outstanding decision is resolved/cancelled.
+
+Evidence
+- 30 focused unit/UI tests pass across six suites. Includes inventory read and
+  audit failures, authorization configuration, all-page subject scoping, changed
+  inventory, mismatched records, MFA retry, missing files, external reconciliation
+  messaging and persistent disposal backlog/read failures.
+- Real isolated Supabase diagnostic: 503 matching contract archives returned
+  across pages; unrelated subject excluded; dispute primary-key alias works;
+  exceeding an explicit export bound fails without partial rows. All uniquely
+  scoped diagnostic records were removed afterward.
+- Web type check and changed-source lint pass.
+- No schema changes or production business-data modifications. Required local
+  schema comparison was run; its output is diagnostic, never applied.
+
+Remaining limits
+- This is account-wide retained-contract/dispute coverage, not every category
+  of personal data, processor copies or backups. Other account data remains in
+  the existing account export routes.
+- Synchronous record exports retain the prior 2 MB source-data limit. Inventory
+  supports up to 2,000 records per archive type; combined browser packets are
+  limited to 25 MB. Larger cases explicitly require offline processing, which
+  is not implemented. No silent truncation or partial-success download.
+- The inventory recheck is not a transactionally consistent database snapshot.
+  It detects changes in record IDs/archive timestamps; packets have per-record
+  checksums. A durable snapshot/background export remains future work.
+- External-file erasure is still blocked pending approved object inventories,
+  shared-reference checks, hold-safe execution and provider deletion receipts.
+  This batch fixes monitoring; it does not claim those files were erased.
+- Deployed release, physical-device acceptance, backup destination/restore and
+  secure operator delivery remain unverified. Public readiness is unchanged.

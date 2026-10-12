@@ -12,19 +12,19 @@
 
 /** Payout threshold: contractors accumulate earnings until this amount, then paid out. */
 const PAYOUT_MIN_THRESHOLD_MINOR: Record<string, number> = {
-  GBP: 5000, // £50.00
+  GBP: 1, // £0.01: every positive balance is eligible
 };
 
 /** Weekly payout day (0 = Sunday, 1 = Monday, ..., 5 = Friday) */
-const PAYOUT_DAY_OF_WEEK = 5; // Friday
+const _PAYOUT_DAY_OF_WEEK = 5; // Friday
 
 /** Primary supported currency */
 export const PRIMARY_CURRENCY = 'GBP';
 
 /** Fallback allowed currencies */
-const SUPPORTED_CURRENCIES = ['GBP'] as const;
+const _SUPPORTED_CURRENCIES = ['GBP'] as const;
 
-type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
+type _SupportedCurrency = (typeof _SUPPORTED_CURRENCIES)[number];
 
 /**
  * Homeowner-facing payment methods. Cards are universal; BACS Direct Debit
@@ -32,7 +32,7 @@ type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
  */
 export const HOMEOWNER_PAYMENT_METHOD_TYPES = ['card', 'bacs_debit'] as const;
 
-type HomeownerPaymentMethodType =
+type _HomeownerPaymentMethodType =
   (typeof HOMEOWNER_PAYMENT_METHOD_TYPES)[number];
 
 /**
@@ -84,14 +84,14 @@ export function getOnboardingRefreshUrl(
 }
 
 /** Return URL after a SetupIntent completes (Elements flow) */
-function getSetupIntentReturnUrl(appUrl: string): string {
+function _getSetupIntentReturnUrl(appUrl: string): string {
   return `${appUrl}/account/payment-methods/return`;
 }
 
 /**
  * Minimum payout amount in MINOR units for a currency.
- * Returns 5000 (£50.00) as default if currency not in the map.
+ * Returns 1 minor unit as default if currency not in the map.
  */
 export function getPayoutThreshold(currency: string): number {
-  return PAYOUT_MIN_THRESHOLD_MINOR[currency.toUpperCase()] ?? 5000;
+  return PAYOUT_MIN_THRESHOLD_MINOR[currency.toUpperCase()] ?? 1;
 }

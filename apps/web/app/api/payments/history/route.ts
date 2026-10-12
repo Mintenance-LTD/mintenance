@@ -33,8 +33,8 @@ const selectFields = `
   created_at,
   updated_at,
   job:jobs!escrow_transactions_job_id_fkey(id, title, description),
-  payer:profiles!escrow_transactions_payer_id_fkey(first_name, last_name, company_name),
-  payee:profiles!escrow_transactions_payee_id_fkey(first_name, last_name, company_name)
+  payer:profile_directory!escrow_transactions_payer_id_fkey(first_name, last_name, company_name),
+  payee:profile_directory!escrow_transactions_payee_id_fkey(first_name, last_name, company_name)
 `;
 
 type EscrowRow = {

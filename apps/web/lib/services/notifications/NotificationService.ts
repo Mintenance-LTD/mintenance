@@ -27,6 +27,7 @@ import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '../agents/NotificationAgent';
 import {
   loadPreferences,
+  NotificationPreferencesUnavailableError,
   isTypeDisabled,
   isAlwaysOnType,
   nextQuietHoursEndUTC,
@@ -95,6 +96,29 @@ async function insertInAppNotification(
 }
 
 export class NotificationService {
+  /** Durable, idempotent scheduled delivery. Preferences are checked by the queue processor. */
+  static async enqueueScheduled(
+    params: CreateNotificationParams & { id: string; scheduledFor: Date }
+  ): Promise<void> {
+    const { error } = await serverSupabase.from('notification_queue').upsert(
+      {
+        id: params.id,
+        user_id: params.userId,
+        notification_type: params.type,
+        title: params.title,
+        message: params.message,
+        action_url: params.actionUrl,
+        metadata: params.metadata ?? {},
+        scheduled_for: params.scheduledFor.toISOString(),
+        priority: 'high',
+        status: 'pending',
+        retry_count: 0,
+      },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+    if (error) throw new Error('Could not save scheduled notification');
+  }
+
   /**
    * Create a notification (intelligent routing + preference-aware).
    * Public API — use this instead of any direct DB insert.
@@ -158,6 +182,16 @@ export class NotificationService {
 
       return this.scheduleForLater(params, scheduledFor, sendDecision.reason);
     } catch (error) {
+      if (error instanceof NotificationPreferencesUnavailableError) {
+        const retryAt = new Date(
+          Math.max(Date.now() + 5 * 60_000, params.deferUntil?.getTime() ?? 0)
+        );
+        return this.scheduleForLater(
+          params,
+          retryAt,
+          'Preference lookup unavailable'
+        );
+      }
       logger.error('Error in createNotification', error, {
         service: 'NotificationService',
         userId: params.userId,

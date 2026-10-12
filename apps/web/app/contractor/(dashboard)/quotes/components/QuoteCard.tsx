@@ -147,7 +147,7 @@ export function QuoteCard({
       variants={fadeInUp}
       whileHover='hover'
       initial='rest'
-      className='bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-200 overflow-hidden group'
+      className='flex h-full flex-col bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 group'
     >
       {/* Header */}
       <div className='p-8 border-b border-slate-100'>
@@ -227,12 +227,17 @@ export function QuoteCard({
             </AnimatePresence>
           </div>
         </div>
-        <h3 className='font-semibold text-slate-900 text-lg mb-2 line-clamp-2 group-hover:text-teal-600 transition-all'>
+        <h3
+          className='min-h-14 font-semibold text-slate-900 text-lg mb-2 line-clamp-2 group-hover:text-teal-700 transition-all'
+          title={quote.jobTitle}
+        >
           {quote.jobTitle}
         </h3>
         <div className='flex items-center gap-2 text-sm text-slate-600'>
           <User className='w-4 h-4' />
-          <span className='font-medium'>{quote.customerName}</span>
+          <span className='font-medium truncate' title={quote.customerName}>
+            {quote.customerName}
+          </span>
         </div>
       </div>
 
@@ -243,7 +248,10 @@ export function QuoteCard({
             Quote Amount
           </p>
           <p className='text-3xl font-semibold text-slate-900'>
-            £{quote.amount.toLocaleString()}
+            {quote.amount.toLocaleString('en-GB', {
+              style: 'currency',
+              currency: 'GBP',
+            })}
           </p>
         </div>
         <div className='space-y-2 text-sm'>
@@ -287,7 +295,7 @@ export function QuoteCard({
       </div>
 
       {/* Footer */}
-      <div className='px-8 pb-8'>
+      <div className='mt-auto px-8 pb-8'>
         {quote.status === 'draft' ? (
           <div className='grid grid-cols-2 gap-2'>
             <button

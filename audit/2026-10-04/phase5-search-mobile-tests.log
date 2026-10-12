@@ -1,0 +1,7 @@
+PASS mobile src/screens/__tests__/AISearchScreen.test.tsx (15.091 s)
+PASS mobile src/screens/__tests__/AISearchFilters.test.tsx
+
+Test Suites: 2 passed, 2 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        17.368 s

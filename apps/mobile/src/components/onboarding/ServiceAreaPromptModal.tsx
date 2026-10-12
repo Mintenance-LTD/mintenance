@@ -66,7 +66,8 @@ export const ServiceAreaPromptModal: React.FC<ServiceAreaPromptModalProps> = ({
   if (!visible) return null;
 
   const handleSetUp = () => {
-    navigation.navigate('BusinessTab', { screen: 'ServiceAreas' });
+    void onDismiss();
+    navigation.navigate('Main', { screen: 'BusinessTab', params: { screen: 'ServiceAreas', initial: false } });
     if (onAfterNavigate) {
       void onAfterNavigate();
     }

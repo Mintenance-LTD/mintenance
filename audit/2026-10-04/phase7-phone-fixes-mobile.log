@@ -1,0 +1,10 @@
+PASS mobile src/services/contractor-business/financial/__tests__/FinancialReporter.test.ts
+PASS mobile src/components/shared/__tests__/ScreenHeader.test.tsx
+PASS mobile src/screens/contractor/__tests__/ReportingScreen.test.tsx
+PASS mobile src/screens/financials/FinancialsScreen/__tests__/useFinancialsData.test.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       92 passed, 92 total
+Snapshots:   0 total
+Time:        11.11 s
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

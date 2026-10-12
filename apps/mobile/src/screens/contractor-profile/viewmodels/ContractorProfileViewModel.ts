@@ -71,6 +71,7 @@ interface ContractorProfileState {
     yearsExperience?: number | null;
   };
   photos: string[];
+  projects: { id: string; title: string; images: string[] }[];
   reviews: Review[];
   loading: boolean;
   error: string | null;
@@ -105,6 +106,7 @@ interface ApiContractor {
   avatarUrl?: string | null;
   profile_image_url?: string | null;
   portfolio_images?: string[];
+  portfolio?: { id: string; title: string; images: string[] }[];
   postcode_prefix?: string | null;
   postcode_proof_count?: number | null;
   dispute_history?: {
@@ -165,6 +167,9 @@ export const useContractorProfileViewModel = (
   const [activeTab, setActiveTab] = useState<'photos' | 'reviews'>('photos');
   const [contractor, setContractor] =
     useState<ContractorProfileState['contractor']>(DEFAULT_CONTRACTOR);
+  const [projects, setProjects] = useState<
+    { id: string; title: string; images: string[] }[]
+  >([]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +215,7 @@ export const useContractorProfileViewModel = (
         yearsExperience: yearsSince(data.created_at),
       });
 
+      setProjects(data.portfolio ?? []);
       setPhotos(
         (data.portfolio_images || []).filter(
           (url): url is string => typeof url === 'string' && url.length > 0
@@ -246,13 +252,13 @@ export const useContractorProfileViewModel = (
       // Fetch reviews
       try {
         const { reviews: reviewRows = [] } = await mobileApiClient.get<{
-          reviews?: Array<{
+          reviews?: {
             id: string;
             author?: string;
             rating: number;
             comment?: string;
             date: string;
-          }>;
+          }[];
         }>(`/api/contractors/${contractorId}/reviews`);
         setReviews(
           (reviewRows || []).map(
@@ -375,6 +381,7 @@ export const useContractorProfileViewModel = (
     activeTab,
     contractor,
     photos,
+    projects,
     reviews,
     loading,
     error,

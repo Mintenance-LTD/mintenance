@@ -10,6 +10,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { isTrainingReuseAllowed } from '../training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { callMintAiVLM } from '../generator/AssessmentGenerator';
 import { CostControlService } from '../../ai/CostControlService';
@@ -95,6 +96,7 @@ export class StudentShadowService {
     apiKey: string,
     teacherReasoning?: string | null
   ): Promise<void> {
+    if (!isTrainingReuseAllowed()) return;
     const startMs = Date.now();
 
     try {

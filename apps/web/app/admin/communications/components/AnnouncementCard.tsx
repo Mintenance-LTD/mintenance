@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';

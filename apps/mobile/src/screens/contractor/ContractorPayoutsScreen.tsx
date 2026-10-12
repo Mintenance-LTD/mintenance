@@ -14,7 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
-import Button from '../../components/ui/Button';
+import { Button } from '../../components/ui/Button';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
@@ -78,6 +78,8 @@ const ContractorPayoutsScreen: React.FC = () => {
         setBalance(balRes.balance ?? null);
       }
     } catch (e) {
+      setStatus(null);
+      setBalance(null);
       setError((e as Error).message);
       logger.warn('Failed to load Connect status', { error: e });
     }
@@ -85,7 +87,7 @@ const ContractorPayoutsScreen: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      await loadStatus();
+      await loadStatus(true);
       setLoading(false);
     })();
   }, [loadStatus]);
@@ -129,15 +131,23 @@ const ContractorPayoutsScreen: React.FC = () => {
   };
 
   const openDashboard = async () => {
+    setError(null);
     try {
       const res = await mobileApiClient.post<{
         success: boolean;
         url?: string;
       }>('/api/payments/stripe-connect/dashboard-link', {});
-      if (res.url) {
-        await WebBrowser.openBrowserAsync(res.url);
-      }
+      if (!res.success || !res.url)
+        throw new Error(
+          'Stripe did not provide a dashboard link. Please try again.'
+        );
+      await WebBrowser.openBrowserAsync(res.url);
     } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Could not open Stripe. Please try again.'
+      );
       logger.warn('Failed to open dashboard', { error: e });
     }
   };
@@ -177,10 +187,14 @@ const ContractorPayoutsScreen: React.FC = () => {
         {error && (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
+            <Button
+              title='Retry payout status'
+              onPress={() => loadStatus(true)}
+            />
           </View>
         )}
 
-        {(!status || !status.detailsSubmitted) && (
+        {!error && (!status || !status.detailsSubmitted) && (
           <>
             <NoAccountCard onStart={startOnboarding} busy={busy} />
             <PayoutInfoSection />
@@ -216,7 +230,7 @@ const NoAccountCard: React.FC<{
     </Text>
     <View style={styles.bulletList}>
       <Text style={styles.bullet}>• Payouts sent weekly on Fridays</Text>
-      <Text style={styles.bullet}>• Minimum balance £50 before payout</Text>
+      <Text style={styles.bullet}>• Minimum balance £0.01 before payout</Text>
       <Text style={styles.bullet}>
         • Stripe handles tax documents in your dashboard
       </Text>
@@ -269,7 +283,7 @@ const ReadyCard: React.FC<{
   hasPendingRequirements: boolean;
 }> = ({ balance, onOpenDashboard, hasPendingRequirements }) => {
   const pending = balance?.pendingAmountMinor ?? 0;
-  const threshold = balance?.threshold ?? 5000;
+  const threshold = balance?.threshold ?? 1;
   const currency = balance?.currency ?? 'GBP';
   const progress = Math.min(100, Math.round((pending / threshold) * 100));
 
@@ -281,9 +295,17 @@ const ReadyCard: React.FC<{
           <Text style={styles.cardTitle}>Ready to receive payouts</Text>
         </View>
 
+        <Text style={styles.cardBody}>
+          Funds still held in escrow are shown on the Escrow screen. Only
+          released earnings count towards the payout balance below. Transfers
+          run weekly once the minimum is reached; bank arrival follows Stripe
+          processing.
+        </Text>
         <View style={styles.balanceRow}>
           <View style={styles.balanceCell}>
-            <Text style={styles.balanceLabel}>Pending balance</Text>
+            <Text style={styles.balanceLabel}>
+              Released earnings awaiting transfer
+            </Text>
             <Text style={styles.balanceAmount}>
               {formatMoney(pending, currency)}
             </Text>

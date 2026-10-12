@@ -31,7 +31,9 @@ const envPaths = [
 
 // Find the first existing .env file
 let envPath = null;
-for (const candidatePath of envPaths) {
+// Cloud builds must use their selected EAS environment, never local web defaults.
+const cloudBuild = process.env.EAS_BUILD === 'true' || !!process.env.EAS_BUILD_PROFILE;
+for (const candidatePath of cloudBuild ? [] : envPaths) {
   if (fs.existsSync(candidatePath)) {
     envPath = candidatePath;
     break;

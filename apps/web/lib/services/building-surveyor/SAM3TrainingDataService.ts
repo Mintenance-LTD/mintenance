@@ -9,6 +9,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from './training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SAM3Service } from './SAM3Service';
 import type {
@@ -41,6 +42,7 @@ export class SAM3TrainingDataService {
     sam3Data: DamageTypeSegmentation,
     imageIndex: number = 0
   ): Promise<string[]> {
+    assertTrainingReuseAllowed();
     try {
       const maskIds: string[] = [];
 
@@ -109,6 +111,7 @@ export class SAM3TrainingDataService {
    * Store a single SAM3 training mask
    */
   static async storeSAM3Mask(input: SAM3TrainingMaskInput): Promise<string> {
+    assertTrainingReuseAllowed();
     try {
       const { data, error } = await serverSupabase
         .from('sam3_training_masks')
@@ -154,6 +157,7 @@ export class SAM3TrainingDataService {
     imageUrls: string[],
     options: PseudoLabelGenerationOptions = {}
   ): Promise<PseudoLabelResult[]> {
+    assertTrainingReuseAllowed();
     return generatePseudoLabels(imageUrls, options);
   }
 

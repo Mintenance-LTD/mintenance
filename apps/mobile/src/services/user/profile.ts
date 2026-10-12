@@ -12,7 +12,7 @@ export async function getUserProfile(
 ): Promise<UserProfile | null> {
   try {
     const { data: user, error } = await supabase
-      .from('profiles')
+      .from('profile_directory')
       .select(
         `
           id, role, first_name, last_name, bio, city, country, profile_image_url, avatar_url, rating, total_jobs_completed, verified, admin_verified, skills, is_available, company_name, hourly_rate, years_experience, portfolio_images, created_at,
@@ -38,7 +38,7 @@ export async function getUserProfile(
             rating,
             comment,
             created_at,
-            reviewer:reviewer_id (
+            reviewer:profile_directory!reviewer_id (
               first_name,
               last_name
             )
@@ -95,7 +95,7 @@ export async function getHomeownerForJob(homeownerId: string): Promise<{
 } | null> {
   try {
     const { data: user, error } = await supabase
-      .from('profiles')
+      .from('profile_directory')
       .select('first_name, last_name, created_at, rating')
       .eq('id', homeownerId)
       .single();

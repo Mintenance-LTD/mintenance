@@ -1,0 +1,31 @@
+Portfolio management implementation and verification — 2026-09-30
+
+Base: codex/migrate-next-proxy, d87d1f3d73f2356ab254f4f30f5bc2dc101cc8f5.
+Existing readiness/scheduler notes, backup runbook and output files were preserved.
+
+Implemented
+- Portfolio action queue across owned and accepted shared properties: jobs, owner-visible tenant reports, recurring tasks and certificate expiry. Stable pagination and server-derived identity.
+- Follow-up assignee, deadline, waiting state and internal history. Optimistic revision conflicts prevent lost updates; history and assignment notification enqueue share one database transaction.
+- Private property documents: actual PDF/PNG/JPEG uploads, 3 MB route limit, header/MIME validation, authorized short-lived downloads and paginated lists on web/mobile. Pending uploads and deleted-property files remain tracked for retryable cleanup. Daily retention schedule configured.
+- Portfolio reporting and current-page CSV export on web/mobile, including recorded completion durations, repeat completed categories, contractor activity and owner-only released escrow by currency. These are activity measures, not accounting statements or verified repeat defects.
+- Ticket cross-user access, assignee/source validation and atomic history fixed. Tenant readers cannot see other reporters' tickets or internal notes.
+
+Validation
+- Web: 21 focused tests passed across ticket access/creation, queue contracts and private documents/cleanup.
+- Mobile: management parity, shared-property list, preference persistence, queue pagination/retry and conflict recovery tests exercised. Final commit hook runs both app type checks and staged lint/format checks.
+- Transaction regression SQL ran against isolated synthetic Docker PostgreSQL, then rolled back. Verified cross-user rejection, queue pagination, stale revision rejection, notification enqueue, history failure rollback, reporting isolation and document orphan tracking.
+- Required Supabase CLI db diff --local completed successfully after adding explicit transaction boundaries around an existing migration's LOCK TABLE. Root local database remains stale: generated drift SQL was NOT applied.
+- Hosted Supabase migrations applied successfully: 20260930105414, 20260930105423, 20260930105433, 20260930105440, 20260930105448. Local filenames aligned with hosted migration history.
+- Hosted read-only verification: all four new/updated privileged RPCs deny authenticated direct execution and permit service_role; document bucket private; authenticated direct document metadata SELECT denied. Queue/report return empty results for a nonexistent synthetic identity.
+- No live payments, production fixture records or manual notification sends performed.
+
+Open acceptance and scope limits
+- Signed-in browser and fresh Android APK acceptance of these new screens still required. Physical Android/iOS file export and interrupted-upload checks are not established by mocked tests.
+- Real Storage upload/download roundtrip is not verified by the unit tests or SQL regression.
+- Follow-up notes are internal manager notes; this does not implement tenant/contractor two-way messaging or appointment confirmations. Assignment notification enqueue is verified, end-recipient delivery is not.
+- Follow-up history displays the latest 50 entries. CSV export explicitly exports the current property page, not an entire portfolio in one file.
+- No per-file delete control or document search added. Header validation is not malware scanning.
+- No response-time metric invented where source events lack reliable acknowledgment timestamps.
+- Full product readiness remains unestablished; separate backup, device, operations and release acceptance gates remain.
+
+Environment: Node 22.15.0 used; repository requests Node 20.19.4. Global npx is broken; the installed Node npm launcher was used. This version mismatch remains a validation limitation.

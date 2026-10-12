@@ -1,3 +1,4 @@
+import { JobIssueConversations } from '../properties/components/JobIssueConversations';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
@@ -7,13 +8,14 @@ import {
   Dimensions,
   Share,
   Alert,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
-import { goBackSafe } from '../../navigation/hooks';
+import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import { useJobBids, useMyBidForJob } from '../../hooks/useJobs';
 import { BidService } from '../../services/BidService';
@@ -85,6 +87,39 @@ interface Props {
  * preserved; only the orchestration + state remain here.
  */
 export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          navigation.popTo('JobsList');
+          return true;
+        }
+      );
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
+  const pendingScreen = (content: React.ReactNode) => (
+    <View style={{ flex: 1, paddingTop: insets.top }}>
+      <TouchableOpacity
+        accessibilityRole='button'
+        accessibilityLabel='Back to jobs'
+        onPress={() => navigation.popTo('JobsList')}
+        style={{
+          padding: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Ionicons name='arrow-back' size={24} />
+        <Text>Back to jobs</Text>
+      </TouchableOpacity>
+      {content}
+    </View>
+  );
+
   // 2026-05-26 audit-58 P3: previously `const { jobId } = route.params`
   // would throw if a deep link / notification / fallback route landed
   // here without params (or with an empty/undefined jobId). The
@@ -154,28 +189,13 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
-  // The contractor only travels to the property once the job is under way
-  // (`in_progress`) or the homeowner has secured payment — contract accepted
-  // AND escrow funded. Before that the job sits at the Contract/pre-payment
-  // step, so the "on the way" banner, ETA card, live map and location section
-  // must stay hidden even if a `contractor_locations` row exists.
-  //   - 2026-06-18: gate ignored contract acceptance → banner showed during
-  //     the unsigned Contract phase.
-  //   - 2026-07-18: gate ignored escrow → contractor appeared "on the way" to
-  //     a job the homeowner hadn't paid into escrow ("Pay Now" still visible).
-  //     `in_progress` already implies escrow was funded (a job can't start
-  //     without it), so the escrow check only constrains the `assigned` branch.
-  //     Freshness of the fix itself is handled in useContractorLiveLocation.
+  // Check current funding even for in-progress jobs: an old status alone
+  // is not proof that payment is still held.
   const contractAccepted = viewModel.contractStatus === 'accepted';
-  const escrowFunded = [
-    'held',
-    'release_pending',
-    'released',
-    'completed',
-  ].includes(viewModel.escrowStatus ?? '');
   const canShowContractorTravel =
-    job?.status === 'in_progress' ||
-    (job?.status === 'assigned' && contractAccepted && escrowFunded);
+    ['assigned', 'in_progress'].includes(job?.status ?? '') &&
+    contractAccepted &&
+    viewModel.escrowStatus === 'held';
 
   // Live contractor position for the homeowner's "on the way" banner + map.
   // One subscription, fed to the banner, the ETA card and JobLocationMap.
@@ -279,15 +299,15 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <ErrorView
         message='Missing job reference. The link you opened did not include a job id.'
-        onRetry={() => goBackSafe(navigation, 'JobsList')}
+        onRetry={() => navigation.popTo('JobsList')}
       />
     );
   }
   if (viewModel.jobLoading && !loadingTimedOut) {
-    return <LoadingSpinner message='Loading job details...' />;
+    return pendingScreen(<LoadingSpinner message='Loading job details...' />);
   }
   if (viewModel.jobError || (viewModel.jobLoading && loadingTimedOut)) {
-    return (
+    return pendingScreen(
       <ErrorView
         message={
           viewModel.jobError
@@ -305,7 +325,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <ErrorView
         message='Job not found'
-        onRetry={() => goBackSafe(navigation, 'JobsList')}
+        onRetry={() => navigation.popTo('JobsList')}
       />
     );
   }
@@ -368,7 +388,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + 8 }]}
-          onPress={() => goBackSafe(navigation, 'JobsList')}
+          onPress={() => navigation.popTo('JobsList')}
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
@@ -627,6 +647,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                       | { navigate: (name: string, params?: unknown) => void }
                       | undefined;
                     parent?.navigate('ProfileTab', {
+                      initial: false,
                       screen: 'Expenses',
                       params: { jobId: job.id, jobTitle: job.title },
                     });
@@ -639,6 +660,17 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.divider} />
 
         <JobQuickActions
+          onReschedulePress={
+            (canManageJob || job.contractor_id === user?.id) &&
+            job.status === 'assigned'
+              ? () =>
+                  navigation.dispatch(
+                    CommonActions.navigate('RescheduleBooking', {
+                      bookingId: job.id,
+                    })
+                  )
+              : undefined
+          }
           jobId={job.id}
           onDisputeDetailsPress={
             viewModel.escrowStatus &&
@@ -656,6 +688,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           isOwner={isOwner}
           canApprove={canManageJob}
           status={job.status}
+          canReportProblem={
+            (canManageJob || job.contractor_id === user?.id) &&
+            ['in_progress', 'completed'].includes(job.status) &&
+            ['held', 'awaiting_homeowner_approval'].includes(viewModel.escrowStatus ?? '')
+          }
           isCompletionConfirmedByHomeowner={
             !!(job as CTAContext['job']).completion_confirmed_by_homeowner
           }
@@ -695,6 +732,9 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             job.status === 'completed'
           }
         />
+        {(isOwner || job.contractor_id === user?.id) && (
+          <JobIssueConversations jobId={job.id} />
+        )}
       </ScrollView>
 
       {getPriorityCTA({

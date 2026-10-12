@@ -1,6 +1,9 @@
 import React from 'react';
-import { Alert } from 'react-native';
-import { fireEvent, render, waitFor } from '../test-utils';
+import { Alert, Modal } from 'react-native';
+import { fireEvent, render, waitFor, within } from '../test-utils';
+
+import ProfileScreen from '../../../screens/ProfileScreen';
+import { JobService } from '../../../services/JobService';
 
 // jest-setup.js mocks `react-native-reanimated` via the upstream
 // `react-native-reanimated/mock`, which throws under this RN/reanimated
@@ -8,6 +11,7 @@ import { fireEvent, render, waitFor } from '../test-utils';
 // in `components/animations/primitives` (FadeIn/SlideIn) which imports
 // reanimated, so override with the repo's local passthrough mock.
 jest.mock('react-native-reanimated', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
   const RN = require('react-native');
   const passthrough = (value: unknown) => value;
   const Easing = new Proxy({}, { get: () => () => {} });
@@ -40,9 +44,6 @@ jest.mock('react-native-reanimated', () => {
     Easing,
   };
 });
-
-import ProfileScreen from '../../../screens/ProfileScreen';
-import { JobService } from '../../../services/JobService';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -97,17 +98,30 @@ describe('ProfileScreen Integration - Comprehensive', () => {
     });
   });
 
-  it('triggers sign out confirmation', async () => {
+  it('requires confirmation in the themed sign out dialog', async () => {
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const view = render(<ProfileScreen />);
+    await waitFor(() => expect(view.getByText('John Doe')).toBeTruthy());
 
-    const { getByText } = render(<ProfileScreen />);
+    fireEvent.press(view.getByText('Sign Out'));
+    expect(
+      view.getByText(/Signing out removes your saved biometric/)
+    ).toBeTruthy();
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(mockSignOut).not.toHaveBeenCalled();
 
-    fireEvent.press(getByText(/sign out/i));
+    fireEvent.press(view.getByText('Cancel'));
+    expect(
+      view.queryByText(/Signing out removes your saved biometric/)
+    ).toBeNull();
+    expect(mockSignOut).not.toHaveBeenCalled();
 
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      expect.any(Array)
+    fireEvent.press(view.getByText('Sign Out'));
+    const signOutLabels = within(view.UNSAFE_getByType(Modal)).getAllByText(
+      'Sign Out'
     );
+    fireEvent.press(signOutLabels[signOutLabels.length - 1]);
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    alertSpy.mockRestore();
   });
 });

@@ -135,6 +135,7 @@ interface MintEditorialJobDetailViewProps {
   escrowHeld: boolean;
   escrowStatus: string;
   escrowId: string | null;
+  paymentAmounts?: { gross: number; fee: number | null; net: number | null };
   jobPhotoUrls: string[];
   buildingAssessment: unknown;
   userId: string;
@@ -197,6 +198,7 @@ export function MintEditorialJobDetailView({
   escrowHeld,
   escrowStatus,
   escrowId,
+  paymentAmounts,
   jobPhotoUrls,
   buildingAssessment,
   userId,
@@ -209,17 +211,26 @@ export function MintEditorialJobDetailView({
   // started + abandoned a contact row.
   const contactList = (propertyContacts ?? []).filter((c) => !!c && !!c.name);
   const budgetNum =
-    typeof job.budget === 'number'
+    paymentAmounts?.gross ??
+    (typeof job.budget === 'number'
       ? job.budget
       : job.budget
         ? parseFloat(String(job.budget))
-        : 0;
+        : 0);
   // Tier-aware, resolved server-side and passed in. formatPlatformFeePercent
   // + platformFeeBreakdown are the shared helpers mobile uses too, so the
   // label and the maths can never diverge across platforms.
   const feeBreakdown = platformFeeBreakdown(budgetNum, platformFeeRate);
-  const platformFee = feeBreakdown.platformFee;
-  const netToYou = feeBreakdown.netToContractor;
+  const isReleased =
+    escrowStatus === 'released' || escrowStatus === 'completed';
+  const hasRecordedAmounts =
+    isReleased && paymentAmounts?.fee != null && paymentAmounts?.net != null;
+  const platformFee = hasRecordedAmounts
+    ? paymentAmounts.fee!
+    : feeBreakdown.platformFee;
+  const netToYou = hasRecordedAmounts
+    ? paymentAmounts.net!
+    : feeBreakdown.netToContractor;
   const homeownerName = homeowner
     ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
       homeowner.email ||
@@ -973,20 +984,23 @@ export function MintEditorialJobDetailView({
                     style={{ color: 'var(--me-brand)' }}
                   />
                   <h3 className='t-h3' style={{ margin: 0 }}>
-                    You&apos;ll be paid
+                    {isReleased ? 'Released earnings' : 'Estimated earnings'}
                   </h3>
                 </div>
                 <div className='col' style={{ gap: 8 }}>
                   <div className='between'>
-                    <span className='t-meta'>Bid amount</span>
+                    <span className='t-meta'>
+                      {paymentAmounts ? 'Funded amount' : 'Job amount'}
+                    </span>
                     <span style={{ fontSize: 13, fontWeight: 500 }}>
                       {formatGbp(budgetNum)}
                     </span>
                   </div>
                   <div className='between'>
                     <span className='t-meta'>
-                      Mintenance fee (
-                      {formatPlatformFeePercent(platformFeeRate)})
+                      {hasRecordedAmounts
+                        ? 'Recorded Mintenance fee'
+                        : `Mintenance fee (${formatPlatformFeePercent(platformFeeRate)}, minimum 50p)`}
                     </span>
                     <span
                       style={{
@@ -1024,15 +1038,16 @@ export function MintEditorialJobDetailView({
                   className='t-meta'
                   style={{
                     color:
-                      escrowStatus === 'released'
+                      escrowStatus === 'released' ||
+                      escrowStatus === 'completed'
                         ? 'var(--me-ok)'
                         : 'var(--me-ink-3)',
                   }}
                 >
-                  {escrowStatus === 'released'
-                    ? 'Released to your Stripe account.'
+                  {escrowStatus === 'released' || escrowStatus === 'completed'
+                    ? 'Released earnings. Check Payouts for transfer and bank status.'
                     : escrowHeld
-                      ? 'Released within 24h of homeowner approval.'
+                      ? 'Held until the review period and payment checks are complete.'
                       : 'Payment moves to escrow once the homeowner pays.'}
                 </p>
               </div>

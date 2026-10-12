@@ -14,6 +14,11 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 
+// Import after mocks
+import MessagingScreen from '../MessagingScreen';
+import * as ImagePicker from 'expo-image-picker';
+import { Alert } from 'react-native';
+
 // ---------------------------------------------------------------------------
 // Single shared bag for all factory-referenced state (mock-prefixed → allowed)
 // ---------------------------------------------------------------------------
@@ -71,7 +76,7 @@ const mockShared: {
 // functional component that actually renders items / the empty component.
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
-  const React2 = require('react');
+  const React2 = jest.requireActual('react');
   const FlatListMock = React2.forwardRef(
     (
       props: {
@@ -218,7 +223,7 @@ jest.mock('../messaging/hooks/useVideoCall', () => ({
 }));
 
 jest.mock('../../components/responsive', () => {
-  const React2 = require('react');
+  const React2 = jest.requireActual('react');
   return {
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
       React2.createElement(React2.Fragment, null, children),
@@ -228,8 +233,8 @@ jest.mock('../../components/responsive', () => {
 
 // Heavy child stubs exposing callbacks via testIDs
 jest.mock('../messaging/components/ChatHeader', () => {
-  const React2 = require('react');
-  const { Text: T, TouchableOpacity: TO } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text: T, TouchableOpacity: TO } = jest.requireMock('react-native');
   return {
     ChatHeader: (
       props: Record<string, () => void> & { onSendQuote?: () => void }
@@ -269,8 +274,8 @@ jest.mock('../messaging/components/ChatHeader', () => {
 });
 
 jest.mock('../messaging/components/MessageBubble', () => {
-  const React2 = require('react');
-  const { Text: T, TouchableOpacity: TO } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text: T, TouchableOpacity: TO } = jest.requireMock('react-native');
   return {
     MessageBubble: (props: {
       item: { id: string; messageText: string };
@@ -294,8 +299,12 @@ jest.mock('../messaging/components/MessageBubble', () => {
 });
 
 jest.mock('../messaging/components/MessageComposer', () => {
-  const React2 = require('react');
-  const { Text: T, TextInput, TouchableOpacity: TO } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const {
+    Text: T,
+    TextInput,
+    TouchableOpacity: TO,
+  } = jest.requireMock('react-native');
   return {
     MessageComposer: (props: {
       value: string;
@@ -331,8 +340,8 @@ jest.mock('../messaging/components/MessageComposer', () => {
 });
 
 jest.mock('../messaging/components/MessagingStates', () => {
-  const React2 = require('react');
-  const { Text: T, TouchableOpacity: TO } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text: T, TouchableOpacity: TO } = jest.requireMock('react-native');
   return {
     MessagingLoading: () =>
       React2.createElement(T, { testID: 'state-loading' }, 'loading'),
@@ -355,8 +364,8 @@ jest.mock('../messaging/components/MessagingStates', () => {
 });
 
 jest.mock('../MessagingScreen/TypingIndicator', () => {
-  const React2 = require('react');
-  const { Text: T } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text: T } = jest.requireMock('react-native');
   return {
     TypingIndicator: () =>
       React2.createElement(T, { testID: 'typing' }, 'typing...'),
@@ -364,8 +373,12 @@ jest.mock('../MessagingScreen/TypingIndicator', () => {
 });
 
 jest.mock('../MessagingScreen/QuickQuoteModal', () => {
-  const React2 = require('react');
-  const { Text: T, TextInput, TouchableOpacity: TO } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const {
+    Text: T,
+    TextInput,
+    TouchableOpacity: TO,
+  } = jest.requireMock('react-native');
   return {
     QuickQuoteModal: (props: {
       visible: boolean;
@@ -412,8 +425,8 @@ jest.mock('../MessagingScreen/QuickQuoteModal', () => {
 });
 
 jest.mock('../../components/video-call/VideoCallScheduler', () => {
-  const React2 = require('react');
-  const { Text: T, TouchableOpacity: TO } = require('react-native');
+  const React2 = jest.requireActual('react');
+  const { Text: T, TouchableOpacity: TO } = jest.requireMock('react-native');
   return {
     __esModule: true,
     default: (props: { onClose: () => void; onScheduled: () => void }) =>
@@ -424,11 +437,6 @@ jest.mock('../../components/video-call/VideoCallScheduler', () => {
       ),
   };
 });
-
-// Import after mocks
-import MessagingScreen from '../MessagingScreen';
-import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
 
 const HOMEOWNER = { id: 'user-1', role: 'homeowner', first_name: 'Hank' };
 const CONTRACTOR = { id: 'user-1', role: 'contractor', first_name: 'Carla' };
@@ -850,13 +858,10 @@ describe('MessagingScreen — header actions', () => {
     expect(mockShared.setShowScheduler).toHaveBeenCalledWith(true);
   });
 
-  it('start video call shows coming-soon alert', () => {
+  it('phone action opens the phone-call scheduler', () => {
     const { getByTestId } = renderScreen();
     fireEvent.press(getByTestId('hdr-video'));
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'Video calls coming soon',
-      expect.any(String)
-    );
+    expect(mockShared.setShowScheduler).toHaveBeenCalledWith(true);
   });
 
   it('view job details navigates to parent JobsTab', () => {

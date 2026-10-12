@@ -16,6 +16,7 @@
  */
 
 import React from 'react';
+import * as Location from 'expo-location';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -168,4 +169,40 @@ describe('AddPropertyScreen — discard guard', () => {
     const { blocked } = simulateLeave();
     expect(blocked).toBe(true);
   });
+});
+
+it('re-geocodes an edited address instead of retaining the phone pin', async () => {
+  (
+    Location.requestForegroundPermissionsAsync as jest.Mock
+  ).mockResolvedValueOnce({ status: 'granted' });
+  (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValueOnce({
+    coords: { latitude: 51, longitude: 0 },
+  });
+  (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValueOnce([
+    {
+      streetNumber: '1',
+      street: 'Old Road',
+      city: 'Stafford',
+      postalCode: 'ST16 1YS',
+    },
+  ]);
+  (Location.geocodeAsync as jest.Mock).mockResolvedValueOnce([
+    { latitude: 52, longitude: -2 },
+  ]);
+  const view = renderScreen();
+  fireEvent.press(view.getByLabelText('Use current location to fill address'));
+  await waitFor(() =>
+    expect(view.getByDisplayValue('1 Old Road')).toBeTruthy()
+  );
+  fireEvent.changeText(
+    view.getByPlaceholderText('e.g. 42 High Street'),
+    '1 Correct Close'
+  );
+  pressSubmit(view);
+  await waitFor(() =>
+    expect(mockPost).toHaveBeenCalledWith(
+      '/api/properties',
+      expect.objectContaining({ latitude: 52, longitude: -2 })
+    )
+  );
 });

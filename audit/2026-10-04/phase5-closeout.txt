@@ -1,0 +1,14 @@
+Phase 5 closeout — public routes and core user journeys
+Status: Complete (implementation). External beta remains on hold.
+
+Fixed password recovery session/CSRF handling and removed administrative email confirmation from recovery. Verified real email-link recovery and old/new password behavior locally.
+Made mobile contractor search wording accurate and cancelled stale requests when clearing search.
+Included verified new contractors in the privacy-limited public directory; excluded deleted/unverified profiles and removed fabricated response times.
+Aligned required-photo instructions and bid-stage messaging with actual behavior.
+
+Local browser checks: registration, confirmation, login, recovery, property/job creation with photo, contractor bid submission, public directory, and two-way assigned-job messaging.
+Bid acceptance correctly failed for missing contractor Stripe configuration. Messaging used an independently seeded assigned-job fixture, not a successfully accepted bid.
+Validation: 105 targeted web tests; 35 database tests in five suites; 6 mobile tests; web/mobile type checks and changed-file lint passed.
+No Phase 5 production build or deployed/physical-device verification is claimed.
+
+Next: Phase 6 payments and reconciliation. Stripe sandbox acceptance/payment gates remain open. Separately owned after-photo completion was not changed. Device and deployment checks remain in Phases 7 and 8.

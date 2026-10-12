@@ -3,6 +3,12 @@
 # Asset files (icon.png, splash.png, etc.) MUST be included!
 
 # Web app directory (not needed for mobile builds)
+audit/
+output/
+.codex/
+../../audit/
+../../output/
+**/isolated-stack/
 ../web/
 ../../apps/web/
 

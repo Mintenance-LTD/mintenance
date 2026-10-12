@@ -16,6 +16,8 @@ interface DatePickerProps {
   onChange: (date: Date) => void;
   minimumDate?: Date;
   placeholder?: string;
+  hideLabel?: boolean;
+  mode?: 'date' | 'time';
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({
@@ -24,20 +26,27 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   onChange,
   minimumDate,
   placeholder = 'Select date',
+  hideLabel = false,
+  mode = 'date',
 }) => {
   const [show, setShow] = useState(false);
 
   const formatted = value
-    ? value.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
+    ? mode === 'time'
+      ? value.toLocaleTimeString('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : value.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
     : null;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {!hideLabel && <Text style={styles.label}>{label}</Text>}
       <TouchableOpacity
         style={styles.button}
         onPress={() => setShow(true)}
@@ -62,7 +71,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {show && (
         <DateTimePicker
           value={value ?? new Date()}
-          mode='date'
+          mode={mode}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           minimumDate={minimumDate}
           onChange={(_, date) => {

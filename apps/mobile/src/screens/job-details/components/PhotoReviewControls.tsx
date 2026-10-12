@@ -35,6 +35,15 @@ export const PhotoReviewControls: React.FC<PhotoReviewControlsProps> = ({
     return (
       <View style={styles.changesForm}>
         <Text style={styles.changesLabel}>What changes are needed?</Text>
+        <Text style={styles.instructionsText}>
+          Describe corrections to the agreed work. This reopens the job and
+          pauses payment approval while the contractor addresses your feedback.
+        </Text>
+        <Text style={styles.instructionsText}>
+          If a return visit is needed, include your availability and agree the
+          date and time in Messages. This request does not book a visit or add a
+          charge. Agree any extra work and price separately before it starts.
+        </Text>
         <TextInput
           style={styles.changesInput}
           value={changesComment}

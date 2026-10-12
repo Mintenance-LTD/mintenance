@@ -35,6 +35,7 @@ const resetPasswordSchema = z
         /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
         'Invalid reset link. Please request a new password reset.'
       ),
+    refreshToken: z.string().min(1).max(4096),
     password: z
       .string()
       .min(1, 'Password is required')
@@ -87,7 +88,7 @@ export const POST = withApiHandler(
       });
       throw new BadRequestError(first?.message ?? 'Invalid request');
     }
-    const { accessToken, password: newPassword } = parsed.data;
+    const { accessToken, refreshToken, password: newPassword } = parsed.data;
 
     // SECURITY: Use centralized PasswordValidator (same validation as registration)
     const validationResult = PasswordValidator.validate(newPassword, {
@@ -129,10 +130,10 @@ export const POST = withApiHandler(
     // NOTE: Uses anon client (not serverSupabase) because we need auth.setSession()
     const supabase = createAnonClient();
 
-    // Set the session using the access token
+    // Supabase requires both tokens from the recovery link to restore a session.
     const { error: sessionError } = await supabase.auth.setSession({
       access_token: accessToken,
-      refresh_token: '', // Not needed for password reset
+      refresh_token: refreshToken,
     });
 
     if (sessionError) {

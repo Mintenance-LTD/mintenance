@@ -307,7 +307,12 @@ export class EscrowAutoReleaseService {
         );
         await serverSupabase
           .from('escrow_transactions')
-          .update({ status: 'held', updated_at: new Date().toISOString() })
+          .update({
+            status: 'held',
+            release_blocked_reason:
+              'Payment verification or earnings credit failed. Support reconciliation is required before payout.',
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', escrow.id)
           .eq('status', 'release_pending');
         return false;
@@ -346,6 +351,7 @@ export class EscrowAutoReleaseService {
             status: 'completed',
             released_at: new Date().toISOString(),
             release_reason: 'auto_release_accumulated',
+            release_blocked_reason: null,
             updated_at: new Date().toISOString(),
             // transfer_id intentionally null — will be set by weekly payout
             platform_fee: feeBreakdown.platformFee,

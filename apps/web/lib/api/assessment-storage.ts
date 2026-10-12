@@ -84,40 +84,55 @@ export async function signAssessmentPath(
  * Returns null when the URL belongs to a different bucket (the existing rows
  * pointing at Job-storage) so the caller can pass it through untouched.
  */
-export function extractAssessmentPath(url: string): string | null {
-  if (!url) return null;
-
-  if (!url.startsWith('http')) {
-    return url.replace(/^\/+/, '');
-  }
-
-  const match = url.match(
-    /\/storage\/v1\/object\/(?:public|sign)\/assessment-photos\/([^?]+)/
-  );
-  if (match && match[1]) {
-    return decodeURIComponent(match[1]);
-  }
-  return null;
+export function extractAssessmentPath(value: string): string | null {
+  if (!value) return null;
+  try {
+    let path = value;
+    if (/^https?:/i.test(value)) {
+      const url = new URL(value);
+      const base = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '');
+      if (url.origin !== base.origin || url.username || url.password || url.hash) return null;
+      const match = url.pathname.match(/^\/storage\/v1\/object\/(?:public|sign|authenticated)\/assessment-photos\/(.+)$/);
+      if (!match) return null;
+      path = decodeURIComponent(match[1]);
+    }
+    const parts = path.split('/');
+    if (parts.length < 3 || !['assessments', 'quick-ai'].includes(parts[0]) ||
+      /[%\\\x00-\x1f]/.test(path) || parts.some(p => !p || p === '.' || p === '..')) return null;
+    return path;
+  } catch { return null; }
 }
-
 /**
  * Re-sign persisted assessment image URLs into fresh signed URLs.
  *
- * Unrecognised URLs (e.g. the historical Job-storage rows) pass through
- * unchanged rather than being dropped, so a render never silently loses an
- * image it was supposed to show.
+ * Invalid, foreign, missing and cross-assessment references are omitted.
+ * Callers mapping by index must sign one row at a time to preserve alignment.
  */
 export async function resignAssessmentUrls(
   urls: Array<string | null | undefined>,
-  ttlSeconds: number = DEFAULT_TTL_SECONDS
+  ttlSeconds: number = DEFAULT_TTL_SECONDS,
+  assessmentId?: string
 ): Promise<string[]> {
   const results = await Promise.all(
     urls.map(async (url) => {
       if (!url) return null;
       const path = extractAssessmentPath(url);
-      if (!path) return url;
+      if (!path) return null;
+      if (assessmentId && !path.startsWith('assessments/' + assessmentId + '/')) {
+        // Walkthroughs predate assessment-scoped paths. Their folder is either
+        // the owner ID or the linked property/job ID followed by a timestamp.
+        if (!path.startsWith('quick-ai/')) return null;
+        const { data: assessment, error } = await serverSupabase.from('building_assessments')
+          .select('user_id, property_id, job_id').eq('id', assessmentId).maybeSingle();
+        if (error || !assessment) return null;
+        const folder = path.split('/')[1];
+        const linked = [assessment.property_id, assessment.job_id].filter(Boolean);
+        const allowed = folder === assessment.user_id || linked.some(id =>
+          folder.startsWith(`${id}-`) && /^\d+$/.test(folder.slice(String(id).length + 1)));
+        if (!allowed) return null;
+      }
       const signed = await signAssessmentPath(path, ttlSeconds);
-      return signed ?? url;
+      return signed;
     })
   );
   return results.filter((u): u is string => Boolean(u));

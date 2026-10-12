@@ -31,19 +31,35 @@ export default async function ContractorReportingPage2025() {
         .select('id, amount, status, created_at')
         .eq('contractor_id', user.id),
       serverSupabase
-        .from('payments')
-        .select('id, amount, status, created_at, job_id')
+        .from('escrow_transactions')
+        .select(
+          'id, amount, contractor_payout, platform_fee, status, released_at, job_id'
+        )
         .eq('payee_id', user.id)
-        .eq('status', 'completed'),
+        .in('status', ['released', 'completed']),
       serverSupabase
         .from('reviews')
         .select('id, rating, comment, created_at')
         .eq('reviewee_id', user.id),
     ]);
 
+  if (
+    [jobsResult, bidsResult, paymentsResult, reviewsResult].some(
+      (result) => result.error
+    )
+  ) {
+    throw new Error('Could not load reporting data. Please retry.');
+  }
   const jobs = jobsResult.data || [];
   const bids = bidsResult.data || [];
-  const payments = paymentsResult.data || [];
+  const payments = (paymentsResult.data || []).map((row) => ({
+    ...row,
+    created_at: row.released_at,
+    amount: Number(
+      row.contractor_payout ??
+        Number(row.amount) - Number(row.platform_fee ?? 0)
+    ),
+  }));
   const reviews = reviewsResult.data || [];
 
   // Calculate metrics
@@ -134,7 +150,7 @@ export default async function ContractorReportingPage2025() {
     .select(
       `id, homeowner_id, status,
        homeowner:profiles!homeowner_id(first_name, last_name),
-       escrow_transactions(amount, status)`
+       escrow_transactions(amount, contractor_payout, platform_fee, status)`
     )
     .eq('contractor_id', user.id)
     .eq('status', 'completed');
@@ -144,6 +160,7 @@ export default async function ContractorReportingPage2025() {
   ).size;
 
   // Calculate top clients by revenue using released escrow amounts.
+  if (clientJobsResult.error) throw new Error('Could not load client report');
   const clientRevenueMap = new Map<
     string,
     { name: string; revenue: number; jobs: number }
@@ -162,9 +179,20 @@ export default async function ContractorReportingPage2025() {
         ? [job.escrow_transactions]
         : [];
     const realised = escrowRows.reduce<number>((acc, tx) => {
-      const t = tx as { amount?: number | string | null; status?: string };
+      const t = tx as {
+        amount?: number | string | null;
+        contractor_payout?: number | string | null;
+        platform_fee?: number | string | null;
+        status?: string;
+      };
       if (t?.status === 'released' || t?.status === 'completed') {
-        return acc + Number(t.amount ?? 0);
+        return (
+          acc +
+          Number(
+            t.contractor_payout ??
+              Number(t.amount ?? 0) - Number(t.platform_fee ?? 0)
+          )
+        );
       }
       return acc;
     }, 0);
@@ -191,13 +219,6 @@ export default async function ContractorReportingPage2025() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const recentPaymentsResult = await serverSupabase
-    .from('payments')
-    .select('amount, created_at')
-    .eq('payee_id', user.id)
-    .eq('status', 'completed')
-    .gte('created_at', sevenDaysAgo.toISOString());
-
   const dailyRevenueMap = new Map<string, { revenue: number; jobs: number }>();
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -210,15 +231,20 @@ export default async function ContractorReportingPage2025() {
   }
 
   // Aggregate daily revenue
-  (recentPaymentsResult.data || []).forEach((payment) => {
-    const date = new Date(payment.created_at);
-    const dayName = dayNames[date.getDay()];
-    const existing = dailyRevenueMap.get(dayName) || { revenue: 0, jobs: 0 };
-    dailyRevenueMap.set(dayName, {
-      revenue: existing.revenue + (payment.amount || 0),
-      jobs: existing.jobs + 1,
+  payments
+    .filter(
+      (payment) =>
+        payment.created_at && payment.created_at >= sevenDaysAgo.toISOString()
+    )
+    .forEach((payment) => {
+      const date = new Date(payment.created_at);
+      const dayName = dayNames[date.getDay()];
+      const existing = dailyRevenueMap.get(dayName) || { revenue: 0, jobs: 0 };
+      dailyRevenueMap.set(dayName, {
+        revenue: existing.revenue + (payment.amount || 0),
+        jobs: existing.jobs + 1,
+      });
     });
-  });
 
   const dailyRevenue = Array.from(dailyRevenueMap.entries()).map(
     ([day, data]) => ({

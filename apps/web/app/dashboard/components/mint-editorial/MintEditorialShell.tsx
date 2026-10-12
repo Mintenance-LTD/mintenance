@@ -106,7 +106,9 @@ export function MintEditorialShell({
             type='button'
             className='me-menu-btn'
             onClick={() => setDrawerOpen((open) => !open)}
-            aria-label={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-label={
+              drawerOpen ? 'Close navigation menu' : 'Open navigation menu'
+            }
             aria-expanded={drawerOpen}
           >
             {drawerOpen ? (
@@ -124,9 +126,14 @@ export function MintEditorialShell({
           <NotificationBell href='/notifications' />
         </div>
 
-        <div className='me-content' style={{ padding: contentPadding, flex: 1 }}>
+        <main
+          id='main-content'
+          tabIndex={-1}
+          className='me-content'
+          style={{ padding: contentPadding, flex: 1 }}
+        >
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );

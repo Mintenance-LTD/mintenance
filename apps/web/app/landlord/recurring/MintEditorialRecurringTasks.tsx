@@ -1,23 +1,12 @@
 'use client';
+import {
+  RecurringAudienceFields,
+  emptyAudience,
+} from '@/components/recurring/RecurringAudienceFields';
+import { recurringCategory } from '@/lib/services/recurring/recurring-category';
 import { scheduleRequest } from '@/lib/schedule-request-key';
 
-/**
- * Mint Editorial port of /landlord/recurring.
- *
- * Same data path as RecurringTasksClient.tsx. Visual diffs:
- *   - Header → .t-h1 + .t-body
- *   - Alerts → .badge-warn / .badge-err strips at the top
- *   - New task form → .card .card-pad with .field inputs and
- *     .btn-primary save
- *   - Schedule list → .card rows with status tile (overdue / due
- *     soon / on track) + days-until on the right
- *   - Empty state → <MintEditorialEmptyState> with RefreshCw icon
- *
- * Functional fix (audit P2): POST /api/landlord/recurring now sends
- * a CSRF header. Same reasoning as the contacts + reporting-links
- * ports.
- */
-
+import Link from 'next/link';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -30,13 +19,11 @@ import {
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
-
 interface Property {
   id: string;
   property_name: string;
   address: string;
 }
-
 interface Schedule {
   id: string;
   property_id: string;
@@ -50,22 +37,18 @@ interface Schedule {
   auto_create_job: boolean;
   is_active: boolean;
 }
-
 import { FREQUENCY_LABELS, TASK_TYPES } from './recurring-options';
-
 function daysUntil(dateStr: string): number {
   return Math.ceil(
     (new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
 }
-
 interface StatusInfo {
   Icon: typeof AlertTriangle;
   bg: string;
   fg: string;
   label: string;
 }
-
 function statusFor(days: number): StatusInfo {
   if (days < 0) {
     return {
@@ -99,6 +82,7 @@ export function MintEditorialRecurringTasks({
   schedules: Schedule[];
 }) {
   const [schedules, setSchedules] = useState(initialSchedules);
+  const [audience, setAudience] = useState(emptyAudience);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -137,6 +121,13 @@ export function MintEditorialRecurringTasks({
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
+      audience.notification_audience === 'preferred' &&
+      !audience.preferred_contractor_id
+    ) {
+      toast.error('Choose a favourite contractor.');
+      return;
+    }
+    if (
       !formData.property_id ||
       !formData.title.trim() ||
       !formData.next_due_date ||
@@ -154,7 +145,10 @@ export function MintEditorialRecurringTasks({
     savingRef.current = true;
     setSaving(true);
     try {
-      const operation = await scheduleRequest(formData.property_id, formData);
+      const operation = await scheduleRequest(formData.property_id, {
+        ...formData,
+        ...audience,
+      });
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch('/api/landlord/recurring', {
         method: 'POST',
@@ -165,6 +159,7 @@ export function MintEditorialRecurringTasks({
         },
         body: JSON.stringify({
           ...formData,
+          ...audience,
           title: formData.title.trim(),
           description: formData.description.trim() || null,
         }),
@@ -183,6 +178,7 @@ export function MintEditorialRecurringTasks({
       operation.complete();
       setSchedules((prev) => [...prev, schedule]);
       setShowForm(false);
+      setAudience(emptyAudience);
       setFormData({
         property_id: '',
         task_type: 'General Inspection',
@@ -306,9 +302,10 @@ export function MintEditorialRecurringTasks({
                 className='field'
                 value={formData.property_id}
                 aria-label='Property'
-                onChange={(e) =>
+                onChange={(e) => (
+                  setAudience((a) => ({ ...emptyAudience, category: a.category })),
                   setFormData((p) => ({ ...p, property_id: e.target.value }))
-                }
+                )}
                 style={{ flex: '1 1 220px', minWidth: 220 }}
               >
                 <option value=''>Select property…</option>
@@ -322,13 +319,17 @@ export function MintEditorialRecurringTasks({
                 className='field'
                 value={formData.task_type}
                 aria-label='Task type'
-                onChange={(e) =>
+                onChange={(e) => {
+                  setAudience((a) => ({
+                    ...a,
+                    category: recurringCategory(undefined, e.target.value),
+                  }));
                   setFormData((p) => ({
                     ...p,
                     task_type: e.target.value,
                     title: e.target.value,
-                  }))
-                }
+                  }));
+                }}
                 style={{ flex: '1 1 200px', minWidth: 200 }}
               >
                 {TASK_TYPES.map((t) => (
@@ -380,6 +381,12 @@ export function MintEditorialRecurringTasks({
                 style={{ flex: '1 1 180px', minWidth: 180 }}
               />
             </div>
+            <RecurringAudienceFields
+              key={formData.property_id}
+              propertyId={formData.property_id}
+              value={audience}
+              onChange={setAudience}
+            />
             <label
               className='row'
               style={{ gap: 8, fontSize: 13, color: 'var(--me-ink-2)' }}
@@ -460,13 +467,32 @@ export function MintEditorialRecurringTasks({
                       {schedule.title}
                     </span>
                     {schedule.auto_create_job ? (
-                      <span className='badge badge-info'>Auto-job</span>
+                      <span className='badge badge-info'>
+                        Creates a job when due
+                      </span>
                     ) : null}
                   </div>
                   <span className='t-meta' style={{ fontSize: 12 }}>
                     {propertyName(schedule.property_id)} ·{' '}
                     {FREQUENCY_LABELS[schedule.frequency] ?? schedule.frequency}
                   </span>
+                  <p className='t-meta'>
+                    {schedule.auto_create_job
+                      ? 'A scheduled check creates the job. Review bids and approve completed work from that job; moving the due date does not confirm completion.'
+                      : 'Reminder only. Arrange the work yourself or post a job. This reminder does not record completed work.'}
+                  </p>
+                  <Link
+                    className='btn btn-secondary btn-sm'
+                    href={`/properties/${schedule.property_id}?tab=manage`}
+                  >
+                    Manage schedule
+                  </Link>
+                  <Link
+                    className='btn btn-ghost btn-sm'
+                    href={`/properties/${schedule.property_id}?tab=overview`}
+                  >
+                    View property jobs
+                  </Link>
                 </div>
                 <div
                   className='col'

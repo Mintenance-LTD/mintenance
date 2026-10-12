@@ -6,7 +6,7 @@
  * fully native-thread gesture handling at 60fps.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Image,
@@ -14,6 +14,7 @@ import {
   Dimensions,
   Text,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -32,13 +33,19 @@ interface BeforeAfterSliderProps {
   beforeUrl: string;
   afterUrl: string;
   height?: number;
+  onRetry?: () => void;
 }
 
 export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   beforeUrl,
   afterUrl,
   height = 300,
+  onRetry,
 }) => {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [beforeUrl, afterUrl]);
   // Track slider position; starts at midpoint
   const sliderX = useSharedValue(IMAGE_WIDTH / 2);
   // Record where the gesture began so we can offset correctly
@@ -74,6 +81,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         source={{ uri: afterUrl }}
         style={[styles.image, { height }]}
         resizeMode='cover'
+        onError={() => setFailed(true)}
       />
 
       {/* Before photo — clipped from left by slider position */}
@@ -84,6 +92,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           source={{ uri: beforeUrl }}
           style={[styles.image, { width: IMAGE_WIDTH, height }]}
           resizeMode='cover'
+          onError={() => setFailed(true)}
         />
       </Animated.View>
 
@@ -105,11 +114,36 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           </View>
         </Animated.View>
       </GestureDetector>
+      {failed && (
+        <View style={[StyleSheet.absoluteFillObject, styles.errorOverlay]}>
+          <Text>Unable to load comparison photos.</Text>
+          {onRetry && (
+            <TouchableOpacity
+              onPress={onRetry}
+              accessibilityRole='button'
+              accessibilityLabel='Reload review photos'
+            >
+              <Text style={styles.retryText}>Reload photos</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  errorOverlay: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+  retryText: {
+    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    padding: 12,
+  },
   container: {
     width: IMAGE_WIDTH,
     borderRadius: 12,

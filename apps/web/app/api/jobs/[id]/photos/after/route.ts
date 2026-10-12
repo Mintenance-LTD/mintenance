@@ -314,10 +314,17 @@ export const POST = withApiHandler(
         }
 
         // Validate photo requirements for job category
-        const photos = uploadedPhotos.map((p) => ({
-          url: p.url,
-          angleType: p.angleType,
-          qualityScore: p.qualityScore,
+        const { data: savedPhotos, error: evidenceError } = await serverSupabase
+          .from('job_photos_metadata')
+          .select('photo_url, angle_type, quality_score')
+          .eq('job_id', jobId)
+          .eq('photo_type', 'after')
+          .eq('verified', true);
+        if (evidenceError) throw evidenceError;
+        const photos = (savedPhotos || []).map((p) => ({
+          url: p.photo_url,
+          angleType: p.angle_type,
+          qualityScore: p.quality_score,
         }));
         const validationResult =
           await PhotoVerificationService.validatePhotoRequirements(

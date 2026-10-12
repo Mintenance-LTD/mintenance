@@ -31,10 +31,11 @@ export async function fetchJobStats(): Promise<JobStats> {
   const allJobs: JobApiResponse[] = data.jobs || [];
 
   const active = allJobs.filter(
-    (j) => j.status === 'in_progress' || j.status === 'assigned'
+    (j) =>
+      !j.archived_at && (j.status === 'in_progress' || j.status === 'assigned')
   ).length;
   const pending = allJobs.filter(
-    (j) => j.status === 'pending' || j.status === 'posted'
+    (j) => !j.archived_at && (j.status === 'pending' || j.status === 'posted')
   ).length;
   const completed = allJobs.filter((j) => j.status === 'completed').length;
   // 2026-05-23: prefer `total_amount` (released escrow → accepted bid
@@ -43,10 +44,13 @@ export async function fetchJobStats(): Promise<JobStats> {
   // counted as £0 in the stat — same as before, but at least the
   // assigned/in-progress/completed jobs now contribute their real
   // value instead of the (now usually NULL) budget.
-  const totalValue = allJobs.reduce(
-    (sum, j) => sum + (j.total_amount ?? j.budget ?? 0),
-    0
-  );
+  const totalValue = allJobs
+    .filter(
+      (j) =>
+        j.status === 'completed' ||
+        (!j.archived_at && ['assigned', 'in_progress'].includes(j.status))
+    )
+    .reduce((sum, j) => sum + (j.total_amount ?? j.budget ?? 0), 0);
 
   return { active, pending, completed, totalValue };
 }

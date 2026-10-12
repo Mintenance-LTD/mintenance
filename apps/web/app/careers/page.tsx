@@ -15,7 +15,11 @@ export default function CareersPage() {
   return (
     <ErrorBoundary componentName='CareersPage'>
       <LandingNavigation />
-      <main className='min-h-screen bg-gray-50'>
+      <main
+        id='main-content'
+        tabIndex={-1}
+        className='min-h-screen bg-[#f3f7f4]'
+      >
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
           <div className='text-center mb-12'>
             <h1 className='text-4xl font-bold text-gray-900 mb-4'>
@@ -27,7 +31,7 @@ export default function CareersPage() {
             </p>
           </div>
 
-          <div className='bg-white rounded-xl shadow-sm p-8 mb-8'>
+          <div className='bg-white rounded-3xl border border-[#d8e2da] shadow-sm p-6 sm:p-8 mb-8'>
             <h2 className='text-2xl font-semibold text-gray-900 mb-6'>
               Open Positions
             </h2>
@@ -42,7 +46,7 @@ export default function CareersPage() {
                 </p>
                 <Link
                   href='/contact?subject=Senior+Full-Stack+Developer'
-                  className='inline-block px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+                  className='inline-block px-6 py-2 bg-[#2f6f5f] text-white rounded-full hover:bg-teal-700 transition-colors'
                 >
                   Apply Now
                 </Link>
@@ -58,7 +62,7 @@ export default function CareersPage() {
                 </p>
                 <Link
                   href='/contact?subject=Product+Designer'
-                  className='inline-block px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+                  className='inline-block px-6 py-2 bg-[#2f6f5f] text-white rounded-full hover:bg-teal-700 transition-colors'
                 >
                   Apply Now
                 </Link>
@@ -66,31 +70,31 @@ export default function CareersPage() {
             </div>
           </div>
 
-          <div className='bg-white rounded-xl shadow-sm p-8'>
+          <div className='bg-white rounded-3xl border border-[#d8e2da] shadow-sm p-6 sm:p-8'>
             <h2 className='text-2xl font-semibold text-gray-900 mb-4'>
               Why Work With Us?
             </h2>
             <ul className='space-y-3 text-gray-600'>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>
+                <span className='text-[#2f6f5f] mr-3'>
                   <Check size={16} aria-hidden='true' />
                 </span>
                 <span>Competitive salary and equity package</span>
               </li>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>
+                <span className='text-[#2f6f5f] mr-3'>
                   <Check size={16} aria-hidden='true' />
                 </span>
                 <span>Flexible working arrangements</span>
               </li>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>
+                <span className='text-[#2f6f5f] mr-3'>
                   <Check size={16} aria-hidden='true' />
                 </span>
                 <span>Health and wellness benefits</span>
               </li>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>
+                <span className='text-[#2f6f5f] mr-3'>
                   <Check size={16} aria-hidden='true' />
                 </span>
                 <span>Opportunity to make a real impact</span>
@@ -105,7 +109,7 @@ export default function CareersPage() {
             </p>
             <Link
               href='/contact?subject=General+Enquiry'
-              className='inline-block px-6 py-2 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors'
+              className='inline-block px-6 py-2 border-2 border-teal-600 text-[#2f6f5f] rounded-full hover:bg-teal-50 transition-colors'
             >
               Get in Touch
             </Link>

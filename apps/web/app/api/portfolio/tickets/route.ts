@@ -8,7 +8,9 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 const listQuerySchema = z.object({
   orgId: z.string().uuid().optional(),
   propertyId: z.string().uuid().optional(),
-  status: z.enum(['open', 'triaged', 'in_progress', 'blocked', 'resolved', 'closed']).optional(),
+  status: z
+    .enum(['open', 'triaged', 'in_progress', 'blocked', 'resolved', 'closed'])
+    .optional(),
   limit: z.coerce.number().min(1).max(100).default(25),
 });
 
@@ -23,10 +25,13 @@ const createTicketSchema = z.object({
   slaDueAt: z.string().datetime().optional(),
 });
 
-async function requireActiveMembership(orgId: string, userId: string): Promise<void> {
+async function requireActiveMembership(
+  orgId: string,
+  userId: string
+): Promise<string> {
   const { data, error } = await serverSupabase
     .from('organization_memberships')
-    .select('id')
+    .select('id, org_role')
     .eq('org_id', orgId)
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -36,125 +41,168 @@ async function requireActiveMembership(orgId: string, userId: string): Promise<v
     throw error;
   }
   if (!data) {
-    throw new ForbiddenError('You are not an active member of this organization');
+    throw new ForbiddenError(
+      'You are not an active member of this organization'
+    );
   }
+  return data.org_role;
 }
 
-export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
-  const blocked = await requirePortfolioModeSubscription(request);
-  if (blocked) {
-    return blocked;
-  }
-
-  const parsed = listQuerySchema.safeParse({
-    orgId: request.nextUrl.searchParams.get('orgId') || undefined,
-    propertyId: request.nextUrl.searchParams.get('propertyId') || undefined,
-    status: request.nextUrl.searchParams.get('status') || undefined,
-    limit: request.nextUrl.searchParams.get('limit') || undefined,
-  });
-
-  if (!parsed.success) {
-    throw new BadRequestError('Invalid query parameters');
-  }
-
-  let orgId = parsed.data.orgId;
-  if (!orgId) {
-    const { data: membership, error: membershipError } = await serverSupabase
-      .from('organization_memberships')
-      .select('org_id')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (membershipError) {
-      throw membershipError;
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
+    const blocked = await requirePortfolioModeSubscription(request);
+    if (blocked) {
+      return blocked;
     }
 
-    if (!membership?.org_id) {
-      return NextResponse.json({
-        feature: 'portfolio_mode',
-        tickets: [],
-      });
+    const parsed = listQuerySchema.safeParse({
+      orgId: request.nextUrl.searchParams.get('orgId') || undefined,
+      propertyId: request.nextUrl.searchParams.get('propertyId') || undefined,
+      status: request.nextUrl.searchParams.get('status') || undefined,
+      limit: request.nextUrl.searchParams.get('limit') || undefined,
+    });
+
+    if (!parsed.success) {
+      throw new BadRequestError('Invalid query parameters');
     }
 
-    orgId = membership.org_id;
-  }
+    let orgId = parsed.data.orgId;
+    if (!orgId) {
+      const { data: membership, error: membershipError } = await serverSupabase
+        .from('organization_memberships')
+        .select('org_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-  const resolvedOrgId = orgId;
-  if (!resolvedOrgId) {
-    throw new BadRequestError('Organization context is required');
-  }
+      if (membershipError) {
+        throw membershipError;
+      }
 
-  await requireActiveMembership(resolvedOrgId, user.id);
+      if (!membership?.org_id) {
+        return NextResponse.json({
+          feature: 'portfolio_mode',
+          tickets: [],
+        });
+      }
 
-  let query = serverSupabase
-    .from('maintenance_tickets')
-    .select('id, org_id, property_id, unit_id, title, description, category, priority, status, assigned_to, reported_by, sla_due_at, resolved_at, created_at, updated_at')
-    .eq('org_id', resolvedOrgId)
-    .order('created_at', { ascending: false })
-    .limit(parsed.data.limit);
+      orgId = membership.org_id;
+    }
 
-  if (parsed.data.propertyId) {
-    query = query.eq('property_id', parsed.data.propertyId);
-  }
-  if (parsed.data.status) {
-    query = query.eq('status', parsed.data.status);
-  }
+    const resolvedOrgId = orgId;
+    if (!resolvedOrgId) {
+      throw new BadRequestError('Organization context is required');
+    }
 
-  const { data: tickets, error } = await query;
-  if (error) {
-    throw error;
-  }
+    const membershipRole = await requireActiveMembership(
+      resolvedOrgId,
+      user.id
+    );
 
-  return NextResponse.json({
-    feature: 'portfolio_mode',
-    orgId: resolvedOrgId,
-    tickets: tickets || [],
-  });
-});
+    let query = serverSupabase
+      .from('maintenance_tickets')
+      .select(
+        'id, org_id, property_id, unit_id, title, description, category, priority, status, assigned_to, reported_by, sla_due_at, resolved_at, created_at, updated_at'
+      )
+      .eq('org_id', resolvedOrgId)
+      .order('created_at', { ascending: false })
+      .limit(parsed.data.limit);
 
-export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
-  const blocked = await requirePortfolioModeSubscription(request);
-  if (blocked) {
-    return blocked;
-  }
+    if (membershipRole === 'tenant') {
+      query = query.eq('reported_by', user.id);
+    }
 
-  const body = await request.json();
-  const parsed = createTicketSchema.safeParse(body);
-  if (!parsed.success) {
-    throw new BadRequestError('Invalid request body for ticket creation');
-  }
+    if (parsed.data.propertyId) {
+      query = query.eq('property_id', parsed.data.propertyId);
+    }
+    if (parsed.data.status) {
+      query = query.eq('status', parsed.data.status);
+    }
 
-  await requireActiveMembership(parsed.data.orgId, user.id);
+    const { data: tickets, error } = await query;
+    if (error) {
+      throw error;
+    }
 
-  const { data: ticket, error } = await serverSupabase
-    .from('maintenance_tickets')
-    .insert({
-      org_id: parsed.data.orgId,
-      property_id: parsed.data.propertyId,
-      unit_id: parsed.data.unitId || null,
-      reported_by: user.id,
-      title: parsed.data.title.trim(),
-      description: parsed.data.description.trim(),
-      category: parsed.data.category.trim().toLowerCase(),
-      priority: parsed.data.priority,
-      status: 'open',
-      sla_due_at: parsed.data.slaDueAt || null,
-    })
-    .select('id, org_id, property_id, unit_id, title, description, category, priority, status, assigned_to, reported_by, sla_due_at, created_at, updated_at')
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return NextResponse.json(
-    {
+    return NextResponse.json({
       feature: 'portfolio_mode',
-      ticket,
-    },
-    { status: 201 }
-  );
-});
+      orgId: resolvedOrgId,
+      tickets: tickets || [],
+    });
+  }
+);
+
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
+    const blocked = await requirePortfolioModeSubscription(request);
+    if (blocked) {
+      return blocked;
+    }
+
+    const body = await request.json();
+    const parsed = createTicketSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError('Invalid request body for ticket creation');
+    }
+
+    await requireActiveMembership(parsed.data.orgId, user.id);
+
+    const { data: property, error: propertyError } = await serverSupabase
+      .from('properties')
+      .select('id')
+      .eq('id', parsed.data.propertyId)
+      .eq('org_id', parsed.data.orgId)
+      .maybeSingle();
+    if (propertyError) throw propertyError;
+    if (!property)
+      throw new BadRequestError(
+        'Property does not belong to this organization'
+      );
+    if (parsed.data.unitId) {
+      const { data: unit, error: unitError } = await serverSupabase
+        .from('units')
+        .select('id')
+        .eq('id', parsed.data.unitId)
+        .eq('property_id', parsed.data.propertyId)
+        .maybeSingle();
+      if (unitError) throw unitError;
+      if (!unit)
+        throw new BadRequestError('Unit does not belong to this property');
+    }
+
+    const { data: ticket, error } = await serverSupabase
+      .from('maintenance_tickets')
+      .insert({
+        org_id: parsed.data.orgId,
+        property_id: parsed.data.propertyId,
+        unit_id: parsed.data.unitId || null,
+        reported_by: user.id,
+        title: parsed.data.title.trim(),
+        description: parsed.data.description.trim(),
+        category: parsed.data.category.trim().toLowerCase(),
+        priority: parsed.data.priority,
+        status: 'open',
+        sla_due_at: parsed.data.slaDueAt || null,
+      })
+      .select(
+        'id, org_id, property_id, unit_id, title, description, category, priority, status, assigned_to, reported_by, sla_due_at, created_at, updated_at'
+      )
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json(
+      {
+        feature: 'portfolio_mode',
+        ticket,
+      },
+      { status: 201 }
+    );
+  }
+);

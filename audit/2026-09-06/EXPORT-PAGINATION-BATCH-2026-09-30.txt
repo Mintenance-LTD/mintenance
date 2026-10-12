@@ -1,0 +1,32 @@
+Export reliability batch — 2026-09-30
+
+Scope completed
+- Web account export now pages every multi-row category by its stable primary key.
+- Mobile's hosted GDPR endpoint pages payment, invoice, review, contract,
+  subscription and contact categories using the same reader.
+- Replaced the mobile endpoint's capped export_user_data RPC with explicitly
+  authenticated-subject-scoped profile/jobs/bids/messages/properties reads.
+  This also includes designated-payer jobs and owned properties on mobile.
+- Every page rebuilds the original ownership filters. A smaller server cap is
+  not treated as end-of-data; reading continues until an empty page.
+- Later-page errors and malformed/repeated cursors discard partial results.
+- Synchronous exports exceeding 100,000 rows in a category fail explicitly;
+  they do not silently truncate. A background export service is not implemented.
+
+Validation
+- 12 tests pass across export-pagination, web-export-completeness and
+  export-completeness. Pagination tests use the actual Supabase JavaScript SDK
+  against a synthetic HTTP transport: 1,203 rows, server cap 200, ownership
+  filters on all eight requests, later-page failure and repeated-page rejection.
+- Web TypeScript check passes.
+- Changed source ESLint passes; test files are excluded by repository lint rules.
+- No production data or database schema was changed by this batch.
+
+Limits / next batch
+- These reads are not a transactionally consistent snapshot during concurrent
+  edits. Cross-category snapshot exports need a durable export-job design.
+- This does not establish completeness of every personal-data category.
+  Closed-account retained evidence, report conversations and associated files
+  still require a separate scoped export implementation and acceptance check.
+- External-file disposal, offsite backup/restore and deployed-release acceptance
+  remain open. Public-launch readiness is unchanged.

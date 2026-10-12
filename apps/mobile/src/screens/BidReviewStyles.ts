@@ -469,9 +469,9 @@ export const styles = StyleSheet.create({
   // teal gradient, with crisp 96x96 avatar overlapping the body.
   hero: {
     width: '100%',
-    height: 140,
+    height: 64,
     justifyContent: 'flex-end',
-    backgroundColor: me.brand,
+    backgroundColor: me.brandSoft,
   },
   heroImage: { resizeMode: 'cover' },
   heroDimOverlay: {

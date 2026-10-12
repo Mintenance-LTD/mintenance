@@ -81,7 +81,9 @@ export const ContractorProfileScreen: React.FC<
   //     homeowner needs to be able to message the bidder during review.
   const fromBidReview =
     route?.params?.source === 'bidReview' && !!route?.params?.jobId;
-  const canMessage = activeJobs.length > 0 || fromBidReview;
+  const canMessage = fromBidReview
+    ? activeJobs.some((job) => job.id === route?.params?.jobId)
+    : activeJobs.length > 0;
 
   // Check if the homeowner has any open or accepted bid from this
   // contractor on one of their jobs. When true the primary CTA flips
@@ -210,9 +212,19 @@ export const ContractorProfileScreen: React.FC<
           hasActiveBid={hasActiveBid}
         />
 
+        {fromBidReview && (
+          <Text
+            style={{ color: me.ink2, marginHorizontal: 20, marginBottom: 12 }}
+          >
+            Job chat becomes available after you accept this contractor’s bid.
+            Accepting a bid is separate from signing the contract and funding
+            the work.
+          </Text>
+        )}
         {/* Portfolio gallery */}
         <PhotoGallery
           photos={viewModel.photos}
+          projects={viewModel.projects}
           onAddPhoto={viewModel.handleAddPhoto}
         />
 

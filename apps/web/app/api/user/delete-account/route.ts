@@ -92,6 +92,7 @@ export const POST = withApiHandler(
         : Promise.resolve({ data: [] as unknown[], error: null });
 
     const [
+      { count: unpaidCount, error: unpaidError },
       { count: activeEscrowCount, error: activeEscrowError },
       { count: activeAsHomeownerCount, error: activeHomeownerJobsError },
       { count: activeAsContractorCount, error: activeContractorJobsError },
@@ -99,6 +100,11 @@ export const POST = withApiHandler(
       { data: acceptedContractsRows, error: acceptedContractsError },
       { data: payerAcceptedContractsRows, error: payerAcceptedContractsError },
     ] = await Promise.all([
+      serverSupabase
+        .from('contractor_payout_balances')
+        .select('contractor_id', { count: 'exact', head: true })
+        .eq('contractor_id', user.id)
+        .gt('pending_amount_minor', 0),
       serverSupabase
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
@@ -139,6 +145,7 @@ export const POST = withApiHandler(
     ]);
 
     const verificationErrors = [
+      unpaidError,
       activeEscrowError,
       activeHomeownerJobsError,
       activeContractorJobsError,
@@ -180,6 +187,14 @@ export const POST = withApiHandler(
     }).length;
 
     const blockers: { code: string; message: string; count: number }[] = [];
+    if ((unpaidCount ?? 0) > 0) {
+      blockers.push({
+        code: 'UNPAID_EARNINGS',
+        count: unpaidCount ?? 0,
+        message:
+          'Your released earnings are awaiting transfer. Settle your payout balance before deleting your account.',
+      });
+    }
     if ((activeEscrowCount ?? 0) > 0) {
       blockers.push({
         code: 'ACTIVE_ESCROW',

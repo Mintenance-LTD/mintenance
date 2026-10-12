@@ -101,7 +101,7 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
   if (loading) return <LoadingSpinner message='Loading service areas…' />;
 
   const boroughs = collectBoroughs(serviceAreas);
-  const primaryCity = primary?.cities?.[0] ?? user?.city ?? 'your area';
+  const primaryCity = primary?.cities?.[0] ?? primary?.area_name ?? 'your area';
   // Read the live draft, not the saved row, so the headline and the
   // rings track the stepper before Save is pressed.
   const primaryRadiusMiles = radius.standardMiles;
@@ -150,6 +150,30 @@ export const ServiceAreasScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </View>
 
+            <View
+              style={{
+                marginHorizontal: 20,
+                marginBottom: 16,
+                padding: 16,
+                borderRadius: 16,
+                backgroundColor: me.brandSoft,
+              }}
+            >
+              <Text
+                style={{ color: me.ink, fontWeight: '700', marginBottom: 6 }}
+              >
+                Your base and your coverage
+              </Text>
+              <Text style={{ color: me.ink2, lineHeight: 21 }}>
+                Your account address helps fill in new zones. Changing it does
+                not move existing zones. Use + to add coverage around your new
+                address, then disable any old zones.
+              </Text>
+              <Text style={{ color: me.ink2, lineHeight: 21, marginTop: 8 }}>
+                Saved coverage refreshes when you return to Find Jobs. You can
+                also browse beyond your coverage by moving the map.
+              </Text>
+            </View>
             {primary ? (
               <View style={{ paddingHorizontal: 20 }}>
                 <RadiusRingsCard
@@ -339,6 +363,7 @@ const AreaCard: React.FC<{
       </View>
       <View style={s.cardActions}>
         <Switch
+          accessibilityLabel={`Enable coverage for ${area.area_name}`}
           value={active}
           onValueChange={onToggle}
           trackColor={{ false: me.line, true: me.brand }}

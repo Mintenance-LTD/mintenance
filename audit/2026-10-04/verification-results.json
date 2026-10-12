@@ -1,0 +1,229 @@
+{
+  "date": "2026-10-04",
+  "scope": "Readiness implementation; not deployed beta approval",
+  "phase2": {
+    "databaseTestsPassed": 113,
+    "webSuitesPassed": 464,
+    "webSuitesFailed": 1,
+    "knownExcludedFailure": "After-photo auto-completion, separately assigned by the user",
+    "productionBuild": "passed",
+    "authenticationDeclarationRoutes": 476,
+    "serviceRoleSourceInventoryRoutes": 313,
+    "reviewLimit": "Risk-based source triage plus focused runtime tests; not an exhaustive penetration test"
+  },
+  "phase3": {
+    "databaseSuitesPassed": 21,
+    "databaseTestsPassed": 113,
+    "monitoringAndHandlerTestsPassed": 25,
+    "webTypeCheck": "passed",
+    "migrationReplay": "passed; only existing pg_net diff; DROP not applied",
+    "localLogicalRestore": "passed using local administrator and existing cluster roles",
+    "restoreAcceptance": "retention, archival, client execution denial and directory owner permissions passed",
+    "hostedOperationsExecuted": false
+  },
+  "rawLogs": "Retained in the local audit directory; not included in Git to avoid publishing diagnostic payloads",
+  "publishingChecks": "Scoped web ESLint: 0 errors, 9 unused-variable warnings; zero-warning gate remains for Phase 4. Shared worktree hooks not run; isolated commit preserves concurrent work. Hex and currency guards passed. Size guard flags the already-over-limit YOLOCorrectionService (only two guard lines added); refactoring remains Phase 4.",
+  "phase4": {
+    "date": "2026-10-04",
+    "branch": "codex/beta-readiness-phase-4",
+    "base": "c249aeaf38ae998c2f941d4212d16bad9fe1a637",
+    "node": "20.19.4",
+    "npm": "11.6.2",
+    "versions": {
+      "axios": [
+        "1.20.0"
+      ],
+      "@grpc/grpc-js": [
+        "1.14.5"
+      ],
+      "ws": [
+        "6.2.6",
+        "7.5.13",
+        "8.22.0"
+      ],
+      "form-data": [
+        "2.5.6",
+        "4.0.6"
+      ],
+      "postcss": [
+        "8.5.28"
+      ],
+      "dompurify": [
+        "3.4.16"
+      ],
+      "protobufjs": [
+        "7.6.6"
+      ],
+      "qs": [
+        "6.16.0"
+      ],
+      "fflate": [
+        "0.8.3"
+      ],
+      "lint-staged": [
+        "16.4.0"
+      ]
+    },
+    "security": {
+      "configuredGate": "passed",
+      "critical": 0,
+      "highAffectedPackageEntries": 23,
+      "moderateAffectedPackageEntries": 26,
+      "lowAffectedPackageEntries": 4,
+      "remainingHighAdvisories": 4,
+      "exactExceptionPaths": 14,
+      "exceptionExpiry": "2026-11-03",
+      "expiredExceptionsRejected": true,
+      "blanketExceptions": 0
+    },
+    "mobile": {
+      "suitesPassed": 491,
+      "testsPassed": 12445,
+      "coverage": {
+        "statements": 66.56,
+        "branches": 56.04,
+        "functions": 60.97,
+        "lines": 67.46
+      },
+      "typeCheck": "passed",
+      "lintErrors": 0
+    },
+    "web": {
+      "suitesPassed": 467,
+      "suitesFailed": 1,
+      "testsPassed": 4428,
+      "testsFailed": 1,
+      "remainingFailure": "R4: separately assigned after-photo auto-completion integration test; not changed or skipped",
+      "coverage": {
+        "statements": 53.74,
+        "branches": 47.73,
+        "functions": 58.23,
+        "lines": 54.64
+      },
+      "coverageThresholdErrors": 0,
+      "typeCheck": "passed",
+      "lintErrors": 0,
+      "productionBuild": "passed; 532 static pages; synthetic build-only credentials"
+    },
+    "sharedPackageBuilds": 10,
+    "staticGates": "service role scoping, internal links, API contracts, authentication coverage, notification inserts, banned tables all passed",
+    "releaseDecision": "Hold external beta; full web test command still exits 1 for R4. Not a deployed or device-tested candidate."
+  },
+  "phase5": {
+    "phase": 5,
+    "status": "Complete (implementation)",
+    "webTestsPassed": 105,
+    "databaseTestsPassed": 35,
+    "mobileTestsPassed": 6,
+    "typeChecks": "Web and mobile passed",
+    "lint": "Changed files passed",
+    "browser": "Local registration, confirmation, login, recovery, job creation, bid submission, assigned messaging and verified new contractor directory passed",
+    "limitations": [
+      "No successful Stripe acceptance or payment flow verified",
+      "Messaging used a separately seeded assigned-job fixture",
+      "No hosted deployment or phone verification",
+      "Separately owned after-photo regression remains open"
+    ],
+    "productionBuild": "Not rerun in Phase 5; Phase 4 build passed"
+  },
+  "phase6": {
+    "phase": 6,
+    "status": "Complete (implementation)",
+    "regressionSuitesPassed": 31,
+    "regressionTestsPassed": 544,
+    "databaseSuitesPassed": 4,
+    "databaseTestsPassed": 36,
+    "rollbackOnlyLedgerScriptsPassed": 6,
+    "stripeSandboxScenariosPassed": 5,
+    "sandbox": "Real Stripe test API and isolated local Supabase; no provider/database mocks. Four scenarios in phase6-sandbox-tests.log plus acceptance/signature/payment scenario in phase6-sandbox-acceptance.log.",
+    "checks": "Web type check, production-file lint, normal commit hooks",
+    "fixes": [
+      "Unfinished webhook duplicates return a retryable failure instead of a false acknowledgement; invalid claims fail closed",
+      "Saved-card route preserves security headers through canonical handlers and supplies the Stripe authentication return URL",
+      "Synchronous confirmation uses the atomic job/escrow funding transaction, refusing obsolete and concurrently closed payment state"
+    ],
+    "limitations": [
+      "No hosted deployment or delivery from a deployed Stripe webhook endpoint",
+      "Phone checkout and 3DS challenge UI still require release-device verification",
+      "Connected-account transfer tested; actual bank settlement not asserted",
+      "Separate after-photo completion task remains outside this phase",
+      "Synthetic sandbox objects and isolated local ledger fixtures retained for audit evidence"
+    ],
+    "productionBuild": "Not rerun in Phase 6; route handlers exercised with real auth/database/Stripe sandbox"
+  },
+  "phase7": {
+    "phase": 7,
+    "status": "Complete (implementation)",
+    "deviceSignoff": "Pending user verification",
+    "betaDecision": "HOLD",
+    "implementationCommit": "ab718cf6b1f1e0ede4b9ba78e546ef5f3773ac10",
+    "validation": {
+      "mobileSuites": 492,
+      "mobileTests": 12455,
+      "snapshots": 87,
+      "runnerNote": "All assertions passed; Jest retained background handles and was stopped after printing totals.",
+      "androidHermesExport": "passed",
+      "iosHermesExport": "passed",
+      "mobileTypes": "passed",
+      "changedFileLint": "passed, zero warnings",
+      "commitHooks": "passed"
+    },
+    "apk": {
+      "id": "06c9b289-9cd7-4361-bf36-726aba26f054",
+      "status": "FINISHED",
+      "profile": "internal",
+      "distribution": "INTERNAL",
+      "channel": "internal",
+      "platform": "ANDROID",
+      "version": "1.2.4",
+      "versionCode": "32",
+      "runtimeVersion": "1.2.4-sqlcipher1",
+      "sourceBaseCommit": "35cdd778bec22deb7d435f718f6371a74e587674",
+      "sourceNote": "Includes Phase 7 release configuration changes committed as ab718cf6b; EAS upload preceded that commit.",
+      "bytes": 160088945,
+      "sha256": "67047c08fce3001d869d7a2257c678032531f5054f6d8d59a2aab347e8693ae8",
+      "buildPage": "https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/06c9b289-9cd7-4361-bf36-726aba26f054",
+      "apkUrl": "https://expo.dev/artifacts/eas/nWf1Ahfg_0mHDX8BD_5Piv0zvf788ROKqq9ZZ_Monhc.apk",
+      "embeddedBundle": [
+        "assets/index.android.bundle"
+      ],
+      "nativeArchitectures": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "sqliteLibraries": [
+        "lib/arm64-v8a/libexpo-sqlite.so",
+        "lib/armeabi-v7a/libexpo-sqlite.so",
+        "lib/x86/libexpo-sqlite.so",
+        "lib/x86_64/libexpo-sqlite.so"
+      ],
+      "hermesLibraries": [
+        "lib/arm64-v8a/libhermes.so",
+        "lib/arm64-v8a/libhermestooling.so",
+        "lib/armeabi-v7a/libhermes.so",
+        "lib/armeabi-v7a/libhermestooling.so",
+        "lib/x86/libhermes.so",
+        "lib/x86/libhermestooling.so",
+        "lib/x86_64/libhermes.so",
+        "lib/x86_64/libhermestooling.so"
+      ],
+      "zipIntegrity": "passed"
+    },
+    "limitations": [
+      "Phone verification not performed; user owns the device checklist.",
+      "No signed iOS device build or iOS device signoff.",
+      "Current internal profile uses production backend and live Stripe configuration; do not use it for sandbox payment tests.",
+      "EAS preview environment also currently uses production API/live Stripe; staging guard rejects it. Deploy a separate sandbox backend and use matching test keys in Phase 8.",
+      "Expo Doctor: 16/18 checks passed; custom Metro watchFolders and SDK package recommendations differ. No compatibility exclusions added.",
+      "Expo web export is unsupported by the native Stripe import; Android/iOS exports passed.",
+      "Internal profile retains disabled crash reporting/source-map upload; hosted monitoring must be verified before beta.",
+      "R1-R7 release gates remain applicable; no beta approval is implied."
+    ],
+    "sources": [
+      "https://docs.expo.dev/eas/environment-variables/usage/",
+      "https://docs.expo.dev/build/eas-json/"
+    ]
+  }
+}

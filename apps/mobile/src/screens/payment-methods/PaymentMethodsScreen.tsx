@@ -97,6 +97,9 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
           <Text style={styles.purposeText}>{purposeCopy}</Text>
         </View>
 
+        {vm.saving && (
+          <Text accessibilityRole='alert'>Saving your default card�</Text>
+        )}
         {/* Saved Cards */}
         <Text style={styles.sectionTitle}>Your Cards</Text>
 
@@ -109,14 +112,24 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
           vm.savedCards.map((card) => (
             <TouchableOpacity
               key={card.id}
+              disabled={vm.saving}
               style={[
                 styles.cardRow,
                 vm.selectedMethod === card.id && styles.cardRowSelected,
               ]}
-              onPress={() => vm.selectMethod(card.id)}
+              onPress={() => {
+                void vm
+                  .setDefaultCard(card.id)
+                  .catch(() =>
+                    Alert.alert(
+                      'Card not saved',
+                      'Unable to change your default card. Please retry.'
+                    )
+                  );
+              }}
               onLongPress={() => handleDeleteCard(card.id, card.last4)}
               accessibilityRole='radio'
-              accessibilityLabel={`${card.brand} ending in ${card.last4}`}
+              accessibilityLabel={`Use ${card.brand} ending in ${card.last4} as default`}
               accessibilityState={{ selected: vm.selectedMethod === card.id }}
             >
               <View style={styles.cardLeft}>

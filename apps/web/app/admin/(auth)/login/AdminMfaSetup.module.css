@@ -1,0 +1,45 @@
+.page { min-height: 100dvh; background: #f1f7f3; color: #182923; padding: 48px 20px; }
+.container { width: 100%; max-width: 620px; margin: 0 auto; }
+.brand { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 23px; font-weight: 600; margin-bottom: 28px; }
+.logo { display: grid; place-items: center; width: 42px; height: 42px; background: white; border: 1px solid #d6e4dc; border-radius: 12px; }
+.badge { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #2d7061; background: #dfede7; padding: 5px 9px; border-radius: 20px; }
+.card { background: white; border: 1px solid #d6e4dc; border-radius: 24px; padding: 36px; box-shadow: 0 12px 36px #183d2e08; }
+.header { margin-bottom: 28px; }
+.icon { display: grid; place-items: center; width: 58px; height: 58px; background: #e2f0e9; color: #2d7061; border-radius: 18px; margin-bottom: 22px; }
+.eyebrow { font-size: 11px !important; font-weight: 700; letter-spacing: .13em; color: #2d7061 !important; margin-bottom: 8px !important; }
+.header h1 { font-size: clamp(25px, 4vw, 32px); font-weight: 650; line-height: 1.18; letter-spacing: -.035em; margin: 0 0 12px; }
+.card p { color: #53675e; font-size: 15px; line-height: 1.65; margin: 0 0 16px; }
+.card h2 { font-size: 17px; font-weight: 600; line-height: 1.4; margin: 0 0 10px; display: flex; align-items: center; gap: 10px; }
+.intro { display: flex; gap: 14px; background: #f1f7f3; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+.intro > svg { flex-shrink: 0; color: #2d7061; }
+.intro p { margin: 0; }
+.primary { width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; border: 0; border-radius: 12px; padding: 15px 18px; background: #2d7061; color: white; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 50px; }
+.primary:hover:not(:disabled) { background: #21594d; }
+.primary:disabled { opacity: .5; cursor: not-allowed; }
+.back { margin: 24px auto 0; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; border: 0; color: #53675e; font-size: 14px; cursor: pointer; }
+.back:hover { color: #21594d; }
+.back:disabled { opacity: .5; cursor: wait; }
+.page button:focus-visible, .page input:focus-visible, .page summary:focus-visible { outline: 3px solid #79b7a4; outline-offset: 4px; }
+.step { padding: 24px 0; border-top: 1px solid #e2eae5; }
+.step:last-child { padding-bottom: 0; }
+.number { flex-shrink: 0; display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: #e2f0e9; color: #2d7061; font-size: 13px; }
+.qr { width: fit-content; max-width: 100%; margin: 20px auto; padding: 12px; background: white; border: 1px solid #d6e4dc; border-radius: 16px; }
+.qr img { display: block; max-width: 100%; height: auto; }
+.manual { color: #2d7061; font-size: 14px; }
+.manual summary { cursor: pointer; padding: 6px 0; }
+.manual code { display: block; overflow-wrap: anywhere; background: #f1f7f3; padding: 14px; border-radius: 10px; margin-top: 10px; color: #182923; }
+.codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; background: #f1f7f3; border: 1px solid #d6e4dc; border-radius: 12px; padding: 16px; margin-bottom: 18px; }
+.codes code { text-align: center; font-size: 14px; letter-spacing: .08em; padding: 4px; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; min-height: 36px; }
+.check input { accent-color: #2d7061; width: 18px; height: 18px; flex-shrink: 0; }
+.label { display: block; margin: 18px 0 8px; font-size: 14px; font-weight: 500; }
+.input { width: 100%; box-sizing: border-box; border: 1px solid #cbded2; background: #f8fbf9; border-radius: 12px; padding: 14px; font-size: 24px; letter-spacing: .35em; color: #182923; }
+.input::placeholder { color: #8c9c93; }
+.card .help { font-size: 13px; margin: 10px 0 20px; }
+.card .error { background: #fff1ed; color: #963c27; padding: 14px 16px; border: 1px solid #efccbf; border-radius: 12px; }
+.footer { display: flex; align-items: center; justify-content: center; gap: 8px; color: #63786c; font-size: 12px; line-height: 1.5; margin: 22px 8px 0; text-align: center; }
+.footer svg { flex-shrink: 0; }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+@media (max-width: 480px) { .page { padding: 28px 14px; } .card { padding: 24px 20px; border-radius: 20px; } .brand { margin-bottom: 22px; } .intro { padding: 16px; } }

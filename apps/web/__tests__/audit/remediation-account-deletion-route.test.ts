@@ -28,7 +28,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
     rpc: mocks.rpc,
     from: () => {
       const q: Record<string, unknown> = {};
-      for (const method of ['select', 'or', 'in', 'eq', 'not'])
+      for (const method of ['select', 'or', 'in', 'eq', 'not', 'gt'])
         q[method] = () => q;
       q.then = (resolve: (value: unknown) => unknown) =>
         resolve(mocks.queryResult);

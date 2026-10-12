@@ -1,0 +1,194 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.8 [39m[90mC:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web[39m
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts
+[22m[39m[2026-10-04T18:51:48.687Z] INFO  Environment variables validated successfully (test mode) {"service":"env-validation"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts
+[MONITORING] {"level":"info","message":"Environment variables validated successfully (test mode)","timestamp":"2026-10-04T18:51:48.690Z","context":{"service":"env-validation"}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts
+[2026-10-04T18:51:48.735Z] WARN  Redis not configured, falling back to in-memory rate limiting {"service":"rate_limiter"}
+[MONITORING] {"level":"warn","message":"Redis not configured, falling back to in-memory rate limiting","timestamp":"2026-10-04T18:51:48.735Z","context":{"service":"rate_limiter"}}
+
+(node:38512) Stripe: We recommend building your integration using Accounts v2. See https://docs.stripe.com/api/v2/core/accounts
+(Use `node --trace-warnings ...` to show where the warning was created)
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:54.890Z] INFO  Stripe Connect account updated webhook received {"service":"stripe-webhook","accountId":"acct_1UMuVnJ7y6tGu9kP"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Stripe Connect account updated webhook received","timestamp":"2026-10-04T18:51:54.891Z","context":{"service":"stripe-webhook","accountId":"acct_1UMuVnJ7y6tGu9kP"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:54.972Z] INFO  Stripe Connect account synced successfully {"service":"stripe-webhook","accountId":"acct_1UMuVnJ7y6tGu9kP","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","isOnboarded":true}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Stripe Connect account synced successfully","timestamp":"2026-10-04T18:51:54.972Z","context":{"service":"stripe-webhook","accountId":"acct_1UMuVnJ7y6tGu9kP","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","isOnboarded":true}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:56.998Z] INFO  Creating notification for contractor {"service":"jobs","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","bidId":"16b15f29-268f-42a0-807e-42b181cba840","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","jobTitle":"itest_phase6_accept_sign_pay","bidAmount":5}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Creating notification for contractor","timestamp":"2026-10-04T18:51:56.998Z","context":{"service":"jobs","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","bidId":"16b15f29-268f-42a0-807e-42b181cba840","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","jobTitle":"itest_phase6_accept_sign_pay","bidAmount":5}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.069Z] INFO  Bid acceptance notification created successfully {"service":"jobs","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","bidId":"16b15f29-268f-42a0-807e-42b181cba840","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","notificationId":"40296589-cd88-4d6f-a9f7-684ae5fdb49c"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Bid acceptance notification created successfully","timestamp":"2026-10-04T18:51:57.069Z","context":{"service":"jobs","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","bidId":"16b15f29-268f-42a0-807e-42b181cba840","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","notificationId":"40296589-cd88-4d6f-a9f7-684ae5fdb49c"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.172Z] INFO  Welcome message created {"service":"jobs","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Welcome message created","timestamp":"2026-10-04T18:51:57.172Z","context":{"service":"jobs","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.223Z] INFO  Initializing MemoryManager
+[2026-10-04T18:51:57.223Z] INFO  Memory update scheduler started {"intervalMs":3600000}
+[2026-10-04T18:51:57.223Z] INFO  MemoryManager initialized
+[2026-10-04T18:51:57.223Z] INFO  Bid accepted successfully {"service":"jobs","bidId":"16b15f29-268f-42a0-807e-42b181cba840","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6"}
+[2026-10-04T18:51:57.224Z] INFO  Memory system created {"agentName":"pricing","levels":3}
+[2026-10-04T18:51:57.225Z] INFO  Memory system created {"agentName":"learning-matching","levels":3}
+[2026-10-04T18:51:57.225Z] INFO  PricingAgent memory system initialized {"agentName":"pricing","levels":3}
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Initializing MemoryManager","timestamp":"2026-10-04T18:51:57.223Z"}
+[MONITORING] {"level":"info","message":"Memory update scheduler started","timestamp":"2026-10-04T18:51:57.223Z","context":{"intervalMs":3600000}}
+[2026-10-04T18:51:57.225Z] INFO  LearningMatchingService memory system initialized {"agentName":"learning-matching","levels":3}
+
+[MONITORING] {"level":"info","message":"MemoryManager initialized","timestamp":"2026-10-04T18:51:57.223Z"}
+[MONITORING] {"level":"info","message":"Bid accepted successfully","timestamp":"2026-10-04T18:51:57.223Z","context":{"service":"jobs","bidId":"16b15f29-268f-42a0-807e-42b181cba840","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6"}}
+[MONITORING] {"level":"info","message":"Memory system created","timestamp":"2026-10-04T18:51:57.224Z","context":{"agentName":"pricing","levels":3}}
+[MONITORING] {"level":"info","message":"Memory system created","timestamp":"2026-10-04T18:51:57.225Z","context":{"agentName":"learning-matching","levels":3}}
+[MONITORING] {"level":"info","message":"PricingAgent memory system initialized","timestamp":"2026-10-04T18:51:57.225Z","context":{"agentName":"pricing","levels":3}}
+[MONITORING] {"level":"info","message":"LearningMatchingService memory system initialized","timestamp":"2026-10-04T18:51:57.225Z","context":{"agentName":"learning-matching","levels":3}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:57.253Z] WARN  Failed to add context flow to memory level {"service":"PricingAgent","level":0}
+[MONITORING] {"level":"warn","message":"Failed to add context flow to memory level","timestamp":"2026-10-04T18:51:57.254Z","context":{"service":"PricingAgent","level":0}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:57.254Z] WARN  Failed to add context flow to memory level {"service":"PricingAgent","level":1}
+[MONITORING] {"level":"warn","message":"Failed to add context flow to memory level","timestamp":"2026-10-04T18:51:57.254Z","context":{"service":"PricingAgent","level":1}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:57.254Z] WARN  Failed to add context flow to memory level {"service":"PricingAgent","level":2}
+[MONITORING] {"level":"warn","message":"Failed to add context flow to memory level","timestamp":"2026-10-04T18:51:57.254Z","context":{"service":"PricingAgent","level":2}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.303Z] INFO  ContinuumMemorySystem initialized {"agentName":"pricing","levels":3}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"ContinuumMemorySystem initialized","timestamp":"2026-10-04T18:51:57.303Z","context":{"agentName":"pricing","levels":3}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:57.310Z] WARN  Failed to add context flow to memory level {"service":"LearningMatchingService","level":0,"error":"Memory level 0 not found"}
+[MONITORING] {"level":"warn","message":"Failed to add context flow to memory level","timestamp":"2026-10-04T18:51:57.310Z","context":{"service":"LearningMatchingService","level":0,"error":"Memory level 0 not found"}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:57.311Z] WARN  Failed to add context flow to memory level {"service":"LearningMatchingService","level":1,"error":"Memory level 1 not found"}
+[MONITORING] {"level":"warn","message":"Failed to add context flow to memory level","timestamp":"2026-10-04T18:51:57.311Z","context":{"service":"LearningMatchingService","level":1,"error":"Memory level 1 not found"}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:57.311Z] WARN  Failed to add context flow to memory level {"service":"LearningMatchingService","level":2,"error":"Memory level 2 not found"}
+[MONITORING] {"level":"warn","message":"Failed to add context flow to memory level","timestamp":"2026-10-04T18:51:57.311Z","context":{"service":"LearningMatchingService","level":2,"error":"Memory level 2 not found"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.341Z] INFO  ContinuumMemorySystem initialized {"agentName":"learning-matching","levels":3}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"ContinuumMemorySystem initialized","timestamp":"2026-10-04T18:51:57.342Z","context":{"agentName":"learning-matching","levels":3}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.344Z] INFO  Learned from bid outcome {"service":"PricingAgent","bidId":"16b15f29-268f-42a0-807e-42b181cba840","wasAccepted":true,"bidAmount":5,"memoryLevelsUpdated":3}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Learned from bid outcome","timestamp":"2026-10-04T18:51:57.344Z","context":{"service":"PricingAgent","bidId":"16b15f29-268f-42a0-807e-42b181cba840","wasAccepted":true,"bidAmount":5,"memoryLevelsUpdated":3}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.355Z] INFO  Learned from bid acceptance {"service":"LearningMatchingService","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","homeownerId":"613ec188-2186-4593-8209-b89dfb3d6a14","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","memoryLevelsUpdated":3}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Learned from bid acceptance","timestamp":"2026-10-04T18:51:57.355Z","context":{"service":"LearningMatchingService","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","homeownerId":"613ec188-2186-4593-8209-b89dfb3d6a14","contractorId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","memoryLevelsUpdated":3}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:57.906Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"itest_contractor test sent a £5 contract for itest_phase6_accept_sign_pay."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:51:57.906Z","context":{"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"itest_contractor test sent a £5 contract for itest_phase6_accept_sign_pay."}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.907Z] INFO  Creating contract message {"service":"contracts","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","senderId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","receiverId":"613ec188-2186-4593-8209-b89dfb3d6a14","messageType":"system","messageLength":100}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Creating contract message","timestamp":"2026-10-04T18:51:57.907Z","context":{"service":"contracts","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","senderId":"dca4f3e0-f44b-483e-baa5-e96f74d1eab6","receiverId":"613ec188-2186-4593-8209-b89dfb3d6a14","messageType":"system","messageLength":100}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.933Z] INFO  Contract message created successfully {"service":"contracts","messageId":"dacb9761-07d7-4f1d-a0e1-fa572c384185","receiverId":"613ec188-2186-4593-8209-b89dfb3d6a14","messageType":"system","createdAt":"2026-10-04T18:51:57.931896+00:00"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Contract message created successfully","timestamp":"2026-10-04T18:51:57.933Z","context":{"service":"contracts","messageId":"dacb9761-07d7-4f1d-a0e1-fa572c384185","receiverId":"613ec188-2186-4593-8209-b89dfb3d6a14","messageType":"system","createdAt":"2026-10-04T18:51:57.931896+00:00"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:57.976Z] INFO  Job updated_at timestamp updated for contract message {"service":"contracts","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","messageId":"dacb9761-07d7-4f1d-a0e1-fa572c384185"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Job updated_at timestamp updated for contract message","timestamp":"2026-10-04T18:51:57.976Z","context":{"service":"contracts","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","messageId":"dacb9761-07d7-4f1d-a0e1-fa572c384185"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:58.299Z] INFO  Contract signature notification sent {"service":"contracts","contractId":"b8419233-81da-4922-b4de-1add721850fe","signerRole":"contractor","notifiedUserId":"613ec188-2186-4593-8209-b89dfb3d6a14","contractStatus":"pending_homeowner"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Contract signature notification sent","timestamp":"2026-10-04T18:51:58.299Z","context":{"service":"contracts","contractId":"b8419233-81da-4922-b4de-1add721850fe","signerRole":"contractor","notifiedUserId":"613ec188-2186-4593-8209-b89dfb3d6a14","contractStatus":"pending_homeowner"}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:58.306Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"itest_contractor test signed Synthetic agreed plumbing work — your turn."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:51:58.306Z","context":{"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"itest_contractor test signed Synthetic agreed plumbing work — your turn."}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:58.517Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_38cbc820-3733-4e44-8efc-de96bc758e28@test.local","subject":"Synthetic agreed plumbing work — both sides signed."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:51:58.518Z","context":{"service":"email","to":"itest_38cbc820-3733-4e44-8efc-de96bc758e28@test.local","subject":"Synthetic agreed plumbing work — both sides signed."}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:51:58.518Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"Synthetic agreed plumbing work — both sides signed."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:51:58.518Z","context":{"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"Synthetic agreed plumbing work — both sides signed."}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:58.571Z] INFO  Job scheduled with contract dates {"service":"contracts","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","contractId":"b8419233-81da-4922-b4de-1add721850fe","startDate":"2026-10-05T18:51:57.697+00:00","endDate":"2026-10-06T18:51:57.697+00:00","scheduledDate":"2026-10-05T18:51:57.697+00:00"}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Job scheduled with contract dates","timestamp":"2026-10-04T18:51:58.571Z","context":{"service":"contracts","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","contractId":"b8419233-81da-4922-b4de-1add721850fe","startDate":"2026-10-05T18:51:57.697+00:00","endDate":"2026-10-06T18:51:57.697+00:00","scheduledDate":"2026-10-05T18:51:57.697+00:00"}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:59.252Z] INFO  Anomaly detection completed {"service":"payment_monitoring","userId":"613ec188-2186-4593-8209-b89dfb3d6a14","transactionType":"payment","amount":5,"isAnomalous":false,"riskScore":0,"confidence":0,"reasonCount":0,"blockedReasonCount":0}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Anomaly detection completed","timestamp":"2026-10-04T18:51:59.252Z","context":{"service":"payment_monitoring","userId":"613ec188-2186-4593-8209-b89dfb3d6a14","transactionType":"payment","amount":5,"isAnomalous":false,"riskScore":0,"confidence":0,"reasonCount":0,"blockedReasonCount":0}}
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:51:59.607Z] INFO  Payment intent created successfully {"service":"payments","userId":"613ec188-2186-4593-8209-b89dfb3d6a14","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","amount":5,"currency":"gbp","escrowTransactionId":"7dce284d-1c68-43eb-86dd-33f8427c8e04"}
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Payment intent created successfully","timestamp":"2026-10-04T18:51:59.607Z","context":{"service":"payments","userId":"613ec188-2186-4593-8209-b89dfb3d6a14","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","amount":5,"currency":"gbp","escrowTransactionId":"7dce284d-1c68-43eb-86dd-33f8427c8e04"}}
+
+
+[90mstdout[2m | __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22m[2mPayment sandbox readiness[2m > [22m[2maccepts a bid, signs both parties and funds escrow through authenticated handlers
+[22m[39m[2026-10-04T18:52:00.645Z] INFO  Payment confirmed and escrow updated {"service":"payments","userId":"613ec188-2186-4593-8209-b89dfb3d6a14","paymentIntentId":"pi_3UMuVvJmZpzAEZO81IUSZjJA","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","escrowTransactionId":"7dce284d-1c68-43eb-86dd-33f8427c8e04","amount":5}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[MONITORING] {"level":"info","message":"Payment confirmed and escrow updated","timestamp":"2026-10-04T18:52:00.645Z","context":{"service":"payments","userId":"613ec188-2186-4593-8209-b89dfb3d6a14","paymentIntentId":"pi_3UMuVvJmZpzAEZO81IUSZjJA","jobId":"19839d6b-7e75-474e-b1c9-e748debc7a85","escrowTransactionId":"7dce284d-1c68-43eb-86dd-33f8427c8e04","amount":5}}
+
+stderr | __tests__/integration-real/payment-sandbox.integration.test.ts > Payment sandbox readiness > accepts a bid, signs both parties and funds escrow through authenticated handlers
+[2026-10-04T18:52:00.713Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"£5 held in escrow for itest_phase6_accept_sign_pay."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:52:00.713Z","context":{"service":"email","to":"itest_da5ddfbb-cb75-4bd2-bbde-d5a2139abe69@test.local","subject":"£5 held in escrow for itest_phase6_accept_sign_pay."}}
+[2026-10-04T18:52:00.713Z] WARN  Email service not configured, skipping email send {"service":"email","to":"itest_38cbc820-3733-4e44-8efc-de96bc758e28@test.local","subject":"itest_homeowner test funded £5 — you're cleared to start."}
+[MONITORING] {"level":"warn","message":"Email service not configured, skipping email send","timestamp":"2026-10-04T18:52:00.713Z","context":{"service":"email","to":"itest_38cbc820-3733-4e44-8efc-de96bc758e28@test.local","subject":"itest_homeowner test funded £5 — you're cleared to start."}}
+
+ [32m✓[39m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22maccepts a bid, signs both parties and funds escrow through authenticated handlers[33m 10713[2mms[22m[39m
+ [2m[90m↓[39m[22m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mcaptures cash plus credit, refunds once after replay, and reconciles the provider ledger
+ [2m[90m↓[39m[22m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mcreates one connected-account transfer when a payout request is retried
+ [2m[90m↓[39m[22m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mrejects bad signatures and acknowledges only durably completed webhook duplicates
+ [2m[90m↓[39m[22m __tests__/integration-real/payment-sandbox.integration.test.ts[2m > [22mPayment sandbox readiness[2m > [22mprocesses a saved card through authenticated production route handlers and records both payment states
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[2m | [22m[33m4 skipped[39m[90m (5)[39m
+[2m   Start at [22m 19:51:46
+[2m   Duration [22m 14.61s[2m (transform 3.74s, setup 0ms, import 2.48s, tests 11.15s, environment 0ms)[22m
+

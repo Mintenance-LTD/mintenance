@@ -6,6 +6,7 @@
 'use client';
 import React, { useState } from 'react';
 import { webTokens } from '@mintenance/design-tokens';
+import { useWebTokens } from '../../ThemeProvider';
 import { cn } from '../../utils/cn';
 import type { WebCardProps, CardVariant, CardPadding } from './types';
 /**
@@ -27,6 +28,7 @@ export function Card({
   style,
   ...props
 }: WebCardProps) {
+  const webTokens = useWebTokens();
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const isInteractive = !!onClick;
@@ -60,11 +62,11 @@ export function Card({
     },
   };
   // Padding values
-  const paddingValues: Record<CardPadding, string> = {
+  const paddingValues: Record<CardPadding, React.CSSProperties["padding"]> = {
     none: '0',
-    sm: `${webTokens.spacing.md}px`,
-    md: `${webTokens.spacing.lg}px`,
-    lg: `${webTokens.spacing.xl}px`,
+    sm: webTokens.spacing.md,
+    md: webTokens.spacing.lg,
+    lg: webTokens.spacing.xl,
   };
   // Hover styles
   const hoverStyles: React.CSSProperties =

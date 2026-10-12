@@ -25,8 +25,8 @@ import { PhoneVerificationDialog } from './_components/phone-verification-dialog
  * shim maps its classes onto the Mint palette.
  */
 export default function SettingsPage2025({
-  params,
-  searchParams,
+  params: _params,
+  searchParams: _searchParams,
 }: {
   params?: Promise<Record<string, string | string[]>>;
   searchParams?: Promise<Record<string, string | string[]>>;
@@ -80,7 +80,10 @@ export default function SettingsPage2025({
         className='me-root me-legacy-fit settings-page'
         style={{ padding: '28px 32px' }}
       >
-        <div className='settings-shell' style={{ display: 'flex', gap: 28, maxWidth: 1180 }}>
+        <div
+          className='settings-shell'
+          style={{ display: 'flex', gap: 28, maxWidth: 1180 }}
+        >
           <SettingsSidebar
             activeSection={activeSection}
             onSectionChange={setActiveSection}
@@ -259,23 +262,13 @@ export default function SettingsPage2025({
                     Privacy controls
                   </h2>
 
-                  <PrivacyToggleRow
-                    title='Profile visible'
-                    description='Allow other users to see your profile in search results and contractor listings'
-                    checked={settings.privacySettings?.profileVisible !== false}
-                    onToggle={() =>
-                      settings.handleTogglePrivacy('profileVisible')
-                    }
-                    first
-                  />
-                  <PrivacyToggleRow
-                    title='Share activity data'
-                    description='Help improve Mintenance by sharing anonymised usage data'
-                    checked={!!settings.privacySettings?.shareActivityData}
-                    onToggle={() =>
-                      settings.handleTogglePrivacy('shareActivityData')
-                    }
-                  />
+                  <p className='t-body'>
+                    Your profile may be visible to other marketplace users.
+                    Account-level profile hiding and optional activity-sharing
+                    controls are not currently available. Read our{' '}
+                    <a href='/privacy'>Privacy Policy</a> for how your
+                    information is used.
+                  </p>
                 </div>
 
                 {/* Data Export */}
@@ -319,87 +312,5 @@ export default function SettingsPage2025({
         />
       </div>
     </HomeownerPageWrapper>
-  );
-}
-
-/** Privacy toggle row — Mint Editorial token-styled switch. */
-function PrivacyToggleRow({
-  title,
-  description,
-  checked,
-  onToggle,
-  first,
-}: {
-  title: string;
-  description: string;
-  checked: boolean;
-  onToggle: () => void;
-  first?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        padding: '14px 0',
-        borderTop: first ? 'none' : '1px solid var(--me-line-2)',
-      }}
-    >
-      <div>
-        <p
-          style={{
-            margin: 0,
-            fontWeight: 600,
-            fontSize: 14,
-            color: 'var(--me-ink)',
-          }}
-        >
-          {title}
-        </p>
-        <p
-          style={{
-            margin: '2px 0 0',
-            fontSize: 13,
-            color: 'var(--me-ink-3)',
-          }}
-        >
-          {description}
-        </p>
-      </div>
-      <button
-        type='button'
-        role='switch'
-        aria-checked={checked}
-        aria-label={title}
-        onClick={onToggle}
-        style={{
-          position: 'relative',
-          width: 44,
-          height: 24,
-          borderRadius: 9999,
-          border: 0,
-          flexShrink: 0,
-          cursor: 'pointer',
-          background: checked ? 'var(--me-brand)' : 'var(--me-line)',
-          transition: 'background 0.15s ease',
-        }}
-      >
-        <span
-          style={{
-            position: 'absolute',
-            top: 3,
-            left: checked ? 23 : 3,
-            width: 18,
-            height: 18,
-            borderRadius: 9999,
-            background: 'var(--me-surface)',
-            boxShadow: '0 1px 2px rgba(31,42,36,0.25)',
-            transition: 'left 0.15s ease',
-          }}
-        />
-      </button>
-    </div>
   );
 }

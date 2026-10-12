@@ -37,6 +37,7 @@ interface JobsMapViewModel {
   // 2026-06-09: false until region resolves from profile coords/GPS; the
   // screen waits on it so the map opens on the user's area, not London.
   regionResolved: boolean;
+  searchRadiusKm: number;
   jobs: JobMapItem[];
   searchQuery: string;
   selectedJob: JobMapItem | null;
@@ -80,6 +81,9 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
   });
   // Gate map + first job query until the real region resolves.
   const [regionResolved, setRegionResolved] = useState(false);
+  const [searchRadiusKm, setSearchRadiusKm] = useState(
+    radiusKmForRegion(region)
+  );
   // Keep a ref so fetchJobs can read latest region without re-creating the callback
   const regionRef = useRef(region);
   regionRef.current = region;
@@ -223,7 +227,9 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         params.set('latitude', String(currentRegion.latitude));
         params.set('longitude', String(currentRegion.longitude));
         // Zoom-aware radius — see radiusKmForRegion in ../constants.
-        params.set('radiusKm', String(radiusKmForRegion(currentRegion)));
+        const radiusKm = radiusKmForRegion(currentRegion);
+        params.set('radiusKm', String(radiusKm));
+        setSearchRadiusKm(radiusKm);
       }
 
       let response: { jobs: DiscoverRow[]; code?: string };
@@ -408,6 +414,7 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
   return {
     region,
     regionResolved,
+    searchRadiusKm,
     jobs: filteredJobs,
     searchQuery,
     selectedJob,

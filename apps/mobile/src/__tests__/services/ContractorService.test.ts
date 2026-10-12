@@ -298,7 +298,7 @@ describe('ContractorService', () => {
 
       const result = await ContractorService.searchContractors('Plumbing');
 
-      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(supabase.from).toHaveBeenCalledWith('profile_directory');
       expect(mockSupabaseChain.eq).toHaveBeenCalledWith('role', 'contractor');
       expect(mockSupabaseChain.or).toHaveBeenCalled();
       expect(result).toHaveLength(1);

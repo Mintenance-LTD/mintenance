@@ -24,6 +24,15 @@ const documentMetadataSchema = z
   })
   .strict();
 
+// Database row ownership does not prove storage ownership: users can edit
+// their own document metadata through the Data API.
+function isOwnedDocumentPath(path: unknown, userId: string): path is string {
+  if (typeof path !== 'string' || /[%\\\x00-\x1f]/.test(path)) return false;
+  const parts = path.split('/');
+  return parts.length >= 2 && parts[0] === userId &&
+    parts.every(part => part !== '' && part !== '.' && part !== '..');
+}
+
 /**
  * GET /api/contractor/documents
  * List all documents for the authenticated contractor
@@ -50,7 +59,7 @@ export const GET = withApiHandler(
     const rawDocs = (data || []) as Array<Record<string, unknown>>;
     const paths = rawDocs
       .map((d) => d.storage_path as string | undefined)
-      .filter((p): p is string => !!p);
+      .filter((p): p is string => isOwnedDocumentPath(p, user.id));
     const signedMap = new Map<string, string>();
     if (paths.length) {
       const { data: signed } = await serverSupabase.storage
@@ -284,6 +293,10 @@ export const DELETE = withApiHandler(
         { error: 'Document not found' },
         { status: 404 }
       );
+    }
+
+    if (doc.storage_path && !isOwnedDocumentPath(doc.storage_path, user.id)) {
+      return NextResponse.json({ error: 'Document storage access denied' }, { status: 403 });
     }
 
     // Delete from storage

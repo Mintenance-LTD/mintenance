@@ -115,7 +115,7 @@ export function transformContractorData(
     name: c.name || 'Contractor',
     company: c.company_name || 'Independent Contractor',
     avatar:
-      c.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`,
+      c.avatarUrl || '/contractor-avatar.svg',
     coverImage: '/images/contractor-cover.jpg',
     rating: c.rating || 0,
     reviewCount: c.reviewCount || 0,

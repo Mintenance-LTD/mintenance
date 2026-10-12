@@ -68,8 +68,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for complete a
           }
         }
       >
-        85
-        % confidence
+        85% confidence
       </Text>
     </View>
   </View>
@@ -376,8 +375,7 @@ exports[`AIAnalysisCard Component Structure should match snapshot for minimal an
           }
         }
       >
-        85
-        % confidence
+        85% confidence
       </Text>
     </View>
   </View>

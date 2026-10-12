@@ -98,7 +98,7 @@ export function HowItWorksClient() {
           >
             <button
               onClick={() => setActiveRole('homeowner')}
-              className='px-8 py-3 font-semibold transition-all'
+              className='px-4 sm:px-8 py-3 font-semibold transition-all'
               style={{
                 borderRadius: 'var(--me-radius-btn)',
                 background:
@@ -116,7 +116,7 @@ export function HowItWorksClient() {
             </button>
             <button
               onClick={() => setActiveRole('contractor')}
-              className='px-8 py-3 font-semibold transition-all'
+              className='px-4 sm:px-8 py-3 font-semibold transition-all'
               style={{
                 borderRadius: 'var(--me-radius-btn)',
                 background:

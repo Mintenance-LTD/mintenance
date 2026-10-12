@@ -57,7 +57,7 @@ export function QuotesStatsGrid({ stats }: StatsGridProps) {
         <div className='mt-4 flex items-center gap-2 text-xs'>
           <span className='flex items-center gap-1 text-teal-600 font-medium'>
             <TrendingUp className='w-3 h-3' />
-            12% vs last month
+            All quotes
           </span>
         </div>
       </motion.div>
@@ -106,7 +106,7 @@ export function QuotesStatsGrid({ stats }: StatsGridProps) {
         <div className='mt-4 flex items-center gap-2 text-xs'>
           <span className='flex items-center gap-1 text-teal-600 font-medium'>
             <TrendingUp className='w-3 h-3' />
-            Above average
+            Accepted out of issued quotes
           </span>
         </div>
       </motion.div>
@@ -118,7 +118,7 @@ export function QuotesStatsGrid({ stats }: StatsGridProps) {
         <div className='flex items-center justify-between'>
           <div>
             <p className='text-sm font-medium text-slate-600 mb-1'>
-              Accepted Revenue
+              Accepted quote value
             </p>
             <p className='text-3xl font-semibold text-green-600'>
               £{stats.acceptedAmount.toLocaleString()}

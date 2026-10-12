@@ -85,7 +85,12 @@ export function CompetitorComparisonTable() {
           is outdated, tell us — we&rsquo;ll correct it.
         </p>
 
-        <div className='overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm'>
+        <div
+          tabIndex={0}
+          role='region'
+          aria-label='Compare platform features'
+          className='overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm'
+        >
           <table className='w-full text-sm' aria-label='Platform comparison'>
             <thead className='bg-gray-50'>
               <tr>

@@ -46,10 +46,9 @@ export interface JobWizardInput {
  */
 export async function openJobWizard(page: Page): Promise<boolean> {
   await page.goto('/jobs/create');
-  await page
-    .waitForSelector('[data-testid="job-create-form"]', { timeout: 15000 })
-    .catch(() => {});
-
+  await expect(page.getByTestId('job-create-form')).toBeVisible({
+    timeout: 15000,
+  });
   return !/\/(login|auth)/.test(page.url());
 }
 
@@ -112,42 +111,20 @@ export async function completeTimelineStep(
  * page too early.
  */
 export async function submitJobWizard(page: Page): Promise<void> {
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/jobs' &&
+      response.request().method() === 'POST'
+  );
   await page.locator('[data-testid="submit-button"]').click();
-
-  await Promise.race([
-    page.waitForURL((url) => !url.pathname.includes('/jobs/create'), {
-      timeout: 30000,
-    }),
-    page
-      .getByText(/success|created|posted/i)
-      .first()
-      .waitFor({ state: 'visible', timeout: 30000 }),
-    // Surface a server-side rejection rather than sitting out the timeout.
-    // `hasText` is load-bearing: react-hot-toast keeps an EMPTY role="alert"
-    // container mounted at all times, so racing a bare getByRole('alert')
-    // resolves instantly and the caller asserts while the button still reads
-    // "Posting…" — which is exactly how this helper failed on 2026-07-30.
-    // Require the alert to actually say something.
-    page
-      .getByRole('alert')
-      .filter({ hasText: /\S/ })
-      .first()
-      .waitFor({ state: 'visible', timeout: 30000 }),
-  ]).catch(() => {
-    // Fall through — the caller asserts on the resulting page state.
+  const response = await responsePromise;
+  expect(
+    response.ok(),
+    `Job creation failed (${response.status()}): ${await response.text()}`
+  ).toBeTruthy();
+  await expect(page).toHaveURL(/\/jobs\/[a-z0-9-]+(?:[?#]|$)/, {
+    timeout: 30000,
   });
-
-  // The races above can all lose to a slow round-trip. Give the in-flight
-  // submit a chance to settle before the caller reads the page, so a job that
-  // posted fine is not reported as a failure.
-  await page
-    .locator('[data-testid="submit-button"]')
-    .filter({ hasText: /posting/i })
-    .waitFor({ state: 'hidden', timeout: 15000 })
-    .catch(() => {
-      // Still posting, or the button is gone because we navigated. Either way
-      // the caller's assertion is the source of truth.
-    });
 }
 
 /** Drive steps 1-3, leaving the wizard on the Review step. */

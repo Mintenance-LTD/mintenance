@@ -1,9 +1,7 @@
 /**
  * BidReviewScreen
  *
- * Tinder-like swipe interface for homeowners to review bids on their jobs.
- * Swipe right to accept, swipe left to reject.
- * Uses existing SwipeableCardWrapper and BidService.
+ * Browse every bid before making an explicit, confirmed decision.
  */
 
 import React, {
@@ -18,7 +16,6 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Animated,
   Easing,
 } from 'react-native';
@@ -37,9 +34,7 @@ import { BidService, Bid } from '../services/BidService';
 // here was the wrong source of truth — if a contractor had multiple
 // quotes on the same job, the contractor_id+job_id lookup could pick
 // the wrong row.
-import SwipeableCardWrapper, {
-  SwipeableCardRef,
-} from '../components/SwipeableCardWrapper';
+import { useMintDialog } from '../components/shared/useMintDialog';
 import type { JobsStackParamList } from '../navigation/types';
 import { goBackSafe } from '../navigation/hooks';
 import { me } from '../design-system/mint-editorial';
@@ -66,6 +61,7 @@ type BidQuoteMap = Record<
 type BidReviewRouteProp = RouteProp<JobsStackParamList, 'BidReview'>;
 
 export const BidReviewScreen: React.FC = () => {
+  const { alert, dialog } = useMintDialog();
   const navigation = useNavigation();
   const route = useRoute<BidReviewRouteProp>();
   const { user } = useAuth();
@@ -74,13 +70,15 @@ export const BidReviewScreen: React.FC = () => {
   const [bids, setBids] = useState<Bid[]>([]);
   const [quoteMap, setQuoteMap] = useState<BidQuoteMap>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [allReviewed, setAllReviewed] = useState(false);
   const [jobTitle, setJobTitle] = useState('');
   const [sortBy, setSortBy] = useState<'price' | 'rating' | 'timeline'>(
     'price'
   );
-  const swiperRef = useRef<SwipeableCardRef>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const mutationInFlight = useRef(false);
 
   // Step 4d: undo banner state. Holds the just-rejected bid + a
   // dismiss timer ref. Server gives a 60s undo window; we surface
@@ -161,9 +159,11 @@ export const BidReviewScreen: React.FC = () => {
   const fetchBids = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const data = await BidService.getBidsByJob(jobId, 'pending');
       setBids(data);
-      if (data.length === 0) setAllReviewed(true);
+      setAllReviewed(data.length === 0);
+      setActiveIndex(0);
       if (data.length > 0 && data[0]?.job?.title)
         setJobTitle(data[0].job.title);
 
@@ -193,8 +193,8 @@ export const BidReviewScreen: React.FC = () => {
         }
       }
       setQuoteMap(map);
-    } catch (err) {
-      Alert.alert('Error', 'Failed to load bids');
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -205,16 +205,10 @@ export const BidReviewScreen: React.FC = () => {
   }, [fetchBids]);
 
   const handleAccept = async (cardIndex: number) => {
-    // 2026-05-26 audit-51 P0: previously indexed into the unsorted
-    // `bids` array. The swipe deck renders `sortedBids` (see
-    // <SwipeCards cards={sortedBids} /> below), so when the homeowner
-    // sorted by rating / timeline / price, the cardIndex coming back
-    // from the deck pointed at a DIFFERENT bid than the one they
-    // visually swiped. Result: the wrong contractor got accepted /
-    // rejected. Read from sortedBids to keep the deck and the
-    // mutation in lockstep.
+    // Decisions target the same sorted bid that is currently displayed.
     const bid = sortedBids[cardIndex];
-    if (!bid || !user?.id || processing) return;
+    if (!bid || !user?.id || mutationInFlight.current) return;
+    mutationInFlight.current = true;
 
     setProcessing(true);
     try {
@@ -222,12 +216,13 @@ export const BidReviewScreen: React.FC = () => {
       // mutation route can be addressed without a server-side bid →
       // job lookup. `jobId` comes from `route.params` above.
       await BidService.acceptBid(bid.id, jobId);
+      setAllReviewed(true);
       invalidateJobCaches();
       // Fire the celebration overlay first so the user sees a clear
       // "accepted" beat before the modal Alert; awaited so the alert
       // doesn't pop on top of the fade-in.
       await triggerAcceptCelebration();
-      Alert.alert(
+      alert(
         'Bid Accepted',
         `You accepted ${bid.contractor?.first_name || 'the contractor'}'s bid of ${formatCurrency(bid.amount)}.`,
         [
@@ -264,21 +259,16 @@ export const BidReviewScreen: React.FC = () => {
         ]
       );
     } catch (err) {
-      // 2026-06-10 P1: the deck consumes the card BEFORE the mutation
-      // resolves (onSwipedRight fires post-swipe), and on the last card
-      // onSwipedAll has already flipped allReviewed. A failed accept
-      // therefore showed "All Bids Reviewed" while the bid stayed
-      // pending in the DB — unreachable until app restart. Restore the
-      // card and the deck state so the bid remains actionable.
-      swiperRef.current?.unswipe();
+      // Keep this bid available when acceptance fails.
       setAllReviewed(false);
-      Alert.alert(
+      alert(
         'Could not accept bid',
         err instanceof Error && err.message
           ? err.message
           : 'Failed to accept bid. Please try again.'
       );
     } finally {
+      mutationInFlight.current = false;
       setProcessing(false);
     }
   };
@@ -287,11 +277,14 @@ export const BidReviewScreen: React.FC = () => {
     // 2026-05-26 audit-51 P0: see handleAccept above — must index into
     // sortedBids (what the deck renders), not the unsorted bids array.
     const bid = sortedBids[cardIndex];
-    if (!bid || !user?.id || processing) return;
+    if (!bid || !user?.id || mutationInFlight.current) return;
+    mutationInFlight.current = true;
 
     setProcessing(true);
     try {
       await BidService.rejectBid(bid.id, jobId);
+      setBids((current) => current.filter((item) => item.id !== bid.id));
+      setActiveIndex(0);
       invalidateJobCaches();
       // Step 4d: surface the undo banner for 5s after a successful
       // reject. The server-side undo window is 60s, so dismissing
@@ -304,24 +297,24 @@ export const BidReviewScreen: React.FC = () => {
         undoTimerRef.current = null;
       }, 5000);
     } catch (err) {
-      // 2026-06-10 P1: see handleAccept — restore the visually-swiped
-      // card and deck state when the mutation fails.
-      swiperRef.current?.unswipe();
+      // A failed rejection leaves the bid available.
       setAllReviewed(false);
-      Alert.alert(
+      alert(
         'Could not reject bid',
         err instanceof Error && err.message
           ? err.message
           : 'Failed to reject bid. Please try again.'
       );
     } finally {
+      mutationInFlight.current = false;
       setProcessing(false);
     }
   };
 
   const handleUndoReject = useCallback(async () => {
     const bid = recentlyRejected;
-    if (!bid || !user?.id) return;
+    if (!bid || !user?.id || mutationInFlight.current) return;
+    mutationInFlight.current = true;
     dismissUndo();
     setProcessing(true);
     try {
@@ -329,22 +322,28 @@ export const BidReviewScreen: React.FC = () => {
       invalidateJobCaches();
       // Bring the rejected bid back into the deck so the user can
       // re-review it without leaving the screen.
-      swiperRef.current?.unswipe();
+      setBids((current) => [...current, bid]);
+      setAllReviewed(false);
+      setActiveIndex(0);
     } catch (err) {
-      Alert.alert(
+      alert(
         'Undo failed',
         err instanceof Error
           ? err.message
           : 'Could not reverse the rejection. The undo window may have closed.'
       );
     } finally {
+      mutationInFlight.current = false;
       setProcessing(false);
     }
-  }, [recentlyRejected, user?.id, dismissUndo]);
-
-  const handleAllSwiped = () => {
-    setAllReviewed(true);
-  };
+  }, [
+    recentlyRejected,
+    user?.id,
+    dismissUndo,
+    jobId,
+    invalidateJobCaches,
+    alert,
+  ]);
 
   const renderBidCard = (bid: Bid) => (
     <BidReviewCard
@@ -357,6 +356,7 @@ export const BidReviewScreen: React.FC = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
+        {dialog}
         <View style={styles.centered}>
           <ActivityIndicator size='large' color={me.ink} />
           <Text style={styles.loadingText}>Loading bids...</Text>
@@ -365,9 +365,36 @@ export const BidReviewScreen: React.FC = () => {
     );
   }
 
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={styles.emptyTitle}>Could not load bids</Text>
+          <Text style={styles.emptySubtitle}>
+            Your bids have not changed. Try loading them again.
+          </Text>
+          <TouchableOpacity
+            style={styles.goBackButton}
+            onPress={fetchBids}
+            accessibilityRole='button'
+          >
+            <Text style={styles.goBackButtonText}>Try again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => goBackSafe(navigation, 'JobsList')}
+            accessibilityRole='button'
+          >
+            <Text style={styles.sortChipText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (allReviewed || bids.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
+        {dialog}
         {/* Mirrors the editorial header on the main view so the
             empty state doesn't snap back to the legacy centred
             navbar. */}
@@ -396,6 +423,15 @@ export const BidReviewScreen: React.FC = () => {
           <Text style={styles.emptySubtitle}>
             You've reviewed all pending bids for this job.
           </Text>
+          {recentlyRejected && (
+            <TouchableOpacity
+              onPress={handleUndoReject}
+              accessibilityRole='button'
+              accessibilityLabel='Undo bid rejection'
+            >
+              <Text style={styles.goBackButtonText}>Undo rejection</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.goBackButton}
             onPress={() => goBackSafe(navigation, 'JobsList')}
@@ -410,6 +446,7 @@ export const BidReviewScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {dialog}
       {/* 2026-05-22 Mint Editorial v2: top bar (back + bid count
           chip) on the paper background, with the eyebrow + serif
           headline + subtitle pattern beneath. Replaces the
@@ -455,7 +492,7 @@ export const BidReviewScreen: React.FC = () => {
             {
               label: 'Avg',
               value: formatCurrency(
-                Math.round(bids.reduce((s, b) => s + b.amount, 0) / bids.length)
+                bids.reduce((s, b) => s + Number(b.amount), 0) / bids.length
               ),
               iconColor: '#3B82F6',
               iconBg: '#DBEAFE',
@@ -517,7 +554,11 @@ export const BidReviewScreen: React.FC = () => {
           <TouchableOpacity
             key={key}
             style={[styles.sortChip, sortBy === key && styles.sortChipActive]}
-            onPress={() => setSortBy(key)}
+            onPress={() => {
+              setSortBy(key);
+              setActiveIndex(0);
+            }}
+            disabled={processing}
             accessibilityRole='button'
             accessibilityState={{ selected: sortBy === key }}
           >
@@ -533,52 +574,50 @@ export const BidReviewScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Swipe Area — IndiGo-style fanned-deck visual: stackSize=3 so up
-          to two bids peek behind the active one, with alternating
-          rotation + horizontal offset per depth so the deck looks
-          like a hand of cards. Single-bid case still renders a flat
-          single card (no fake ghost peeks). User-asked redesign;
-          deeper redesign steps (media-first card layout, gesture-
-          driven swipe, accept polish) tracked separately. */}
-      <View style={styles.swiperContainer}>
-        <SwipeableCardWrapper
-          ref={swiperRef}
-          cards={sortedBids}
-          renderCard={(bid: unknown) => renderBidCard(bid as Bid)}
-          onSwipedRight={handleAccept}
-          onSwipedLeft={handleReject}
-          onSwipedAll={handleAllSwiped}
-          stackSize={3}
-          stackSeparation={14}
-          stackRotationDeg={2}
-          stackTranslateX={6}
-          dragBackdrop
-          overlayLabels={{
-            left: {
-              element: (
-                <View style={styles.overlayPass}>
-                  <Ionicons name='close' size={48} color={me.errFg} />
-                  <Text style={styles.overlayPassText}>PASS</Text>
-                </View>
-              ),
-            },
-            right: {
-              element: (
-                <View style={styles.overlayAccept}>
-                  <Ionicons name='checkmark' size={48} color={me.brand} />
-                  <Text style={styles.overlayAcceptText}>ACCEPT</Text>
-                </View>
-              ),
-            },
-          }}
-        />
+      <View style={styles.sortRow}>
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessibilityLabel='Previous bid'
+          disabled={processing || activeIndex === 0}
+          onPress={() => setActiveIndex((i) => i - 1)}
+          style={styles.sortChip}
+        >
+          <Text style={styles.sortChipText}>Previous</Text>
+        </TouchableOpacity>
+        <Text style={styles.bidCountText}>
+          {activeIndex + 1} of {sortedBids.length}
+        </Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          accessibilityLabel='Next bid'
+          disabled={processing || activeIndex >= sortedBids.length - 1}
+          onPress={() => setActiveIndex((i) => i + 1)}
+          style={styles.sortChip}
+        >
+          <Text style={styles.sortChipText}>Next</Text>
+        </TouchableOpacity>
       </View>
-
+      <View style={styles.swiperContainer}>
+        {sortedBids[activeIndex] && renderBidCard(sortedBids[activeIndex]!)}
+      </View>
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={styles.rejectButton}
-          onPress={() => swiperRef.current?.swipeLeft()}
+          onPress={() =>
+            alert(
+              'Reject this bid?',
+              'You can browse other bids without rejecting this one.',
+              [
+                { text: 'Keep bid', style: 'cancel' },
+                {
+                  text: 'Reject bid',
+                  style: 'destructive',
+                  onPress: () => handleReject(activeIndex),
+                },
+              ]
+            )
+          }
           disabled={processing}
           accessibilityRole='button'
           accessibilityLabel='Reject this bid'
@@ -588,7 +627,19 @@ export const BidReviewScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.acceptButton}
-          onPress={() => swiperRef.current?.swipeRight()}
+          onPress={() =>
+            alert(
+              'Accept this bid?',
+              `Accept the selected bid of ${formatCurrency(sortedBids[activeIndex]!.amount)}? Other pending bids will be declined.`,
+              [
+                { text: 'Keep comparing', style: 'cancel' },
+                {
+                  text: 'Accept bid',
+                  onPress: () => handleAccept(activeIndex),
+                },
+              ]
+            )
+          }
           disabled={processing}
           accessibilityRole='button'
           accessibilityLabel='Accept this bid'

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 import { redirect } from 'next/navigation';
@@ -142,7 +143,7 @@ export default async function ContractorJobDetailPage({
 
   const { data: escrowTransaction } = await serverSupabase
     .from('escrow_transactions')
-    .select('id, status')
+    .select('id, status, amount, platform_fee, contractor_payout')
     .eq('job_id', resolvedParams.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -251,9 +252,7 @@ export default async function ContractorJobDetailPage({
           | 'in_person'
           | null,
         key_safe_code: canSeeKeySafeCode
-          ? (((property as Record<string, unknown>).key_safe_code as
-              | string
-              | null) ?? null)
+          ? await readPropertyEntrySecret(job.property_id, user.id, job.id)
           : null,
         access_notes:
           ((property as Record<string, unknown>).access_notes as
@@ -325,6 +324,21 @@ export default async function ContractorJobDetailPage({
         escrowHeld={escrowHeld}
         escrowStatus={escrowStatus}
         escrowId={escrowTransaction?.id ?? null}
+        paymentAmounts={
+          escrowTransaction
+            ? {
+                gross: Number(escrowTransaction.amount),
+                fee:
+                  escrowTransaction.platform_fee === null
+                    ? null
+                    : Number(escrowTransaction.platform_fee),
+                net:
+                  escrowTransaction.contractor_payout === null
+                    ? null
+                    : Number(escrowTransaction.contractor_payout),
+              }
+            : undefined
+        }
         jobPhotoUrls={jobPhotoUrls}
         buildingAssessment={buildingAssessment}
         userId={user.id}

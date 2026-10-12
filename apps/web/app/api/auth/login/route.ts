@@ -109,6 +109,7 @@ export const POST = withApiHandler(
 
     // Admin accounts MUST have MFA enabled — block login if not set up
     if (isAdmin && !mfaEnabled) {
+      const setupSession = await MFAService.createPreMFASession(result.user.id, getClientIp(request), request.headers.get('user-agent') || undefined);
       logger.warn('Admin login blocked: MFA not configured', {
         service: 'auth',
         userId: result.user.id,
@@ -119,7 +120,7 @@ export const POST = withApiHandler(
           requiresMfaSetup: true,
           message:
             'Admin accounts require MFA. Please set up two-factor authentication.',
-          setupUrl: '/admin/login?setup-mfa=true',
+          preMfaToken: setupSession.sessionToken,
         },
         { status: 403 }
       );

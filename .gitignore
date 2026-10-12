@@ -361,3 +361,7 @@ apps/web/*.png
 /ui2.xml
 /tabs.xml
 apps/mobile/phase4-after-mocks.txt
+
+# Isolated readiness database configuration and local credentials
+/output/readiness-stack/
+/output/readiness-toolchain/

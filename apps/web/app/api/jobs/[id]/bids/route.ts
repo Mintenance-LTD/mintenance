@@ -57,7 +57,10 @@ export const GET = withApiHandler(
     // — these were stored by submit-bid but invisible on the
     // homeowner's bid list until the 2026-05-13 bid → contract
     // pipeline audit.
-    let bidsQuery = userDb
+    // The participant gate above authorizes this job's bids. Profile RLS only
+    // allows self/admin reads, so a bearer homeowner otherwise gets null bidder
+    // profiles. Keep the job predicate and explicit public profile projection.
+    let bidsQuery = serverSupabase
       .from('bids')
       .select(
         `

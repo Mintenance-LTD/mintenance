@@ -6,7 +6,7 @@ import { BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
-import { getRealisedAmount } from '@/lib/services/jobs/job-amount';
+
 
 /**
  * GET /api/contractors/[id]/metrics
@@ -51,26 +51,25 @@ export const GET = withApiHandler(
           throw new BadRequestError('Contractor id missing');
         }
 
-        // Fetch all relevant data in parallel.
-        // 2026-05-23: earnings + avgProjectValue used to be derived
-        // from `jobs.budget`, which is now NULL for every job posted
-        // under the open-bidding model (commit 479c164ce). That made
-        // both metrics silently read £0 for any contractor whose
-        // completed jobs were posted after 2026-05-22. Switched to
-        // reading directly from `escrow_transactions` (the only
-        // authoritative paid-out figure) via getRealisedAmount().
+        // Public performance is limited to active, verified contractors.
+        const { data: contractor, error: directoryError } = await serverSupabase
+          .from('profile_directory').select('id').eq('id', id)
+          .eq('role', 'contractor').or('verified.eq.true,admin_verified.eq.true')
+          .maybeSingle();
+        if (directoryError) return NextResponse.json({ error: 'Metrics unavailable' }, { status: 503 });
+        if (!contractor) return NextResponse.json({ error: 'Contractor not found' }, { status: 404 });
         const [
           completedJobsResponse,
           bidsResponse,
           firstBidsResponse,
           firstMessagesResponse,
           homeownerIdsResponse,
-          releasedEscrowResponse,
+
         ] = await Promise.all([
           serverSupabase
             .from('jobs')
             .select(
-              'id, scheduled_start_date, completed_at, budget, created_at'
+              'id, scheduled_start_date, completed_at, created_at'
             )
             .eq('contractor_id', id)
             .eq('status', 'completed'),
@@ -98,11 +97,6 @@ export const GET = withApiHandler(
             .eq('contractor_id', id)
             .eq('status', 'completed'),
 
-          serverSupabase
-            .from('escrow_transactions')
-            .select('job_id, amount, status')
-            .eq('payee_id', id)
-            .in('status', ['released', 'completed']),
         ]);
 
         const completedJobs = completedJobsResponse.data || [];
@@ -110,26 +104,6 @@ export const GET = withApiHandler(
         const firstBids = firstBidsResponse.data || [];
         const firstMessages = firstMessagesResponse.data || [];
         const homeownerIds = homeownerIdsResponse.data || [];
-        const releasedEscrow = releasedEscrowResponse.data || [];
-
-        // Build a job_id → realised escrow amount index. We use the
-        // per-job sum to be defensive against split disbursements
-        // (one job, multiple releases — rare but possible if support
-        // does a manual partial release).
-        const escrowByJob = new Map<string, number>();
-        for (const tx of releasedEscrow) {
-          const realised = getRealisedAmount({
-            escrow_amount: Number(tx.amount ?? 0),
-            escrow_status: tx.status,
-          });
-          if (realised != null && tx.job_id) {
-            escrowByJob.set(
-              tx.job_id,
-              (escrowByJob.get(tx.job_id) ?? 0) + realised
-            );
-          }
-        }
-
         // Calculate metrics
         const totalBids = bids.length;
         const acceptedBids = bids.filter((b) => b.status === 'accepted').length;
@@ -173,20 +147,6 @@ export const GET = withApiHandler(
             ? Math.round((repeatCustomers / homeownerCounts.size) * 100)
             : 0;
 
-        // Calculate average project value off realised escrow only.
-        // Filters out completed jobs with no released payment yet
-        // (refunded, cancelled, or still stuck in release_pending).
-        const realisedJobAmounts = completedJobs
-          .map((job) => escrowByJob.get(job.id))
-          .filter((amount): amount is number => amount != null && amount > 0);
-        const avgProjectValue =
-          realisedJobAmounts.length > 0
-            ? Math.round(
-                realisedJobAmounts.reduce((sum, amt) => sum + amt, 0) /
-                  realisedJobAmounts.length
-              )
-            : 0;
-
         // Calculate average response time
         const responseTimes: number[] = [];
 
@@ -211,7 +171,6 @@ export const GET = withApiHandler(
             id: string;
             scheduled_start_date: string | null;
             completed_at: string | null;
-            budget: number | null;
             created_at: string;
           }) => {
             const jobCreatedAt = new Date(job.created_at).getTime();
@@ -252,18 +211,14 @@ export const GET = withApiHandler(
           responseTimeText = `< ${Math.round(avgResponseTimeHours / 24)} days`;
         }
 
-        // Earnings = sum of all released escrow paid to this
-        // contractor, not the sum of homeowner-hint budgets.
-        const earnings = realisedJobAmounts.reduce((sum, amt) => sum + amt, 0);
-
         const metrics = {
           winRate: acceptanceRate,
           totalBids,
           avgRating: 0,
-          earnings,
+
           onTimeCompletion,
           repeatCustomers: repeatCustomersPercentage,
-          avgProjectValue,
+
           responseTime: responseTimeText,
           responseTimeHours: avgResponseTimeHours,
         };

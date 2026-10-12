@@ -1,0 +1,73 @@
+PHASE 3 — RETENTION AND DATABASE MAINTENANCE
+4 October 2026. Implementation complete; hosted release gates remain open.
+
+IMPLEMENTED AND VERIFIED
+Retention and archival use bounded, service-only database functions. Ordinary
+clients cannot execute them. Successful webhook IDs remain available for replay
+deduplication; only old processed payloads are redacted. Unresolved payments,
+escrow holds and disputes are preserved. Old jobs are archived in place, keeping
+their relationships and evidence. Deleted profiles with signed contracts or active
+obligations are deferred instead of silently losing supporting identity records.
+PII cleanup uses a valid INET sentinel and reports its actual processed count.
+
+Daily PII and retention workers and monthly archival now appear in the existing
+administrator recovery-health view. Missing, failed, stale and stuck runs are
+distinguished; deferred profile counts produce an attention state. Daily tolerance
+is 26 hours, monthly tolerance 35 days. This is an operational health signal,
+not proof of delivery to an external alerting service.
+
+DATA HANDLING BOUNDARIES
+- Login attempts: effective 30-day purge via PII cleanup; retention also removes
+  any remaining entries older than 90 days.
+- Expired password reset tokens: removed after seven days.
+- Expired refresh tokens: removed after 30 days by PII cleanup.
+- Security event IP: replaced after seven days; audit event itself retained.
+- Email history: 180-day purge when the optional legacy table exists.
+- Successful webhook payloads: redacted after seven days; failed/pending payloads
+  and event identifiers preserved for recovery and deduplication.
+- Deleted profile contact/presentation fields: eligible after 90 days, unless
+  active work, unresolved money/disputes or signed contracts require review.
+- Inactive completed/cancelled jobs: archive after 12 months; never erase ledgers.
+These are implemented operational retention rules, not a legal-compliance opinion.
+Contact clearing is not complete account erasure: Auth identities, financial and
+signed evidence, retained exports and storage require their own lifecycle review.
+Deferred accounts must be reviewed by an authorized operator, not silently purged.
+
+RESTORE REHEARSAL
+A custom-format dump of the isolated synthetic Supabase database was restored to
+readiness_phase3_restore_verified in the local Docker database container. Source
+database and hosted data were not restored over or deleted. Scheduler extension
+pg_cron and its schema were excluded, so the rehearsal cannot activate schedules.
+The first attempt as postgres failed on Supabase-owned schema ownership; the fresh
+target restored successfully using the existing local supabase_admin role.
+Acceptance ran retention and archival inside a rolled-back transaction, checked
+that an expired synthetic login was removed and client execution was denied, and
+rechecked the restricted profile-directory permissions after restoration.
+This verifies local logical restore, not hosted PITR, new-instance role bootstrap
+or restoration of Storage object bytes. The local cluster supplied existing roles.
+Database backups contain Storage metadata, not the objects themselves:
+https://supabase.com/docs/guides/platform/backups
+
+VALIDATION
+25 monitoring/handler tests passed; 113 real database tests passed (21 suites).
+Web type check passed. All repository migrations replayed in a shadow database;
+local db diff reported only the known pg_net extension difference. Its proposed
+DROP was not applied. Restore command and acceptance checks exited successfully.
+Detailed execution logs remain local; verification-results.json is the portable
+summary. Tests and readiness scripts are committed for reproduction.
+
+HOSTED STATE / REQUIRED RELEASE CHECKS
+Read-only hosted preflight still found seven failed PII runs, four failed retention
+runs and one failed archival run over the preceding seven days. Hosted project
+reports PostgreSQL 17.4.1.074. No hosted cleanup, restore or upgrade was performed.
+R5: Deploy maintenance migration/handlers; verify a successful scheduled run and
+deliver a controlled failure alert to the configured operator destination.
+R6: Verify recoverable hosted backups/PITR and a separate Storage object recovery
+plan; schedule supported database upgrade with a maintenance window and recovery
+verification. Do not apply the local pg_net DROP or restore a rehearsal over live.
+These remain beta gates in Phase 8, not completed production operations.
+
+Ready for Phase 4: dependencies and engineering gates.
+
+Publishing check: scoped web ESLint reported 0 errors and 9 unused-variable warnings. The zero-warning gate remains open for Phase 4. Shared-worktree mutation hooks were not run; publication uses an isolated index to preserve concurrent work.
+Hex and currency guards passed. The size guard flags the already-over-limit YOLOCorrectionService; this change adds only two training-exclusion guard lines. Refactoring remains Phase 4.

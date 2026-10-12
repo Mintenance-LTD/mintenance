@@ -23,7 +23,7 @@ const AUTH_UNAVAILABLE =
 /** Reach /jobs/create authenticated and assert the wizard mounted. */
 async function openJobWizard(page: import('@playwright/test').Page) {
   await page.goto('/jobs/create');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
   await expect(page.locator('[data-testid="job-create-form"]')).toBeVisible({
     timeout: 10000,
@@ -41,7 +41,7 @@ test.describe('Job Posting Flow', () => {
       page,
     }) => {
       await page.goto('/jobs/create');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       // Auth is guaranteed, so it must stay on the wizard, not redirect to login.
       await expect(page).toHaveURL(/\/jobs\/create/);
     });
@@ -144,7 +144,7 @@ test.describe('Job Listing Page', () => {
 
   test('job listings page renders a concrete state', async ({ page }) => {
     await page.goto('/jobs');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
     // Jobs heading, a table/cards list, or an explicit empty/CTA state — never

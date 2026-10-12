@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  ImageBackground,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -124,29 +116,6 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData, jobId }) => {
   // contractor is identifiable even when the hero is just gradient.
   // (#1 step 2 of the IndiGo-style redesign — see BidReviewScreen
   //  fanned-deck step 1 in commit 5d2b8583.)
-  const HeroBackground: React.FC<{ children?: React.ReactNode }> = ({
-    children,
-  }) =>
-    avatarUri ? (
-      <ImageBackground
-        source={{ uri: avatarUri }}
-        style={styles.hero}
-        imageStyle={styles.heroImage}
-        blurRadius={8}
-      >
-        <View style={styles.heroDimOverlay} />
-        {children}
-      </ImageBackground>
-    ) : (
-      <LinearGradient
-        colors={[me.brand, me.brandSoft]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        {children}
-      </LinearGradient>
-    );
 
   return (
     <View style={styles.bidCard}>
@@ -155,7 +124,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData, jobId }) => {
         showsVerticalScrollIndicator={false}
       >
         {/* Hero media zone */}
-        <HeroBackground />
+        <View style={styles.hero} />
 
         {/* Avatar overlapping hero/body boundary */}
         <TouchableOpacity

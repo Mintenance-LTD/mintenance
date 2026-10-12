@@ -31,6 +31,7 @@ const CONFIG = {
 
 interface RetrainingCheckResult {
   shouldRetrain: boolean;
+  awaitingTrainingData?: boolean;
   reasons: string[];
   metrics: {
     correctionsCount: number;
@@ -73,7 +74,10 @@ export class ModelRetrainingService {
     let retrainingTriggered = false;
 
     // Generate alerts for drift / performance
-    if (checkResult.metrics.driftScore && checkResult.metrics.driftScore > CONFIG.DRIFT_SCORE_THRESHOLD) {
+    if (
+      checkResult.metrics.driftScore &&
+      checkResult.metrics.driftScore > CONFIG.DRIFT_SCORE_THRESHOLD
+    ) {
       alerts.push({
         type: 'DRIFT_DETECTED',
         severity: 'warning',
@@ -83,7 +87,8 @@ export class ModelRetrainingService {
 
     if (
       checkResult.metrics.performanceDegradation &&
-      checkResult.metrics.performanceDegradation > CONFIG.MIN_PERFORMANCE_DEGRADATION
+      checkResult.metrics.performanceDegradation >
+        CONFIG.MIN_PERFORMANCE_DEGRADATION
     ) {
       alerts.push({
         type: 'PERFORMANCE_DEGRADATION',
@@ -95,7 +100,11 @@ export class ModelRetrainingService {
     // Trigger retraining if needed
     if (checkResult.shouldRetrain) {
       if (CONFIG.DRY_RUN) {
-        alerts.push({ type: 'DRY_RUN', severity: 'info', message: 'Retraining would be triggered (dry run mode)' });
+        alerts.push({
+          type: 'DRY_RUN',
+          severity: 'info',
+          message: 'Retraining would be triggered (dry run mode)',
+        });
       } else {
         const jobsToday = await this.getTrainingJobsCountToday();
         if (jobsToday >= CONFIG.MAX_TRAINING_JOBS_PER_DAY) {
@@ -106,10 +115,15 @@ export class ModelRetrainingService {
           });
         } else {
           try {
-            const retrainingJob = await YOLORetrainingService.triggerRetraining();
+            const retrainingJob =
+              await YOLORetrainingService.triggerRetraining();
             jobId = retrainingJob.id;
             retrainingTriggered = true;
-            alerts.push({ type: 'RETRAINING_STARTED', severity: 'info', message: `Retraining job ${jobId} started successfully` });
+            alerts.push({
+              type: 'RETRAINING_STARTED',
+              severity: 'info',
+              message: `Retraining job ${jobId} started successfully`,
+            });
             await this.storeRetrainingTriggerReason(jobId, checkResult);
           } catch (error) {
             alerts.push({
@@ -120,8 +134,18 @@ export class ModelRetrainingService {
           }
         }
       }
+    } else if (checkResult.awaitingTrainingData) {
+      alerts.push({
+        type: 'AWAITING_TRAINING_DATA',
+        severity: 'info',
+        message: `Awaiting approved corrections (${checkResult.metrics.correctionsCount}/${CONFIG.MIN_CORRECTIONS_FOR_TRAINING})`,
+      });
     } else {
-      alerts.push({ type: 'NO_RETRAINING_NEEDED', severity: 'info', message: 'All models are up to date' });
+      alerts.push({
+        type: 'NO_RETRAINING_NEEDED',
+        severity: 'info',
+        message: 'All models are up to date',
+      });
     }
 
     // Store alerts
@@ -130,7 +154,11 @@ export class ModelRetrainingService {
     }
 
     // Adjust drift weights if applicable
-    if (CONFIG.DRIFT_CHECK_ENABLED && checkResult.metrics.driftScore && checkResult.metrics.driftScore > CONFIG.DRIFT_SCORE_THRESHOLD) {
+    if (
+      CONFIG.DRIFT_CHECK_ENABLED &&
+      checkResult.metrics.driftScore &&
+      checkResult.metrics.driftScore > CONFIG.DRIFT_SCORE_THRESHOLD
+    ) {
       try {
         await DriftMonitorService.detectAndAdjustWeights();
       } catch (error) {
@@ -162,13 +190,20 @@ export class ModelRetrainingService {
         metrics: { correctionsCount: 0, daysSinceLastTraining: 0 },
       });
 
-      return { jobId: retrainingJob.id, message: 'Retraining triggered successfully' };
+      return {
+        jobId: retrainingJob.id,
+        message: 'Retraining triggered successfully',
+      };
     }
 
     const checkResult = await this.checkRetrainingConditions();
     return {
       checkResult,
-      message: checkResult.shouldRetrain ? 'Retraining conditions met' : 'No retraining needed',
+      message: checkResult.shouldRetrain
+        ? 'Retraining conditions met'
+        : checkResult.awaitingTrainingData
+          ? 'Awaiting sufficient approved corrections'
+          : 'No retraining needed',
     };
   }
 
@@ -185,14 +220,17 @@ export class ModelRetrainingService {
     const correctionStats = await YOLOCorrectionService.getCorrectionStats();
     metrics.correctionsCount = correctionStats.approved;
     if (metrics.correctionsCount >= CONFIG.MIN_CORRECTIONS_FOR_TRAINING) {
-      reasons.push(`${metrics.correctionsCount} approved corrections available`);
+      reasons.push(
+        `${metrics.correctionsCount} approved corrections available`
+      );
     }
 
     // 2. Time since last training
     const lastJob = await YOLORetrainingService.getLastJob();
     if (lastJob?.completedAt) {
       const daysSince = Math.floor(
-        (Date.now() - new Date(lastJob.completedAt).getTime()) / (1000 * 60 * 60 * 24)
+        (Date.now() - new Date(lastJob.completedAt).getTime()) /
+          (1000 * 60 * 60 * 24)
       );
       metrics.daysSinceLastTraining = daysSince;
       if (daysSince >= CONFIG.MAX_DAYS_WITHOUT_TRAINING) {
@@ -204,7 +242,7 @@ export class ModelRetrainingService {
     }
 
     // 3. Drift detection
-    if (CONFIG.DRIFT_CHECK_ENABLED) {
+    if (CONFIG.DRIFT_CHECK_ENABLED && lastJob?.completedAt) {
       try {
         const drift = await DriftMonitorService.detectDrift({
           propertyType: undefined,
@@ -215,7 +253,9 @@ export class ModelRetrainingService {
         if (drift.driftScore > 0) {
           metrics.driftScore = drift.driftScore;
           if (drift.driftScore > CONFIG.DRIFT_SCORE_THRESHOLD) {
-            reasons.push(`Distribution drift detected: ${drift.driftType} (score: ${drift.driftScore.toFixed(2)})`);
+            reasons.push(
+              `Distribution drift detected: ${drift.driftType} (score: ${drift.driftScore.toFixed(2)})`
+            );
           }
         }
       } catch (error) {
@@ -231,7 +271,9 @@ export class ModelRetrainingService {
           metrics.performanceDegradation = degradation.degradation;
           metrics.recentModelAccuracy = degradation.currentAccuracy;
           if (degradation.degradation > CONFIG.MIN_PERFORMANCE_DEGRADATION) {
-            reasons.push(`Performance degraded by ${(degradation.degradation * 100).toFixed(1)}%`);
+            reasons.push(
+              `Performance degraded by ${(degradation.degradation * 100).toFixed(1)}%`
+            );
           }
         }
       } catch (error) {
@@ -240,7 +282,11 @@ export class ModelRetrainingService {
     }
 
     return {
-      shouldRetrain: reasons.length > 0,
+      shouldRetrain:
+        reasons.length > 0 &&
+        metrics.correctionsCount >= CONFIG.MIN_CORRECTIONS_FOR_TRAINING,
+      awaitingTrainingData:
+        metrics.correctionsCount < CONFIG.MIN_CORRECTIONS_FOR_TRAINING,
       reasons: reasons.length > 0 ? reasons : ['No retraining conditions met'],
       metrics,
     };
@@ -254,18 +300,32 @@ export class ModelRetrainingService {
     const { data: recentAssessments } = await serverSupabase
       .from('building_assessments')
       .select('id, created_at, damage_assessment')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .gte(
+        'created_at',
+        new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      )
       .limit(CONFIG.MIN_SAMPLES_FOR_EVALUATION);
 
-    if (!recentAssessments || recentAssessments.length < CONFIG.MIN_SAMPLES_FOR_EVALUATION) {
+    if (
+      !recentAssessments ||
+      recentAssessments.length < CONFIG.MIN_SAMPLES_FOR_EVALUATION
+    ) {
       return null;
     }
 
-    const historicalMetrics = await ModelEvaluationService.getHistoricalMetrics('yolo', 1);
-    if (historicalMetrics.length === 0) return null;
-
-    const baselineAccuracy = historicalMetrics[0].test_metrics.f1_score;
-    const currentAccuracy = baselineAccuracy * 0.95; // Simulated degradation
+    const historicalMetrics = await ModelEvaluationService.getHistoricalMetrics(
+      'yolo',
+      2
+    );
+    if (historicalMetrics.length < 2) return null;
+    const currentAccuracy = historicalMetrics[0].test_metrics.f1_score;
+    const baselineAccuracy = historicalMetrics[1].test_metrics.f1_score;
+    if (
+      !Number.isFinite(currentAccuracy) ||
+      !Number.isFinite(baselineAccuracy) ||
+      baselineAccuracy <= 0
+    )
+      return null;
     const degradation = (baselineAccuracy - currentAccuracy) / baselineAccuracy;
 
     return { degradation, currentAccuracy, baselineAccuracy };

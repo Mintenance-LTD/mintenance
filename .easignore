@@ -8,6 +8,20 @@
 .agents/
 .windsurf/
 .claude/
+.codex/
+audit/
+output/
+tmp/
+.playwright*/
+.remember/
+.design-bundle/
+training_data*.jsonl*
+/*-screen.png
+/relaunch.png
+/ui.xml
+apps/mobile/test-results*.txt
+apps/mobile/test-results*.json
+test-results/
 
 # ============================================================================
 # LARGE DATASET DIRECTORIES (These are the main size contributors)
@@ -108,6 +122,10 @@ performance-dashboard.html
 # ============================================================================
 scripts/
 **/scripts/
+# Required by the root package's npm prepare lifecycle during EAS installs.
+!/scripts/
+/scripts/*
+!/scripts/rebuild-native.mjs
 week3-test-plan.js
 analyze-coverage.js
 performance-budgets.json

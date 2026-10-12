@@ -37,6 +37,7 @@
  * Backoff between retries doubles the wait window, capped at 1 hour.
  */
 
+import { shouldDeliverPhoneCall } from './PhoneCallService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '@/lib/services/agents/NotificationAgent';
@@ -50,6 +51,7 @@ import {
 import {
   loadPreferences,
   isTypeDisabled,
+  nextQuietHoursEndUTC,
 } from './NotificationPreferenceResolver';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -119,6 +121,36 @@ export class NotificationProcessorService {
         const queuedNotif = raw as QueuedNotificationRow;
         try {
           if (!(await claimQueuedNotification(queuedNotif))) continue;
+          if (
+            !(await shouldDeliverPhoneCall(
+              queuedNotif.metadata ?? {},
+              queuedNotif.user_id
+            ))
+          ) {
+            const { error } = await serverSupabase
+              .from('notification_queue')
+              .update({
+                status: 'cancelled',
+                error_message: 'phone_call_no_longer_due',
+              })
+              .eq('id', queuedNotif.id)
+              .eq('scheduled_for', queuedNotif.scheduled_for);
+            if (error) throw error;
+            continue;
+          }
+          if (queuedNotif.metadata?.phone_call_id) {
+            const prefs = await loadPreferences(queuedNotif.user_id);
+            const quietUntil = nextQuietHoursEndUTC(prefs);
+            if (quietUntil) {
+              const { error } = await serverSupabase
+                .from('notification_queue')
+                .update({ scheduled_for: quietUntil.toISOString() })
+                .eq('id', queuedNotif.id)
+                .eq('scheduled_for', queuedNotif.scheduled_for);
+              if (error) throw error;
+              continue;
+            }
+          }
           if (queuedNotif.status === 'failed_push') {
             await NotificationProcessorService.retryFailedPush(queuedNotif);
           } else {

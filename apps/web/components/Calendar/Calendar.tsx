@@ -1,287 +1,190 @@
 'use client';
-
-import React, { useState, useEffect } from 'react';
 import { theme } from '@/lib/theme';
-import { logger } from '@mintenance/shared';
+
+import { useState } from 'react';
 import { CalendarHeader } from './CalendarHeader';
-import { CalendarGrid } from './CalendarGrid';
+import { CalendarDay, type CalendarEvent } from './CalendarDay';
+import { CalendarEvent as EventCard } from './CalendarEvent';
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  date: Date | string; // Accept both Date and string (dates serialize when passed from server)
-  type: 'job' | 'maintenance' | 'inspection';
-  status?: string;
-}
+const monthNames = Array.from({ length: 12 }, (_, month) =>
+  new Date(2026, month, 1).toLocaleDateString('en-GB', { month: 'long' })
+);
+const eventColor = (type: string) =>
+  type === 'maintenance'
+    ? '#3F7567'
+    : type === 'inspection'
+      ? '#99651E'
+      : '#526B88';
+const dateLabel = (date: Date) =>
+  date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 
-interface CalendarProps {
-  events: CalendarEvent[];
-}
-
-type CalendarView = 'month' | 'week' | 'day';
-
-export function Calendar(props: CalendarProps) {
-  // Defensive prop destructuring with defaults to prevent test crashes
-  const { events = [] } = props || {};
+export function Calendar({ events = [] }: { events: CalendarEvent[] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<CalendarView>('month');
-
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
-  // Debug: Log events and current date in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const eventsByMonth = events
-        .map((e) => {
-          const eventDate =
-            typeof e.date === 'string' ? new Date(e.date) : e.date;
-          if (isNaN(eventDate.getTime())) return null;
-          const dateStr =
-            typeof e.date === 'string' ? e.date : e.date.toISOString();
-          const dateParts = dateStr.split('T')[0].split('-');
-          return {
-            title: e.title,
-            dateISO: dateStr,
-            year: parseInt(dateParts[0]),
-            month: parseInt(dateParts[1]) - 1, // 0-indexed
-            day: parseInt(dateParts[2]),
-          };
-        })
-        .filter(Boolean);
-
-      if (process.env.NODE_ENV === 'development') {
-        logger.debug('Calendar Component Debug', {
-          eventsCount: events.length,
-          currentDate: currentDate.toISOString(),
-          currentMonth: currentDate.getMonth(),
-          currentYear: currentDate.getFullYear(),
-          currentMonthName: monthNames[currentDate.getMonth()],
-          eventsInCurrentMonth: eventsByMonth.filter(
-            (e) =>
-              e &&
-              e.month === currentDate.getMonth() &&
-              e.year === currentDate.getFullYear()
-          ).length,
-        });
-      }
-    }
-  }, [events, currentDate, monthNames]);
-
-  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  const getMonthData = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    return { year, month, daysInMonth, startingDayOfWeek };
-  };
-
-  const goToPreviousMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-    );
-  };
-
-  const goToNextMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
-    );
-  };
-
-  const goToToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  const isToday = (day: number) => {
-    const today = new Date();
-    return (
-      day === today.getDate() &&
-      currentDate.getMonth() === today.getMonth() &&
-      currentDate.getFullYear() === today.getFullYear()
-    );
-  };
-
-  const getEventsForDay = (
-    day: number,
-    targetMonth?: number,
-    targetYear?: number
-  ): CalendarEvent[] => {
-    const checkMonth =
-      targetMonth !== undefined ? targetMonth : currentDate.getMonth();
-    const checkYear =
-      targetYear !== undefined ? targetYear : currentDate.getFullYear();
-
-    return events.filter((event) => {
-      // Convert date to Date object if it's a string (serialized from server)
-      const eventDate =
-        typeof event.date === 'string' ? new Date(event.date) : event.date;
-
-      if (isNaN(eventDate.getTime())) {
-        // Invalid date, skip this event
-        logger.warn('Invalid date for event', { event: event.title });
-        return false;
-      }
-
-      // Normalize dates to local timezone to avoid timezone conversion issues
-      // When an ISO string like "2025-11-01T12:00:00Z" is parsed, it might shift to local time
-      // We need to extract the date components from the ISO string directly or use UTC methods
-      let eventYear: number;
-      let eventMonth: number;
-      let eventDay: number;
-
-      if (typeof event.date === 'string') {
-        // Parse ISO string directly to avoid timezone shifts
-        const dateStr = event.date.split('T')[0]; // Get just the date part "YYYY-MM-DD"
-        const [year, month, day] = dateStr.split('-').map(Number);
-        eventYear = year;
-        eventMonth = month - 1; // JavaScript months are 0-indexed
-        eventDay = day;
-      } else {
-        // Already a Date object, use local date methods
-        eventYear = eventDate.getFullYear();
-        eventMonth = eventDate.getMonth();
-        eventDay = eventDate.getDate();
-      }
-
-      const matches =
-        eventDay === day &&
-        eventMonth === checkMonth &&
-        eventYear === checkYear;
-
-      // Debug logging for development
-      if (process.env.NODE_ENV === 'development' && matches) {
-        logger.info('Event matched for day', {
-          day,
-          eventTitle: event.title,
-          eventDate:
-            typeof event.date === 'string'
-              ? event.date
-              : event.date.toISOString(),
-          eventDay,
-          eventMonth,
-          eventYear,
-          checkDay: day,
-          checkMonth,
-          checkYear,
-        });
-      }
-
-      return matches;
+  const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+  const start = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    view === 'month' ? 1 : currentDate.getDate()
+  );
+  if (view !== 'day') start.setDate(start.getDate() - start.getDay());
+  const days = Array.from(
+    { length: view === 'month' ? 42 : view === 'week' ? 7 : 1 },
+    (_, i) =>
+      new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
+  );
+  const forDate = (date: Date) =>
+    events.filter((event) => {
+      // Date-only scheduling values must retain their intended calendar day.
+      const parts =
+        typeof event.date === 'string'
+          ? event.date.slice(0, 10).split('-').map(Number)
+          : [
+              event.date.getFullYear(),
+              event.date.getMonth() + 1,
+              event.date.getDate(),
+            ];
+      return (
+        parts[0] === date.getFullYear() &&
+        parts[1] === date.getMonth() + 1 &&
+        parts[2] === date.getDate()
+      );
     });
+  const move = (direction: number) =>
+    setCurrentDate((date) =>
+      view === 'month'
+        ? new Date(date.getFullYear(), date.getMonth() + direction, 1)
+        : new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate() + direction * (view === 'week' ? 7 : 1)
+          )
+    );
+  const openDay = (date: Date) => {
+    setCurrentDate(date);
+    setView('day');
   };
-
-  const { month, year, daysInMonth, startingDayOfWeek } =
-    getMonthData(currentDate);
-
-  // Get previous month's last days
-  const prevMonth = new Date(year, month, 0);
-  const prevMonthDays = prevMonth.getDate();
-
-  const calendarDays = [];
-
-  // Add previous month's trailing days
-  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-    const day = prevMonthDays - i;
-    calendarDays.push({ day, isCurrentMonth: false, month: month - 1, year });
-  }
-
-  // Add current month's days
-  for (let day = 1; day <= daysInMonth; day++) {
-    calendarDays.push({ day, isCurrentMonth: true, month, year });
-  }
-
-  // Add next month's leading days to fill the grid (42 cells = 6 weeks)
-  const totalCells = 42;
-  const remainingCells = totalCells - calendarDays.length;
-  for (let day = 1; day <= remainingCells; day++) {
-    calendarDays.push({ day, isCurrentMonth: false, month: month + 1, year });
-  }
-
-  const getEventColor = (type: string) => {
-    switch (type) {
-      case 'job':
-        return '#3B82F6'; // Blue
-      case 'maintenance':
-        return '#10B981'; // Green
-      case 'inspection':
-        return '#F59E0B'; // Amber
-      default:
-        return theme.colors.primary;
-    }
-  };
-
+  const label =
+    view === 'month'
+      ? `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+      : view === 'day'
+        ? dateLabel(currentDate)
+        : `${dateLabel(days[0])} – ${dateLabel(days[6])}`;
+  const today = new Date().toDateString();
   return (
-    <div
+    <section
+      aria-label='Schedule calendar'
       style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.lg,
-        border: `1px solid ${theme.colors.border}`,
+        minWidth: 0,
+        background: 'var(--me-surface, #fff)',
+        border: '1px solid var(--me-line, #dfe7e2)',
+        borderRadius: 16,
         overflow: 'hidden',
       }}
     >
       <CalendarHeader
-        month={month}
-        year={year}
+        month={currentDate.getMonth()}
+        year={currentDate.getFullYear()}
         monthNames={monthNames}
-        onPreviousMonth={goToPreviousMonth}
-        onNextMonth={goToNextMonth}
-        onToday={goToToday}
+        label={label}
         view={view}
         onViewChange={setView}
+        onToday={() => setCurrentDate(new Date())}
+        onPreviousMonth={() => move(-1)}
+        onNextMonth={() => move(1)}
       />
-
-      {/* Days of Week */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          borderBottom: `1px solid ${theme.colors.border}`,
-          backgroundColor: theme.colors.backgroundSecondary,
-        }}
-      >
-        {daysOfWeek.map((day) => (
-          <div
-            key={day}
+      {view === 'day' ? (
+        <div style={{ padding: 20, minHeight: 260 }}>
+          <p
             style={{
-              padding: theme.spacing[3],
-              textAlign: 'center',
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textSecondary,
-              textTransform: 'uppercase',
+              color: `var(--me-ink-2, ${theme.colors.textSecondary})`,
+              marginBottom: 16,
             }}
           >
-            {day}
+            {forDate(currentDate).length} events ·{' '}
+            {currentDate.toLocaleDateString('en-GB', { weekday: 'long' })}
+          </p>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {forDate(currentDate).map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                eventColor={eventColor(event.type)}
+              />
+            ))}
           </div>
-        ))}
-      </div>
-
-      <CalendarGrid
-        calendarDays={calendarDays}
-        currentDate={currentDate}
-        events={events}
-        getEventsForDay={getEventsForDay}
-        isToday={isToday}
-        getEventColor={getEventColor}
-      />
-    </div>
+          {forDate(currentDate).length === 0 && (
+            <p
+              style={{
+                padding: '40px 0',
+                textAlign: 'center',
+                color: `var(--me-ink-2, ${theme.colors.textSecondary})`,
+              }}
+            >
+              Nothing scheduled for this day.
+            </p>
+          )}
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+              background: 'var(--me-bg-2, #edf3ef)',
+            }}
+          >
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div
+                key={day}
+                style={{
+                  padding: '12px 0',
+                  textAlign: 'center',
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+          <div
+            data-testid='calendar-grid'
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            }}
+          >
+            {days.map((date, index) => (
+              <CalendarDay
+                key={date.toISOString()}
+                day={date.getDate()}
+                isCurrentMonth={
+                  view === 'week' || date.getMonth() === currentDate.getMonth()
+                }
+                isToday={date.toDateString() === today}
+                events={forDate(date)}
+                index={index}
+                getEventColor={eventColor}
+                onSelect={() => openDay(date)}
+              />
+            ))}
+          </div>
+          <p
+            style={{
+              padding: '12px 16px',
+              margin: 0,
+              fontSize: 12,
+              color: `var(--me-ink-2, ${theme.colors.textSecondary})`,
+            }}
+          >
+            Select a date to see its full schedule.
+          </p>
+        </>
+      )}
+    </section>
   );
 }

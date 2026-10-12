@@ -16,7 +16,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Reanimated-backed animation primitives — render children straight through.
 jest.mock('../../components/animations/primitives', () => {
-  const ReactActual = require('react');
+  const ReactActual = jest.requireActual('react');
   const pass = ({ children }: { children: React.ReactNode }) =>
     ReactActual.createElement(ReactActual.Fragment, null, children);
   return {
@@ -30,7 +30,7 @@ jest.mock('../../components/animations/primitives', () => {
 
 // ResponsiveContainer — pass-through wrapper so the menu rows mount.
 jest.mock('../../components/responsive', () => {
-  const ReactActual = require('react');
+  const ReactActual = jest.requireActual('react');
   return {
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
       ReactActual.createElement(ReactActual.Fragment, null, children),
@@ -43,16 +43,18 @@ jest.mock('../profile/components/ProfileHeader', () => ({
   ProfileHeader: () => null,
 }));
 jest.mock('../profile/components/HomeownerStats', () => {
-  const ReactActual = require('react');
-  const { Text } = require('react-native');
+  const ReactActual = jest.requireActual('react');
+
+  const { Text } = jest.requireActual('react-native');
   return {
     HomeownerStats: () =>
       ReactActual.createElement(Text, null, 'HOMEOWNER_STATS'),
   };
 });
 jest.mock('../profile/components/ContractorPerformance', () => {
-  const ReactActual = require('react');
-  const { Text } = require('react-native');
+  const ReactActual = jest.requireActual('react');
+
+  const { Text } = jest.requireActual('react-native');
   return {
     ContractorPerformance: () =>
       ReactActual.createElement(Text, null, 'CONTRACTOR_PERF'),
@@ -67,8 +69,9 @@ jest.mock('../profile/components/ProfileCompleteness', () => ({
 
 // Button — render a pressable Text so we can fire Sign Out.
 jest.mock('../../components/ui/Button', () => {
-  const ReactActual = require('react');
-  const { Text } = require('react-native');
+  const ReactActual = jest.requireActual('react');
+
+  const { Text } = jest.requireActual('react-native');
   return {
     Button: ({ title, onPress, accessibilityLabel }: any) =>
       ReactActual.createElement(
@@ -336,14 +339,14 @@ describe('ProfileScreen', () => {
     fireEvent.press(getByText('Sign Out'));
     expect(alertSpy).toHaveBeenCalledWith(
       'Sign Out',
-      'Are you sure you want to sign out?',
+      'Signing out removes your saved biometric sign-in on this device. Use your password to sign in again; you can re-enable biometrics in Account & Security.',
       expect.any(Array)
     );
     // Invoke the destructive button's onPress to exercise the bound signOut.
-    const buttons = alertSpy.mock.calls[0][2] as Array<{
+    const buttons = alertSpy.mock.calls[0][2] as {
       text: string;
       onPress?: () => void;
-    }>;
+    }[];
     const signOutBtn = buttons.find((b) => b.text === 'Sign Out');
     signOutBtn?.onPress?.();
     expect(mockSignOut).toHaveBeenCalled();
@@ -419,3 +422,11 @@ describe('ProfileScreen', () => {
     expect(queryByText('Quick Access')).toBeNull();
   });
 });
+
+jest.mock('../../components/shared/useMintDialog', () => ({
+  useMintDialog: () => ({
+    alert: (...args: unknown[]) =>
+      jest.requireActual('react-native').Alert.alert(...args),
+    dialog: null,
+  }),
+}));

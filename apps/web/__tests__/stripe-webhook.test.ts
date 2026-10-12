@@ -52,7 +52,22 @@ vi.mock('@/lib/api/supabaseServer', () => {
   // Build a chainable object so calls like .from('x').update({}).eq().select().single() work
   const chainable = (): Record<string, any> => {
     const obj: Record<string, any> = {};
-    const methods = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'or', 'single', 'maybeSingle', 'order', 'limit', 'range', 'contains'];
+    const methods = [
+      'select',
+      'insert',
+      'update',
+      'delete',
+      'upsert',
+      'eq',
+      'neq',
+      'or',
+      'single',
+      'maybeSingle',
+      'order',
+      'limit',
+      'range',
+      'contains',
+    ];
     for (const m of methods) {
       if (m === 'single' || m === 'maybeSingle') {
         obj[m] = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -128,7 +143,7 @@ vi.mock('@/lib/errors/api-error', async () => {
       public userMessage: string,
       public statusCode: number = 500,
       public details?: unknown,
-      public field?: string,
+      public field?: string
     ) {
       super(userMessage);
       this.name = 'APIError';
@@ -152,7 +167,12 @@ vi.mock('@/lib/errors/api-error', async () => {
   }
   class RateLimitError extends APIError {
     constructor(retryAfter?: number) {
-      super('RATE_LIMIT_EXCEEDED', 'Too many requests.', 429, retryAfter ? { retryAfter } : undefined);
+      super(
+        'RATE_LIMIT_EXCEEDED',
+        'Too many requests.',
+        429,
+        retryAfter ? { retryAfter } : undefined
+      );
     }
   }
 
@@ -160,12 +180,28 @@ vi.mock('@/lib/errors/api-error', async () => {
   const { NextResponse } = await import('next/server');
   function handleAPIError(error: unknown): any {
     if (error instanceof APIError) {
-      return NextResponse.json(error.toResponse(), { status: error.statusCode });
+      return NextResponse.json(error.toResponse(), {
+        status: error.statusCode,
+      });
     }
-    return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'An unexpected error occurred',
+        },
+      },
+      { status: 500 }
+    );
   }
 
-  return { APIError, BadRequestError, InternalServerError, RateLimitError, handleAPIError };
+  return {
+    APIError,
+    BadRequestError,
+    InternalServerError,
+    RateLimitError,
+    handleAPIError,
+  };
 });
 
 // ---------------------------------------------------------------------------
@@ -183,7 +219,8 @@ function makeRequest(options?: {
 }) {
   const headers: Record<string, string> = {};
   if (options?.signature !== null) {
-    headers['stripe-signature'] = options?.signature ?? 't=1234567890,v1=test_signature';
+    headers['stripe-signature'] =
+      options?.signature ?? 't=1234567890,v1=test_signature';
   }
   if (options?.ip) {
     headers['x-forwarded-for'] = options.ip;
@@ -220,7 +257,10 @@ function denyRateLimit() {
 function rpcNonDuplicate() {
   mockRpc.mockImplementation(async (fn: string) => {
     if (fn === 'check_webhook_idempotency') {
-      return { data: [{ is_duplicate: false, event_id: 'evt_row_1' }], error: null };
+      return {
+        data: [{ is_duplicate: false, event_id: 'evt_row_1' }],
+        error: null,
+      };
     }
     if (fn === 'mark_webhook_processed') {
       return { data: null, error: null };
@@ -233,7 +273,10 @@ function rpcNonDuplicate() {
 function rpcDuplicate() {
   mockRpc.mockImplementation(async (fn: string) => {
     if (fn === 'check_webhook_idempotency') {
-      return { data: [{ is_duplicate: true, event_id: 'evt_row_1' }], error: null };
+      return {
+        data: [{ is_duplicate: true, event_id: 'evt_row_1' }],
+        error: null,
+      };
     }
     if (fn === 'mark_webhook_processed') {
       return { data: null, error: null };
@@ -255,7 +298,22 @@ function rpcError() {
 // Rebuild the chainable mock for .from() before each test (survives mockReset)
 function setupFromChain() {
   const chain: Record<string, any> = {};
-  const methods = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'or', 'single', 'maybeSingle', 'order', 'limit', 'range', 'contains'];
+  const methods = [
+    'select',
+    'insert',
+    'update',
+    'delete',
+    'upsert',
+    'eq',
+    'neq',
+    'or',
+    'single',
+    'maybeSingle',
+    'order',
+    'limit',
+    'range',
+    'contains',
+  ];
   for (const m of methods) {
     if (m === 'single' || m === 'maybeSingle') {
       chain[m] = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -266,7 +324,9 @@ function setupFromChain() {
   mockFrom.mockReturnValue(chain);
 }
 
-function createMockEvent(overrides?: Partial<{ id: string; type: string; data: any; created: number }>) {
+function createMockEvent(
+  overrides?: Partial<{ id: string; type: string; data: any; created: number }>
+) {
   return {
     id: 'evt_test_123',
     type: 'payment_intent.succeeded',
@@ -315,7 +375,7 @@ describe('Stripe Webhook Security', () => {
       expect(mockConstructEvent).toHaveBeenCalledWith(
         expect.any(String),
         't=1234567890,v1=test_signature',
-        'whsec_test_secret',
+        'whsec_test_secret'
       );
     });
 
@@ -324,22 +384,27 @@ describe('Stripe Webhook Security', () => {
         throw new Error('Invalid signature');
       });
 
-      const request = makeRequest({ signature: 't=1234567890,v1=invalid_signature' });
+      const request = makeRequest({
+        signature: 't=1234567890,v1=invalid_signature',
+      });
       const response = await POST(request);
 
       expect(response.status).toBe(400);
       expect(mockLoggerError).toHaveBeenCalledWith(
         'Webhook signature verification failed',
         expect.any(Error),
-        expect.objectContaining({ service: 'stripe-webhook' }),
+        expect.objectContaining({ service: 'stripe-webhook' })
       );
     });
 
     it('should reject webhook with missing signature', async () => {
-      const request = new NextRequest('https://example.com/api/webhooks/stripe', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      const request = new NextRequest(
+        'https://example.com/api/webhooks/stripe',
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
 
       const response = await POST(request);
 
@@ -370,7 +435,7 @@ describe('Stripe Webhook Security', () => {
       expect(response.status).toBe(200);
       expect(mockRpc).toHaveBeenCalledWith(
         'check_webhook_idempotency',
-        expect.objectContaining({ p_event_id: 'evt_test_123' }),
+        expect.objectContaining({ p_event_id: 'evt_test_123' })
       );
     });
   });
@@ -390,7 +455,7 @@ describe('Stripe Webhook Security', () => {
           p_event_id: 'evt_test_123',
           p_event_type: 'payment_intent.succeeded',
           p_source: 'stripe',
-        }),
+        })
       );
     });
 
@@ -398,6 +463,16 @@ describe('Stripe Webhook Security', () => {
       const mockEvent = createMockEvent();
       mockConstructEvent.mockReturnValue(mockEvent);
       rpcDuplicate();
+      mockFrom.mockReturnValue({
+        select: () => ({
+          eq: () => ({
+            single: async () => ({
+              data: { status: 'processed' },
+              error: null,
+            }),
+          }),
+        }),
+      });
 
       const request = makeRequest();
       const response = await POST(request);
@@ -459,7 +534,7 @@ describe('Stripe Webhook Security', () => {
         expect.objectContaining({
           service: 'stripe-webhook',
           paymentIntentId: 'pi_test_123',
-        }),
+        })
       );
     });
 
@@ -497,7 +572,7 @@ describe('Stripe Webhook Security', () => {
         expect.objectContaining({
           service: 'stripe-webhook',
           sessionId: 'cs_test_123',
-        }),
+        })
       );
     });
 
@@ -518,7 +593,7 @@ describe('Stripe Webhook Security', () => {
         expect.objectContaining({
           service: 'stripe-webhook',
           eventType: 'customer.created',
-        }),
+        })
       );
     });
   });
@@ -536,7 +611,7 @@ describe('Stripe Webhook Security', () => {
       expect(mockLoggerError).toHaveBeenCalledWith(
         'Webhook idempotency check failed',
         expect.objectContaining({ message: 'Database connection failed' }),
-        expect.objectContaining({ service: 'stripe-webhook' }),
+        expect.objectContaining({ service: 'stripe-webhook' })
       );
     });
 
@@ -545,10 +620,13 @@ describe('Stripe Webhook Security', () => {
       // Since webhookSecret is captured at module level from env.STRIPE_WEBHOOK_SECRET,
       // and the module is already loaded, we cannot easily change it.
       // Instead, we test that a missing signature returns 400.
-      const request = new NextRequest('https://example.com/api/webhooks/stripe', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      const request = new NextRequest(
+        'https://example.com/api/webhooks/stripe',
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
 
       const response = await POST(request);
 

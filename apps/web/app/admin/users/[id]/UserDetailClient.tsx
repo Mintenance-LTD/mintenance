@@ -1,8 +1,9 @@
 'use client';
 
+import { useAdminFetch } from '@/components/admin/AdminVerificationProvider';
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +36,7 @@ interface UserDetailClientProps {
 }
 
 export function UserDetailClient({ userId }: UserDetailClientProps) {
+  const adminFetch = useAdminFetch();
   const [data, setData] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('activity');
@@ -51,14 +53,10 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const response = await fetch(`/api/admin/users/${userId}/detail`, {
+      const response = await adminFetch(`/api/admin/users/${userId}/detail`, {
         credentials: 'include',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      }, 15000);
 
       if (!response.ok) {
         const errorData = await response
@@ -84,7 +82,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, adminFetch]);
 
   useEffect(() => {
     fetchUserDetail();
@@ -96,7 +94,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
   ) => {
     setActionLoading(true);
     try {
-      const csrfRes = await fetch('/api/csrf', {
+      const csrfRes = await adminFetch('/api/csrf', {
         method: 'GET',
         credentials: 'include',
       });
@@ -104,7 +102,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
         ? await csrfRes.json()
         : { token: '' };
 
-      const response = await fetch(endpoint, {
+      const response = await adminFetch(endpoint, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -191,7 +189,7 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
         }}
       >
         <AdminCard padding='lg'>
-          <div style={{ textAlign: 'center', padding: theme.spacing[8] }}>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: theme.spacing[8] }}>
             <Icon name='alert' size={48} color='#EF4444' />
             <h3
               style={{

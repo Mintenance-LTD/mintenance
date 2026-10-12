@@ -25,7 +25,7 @@ export function transformJobsToEvents(
   jobs: JobWithContract[],
   options: TransformEventsOptions
 ): CalendarEvent[] {
-  const { userRole, viewedJobIds, bidJobIds } = options;
+  const { userRole, userId } = options;
   const jobEvents: CalendarEvent[] = [];
 
   jobs.forEach((jobWithContract) => {
@@ -42,9 +42,6 @@ export function transformJobsToEvents(
     const homeownerName = homeowner
       ? `${(homeowner as { first_name?: string; last_name?: string }).first_name || ''} ${(homeowner as { first_name?: string; last_name?: string }).last_name || ''}`.trim()
       : null;
-
-    const isViewed = viewedJobIds.has(job.id);
-    const hasBid = bidJobIds.has(job.id);
 
     // Only show jobs that are actively scheduled (assigned or in progress)
     // Posted-only jobs are not calendar events
@@ -68,7 +65,7 @@ export function transformJobsToEvents(
 
     // If job has a scheduled date, add scheduled event
     const shouldShowScheduledEvent =
-      userRole === 'homeowner' || isViewed || hasBid;
+      userRole === 'homeowner' || job.contractor_id === userId;
 
     if (
       scheduledDate &&
@@ -90,7 +87,7 @@ export function transformJobsToEvents(
         id: `appointment-${job.id}`,
         title: scheduledTitle,
         date: scheduledDate.toISOString(),
-        type: 'inspection',
+        type: 'job',
         status: job.status,
       });
 
@@ -105,7 +102,7 @@ export function transformJobsToEvents(
             id: `appointment-end-${job.id}`,
             title: `${scheduledTitle} (End)`,
             date: endDate.toISOString(),
-            type: 'inspection',
+            type: 'job',
             status: job.status,
           });
         }
@@ -119,7 +116,7 @@ export function transformJobsToEvents(
             id: `appointment-end-${job.id}`,
             title: `${scheduledTitle} (End)`,
             date: endDate.toISOString(),
-            type: 'inspection',
+            type: 'job',
             status: job.status,
           });
         }
@@ -226,5 +223,23 @@ export function combineAndSortEvents(
         ? new Date(b.date).getTime()
         : b.date.getTime();
     return dateA - dateB;
+  });
+}
+
+/** Recurring due dates are reminders, not completed visits or billing dates. */
+export function transformRecurringSchedulesToEvents(
+  schedules: Array<{ id: string; title: string; next_due_date: string }>
+): CalendarEvent[] {
+  return schedules.flatMap((schedule) => {
+    const date = new Date(schedule.next_due_date);
+    if (Number.isNaN(date.getTime())) return [];
+    return [
+      {
+        id: `recurring-${schedule.id}`,
+        title: `${schedule.title} (due)`,
+        date: date.toISOString(),
+        type: 'maintenance' as const,
+      },
+    ];
   });
 }

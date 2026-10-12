@@ -249,13 +249,9 @@ export function CompareBidsTable({
               >
                 View profile
               </Link>
-              <Link
-                href={`/messages?jobId=${jobId}`}
-                className='btn btn-ghost btn-sm'
-                style={{ justifyContent: 'center' }}
-              >
-                Message
-              </Link>
+              <span className='t-caption' style={{ textAlign: 'center' }}>
+                Messaging opens after acceptance
+              </span>
             </div>
           </div>
         );

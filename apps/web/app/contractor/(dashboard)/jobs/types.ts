@@ -30,6 +30,7 @@ export interface Job {
 }
 
 export interface JobApiResponse {
+  archived_at?: string | null;
   id: string;
   title: string;
   description: string;

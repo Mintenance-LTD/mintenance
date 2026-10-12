@@ -645,3 +645,15 @@ describe('notificationRoutingTable', () => {
     ).toEqual(jobDetails(UUID));
   });
 });
+
+it('routes a scheduled phone call reminder to its conversation', () => {
+  const payload = {
+    phone_call_id: 'call-id',
+    jobId: 'job-id',
+    senderId: 'other-person',
+    jobTitle: 'Repair',
+  };
+  expect(routeForNotification('system', payload)).toEqual(
+    routeForNotification('message_received', payload)
+  );
+});

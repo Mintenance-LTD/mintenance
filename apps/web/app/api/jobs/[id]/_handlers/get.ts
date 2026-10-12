@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  serverSupabase,
-  createRequestScopedClient,
-} from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
@@ -18,8 +16,10 @@ export async function handleGet(
     params: Record<string, string>;
   }
 ): Promise<NextResponse> {
-  // Use RLS-enforced client for user-scoped reads; fall back to service role
-  const userDb = createRequestScopedClient(request) ?? serverSupabase;
+  // The explicit participant gate below applies equally to cookie and bearer
+  // sessions. Legacy jobs SELECT policies omit designated payers. Do not return
+  // data or fetch related resources until that gate succeeds.
+  const userDb = serverSupabase;
 
   const { id } = params;
 
@@ -40,7 +40,7 @@ export async function handleGet(
       // both fell through silently — a homeowner who'd already approved the
       // work saw "Review Work" again, and the auto-release timer-aware copy
       // never appeared.
-      'id, title, description, status, homeowner_id, payer_user_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completion_confirmed_by_homeowner, created_at, updated_at'
+      'id, title, description, status, homeowner_id, payer_user_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completed_at, completion_confirmed_at, completion_confirmed_by_homeowner, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -79,7 +79,7 @@ export async function handleGet(
   const isAssignedContractor = row.contractor_id === user.id;
   const isContractorViewingOpenJob =
     user.role === 'contractor' &&
-    row.status === 'posted' &&
+    (row.status === 'posted' || row.status === 'open') &&
     (row.contractor_id === null || row.contractor_id === undefined);
   if (
     !isHomeowner &&
@@ -122,13 +122,22 @@ export async function handleGet(
       .select('file_url')
       .eq('job_id', id)
       .eq('file_type', 'image'),
-    userDb.from('job_photos_metadata').select('photo_url').eq('job_id', id),
+    userDb
+      .from('job_photos_metadata')
+      .select('id, photo_url, photo_type, created_at')
+      .eq('job_id', id)
+      .order('created_at', { ascending: true }),
   ]);
   const rawPhotos = [
     ...(attachmentsRes.data ?? []).map((a: { file_url: string }) => a.file_url),
     ...(photoMetaRes.data ?? []).map((p: { photo_url: string }) => p.photo_url),
-  ].filter(Boolean);
+  ];
   const signedPhotos = await resignJobStorageUrls(rawPhotos, user.id);
+  // Preserve photo identity/type while returning fresh, viewer-authorized URLs.
+  const lifecyclePhotos = (photoMetaRes.data ?? []).map((photo, index) => ({
+    ...photo,
+    photo_url: signedPhotos[(attachmentsRes.data ?? []).length + index],
+  }));
 
   // Coerce Postgres NUMERIC columns (serialised as strings by
   // supabase-js to preserve precision) into real JS numbers. The
@@ -233,7 +242,11 @@ export async function handleGet(
         propertyAccess = {
           access_mode: (p.access_mode as string | null) ?? null,
           key_safe_code: canSeeCode
-            ? ((p.key_safe_code as string | null) ?? null)
+            ? await readPropertyEntrySecret(
+                row.property_id as string,
+                user.id,
+                row.id as string
+              )
             : null,
           access_notes: (p.access_notes as string | null) ?? null,
           stopcock_location: (p.stopcock_location as string | null) ?? null,
@@ -349,6 +362,9 @@ export async function handleGet(
     scheduledStartDate: row.scheduled_start_date,
     images: signedPhotos,
     photos: signedPhotos,
+    lifecyclePhotos,
+    completed_at: row.completed_at ?? null,
+    completion_confirmed_at: row.completion_confirmed_at ?? null,
     requirements: row.requirements ?? null,
     latitude: toNum(row.latitude),
     longitude: toNum(row.longitude),

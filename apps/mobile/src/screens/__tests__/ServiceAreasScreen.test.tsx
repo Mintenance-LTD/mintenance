@@ -449,19 +449,19 @@ describe('ServiceAreasScreen — populated with primary', () => {
     expect(getByText('10 mi radius around York')).toBeTruthy();
   });
 
-  it('uses user.city when primary has no cities', () => {
+  it('uses saved zone name when primary has no cities', () => {
     const a = baseArea({ cities: [] });
     setHook({ serviceAreas: [a] });
     const { getByText } = renderScreen();
-    expect(getByText('10 mi radius around Leeds')).toBeTruthy();
+    expect(getByText('10 mi radius around Central Leeds')).toBeTruthy();
   });
 
-  it('uses "your area" when primary has no cities and no user city', () => {
+  it('uses saved zone name even without a profile city', () => {
     mockUser = { id: 'u1' };
     const a = baseArea({ cities: undefined });
     setHook({ serviceAreas: [a] });
     const { getByText } = renderScreen();
-    expect(getByText('10 mi radius around your area')).toBeTruthy();
+    expect(getByText('10 mi radius around Central Leeds')).toBeTruthy();
   });
 
   it('computes extended radius from max_distance_km branch', () => {

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mobile release verification</title>
+<style>body{font:18px/1.6 system-ui;max-width:850px;margin:32px auto;padding:24px;color:#20352d}li{margin:18px 0}aside{background:#fff1d6;padding:18px;border-radius:12px}a{color:#16624c}h1,h2{line-height:1.2}input{width:22px;height:22px;vertical-align:middle}</style>
+<h1>Mobile release verification</h1>
+<aside><strong>Device signoff is pending.</strong> The internal Android candidate uses the existing production backend and live payment configuration. Do not make test payments in that candidate. The separate staging build must use a deployed sandbox backend and matching Stripe test keys before payment checks begin. Do not invite beta users yet.</aside>
+<p>Record the exact EAS build ID, phone model, OS version, web release and database migration version with each result. Use synthetic accounts and photos. An older installed app does not verify this release.</p>
+<p><a href="https://expo.dev/accounts/mintenance-ltd/projects/mintenance/builds/06c9b289-9cd7-4361-bf36-726aba26f054">Android candidate build status</a> · Version 1.2.4, build 32, runtime 1.2.4-sqlcipher1. Build succeeded; APK integrity and its embedded app bundle are verified. Device testing is still pending.</p>
+<p><strong>Standalone internal release:</strong> this APK includes its JavaScript bundle and does not require Metro, Expo Go or a local development server. Online features use the hosted backend and require internet access.</p>
+<p><a href="https://expo.dev/artifacts/eas/nWf1Ahfg_0mHDX8BD_5Piv0zvf788ROKqq9ZZ_Monhc.apk"><strong>Download standalone internal Android APK</strong></a> (153 MiB). SHA-256: <code style="overflow-wrap:anywhere">67047c08fce3001d869d7a2257c678032531f5054f6d8d59a2aab347e8693ae8</code></p>
+<h2>After the matching deployment</h2>
+<ol>
+<li><input type="checkbox"> Install the candidate; cold-start, background and reopen it. Confirm it reaches sign-in and the correct role dashboard without a splash-screen freeze.</li>
+<li><input type="checkbox"> Sign in as homeowner, sign out, then sign in as contractor. Restart between accounts. No previous account's private information should remain visible.</li>
+<li><input type="checkbox"> Complete the <a href="phase2-phone-checklist.html">seven privacy and attachment checks</a>, including unrelated-account denial and expired private image links.</li>
+<li><input type="checkbox"> Search contractors by trade and city. Clear the search while loading: old results must not reappear. Open a contractor profile and return.</li>
+<li><input type="checkbox"> Deny camera, photo and location permissions, then enable them through settings. Each screen should explain the missing permission and recover without crashing.</li>
+<li><input type="checkbox"> Post a synthetic job with photos; submit and accept a bid; exchange assigned-job messages and confirm the other account receives them.</li>
+<li><input type="checkbox"> Disable connectivity during a supported operation, restore it, then retry. Confirm one action is recorded and the screen does not falsely report success.</li>
+<li><input type="checkbox"> Test notification consent, receipt while backgrounded, and opening the intended job/message. Confirm notification previews do not reveal another account's private data.</li>
+<li><input type="checkbox"> Open supported app links and password recovery links; verify sign-out, recovery and account-switch behavior. Test a malformed percent-encoded link too: it should reject safely without freezing.</li>
+</ol>
+<h2>Sandbox candidate only</h2>
+<p>First verify the mobile publishable key and server secret key belong to the same Stripe sandbox. Save the sandbox API address and EAS build ID with the test record. The local Phase 6 tests do not replace these device checks.</p>
+<ol>
+<li><input type="checkbox"> Add and remove a sandbox saved card; reopen the app and verify the saved-card list.</li>
+<li><input type="checkbox"> Complete a signed-contract job payment using a sandbox card. Verify one payment, one funded escrow and matching provider/backend status.</li>
+<li><input type="checkbox"> Use a Stripe authentication-required sandbox card. Complete 3DS and return to the app; repeat with cancellation. Cancellation must not mark the job paid.</li>
+<li><input type="checkbox"> Interrupt the network after confirmation, reopen and retry. Verify no duplicate charge and successful reconciliation.</li>
+<li><input type="checkbox"> Verify refund/retry behavior and webhook delivery with the deployed backend. Check the separately owned completion-flow fix before approving the entire lifecycle.</li>
+</ol>
+<p>Report pass/fail, the step, build ID and visible error. Do not send passwords, keys or real customer details. iOS needs its own signed device build and results; Android results do not certify iOS.</p>
+<p><a href="readiness-progress.html">Readiness tracker</a></p>
+</html>

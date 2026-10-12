@@ -24,9 +24,12 @@ import path from 'path';
  * See docs/TESTING_INTEGRATION.md for the full guide.
  */
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [tsconfigPaths({ projects: ['./tsconfig.json'] })],
   test: {
     environment: 'node',
+    // All suites share one local database and auth service. Avoid exhausting
+    // its small connection pool or racing fixtures across test files.
+    fileParallelism: false,
     globals: true,
 
     // Only the real-DB integration tests. The default unit/integration

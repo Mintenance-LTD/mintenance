@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { assertTrainingReuseAllowed } from './training-reuse-policy';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { YOLORetrainingService } from './YOLORetrainingService';
 import { YOLOTrainingDataEnhanced } from './YOLOTrainingDataEnhanced';
@@ -31,6 +32,7 @@ import {
 export async function trainDamageClassifier(
   jobId?: string
 ): Promise<TrainingJobResult> {
+  assertTrainingReuseAllowed();
   try {
     const job = jobId
       ? await getJob(jobId)
@@ -197,6 +199,7 @@ export async function trainStudentVLM(options?: {
   triggeredBy?: 'scheduled' | 'manual' | 'accuracy_drop' | 'threshold_reached';
   existingJobId?: string;
 }): Promise<TrainingJobResult> {
+  assertTrainingReuseAllowed();
   const { TrainingDataExporter } =
     await import('./distillation/TrainingDataExporter');
 

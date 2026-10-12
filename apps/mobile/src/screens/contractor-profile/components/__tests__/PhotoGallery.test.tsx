@@ -41,8 +41,8 @@ jest.mock('../../../../theme', () => ({
 // Mock Ionicons
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name, size, color, testID }: any) => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = jest.requireActual('react');
+    const { Text } = jest.requireMock('react-native');
     return React.createElement(
       Text,
       { testID: testID || `icon-${name}` },
@@ -700,4 +700,28 @@ describe('PhotoGallery', () => {
       expect(render2.UNSAFE_root).toBeTruthy();
     });
   });
+});
+
+it('uses named projects and opens their actual images without invented before/after labels', () => {
+  const screen = render(
+    <PhotoGallery
+      photos={[]}
+      onAddPhoto={jest.fn()}
+      projects={[
+        {
+          id: 'job-1',
+          title: 'Kitchen renovation',
+          images: ['https://example.com/kitchen.jpg'],
+        },
+      ]}
+    />
+  );
+  expect(screen.getByText('Kitchen renovation')).toBeTruthy();
+  expect(screen.queryByText('Before/After')).toBeNull();
+  fireEvent.press(screen.getByLabelText('View Kitchen renovation'));
+  expect(
+    screen.getByLabelText('Kitchen renovation, photo 1').props.source.uri
+  ).toBe('https://example.com/kitchen.jpg');
+  fireEvent.press(screen.getByLabelText('Close portfolio'));
+  expect(screen.queryByLabelText('Kitchen renovation, photo 1')).toBeNull();
 });

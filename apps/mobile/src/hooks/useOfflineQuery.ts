@@ -8,7 +8,6 @@ import {
 import { useNetworkState } from './useNetworkState';
 import { OfflineManager, OfflineAction } from '../services/OfflineManager';
 import { LocalDatabase } from '../services/LocalDatabase';
-import { SyncManager } from '../services/SyncManager';
 import { logger } from '../utils/logger';
 import type { Job, User } from '@mintenance/types';
 
@@ -40,6 +39,7 @@ export const useOfflineQuery = <T = unknown>({
   gcTime = 30 * 60 * 1000, // 30 minutes for offline data
   enabled = true,
   offlineFirst = false,
+  retry,
 }: OfflineQueryOptions) => {
   const { isOnline, connectionQuality } = useNetworkState();
 
@@ -56,16 +56,20 @@ export const useOfflineQuery = <T = unknown>({
     return {
       retry: (failureCount: number, error: unknown) => {
         // Don't retry if offline
-        if (!isOnline) return false;
+        if (!isOnline || retry === false) return false;
 
         // Don't retry on client errors (4xx)
-        const status = (error as Record<string, unknown>)?.status as
-          | number
-          | undefined;
+        const status = ((error as Record<string, unknown>)?.statusCode ??
+          (error as Record<string, unknown>)?.status) as number | undefined;
         if (status !== undefined && status >= 400 && status < 500) return false;
 
         // Limit retries on slow connections
-        const maxRetries = connectionQuality === 'poor' ? 1 : 3;
+        const configuredRetries =
+          typeof retry === 'number' ? Math.max(0, retry) : 3;
+        const maxRetries =
+          connectionQuality === 'poor'
+            ? Math.min(1, configuredRetries)
+            : configuredRetries;
         return failureCount < maxRetries;
       },
       retryDelay: (attemptIndex: number) => {
@@ -73,7 +77,7 @@ export const useOfflineQuery = <T = unknown>({
         return Math.min(baseDelay * Math.pow(2, attemptIndex), 30000);
       },
     };
-  }, [isOnline, connectionQuality]);
+  }, [isOnline, connectionQuality, retry]);
 
   return useQuery<T>({
     queryKey,
@@ -140,10 +144,9 @@ export const useOfflineQuery = <T = unknown>({
     // Enhanced refetch configuration
     refetchOnWindowFocus: isOnline,
     refetchOnReconnect: true,
-    refetchOnMount: (query) => {
-      // Only refetch on mount if data is stale or we're online with fresh connection
-      return query.state.isInvalidated || (isOnline && !query.state.data);
-    },
+    // React Query's true policy refreshes stale data while keeping cached content
+    // visible. Checking only for missing data left expired signed photos forever.
+    refetchOnMount: isOnline,
     meta: {
       offline: true,
       networkDependency: true,
@@ -272,7 +275,7 @@ export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
           queryClient.setQueryData(queryKey, optimisticData);
         }
 
-        return { previousData, queryKey };
+        return { previousData, queryKey, optimisticData };
       }
     },
     onError: (error, variables, context: unknown) => {
@@ -290,19 +293,25 @@ export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
         variables,
       });
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data, variables, context) => {
       // For CREATE actions, replace the temp optimistic entry with real data
       // instead of invalidating (which clears the cache and causes flashing)
       if (getQueryKey && actionType === 'CREATE' && data) {
         const queryKey = getQueryKey(variables);
         queryClient.setQueryData(queryKey, (old: unknown) => {
           if (Array.isArray(old)) {
-            // Replace temp entries (id starts with 'temp_') with real data
-            return old.map((item: Record<string, unknown>) =>
-              typeof item?.id === 'string' && item.id.startsWith('temp_')
-                ? data
-                : item
+            const pending = (
+              context as { optimisticData?: { id?: unknown } } | undefined
+            )?.optimisticData;
+            const confirmedId = (data as { id?: unknown }).id;
+            // Realtime may already have inserted the confirmed message. Replace
+            // only this mutation's temporary row, preserving other pending sends.
+            const reconciled = old.filter(
+              (item: Record<string, unknown>) =>
+                item?.id !== pending?.id &&
+                (confirmedId == null || item?.id !== confirmedId)
             );
+            return [...reconciled, data];
           }
           return old;
         });
@@ -480,25 +489,4 @@ const cacheMessagesData = async (
       );
     }
   }
-};
-
-// Hook to get offline sync status
-const useOfflineSyncStatus = () => {
-  const { isOnline } = useNetworkState();
-  const [syncStatus, setSyncStatus] = React.useState<unknown>(null);
-
-  React.useEffect(() => {
-    const unsubscribe = SyncManager.onSyncStatusChange(setSyncStatus);
-    return unsubscribe;
-  }, []);
-
-  return {
-    isOnline,
-    syncStatus,
-    hasPendingActions: async () => await OfflineManager.hasPendingActions(),
-    getPendingCount: async () => await OfflineManager.getPendingActionsCount(),
-    syncNow: () => SyncManager.forcSync(),
-    clearQueue: () => OfflineManager.clearQueue(),
-    resetAndResync: () => SyncManager.resetAndResync(),
-  };
 };

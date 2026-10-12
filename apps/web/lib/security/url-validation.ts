@@ -186,7 +186,7 @@ export async function validateURL(
     let url: URL;
     try {
       url = new URL(trimmedUrl);
-    } catch (error) {
+    } catch {
       return {
         isValid: false,
         error: 'Invalid URL format',
@@ -199,6 +199,31 @@ export async function validateURL(
         isValid: false,
         error: `Protocol ${url.protocol} is not allowed. Only HTTP and HTTPS are permitted.`,
       };
+    }
+
+    // Permit the configured local Supabase Storage service only during local
+    // development/tests. Production continues through the private-IP checks.
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test'
+    ) {
+      const configured = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (configured) {
+        const storage = new URL(configured);
+        if (
+          ['127.0.0.1', 'localhost', '[::1]'].includes(storage.hostname) &&
+          url.origin === storage.origin &&
+          !/%(?:2e|2f|5c)/i.test(trimmedUrl) &&
+          !url.username &&
+          !url.password &&
+          !url.hash &&
+          /^\/storage\/v1\/object\/(?:sign|public)\/Job-storage\/job-photos\/[a-zA-Z0-9_.-]+\.[a-zA-Z0-9]+$/.test(
+            url.pathname
+          )
+        ) {
+          return { isValid: true, normalizedUrl: url.href };
+        }
+      }
     }
 
     // Prefer HTTPS
@@ -289,38 +314,4 @@ export async function validateURLs(
   }
 
   return { valid, invalid };
-}
-
-/**
- * Validate that URLs are from Supabase storage
- */
-async function validateSupabaseStorageURL(
-  urlString: string
-): Promise<URLValidationResult> {
-  const result = await validateURL(urlString, true);
-
-  if (!result.isValid) {
-    return result;
-  }
-
-  // Additional check: ensure it's a Supabase storage URL
-  const url = new URL(result.normalizedUrl!);
-  if (
-    !url.hostname.includes('supabase.co') &&
-    !url.hostname.includes('supabase.in')
-  ) {
-    return {
-      isValid: false,
-      error: 'URL must be from Supabase storage',
-    };
-  }
-
-  return result;
-}
-
-/**
- * Get allowed domains for image URLs (for client-side validation hints)
- */
-function getAllowedImageDomains(): string[] {
-  return getAllowedDomains();
 }

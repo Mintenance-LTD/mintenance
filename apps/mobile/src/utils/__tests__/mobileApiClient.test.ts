@@ -690,6 +690,24 @@ describe('postFormData', () => {
     expect(retryHeaders.Authorization).toBe('Bearer refreshed-token');
   });
 
+  it('preserves actionable upload validation errors', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      makeResponse({
+        status: 400,
+        ok: false,
+        jsonBody: {
+          error: 'You must be at the job location to upload before photos.',
+        },
+      })
+    );
+    await expect(
+      client.postFormData('/upload', new FormData())
+    ).rejects.toMatchObject({
+      message: 'You must be at the job location to upload before photos.',
+      statusCode: 400,
+    });
+  });
+
   it('throws Upload failed on a non-ok (non-401) response', async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       makeResponse({ status: 500, ok: false })

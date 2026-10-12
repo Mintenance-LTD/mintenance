@@ -10,9 +10,11 @@ interface JobQuickActionsProps {
   isOwner: boolean;
   canApprove: boolean;
   status: string;
+  canReportProblem: boolean;
   isCompletionConfirmedByHomeowner: boolean;
   onTimelinePress: () => void;
   onContractPress?: () => void;
+  onReschedulePress?: () => void;
   onEditPress: () => void;
   onSignOffPress: () => void;
   onDisputePress: () => void;
@@ -24,7 +26,7 @@ interface JobQuickActionsProps {
  *   - Timeline (always)
  *   - Edit (homeowner, only if posted)
  *   - Sign-off (homeowner, only if completed and not yet confirmed)
- *   - Report a Problem (anyone, only if in_progress or completed)
+ *   - Report a Problem (participants with disputable escrow only)
  *
  * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44c).
  */
@@ -32,9 +34,11 @@ export function JobQuickActions({
   isOwner,
   canApprove,
   status,
+  canReportProblem,
   isCompletionConfirmedByHomeowner,
   onTimelinePress,
   onContractPress,
+  onReschedulePress,
   onEditPress,
   onSignOffPress,
   onDisputePress,
@@ -42,6 +46,17 @@ export function JobQuickActions({
 }: JobQuickActionsProps) {
   return (
     <View style={styles.quickActionsSection}>
+      {onReschedulePress && (
+        <TouchableOpacity
+          style={styles.quickActionRow}
+          onPress={onReschedulePress}
+          accessibilityRole='button'
+        >
+          <Ionicons name='calendar-outline' size={20} color={me.ink2} />
+          <Text style={styles.quickActionText}>Reschedule work</Text>
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+        </TouchableOpacity>
+      )}
       {onDisputeDetailsPress && (
         <TouchableOpacity
           style={styles.quickActionRow}
@@ -106,7 +121,7 @@ export function JobQuickActions({
           </TouchableOpacity>
         )}
 
-      {(status === 'in_progress' || status === 'completed') && (
+      {canReportProblem && (
         <TouchableOpacity
           style={styles.quickActionRow}
           onPress={onDisputePress}

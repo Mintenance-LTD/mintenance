@@ -14,6 +14,9 @@
 
 // --- External mocks (must be declared before importing the unit) ---------
 
+import { LocalDatabase } from '../LocalDatabaseService';
+import { logger } from '../../../utils/logger';
+
 jest.mock('../../../utils/logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -28,9 +31,8 @@ jest.mock('expo-sqlite', () => ({
   openDatabaseAsync: (...args: unknown[]) => mockOpenDatabaseAsync(...args),
 }));
 
-const mockGetDatabaseOpenOptions = jest.fn();
 jest.mock('../encryption', () => ({
-  getDatabaseOpenOptions: () => mockGetDatabaseOpenOptions(),
+  openLocalDatabase: () => mockOpenDatabaseAsync(),
 }));
 
 const mockRunVersionedMigrations = jest.fn();
@@ -103,9 +105,6 @@ jest.mock('../SyncStore', () => ({
   getStorageInfo: (...a: unknown[]) => mockSyncStore.getStorageInfo(...a),
 }));
 
-import { LocalDatabase } from '../LocalDatabaseService';
-import { logger } from '../../../utils/logger';
-
 // --- Fake controllable SQLite db -----------------------------------------
 
 type FakeDb = {
@@ -127,7 +126,7 @@ function makeFakeDb(): FakeDb {
 }
 
 // Reach into the singleton to read/reset its private state between tests.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const svc = LocalDatabase as any;
 
 function resetSingleton(): void {
@@ -142,7 +141,6 @@ beforeEach(() => {
   resetSingleton();
   fakeDb = makeFakeDb();
   mockOpenDatabaseAsync.mockResolvedValue(fakeDb);
-  mockGetDatabaseOpenOptions.mockResolvedValue({});
   mockRunVersionedMigrations.mockResolvedValue(undefined);
 });
 
@@ -151,15 +149,10 @@ beforeEach(() => {
 // -------------------------------------------------------------------------
 
 describe('init', () => {
-  it('opens the db with encryption options, creates tables + indexes, runs migrations', async () => {
-    mockGetDatabaseOpenOptions.mockResolvedValue({ key: 'abc' });
-
+  it('opens through the verified database helper, creates tables + indexes, runs migrations', async () => {
     await LocalDatabase.init();
 
-    expect(mockGetDatabaseOpenOptions).toHaveBeenCalledTimes(1);
-    expect(mockOpenDatabaseAsync).toHaveBeenCalledWith('mintenance_local.db', {
-      key: 'abc',
-    });
+    expect(mockOpenDatabaseAsync).toHaveBeenCalledTimes(1);
 
     // 6 CREATE TABLE + 13 CREATE INDEX = 19 execAsync calls.
     expect(fakeDb.execAsync).toHaveBeenCalledTimes(19);
@@ -207,6 +200,12 @@ describe('init', () => {
     await LocalDatabase.init();
 
     expect(mockOpenDatabaseAsync).not.toHaveBeenCalled();
+  });
+
+  it('shares one database migration across simultaneous initializers', async () => {
+    await Promise.all([LocalDatabase.init(), LocalDatabase.init()]);
+    expect(mockOpenDatabaseAsync).toHaveBeenCalledTimes(1);
+    expect(mockRunVersionedMigrations).toHaveBeenCalledTimes(1);
   });
 
   it('logs and rethrows when openDatabaseAsync fails; stays uninitialized', async () => {

@@ -98,7 +98,7 @@ export class BookingService {
     try {
       if (!userId) return null;
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profile_directory')
         .select('id, first_name, last_name, profile_image_url')
         .eq('id', userId)
         .single();

@@ -47,6 +47,9 @@ export const GET = withApiHandler(
     // existed in the schema — the auto-create flow now populates it,
     // and the contractor "Edit Contract" dialog has been populating
     // it for months. This embed activates that data.
+    // scoping-check: ok — before awaiting, the role branch below restricts this
+    // query to this contractor, homeowner, or server-assigned payer's jobs;
+    // all other roles throw. The query builder is not executed before then.
     let query = serverSupabase.from('contracts').select(`
       id, job_id, contractor_id, homeowner_id, status, title, description, amount,
       start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
@@ -245,7 +248,7 @@ export const POST = withApiHandler(
     // Check if a contract already exists for this job and contractor
     const { data: existingContract } = await serverSupabase
       .from('contracts')
-      .select('id, status, contractor_signed_at, homeowner_signed_at')
+      .select('id, status, contractor_signed_at, homeowner_signed_at, terms')
       .eq('job_id', job_id)
       .neq('status', 'cancelled')
       .eq('contractor_id', user.id)
@@ -258,6 +261,10 @@ export const POST = withApiHandler(
       start_date: start_date || null,
       end_date: end_date || null,
       terms: {
+        ...(existingContract?.terms &&
+        typeof existingContract.terms === 'object'
+          ? existingContract.terms
+          : {}),
         ...(terms || {}),
         ...(insurance_provider ? { insurance_provider } : {}),
         ...(insurance_policy_number ? { insurance_policy_number } : {}),

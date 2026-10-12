@@ -1,128 +1,16 @@
-/**
- * Contractor Training Contribution API
- * Handles image uploads from contractors for AI training
- */
-
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import crypto from 'crypto';
-import { logger } from '@mintenance/shared';
-import { JOB_CATEGORIES } from '@mintenance/api-contracts';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import {
-  validateImageUpload,
-  MAX_FILE_SIZES,
-} from '@/lib/utils/fileValidation';
 
+// Beta hold: re-enable only with recorded informed consent, private storage,
+// contributor attribution and withdrawal handling. No image bytes are accepted.
 export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
-  async (request, { user }) => {
-    const formData = await request.formData();
-    const rawImage = formData.get('image');
-    const imageFile =
-      typeof rawImage === 'object' &&
-      rawImage !== null &&
-      'size' in rawImage &&
-      'arrayBuffer' in rawImage
-        ? rawImage
-        : null;
-    const rawCategory = formData.get('category');
-    const category = typeof rawCategory === 'string' ? rawCategory : null;
-
-    if (
-      !imageFile ||
-      !category ||
-      !(JOB_CATEGORIES as readonly string[]).includes(category)
-    ) {
-      return NextResponse.json({ error: 'Image and category are required' }, { status: 400 });
-    }
-
-    const validation = await validateImageUpload(
-      imageFile,
-      MAX_FILE_SIZES.jobPhoto
-    );
-    if (!validation.valid) {
-      return NextResponse.json({
-        error: validation.error || 'Invalid image file',
-      }, { status: 400 });
-    }
-
-    const fileExt = validation.detectedType?.split('/')[1] || 'jpg';
-    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const { error: uploadError } = await serverSupabase.storage
-      .from('training-images')
-      .upload(fileName, buffer, {
-        contentType: validation.detectedType,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      logger.error('Upload error:', uploadError, { service: 'api' });
-      return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
-    }
-
-    const { data: { publicUrl } } = serverSupabase.storage.from('training-images').getPublicUrl(fileName);
-
-    // Process with SAM3 for segmentation
-    let segmentationData: { masks: unknown; boxes: unknown; scores: unknown; num_instances: number; areas: number[] } | null = null;
-    try {
-      if (process.env.ENABLE_SAM3_SEGMENTATION === 'true') {
-        segmentationData = await processWithSAM3(publicUrl) as { masks: unknown; boxes: unknown; scores: unknown; num_instances: number; areas: number[] };
-      }
-    } catch (error) {
-      logger.error('SAM3 processing failed:', error, { service: 'api' });
-    }
-
-    const assessmentId = crypto.randomUUID();
-
-    const { error: labelError } = await serverSupabase
-      .from('maintenance_training_labels')
-      .insert({
-        assessment_id: assessmentId,
-        image_urls: [publicUrl],
-        issue_type: category,
-        // This is an authenticated contractor submission, not an
-        // independently reviewed label. Keep it out of verified training
-        // sets until an authorised reviewer confirms it.
-        confidence: null,
-        response_quality: 'uncertain',
-        human_verified: false,
-        verified_by: null,
-        verified_at: null,
-      });
-
-    if (labelError) {
-      await serverSupabase.storage.from('training-images').remove([fileName]);
-      logger.error('Label save error:', labelError, { service: 'api' });
-      throw labelError;
-    }
-
-    if (segmentationData) {
-      await serverSupabase.from('maintenance_segmentation_masks').insert({
-        assessment_id: assessmentId,
-        image_url: publicUrl,
-        damage_type: category,
-        masks: segmentationData.masks,
-        boxes: segmentationData.boxes,
-        scores: segmentationData.scores,
-        num_instances: segmentationData.num_instances,
-        total_affected_area: segmentationData.areas?.[0] || 0,
-        human_verified: false,
-        verified_by: null,
-        verified_at: null,
-      });
-    }
-
-    await updateContributorStats(user.id);
-    const rewards = await checkAndAwardRewards(user.id);
-
-    return NextResponse.json({ success: true, message: 'Image uploaded successfully', imageUrl: publicUrl, assessmentId, rewards });
-  }
+  async () => NextResponse.json(
+    { error: 'Training contributions are currently unavailable', code: 'TRAINING_CONTRIBUTIONS_UNAVAILABLE' },
+    { status: 503, headers: { 'Cache-Control': 'no-store' } },
+  ),
 );
-
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (_request, { user }) => {
@@ -143,74 +31,3 @@ export const GET = withApiHandler(
     });
   }
 );
-
-async function processWithSAM3(imageUrl: string): Promise<unknown> {
-  try {
-    const response = await fetch(`${process.env.SAM3_SERVICE_URL}/segment_maintenance`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url: imageUrl, mode: 'everything', min_mask_region_area: 100 }),
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (!response.ok) throw new Error('SAM3 segmentation failed');
-
-    const result = await response.json();
-
-    if (result.damage_areas && result.damage_areas.length > 0) {
-      const primaryArea = result.damage_areas[0];
-      return {
-        masks: [primaryArea.mask],
-        boxes: [[primaryArea.bbox[0], primaryArea.bbox[1], primaryArea.bbox[2], primaryArea.bbox[3]]],
-        scores: [primaryArea.score],
-        num_instances: 1,
-        areas: [primaryArea.area],
-      };
-    }
-
-    return null;
-  } catch (error) {
-    logger.error('SAM3 processing error:', error, { service: 'api' });
-    return null;
-  }
-}
-
-async function updateContributorStats(contractorId: string): Promise<void> {
-  try {
-    const { error } = await serverSupabase.rpc(
-      'increment_contractor_contribution_stats',
-      {
-        p_contractor_id: contractorId,
-        p_images: 1,
-        p_credits: 5,
-      }
-    );
-    if (error) {
-      throw error;
-    }
-  } catch (error) {
-    logger.error('Failed to update stats:', error, { service: 'api' });
-  }
-}
-
-async function checkAndAwardRewards(contractorId: string): Promise<{ creditsEarned: number; milestone?: string; bonus?: number }> {
-  const { data, error } = await serverSupabase.rpc(
-    'claim_contractor_contribution_milestone',
-    { p_contractor_id: contractorId }
-  );
-  if (error) {
-    throw error;
-  }
-
-  const reward = (Array.isArray(data) ? data[0] : data) as {
-    bonus?: number | string | null;
-    milestone?: string | null;
-  } | null;
-  const bonus = Number(reward?.bonus ?? 0);
-
-  return {
-    creditsEarned: 5,
-    ...(reward?.milestone ? { milestone: reward.milestone } : {}),
-    ...(bonus > 0 ? { bonus } : {}),
-  };
-}

@@ -1,0 +1,25 @@
+
+ RUN  v4.1.8 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web
+
+ ✓ __tests__/api/routes/connect-status-refresh.test.ts > refreshes existing accounts rather than reporting cached readiness 11ms
+ ✓ __tests__/api/routes/connect-status-refresh.test.ts > returns no account without attempting a provider refresh 2ms
+ ✓ __tests__/api/routes/connect-status-refresh.test.ts > propagates refresh failures instead of falling back to stale readiness 3ms
+stdout | __tests__/api/routes/contractor-public-privacy.test.ts > returns a usable public profile without contact data or private job evidence
+[2026-10-04T22:05:15.437Z] INFO  Contractor retrieved successfully {"service":"contractors","contractorId":"contractor-fixture"}
+
+stderr | __tests__/api/routes/contractor-public-privacy.test.ts > returns a usable public profile without contact data or private job evidence
+[MONITORING] {"level":"info","message":"Contractor retrieved successfully","timestamp":"2026-10-04T22:05:15.439Z","context":{"service":"contractors","contractorId":"contractor-fixture"}}
+
+ ✓ __tests__/api/routes/connect-dashboard-environment.test.ts > returns the provider dashboard link on success 7ms
+ ✓ __tests__/api/routes/connect-dashboard-environment.test.ts > reports testmode mismatch safely without falling back to another key 4ms
+ ✓ __tests__/api/routes/connect-dashboard-environment.test.ts > reports livemode mismatch safely without falling back to another key 1ms
+ ✓ __tests__/api/routes/connect-dashboard-environment.test.ts > does not misclassify unrelated provider failures as configuration errors 1ms
+ ✓ __tests__/api/routes/contractor-public-privacy.test.ts > returns a usable public profile without contact data or private job evidence 24ms
+ ✓ __tests__/api/routes/contractor-reporting-data.test.ts > reports saved reviews and net released earnings with completion/release dates 49ms
+ ✓ __tests__/api/routes/contractor-reporting-data.test.ts > rejects partial data instead of returning false zeroes 5ms
+
+ Test Files  4 passed (4)
+      Tests  10 passed (10)
+   Start at  23:05:12
+   Duration  3.41s (transform 2.01s, setup 1.75s, import 2.48s, tests 116ms, environment 5.40s)
+

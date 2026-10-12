@@ -83,12 +83,12 @@ export const ContractPreparationScreen: React.FC<Props> = ({
   // Quote data (from accepted bid)
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const [quoteLineItems, setQuoteLineItems] = useState<
-    Array<{
+    {
       description: string;
       quantity: number;
       unitPrice: number;
       total: number;
-    }>
+    }[]
   >([]);
 
   // UI state
@@ -115,6 +115,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         interface PreparationBundle {
           profile: {
             company_name: string | null;
+            first_name?: string | null;
+            last_name?: string | null;
             license_number: string | null;
           } | null;
           insurance: {
@@ -127,8 +129,13 @@ export const ContractPreparationScreen: React.FC<Props> = ({
             amount: number | null;
             title: string | null;
             description: string | null;
-            terms: string | null;
+            terms: Record<string, unknown> | string | null;
             status: ContractStatus;
+            start_date?: string | null;
+            end_date?: string | null;
+            contractor_company_name?: string | null;
+            contractor_license_registration?: string | null;
+            contractor_license_type?: string | null;
           } | null;
           acceptedBid: {
             amount: number | null;
@@ -137,12 +144,14 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           } | null;
           quote: {
             id: string;
-            line_items: Array<{
-              description: string;
-              quantity: number;
-              unitPrice: number;
-              total: number;
-            }> | null;
+            line_items:
+              | {
+                  description: string;
+                  quantity: number;
+                  unitPrice: number;
+                  total: number;
+                }[]
+              | null;
             total_amount: number | null;
             tax_rate: number | null;
             tax_amount: number | null;
@@ -157,6 +166,12 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         if (data.profile) {
           if (data.profile.company_name)
             setCompanyName(data.profile.company_name);
+          else
+            setCompanyName(
+              [data.profile.first_name, data.profile.last_name]
+                .filter(Boolean)
+                .join(' ')
+            );
           if (data.profile.license_number)
             setLicenseNumber(data.profile.license_number);
         }
@@ -167,9 +182,24 @@ export const ContractPreparationScreen: React.FC<Props> = ({
             setInsurancePolicyNumber(data.insurance.policy_number);
         }
         if (data.license?.name) setLicenseType(data.license.name);
+        if (data.license?.number && !data.profile?.license_number)
+          setLicenseNumber(data.license.number);
         if (data.contract) {
           const c = data.contract;
-          if (c.amount) setAmount(String(c.amount));
+          if (c.contractor_company_name)
+            setCompanyName(c.contractor_company_name);
+          if (c.contractor_license_registration)
+            setLicenseNumber(c.contractor_license_registration);
+          if (c.contractor_license_type)
+            setLicenseType(c.contractor_license_type);
+          if (c.amount != null) setAmount(String(c.amount));
+          if (typeof c.terms === 'string') setTerms(c.terms);
+          else if (typeof c.terms?.additional_terms === 'string')
+            setTerms(c.terms.additional_terms);
+          if (c.start_date && Number.isFinite(Date.parse(c.start_date)))
+            setStartDate(new Date(c.start_date));
+          if (c.end_date && Number.isFinite(Date.parse(c.end_date)))
+            setEndDate(new Date(c.end_date));
           if (c.title) setTitle(c.title);
           if (c.description) setDescription(c.description);
           if (c.status && c.status !== 'draft')
@@ -177,15 +207,16 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         }
         if (data.acceptedBid) {
           const b = data.acceptedBid;
-          if (b.amount && !amount) setAmount(String(b.amount));
-          if ((b.description || b.message) && !description)
+          if (b.amount && data.contract?.amount == null)
+            setAmount(String(b.amount));
+          if ((b.description || b.message) && !data.contract?.description)
             setDescription(b.description || b.message || '');
         }
         if (data.quote) {
           const q = data.quote;
           setQuoteId(q.id);
           if (q.line_items?.length) setQuoteLineItems(q.line_items);
-          if (q.terms && !terms) setTerms(String(q.terms));
+          if (q.terms && !data.contract?.terms) setTerms(String(q.terms));
         }
       } catch {
         /* pre-fill is non-critical */
@@ -197,7 +228,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [jobId, jobTitle]);
+  }, [jobId, jobTitle, user?.id]);
 
   const validate = useCallback((): Record<string, string> => {
     const e: Record<string, string> = {};
@@ -256,20 +287,20 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         contractor_license_type: licenseType || undefined,
         insurance_provider: insuranceProvider || undefined,
         insurance_policy_number: insurancePolicyNumber || undefined,
-        terms: terms.trim() || undefined,
+        terms: terms.trim() ? { additional_terms: terms.trim() } : undefined,
         quote_id: quoteId || undefined,
       });
       HapticService.success();
       setHasEdits(false);
       Alert.alert(
         'Contract Sent',
-        'The homeowner has been notified to review and sign.',
+        'The homeowner has been notified. Review the contract and add your own signature on the contract page.',
         [
           {
-            text: 'OK',
+            text: 'Review contract',
             onPress: () => {
               allowExit();
-              navigation.goBack();
+              navigation.replace('ContractView', { jobId });
             },
           },
         ]
@@ -303,6 +334,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
     terms,
     validate,
     navigation,
+    quoteId,
+    allowExit,
   ]);
 
   const formatDate = (d: Date | null) =>
@@ -341,7 +374,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               border: '#93C5FD',
               icon: 'information-circle' as const,
               color: '#1E40AF',
-              text: `Contract already sent (status: ${existingStatus.replace(/_/g, ' ')}).`,
+              text:
+                existingStatus === 'pending_contractor'
+                  ? 'Your accepted bid has a contract awaiting your review and signature. Editing these details does not sign it.'
+                  : 'Contract awaiting the homeowner signature.',
             };
     return (
       <View
@@ -354,6 +390,14 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         <Text style={[styles.statusText, { color: cfg.color }]}>
           {cfg.text}
         </Text>
+        <TouchableOpacity
+          accessibilityRole='button'
+          onPress={() => navigation.navigate('ContractView', { jobId })}
+        >
+          <Text style={{ color: me.brand, fontWeight: '700' }}>
+            Review and sign contract
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -581,7 +625,9 @@ export const ContractPreparationScreen: React.FC<Props> = ({
                   {isSigned
                     ? 'Contract Signed'
                     : existingStatus
-                      ? 'Update & Resend'
+                      ? existingStatus === 'pending_contractor'
+                        ? 'Send for Review'
+                        : 'Update & Resend'
                       : 'Send Contract to Homeowner'}
                 </Text>
               </>

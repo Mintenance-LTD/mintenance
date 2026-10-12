@@ -1,252 +1,233 @@
-/**
- * SQLCipher-style at-rest encryption for the mobile local database.
- *
- * # Why this exists (audit P3 deferred item, 2026-04-25)
- *
- * `apps/mobile/src/services/local-db/LocalDatabaseService.ts` currently
- * opens `mintenance_local.db` as a plaintext SQLite file. The DB
- * caches:
- *   - User profile rows (`users` table — PII, role, location)
- *   - Job rows (`jobs` table — homeowner_id, contractor_id, addresses)
- *   - Message rows (`messages` table — message_text bodies)
- *   - Bid rows (`bids` table — amount, contractor_id)
- *   - Offline action queue (`offline_actions` — request bodies)
- *
- * On a rooted Android device or jailbroken iOS device, this file is
- * readable. The audit flagged it as a P3 because:
- *   1. Auth tokens are NOT in the SQLite file — they're in
- *      `expo-secure-store` (Keychain / EncryptedSharedPrefs), which
- *      is the OS-managed secure-store.
- *   2. Cards / Stripe customer IDs are NOT here — Stripe Customer IDs
- *      live in profile rows but the actual PMs are in Stripe's vault.
- *   3. The residual risk is "PII + message history readable on a
- *      compromised device" — meaningful but not credential-grade.
- *
- * # Two-step rollout
- *
- * Step 1 (this commit): scaffold the encryption-key helper + flag.
- *   - Generate a per-install random 256-bit key, persist in
- *     `expo-secure-store` (NOT in AsyncStorage), retrieve on each
- *     app boot. The key never leaves the device.
- *   - Add `LOCAL_DB_ENCRYPTION_ENABLED` env flag.
- *   - Provide `getDatabaseOpenOptions()` that returns the
- *     SQLCipher-compatible `{ encryptionKey }` option when the flag
- *     is on.
- *   - DO NOT wire into `LocalDatabaseService.init()` yet.
- *
- * Step 2 (separate PR — needs user-action):
- *   - Verify `expo-sqlite@<version>` supports the `encryptionKey`
- *     openDatabaseAsync option in this app's Expo SDK version
- *     (SDK 54 → expo-sqlite 16.x exposes SQLCipher via the option;
- *     earlier 15.x does not).
- *   - Add a one-time migration: for existing users, attach the
- *     plaintext DB, re-export rows, drop+recreate as encrypted,
- *     reimport. See `migrateToEncrypted()` below for the playbook.
- *   - Wire `getDatabaseOpenOptions()` into `init()`.
- *   - Soak-test in EAS dev-client → staging → prod.
- *
- * # Why NOT to ship the wiring today
- *
- *   - Existing users have a plaintext DB. Flipping the flag without
- *     a migration would mean openDatabaseAsync rejects the file (key
- *     mismatch), and the app would silently lose all cached data.
- *   - The migration needs validation against real production data
- *     volumes (some power users have 500+ messages cached).
- *   - SDK-compat verification is a build-test step that must be done
- *     on a real device — Expo Go doesn't enforce SQLCipher.
- *
- * # User-action required to ship Step 2
- *
- *   1. Verify `expo-sqlite` version supports `encryptionKey` (run
- *      `npx expo install --check` to see the resolved version).
- *   2. Run the migration script `migrateToEncrypted()` on a
- *      development build first — verify data integrity end-to-end.
- *   3. Add `EXPO_PUBLIC_LOCAL_DB_ENCRYPTION_ENABLED=true` to EAS
- *      dev profile, then staging, then prod.
- *   4. After 1-2 release cycles confirming no key-mismatch crashes,
- *      remove the flag and make encryption the default.
- */
-
+/** Native SQLCipher startup and a recoverable plaintext-to-encrypted migration. */
+import * as SQLite from 'expo-sqlite';
 import * as SecureStore from 'expo-secure-store';
+import * as FileSystem from 'expo-file-system/legacy';
+import { getRandomBytesAsync } from 'expo-crypto';
+import { Platform } from 'react-native';
 import { logger } from '../../utils/logger';
 
-/** SecureStore key under which we persist the per-install DB key. */
 const DB_KEY_STORE_KEY = 'mintenance.local_db.encryption_key.v1';
+const READY_KEY = 'mintenance.local_db.encrypted.v1';
+const LEGACY_NAME = 'mintenance_local.db';
+const ENCRYPTED_NAME = 'mintenance_local.encrypted.db';
+const KEY_PATTERN = /^[a-f0-9]{64}$/i;
+const secureOptions = {
+  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+};
 
-/** 256 bits / 64 hex characters. */
-const KEY_LENGTH_BYTES = 32;
-
-/**
- * Read the env flag exactly the same way `certPinning.ts` does so the
- * conventions match. Reading `process.env` lazily means a CI test
- * setup that defines this var can flip behaviour without rebuilding.
- */
+// Encryption is required on native platforms; configuration flags cannot disable it.
 export function isLocalDbEncryptionEnabled(): boolean {
-  const v = process.env.EXPO_PUBLIC_LOCAL_DB_ENCRYPTION_ENABLED;
-  return v === 'true' || v === '1';
+  return Platform.OS !== 'web';
 }
 
-/**
- * Generate a cryptographically random 256-bit key, hex-encoded for
- * SQLCipher compatibility. Uses `crypto.getRandomValues` which is
- * available in React Native's Hermes runtime; falls back to a
- * timestamp-derived weaker source ONLY in test environments.
- */
-function generateKey(): string {
-  const buf = new Uint8Array(KEY_LENGTH_BYTES);
-  if (typeof globalThis.crypto?.getRandomValues === 'function') {
-    globalThis.crypto.getRandomValues(buf);
-  } else {
-    // Test environment fallback. Should never run in production —
-    // Hermes on iOS / Android both expose crypto.getRandomValues.
-    if (process.env.NODE_ENV !== 'test') {
-      logger.error(
-        '[local-db-encryption] crypto.getRandomValues unavailable; using ' +
-          'weak fallback. This is a serious problem in production.'
-      );
-    }
-    for (let i = 0; i < KEY_LENGTH_BYTES; i++) {
-      buf[i] = Math.floor(Math.random() * 256);
-    }
+export async function getOrCreateDbKey(): Promise<string> {
+  if (!(await SecureStore.isAvailableAsync())) {
+    throw new Error(
+      'Secure storage is unavailable. Local data remains closed.'
+    );
   }
-  // hex-encode
-  let out = '';
-  for (const byte of buf) {
-    out += byte.toString(16).padStart(2, '0');
+  // Never regenerate a key following a read error or a malformed stored value.
+  const existing = await SecureStore.getItemAsync(DB_KEY_STORE_KEY);
+  if (existing !== null) {
+    if (!KEY_PATTERN.test(existing))
+      throw new Error('Local database key is invalid.');
+    return existing;
   }
-  return out;
+  const ready = await SecureStore.getItemAsync(READY_KEY);
+  if (ready !== null) throw new Error('Local database key is missing.');
+  const bytes = await getRandomBytesAsync(32);
+  const key = Array.from(bytes, (byte) =>
+    byte.toString(16).padStart(2, '0')
+  ).join('');
+  await SecureStore.setItemAsync(DB_KEY_STORE_KEY, key, secureOptions);
+  // A failed/unconfirmed write must never create a database with an ephemeral key.
+  if ((await SecureStore.getItemAsync(DB_KEY_STORE_KEY)) !== key) {
+    throw new Error('Local database key could not be saved.');
+  }
+  return key;
 }
 
-/**
- * Read the persisted DB encryption key from expo-secure-store, or
- * generate + persist a fresh one on first boot. The key never leaves
- * the device — it's bound to the app's Keychain (iOS) /
- * EncryptedSharedPrefs (Android) entry, which is itself protected by
- * the device's secure enclave / hardware-backed keystore.
- *
- * Returns null when SecureStore is unavailable (web, certain test
- * environments) — callers should treat null as "encryption is
- * unavailable on this platform" and fall through to plaintext.
- */
-export async function getOrCreateDbKey(): Promise<string | null> {
-  try {
-    const isAvailable = await SecureStore.isAvailableAsync();
-    if (!isAvailable) {
-      logger.warn(
-        '[local-db-encryption] SecureStore not available on this platform; ' +
-          'cannot derive a DB key. Falling through to plaintext DB.'
-      );
-      return null;
-    }
-  } catch (err) {
-    logger.warn(
-      '[local-db-encryption] SecureStore.isAvailableAsync threw; falling ' +
-        'through to plaintext DB',
-      { error: err instanceof Error ? err.message : String(err) }
-    );
-    return null;
-  }
-
-  try {
-    const existing = await SecureStore.getItemAsync(DB_KEY_STORE_KEY);
-    if (existing && existing.length === KEY_LENGTH_BYTES * 2) {
-      return existing;
-    }
-  } catch (err) {
-    logger.warn(
-      '[local-db-encryption] SecureStore.getItemAsync threw; will try to ' +
-        'regenerate the key',
-      { error: err instanceof Error ? err.message : String(err) }
-    );
-  }
-
-  // No existing key, or the stored value was malformed. Generate +
-  // persist. If the persist fails we still return the generated key
-  // so the current session works — but the next session will mint
-  // another fresh key and lose access to whatever was written this
-  // run. That's a real risk; surface it to Sentry.
-  const fresh = generateKey();
-  try {
-    await SecureStore.setItemAsync(DB_KEY_STORE_KEY, fresh, {
-      // iOS: only retrievable while device is unlocked. Sets a
-      // higher security class than the default (which would survive
-      // a device reboot before unlock). Trade-off: app launching
-      // before first unlock can't open the DB. Acceptable for our
-      // app-foreground-only usage.
-      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+function databasePath(name: string): string {
+  if (!SQLite.defaultDatabaseDirectory)
+    throw new Error('Local database directory is unavailable.');
+  return `${SQLite.defaultDatabaseDirectory.replace(/\/$/, '')}/${name}`;
+}
+function fileUri(path: string): string {
+  return path.startsWith('file://') ? path : `file://${path}`;
+}
+function sqlString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+async function databaseExists(name: string): Promise<boolean> {
+  return (await FileSystem.getInfoAsync(fileUri(databasePath(name)))).exists;
+}
+async function deleteDatabaseFiles(name: string): Promise<void> {
+  if (await databaseExists(name)) await SQLite.deleteDatabaseAsync(name);
+  // SQLite's native delete API removes the main file only. Closed plaintext
+  // journals can still contain personal data, so remove their sidecars too.
+  for (const suffix of ['-wal', '-shm', '-journal']) {
+    await FileSystem.deleteAsync(fileUri(databasePath(name) + suffix), {
+      idempotent: true,
     });
-    return fresh;
-  } catch (err) {
-    logger.error(
-      '[local-db-encryption] SecureStore.setItemAsync failed; the freshly-' +
-        'generated DB key cannot be persisted. The DB will appear empty on ' +
-        'next launch.',
-      err
+  }
+}
+async function requireCipher(db: SQLite.SQLiteDatabase): Promise<void> {
+  const version = await db.getFirstAsync<{ cipher_version: string }>(
+    'PRAGMA cipher_version'
+  );
+  if (!version?.cipher_version) {
+    throw new Error(
+      'This app needs a native build with SQLCipher to store local data.'
     );
-    return fresh;
+  }
+}
+async function verifyDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
+  const integrity = await db.getFirstAsync<{ integrity_check: string }>(
+    'PRAGMA integrity_check'
+  );
+  const cipherErrors = await db.getAllAsync('PRAGMA cipher_integrity_check');
+  if (integrity?.integrity_check !== 'ok' || cipherErrors.length !== 0) {
+    throw new Error('Encrypted local database failed verification.');
+  }
+}
+async function openEncrypted(key: string): Promise<SQLite.SQLiteDatabase> {
+  const db = await SQLite.openDatabaseAsync(ENCRYPTED_NAME, {
+    useNewConnection: true,
+  });
+  try {
+    await db.execAsync(`PRAGMA key = ${sqlString(key)}`);
+    await requireCipher(db);
+    await verifyDatabase(db);
+    return db;
+  } catch {
+    await db.closeAsync();
+    throw new Error(
+      'Encrypted local data could not be opened. Its files were preserved.'
+    );
   }
 }
 
-/**
- * Build the option bag for `SQLite.openDatabaseAsync(name, options)`.
- * Returns an empty object when encryption is disabled or unavailable
- * — the caller can spread it into the options argument unconditionally.
- *
- * Usage in `LocalDatabaseService.init()`:
- *
- *   const options = await getDatabaseOpenOptions();
- *   this.db = await SQLite.openDatabaseAsync(this.DB_NAME, options);
- */
-export async function getDatabaseOpenOptions(): Promise<
-  Record<string, unknown>
-> {
-  if (!isLocalDbEncryptionEnabled()) return {};
-
-  const key = await getOrCreateDbKey();
-  if (!key) return {};
-
-  // Note: the exact option name depends on the underlying library.
-  // expo-sqlite uses `key` (lower-case) for SQLCipher; op-sqlite uses
-  // `encryptionKey`. Both libraries accept the same hex-encoded
-  // key shape we generate above.
-  return { key };
+/** Export all tables, indexes and triggers; keep the source until verification and a durable marker. */
+export async function migrateToEncrypted(
+  key: string
+): Promise<SQLite.SQLiteDatabase> {
+  if (!KEY_PATTERN.test(key)) throw new Error('Local database key is invalid.');
+  if (
+    (await databaseExists(ENCRYPTED_NAME)) &&
+    !(await databaseExists(LEGACY_NAME))
+  ) {
+    throw new Error(
+      'Local database migration state is missing. Existing encrypted data was preserved.'
+    );
+  }
+  const source = await SQLite.openDatabaseAsync(LEGACY_NAME, {
+    useNewConnection: true,
+  });
+  let attached = false;
+  let transaction = false;
+  let encrypted: SQLite.SQLiteDatabase | null = null;
+  try {
+    await requireCipher(source);
+    // A crash before READY_KEY leaves the source authoritative. Discard only
+    // that unfinished encrypted candidate, then retry from the untouched source.
+    await deleteDatabaseFiles(ENCRYPTED_NAME);
+    await source.execAsync(
+      `ATTACH DATABASE ${sqlString(databasePath(ENCRYPTED_NAME))} AS encrypted KEY ${sqlString(key)}`
+    );
+    attached = true;
+    await source.execAsync('BEGIN IMMEDIATE');
+    transaction = true;
+    await source.getFirstAsync("SELECT sqlcipher_export('encrypted')");
+    const version = await source.getFirstAsync<{ user_version: number }>(
+      'PRAGMA user_version'
+    );
+    const application = await source.getFirstAsync<{ application_id: number }>(
+      'PRAGMA application_id'
+    );
+    await source.execAsync(
+      `PRAGMA encrypted.user_version = ${Number(version?.user_version ?? 0)}; PRAGMA encrypted.application_id = ${Number(application?.application_id ?? 0)}`
+    );
+    const schemaSql =
+      "SELECT type, name, sql FROM SCHEMA.sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name";
+    const originalSchema = await source.getAllAsync<{
+      type: string;
+      name: string;
+      sql: string;
+    }>(schemaSql.replace('SCHEMA', 'main'));
+    const copiedSchema = await source.getAllAsync(
+      schemaSql.replace('SCHEMA', 'encrypted')
+    );
+    if (JSON.stringify(originalSchema) !== JSON.stringify(copiedSchema)) {
+      throw new Error('Local database schema was not preserved.');
+    }
+    for (const table of originalSchema.filter((row) => row.type === 'table')) {
+      const name = `"${table.name.replace(/"/g, '""')}"`;
+      const original = await source.getFirstAsync<{ count: number }>(
+        `SELECT COUNT(*) AS count FROM main.${name}`
+      );
+      const copied = await source.getFirstAsync<{ count: number }>(
+        `SELECT COUNT(*) AS count FROM encrypted.${name}`
+      );
+      if (original?.count !== copied?.count)
+        throw new Error('Local database rows were not preserved.');
+    }
+    await source.execAsync('COMMIT');
+    transaction = false;
+    await source.execAsync('DETACH DATABASE encrypted');
+    attached = false;
+    encrypted = await openEncrypted(key);
+    await source.closeAsync();
+    // Only after this marker succeeds may the plaintext source be removed.
+    await SecureStore.setItemAsync(READY_KEY, 'ready', secureOptions);
+    if ((await SecureStore.getItemAsync(READY_KEY)) !== 'ready') {
+      throw new Error('Local database migration could not be confirmed.');
+    }
+    return encrypted;
+  } catch {
+    if (transaction) await source.execAsync('ROLLBACK').catch(() => undefined);
+    if (attached)
+      await source
+        .execAsync('DETACH DATABASE encrypted')
+        .catch(() => undefined);
+    await source.closeAsync().catch(() => undefined);
+    await encrypted?.closeAsync().catch(() => undefined);
+    // Native errors may include the SQL statement and key. Do not log/rethrow them.
+    throw new Error(
+      'Local data encryption could not complete. Existing data was preserved; retry after restarting.'
+    );
+  }
 }
 
-/**
- * Migration playbook for users that already have a plaintext
- * `mintenance_local.db`. Documented as a function signature only —
- * the body is intentionally NOT shipped because it must be tested
- * against real device data before release.
- *
- * Algorithm:
- *   1. Open plaintext DB at the existing path.
- *   2. Generate + persist the new encryption key.
- *   3. Run `ATTACH DATABASE 'encrypted.db' AS encrypted KEY '<key>'`.
- *   4. Run `SELECT sqlcipher_export('encrypted')`.
- *   5. Run `DETACH DATABASE encrypted`.
- *   6. Close the plaintext DB.
- *   7. Atomically rename: encrypted.db → mintenance_local.db.
- *   8. Re-open with `key` option, verify a SELECT works.
- *   9. On error at any step, rollback — leave plaintext in place,
- *      do not flip the flag for this user.
- *
- * The actual implementation needs:
- *   - The exact expo-sqlite API for ATTACH + sqlcipher_export
- *     (varies by SDK version).
- *   - File-system access to do the atomic rename
- *     (`expo-file-system` copyAsync + deleteAsync sequence).
- *   - Telemetry hooks for migration success / failure rates.
- */
-export async function migrateToEncrypted(): Promise<{
-  migrated: boolean;
-  reason?: string;
-}> {
-  // Intentionally not implemented — see header. Throwing here would
-  // break the build (the function is referenced from header docs);
-  // returning a "migrated: false" envelope keeps callers honest if
-  // someone wires this in prematurely.
-  return {
-    migrated: false,
-    reason: 'Migration not implemented — see header for playbook.',
-  };
+export async function openLocalDatabase(): Promise<SQLite.SQLiteDatabase> {
+  if (!isLocalDbEncryptionEnabled())
+    return SQLite.openDatabaseAsync(LEGACY_NAME);
+  try {
+    const key = await getOrCreateDbKey();
+    const ready = await SecureStore.getItemAsync(READY_KEY);
+    if (ready !== null && ready !== 'ready')
+      throw new Error('Invalid migration state.');
+    let db: SQLite.SQLiteDatabase;
+    if (ready === 'ready') {
+      if (!(await databaseExists(ENCRYPTED_NAME)))
+        throw new Error('Encrypted local database is missing.');
+      db = await openEncrypted(key);
+    } else {
+      db = await migrateToEncrypted(key);
+    }
+    // Deletion is retryable after a crash. Never fall back to this old file.
+    try {
+      await deleteDatabaseFiles(LEGACY_NAME);
+    } catch {
+      await db.closeAsync();
+      throw new Error('The old local database could not be removed.');
+    }
+    return db;
+  } catch {
+    logger.error(
+      'Encrypted local database is unavailable; no plaintext fallback was used.'
+    );
+    throw new Error(
+      'Local data is unavailable. Restart the app to retry. A native build with SQLCipher and secure storage is required.'
+    );
+  }
 }

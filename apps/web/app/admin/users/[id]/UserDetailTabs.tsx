@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { theme } from '@/lib/theme';
+import { theme } from '@/lib/admin-theme';
 import { Icon } from '@/components/ui/Icon';
 import type { UserDetail, Job, Review, Tab } from './UserDetailTypes';
 import {
@@ -37,7 +37,7 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div
       style={{
-        textAlign: 'center',
+        textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: theme.spacing[8],
         color: '#64748B',
       }}

@@ -124,10 +124,10 @@ export const GET = withApiHandler(
       // is a signed URL that eventually expires. Re-sign rather than handing
       // the client a dead image; URLs from other buckets pass through.
       const keys = Object.keys(thumbnails);
-      const fresh = await resignAssessmentUrls(keys.map((k) => thumbnails[k]!));
-      keys.forEach((k, i) => {
-        thumbnails[k] = fresh[i] ?? thumbnails[k]!;
-      });
+      await Promise.all(keys.map(async (key) => {
+        const [url] = await resignAssessmentUrls([thumbnails[key]], 3600, key);
+        thumbnails[key] = url ?? '';
+      }));
     }
 
     // Room names, looked up separately rather than embedded. A many-to-one

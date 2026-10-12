@@ -20,12 +20,16 @@ interface BeforeAfterSliderViewProps {
   photoPairs: PhotoPair[];
   activePairIndex: number;
   onSelectPair: (index: number) => void;
+  onRetry?: () => void;
+  approved?: boolean;
 }
 
 export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
   photoPairs,
   activePairIndex,
   onSelectPair,
+  onRetry,
+  approved = false,
 }) => {
   const currentPair = photoPairs[activePairIndex];
   if (!currentPair) return null;
@@ -38,6 +42,7 @@ export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
           beforeUrl={currentPair.before.url}
           afterUrl={currentPair.after.url}
           height={320}
+          onRetry={onRetry}
         />
         {/* Photo Timestamps */}
         {(currentPair.before.timestamp || currentPair.after.timestamp) && (
@@ -113,8 +118,9 @@ export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
       <View style={styles.instructions}>
         <Ionicons name='information-circle-outline' size={20} color={me.ink3} />
         <Text style={styles.instructionsText}>
-          Drag the slider to compare before and after photos. Approve if
-          satisfied, or request changes.
+          {approved
+            ? 'Approved work record. Drag the slider to compare before and after photos.'
+            : 'Drag the slider to compare before and after photos. Approve if satisfied, or request changes.'}
         </Text>
       </View>
     </>

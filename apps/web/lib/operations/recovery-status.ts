@@ -3,6 +3,16 @@ import { z } from 'zod';
 // Alert tolerances, not promises about provider delivery. Keep schedule contracts tested.
 export const recoveryJobs = [
   {
+    name: 'recurring-job-creator',
+    label: 'Recurring job creation',
+    maxAgeMinutes: 26 * 60,
+  },
+  {
+    name: 'model-retraining',
+    label: 'Model training readiness',
+    maxAgeMinutes: 26 * 60,
+  },
+  {
     name: 'payment-reconciliation',
     label: 'Payment reconciliation',
     maxAgeMinutes: 15,
@@ -39,6 +49,21 @@ export const recoveryJobs = [
     label: 'Evidence disposal',
     maxAgeMinutes: 26 * 60,
   },
+  {
+    name: 'pii-cleanup',
+    label: 'Personal data cleanup',
+    maxAgeMinutes: 26 * 60,
+  },
+  {
+    name: 'retention-cleanup',
+    label: 'Retention cleanup',
+    maxAgeMinutes: 26 * 60,
+  },
+  {
+    name: 'data-archival',
+    label: 'Historical job archival',
+    maxAgeMinutes: 35 * 24 * 60,
+  },
 ] as const;
 
 export const recoveryRunSchema = z.object({
@@ -63,6 +88,7 @@ export const recoveryReportSchema = z.object({
           'failed',
           'attention',
           'unknown',
+          'awaiting_data',
         ]),
         lastStartedAt: z.string().nullable(),
         lastSuccessAt: z.string().nullable(),
@@ -90,6 +116,27 @@ export function recoveryState(
   )
     return 'unknown';
   if (latest.status === 'failed') return 'failed';
+  const alerts = latest.metadata?.alerts;
+  if (Array.isArray(alerts) && alerts.some((a) => a?.severity === 'critical'))
+    return 'attention';
+  const awaitingData =
+    latest.metadata?.checkResult &&
+    typeof latest.metadata.checkResult === 'object' &&
+    (latest.metadata.checkResult as Record<string, unknown>)
+      .awaitingTrainingData === true;
+  const retentionResults = latest.metadata?.results;
+  if (
+    retentionResults &&
+    typeof retentionResults === 'object' &&
+    !Array.isArray(retentionResults) &&
+    typeof (retentionResults as Record<string, unknown>)
+      .profiles_deferred_for_review === 'number' &&
+    Number(
+      (retentionResults as Record<string, unknown>).profiles_deferred_for_review
+    ) > 0
+  ) {
+    return 'attention';
+  }
   // Some workers record a completed run while reporting unresolved provider work.
   if (
     [
@@ -118,5 +165,9 @@ export function recoveryState(
       return 'overdue';
     return 'running';
   }
-  return completed === null ? 'unknown' : 'recent_success';
+  return completed === null
+    ? 'unknown'
+    : awaitingData
+      ? 'awaiting_data'
+      : 'recent_success';
 }

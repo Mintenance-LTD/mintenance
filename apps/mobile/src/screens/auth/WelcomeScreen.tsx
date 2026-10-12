@@ -48,7 +48,7 @@ interface RoleTile {
   accessibilityLabel: string;
 }
 
-const ROLE_TILES: ReadonlyArray<RoleTile> = [
+const ROLE_TILES: readonly RoleTile[] = [
   {
     id: 'homeowner',
     icon: 'home-outline',
@@ -100,7 +100,8 @@ export const WelcomeScreen: React.FC = () => {
           Trusted trades{'\n'}in your pocket.
         </Text>
         <Text style={styles.subtitle}>
-          Post a job, compare real bids, pay only when the work is right.
+          Post a job, compare real bids, and fund escrow before work starts.
+          Release payment after approving the work.
         </Text>
 
         <Text style={styles.eyebrow}>How will you use Mintenance?</Text>

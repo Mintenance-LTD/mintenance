@@ -13,7 +13,7 @@ import { jobResponseSchema } from '@mintenance/api-contracts';
 import { safeValidateResponse } from '@mintenance/api-client';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
-import { normalizePhotoUrls } from '../utils/photoUrls';
+import { firstPhotoUrls } from '../utils/photoUrls';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
@@ -387,7 +387,7 @@ export class JobCRUDService {
       // API returns 'urgency', DB returns 'priority'
       priority: ((raw.priority ?? raw.urgency) as Job['priority']) ?? 'medium',
       // API returns `images`/`photoUrls`, DB returns `photos`.
-      photos: normalizePhotoUrls(raw.photos ?? raw.images ?? raw.photoUrls),
+      photos: firstPhotoUrls(raw.photos, raw.images, raw.photoUrls),
       created_at:
         ((raw.created_at ?? raw.createdAt) as string) ??
         new Date().toISOString(),

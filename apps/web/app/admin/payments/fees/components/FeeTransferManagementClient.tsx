@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { CircleDollarSign } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { CirclePoundSterling } from 'lucide-react';
+import { theme } from '@/lib/admin-theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
@@ -259,7 +259,7 @@ export function FeeTransferManagementClient() {
           subtitle='Processing costs are estimates or unverified'
           icon='trendingUp'
           iconColor='#565e74'
-          className='bg-[#565e74] text-white [&_p]:text-white/70 [&_p:first-of-type]:text-white/60'
+
         />
       </div>
 
@@ -314,7 +314,7 @@ export function FeeTransferManagementClient() {
         ) : transfers.length === 0 ? (
           <div
             style={{
-              padding: '64px 16px',
+              padding: '32px 16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -334,7 +334,7 @@ export function FeeTransferManagementClient() {
                 marginBottom: 16,
               }}
             >
-              <CircleDollarSign
+              <CirclePoundSterling
                 className='w-8 h-8'
                 style={{ color: '#94a3b8' }}
               />

@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   try {
     const { data: c } = await serverSupabase
-      .from('profiles')
+      .from('profile_directory')
       .select(
         'first_name, last_name, company_name, bio, city, country, profile_image_url, role, rating'
       )

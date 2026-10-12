@@ -71,6 +71,19 @@ describe('AIAnalysisCard', () => {
   // ===========================
   // RENDERING STATES
   // ===========================
+  it.each([undefined, Number.NaN, Number.POSITIVE_INFINITY])(
+    'does not invent confidence for %s',
+    (confidence) => {
+      const view = render(
+        <AIAnalysisCard
+          aiLoading={false}
+          aiAnalysis={createMockAIAnalysis({ confidence })}
+        />
+      );
+      expect(view.getByText('Confidence unavailable')).toBeTruthy();
+      expect(view.queryByText('NaN% confidence')).toBeNull();
+    }
+  );
 
   describe('Rendering States', () => {
     it('should render nothing when aiLoading is false and aiAnalysis is null', () => {
@@ -215,7 +228,7 @@ describe('AIAnalysisCard', () => {
         <AIAnalysisCard aiAnalysis={analysis} aiLoading={false} />
       );
 
-      expect(getByText('-50% confidence')).toBeTruthy();
+      expect(getByText('0% confidence')).toBeTruthy();
     });
 
     it('should handle very small confidence values', () => {

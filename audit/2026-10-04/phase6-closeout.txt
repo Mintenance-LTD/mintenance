@@ -1,0 +1,26 @@
+Phase 6 — Payments and reconciliation
+Complete (implementation). External beta remains on hold.
+
+Reviewed canonical funding, saved-card confirmation, webhook retries, refund recovery, transfer reservation and reconciliation paths
+Unfinished webhook duplicates return a retryable failure instead of a false acknowledgement; invalid claims fail closed
+Saved-card route preserves security headers through canonical handlers and supplies the Stripe authentication return URL
+Synchronous confirmation uses the atomic job/escrow funding transaction, refusing obsolete and concurrently closed payment state
+Verified real Stripe sandbox: connected contractor status, bid acceptance, contractor contract submission, both signatures and funded escrow through authenticated route handlers
+Verified actual sandbox saved-card charge, signed payment webhook, cash-plus-credit refund replay, provider reconciliation and duplicate transfer recovery
+544 regression tests across 31 suites and 36 real-database tests passed; six rollback-only SQL scripts cover concurrency, stale ownership, partial refunds, credit accounting and a 105-record reconciliation backlog
+Web type check and production-file lint passed; no schema changes or hosted SQL mutations needed
+
+Remaining release checks:
+Phase 7: phone checkout, saved cards and 3DS challenge on the matching release build
+Phase 8: deployed webhook delivery, retry monitoring, correct sandbox/live configuration and final controlled payment signoff
+R4 separately owned completion flow remains a beta gate; this phase did not change completion/photos
+
+Sandbox scope: actual Stripe test calls, local Postgres and real authenticated route handlers. Connected-account setup uses documented synthetic UK bank details. Signed events were delivered locally to the handler; deployed Stripe event delivery was not exercised. No real money moved. Synthetic test objects remain as evidence. The separate after-photo completion task was untouched.
+
+Reproduce sandbox checks with pinned Node 20.19.4:
+node scripts/readiness/run-payment-sandbox.cjs <sandbox-env-file> <local-status-json>
+The runner requires a test key pair and exact loopback database URL, and does not inherit hosted application credentials. Never commit either input file.
+
+Sources consulted: https://docs.stripe.com/webhooks ; https://docs.stripe.com/api/idempotent_requests ; https://docs.stripe.com/connect/testing ; https://docs.stripe.com/testing
+
+Next phase: 7 — Mobile release and device verification.

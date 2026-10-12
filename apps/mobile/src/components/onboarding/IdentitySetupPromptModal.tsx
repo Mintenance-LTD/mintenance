@@ -56,7 +56,8 @@ export const IdentitySetupPromptModal: React.FC<
   if (!visible) return null;
 
   const handleStart = () => {
-    navigation.navigate('BusinessTab', { screen: 'ContractorVerification' });
+    void onDismiss();
+    navigation.navigate('Main', { screen: 'BusinessTab', params: { screen: 'ContractorVerification', initial: false } });
     if (onAfterNavigate) {
       void onAfterNavigate();
     }

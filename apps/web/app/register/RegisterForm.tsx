@@ -126,6 +126,8 @@ export function RegisterForm() {
 
   return (
     <main
+      id='main-content'
+      tabIndex={-1}
       style={{
         flex: 1,
         display: 'flex',

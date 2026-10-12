@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import { ScreenHeader } from '../ScreenHeader';
 
 // ============================================================================
@@ -20,12 +20,12 @@ import { ScreenHeader } from '../ScreenHeader';
 jest.mock('../../../theme', () => ({
   theme: {
     colors: {
-      textPrimary: '#171717',
+      textPrimary: '#1A2520',
       surface: '#FFFFFF',
-      surfaceTertiary: '#F5F5F5',
-      backgroundSecondary: '#F5F5F5',
+      surfaceTertiary: '#DEE9E0',
+      backgroundSecondary: '#DEE9E0',
       border: '#E5E5E5',
-      textSecondary: '#737373',
+      textSecondary: '#4A5751',
     },
     spacing: {
       lg: 16,
@@ -47,8 +47,8 @@ jest.mock('../../../theme', () => ({
 let mockIonicons: jest.Mock;
 
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const RN = require('react-native');
+  const React = jest.requireActual('react');
+  const RN = jest.requireActual('react-native');
 
   mockIonicons = jest.fn(({ name, size, color, ...props }) => {
     return React.createElement(RN.View, {
@@ -94,7 +94,7 @@ describe('ScreenHeader Component', () => {
           expect.objectContaining({
             fontSize: 20,
             fontWeight: '600',
-            color: '#171717',
+            color: '#1A2520',
           }),
         ])
       );
@@ -231,7 +231,7 @@ describe('ScreenHeader Component', () => {
       const onBackPress = jest.fn();
       render(<ScreenHeader title='Test' onBackPress={onBackPress} />);
       const calls = mockIonicons.mock.calls[0];
-      expect(calls[0]).toEqual(expect.objectContaining({ color: '#171717' }));
+      expect(calls[0]).toEqual(expect.objectContaining({ color: '#1A2520' }));
     });
 
     it('back button has correct styling', () => {
@@ -250,7 +250,7 @@ describe('ScreenHeader Component', () => {
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: '#F5F5F5',
+            backgroundColor: '#DEE9E0',
             justifyContent: 'center',
             alignItems: 'center',
           }),
@@ -272,7 +272,6 @@ describe('ScreenHeader Component', () => {
     });
 
     it('does not render subtitle when not provided', () => {
-      const { queryByText } = render(<ScreenHeader title='Main Title' />);
       const viewElements = render(
         <ScreenHeader title='Main Title' />
       ).UNSAFE_root.findAllByType('Text' as any);
@@ -292,7 +291,7 @@ describe('ScreenHeader Component', () => {
         expect.arrayContaining([
           expect.objectContaining({
             fontSize: 13,
-            color: '#737373',
+            color: '#4A5751',
             marginTop: 2,
           }),
         ])
@@ -558,9 +557,9 @@ describe('ScreenHeader Component', () => {
             justifyContent: 'space-between',
             paddingHorizontal: 20,
             paddingVertical: 20,
-            backgroundColor: '#FFFFFF',
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: '#E5E5E5',
+            backgroundColor: '#E9F1EB',
+            borderBottomWidth: 0,
+            borderBottomColor: '#D8E2DA',
           }),
         ])
       );

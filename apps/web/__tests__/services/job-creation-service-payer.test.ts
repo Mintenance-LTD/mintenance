@@ -102,3 +102,24 @@ describe('JobCreationService payer delegation', () => {
     expect(mocks.from).toHaveBeenNthCalledWith(2, 'property_team_members');
   });
 });
+
+it('fills the required location from the property before returning cached coordinates', async () => {
+  mocks.from.mockReturnValue(
+    queryResult({
+      address: '1 Example Road',
+      city: 'Exampleton',
+      postcode: 'AB1 2CD',
+      country: 'UK',
+      latitude: 51.9,
+      longitude: -2.07,
+    })
+  );
+  const payload: { property_id: string; location?: string; latitude?: number } =
+    { property_id: 'property' };
+  const service = JobCreationService.getInstance() as unknown as {
+    resolveJobCoordinates: (payload: unknown) => Promise<void>;
+  };
+  await service.resolveJobCoordinates(payload);
+  expect(payload.location).toBe('1 Example Road, Exampleton, AB1 2CD, UK');
+  expect(payload.latitude).toBe(51.9);
+});

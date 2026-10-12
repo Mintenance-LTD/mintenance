@@ -1,4 +1,5 @@
 'use client';
+import { explainCoolingOff } from './explain-cooling-off';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { readPendingRefund, submitRefund } from '@/lib/payments/refund-request';
@@ -189,6 +190,8 @@ export default function PaymentsPage2025() {
     // Explain approval and the cooling-off waiver before releasing funds.
     const transaction = transactions.find((t) => t.id === transactionId);
     const needsApproval = transaction ? !transaction.homeowner_approval : false;
+    if (await explainCoolingOff(transaction?.cooling_off_ends_at, confirm))
+      return;
 
     const confirmed = await confirm(
       needsApproval

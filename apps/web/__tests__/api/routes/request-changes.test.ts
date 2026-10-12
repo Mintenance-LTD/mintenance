@@ -573,3 +573,21 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     expect(mocks.supabaseRpc).not.toHaveBeenCalled();
   });
 });
+
+it('does not reopen approved work or reset its payment deadline', async () => {
+  const { POST } = await import('@/app/api/jobs/[id]/request-changes/route');
+  setupDefaultMocks();
+  setupRequestChangesMocks({
+    jobData: { ...completedJob, completion_confirmed_by_homeowner: true },
+  });
+  mocks.supabaseRpc.mockClear();
+  const response = await POST(
+    createPostRequest('/api/jobs/job-1/request-changes', {
+      comments: 'Fix seal',
+      completedAt: '2026-10-04T17:00:00Z',
+    }),
+    segmentData('job-1')
+  );
+  expect(response.status).toBe(409);
+  expect(mocks.supabaseRpc).not.toHaveBeenCalled();
+});

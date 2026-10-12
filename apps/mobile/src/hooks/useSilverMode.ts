@@ -7,10 +7,11 @@
  * doesn't need localStorage — RN uses AsyncStorage.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
+import { useAuth } from '../contexts/AuthContext';
 import {
   isSilverMode,
   setSilverModeEnabled,
@@ -20,6 +21,13 @@ import {
 const CACHE_KEY = 'mintenance.silverMode';
 
 export function useSilverMode() {
+  const { user } = useAuth();
+  const currentAccount = useRef(user?.id);
+  currentAccount.current = user?.id;
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const cacheKey = `${CACHE_KEY}:${user?.id ?? 'signed-out'}`;
   const [silverMode, setState] = useState<boolean>(isSilverMode());
   const [loading, setLoading] = useState(true);
 
@@ -30,14 +38,17 @@ export function useSilverMode() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setSilverModeEnabled(false);
     const controller = new AbortController();
 
     (async () => {
       // 1) Instant hydrate from AsyncStorage.
       try {
-        const cached = await AsyncStorage.getItem(CACHE_KEY);
-        if (!cancelled && cached === '1') {
-          setSilverModeEnabled(true);
+        const cached = await AsyncStorage.getItem(cacheKey);
+        if (!cancelled) {
+          setSilverModeEnabled(cached === '1');
         }
       } catch {
         // ignore
@@ -54,11 +65,14 @@ export function useSilverMode() {
         if (cancelled) return;
         const next = Boolean(body?.silverMode);
         setSilverModeEnabled(next);
-        await AsyncStorage.setItem(CACHE_KEY, next ? '1' : '0').catch(() => {
+        await AsyncStorage.setItem(cacheKey, next ? '1' : '0').catch(() => {
           // ignore
         });
       } catch (err) {
         if (!cancelled) {
+          setError(
+            'Unable to load your saved accessibility setting. Please retry.'
+          );
           logger.warn('silver-mode: server fetch failed', { err });
         }
       } finally {
@@ -70,27 +84,42 @@ export function useSilverMode() {
       cancelled = true;
       controller.abort();
     };
-  }, []);
+  }, [cacheKey, attempt]);
 
-  const setPersistent = useCallback(async (next: boolean) => {
-    setSilverModeEnabled(next);
-    try {
-      await AsyncStorage.setItem(CACHE_KEY, next ? '1' : '0');
-    } catch {
-      // ignore
-    }
-    try {
-      await mobileApiClient.patch('/api/users/settings', {
-        silverMode: next,
-      });
-    } catch (err) {
-      logger.warn('silver-mode: server save failed', { err });
-    }
-  }, []);
+  const setPersistent = useCallback(
+    async (next: boolean) => {
+      if (loading || saving || !user?.id) return;
+      setSaving(true);
+      try {
+        await mobileApiClient.patch('/api/users/settings', {
+          silverMode: next,
+        });
+        setSilverModeEnabled(next);
+        await AsyncStorage.setItem(cacheKey, next ? '1' : '0').catch(() => {});
+        setError(null);
+      } catch (err) {
+        setError(
+          'Your change was not saved. Check your connection and try again.'
+        );
+        logger.warn('silver-mode: server save failed', { err });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [cacheKey, user?.id, loading, saving]
+  );
 
   const toggle = useCallback(async () => {
     await setPersistent(!silverMode);
   }, [setPersistent, silverMode]);
 
-  return { silverMode, toggle, setSilverMode: setPersistent, loading };
+  return {
+    silverMode,
+    toggle,
+    setSilverMode: setPersistent,
+    loading,
+    saving,
+    error,
+    retry: () => setAttempt((value) => value + 1),
+  };
 }

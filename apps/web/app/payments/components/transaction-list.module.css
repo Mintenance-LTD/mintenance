@@ -1,0 +1,48 @@
+.header {
+  gap: 20px;
+}
+.status {
+  flex: 0 0 136px;
+  text-align: left;
+}
+.actions {
+  flex: 0 0 250px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.held {
+  background: var(--me-brand-soft);
+  color: var(--me-brand);
+}
+.row .actions button {
+  min-height: 36px;
+  white-space: nowrap;
+}
+@media (max-width: 1200px) {
+  .header {
+    display: none !important;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+  .row > :first-child {
+    flex: 1 1 100% !important;
+  }
+  .row .status {
+    flex: 0 1 auto;
+    margin-right: 12px;
+  }
+  .row .actions {
+    flex: 1 1 250px;
+    margin-left: auto;
+  }
+}
+@media (max-width: 540px) {
+  .row .actions {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    padding-top: 8px;
+  }
+}

@@ -323,7 +323,19 @@ class MobileApiClient extends ApiClient {
     }
 
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`);
+      let message = `Upload failed: ${response.status}`;
+      try {
+        const body = await response.json();
+        const detail =
+          typeof body.error === 'string'
+            ? body.error
+            : (body.error?.message ?? body.message);
+        if (response.status < 500 && typeof detail === 'string')
+          message = detail;
+      } catch {
+        /* Non-JSON gateway response: keep the status fallback. */
+      }
+      throw Object.assign(new Error(message), { statusCode: response.status });
     }
     return response.json();
   }

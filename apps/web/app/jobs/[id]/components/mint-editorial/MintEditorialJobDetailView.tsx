@@ -8,6 +8,7 @@
  * under the 500-line MDC cap.
  */
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+import { RecommendedContractors } from '../RecommendedContractors';
 import { JobViewTracker } from '../JobViewTracker';
 import { ContractManagement } from '../ContractManagement';
 import { HomeownerPhotoReview } from '../HomeownerPhotoReview';
@@ -93,6 +94,9 @@ export function MintEditorialJobDetailView({
                 width: '100%',
               }}
             >
+              {job.status === 'posted' && !job.contractor_id && (
+                <RecommendedContractors jobId={job.id} />
+              )}
               {job.status === 'completed' && afterPhotos.length > 0 && (
                 <div id='photo-review'>
                   <HomeownerPhotoReview

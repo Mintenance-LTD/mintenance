@@ -38,13 +38,11 @@ export function useFinancialsData() {
         : { subscription: null };
 
       const totalSpent = payments
-        .filter((p) =>
-          ['completed', 'released', 'release_pending'].includes(p.status)
-        )
+        .filter((p) => ['completed', 'released'].includes(p.status))
         .reduce((sum, p) => sum + p.amount, 0);
 
       const inEscrow = payments
-        .filter((p) => p.status === 'held' || p.status === 'pending')
+        .filter((p) => ['held', 'release_pending'].includes(p.status))
         .reduce((sum, p) => sum + p.amount, 0);
 
       const refunded = payments
@@ -54,6 +52,7 @@ export function useFinancialsData() {
       const now = new Date();
       const thisMonth = payments
         .filter((p) => {
+          if (!['completed', 'released'].includes(p.status)) return false;
           const d = new Date(p.created_at);
           return (
             d.getMonth() === now.getMonth() &&
@@ -65,7 +64,7 @@ export function useFinancialsData() {
       // Build category breakdown from payments
       const categoryTotals: Record<string, number> = {};
       for (const p of payments.filter((pay) =>
-        ['completed', 'released', 'release_pending'].includes(pay.status)
+        ['completed', 'released'].includes(pay.status)
       )) {
         const cat = p.category || 'general';
         categoryTotals[cat] = (categoryTotals[cat] || 0) + p.amount;
@@ -92,5 +91,3 @@ export function useFinancialsData() {
     },
   });
 }
-
-type FinancialsData = NonNullable<ReturnType<typeof useFinancialsData>['data']>;

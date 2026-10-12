@@ -1,4 +1,5 @@
 -- Preserve consumed contact identities without retaining contact details.
+BEGIN;
 -- No FK: deleting the contact/property/account must not make an old operation reusable.
 CREATE TABLE public.property_contact_save_ids (id uuid PRIMARY KEY);
 ALTER TABLE public.property_contact_save_ids ENABLE ROW LEVEL SECURITY;
@@ -30,3 +31,4 @@ FOR EACH ROW EXECUTE FUNCTION public.reserve_property_contact_identity();
 
 COMMENT ON TABLE public.property_contact_save_ids IS
 'Consumed contact UUIDs only; retained to reject delayed replays after deletion. No names, contact details, property IDs, account IDs or payloads.';
+COMMIT;

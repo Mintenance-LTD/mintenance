@@ -67,7 +67,7 @@ export const FinishSetupCard: React.FC = () => {
         }
         return;
       case 'add_photo':
-        navigation.navigate('ProfileTab', { screen: 'EditProfile' });
+        navigation.navigate('ProfileTab', { screen: 'EditProfile', initial: false });
         return;
       case 'add_property':
         navigation.navigate('BusinessTab', { screen: 'AddProperty' });

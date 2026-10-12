@@ -51,7 +51,7 @@ export async function fetchContractorStats(
   const [jobsResult, reviewsResult, todayJobsResult] = await Promise.all([
     client
       .from('jobs')
-      .select('id, status, budget, created_at, updated_at')
+      .select('id, status, budget, created_at, updated_at, archived_at')
       .eq('contractor_id', contractorId),
     client.from('reviews').select('rating').eq('reviewee_id', contractorId),
     client
@@ -61,6 +61,7 @@ export async function fetchContractorStats(
       )
       .eq('contractor_id', contractorId)
       .in('status', ['assigned', 'in_progress'])
+      .is('archived_at', null)
       .gte('scheduled_start_date', todayStart)
       .lte('scheduled_start_date', todayEnd),
   ]);
@@ -70,7 +71,8 @@ export async function fetchContractorStats(
   const todayJobs = todayJobsResult.data ?? [];
 
   const activeJobs = jobs.filter(
-    (j) => j.status === 'in_progress' || j.status === 'assigned'
+    (j) =>
+      !j.archived_at && (j.status === 'in_progress' || j.status === 'assigned')
   ).length;
 
   const completedJobs = jobs.filter((j) => j.status === 'completed').length;

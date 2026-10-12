@@ -97,15 +97,17 @@ export interface PlatformFeeBreakdown {
  * contractor is quoted.
  *
  * Rounds to 2dp the same way as FeeCalculationService so the quote and the
- * eventual charge agree to the penny at equal rates. No minimum-fee floor
- * here — that floor only matters for tiny real charges, not headline quotes.
+ * eventual charge agree to the penny at equal rates. The 50p minimum
+ * applies to quotes as well as settlement, capped at the payment amount.
  */
 export function platformFeeBreakdown(
   amount: number,
   rate: number
 ): PlatformFeeBreakdown {
   const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
-  const platformFee = Math.round(safeAmount * rate * 100) / 100;
+  const platformFee =
+    Math.round(Math.min(safeAmount, Math.max(0.5, safeAmount * rate)) * 100) /
+    100;
   const netToContractor = Math.round((safeAmount - platformFee) * 100) / 100;
   return { rate, platformFee, netToContractor };
 }

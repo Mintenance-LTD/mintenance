@@ -122,7 +122,7 @@ function ContractorPublicProfilePage2025() {
 
   if (loading) {
     return (
-      <div className='min-h-screen bg-white flex items-center justify-center'>
+      <div className='min-h-screen bg-[#f3f7f4] flex items-center justify-center'>
         <div className='text-center'>
           <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4'></div>
           <p className='text-gray-600'>Loading contractor profile...</p>
@@ -133,7 +133,7 @@ function ContractorPublicProfilePage2025() {
 
   if (error || !contractor) {
     return (
-      <div className='min-h-screen bg-white flex items-center justify-center'>
+      <div className='min-h-screen bg-[#f3f7f4] flex items-center justify-center'>
         <div className='text-center max-w-md px-4'>
           <h2 className='text-2xl font-bold text-gray-900 mb-2'>
             Failed to Load Profile
@@ -172,7 +172,7 @@ function ContractorPublicProfilePage2025() {
                   setLoading(false);
                 }
               }}
-              className='px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+              className='px-4 py-2 bg-[#2f6f5f] text-white rounded-lg hover:bg-teal-700 transition-colors'
             >
               Try Again
             </button>
@@ -418,7 +418,7 @@ export default function ContractorProfileClient() {
   return (
     <Suspense
       fallback={
-        <div className='min-h-screen bg-white flex items-center justify-center'>
+        <div className='min-h-screen bg-[#f3f7f4] flex items-center justify-center'>
           <div className='text-center'>
             <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4'></div>
             <p className='text-gray-600'>Loading contractor profile...</p>

@@ -139,10 +139,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onPress={onStartVideoCall}
           disabled={isInCall}
           accessibilityRole='button'
-          accessibilityLabel='Start video call'
+          accessibilityLabel='Arrange a phone call'
         >
           <Ionicons
-            name='videocam'
+            name='call-outline'
             size={18}
             color={isInCall ? me.ink4 : me.brand}
           />

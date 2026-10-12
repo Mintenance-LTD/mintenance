@@ -1,0 +1,6 @@
+Payment and contractor recommendation presentation — 2026-09-30
+Local changes only; no payment logic, recommendation ranking, or production records changed.
+Payment status and actions have separate fixed space, a neutral green escrow status, consistent action gaps, and responsive stacking. Existing action callbacks and confirmation flow preserved.
+Editorial job recommendations moved from outside HomeownerPageWrapper into supportingPanels in the main job column. Compact rows link to existing /contractors/[id] profiles. Removed heuristic percentage badges and clarify suggestions are not bids. Cancels outstanding matching request when leaving/changing job.
+Checks: web TypeScript passed, targeted ESLint passed, git diff --check passed. Browser layout acceptance not performed; no local authenticated preview was available in browser inventory. Changes not deployed.
+Follow-up: visually verified actual components with synthetic fixtures at 1440px and 390px in local browser. No overlap observed; recommendations and profile action rendered. Temporary fixture removed before commit. Payment operations were not executed.

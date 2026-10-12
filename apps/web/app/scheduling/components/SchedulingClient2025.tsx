@@ -18,10 +18,7 @@ interface SchedulingClient2025Props {
   };
 }
 
-export function SchedulingClient2025({
-  events,
-  userInfo,
-}: SchedulingClient2025Props) {
+export function SchedulingClient2025({ events }: SchedulingClient2025Props) {
   // Hydration-safe theme detection so the Mint Editorial shell wraps
   // this surface consistently with the rest of the homeowner pages.
   // Legacy chrome (white header strip + min-h-screen bg) stays intact
@@ -41,6 +38,7 @@ export function SchedulingClient2025({
   ).length;
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const nextWeek = new Date();
   nextWeek.setDate(today.getDate() + 7);
 
@@ -167,7 +165,8 @@ export function SchedulingClient2025({
               className='t-body'
               style={{ fontSize: 13, textAlign: 'center', padding: '12px 0' }}
             >
-              No upcoming events.
+              No events in the next seven days. Browse the calendar for later
+              dates.
             </p>
           ) : (
             <div className='col' style={{ gap: 10 }}>
@@ -218,7 +217,10 @@ export function SchedulingClient2025({
                       style={{ gap: 4, flex: 1, minWidth: 0 }}
                     >
                       <h4 className='t-h4'>{event.title}</h4>
-                      <span className={eventBadgeClass(event.type)}>
+                      <span
+                        style={{ alignSelf: 'flex-start' }}
+                        className={eventBadgeClass(event.type)}
+                      >
                         {getEventTypeLabel(event.type)}
                       </span>
                     </div>

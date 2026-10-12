@@ -6,7 +6,8 @@ const m = vi.hoisted(() => ({
   warn: vi.fn(),
   handler: vi.fn(),
 }));
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: { info: vi.fn(), warn: m.warn, error: vi.fn() },
 }));
 vi.mock('@/lib/cron-auth', () => ({ requireCronAuth: () => null }));
@@ -66,4 +67,17 @@ it('keeps the original job failure when completion tracking also fails', async (
     expect.any(Object)
   );
   expect(m.handler).toHaveBeenCalledTimes(1);
+});
+it.each([
+  { failed: 1 },
+  { errors: 2 },
+  { results: { errors: ['job failed'] } },
+])('reports partial failures instead of success: %j', async (result) => {
+  m.handler.mockResolvedValue(result);
+  const response = await withCronHandler('example', m.handler)(request);
+  expect(response.status).toBe(500);
+  expect(await response.json()).toMatchObject({
+    success: false,
+    results: result,
+  });
 });

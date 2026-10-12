@@ -50,6 +50,7 @@ vi.mock('../NotificationPushDispatcher', () => ({
 }));
 
 import { NotificationService } from '../NotificationService';
+import { NotificationPreferencesUnavailableError } from '../NotificationPreferenceResolver';
 
 const PERMISSIVE_PREFS = {
   user_id: 'u-1',
@@ -80,6 +81,23 @@ describe('NotificationService.createNotification — deferUntil', () => {
     mockShouldSendImmediately.mockResolvedValue({ immediate: true });
     mockQueueNotification.mockResolvedValue('queue-1');
     mockFrom.mockReturnValue(buildInsertChain());
+  });
+
+  it('queues rather than sending with defaults when preference lookup fails', async () => {
+    mockLoadPreferences.mockRejectedValueOnce(
+      new NotificationPreferencesUnavailableError()
+    );
+    const before = Date.now();
+    expect(await NotificationService.createNotification(baseParams())).toBe(
+      'queue-1'
+    );
+    expect(mockQueueNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u-1' })
+    );
+    expect(
+      mockQueueNotification.mock.calls.at(-1)?.[0].scheduledFor.getTime()
+    ).toBeGreaterThanOrEqual(before + 5 * 60_000);
+    expect(mockSendPush).not.toHaveBeenCalled();
   });
 
   it('awaits push dispatch or retry persistence before returning from immediate delivery', async () => {
@@ -171,5 +189,44 @@ describe('NotificationService.createNotification — deferUntil', () => {
     expect(mockQueueNotification).toHaveBeenCalledWith(
       expect.objectContaining({ scheduledFor: in3h })
     );
+  });
+});
+
+describe('durable scheduled notifications', () => {
+  it('inserts a fixed ID without resetting an existing delivery on retry', async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    mockFrom.mockReturnValue({ upsert });
+    const at = new Date('2030-01-01T10:00:00Z');
+    await NotificationService.enqueueScheduled({
+      id: 'stable',
+      userId: 'u',
+      type: 'system',
+      title: 'Call',
+      message: 'Reminder',
+      scheduledFor: at,
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'stable',
+        scheduled_for: at.toISOString(),
+        status: 'pending',
+      }),
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+  });
+  it('does not silently discard a failed scheduled write', async () => {
+    mockFrom.mockReturnValue({
+      upsert: vi.fn().mockResolvedValue({ error: { message: 'unavailable' } }),
+    });
+    await expect(
+      NotificationService.enqueueScheduled({
+        id: 'stable',
+        userId: 'u',
+        type: 'system',
+        title: 'Call',
+        message: 'Reminder',
+        scheduledFor: new Date(),
+      })
+    ).rejects.toThrow('Could not save scheduled notification');
   });
 });

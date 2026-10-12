@@ -5,7 +5,7 @@
  */
 'use client';
 import React, { useState, useEffect } from 'react';
-import { webTokens } from '@mintenance/design-tokens';
+import { useWebTokens } from '../../ThemeProvider';
 import { cn } from '../../utils/cn';
 import type { WebButtonProps, ButtonSize } from './types';
 /**
@@ -30,6 +30,7 @@ export function Button({
   onClick,
   ...props
 }: WebButtonProps) {
+  const webTokens = useWebTokens();
   const [isFocused, setIsFocused] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [mounted, setMounted] = useState(false);

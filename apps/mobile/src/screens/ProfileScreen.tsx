@@ -1,13 +1,6 @@
+import { useMintDialog } from '../components/shared/useMintDialog';
 import React, { useMemo, useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Linking,
-  StatusBar,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, Linking, StatusBar } from 'react-native';
 import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -29,6 +22,7 @@ import { goToTab } from '../navigation/hooks';
 
 const ProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const { alert, dialog } = useMintDialog();
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const { user, signOut } = useAuth();
   const { userStats } = useProfileStats(user);
@@ -41,10 +35,14 @@ const ProfileScreen: React.FC = () => {
   }, [user?.id]);
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut },
-    ]);
+    alert(
+      'Sign Out',
+      'Signing out removes your saved biometric sign-in on this device. Use your password to sign in again; you can re-enable biometrics in Account & Security.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: signOut },
+      ]
+    );
   };
 
   const accountMenuItems = useMemo(
@@ -191,7 +189,7 @@ const ProfileScreen: React.FC = () => {
           Linking.openURL(
             'mailto:support@mintenance.co.uk?subject=Support%20Request'
           ).catch(() =>
-            Alert.alert(
+            alert(
               'Contact Us',
               'Unable to open email. Please contact support@mintenance.co.uk'
             )
@@ -205,7 +203,7 @@ const ProfileScreen: React.FC = () => {
         iconBg: me.bg2,
         onPress: () => {
           Linking.openURL(TERMS_URL).catch(() =>
-            Alert.alert(
+            alert(
               'Terms of Service',
               'Unable to open the Terms right now. Please try again later.'
             )
@@ -221,7 +219,7 @@ const ProfileScreen: React.FC = () => {
         iconBg: me.bg2,
         onPress: () => {
           Linking.openURL(PRIVACY_URL).catch(() =>
-            Alert.alert(
+            alert(
               'Privacy Policy',
               'Unable to open the Privacy Policy right now. Please try again later.'
             )
@@ -231,7 +229,7 @@ const ProfileScreen: React.FC = () => {
         accessibilityLabel: 'Open Privacy Policy in browser',
       },
     ],
-    [navigation]
+    [navigation, alert]
   );
 
   return (
@@ -241,6 +239,7 @@ const ProfileScreen: React.FC = () => {
         backgroundColor='transparent'
         barStyle='light-content'
       />
+      {dialog}
       <ResponsiveContainer
         maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
         padding={{ mobile: 0, tablet: 16, desktop: 24 }}

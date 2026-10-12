@@ -53,6 +53,7 @@ export function TenantReportForm({ token }: { token: string }) {
   >('loading');
   const [property, setProperty] = useState<PropertyInfo | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [conversationUrl, setConversationUrl] = useState('');
 
   // Form fields
   const [name, setName] = useState('');
@@ -109,6 +110,8 @@ export function TenantReportForm({ token }: { token: string }) {
         return;
       }
 
+      const result = await res.json();
+      setConversationUrl(result.conversation_url || '');
       setState('success');
     } catch {
       setErrorMessage(
@@ -152,6 +155,11 @@ export function TenantReportForm({ token }: { token: string }) {
         <h2 className='text-xl font-semibold text-gray-900 mb-2'>
           Report Submitted
         </h2>
+        {conversationUrl && (
+          <a className='block underline my-4' href={conversationUrl}>
+            Open your private conversation — save this link
+          </a>
+        )}
         <p className='text-gray-500 mb-6'>
           Your maintenance issue has been reported. The property manager will be
           notified and will get back to you.

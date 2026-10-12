@@ -32,7 +32,7 @@ export function PhotosStep({
           Add photos of your project
         </h2>
         <p className='t-body' style={{ margin: 0 }}>
-          Help contractors understand the scope of work (optional)
+          Add at least one photo to help contractors understand the work.
         </p>
       </div>
 

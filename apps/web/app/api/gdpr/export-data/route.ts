@@ -1,3 +1,5 @@
+import { readExportCore } from '@/lib/privacy/read-export-core';
+import { readExportRows } from '@/lib/privacy/read-export-rows';
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { sanitizeEmail } from '@/lib/sanitizer';
@@ -81,23 +83,9 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to create data export request');
     }
 
-    // 2026-05-26 audit-64 P2: the RPC only returns profile/jobs/bids/
-    // messages (verified live), but the mobile DataExportScreen
-    // promises "Payment & invoice records" and "Reviews & ratings"
-    // too. Fetch the missing categories alongside the RPC and merge
-    // them into the formatted data block below. Tables chosen to
-    // match the UI's promised categories + the GDPR portability
-    // surface: escrow_transactions + invoices (payment & invoice
-    // records), reviews (reviews & ratings), contracts
-    // (signed-contract surface), contractor/homeowner_subscriptions
-    // (billing state for the UK Construction Act audit trail),
-    // property_contacts (only when the user is the owner — others'
-    // contacts mustn't leak via portability). Each fetch is
-    // best-effort: a transient failure on one table won't fail the
-    // whole export, just leaves that bucket empty (logged so
-    // operators can spot it).
+    // Every category must finish successfully before a download is marked complete.
     const [
-      exportRpcResult,
+      coreResult,
       escrowResult,
       invoicesContractorResult,
       invoicesClientResult,
@@ -109,36 +97,59 @@ export const POST = withApiHandler(
       homeownerSubsResult,
       propertyContactsResult,
     ] = await Promise.all([
-      serverSupabase.rpc('export_user_data', { p_user_id: user.id }),
-      serverSupabase
-        .from('escrow_transactions')
-        .select('*')
-        .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`),
-      serverSupabase.from('invoices').select('*').eq('contractor_id', user.id),
-      serverSupabase.from('invoices').select('*').eq('client_id', user.id),
-      serverSupabase.from('reviews').select('*').eq('reviewer_id', user.id),
-      serverSupabase.from('reviews').select('*').eq('reviewee_id', user.id),
+      readExportCore(user.id),
+      readExportRows(() =>
+        serverSupabase
+          .from('escrow_transactions')
+          .select('*')
+          .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
+      ),
+      readExportRows(() =>
+        serverSupabase.from('invoices').select('*').eq('contractor_id', user.id)
+      ),
+      readExportRows(() =>
+        serverSupabase.from('invoices').select('*').eq('client_id', user.id)
+      ),
+      readExportRows(() =>
+        serverSupabase.from('reviews').select('*').eq('reviewer_id', user.id)
+      ),
+      readExportRows(() =>
+        serverSupabase.from('reviews').select('*').eq('reviewee_id', user.id)
+      ),
       // contracts has homeowner_id / contractor_id directly per the
       // schema verified in prior audits.
-      serverSupabase.from('contracts').select('*').eq('homeowner_id', user.id),
-      serverSupabase.from('contracts').select('*').eq('contractor_id', user.id),
-      serverSupabase
-        .from('contractor_subscriptions')
-        .select('*')
-        .eq('contractor_id', user.id),
-      serverSupabase
-        .from('homeowner_subscriptions')
-        .select('*')
-        .eq('homeowner_id', user.id),
+      readExportRows(() =>
+        serverSupabase.from('contracts').select('*').eq('homeowner_id', user.id)
+      ),
+      readExportRows(() =>
+        serverSupabase
+          .from('contracts')
+          .select('*')
+          .eq('contractor_id', user.id)
+      ),
+      readExportRows(() =>
+        serverSupabase
+          .from('contractor_subscriptions')
+          .select('*')
+          .eq('contractor_id', user.id)
+      ),
+      readExportRows(() =>
+        serverSupabase
+          .from('homeowner_subscriptions')
+          .select('*')
+          .eq('homeowner_id', user.id)
+      ),
       // Only the property owner sees their own contacts row —
       // never another homeowner's tenant via portability.
-      serverSupabase
-        .from('property_contacts')
-        .select('*')
-        .eq('owner_id', user.id),
+      readExportRows(() =>
+        serverSupabase
+          .from('property_contacts')
+          .select('*')
+          .eq('owner_id', user.id)
+      ),
     ]);
 
-    const { data: exportData, error: exportError } = exportRpcResult;
+    const { data: exportData, error: exportError } = coreResult;
 
     if (exportError) {
       logger.error('Error exporting user data', exportError, {
@@ -146,36 +157,17 @@ export const POST = withApiHandler(
         userId: user.id,
         requestId: dsrRequest.id,
       });
-      // 2026-05-24 audit-41 P1: previously threw without touching the
-      // dsr_requests row, leaving status='pending' forever. Mobile
-      // (DataExportScreen) treats pending as an in-flight export and
-      // disables the "Request data export" button against any user
-      // with a stuck row — so one transient RPC failure permanently
-      // bricked the export flow until an operator cleaned up. Mark
-      // the row 'rejected' with the error message so the next request
-      // is unblocked AND there's an audit trail of what failed.
-      // notes is the only free-form column on dsr_requests live
-      // (verified via information_schema 2026-05-24); status='rejected'
-      // is in the CHECK allow-list.
+      // A failed export must not leave a pending request blocking retries.
       await serverSupabase
         .from('dsr_requests')
         .update({
           status: 'rejected',
           completed_at: new Date().toISOString(),
-          notes: `export_user_data RPC failed: ${exportError.message ?? 'unknown error'}`,
+          notes: `Core export failed: ${exportError.message ?? 'unknown error'}`,
         })
         .eq('id', dsrRequest.id);
       throw new InternalServerError('Failed to export user data');
     }
-
-    await serverSupabase
-      .from('dsr_requests')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        data_export_path: 'exported',
-      })
-      .eq('id', dsrRequest.id);
 
     const formattedData: FormattedExportData = {
       user_id: user.id,
@@ -210,26 +202,31 @@ export const POST = withApiHandler(
       }
       return out;
     };
-    const logEmpty = (label: string, err: unknown) => {
-      if (err) {
-        logger.warn('GDPR export: table fetch failed (continuing)', {
-          service: 'gdpr',
-          userId: user.id,
-          table: label,
-          err: err instanceof Error ? err.message : String(err),
-        });
-      }
-    };
-    logEmpty('escrow_transactions', escrowResult.error);
-    logEmpty('invoices(contractor)', invoicesContractorResult.error);
-    logEmpty('invoices(client)', invoicesClientResult.error);
-    logEmpty('reviews(reviewer)', reviewsAsReviewerResult.error);
-    logEmpty('reviews(contractor)', reviewsAsContractorResult.error);
-    logEmpty('contracts(homeowner)', contractsAsHomeownerResult.error);
-    logEmpty('contracts(contractor)', contractsAsContractorResult.error);
-    logEmpty('contractor_subscriptions', contractorSubsResult.error);
-    logEmpty('homeowner_subscriptions', homeownerSubsResult.error);
-    logEmpty('property_contacts', propertyContactsResult.error);
+    const categoryResults = [
+      escrowResult,
+      invoicesContractorResult,
+      invoicesClientResult,
+      reviewsAsReviewerResult,
+      reviewsAsContractorResult,
+      contractsAsHomeownerResult,
+      contractsAsContractorResult,
+      contractorSubsResult,
+      homeownerSubsResult,
+      propertyContactsResult,
+    ];
+    if (categoryResults.some((result) => result.error)) {
+      await serverSupabase
+        .from('dsr_requests')
+        .update({
+          status: 'rejected',
+          completed_at: new Date().toISOString(),
+          notes: 'Export category unavailable; retry required',
+        })
+        .eq('id', dsrRequest.id);
+      throw new InternalServerError(
+        'Your complete export is unavailable. Please retry.'
+      );
+    }
 
     formattedData.data.escrow_transactions = dedupeById(escrowResult.data);
     formattedData.data.invoices = dedupeById([
@@ -253,6 +250,19 @@ export const POST = withApiHandler(
     formattedData.data.property_contacts = dedupeById(
       propertyContactsResult.data
     );
+
+    const { error: completionError } = await serverSupabase
+      .from('dsr_requests')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        data_export_path: 'exported',
+      })
+      .eq('id', dsrRequest.id);
+    if (completionError)
+      throw new InternalServerError(
+        'Unable to finalize export. Please retry later.'
+      );
 
     logger.info('Data export completed successfully', {
       service: 'gdpr',

@@ -7,6 +7,7 @@ import { JobCard } from '../JobCard';
 // Ionicons -> render the icon name as Text so we can assert on it.
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name }: { name: string }) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
     const { Text } = require('react-native');
     return <Text testID={`icon-${name}`}>{name}</Text>;
   },
@@ -24,6 +25,7 @@ jest.mock('../../../components/ui/ImageCarousel', () => ({
     showDots: boolean;
     overlayContent: React.ReactNode;
   }) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
     const { View, Text } = require('react-native');
     return (
       <View testID='image-carousel'>
@@ -38,6 +40,7 @@ jest.mock('../../../components/ui/ImageCarousel', () => ({
 // ProgressDots is a sibling component, not under test.
 jest.mock('../ProgressDots', () => ({
   ProgressDots: ({ status }: { status: string }) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
     const { Text } = require('react-native');
     return <Text testID='progress-dots'>{status}</Text>;
   },
@@ -200,6 +203,7 @@ describe('JobCard', () => {
           onBid={jest.fn()}
         />
       );
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
       const { TouchableOpacity } = require('react-native');
       const touchables = UNSAFE_getAllByType(TouchableOpacity);
       // The save button is the 2nd touchable (card is 1st)
@@ -210,7 +214,7 @@ describe('JobCard', () => {
     });
   });
 
-  // ---------------- Status badge (homeowner only) ----------------
+  // ---------------- Status badge (both participants) ----------------
   describe('status badge', () => {
     it('shows status badge for homeowner', () => {
       const { getByTestId } = renderCard({
@@ -221,12 +225,12 @@ describe('JobCard', () => {
       expect(getByTestId('icon-person-add')).toBeTruthy();
     });
 
-    it('hides status badge for contractor', () => {
+    it('shows assigned status to the contractor', () => {
       const { queryByTestId } = renderCard({
         isContractor: true,
         item: baseJob({ status: 'assigned' }) as any,
       });
-      expect(queryByTestId('icon-person-add')).toBeNull();
+      expect(queryByTestId('icon-person-add')).toBeTruthy();
     });
 
     it('falls back to posted status style for unknown status', () => {
@@ -607,6 +611,7 @@ describe('JobCard', () => {
             CATEGORY_ICONS: {}, // -> categoryIcon falls back to 'construct-outline'
           };
         });
+        // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
         JobCardWithEmptyColors = require('../JobCard').JobCard;
       });
     });

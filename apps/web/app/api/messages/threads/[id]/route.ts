@@ -1,3 +1,4 @@
+import { refreshMessageAttachment } from '@/lib/messages/attachments';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { MessageThread } from '@mintenance/types';
@@ -64,9 +65,9 @@ export const GET = withApiHandler(
       contractor_id,
       created_at,
       updated_at,
-      homeowner:profiles!homeowner_id(id, first_name, last_name, role, email, company_name),
-      payer:profiles!jobs_payer_user_id_fkey(id, first_name, last_name, role, email, company_name),
-      contractor:profiles!contractor_id(id, first_name, last_name, role, email, company_name)
+      homeowner:profile_directory!homeowner_id(id, first_name, last_name, role, company_name),
+      payer:profile_directory!jobs_payer_user_id_fkey(id, first_name, last_name, role, company_name),
+      contractor:profile_directory!contractor_id(id, first_name, last_name, role, company_name)
     `
       )
       .eq('id', jobId)
@@ -82,7 +83,7 @@ export const GET = withApiHandler(
     const job = jobData as SupabaseJobRow;
 
     // Find message_thread for this job
-    const { data: threadData } = await serverSupabase
+    await serverSupabase
       .from('message_threads')
       .select('id')
       .eq('job_id', jobId)
@@ -121,7 +122,10 @@ export const GET = withApiHandler(
       const rows = (messageData ?? []) as unknown as SupabaseMessageRow[];
       hasMore = rows.length > limit;
       const limitedRows = rows.slice(0, limit);
-      const mappedLimited = limitedRows.map((row) => mapMessageRow(row));
+      const refreshedRows = await Promise.all(
+        limitedRows.map(refreshMessageAttachment)
+      );
+      const mappedLimited = refreshedRows.map((row) => mapMessageRow(row));
       nextCursorValue = hasMore
         ? limitedRows[limitedRows.length - 1]?.created_at
         : undefined;
@@ -134,7 +138,7 @@ export const GET = withApiHandler(
     // Calculate unread count (messages not read, sent by other user)
     let unreadCount = 0;
     {
-      const { data: unreadData, count } = await serverSupabase
+      const { count } = await serverSupabase
         .from('messages')
         .select('id', { count: 'exact', head: true })
         .eq('job_id', jobId)

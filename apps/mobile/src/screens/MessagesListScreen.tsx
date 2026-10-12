@@ -2,11 +2,11 @@ import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { styles } from './messagesListStyles';
 import SearchBar from '../components/SearchBar';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
@@ -22,14 +22,7 @@ import type { MessageThread } from '../services/MessagingService';
 import type { MessagingStackParamList } from '../navigation/types';
 import { me } from '../design-system/mint-editorial';
 
-const AVATAR_COLORS = [
-  '#222222',
-  '#10B981',
-  '#3B82F6',
-  '#8B5CF6',
-  '#F59E0B',
-  '#EF4444',
-];
+const AVATAR_COLORS = [me.brand, me.ink2, me.ink3];
 
 function getAvatarColor(name: string): string {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length] ?? '#222222';
@@ -51,6 +44,9 @@ const MessagesListScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<'Recent' | 'Unread' | 'Older' | 'All'>(
+    'Recent'
+  );
 
   const {
     data: rawConversations = [],
@@ -72,9 +68,17 @@ const MessagesListScreen: React.FC = () => {
       return bTime - aTime;
     });
 
-    if (!searchQuery.trim()) return sorted;
+    const visible = sorted.filter((thread) => {
+      // Search always includes retained history. Unread conversations stay visible.
+      if (searchQuery.trim() || filter === 'All') return true;
+      if (filter === 'Unread') return thread.unreadCount > 0;
+      const time = Date.parse(thread.lastMessage?.createdAt ?? '');
+      const older = Number.isFinite(time) && time < Date.now() - 90 * 86400000;
+      return filter === 'Older' ? older : !older || thread.unreadCount > 0;
+    });
+    if (!searchQuery.trim()) return visible;
     const q = searchQuery.toLowerCase();
-    return sorted.filter((thread) => {
+    return visible.filter((thread) => {
       const other =
         thread.participants.find((p) => p.id !== user?.id) ||
         thread.participants[0];
@@ -83,7 +87,7 @@ const MessagesListScreen: React.FC = () => {
         thread.jobTitle?.toLowerCase().includes(q)
       );
     });
-  }, [conversations, searchQuery, user?.id]);
+  }, [conversations, searchQuery, user?.id, filter]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -144,6 +148,31 @@ const MessagesListScreen: React.FC = () => {
           </View>
         )}
 
+        <View style={styles.filters}>
+          {(['Recent', 'Unread', 'Older', 'All'] as const).map((value) => (
+            <TouchableOpacity
+              key={value}
+              accessibilityRole='button'
+              accessibilityState={{ selected: filter === value }}
+              onPress={() => setFilter(value)}
+              style={[styles.filter, filter === value && styles.selectedFilter]}
+            >
+              <Text
+                style={{
+                  color: filter === value ? me.onBrand : me.ink2,
+                  fontWeight: '600',
+                }}
+              >
+                {value}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.filterHelp}>
+          {searchQuery.trim()
+            ? 'Searching all conversation history.'
+            : 'Older keeps conversations inactive for 90 days. Nothing is deleted.'}
+        </Text>
         {loading ? (
           <View style={styles.content}>{renderSkeletonMessages()}</View>
         ) : error ? (
@@ -196,9 +225,14 @@ const MessagesListScreen: React.FC = () => {
                     accessible={false}
                   />
                 </View>
-                <Text style={styles.emptyText}>No conversations yet</Text>
+                <Text style={styles.emptyText}>
+                  {conversations.length
+                    ? 'No matching conversations'
+                    : 'No conversations yet'}
+                </Text>
                 <Text style={styles.emptySubtext}>
-                  Start messaging contractors about your projects!
+                  Choose All or search by name or job to find retained
+                  conversations.
                 </Text>
               </View>
             }
@@ -220,7 +254,14 @@ const MessagesListScreen: React.FC = () => {
                 if (diffHours < 24) return `${diffHours}h ago`;
 
                 const diffDays = Math.floor(diffHours / 24);
-                return `${diffDays}d ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                return date.toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  ...(date.getFullYear() !== now.getFullYear()
+                    ? { year: 'numeric' as const }
+                    : {}),
+                });
               };
 
               return (
@@ -262,17 +303,14 @@ const MessagesListScreen: React.FC = () => {
 
                   <View style={styles.conversationContent}>
                     <View style={styles.conversationHeader}>
-                      <Text style={styles.contractorName}>
+                      <Text style={styles.contractorName} numberOfLines={1}>
                         {otherParticipant.name}
                       </Text>
-                      {thread.lastMessage && (
-                        <Text style={styles.timestamp}>
-                          {formatTime(thread.lastMessage.createdAt)}
-                        </Text>
-                      )}
                     </View>
 
-                    <Text style={styles.jobType}>{thread.jobTitle}</Text>
+                    <Text style={styles.jobType} numberOfLines={1}>
+                      {thread.jobTitle}
+                    </Text>
                     <Text
                       style={[
                         styles.snippet,
@@ -283,7 +321,13 @@ const MessagesListScreen: React.FC = () => {
                       {thread.lastMessage?.messageText ||
                         'Start the conversation'}
                     </Text>
-
+                  </View>
+                  <View style={styles.metadata}>
+                    {thread.lastMessage && (
+                      <Text style={styles.timestamp}>
+                        {formatTime(thread.lastMessage.createdAt)}
+                      </Text>
+                    )}
                     {thread.unreadCount > 0 && (
                       <View style={styles.unreadBadge}>
                         <Text style={styles.unreadCount}>
@@ -303,197 +347,5 @@ const MessagesListScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: me.surface,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: me.bg2,
-  },
-  // Editorial v2 top bar + serif headline (2026-05-22).
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  screenHeader: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 14 },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: me.brand,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: 6,
-  },
-  headline: {
-    fontFamily: me.font.display,
-    fontSize: 28,
-    lineHeight: 32,
-    color: me.ink,
-    letterSpacing: me.displayTracking,
-  },
-  searchButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: me.bg2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: me.surface,
-  },
-  content: {
-    flex: 1,
-    paddingTop: 4,
-  },
-  conversationCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    backgroundColor: me.surface,
-    marginHorizontal: 12,
-    marginTop: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: me.line,
-    ...me.shadow.card,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: me.onBrand,
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    backgroundColor: me.brand,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: me.surface,
-  },
-  conversationContent: {
-    flex: 1,
-  },
-  conversationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  contractorName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: me.ink,
-  },
-  timestamp: {
-    fontSize: 12,
-    color: me.ink3,
-  },
-  jobType: {
-    fontSize: 12,
-    color: me.ink2,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  snippet: {
-    fontSize: 13,
-    color: me.ink2,
-    lineHeight: 18,
-  },
-  unreadSnippet: {
-    fontWeight: '600',
-    color: me.ink,
-  },
-  errorContainer: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
-  },
-  retryButton: {
-    backgroundColor: me.brand,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  retryIcon: {
-    marginRight: 6,
-  },
-  retryText: {
-    color: me.onBrand,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 40,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: me.bg2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: me.ink,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: me.ink2,
-    marginTop: 6,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  unreadBadge: {
-    position: 'absolute',
-    right: 0,
-    top: 8,
-    backgroundColor: me.brand,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  unreadCount: {
-    color: me.onBrand,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-});
 
 export default MessagesListScreen;

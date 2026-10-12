@@ -42,7 +42,7 @@ export function ContractorProfileHeader({
   return (
     <div className='relative'>
       {/* Cover Image */}
-      <div className='relative h-96 bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600'>
+      <div className='relative h-52 sm:h-72 bg-[#234e43]'>
         <div className='absolute inset-0 bg-black bg-opacity-10' />
       </div>
 
@@ -64,11 +64,11 @@ export function ContractorProfileHeader({
                 }
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${contractor.id}`;
+                  target.src = '/contractor-avatar.svg';
                 }}
               />
               {contractor.verified && (
-                <div className='absolute bottom-3 right-3 bg-teal-600 rounded-full p-3 border-4 border-white shadow-lg z-10'>
+                <div className='absolute bottom-3 right-3 bg-[#2f6f5f] rounded-full p-3 border-4 border-white shadow-lg z-10'>
                   <Shield className='w-6 h-6 text-white' />
                 </div>
               )}
@@ -77,10 +77,10 @@ export function ContractorProfileHeader({
 
           {/* Info Section */}
           <div className='pt-32 pb-8'>
-            <div className='flex items-start justify-between'>
+            <div className='flex flex-col sm:flex-row gap-4 items-start justify-between'>
               <div className='flex-1'>
                 <div className='flex items-center gap-3 mb-2'>
-                  <h1 className='text-4xl font-bold text-gray-900'>
+                  <h1 className='text-3xl sm:text-4xl font-bold text-gray-900'>
                     {contractor.name}
                   </h1>
                   {contractor.premium && (

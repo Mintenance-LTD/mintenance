@@ -31,7 +31,7 @@
  * prompt experience regardless of role.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOnboardingGate } from '../../hooks/useOnboardingGate';
 import { usePushSoftAskGate } from '../../hooks/usePushSoftAskGate';
@@ -64,6 +64,8 @@ import { WelcomeFirstJobModal } from './WelcomeFirstJobModal';
 
 export const OnboardingGateStack: React.FC = () => {
   const { user } = useAuth();
+  const [setupAccount, setSetupAccount] = useState<string | null>(null);
+  const pauseForSetup = () => setSetupAccount(user?.id ?? null);
   const onboarding = useOnboardingGate();
   const firstProperty = useFirstPropertyGate();
   const locationSoftAsk = useLocationSoftAskGate();
@@ -187,6 +189,9 @@ export const OnboardingGateStack: React.FC = () => {
     !showHomeownerSetup &&
     welcomeFirstJob.shouldShow;
 
+  // Keep subsequent prompts from covering the setup form for this session.
+  if (user && setupAccount === user.id) return null;
+
   return (
     <>
       <OnboardingModal
@@ -209,12 +214,12 @@ export const OnboardingGateStack: React.FC = () => {
       <ServiceAreaPromptModal
         visible={showServiceArea}
         onDismiss={serviceArea.dismiss}
-        onAfterNavigate={serviceArea.refresh}
+        onAfterNavigate={pauseForSetup}
       />
       <IdentitySetupPromptModal
         visible={showIdentitySetup}
         onDismiss={identitySetup.dismiss}
-        onAfterNavigate={identitySetup.refresh}
+        onAfterNavigate={pauseForSetup}
       />
       <BackgroundCheckPromptModal
         visible={showBackgroundCheck}

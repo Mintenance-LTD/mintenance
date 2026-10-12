@@ -18,8 +18,6 @@ import {
 import {
   ContractorGridCard,
   ContractorListCard,
-  SkeletonGridCard,
-  SkeletonListCard,
 } from './ContractorBrowseCards';
 import {
   EmptyState,
@@ -226,9 +224,9 @@ export function ContractorsBrowseProfessional({
   ].filter(Boolean).length;
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div data-theme='mint-editorial' className='min-h-screen bg-[#f3f7f4]'>
       {/* Professional Hero Section */}
-      <section className='bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden'>
+      <section className='bg-[#203d32] text-white relative overflow-hidden'>
         {/* Background Pattern */}
         <div className='absolute inset-0 opacity-10'>
           <div
@@ -251,9 +249,7 @@ export function ContractorsBrowseProfessional({
 
             <h1 className='text-5xl font-bold mb-4 leading-tight'>
               Find Your Perfect
-              <span className='block text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400'>
-                Contractor Match
-              </span>
+              <span className='block text-[#b8dccc]'>Contractor Match</span>
             </h1>
 
             <p className='text-xl text-gray-300 mb-8'>
@@ -263,7 +259,7 @@ export function ContractorsBrowseProfessional({
 
             {/* Hero Search Bar */}
             <div className='bg-white rounded-2xl shadow-2xl p-2 flex items-center gap-2'>
-              <div className='flex-1 flex items-center gap-3 px-4'>
+              <div className='min-w-0 flex-1 flex items-center gap-3 px-2 sm:px-4'>
                 <Search className='w-5 h-5 text-gray-400' />
                 <input
                   type='text'
@@ -271,10 +267,11 @@ export function ContractorsBrowseProfessional({
                   placeholder='Search by name, skill, or location...'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className='flex-1 py-3 text-gray-900 placeholder-gray-400 focus:outline-none text-base'
+                  className='min-w-0 w-full flex-1 py-3 text-gray-900 placeholder-gray-400 focus:outline-none text-base'
                 />
                 {searchQuery && (
                   <button
+                    aria-label='Clear contractor search'
                     onClick={() => setSearchQuery('')}
                     className='p-1 hover:bg-gray-100 rounded-full transition-colors'
                   >
@@ -282,7 +279,15 @@ export function ContractorsBrowseProfessional({
                   </button>
                 )}
               </div>
-              <button className='px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl'>
+              <button
+                type='button'
+                onClick={() =>
+                  document
+                    .getElementById('contractor-results')
+                    ?.scrollIntoView({ behavior: 'auto', block: 'start' })
+                }
+                className='px-4 sm:px-6 py-3 bg-[#2f6f5f] text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl'
+              >
                 Search
               </button>
             </div>
@@ -375,7 +380,7 @@ export function ContractorsBrowseProfessional({
                 </div>
                 <button
                   onClick={clearAllFilters}
-                  className='text-sm text-teal-600 hover:text-teal-700 font-semibold transition-colors'
+                  className='text-sm text-teal-700 hover:text-teal-800 font-semibold transition-colors'
                 >
                   Clear all
                 </button>
@@ -604,7 +609,8 @@ export function ContractorsBrowseProfessional({
           </aside>
 
           {/* Main Results */}
-          <main className='flex-1'>
+          <main id='main-content' tabIndex={-1} className='min-w-0 flex-1'>
+            <div id='contractor-results' className='scroll-mt-24' />
             {/* Toolbar */}
             <div className='bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6'>
               <div className='flex items-center justify-between flex-wrap gap-4'>
@@ -623,7 +629,7 @@ export function ContractorsBrowseProfessional({
                   )}
                 </div>
 
-                <div className='flex items-center gap-3'>
+                <div className='flex flex-wrap items-center gap-3'>
                   {/* Sort Dropdown */}
                   <div className='relative'>
                     <select

@@ -30,9 +30,10 @@ export const GET = withApiHandler(
       throw new InternalServerError(
         'Expert reviews are unavailable. Check the database migration.'
       );
-    const urls = await resignAssessmentUrls(
-      source.images.map((image) => image.image_url)
-    );
+    const urls = await Promise.all(source.images.map(async (image) => {
+      const [url] = await resignAssessmentUrls([image.image_url], 3600, id);
+      return url ?? null;
+    }));
     return NextResponse.json({
       sourceFingerprint: source.fingerprint,
       images: source.images.map((image, index) => ({

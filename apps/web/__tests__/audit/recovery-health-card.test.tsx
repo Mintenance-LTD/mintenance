@@ -40,7 +40,9 @@ it('hides previously successful rows after a failed refresh and offers a retry',
       <RecoveryHealthCard />
     </QueryClientProvider>
   );
-  expect(await screen.findAllByText('Recent run completed')).toHaveLength(9);
+  expect(await screen.findAllByText('Recent run completed')).toHaveLength(
+    recoveryJobs.length
+  );
   fireEvent.click(
     screen.getByRole('button', { name: 'Refresh recovery status' })
   );
@@ -51,6 +53,8 @@ it('hides previously successful rows after a failed refresh and offers a retry',
   fireEvent.click(
     screen.getByRole('button', { name: 'Refresh recovery status' })
   );
-  expect(await screen.findAllByText('No recorded run')).toHaveLength(9);
+  expect(await screen.findAllByText('No recorded run')).toHaveLength(
+    recoveryJobs.length
+  );
   client.clear();
 });

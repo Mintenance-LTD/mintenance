@@ -30,7 +30,7 @@ export async function fetchPaidInvoices(
   const { data, error } = await query;
   if (error) {
     logger.error('Error fetching paid invoices', error.message);
-    return [];
+    throw new Error('Could not load financial records');
   }
   return (data ?? []) as Pick<DatabaseInvoiceRow, 'total_amount'>[];
 }
@@ -50,7 +50,7 @@ export async function fetchExpenses(
   const { data, error } = await query;
   if (error) {
     logger.error('Error fetching expenses', error.message);
-    return [];
+    throw new Error('Could not load financial records');
   }
   return (data ?? []) as Pick<DatabaseExpenseRow, 'amount'>[];
 }
@@ -75,7 +75,7 @@ export async function fetchExpenseCategories(
     .eq('contractor_id', contractorId);
   if (error) {
     logger.error('Error fetching expense categories', error.message);
-    return [];
+    throw new Error('Could not load financial records');
   }
   const totals = new Map<string, number>();
   for (const row of (data ?? []) as {
@@ -101,7 +101,7 @@ export async function fetchOutstandingInvoices(
     .in('status', ['sent', 'overdue']);
   if (error) {
     logger.error('Error fetching outstanding invoices', error.message);
-    return [];
+    throw new Error('Could not load financial records');
   }
   return (data ?? []) as Pick<
     DatabaseInvoiceRow,
@@ -115,17 +115,19 @@ export async function fetchOutstandingInvoices(
 export type EscrowAmountRow = {
   amount: number | string | null;
   status: string | null;
+  contractor_payout?: number | string | null;
+  platform_fee?: number | string | null;
 };
 export async function fetchContractorEscrow(
   contractorId: string
 ): Promise<{ inFlight: number; earned: number }> {
   const { data, error } = await supabase
     .from('escrow_transactions')
-    .select('amount, status')
+    .select('amount, status, contractor_payout, platform_fee')
     .eq('payee_id', contractorId);
   if (error) {
     logger.error('Error fetching contractor escrow', error.message);
-    return { inFlight: 0, earned: 0 };
+    throw new Error('Could not load escrow balances');
   }
   const rows = (data ?? []) as EscrowAmountRow[];
   const toNumber = (raw: EscrowAmountRow['amount']): number => {
@@ -138,7 +140,17 @@ export async function fetchContractorEscrow(
       .filter((r) => r.status !== null && statuses.includes(r.status))
       .reduce((sum, r) => sum + toNumber(r.amount), 0);
   return {
-    inFlight: sumByStatus(['pending', 'held', 'release_pending']),
-    earned: sumByStatus(['released', 'completed']),
+    inFlight: sumByStatus(['held', 'release_pending']),
+    earned: rows
+      .filter((row) => ['released', 'completed'].includes(row.status ?? ''))
+      .reduce(
+        (sum, row) =>
+          sum +
+          toNumber(
+            row.contractor_payout ??
+              toNumber(row.amount) - toNumber(row.platform_fee ?? 0)
+          ),
+        0
+      ),
   };
 }

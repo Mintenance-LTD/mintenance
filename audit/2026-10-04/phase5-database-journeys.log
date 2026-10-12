@@ -1,0 +1,43 @@
+
+ RUN  v4.1.8 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/output/phase4-worktree/apps/web
+
+ ✓ __tests__/integration-real/contract-review-lifecycle.integration.test.ts > contract and review access boundaries (real DB) > allows contract participants to read but hides contracts from outsiders 119ms
+ ✓ __tests__/integration-real/contract-review-lifecycle.integration.test.ts > contract and review access boundaries (real DB) > homeowner cannot fabricate or change a contract directly 30ms
+ ✓ __tests__/integration-real/contract-review-lifecycle.integration.test.ts > contract and review access boundaries (real DB) > contractor cannot fabricate or change a contract directly 27ms
+ ✓ __tests__/integration-real/contract-review-lifecycle.integration.test.ts > contract and review access boundaries (real DB) > outsider cannot fabricate or change a contract directly 32ms
+ ✓ __tests__/integration-real/contract-review-lifecycle.integration.test.ts > contract and review access boundaries (real DB) > allows participants to read the completed job and its seeded quote 27ms
+ ✓ __tests__/integration-real/contract-review-lifecycle.integration.test.ts > contract and review access boundaries (real DB) > permits the reviewer to update within the review window but blocks an outsider 49ms
+ ✓ __tests__/integration-real/contract-review-lifecycle.integration.test.ts > contract and review access boundaries (real DB) > keeps completed-job review eligibility tied to job participants 40ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > single contractor can insert a pending bid 26ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > same contractor CANNOT bid twice on same job (UNIQUE constraint) 39ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > can have multiple pending bids from different contractors 48ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > only ONE bid per job can have status=accepted (partial unique index) 47ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > updating a second bid to accepted FAILS if one already accepted 59ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > after rejecting first bid, a second bid CAN be accepted 69ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > bid FK to job is enforced (cannot bid on non-existent job) 36ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > bid status CHECK constraint rejects invalid values 21ms
+ ✓ __tests__/integration-real/bid-acceptance.integration.test.ts > bid acceptance — DB invariants (real DB) > deleting job CASCADEs to delete all its bids 67ms
+ ✓ __tests__/integration-real/auth-signup.integration.test.ts > auth signup → profiles trigger (real DB) > creating an auth user auto-creates a profile row (trigger fires) 400ms
+ ✓ __tests__/integration-real/auth-signup.integration.test.ts > auth signup → profiles trigger (real DB) > auto-created profile defaults to role="homeowner" 351ms
+ ✓ __tests__/integration-real/auth-signup.integration.test.ts > auth signup → profiles trigger (real DB) > trigger is idempotent — does not fail if profile already exists 361ms
+ ✓ __tests__/integration-real/auth-signup.integration.test.ts > auth signup → profiles trigger (real DB) > deleting auth user CASCADEs to profile 395ms
+ ✓ __tests__/integration-real/auth-signup.integration.test.ts > auth signup → profiles trigger (real DB) > profile role can be updated after signup 352ms
+ ✓ __tests__/integration-real/auth-signup.integration.test.ts > auth signup → profiles trigger (real DB) > role CHECK constraint rejects invalid role value 337ms
+ ✓ __tests__/integration-real/auth-signup.integration.test.ts > auth signup → profiles trigger (real DB) > email UNIQUE constraint prevents duplicate emails 414ms
+ ✓ __tests__/integration-real/message-attachments.integration.test.ts > supports both service uploads in the sender namespace and authenticated job uploads 100ms
+ ✓ __tests__/integration-real/message-attachments.integration.test.ts > rejects other users and ambiguous unowned job files 9ms
+ ✓ __tests__/integration-real/message-attachments.integration.test.ts > does not expose the ownership RPC to ordinary users 181ms
+ ✓ __tests__/integration-real/message-attachments.integration.test.ts > renews legacy links without trusting their old token 27ms
+ ✓ __tests__/integration-real/message-attachments.integration.test.ts > omits unsafe and missing legacy attachments without losing the message 8ms
+ ✓ __tests__/integration-real/message-attachments.integration.test.ts > rejects lookalike origins, credentials, other buckets and encoded traversal 1ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > returns only verified active contractor directory fields, never jobs or private contacts 19ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > uses city, skills and hourly-rate filters without searching private location 18ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > rejects malformed search parameters {"query":""} 2ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > rejects malformed search parameters {"query":"Discovery1791134188207","limit":101} 1ms
+ ✓ __tests__/integration-real/public-search-privacy.integration.test.ts > rejects malformed search parameters {"query":"Discovery1791134188207","filters":{"rating":"invalid"}} 1ms
+
+ Test Files  5 passed (5)
+      Tests  34 passed (34)
+   Start at  18:16:14
+   Duration  14.29s (transform 814ms, setup 0ms, import 1.72s, tests 10.42s, environment 1ms)
+

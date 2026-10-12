@@ -42,7 +42,8 @@ interface PortfolioImage {
 interface PortfolioJob {
   id: string;
   title?: string;
-  imageUrls: string[];
+  imageUrls?: string[];
+  images?: string[];
   caption?: string;
 }
 
@@ -90,7 +91,7 @@ const formatInsured = (amount?: number | null): string | null => {
 const collectPortfolioImages = (data: ContractorPublicShape): string[] => {
   const out: string[] = [];
   for (const job of data.portfolio ?? []) {
-    for (const url of job.imageUrls ?? []) out.push(url);
+    for (const url of job.images ?? job.imageUrls ?? []) out.push(url);
   }
   for (const entry of data.portfolio_images ?? []) {
     if (typeof entry === 'string') out.push(entry);

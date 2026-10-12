@@ -87,7 +87,7 @@ export const AccessibleInput = forwardRef<
       // Border styles
       'border',
       error
-        ? 'border-red-500'
+        ? 'border-[var(--me-err-fg)]'
         : success
           ? 'border-green-500'
           : 'border-gray-300',
@@ -122,7 +122,7 @@ export const AccessibleInput = forwardRef<
         >
           {label}
           {showRequiredIndicator && required && (
-            <span className='ml-1 text-red-500' aria-label='required'>
+            <span className='ml-1 text-[var(--me-err-fg)]' aria-label='required'>
               *
             </span>
           )}
@@ -158,7 +158,7 @@ export const AccessibleInput = forwardRef<
             <div className='absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none'>
               {error ? (
                 <AlertCircle
-                  className='h-5 w-5 text-red-500'
+                  className='h-5 w-5 text-[var(--me-err-fg)]'
                   aria-hidden='true'
                 />
               ) : success ? (
@@ -182,7 +182,7 @@ export const AccessibleInput = forwardRef<
         {error && (
           <p
             id={errorId}
-            className='text-sm text-red-600'
+            className='text-sm text-[var(--me-err-fg)]'
             role='alert'
             aria-live='polite'
           >
@@ -197,7 +197,7 @@ export const AccessibleInput = forwardRef<
             className={cn(
               'text-sm text-right',
               characterCount.current > characterCount.max
-                ? 'text-red-600'
+                ? 'text-[var(--me-err-fg)]'
                 : 'text-gray-500'
             )}
             aria-live='polite'
@@ -278,7 +278,7 @@ export const AccessibleTextarea = forwardRef<
       // Border styles
       'border',
       error
-        ? 'border-red-500'
+        ? 'border-[var(--me-err-fg)]'
         : success
           ? 'border-green-500'
           : 'border-gray-300',
@@ -313,7 +313,7 @@ export const AccessibleTextarea = forwardRef<
         >
           {label}
           {showRequiredIndicator && required && (
-            <span className='ml-1 text-red-500' aria-label='required'>
+            <span className='ml-1 text-[var(--me-err-fg)]' aria-label='required'>
               *
             </span>
           )}
@@ -344,7 +344,7 @@ export const AccessibleTextarea = forwardRef<
         {error && (
           <p
             id={errorId}
-            className='text-sm text-red-600'
+            className='text-sm text-[var(--me-err-fg)]'
             role='alert'
             aria-live='polite'
           >
@@ -359,7 +359,7 @@ export const AccessibleTextarea = forwardRef<
             className={cn(
               'text-sm text-right',
               characterCount.current > characterCount.max
-                ? 'text-red-600'
+                ? 'text-[var(--me-err-fg)]'
                 : 'text-gray-500'
             )}
             aria-live='polite'
@@ -426,7 +426,7 @@ export const AccessibleSelect = forwardRef<
       'w-full px-3 py-2 rounded-md',
       'text-gray-900 bg-white',
       'border',
-      error ? 'border-red-500' : 'border-gray-300',
+      error ? 'border-[var(--me-err-fg)]' : 'border-gray-300',
       'focus:outline-none focus:ring-2 focus:ring-offset-2',
       error ? 'focus:ring-red-500' : 'focus:ring-[#0066CC]',
       'disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed',
@@ -444,7 +444,7 @@ export const AccessibleSelect = forwardRef<
         >
           {label}
           {showRequiredIndicator && required && (
-            <span className='ml-1 text-red-500' aria-label='required'>
+            <span className='ml-1 text-[var(--me-err-fg)]' aria-label='required'>
               *
             </span>
           )}
@@ -486,7 +486,7 @@ export const AccessibleSelect = forwardRef<
         {error && (
           <p
             id={errorId}
-            className='text-sm text-red-600'
+            className='text-sm text-[var(--me-err-fg)]'
             role='alert'
             aria-live='polite'
           >

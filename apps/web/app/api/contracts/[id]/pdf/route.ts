@@ -9,6 +9,7 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import jsPDF from 'jspdf';
+import { signaturePreview } from '@/lib/services/contracts/signaturePreview';
 
 // Allow up to 60 seconds for PDF generation (jsPDF is CPU-intensive)
 export const maxDuration = 60;
@@ -239,9 +240,11 @@ export const GET = withApiHandler(
 
     const termsRecord = (c.terms as Record<string, unknown> | null) ?? {};
     const insuranceProvider = termsRecord.insurance_provider as
-      string | undefined;
+      | string
+      | undefined;
     const insurancePolicyNumber = termsRecord.insurance_policy_number as
-      string | undefined;
+      | string
+      | undefined;
     if (insuranceProvider || insurancePolicyNumber) {
       doc.text(
         `Insurance: ${insuranceProvider || 'Yes'}${insurancePolicyNumber ? ` — ${insurancePolicyNumber}` : ''}`,
@@ -339,7 +342,8 @@ export const GET = withApiHandler(
       total?: number;
     }
     const quote = (Array.isArray(c.quote) ? c.quote[0] : c.quote) as
-      (Record<string, unknown> & { line_items?: QuoteLineItem[] }) | null;
+      | (Record<string, unknown> & { line_items?: QuoteLineItem[] })
+      | null;
     const quoteLineItems: QuoteLineItem[] = Array.isArray(quote?.line_items)
       ? quote!.line_items
       : [];
@@ -379,8 +383,7 @@ export const GET = withApiHandler(
 
         for (const item of quoteLineItems) {
           const desc = item.description ?? '—';
-          const quantity =
-            item.quantity == null ? null : Number(item.quantity);
+          const quantity = item.quantity == null ? null : Number(item.quantity);
           const unitPrice =
             item.unitPrice == null ? null : Number(item.unitPrice);
           const totalAmount = item.total == null ? null : Number(item.total);
@@ -431,10 +434,7 @@ export const GET = withApiHandler(
           { align: 'right' }
         );
         y += 5;
-        if (
-          quoteTotalAmount !== null &&
-          Number.isFinite(quoteTotalAmount)
-        ) {
+        if (quoteTotalAmount !== null && Number.isFinite(quoteTotalAmount)) {
           doc.setFont('helvetica', 'bold');
           doc.text(
             `Quote Total: ${formatCurrency(quoteTotalAmount)}`,
@@ -474,7 +474,7 @@ export const GET = withApiHandler(
       doc.setFont('helvetica', 'normal');
       if (c.start_date) {
         doc.text(
-          `Start Date: ${formatDate(c.start_date as string)}`,
+          `Start Date: ${formatDateTime(c.start_date as string)}`,
           margin,
           y
         );
@@ -482,7 +482,7 @@ export const GET = withApiHandler(
       }
       if (c.end_date) {
         doc.text(
-          `Completion Date: ${formatDate(c.end_date as string)}`,
+          `Completion Date: ${formatDateTime(c.end_date as string)}`,
           margin,
           y
         );
@@ -528,8 +528,36 @@ export const GET = withApiHandler(
       addLine();
     }
 
+    // Read drawing evidence only after the participant authorization above.
+    const { data: signatureRows, error: signatureError } = await serverSupabase
+      .from('contract_signatures')
+      .select('signer_role, signer_id, signature_image, signature_format')
+      .eq('contract_id', contractId);
+    if (signatureError)
+      throw new InternalServerError(
+        'Could not load signature evidence for PDF export'
+      );
+    const drawSignature = async (role: 'contractor' | 'homeowner') => {
+      const row = signatureRows?.find(
+        (item) =>
+          item.signer_role === role && item.signer_id === c[`${role}_id`]
+      );
+      if (!row || !c[`${role}_signed_at`]) return;
+      try {
+        const png = await signaturePreview(
+          row.signature_image,
+          row.signature_format
+        );
+        doc.addImage(new Uint8Array(png), 'PNG', margin + 30, y + 3, 80, 24);
+        y += 28;
+      } catch {
+        throw new InternalServerError(
+          'Could not render signature evidence for PDF export'
+        );
+      }
+    };
     // Signatures
-    checkPage(50);
+    checkPage(110);
     writeHeading('SIGNATURES');
     y += 2;
 
@@ -549,6 +577,7 @@ export const GET = withApiHandler(
       doc.text('Awaiting signature', margin + 30, y);
       doc.setTextColor(0, 0, 0);
     }
+    await drawSignature('contractor');
     y += 12;
 
     // Homeowner signature
@@ -566,6 +595,7 @@ export const GET = withApiHandler(
       doc.text('Awaiting signature', margin + 30, y);
       doc.setTextColor(0, 0, 0);
     }
+    await drawSignature('homeowner');
     y += 15;
 
     // Footer

@@ -19,7 +19,7 @@ export default function Error({
         <div style={{ padding: '40px' }}>
             <ErrorView
                 title="Failed to load job details"
-                message={error.message || 'An unexpected error occurred.'}
+                message='We could not load this job. Please try again. If the problem continues, contact support.'
                 onRetry={reset}
                 variant="card"
             />

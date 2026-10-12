@@ -14,6 +14,9 @@ export default async function HomeownerApprovalPage() {
     redirect('/login');
   }
 
-  return <HomeownerApprovalClient />;
+  return (
+    <main id='main-content' tabIndex={-1}>
+      <HomeownerApprovalClient />
+    </main>
+  );
 }
-

@@ -115,9 +115,12 @@ const JobsScreen: React.FC = () => {
       const bids = await BidService.getBidsByContractor(user.id);
       const pendingBids = bids.filter((b) => b.status === 'pending');
       // audit-77 P1: API embeds the relation as `bid.jobs`.
-      return pendingBids
+      const jobs = pendingBids
         .map((b) => b.jobs ?? b.job)
         .filter((j): j is NonNullable<typeof j> => !!j) as unknown as Job[];
+      return jobs.filter(
+        (j) => !j.archived_at && (j.status === 'posted' || j.status === 'open')
+      );
     },
     enabled: !!user && isContractor,
   });
@@ -140,10 +143,16 @@ const JobsScreen: React.FC = () => {
       data = byProperty(bidPendingJobs);
     } else if (selectedFilter === 'active' && isContractor) {
       data = data.filter(
-        (j) => j.status === 'in_progress' || j.status === 'assigned'
+        (j) =>
+          !j.archived_at &&
+          (j.status === 'in_progress' || j.status === 'assigned')
       );
     } else if (selectedFilter !== 'all') {
-      data = data.filter((j) => j.status === selectedFilter);
+      data = data.filter(
+        (j) =>
+          j.status === selectedFilter &&
+          (selectedFilter === 'completed' || !j.archived_at)
+      );
     }
 
     if (debouncedQuery.trim()) {

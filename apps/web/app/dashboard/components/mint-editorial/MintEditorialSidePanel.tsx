@@ -74,9 +74,7 @@ function NeedsYouRow({ item }: { item: NeedsYouItem }) {
           <div style={{ fontSize: 13, fontWeight: 600 }}>
             {item.bidCount} bids on {item.jobTitle}
           </div>
-          <div className='t-meta'>
-            Closes in {item.closesInHours}h · review before sending replies
-          </div>
+          <div className='t-meta'>Bids awaiting your review</div>
         </div>
         <Link href={`/jobs/${item.jobId}`} className='btn btn-secondary btn-sm'>
           Open

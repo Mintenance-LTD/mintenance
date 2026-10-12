@@ -35,9 +35,9 @@ import { FinanceEditorialHero } from '../components/finance/FinanceEditorialHero
 import { FinanceBento } from '../components/finance/FinanceBento';
 import { ByCategoryBars } from '../components/finance/ByCategoryBars';
 import { useFinanceDashboard } from '../hooks/useFinanceDashboard';
-import { useI18n } from '../hooks/useI18n';
 import { SkeletonDashboard } from '../components/ui/LoadingStates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ErrorView } from '../components/shared';
 import { me } from '../design-system/mint-editorial';
 import { styles } from './finance-dashboard/styles';
 
@@ -48,7 +48,6 @@ interface FinanceDashboardScreenProps {
 const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
   navigation,
 }) => {
-  const { formatters } = useI18n();
   const insets = useSafeAreaInsets();
   const {
     financialData,
@@ -61,7 +60,11 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
     handleRefresh,
   } = useFinanceDashboard();
 
-  const fmt = (amount: number) => formatters.currency(amount);
+  const fmt = (amount: number) =>
+    new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+    }).format(amount);
 
   if (loading) {
     return (
@@ -70,6 +73,8 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
       </View>
     );
   }
+
+  if (error) return <ErrorView message={error} onRetry={handleRefresh} />;
 
   const monthly = financialData?.monthly_revenue ?? [];
 

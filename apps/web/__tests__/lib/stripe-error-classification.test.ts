@@ -15,7 +15,10 @@ const mocks = vi.hoisted(() => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock('@mintenance/shared', () => ({ logger: mocks.logger }));
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
+  logger: mocks.logger,
+}));
 vi.mock('@/lib/cors', () => ({ getCorsHeaders: () => ({}) }));
 
 import { handleAPIError } from '@/lib/errors/api-error';
@@ -48,8 +51,9 @@ describe('handleAPIError — Stripe vs database classification', () => {
     expect(body.error.code).toBe('PAYMENT_PROVIDER_ERROR');
     // 502: our upstream failed, the request itself was fine.
     expect(res.status).toBe(502);
-    // Reassures the user about the thing they actually care about.
-    expect(body.error.message).toMatch(/not charged/i);
+    // Generic provider failures cannot establish whether money moved.
+    expect(body.error.message).toMatch(/payment service/i);
+    expect(body.error.message).not.toMatch(/not charged/i);
   });
 
   it('logs the Stripe identifiers so the cause is findable', () => {

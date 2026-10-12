@@ -241,8 +241,8 @@ export function ContractorDiscoverClient({
         <div className='col' style={{ gap: 4, marginBottom: 16 }}>
           <h1 className='t-h1'>Discover</h1>
           <p className='t-body'>
-            Swipe-style discovery of fresh jobs that match your skills,
-            location, and budget — save or skip to refine your feed.
+            Find your next local project. Explore the map, compare jobs and save
+            the ones that fit your trade.
           </p>
         </div>
       ) : null}
@@ -353,7 +353,7 @@ export function ContractorDiscoverClient({
             />
           )}
         </div>
-      ) : filteredJobs.length === 0 ? (
+      ) : filteredJobs.length === 0 && viewMode !== 'split' ? (
         /* Empty state */
         <DiscoverJobsEmptyState
           hasLocation={hasLocation}
@@ -361,11 +361,19 @@ export function ContractorDiscoverClient({
         />
       ) : viewMode === 'split' ? (
         /* Split: cards left, map right */
-        <div className='flex gap-6'>
+        <div className='flex flex-col-reverse gap-5 lg:flex-row'>
           <div
-            className='w-1/3 space-y-4 overflow-y-auto pr-1'
-            style={{ maxHeight: '800px' }}
+            className='w-full lg:w-1/3 space-y-4 overflow-y-auto pr-1'
+            style={{ maxHeight: '680px' }}
           >
+            {filteredJobs.length === 0 && (
+              <DiscoverJobsEmptyState
+                hasLocation={hasLocation}
+                onExpandRadius={() =>
+                  setSelectedRadius((r) => Math.min(r * 2, 100))
+                }
+              />
+            )}
             {filteredJobs.map((job) => (
               <DiscoverJobCard key={job.id} {...cardProps(job)} />
             ))}
@@ -404,7 +412,7 @@ export function ContractorDiscoverClient({
               style={{
                 background: 'var(--me-surface)',
                 border: '1px solid var(--me-line)',
-                height: '740px',
+                height: 'clamp(360px, 65vh, 640px)',
               }}
             >
               <DynamicGoogleMap
@@ -436,7 +444,7 @@ export function ContractorDiscoverClient({
         </div>
       ) : (
         /* Cards grid view */
-        <div className='grid grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
           {filteredJobs.map((job) => (
             <DiscoverJobCard key={job.id} {...cardProps(job)} />
           ))}

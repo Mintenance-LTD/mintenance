@@ -62,7 +62,8 @@ export function useQuotesData() {
     const acceptedAmount = quotes
       .filter((q) => q.status === 'accepted')
       .reduce((sum, q) => sum + q.amount, 0);
-    const acceptanceRate = total > 0 ? (accepted / total) * 100 : 0;
+    const issued = quotes.filter((quote) => quote.status !== 'draft').length;
+    const acceptanceRate = issued > 0 ? (accepted / issued) * 100 : 0;
     return {
       total,
       pending,

@@ -19,6 +19,7 @@ import {
   Switch,
   ActivityIndicator,
   StatusBar,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -26,7 +27,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
 
@@ -49,26 +49,43 @@ export const MFASecurityScreen: React.FC = () => {
   const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
   const [enrollData, setEnrollData] = useState<EnrollResponse | null>(null);
 
-  const { data: mfaStatus, isLoading } = useQuery<MFAStatus>({
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmDisable, setConfirmDisable] = useState(false);
+
+  const {
+    data: mfaStatus,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<MFAStatus>({
     queryKey: ['mfa-status', user?.id],
     queryFn: async () => {
-      const { data, error } =
-        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (error) throw new Error(error.message);
-      const factors = (await supabase.auth.mfa.listFactors()).data?.totp || [];
-      const hasTOTP = factors.length > 0;
-      return {
-        enabled: hasTOTP && data.currentLevel === 'aal2',
-        method: hasTOTP ? 'totp' : null,
-        enrolledAt: factors[0]?.created_at || null,
-      } as MFAStatus;
+      const response = await mobileApiClient.get<{
+        success: boolean;
+        data: MFAStatus;
+      }>('/api/auth/mfa/status');
+      if (!response.success || typeof response.data?.enabled !== 'boolean')
+        throw new Error('Unable to load MFA status');
+      return response.data;
     },
     enabled: !!user?.id,
   });
 
   const enrollMutation = useMutation({
-    mutationFn: () =>
-      mobileApiClient.post<EnrollResponse>('/api/auth/mfa/enroll/totp', {}),
+    mutationFn: async () => {
+      const response = await mobileApiClient.post<{
+        success: boolean;
+        data: { secret: string; qrCode: string; backupCodes: string[] };
+      }>('/api/auth/mfa/enroll/totp', {});
+      if (
+        !response.success ||
+        !response.data?.secret ||
+        !Array.isArray(response.data.backupCodes)
+      )
+        throw new Error('Invalid enrollment response');
+      return { ...response.data, recoveryCodes: response.data.backupCodes };
+    },
     onSuccess: (data) => {
       setEnrollData(data);
       queryClient.invalidateQueries({ queryKey: ['mfa-status'] });
@@ -78,8 +95,16 @@ export const MFASecurityScreen: React.FC = () => {
   });
 
   const disableMutation = useMutation({
-    mutationFn: () => mobileApiClient.post('/api/auth/mfa/disable', {}),
+    mutationFn: async () => {
+      const response = await mobileApiClient.post<{ success: boolean }>(
+        '/api/auth/mfa/disable',
+        { password }
+      );
+      if (!response.success) throw new Error('Unable to disable MFA');
+    },
     onSuccess: () => {
+      setPassword('');
+      setConfirmDisable(false);
       setEnrollData(null);
       setShowRecoveryCodes(false);
       queryClient.invalidateQueries({ queryKey: ['mfa-status'] });
@@ -91,24 +116,33 @@ export const MFASecurityScreen: React.FC = () => {
 
   const handleToggle = () => {
     if (mfaStatus?.enabled) {
-      Alert.alert(
-        'Disable MFA',
-        'This will make your account less secure. Continue?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Disable',
-            style: 'destructive',
-            onPress: () => disableMutation.mutate(),
-          },
-        ]
-      );
+      setConfirmDisable(true);
     } else {
       enrollMutation.mutate();
     }
   };
 
-  const isMutating = enrollMutation.isPending || disableMutation.isPending;
+  const verifyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await mobileApiClient.post<{ success: boolean }>(
+        '/api/auth/mfa/verify-enrollment',
+        { token: code }
+      );
+      if (!response.success) throw new Error('Unable to verify MFA');
+    },
+    onSuccess: () => {
+      setCode('');
+      setShowRecoveryCodes(true);
+      queryClient.invalidateQueries({ queryKey: ['mfa-status', user?.id] });
+      Alert.alert('MFA enabled', 'Save your recovery codes in a safe place.');
+    },
+    onError: () =>
+      Alert.alert('Verification failed', 'Check the code and try again.'),
+  });
+  const isMutating =
+    enrollMutation.isPending ||
+    disableMutation.isPending ||
+    verifyMutation.isPending;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -128,6 +162,19 @@ export const MFASecurityScreen: React.FC = () => {
             color={me.ink}
             style={{ marginTop: 40 }}
           />
+        ) : isError ? (
+          <View style={styles.card}>
+            <Text style={styles.bodyText}>
+              Unable to load your security settings.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole='button'
+              onPress={() => void refetch()}
+              style={styles.row}
+            >
+              <Text>Try again</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <>
             <View style={styles.card}>
@@ -153,9 +200,15 @@ export const MFASecurityScreen: React.FC = () => {
                   </View>
                 </View>
                 <Switch
+                  accessibilityRole='switch'
+                  accessibilityLabel='Two-factor authentication'
                   value={mfaStatus?.enabled ?? false}
                   onValueChange={handleToggle}
-                  disabled={isMutating}
+                  disabled={
+                    isMutating ||
+                    (!!enrollData && !mfaStatus?.enabled) ||
+                    confirmDisable
+                  }
                   trackColor={{
                     false: me.line,
                     true: me.ink,
@@ -165,6 +218,40 @@ export const MFASecurityScreen: React.FC = () => {
               </View>
             </View>
 
+            {confirmDisable && (
+              <View style={styles.card}>
+                <Text style={styles.bodyText}>
+                  Confirm your password to disable MFA.
+                </Text>
+                <TextInput
+                  accessibilityLabel='Current password'
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  style={styles.secretBox}
+                  autoCapitalize='none'
+                />
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  disabled={isMutating || !password}
+                  onPress={() => disableMutation.mutate()}
+                  style={styles.row}
+                >
+                  <Text>Confirm disable</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  disabled={isMutating}
+                  onPress={() => {
+                    setPassword('');
+                    setConfirmDisable(false);
+                  }}
+                  style={styles.row}
+                >
+                  <Text>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {enrollData && !mfaStatus?.enabled && (
               <View style={styles.card}>
                 <Text style={styles.sectionTitle}>Setup Instructions</Text>
@@ -183,10 +270,26 @@ export const MFASecurityScreen: React.FC = () => {
                 <Text style={styles.bodyText}>
                   3. Enter the 6-digit code from your app to verify.
                 </Text>
+                <TextInput
+                  accessibilityLabel='Authenticator code'
+                  value={code}
+                  onChangeText={setCode}
+                  keyboardType='number-pad'
+                  maxLength={6}
+                  style={styles.secretBox}
+                />
+                <TouchableOpacity
+                  accessibilityRole='button'
+                  disabled={isMutating || !/^\d{6}$/.test(code)}
+                  onPress={() => verifyMutation.mutate()}
+                  style={styles.row}
+                >
+                  <Text>Verify and enable MFA</Text>
+                </TouchableOpacity>
               </View>
             )}
 
-            {(enrollData?.recoveryCodes || mfaStatus?.enabled) && (
+            {enrollData?.recoveryCodes && (
               <View style={styles.card}>
                 <TouchableOpacity
                   style={styles.row}
@@ -229,7 +332,7 @@ export const MFASecurityScreen: React.FC = () => {
 
             <Text style={styles.footnote}>
               MFA adds an extra layer of security by requiring a verification
-              code from your authenticator app each time you sign in.
+              code for protected account actions. Keep your recovery codes safe.
             </Text>
           </>
         )}

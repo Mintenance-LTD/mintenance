@@ -70,11 +70,13 @@ export class EscrowStatusService {
           status,
           admin_hold_status,
           homeowner_approval,
+          release_reason,
+          homeowner_inspection_completed,
           photo_verification_status,
           cooling_off_ends_at,
           auto_approval_date,
-          release_blocked_reason,
-          auto_release_date
+          job_id, auto_release_date, risk_hold_extended, risk_hold_reason,
+          release_blocked_reason
         `
         )
         .eq('id', escrowId)
@@ -127,12 +129,15 @@ export class EscrowStatusService {
           status,
           admin_hold_status,
           homeowner_approval,
+          release_reason,
+          homeowner_inspection_completed,
           photo_verification_status,
           photo_quality_passed,
           geolocation_verified,
           timestamp_verified,
           cooling_off_ends_at,
           auto_approval_date,
+          job_id, auto_release_date, risk_hold_extended, risk_hold_reason,
           release_blocked_reason
         `
         )
@@ -170,21 +175,28 @@ export class EscrowStatusService {
         }
       }
 
-      // Check photo verification
-      if (escrow.photo_verification_status !== 'verified') {
-        reasons.push('Photo verification pending or failed');
-      }
+      // Human inspection satisfies the photo gate, matching automatic release.
+      const explicitApproval =
+        escrow.homeowner_approval === true &&
+        escrow.release_reason === 'homeowner_approved' &&
+        escrow.homeowner_inspection_completed === true;
+      if (!explicitApproval) {
+        // Check photo verification
+        if (escrow.photo_verification_status !== 'verified') {
+          reasons.push('Photo verification pending or failed');
+        }
 
-      if (!escrow.photo_quality_passed) {
-        reasons.push('Photo quality check failed');
-      }
+        if (!escrow.photo_quality_passed) {
+          reasons.push('Photo quality check failed');
+        }
 
-      if (!escrow.geolocation_verified) {
-        reasons.push('Geolocation verification pending');
-      }
+        if (!escrow.geolocation_verified) {
+          reasons.push('Geolocation verification pending');
+        }
 
-      if (!escrow.timestamp_verified) {
-        reasons.push('Timestamp verification pending');
+        if (!escrow.timestamp_verified) {
+          reasons.push('Timestamp verification pending');
+        }
       }
 
       // Check cooling-off period
@@ -205,6 +217,35 @@ export class EscrowStatusService {
         reasons.push(`Escrow status is ${escrow.status}`);
       }
 
+      if (escrow.job_id) {
+        const { count, error: disputeError } = await serverSupabase
+          .from('disputes')
+          .select('id', { count: 'exact', head: true })
+          .eq('job_id', escrow.job_id)
+          .in('status', ['open', 'pending', 'under_review']);
+        if (disputeError) reasons.push('Unable to verify dispute status');
+        else if ((count ?? 0) > 0)
+          reasons.push('An active dispute must be resolved');
+      }
+      if (
+        escrow.auto_release_date &&
+        new Date(escrow.auto_release_date) > new Date()
+      ) {
+        reasons.push(
+          `Release eligibility begins ${new Date(escrow.auto_release_date).toLocaleString()}`
+        );
+      }
+      if (
+        escrow.risk_hold_extended &&
+        escrow.risk_hold_reason &&
+        escrow.auto_release_date &&
+        new Date(escrow.auto_release_date) > new Date()
+      )
+        reasons.push(escrow.risk_hold_reason);
+      if (!explicitApproval)
+        reasons.push(
+          'Automatic approval remains subject to contractor trust and payment risk checks'
+        );
       return reasons;
     } catch (error) {
       logger.error('Error getting blocking reasons', error, {
@@ -324,7 +365,9 @@ export class EscrowStatusService {
       return 'Waiting for homeowner approval';
     }
 
-    if (escrow.photo_verification_status !== 'verified') {
+    if (
+      blockingReasons.some((reason) => reason.startsWith('Photo verification'))
+    ) {
       return 'Waiting for photo verification';
     }
 

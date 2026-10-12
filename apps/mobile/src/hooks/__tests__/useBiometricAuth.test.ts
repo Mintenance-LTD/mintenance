@@ -20,6 +20,8 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import { useBiometricAuth } from '../useBiometricAuth';
+
 const mockIsAvailable = jest.fn();
 const mockAuthenticate = jest.fn();
 const mockIsBiometricEnabled = jest.fn();
@@ -71,10 +73,7 @@ jest.mock('../../utils/sentryUtils', () => ({
   addBreadcrumb: (...a: unknown[]) => mockAddBreadcrumb(...a),
 }));
 
-import { useBiometricAuth } from '../useBiometricAuth';
-
 type AnyUser = { id: string; email: string };
-type AnySession = { access_token?: string; refresh_token?: string } | null;
 
 const user: AnyUser = { id: 'user-1', email: 'jane@example.com' };
 const fullSession = {
@@ -343,10 +342,14 @@ describe('useBiometricAuth — enableBiometric', () => {
       await result.current.enableBiometric(user as never, fullSession as never);
     });
 
-    expect(mockEnableBiometric).toHaveBeenCalledWith('jane@example.com', {
-      accessToken: 'access-tok',
-      refreshToken: 'refresh-tok',
-    });
+    expect(mockEnableBiometric).toHaveBeenCalledWith(
+      'jane@example.com',
+      {
+        accessToken: 'access-tok',
+        refreshToken: 'refresh-tok',
+      },
+      expect.any(Function)
+    );
   });
 });
 
@@ -366,149 +369,81 @@ describe('useBiometricAuth — disableBiometric', () => {
 describe('useBiometricAuth — promptEnableBiometric', () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    mockGetCurrentSession.mockResolvedValue({ ...fullSession, user });
   });
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
     jest.useRealTimers();
   });
-
-  const enableAvailability = async (result: {
-    current: ReturnType<typeof useBiometricAuth>;
-  }) => {
+  const start = async () => {
     mockIsAvailable.mockResolvedValue(true);
+    const hook = renderHook(() => useBiometricAuth());
     await act(async () => {
-      await result.current.checkBiometricAvailability();
+      await hook.result.current.checkBiometricAvailability();
     });
+    act(() =>
+      hook.result.current.promptEnableBiometric(user as never, fullSession)
+    );
+    return hook;
   };
-
-  it('no-ops when biometrics are unavailable', () => {
-    const { result } = renderHook(() => useBiometricAuth());
-    // biometricAvailable starts false.
-    act(() => {
-      result.current.promptEnableBiometric(user as never, fullSession);
-    });
-    jest.advanceTimersByTime(2000);
-    expect(mockPromptEnableBiometric).not.toHaveBeenCalled();
-  });
-
-  it('no-ops when session tokens are missing even if available', async () => {
-    const { result } = renderHook(() => useBiometricAuth());
-    await enableAvailability(result);
-
-    act(() => {
-      result.current.promptEnableBiometric(
-        user as never,
-        {
-          access_token: 'a',
-        } as AnySession
-      );
-    });
-    jest.advanceTimersByTime(2000);
-    expect(mockPromptEnableBiometric).not.toHaveBeenCalled();
-  });
-
-  it('schedules the prompt after 1s when available with full tokens', async () => {
-    mockPromptEnableBiometric.mockResolvedValue(undefined);
-    const { result } = renderHook(() => useBiometricAuth());
-    await enableAvailability(result);
-
-    act(() => {
-      result.current.promptEnableBiometric(user as never, fullSession);
-    });
-
-    // Not called before the timer elapses.
-    expect(mockPromptEnableBiometric).not.toHaveBeenCalled();
-    act(() => {
+  it('prompts only while the original account is still signed in', async () => {
+    await start();
+    await act(async () => {
       jest.advanceTimersByTime(1000);
     });
-    expect(mockPromptEnableBiometric).toHaveBeenCalledTimes(1);
     expect(mockPromptEnableBiometric).toHaveBeenCalledWith(
-      'jane@example.com',
+      user.email,
+      expect.any(Function)
+    );
+    await mockPromptEnableBiometric.mock.calls[0][1]();
+    expect(mockEnableBiometric).toHaveBeenCalledWith(
+      user.email,
+      { accessToken: 'access-tok', refreshToken: 'refresh-tok' },
       expect.any(Function)
     );
   });
-
-  it('inner callback enables biometric using the latest session from AuthService', async () => {
-    mockPromptEnableBiometric.mockResolvedValue(undefined);
-    mockGetCurrentSession.mockResolvedValue({
-      access_token: 'fresh-a',
-      refresh_token: 'fresh-r',
-    });
-    mockEnableBiometric.mockResolvedValue(undefined);
-
-    const { result } = renderHook(() => useBiometricAuth());
-    await enableAvailability(result);
-
-    act(() => {
-      result.current.promptEnableBiometric(user as never, fullSession);
-    });
-    act(() => {
+  it.each([null, { ...fullSession, user: { id: 'another-account' } }])(
+    'does not show a delayed prompt after logout or switching account',
+    async (session) => {
+      await start();
+      mockGetCurrentSession.mockResolvedValue(session);
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(mockPromptEnableBiometric).not.toHaveBeenCalled();
+    }
+  );
+  it('does not reuse captured tokens after the prompt opens and the user signs out', async () => {
+    await start();
+    await act(async () => {
       jest.advanceTimersByTime(1000);
     });
-
-    const callback = mockPromptEnableBiometric.mock
-      .calls[0][1] as () => Promise<void>;
-    await act(async () => {
-      await callback();
-    });
-
-    expect(mockEnableBiometric).toHaveBeenCalledWith('jane@example.com', {
-      accessToken: 'fresh-a',
-      refreshToken: 'fresh-r',
-    });
-  });
-
-  it('inner callback falls back to the passed session when AuthService returns null', async () => {
-    mockPromptEnableBiometric.mockResolvedValue(undefined);
     mockGetCurrentSession.mockResolvedValue(null);
-    mockEnableBiometric.mockResolvedValue(undefined);
-
-    const { result } = renderHook(() => useBiometricAuth());
-    await enableAvailability(result);
-
-    act(() => {
-      result.current.promptEnableBiometric(user as never, fullSession);
-    });
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
-    const callback = mockPromptEnableBiometric.mock
-      .calls[0][1] as () => Promise<void>;
-    await act(async () => {
-      await callback();
-    });
-
-    expect(mockEnableBiometric).toHaveBeenCalledWith('jane@example.com', {
-      accessToken: 'access-tok',
-      refreshToken: 'refresh-tok',
-    });
-  });
-
-  it('inner callback throws when neither latest nor passed session has tokens', async () => {
-    mockPromptEnableBiometric.mockResolvedValue(undefined);
-    mockGetCurrentSession.mockResolvedValue({ access_token: 'only-access' });
-
-    // Need biometricAvailable true but pass a session with tokens so the
-    // outer guard lets us schedule; then the inner refreshed session lacks
-    // a refresh token to hit the throw branch.
-    const { result } = renderHook(() => useBiometricAuth());
-    await enableAvailability(result);
-
-    act(() => {
-      result.current.promptEnableBiometric(user as never, fullSession);
-    });
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
-    const callback = mockPromptEnableBiometric.mock
-      .calls[0][1] as () => Promise<void>;
-    await act(async () => {
-      await expect(callback()).rejects.toThrow(
-        /Session tokens are required to enable biometric authentication/
-      );
-    });
+    await expect(
+      mockPromptEnableBiometric.mock.calls[0][1]()
+    ).rejects.toThrow();
     expect(mockEnableBiometric).not.toHaveBeenCalled();
+  });
+  it('validates account ownership again after the native enrollment prompt', async () => {
+    await start();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    await mockPromptEnableBiometric.mock.calls[0][1]();
+    mockGetCurrentSession.mockResolvedValue({
+      ...fullSession,
+      user: { id: 'another-account' },
+    });
+    await expect(mockEnableBiometric.mock.calls[0][2]()).rejects.toThrow(
+      'Your session changed'
+    );
+  });
+  it('cancels a pending prompt on unmount', async () => {
+    const hook = await start();
+    hook.unmount();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(mockPromptEnableBiometric).not.toHaveBeenCalled();
   });
 });

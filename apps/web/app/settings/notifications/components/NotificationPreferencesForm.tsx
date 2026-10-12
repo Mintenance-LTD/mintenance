@@ -48,6 +48,7 @@ const KNOWN_TYPES: Array<{ type: string; label: string }> = [
   { type: 'escrow_released', label: 'Payment released' },
   { type: 'escrow_auto_released', label: 'Auto-release on 7-day timeout' },
   { type: 'job_completed', label: 'Job completed' },
+  { type: 'property_followup', label: 'Property follow-ups assigned to you' },
   { type: 'changes_requested', label: 'Homeowner requested changes' },
   { type: 'message_received', label: 'New messages' },
   { type: 'cashflow_digest', label: 'Weekly cash-flow digest (Fridays)' },

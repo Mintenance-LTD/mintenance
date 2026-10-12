@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-contractors.jpg',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Find Contractors on Mintenance',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContractorsPage() {
-  const contractors = await getFeaturedContractors(50);
+  const contractors = await getFeaturedContractors(50, true);
   const platformStats = await getPlatformStats();
 
   const formattedContractors = contractors.map((contractor) => ({

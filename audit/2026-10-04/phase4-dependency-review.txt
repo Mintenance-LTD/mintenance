@@ -1,0 +1,57 @@
+DEPENDENCY REVIEW — 2026-10-04
+
+Patched resolutions are listed in phase4-results.json. Updates retain framework
+majors. Node 20.19.4/npm 11.6.2 were used; CI quality/security jobs now pin npm.
+The missing lint-staged commit dependency is pinned to Node-20-compatible 16.4.0.
+Npm retained two stale nested resolutions on its first update; those entries were
+refreshed from exact registry metadata/integrity, installed, and npm ci --dry-run
+validated the final lock. No arbitrary tarballs or lifecycle scripts were used.
+
+The configured production high/critical audit gate passes. Raw npm audit still
+reports 23 high affected package entries (inherited chains, not 23 distinct
+vulnerabilities), 26 moderate and 4 low. This is not a zero-vulnerability claim.
+
+HIGH ADVISORIES: NARROW EXCEPTIONS THROUGH 2026-11-03
+Four advisory IDs remain in 14 exact dependency paths. audit-ci expiry handling
+was checked: expired paths are rejected; there are no blanket package/advisory
+exceptions. Existing obsolete gRPC, form-data, minimatch, ws and PostCSS exceptions
+were removed. Only trusted repository source/assets and operator-owned signing
+material may enter these build tools. New advisory paths fail the configured gate.
+
+braces: Metro/Jest pattern expansion; no patched npm release. No application
+runtime import of braces or micromatch was found. Do not pass user patterns into
+build tasks. https://github.com/advisories/GHSA-vfj7-8cjw-p6xm
+
+node-forge: Expo CLI and expo-updates cli/src certificate tooling. Not imported by
+the shipped update JS or application server. No patch currently published. Do not
+use this exception to validate untrusted signing material.
+https://github.com/advisories/GHSA-86w9-cpqp-85rv
+
+image-size: only Metro owns the installed 1.x dependency. Patched 2.0.4 changes
+the callable CommonJS API used by Metro Assets.js; a forced major override is not
+safe. User uploads must not become build inputs. Revisit a compatible Metro update
+or tested adapter before expiry.
+https://github.com/advisories/GHSA-5p2g-fcmc-qvqq
+https://github.com/advisories/GHSA-w3rx-r6r6-pgpr
+
+LOWER-SEVERITY MAINTENANCE DEBT — NOT ALLOWLISTED
+OpenTelemetry core: moderate inbound baggage allocation; default Node HTTP header
+limits constrain exposure, but hosted gateway limits must still be checked before
+launch. Coordinated telemetry package update is preferable to forcing pinned
+SDK internals. https://github.com/advisories/GHSA-8988-4f7v-96qf
+
+decode-uri-component: moderate malformed URI CPU risk via React Navigation's
+query-string dependency. The patched 0.5.0 is ESM-only whereas the current consumer
+requires CommonJS; do not force it into the mobile graph. Include malformed deep
+links in Phase 7 device checks and plan a compatible navigation/parser update.
+https://github.com/advisories/GHSA-vcc3-ghjq-m6fr
+
+uuid: moderate v3/v5/v6 optional-buffer bounds issue. Reviewed Google Storage,
+gaxios, teeny-request and Xcode consumers use v4 without supplied buffers.
+https://github.com/advisories/GHSA-w5hq-g745-h8pq
+
+esbuild: low-severity advisory in the optional Remotion demo bundler, outside the
+web server/mobile runtime. Continue upstream tooling updates. The separate weekly
+raw moderate audit remains an inventory alarm; it is not claimed green here.
+
+Re-run the audit on the frozen release candidate and reassess before expiry.

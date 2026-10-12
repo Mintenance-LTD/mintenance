@@ -20,9 +20,9 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
   rating,
   reviewCount,
 }) => {
-  const displayRating = rating > 0 ? rating.toFixed(1) : '—';
-  const fullStars = Math.floor(rating);
-  const hasHalf = rating - fullStars >= 0.5;
+  const displayRating = reviewCount > 0 && rating > 0 ? rating.toFixed(1) : '—';
+  const fullStars = Math.floor(reviewCount > 0 ? rating : 0);
+  const hasHalf = reviewCount > 0 && rating - fullStars >= 0.5;
 
   return (
     <View style={styles.container} testID='profile-stats-container'>

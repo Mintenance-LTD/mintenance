@@ -1,5 +1,11 @@
 import { LocalDatabase } from '../LocalDatabase';
 
+// Exercise database operations; SQLCipher startup has dedicated encryption tests.
+jest.mock('../local-db/encryption', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load mocked dependencies after Jest mock hoisting.
+  openLocalDatabase: () => require('expo-sqlite').openDatabaseAsync('test.db'),
+}));
+
 // Mock dependencies
 jest.mock('../../utils/logger', () => ({
   logger: {

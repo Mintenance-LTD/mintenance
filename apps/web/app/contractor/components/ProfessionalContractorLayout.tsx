@@ -18,7 +18,6 @@ import {
   LogOut,
   User,
   HelpCircle,
-  Leaf,
 } from 'lucide-react';
 
 type ContractorSummary = {
@@ -44,7 +43,6 @@ export function ProfessionalContractorLayout({
   userId,
 }: ProfessionalContractorLayoutProps) {
   const {
-    pathname,
     mounted,
     isMobile,
     isMobileOpen,
@@ -487,7 +485,7 @@ export function ProfessionalContractorLayout({
         </header>
 
         {/* Main Content Area */}
-        <main className='flex-1 p-4 lg:p-8'>
+        <main id='main-content' tabIndex={-1} className='flex-1 p-4 lg:p-8'>
           <div className='max-w-7xl mx-auto'>{children}</div>
         </main>
       </div>

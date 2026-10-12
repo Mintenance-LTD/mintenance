@@ -106,7 +106,8 @@ export const SplashScreen: React.FC = () => {
             Trusted trades.{'\n'}Held safe.
           </Text>
           <Text style={styles.subhead}>
-            Post jobs, compare real bids, pay only when the work is right.
+            Post jobs, compare real bids, and fund escrow before work starts.
+            Release payment after approving the work.
           </Text>
 
           <View style={styles.ctaStack}>

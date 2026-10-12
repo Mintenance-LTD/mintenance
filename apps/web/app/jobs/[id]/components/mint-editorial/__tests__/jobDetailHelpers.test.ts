@@ -64,3 +64,41 @@ describe('buildLifecyclePhases', () => {
     expect(phases.find((p) => p.id === 'contract')?.status).toBe('done');
   });
 });
+
+describe('payment state is authoritative', () => {
+  it('does not claim release merely because work is approved', () => {
+    expect(
+      computeNextStep(
+        {
+          ...base,
+          jobStatus: 'completed',
+          contractStatus: 'accepted',
+          completionConfirmed: true,
+          escrowStatus: 'held',
+        },
+        JOB_ID
+      ).title
+    ).toBe('Work approved');
+  });
+  it('shows a dispute hold before funding or completion instructions', () => {
+    expect(
+      computeNextStep(
+        {
+          ...base,
+          jobStatus: 'completed',
+          completionConfirmed: true,
+          escrowStatus: 'disputed',
+        },
+        JOB_ID
+      ).title
+    ).toBe('Dispute under review');
+  });
+  it('does not ask to fund a refunded job', () => {
+    expect(
+      computeNextStep(
+        { ...base, contractStatus: 'accepted', escrowStatus: 'refunded' },
+        JOB_ID
+      ).title
+    ).toBe('Payment refunded');
+  });
+});

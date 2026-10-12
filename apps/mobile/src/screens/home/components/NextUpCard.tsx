@@ -118,10 +118,17 @@ export const NextUpCard: React.FC<Props> = ({ next, onOpenJob, onMessage }) => {
           heldRef.current = { contractorId: user.id, jobId };
           const status = service.getTrackingStatus();
           if (!status.isTracking) {
-            await service.startJobTracking(user.id, jobId, null, {
-              latitude: destLat,
-              longitude: destLng,
-            });
+            await service.startJobTracking(
+              user.id,
+              jobId,
+              null,
+              {
+                latitude: destLat,
+                longitude: destLng,
+              },
+              undefined,
+              { skipShareNotify: true }
+            );
           }
         } catch (err) {
           // Permission denial or initial-fix failure shouldn't roll
@@ -214,7 +221,7 @@ export const NextUpCard: React.FC<Props> = ({ next, onOpenJob, onMessage }) => {
               if (!tripStarted) tripMutation.mutate(next.jobId);
             }}
             accessibilityRole='button'
-            accessibilityLabel="I'm on my way"
+            accessibilityLabel='Going to site'
           >
             {tripMutation.isPending ? (
               <ActivityIndicator color={me.onBrand} size='small' />

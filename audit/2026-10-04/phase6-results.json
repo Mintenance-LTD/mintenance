@@ -1,0 +1,25 @@
+{
+  "phase": 6,
+  "status": "Complete (implementation)",
+  "regressionSuitesPassed": 31,
+  "regressionTestsPassed": 544,
+  "databaseSuitesPassed": 4,
+  "databaseTestsPassed": 36,
+  "rollbackOnlyLedgerScriptsPassed": 6,
+  "stripeSandboxScenariosPassed": 5,
+  "sandbox": "Real Stripe test API and isolated local Supabase; no provider/database mocks. Four scenarios in phase6-sandbox-tests.log plus acceptance/signature/payment scenario in phase6-sandbox-acceptance.log.",
+  "checks": "Web type check, production-file lint, normal commit hooks",
+  "fixes": [
+    "Unfinished webhook duplicates return a retryable failure instead of a false acknowledgement; invalid claims fail closed",
+    "Saved-card route preserves security headers through canonical handlers and supplies the Stripe authentication return URL",
+    "Synchronous confirmation uses the atomic job/escrow funding transaction, refusing obsolete and concurrently closed payment state"
+  ],
+  "limitations": [
+    "No hosted deployment or delivery from a deployed Stripe webhook endpoint",
+    "Phone checkout and 3DS challenge UI still require release-device verification",
+    "Connected-account transfer tested; actual bank settlement not asserted",
+    "Separate after-photo completion task remains outside this phase",
+    "Synthetic sandbox objects and isolated local ledger fixtures retained for audit evidence"
+  ],
+  "productionBuild": "Not rerun in Phase 6; route handlers exercised with real auth/database/Stripe sandbox"
+}

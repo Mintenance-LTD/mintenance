@@ -1862,7 +1862,22 @@ describe('Job Lifecycle - 8. After photos and auto-completion', () => {
         };
       }
       if (table === 'job_photos_metadata') {
+        const evidence = {
+          eq: vi.fn().mockReturnThis(),
+          then: (resolve: (value: unknown) => unknown) =>
+            Promise.resolve({
+              data: [
+                {
+                  photo_url: 'https://example.test/after.jpg',
+                  angle_type: 'overview',
+                  quality_score: 90,
+                },
+              ],
+              error: null,
+            }).then(resolve),
+        };
         return {
+          select: vi.fn().mockReturnValue(evidence),
           insert: vi.fn((row: unknown) => {
             insertedPhotos.push(row);
             return { error: null };

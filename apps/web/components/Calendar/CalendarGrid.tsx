@@ -13,7 +13,11 @@ interface CalendarGridProps {
   calendarDays: CalendarDayInfo[];
   currentDate: Date;
   events: CalendarEvent[];
-  getEventsForDay: (day: number, targetMonth?: number, targetYear?: number) => CalendarEvent[];
+  getEventsForDay: (
+    day: number,
+    targetMonth?: number,
+    targetYear?: number
+  ) => CalendarEvent[];
   isToday: (day: number) => boolean;
   getEventColor: (type: string) => string;
 }
@@ -21,17 +25,18 @@ interface CalendarGridProps {
 export function CalendarGrid({
   calendarDays,
   currentDate,
-  events,
   getEventsForDay,
   isToday,
   getEventColor,
 }: CalendarGridProps) {
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      minHeight: '500px',
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+        minHeight: '500px',
+      }}
+    >
       {calendarDays.map((dayInfo, index) => {
         const day = dayInfo?.day;
         const isCurrentMonth = dayInfo?.isCurrentMonth ?? false;
@@ -55,4 +60,3 @@ export function CalendarGrid({
     </div>
   );
 }
-

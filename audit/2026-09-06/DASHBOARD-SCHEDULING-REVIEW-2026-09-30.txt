@@ -1,0 +1,24 @@
+Dashboard, recurring tasks and scheduling review — 2026-09-30
+Baseline: df71cde01, codex/migrate-next-proxy. Existing audit/output changes preserved.
+
+Confirmed and repaired locally:
+- Dashboard cached jobs omitted jobs.archived_at filtering. Added null filter before limit, consistent with jobs list. Cancelled statuses already excluded by dashboard active-status processing.
+- Needs-you aggregator invented property verification from absent verified/is_verified values. Removed those prompts; property editing does not verify ownership.
+- Removed fabricated bid-closing countdown from displayed copy.
+- Recurring cards were noninteractive. Added property management and property jobs links, plus clear reminder/automatic creation wording.
+- Calendar classified scheduled jobs as inspections. Corrected to job events and limited contractor events to the assigned contractor (a losing bid is not an appointment).
+- Calendar maintenance read subscription billing dates. Switched to active, property-linked, owner-scoped recurring_schedules next_due_date.
+- Calendar job queries exclude archived records. Upcoming empty state now explains its seven-day window and includes all of today.
+
+Recurring lifecycle evidence:
+RecurringJobCreatorService.processSchedules selects active auto-create schedules due today or earlier. It creates through JobCreationService, tags schedule+cycle, uses unique-cycle protection and conditional date advancement. Advancing the due date records scheduling, NOT work completion. The schedule UI exposes editing/pause/removal, but no durable manual visit-completion evidence workflow. No completion workflow was invented in this patch. Generated jobs still require their normal bidding/contract/payment/work approval lifecycle.
+
+Validation:
+5 focused regression tests passed. Targeted ESLint: no errors (test file ignored by lint config). Web type check run separately. No production business records changed; no schema changes.
+
+Still open:
+- Durable manual task/visit completion history with actor, performed date, notes/evidence and protected cycle advancement.
+- Calendar event drill-through, overdue reminders, certificate expiry, portfolio/team scope, and opt-in calendar export/sync.
+- Native calendar parity and signed-in browser acceptance against this source revision.
+- Live scheduling execution was not inferred from service source.
+Web type check passed. Required local database diff completed against the stale root local database and emitted destructive drift; it was NOT applied. No migration required for this batch.

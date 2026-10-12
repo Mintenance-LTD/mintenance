@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 
@@ -61,29 +62,31 @@ export function mapCoverageAreas(rows: ServiceAreaRow[]): CoverageArea[] {
 export function useCoverageAreas(enabled: boolean): CoverageArea[] {
   const [areas, setAreas] = useState<CoverageArea[]>([]);
 
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await mobileApiClient.get<{
-          success: boolean;
-          data: ServiceAreaRow[];
-        }>('/api/contractor/service-areas');
-        if (!cancelled && Array.isArray(res?.data)) {
-          setAreas(mapCoverageAreas(res.data));
+  useFocusEffect(
+    useCallback(() => {
+      if (!enabled) return;
+      let cancelled = false;
+      (async () => {
+        try {
+          const res = await mobileApiClient.get<{
+            success: boolean;
+            data: ServiceAreaRow[];
+          }>('/api/contractor/service-areas');
+          if (!cancelled && Array.isArray(res?.data)) {
+            setAreas(mapCoverageAreas(res.data));
+          }
+        } catch (err) {
+          // Overlay is decorative — log and render nothing.
+          logger.info('Coverage overlay fetch failed (non-fatal)', {
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
-      } catch (err) {
-        // Overlay is decorative — log and render nothing.
-        logger.info('Coverage overlay fetch failed (non-fatal)', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled]);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [enabled])
+  );
 
   return areas;
 }

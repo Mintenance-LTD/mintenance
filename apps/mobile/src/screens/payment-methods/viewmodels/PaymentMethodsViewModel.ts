@@ -8,7 +8,7 @@
  * @compliance MVVM - Business logic only
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { PaymentService } from '../../../services/PaymentService';
 import { logger } from '../../../utils/logger';
 
@@ -42,6 +42,7 @@ interface PaymentMethodsViewModel {
   paymentMethods: PaymentMethod[];
   savedCards: SavedCard[];
   loading: boolean;
+  saving: boolean;
   error: string | null;
   selectMethod: (methodId: string) => void;
   deleteCard: (cardId: string) => Promise<void>;
@@ -56,6 +57,8 @@ const STATIC_METHODS: PaymentMethod[] = [
 ];
 
 export const usePaymentMethodsViewModel = (): PaymentMethodsViewModel => {
+  const [saving, setSaving] = useState(false);
+  const defaultSaveInFlight = useRef(false);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,9 +89,7 @@ export const usePaymentMethodsViewModel = (): PaymentMethodsViewModel => {
 
       // Auto-select default card if one exists
       const defaultCard = cards.find((c) => c.isDefault);
-      if (defaultCard && !selectedMethod) {
-        setSelectedMethod(defaultCard.id);
-      }
+      setSelectedMethod(defaultCard?.id ?? null);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : 'Failed to load payment methods';
@@ -124,6 +125,9 @@ export const usePaymentMethodsViewModel = (): PaymentMethodsViewModel => {
   );
 
   const setDefaultCard = useCallback(async (cardId: string) => {
+    if (defaultSaveInFlight.current) return;
+    defaultSaveInFlight.current = true;
+    setSaving(true);
     try {
       const result = await PaymentService.setDefaultPaymentMethod(cardId);
       if (result.error) throw new Error(result.error);
@@ -135,11 +139,15 @@ export const usePaymentMethodsViewModel = (): PaymentMethodsViewModel => {
     } catch (err) {
       logger.error('Failed to set default card', err);
       throw err;
+    } finally {
+      defaultSaveInFlight.current = false;
+      setSaving(false);
     }
   }, []);
 
   return {
     selectedMethod,
+    saving,
     paymentMethods: STATIC_METHODS,
     savedCards,
     loading,

@@ -51,8 +51,12 @@ mocks.cookies.mockImplementation(async () => ({
     const val = mocks.cookieStore.get(k);
     return val ? { name: k, value: val } : undefined;
   },
-  set: (k: string, v: string) => { mocks.cookieStore.set(k, v); },
-  delete: (k: string) => { mocks.cookieStore.delete(k); },
+  set: (k: string, v: string) => {
+    mocks.cookieStore.set(k, v);
+  },
+  delete: (k: string) => {
+    mocks.cookieStore.delete(k);
+  },
 }));
 
 vi.mock('next/headers', () => ({
@@ -73,7 +77,8 @@ vi.mock('@/lib/auth', () => ({
   setAuthCookie: mocks.setAuthCookie,
 }));
 
-vi.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@mintenance/shared')>()),
   logger: mocks.logger,
 }));
 
@@ -102,7 +107,8 @@ vi.mock('@/lib/api/supabaseServer', () => ({
 }));
 
 vi.mock('@/lib/errors/api-error', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/errors/api-error')>();
+  const actual =
+    await importOriginal<typeof import('@/lib/errors/api-error')>();
   return actual;
 });
 
@@ -140,8 +146,12 @@ describe('POST /api/auth/refresh', () => {
         const val = mocks.cookieStore.get(k);
         return val ? { name: k, value: val } : undefined;
       },
-      set: (k: string, v: string) => { mocks.cookieStore.set(k, v); },
-      delete: (k: string) => { mocks.cookieStore.delete(k); },
+      set: (k: string, v: string) => {
+        mocks.cookieStore.set(k, v);
+      },
+      delete: (k: string) => {
+        mocks.cookieStore.delete(k);
+      },
     }));
   });
 
@@ -175,7 +185,10 @@ describe('POST /api/auth/refresh', () => {
 
     expect(res.status).toBe(401);
     // Error can be a string or an object with a message field
-    const errorMsg = typeof body.error === 'string' ? body.error : body.error?.message || JSON.stringify(body.error);
+    const errorMsg =
+      typeof body.error === 'string'
+        ? body.error
+        : body.error?.message || JSON.stringify(body.error);
     expect(errorMsg).toMatch(/refresh token|sign in/i);
   });
 
