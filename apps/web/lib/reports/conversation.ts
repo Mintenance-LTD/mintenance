@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import { reportPhotos } from './followup';
 const input = z.object({
   reportId: z.string().uuid(),
   messageId: z.string().uuid().optional(),
@@ -33,10 +34,20 @@ export async function conversation(request: NextRequest, actor: string | null) {
   if (error?.code === '22023')
     throw new BadRequestError('Message retry differs. Reload before sending.');
   if (error) throw error;
-  return NextResponse.json(data, {
-    headers: {
-      'Cache-Control': 'private, no-store',
-      'Referrer-Policy': 'no-referrer',
-    },
-  });
+  let photos: { url: string; slot: number }[] = [];
+  let photos_unavailable = false;
+  try {
+    photos = await reportPhotos(value.data.reportId);
+  } catch {
+    photos_unavailable = true;
+  }
+  return NextResponse.json(
+    { ...data, photos, photos_unavailable },
+    {
+      headers: {
+        'Cache-Control': 'private, no-store',
+        'Referrer-Policy': 'no-referrer',
+      },
+    }
+  );
 }
