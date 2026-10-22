@@ -187,3 +187,12 @@ it('fails when result persistence fails instead of claiming success', async () =
     'could not be saved'
   );
 });
+
+it('distinguishes identity mismatches from provider status mismatches', () => {
+  const pi = intent();
+  pi.metadata.payerId = 'other';
+  expect(compareReconciliationFunding(source(), pi).evidence).toMatchObject({
+    mismatch_type: 'identity', status_match: true, amount_match: true, identity_match: false,
+  });
+  expect(compareReconciliationFunding(source(), intent()).evidence.mismatch_type).toBeNull();
+});

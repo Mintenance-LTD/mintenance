@@ -59,13 +59,14 @@ describe('instrumentation startup environment gate', () => {
     );
   });
 
-  it('starts configured services and scheduled checks when validation succeeds', async () => {
+  it('keeps model loading and retraining off the cold-start path even when enabled', async () => {
     const { register } = await import('../instrumentation');
     await register();
-    expect(startup.initialize).toHaveBeenCalledOnce();
-    expect(startup.retrain).toHaveBeenCalledOnce();
+    expect(startup.initialize).not.toHaveBeenCalled();
+    expect(startup.retrain).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
-    expect(startup.retrain).toHaveBeenCalledTimes(2);
+    expect(startup.retrain).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('does not start Node background services in the edge runtime', async () => {

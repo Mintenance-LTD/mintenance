@@ -19,11 +19,12 @@ export class RecurringJobCreatorService {
     next: string,
     frequency: string,
     ownerId: string,
-    propertyId: string
+    propertyId: string,
+    jobId: string
   ) {
     const { data, error } = await serverSupabase
       .from('recurring_schedules')
-      .update({ next_due_date: next })
+      .update({ next_due_date: next, last_job_id: jobId })
       .eq('id', id)
       .eq('next_due_date', due)
       .eq('is_active', true)
@@ -118,7 +119,8 @@ export class RecurringJobCreatorService {
             nextDate,
             schedule.frequency,
             schedule.owner_id,
-            schedule.property_id
+            schedule.property_id,
+            existing[0].id
           );
           result.skipped++;
           continue;
@@ -179,7 +181,8 @@ export class RecurringJobCreatorService {
           nextDate,
           schedule.frequency,
           schedule.owner_id,
-          schedule.property_id
+          schedule.property_id,
+          job.id
         );
 
         // Notify the owner. Non-fatal if it fails — the job + date

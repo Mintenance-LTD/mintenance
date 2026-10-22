@@ -50,7 +50,7 @@ vlm_image = (
         "datasets>=3.2.0",
         "supabase==2.10.0",
         "httpx==0.27.2",
-        "pillow==11.0.0",
+        "pillow==13.0.0",
         "fastapi[standard]",
     )
     .env({"HF_HOME": "/model-cache", "TRANSFORMERS_CACHE": "/model-cache"})

@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getCsrfToken } from '@/lib/csrf-client';
+import { safeNavigationUrl } from '@/lib/security/navigation-url';
 import { Upload, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
@@ -291,12 +292,14 @@ export default function DocumentManagementPage() {
       toast.success(`Downloading ${doc.name} as PDF...`);
       return;
     }
-    if (!doc.public_url) {
+    const documentUrl = safeNavigationUrl(doc.public_url);
+    if (!documentUrl) {
       toast.error('No download URL available');
       return;
     }
     const link = document.createElement('a');
-    link.href = doc.public_url;
+    link.href = documentUrl;
+    link.rel = 'noopener noreferrer';
     link.download = doc.name;
     link.target = '_blank';
     link.click();
@@ -313,11 +316,12 @@ export default function DocumentManagementPage() {
       );
       return;
     }
-    if (!doc.public_url) {
+    const documentUrl = safeNavigationUrl(doc.public_url);
+    if (!documentUrl) {
       toast.error('No preview available for this document');
       return;
     }
-    window.open(doc.public_url, '_blank', 'noopener,noreferrer');
+    window.open(documentUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Share document

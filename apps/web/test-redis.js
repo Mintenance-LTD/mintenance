@@ -4,13 +4,17 @@
  */
 
 const { Redis } = require('@upstash/redis');
+const logger = console;
 
 async function testRedisConnection() {
   logger.info('🔍 Testing Redis connection...');
   
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    throw new Error('Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN before running this diagnostic.');
+  }
   const redis = new Redis({
-    url: 'https://infinite-duck-27013.upstash.io',
-    token: 'AWmFAAIncDIzM2M0ZDcxMWU2ZjE0NGYyODU2YjI3MDY1MzgyZGQ1OHAyMjcwMTM',
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
   });
 
   try {
@@ -45,8 +49,6 @@ async function testRedisConnection() {
     logger.info('✅ Rate limiting will work in production');
     logger.info('\n📋 Next steps:');
     logger.info('1. Add these to your .env.local file:');
-    logger.info('   UPSTASH_REDIS_REST_URL="https://infinite-duck-27013.upstash.io"');
-    logger.info('   UPSTASH_REDIS_REST_TOKEN="AWmFAAIncDIzM2M0ZDcxMWU2ZjE0NGYyODU2YjI3MDY1MzgyZGQ1OHAyMjcwMTM"');
     logger.info('2. Deploy to production with these environment variables');
     logger.info('3. Your app will now have working rate limiting!');
 
