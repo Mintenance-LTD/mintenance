@@ -9,4 +9,3 @@ BEGIN
 END $$;
 DROP INDEX IF EXISTS public.messages_inbox_activity;
 DROP INDEX IF EXISTS public.idx_service_areas_center_gist;
-

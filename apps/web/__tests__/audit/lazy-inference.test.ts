@@ -27,7 +27,3 @@ it('loads local inference once for concurrent assessments, only when images are 
   expect(local.initialize).toHaveBeenCalledOnce();
   expect(local.detect).toHaveBeenCalledTimes(2);
 });
-
-
-
-
