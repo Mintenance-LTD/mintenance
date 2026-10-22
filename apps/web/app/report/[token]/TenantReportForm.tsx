@@ -502,7 +502,7 @@ export function TenantReportForm({ token }: { token: string }) {
               <p className='mt-1 text-sm text-slate-600'>{property.address}</p>
             </div>
           )}
-          <div className='rounded-2xl bg-[#e4eee8] p-5'>
+          <div className='hidden rounded-2xl bg-[#e4eee8] p-5 lg:block'>
             <ShieldCheck aria-hidden='true' className='mb-3 h-5 w-5' />
             <h2 className='font-semibold'>What happens next?</h2>
             <ol className='mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-slate-700'>
