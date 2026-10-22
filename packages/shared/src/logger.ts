@@ -364,7 +364,8 @@ class Logger {
           }
         : undefined,
     };
-    console.error('[MONITORING]', this.safeStringify(payload));
+    const write = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+    write('[MONITORING]', this.safeStringify(payload));
   }
 
   /**

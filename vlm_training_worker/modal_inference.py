@@ -57,7 +57,7 @@ infer_image = (
         "qwen-vl-utils==0.0.8",
         "supabase==2.10.0",
         "httpx==0.27.2",
-        "pillow==11.0.0",
+        "pillow==13.0.0",
         "fastapi==0.115.5",
         "uvicorn==0.32.1",
     )

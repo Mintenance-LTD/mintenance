@@ -110,7 +110,7 @@ it('recovers an existing exact occurrence without creating or notifying again', 
     'requirements->>schedule_cycle_due',
     '2026-01-31'
   );
-  expect(m.update).toHaveBeenCalledWith({ next_due_date: '2026-02-28' });
+  expect(m.update).toHaveBeenCalledWith({ next_due_date: '2026-02-28', last_job_id: 'job' });
 });
 it('reports advancement failure after creation without sending a misleading next-date notice', async () => {
   m.advanceError = { code: '08006' };

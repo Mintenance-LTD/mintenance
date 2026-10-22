@@ -122,7 +122,7 @@ export function compareReconciliationFunding(
       stripe_status: intent.status,
       stripe_amount: intent.amount / 100,
       expected_cash_minor: cash,
-      mismatch_type: !amountMatch ? 'amount' : 'status',
+      mismatch_type: matched ? null : !identityMatch ? 'identity' : !amountMatch ? 'amount' : !statusMatch ? 'status' : 'refund',
       identity_match: identityMatch,
       amount_match: amountMatch,
       status_match: statusMatch,
