@@ -12,6 +12,7 @@ export function OperationsPage({
   backLabel,
   action,
   children,
+  compact = false,
 }: {
   title: string;
   eyebrow: string;
@@ -20,10 +21,11 @@ export function OperationsPage({
   backLabel: string;
   action?: ReactNode;
   children: ReactNode;
+  compact?: boolean;
 }) {
   return (
     <HomeownerPageWrapper>
-      <div className={styles.page}>
+      <div className={`${styles.page} ${compact ? styles.compact : ''}`}>
         <Link href={backHref} className={styles.back}>
           <ArrowLeft size={16} />
           {backLabel}

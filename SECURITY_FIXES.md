@@ -19,7 +19,7 @@
 
 ```bash
 # 1. Stripe — https://dashboard.stripe.com/apikeys
-STRIPE_SECRET_KEY=sk_live_REDACTED...   # ROTATE NOW
+STRIPE_SECRET_KEY=<REDACTED_STRIPE_KEY>   # ROTATE NOW
 STRIPE_WEBHOOK_SECRET=whsec_REDACTED...   # ROTATE NOW
 
 # 2. Database — Supabase dashboard → Database → Reset password
@@ -28,19 +28,19 @@ DATABASE_URL=postgresql://postgres.xxx:REDACTED@...  # ROTATE NOW
 
 # 3. JWT — Generate new 128-char secret
 # node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"
-JWT_SECRET=SLnnjgPA6j/1jrLF7OcU...  # ROTATE NOW
+JWT_SECRET=<REDACTED>  # ROTATE NOW
 
 # 4. OpenAI — https://platform.openai.com/api-keys
-OPENAI_API_KEY=sk-proj-tz834m3iYjCQ...  # ROTATE NOW
+OPENAI_API_KEY=<REDACTED>  # ROTATE NOW
 
 # 5. Twilio — https://console.twilio.com/
-TWILIO_AUTH_TOKEN=b522cdde15c6893bf...  # ROTATE NOW
+TWILIO_AUTH_TOKEN=<REDACTED>  # ROTATE NOW
 
 # 6. SendGrid — https://app.sendgrid.com/settings/api_keys
-SENDGRID_API_KEY=SG.XMmXbHPxTYe_ZANuECPDIg...  # ROTATE NOW
+SENDGRID_API_KEY=<REDACTED>  # ROTATE NOW
 
 # 7. ENCRYPTION MASTER KEY — CRITICAL: Re-encrypt all data first!
-ENCRYPTION_MASTER_KEY=2189bc3d0d390544...  # ROTATE AFTER RE-ENCRYPTION
+ENCRYPTION_MASTER_KEY=<REDACTED>  # ROTATE AFTER RE-ENCRYPTION
 ```
 
 **For local dev, NEVER use `sk_live_` keys**:
@@ -53,7 +53,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 **Add to git pre-commit hook** (`.git/hooks/pre-commit`):
 ```bash
 #!/bin/sh
-if git diff --cached --name-only | xargs grep -l "sk_live_\|sk_test_51" 2>/dev/null; then
+if git diff --cached --name-only | xargs grep -l "sk_live_\|<REDACTED_STRIPE_KEY>" 2>/dev/null; then
   echo "ERROR: Possible Stripe live key detected in commit. Aborting."
   exit 1
 fi
@@ -546,7 +546,7 @@ npx vitest run apps/web/__tests__/api/payments/ 2>&1
 npm run build 2>&1
 
 # Verify no live keys in any non-.env file
-grep -r "sk_live_\|sk_test_51" --include="*.ts" --include="*.tsx" --include="*.js" \
+grep -r "sk_live_\|<REDACTED_STRIPE_KEY>" --include="*.ts" --include="*.tsx" --include="*.js" \
   --exclude-dir=".git" --exclude-dir="node_modules" . 2>&1
 
 # Verify mfa_secret is not logged anywhere

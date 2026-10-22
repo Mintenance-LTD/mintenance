@@ -278,3 +278,11 @@ output "security_group_id" {
   value       = aws_security_group.training_sg.id
   description = "ID of the training security group"
 }
+# Training images and model artifacts must never be publicly accessible.
+resource "aws_s3_bucket_public_access_block" "ml_storage" {
+  bucket = aws_s3_bucket.ml_storage.id
+  block_public_acls = true
+  block_public_policy = true
+  ignore_public_acls = true
+  restrict_public_buckets = true
+}

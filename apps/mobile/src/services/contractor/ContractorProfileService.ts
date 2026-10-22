@@ -27,6 +27,7 @@ interface ProfileDataContractor {
   latitude?: number | null;
   longitude?: number | null;
   address?: string | null;
+  business_address?: string | null;
   postcode?: string | null;
   portfolio_images?: string[] | null;
   hourly_rate?: number | null;
@@ -48,10 +49,7 @@ interface ProfileDataContractor {
  *
  * Now: routes through `GET /api/contractor/profile-data` which
  * sources every field from the table that actually owns it.
- * Mapping below explicitly translates `profiles.address`
- * → `business_address` (closest match — the contractor's home and
- * trade address are the same column), and returns `[]` for
- * `specialties` / `certifications` (still unmodelled in the DB).
+ * Business and personal addresses remain separate.
  * `DatabaseContractorProfileRow` was rewritten with field-by-field
  * provenance comments so callers know what's authoritative.
  *
@@ -79,11 +77,9 @@ export async function getContractorProfile(
       id: contractor.id,
       user_id: contractor.id,
       company_name: contractor.company_name ?? undefined,
+      company_logo: contractor.profile_image_url ?? undefined,
       bio: contractor.bio ?? undefined,
-      // Map `profiles.address` → `business_address`. The "business
-      // address" naming was always a misnomer; there's only ever
-      // been one address on the row.
-      business_address: contractor.address ?? undefined,
+      business_address: contractor.business_address ?? undefined,
       hourly_rate: contractor.hourly_rate ?? undefined,
       portfolio_images: contractor.portfolio_images ?? [],
       // These three columns don't exist in the live schema. Returning
@@ -147,6 +143,7 @@ export async function updateContractorProfile(
       if (str.length === 0) return;
       formData.append(key, str);
     };
+    setIfPresent('hourlyRate', profileData.hourlyRate);
     setIfPresent('bio', profileData.bio);
     setIfPresent('city', profileData.city);
     setIfPresent('country', profileData.country);
@@ -236,13 +233,17 @@ export async function uploadContractorImage(
       public_url?: string;
     }>('/api/contractor/update-profile', formData);
 
-    return (
+    const imageUrl =
       response.profile?.profile_image_url ??
       response.data?.profile_image_url ??
       response.public_url ??
       response.url ??
-      ''
-    );
+      '';
+    if (!imageUrl)
+      throw new Error(
+        'The uploaded profile image could not be confirmed. Please retry.'
+      );
+    return imageUrl;
   } catch (error) {
     logger.error('Error uploading contractor image:', error);
     throw error;

@@ -251,7 +251,7 @@ export function Footer2025() {
                 margin: '0 0 20px',
               }}
             >
-              The modern way to hire local tradespeople — fair prices,
+              Hire local tradespeople with fair prices,
               escrow-protected payments, every job in one place.
             </p>
 

@@ -56,7 +56,7 @@ import { EscrowInfoModal } from './EscrowInfoModal';
 import { styles } from './jobDetailsStyles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const IMAGE_CAROUSEL_HEIGHT = Math.round(SCREEN_WIDTH * 0.75);
+const IMAGE_CAROUSEL_HEIGHT = 200;
 
 const CAT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   plumbing: 'water-outline',
@@ -691,7 +691,9 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           canReportProblem={
             (canManageJob || job.contractor_id === user?.id) &&
             ['in_progress', 'completed'].includes(job.status) &&
-            ['held', 'awaiting_homeowner_approval'].includes(viewModel.escrowStatus ?? '')
+            ['held', 'awaiting_homeowner_approval'].includes(
+              viewModel.escrowStatus ?? ''
+            )
           }
           isCompletionConfirmedByHomeowner={
             !!(job as CTAContext['job']).completion_confirmed_by_homeowner

@@ -27,7 +27,7 @@ const COMPARISON_ROWS = [
   },
   {
     feature: 'Payment protection',
-    traditional: 'Pay up front — and hope',
+    traditional: 'Pay up front: and hope',
     mintenance: 'Held safely until you approve the work',
   },
 ];

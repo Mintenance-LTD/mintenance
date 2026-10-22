@@ -478,7 +478,7 @@ export function MintEditorialRecurringTasks({
                   </span>
                   <p className='t-meta'>
                     {schedule.auto_create_job
-                      ? 'A scheduled check creates the job. Review bids and approve completed work from that job; moving the due date does not confirm completion.'
+                      ? 'Due tasks are checked every 15 minutes. The job appears after a successful check. Review bids and completion in the created job.'
                       : 'Reminder only. Arrange the work yourself or post a job. This reminder does not record completed work.'}
                   </p>
                   <Link

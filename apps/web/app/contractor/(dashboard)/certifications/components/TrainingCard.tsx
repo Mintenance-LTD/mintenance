@@ -1,5 +1,7 @@
 'use client';
 
+import { safeNavigationUrl } from '@/lib/security/navigation-url';
+
 import { BookOpen, Calendar, Download, Edit, Trash2 } from 'lucide-react';
 
 interface Training {
@@ -20,6 +22,7 @@ interface TrainingCardProps {
 }
 
 export function TrainingCard({ train, onDelete, onEdit }: TrainingCardProps) {
+  const certificateUrl = safeNavigationUrl(train.certificateUrl);
   return (
     <div className='p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow'>
       <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4'>
@@ -63,9 +66,9 @@ export function TrainingCard({ train, onDelete, onEdit }: TrainingCardProps) {
           </div>
         </div>
         <div className='flex flex-wrap gap-2'>
-          {train.certificateUrl && (
+          {certificateUrl && (
             <button
-              onClick={() => window.open(train.certificateUrl, '_blank')}
+              onClick={() => window.open(certificateUrl, '_blank', 'noopener,noreferrer')}
               className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm'
             >
               <Download className='w-4 h-4' />

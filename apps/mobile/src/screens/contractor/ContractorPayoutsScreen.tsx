@@ -285,7 +285,6 @@ const ReadyCard: React.FC<{
   const pending = balance?.pendingAmountMinor ?? 0;
   const threshold = balance?.threshold ?? 1;
   const currency = balance?.currency ?? 'GBP';
-  const progress = Math.min(100, Math.round((pending / threshold) * 100));
 
   return (
     <>
@@ -307,38 +306,32 @@ const ReadyCard: React.FC<{
               Released earnings awaiting transfer
             </Text>
             <Text style={styles.balanceAmount}>
-              {formatMoney(pending, currency)}
+              {balance ? formatMoney(pending, currency) : 'Unavailable'}
             </Text>
           </View>
           <View style={styles.balanceCell}>
-            <Text style={styles.balanceLabel}>Lifetime paid</Text>
+            <Text style={styles.balanceLabel}>
+              Transferred through weekly payouts
+            </Text>
             <Text style={styles.balanceAmount}>
-              {formatMoney(balance?.lifetimePaidOutMinor ?? 0, currency)}
+              {balance
+                ? formatMoney(balance.lifetimePaidOutMinor, currency)
+                : 'Unavailable'}
             </Text>
           </View>
         </View>
 
-        {pending < threshold ? (
-          <View style={styles.progressSection}>
-            <View style={styles.progressLabels}>
-              <Text style={styles.progressText}>Progress to next payout</Text>
-              <Text style={styles.progressText}>
-                {formatMoney(pending, currency)} of{' '}
-                {formatMoney(threshold, currency)}
-              </Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
-            </View>
-          </View>
-        ) : (
-          <View style={styles.successBox}>
-            <Text style={styles.successText}>
-              You&apos;re eligible for a payout. The next weekly transfer runs
-              on Friday.
-            </Text>
-          </View>
-        )}
+        <Text style={styles.cardBody}>
+          {!balance
+            ? 'No payout balance record is available. Open Stripe to check transfers and bank payouts.'
+            : pending === 0
+              ? 'No released earnings are waiting for a weekly transfer.'
+              : pending >= threshold
+                ? 'Your balance is eligible for the next weekly transfer.'
+                : `Minimum transfer: ${formatMoney(threshold, currency)}.`}{' '}
+          These figures cover weekly transfers, not all direct settlements or
+          confirmed bank arrivals.
+        </Text>
 
         {balance?.lastPayoutAt && (
           <Text style={styles.lastPayout}>
@@ -380,8 +373,8 @@ const PayoutInfoSection: React.FC = () => (
       <View style={styles.infoTextWrap}>
         <Text style={styles.infoItemTitle}>Escrow-protected</Text>
         <Text style={styles.infoItemDesc}>
-          Homeowner payment is held in escrow before you start. You always get
-          paid for completed work.
+          Homeowner payment is held in escrow before you start. Release follows
+          job approval and any dispute resolution.
         </Text>
       </View>
     </View>
@@ -392,8 +385,8 @@ const PayoutInfoSection: React.FC = () => (
       <View style={styles.infoTextWrap}>
         <Text style={styles.infoItemTitle}>Weekly payouts</Text>
         <Text style={styles.infoItemDesc}>
-          Completed job payments are transferred to your bank every Friday via
-          Stripe.
+          Eligible released earnings enter the weekly transfer run. Bank arrival
+          depends on Stripe processing.
         </Text>
       </View>
     </View>
@@ -404,8 +397,7 @@ const PayoutInfoSection: React.FC = () => (
       <View style={styles.infoTextWrap}>
         <Text style={styles.infoItemTitle}>Secure & private</Text>
         <Text style={styles.infoItemDesc}>
-          Stripe handles all bank details and tax documents. Mintenance never
-          sees your financial data.
+          Manage your bank details securely through Stripe.
         </Text>
       </View>
     </View>

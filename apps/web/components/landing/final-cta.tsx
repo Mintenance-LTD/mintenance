@@ -81,7 +81,7 @@ export function FinalCTA() {
               textDecoration: 'none',
             }}
           >
-            Post a job — free
+            Post a job: free
           </Link>
           <Link
             href='/register?role=contractor'

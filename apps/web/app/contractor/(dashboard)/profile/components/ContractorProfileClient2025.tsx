@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { SkillsManagementModal } from './SkillsManagementModal';
 import { ProfileHeroSection } from './ProfileHeroSection';
 import { ProfileTabPanels } from './ProfileTabPanels';
+import { CompletedJobPortfolio } from './CompletedJobPortfolio';
+import { preparePortfolioPhotos } from '@/lib/prepare-portfolio-photos';
 import { PhotoUploadDialog } from './PhotoUploadDialog';
 import { logger } from '@mintenance/shared';
 import {
@@ -180,12 +182,15 @@ export function ContractorProfileClient2025({
     files: File[];
     title: string;
     category: string;
+    description?: string;
   }) => {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('title', data.title);
       formDataToSend.append('category', data.category);
-      data.files.forEach((file) => {
+      formDataToSend.append('description', data.description ?? '');
+      const photos = await preparePortfolioPhotos(data.files);
+      photos.forEach((file) => {
         formDataToSend.append('photos', file);
       });
 
@@ -385,6 +390,8 @@ export function ContractorProfileClient2025({
             </div>
           </div>
         )}
+
+        {activeTab === 'portfolio' && <CompletedJobPortfolio jobs={completedJobs} contractorId={contractor.id} onUpload={handleUploadPhotos} />}
 
         <ProfileTabPanels
           activeTab={activeTab}

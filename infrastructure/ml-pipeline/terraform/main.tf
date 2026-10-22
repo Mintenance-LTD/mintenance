@@ -586,3 +586,27 @@ variable "alert_email" {
   description = "Email for CloudWatch alerts"
   type        = string
 }
+# Training images and model artifacts must never be publicly accessible.
+resource "aws_s3_bucket_public_access_block" "ml_models" {
+  bucket = aws_s3_bucket.ml_models.id
+  block_public_acls = true
+  block_public_policy = true
+  ignore_public_acls = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "training_data" {
+  bucket = aws_s3_bucket.training_data.id
+  block_public_acls = true
+  block_public_policy = true
+  ignore_public_acls = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "ml_artifacts" {
+  bucket = aws_s3_bucket.ml_artifacts.id
+  block_public_acls = true
+  block_public_policy = true
+  ignore_public_acls = true
+  restrict_public_buckets = true
+}

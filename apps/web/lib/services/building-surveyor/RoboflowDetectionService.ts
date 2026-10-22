@@ -29,6 +29,12 @@ interface DetectionResponse {
 export class RoboflowDetectionService {
   private static readonly MAX_IMAGES = 8;
   private static localModelInitialized = false;
+  private static initialization: Promise<void> | null = null;
+  private static localService: Promise<typeof import('./LocalYOLOInferenceService')> | null = null;
+
+  private static loadLocalService() {
+    return this.localService ??= import('./LocalYOLOInferenceService');
+  }
 
   // P1: Circuit breaker — stop calling Roboflow API after repeated failures
   private static readonly circuitBreaker = new CircuitBreaker({
@@ -39,14 +45,14 @@ export class RoboflowDetectionService {
 
   /**
    * Initialize local YOLO model if configured
-   * Should be called during application startup
+   * Called lazily by detect so unrelated requests do not load the model
    */
   static async initialize(): Promise<void> {
     const config = getRoboflowConfig();
     if (config.useLocalYOLO && (config.yoloModelPath || config.yoloLoadFromDatabase)) {
       try {
         // Lazy load to avoid bundling onnxruntime-node for client
-        const { LocalYOLOInferenceService } = await import('./LocalYOLOInferenceService');
+        const { LocalYOLOInferenceService } = await this.loadLocalService();
         await LocalYOLOInferenceService.initialize({
           modelPath: config.yoloModelPath,
           loadFromDatabase: config.yoloLoadFromDatabase,
@@ -77,11 +83,17 @@ export class RoboflowDetectionService {
 
     const config = getRoboflowConfig();
 
+    if (config.useLocalYOLO && !this.localModelInitialized) {
+      // Share initialization across concurrent image requests in this process.
+      this.initialization ??= this.initialize();
+      await this.initialization;
+    }
+
     // Use local inference if configured and available
     if (config.useLocalYOLO && this.localModelInitialized) {
       try {
         // Lazy load to avoid bundling onnxruntime-node for client
-        const { LocalYOLOInferenceService } = await import('./LocalYOLOInferenceService');
+        const { LocalYOLOInferenceService } = await this.loadLocalService();
         
         if (!LocalYOLOInferenceService.isAvailable()) {
           throw new Error('Local YOLO service not available');
@@ -207,4 +219,3 @@ export class RoboflowDetectionService {
     }
   }
 }
-

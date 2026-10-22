@@ -17,6 +17,7 @@ export const POST = withApiHandler(
     const formData = await request.formData();
     const rawTitle = formData.get('title');
     const rawCategory = formData.get('category');
+    const description = String(formData.get('description') ?? '').trim();
     const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
     const category =
       typeof rawCategory === 'string' ? rawCategory.trim() : '';
@@ -30,17 +31,18 @@ export const POST = withApiHandler(
           'arrayBuffer' in value
       );
 
-    if (!title || !category) {
+    if (!title || title.length > 100 || !category || description.length > 2000) {
       return NextResponse.json({ error: 'Title and category are required' }, { status: 400 });
     }
 
-    if (photoFiles.length === 0) {
-      return NextResponse.json({ error: 'At least one photo is required' }, { status: 400 });
+    if (photoFiles.length === 0 || photoFiles.length > 10) {
+      return NextResponse.json({ error: 'Choose between 1 and 10 photos' }, { status: 400 });
     }
 
     const uploadedUrls: string[] = [];
     const uploadedPaths: string[] = [];
 
+    const validatedFiles = [];
     for (const file of photoFiles) {
       const validation = await validateImageUpload(file, MAX_FILE_SIZES.profileImage);
       if (!validation.valid) {
@@ -55,6 +57,10 @@ export const POST = withApiHandler(
         }, { status: 400 });
       }
 
+      validatedFiles.push({ file, validation });
+    }
+
+    for (const { file, validation } of validatedFiles) {
       // SECURITY: Sanitize filename to prevent path traversal attacks
       const sanitizedBaseName = file.name
         .replace(/[^a-zA-Z0-9.-]/g, '_')
@@ -76,7 +82,8 @@ export const POST = withApiHandler(
 
       if (uploadError) {
         logger.error('Upload error', uploadError, { service: 'contractor', userId: user.id, fileName: file.name, filePath });
-        continue; // Skip this file but continue with others
+        if (uploadedPaths.length) await serverSupabase.storage.from('contractor-portfolio').remove(uploadedPaths);
+        return NextResponse.json({ error: 'Could not upload the selected photos. Please retry.' }, { status: 500 });
       }
 
       const { data: { publicUrl } } = serverSupabase.storage.from('contractor-portfolio').getPublicUrl(filePath);
@@ -94,11 +101,10 @@ export const POST = withApiHandler(
         contractor_id: user.id,
         post_type: 'portfolio',
         title,
-        project_category: category,
+        content: description,
+        description,
+        is_active: true,
         media_urls: uploadedUrls,
-        thumbnail_url: uploadedUrls[0],
-        is_public: true,
-        is_featured: false,
         created_at: new Date().toISOString(),
       })
       .select()

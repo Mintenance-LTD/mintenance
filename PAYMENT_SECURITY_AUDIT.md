@@ -98,9 +98,9 @@ HOMEOWNER (refund path)
 # STRIPE CONFIGURATION (Test Mode)     ← COMMENT SAYS TEST MODE
 # ============================================
 # ⚠️ TODO: ROTATE - https://dashboard.stripe.com/apikeys
-STRIPE_SECRET_KEY=sk_live_REDACTED...   # ← LIVE KEY!
+STRIPE_SECRET_KEY=<REDACTED_STRIPE_KEY>   # ← LIVE KEY!
 STRIPE_WEBHOOK_SECRET=whsec_REDACTED
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_REDACTED...  # ← LIVE KEY!
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<REDACTED_STRIPE_KEY>  # ← LIVE KEY!
 ```
 
 **What's wrong**:
@@ -112,11 +112,11 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_REDACTED...  # ← LIVE KEY!
 **Also in same file**:
 ```bash
 DATABASE_URL=postgresql://postgres.xxx:REDACTED@...  # ← WEAK password (TODO noted)
-JWT_SECRET=SLnnjgPA6j/1jrLF7OcU...                       # ← TODO: ROTATE
-OPENAI_API_KEY=sk-proj-tz834m3iYjCQ...                   # ← TODO: ROTATE
-TWILIO_AUTH_TOKEN=b522cdde15c6893bf3ca4345409cbf61       # ← TODO: ROTATE
-SENDGRID_API_KEY=SG.XMmXbHPxTYe_ZANuECPDIg...           # ← TODO: ROTATE
-ENCRYPTION_MASTER_KEY=2189bc3d0d3905445428c...            # ← TODO: ROTATE (re-encrypt data)
+JWT_SECRET=<REDACTED>                       # ← TODO: ROTATE
+OPENAI_API_KEY=<REDACTED>                   # ← TODO: ROTATE
+TWILIO_AUTH_TOKEN=<REDACTED>       # ← TODO: ROTATE
+SENDGRID_API_KEY=<REDACTED>           # ← TODO: ROTATE
+ENCRYPTION_MASTER_KEY=<REDACTED>            # ← TODO: ROTATE (re-encrypt data)
 ```
 
 **Impact**: Live Stripe account compromise = ability to create charges, issue refunds, access customer payment methods, view transaction history.

@@ -5,7 +5,7 @@ export const recoveryJobs = [
   {
     name: 'recurring-job-creator',
     label: 'Recurring job creation',
-    maxAgeMinutes: 26 * 60,
+    maxAgeMinutes: 45,
   },
   {
     name: 'model-retraining',

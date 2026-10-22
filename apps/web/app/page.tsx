@@ -24,7 +24,7 @@ import { FinalCTA } from '@/components/landing/final-cta';
  */
 
 export const metadata: Metadata = {
-  title: 'Mintenance — Hire Local Tradespeople With Escrow-Protected Payments',
+  title: 'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
   description:
     'Post home maintenance jobs, compare local tradespeople on the platform, and keep payment protected in escrow until the work is approved.',
   keywords:
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     url: 'https://www.mintenance.co.uk',
     siteName: 'Mintenance',
     title:
-      'Mintenance — Hire Local Tradespeople With Escrow-Protected Payments',
+      'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
     description:
       'Post home maintenance jobs, compare local tradespeople on the platform, and keep payment protected in escrow until the work is approved.',
     images: [
@@ -43,14 +43,14 @@ export const metadata: Metadata = {
         url: 'https://www.mintenance.co.uk/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Mintenance — modern home maintenance platform',
+        alt: 'Mintenance: modern home maintenance platform',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     site: '@mintenance',
-    title: 'Mintenance — Hire Local Tradespeople',
+    title: 'Mintenance: Hire Local Tradespeople',
     description:
       'Post jobs, compare local tradespeople, and protect payment in escrow until sign-off.',
   },

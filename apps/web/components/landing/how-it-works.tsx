@@ -17,7 +17,7 @@ const STEPS = [
     number: 2,
     title: 'Compare bids',
     description:
-      'Local tradespeople on the platform send honest quotes — typically within 24–48 hours. Review profiles, ratings and past work.',
+      'Local tradespeople on the platform send honest quotes: typically within 24–48 hours. Review profiles, ratings and past work.',
   },
   {
     number: 3,
@@ -151,7 +151,7 @@ export function HowItWorks() {
               boxShadow: 'var(--me-shadow-btn)',
             }}
           >
-            Post a job — free
+            Post a job: free
           </Link>
         </div>
       </div>

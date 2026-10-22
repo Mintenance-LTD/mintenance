@@ -37,7 +37,7 @@ export function AppPreviewSection() {
             <div className='rounded-xl overflow-hidden'>
               <img
                 src='/screenshots/contractor/discover-jobs.png'
-                alt='Discover Jobs — browse available projects on a map, filter by trade, distance, and budget'
+                alt='Discover Jobs: browse available projects on a map, filter by trade, distance, and budget'
                 className='w-full h-auto'
                 loading='eager'
               />
@@ -48,7 +48,7 @@ export function AppPreviewSection() {
           <div className='absolute -bottom-8 -left-4 w-40 sm:w-48 rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-[-4deg] hidden md:block z-10'>
             <img
               src='/screenshots/mobile/homeowner-dashboard.png'
-              alt='Homeowner mobile app — active projects, bids received'
+              alt='Homeowner mobile app: active projects, bids received'
               className='w-full h-auto'
               loading='lazy'
             />
@@ -58,7 +58,7 @@ export function AppPreviewSection() {
           <div className='absolute -bottom-8 -right-4 w-40 sm:w-48 rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-[4deg] hidden md:block z-10'>
             <img
               src='/screenshots/mobile/contractor-dashboard.png'
-              alt='Contractor mobile app — portfolio stats, earnings, quick actions'
+              alt='Contractor mobile app: portfolio stats, earnings, quick actions'
               className='w-full h-auto'
               loading='lazy'
             />

@@ -249,7 +249,7 @@ export function PricingClient() {
                 className='text-sm md:text-base max-w-3xl mx-auto mb-8'
                 style={{ color: 'var(--me-brand-soft)' }}
               >
-                From single homeowners to letting agencies — find the plan that
+                For homeowners and letting agencies. Find the plan that
                 fits your portfolio.
               </p>
             )}

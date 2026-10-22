@@ -33,7 +33,7 @@ export const LEARNING_CARDS: LearningCard[] = [
     audience: 'contractor',
     title: 'What Stripe Connect asks for',
     description:
-      'Exactly which documents Stripe needs before your first payout — ID, proof of address, bank details — and how long each step takes.',
+      'Exactly which documents Stripe needs before your first payout: ID, proof of address, bank details: and how long each step takes.',
     durationSeconds: 60,
     videoUrl: null,
     thumbnail: null,

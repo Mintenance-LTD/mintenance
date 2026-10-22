@@ -1,3 +1,4 @@
+import { usePagedJobMessages } from '../hooks/usePagedJobMessages';
 /**
  * MessagingScreen — Redesigned chat with green bubbles, date separators,
  * animated typing indicator, and contextual empty state.
@@ -12,6 +13,8 @@ import React, {
 } from 'react';
 import {
   View,
+  Text,
+  TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -34,7 +37,6 @@ import VideoCallScheduler from '../components/video-call/VideoCallScheduler';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import {
-  useJobMessages,
   useSendMessage,
   useMarkMessagesAsRead,
   useRealTimeMessages,
@@ -82,6 +84,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const [quoteDescription, setQuoteDescription] = useState('');
   const [quoteSending, setQuoteSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const lastScrolledMessage = useRef<string | undefined>(undefined);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingBroadcastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(
@@ -92,7 +95,11 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     data: rawMessages,
     isLoading: loading,
     error,
-  } = useJobMessages(jobId);
+    hasOlder,
+    loadOlder,
+    loadingOlder,
+    olderError,
+  } = usePagedJobMessages(jobId);
   const messages = useMemo(
     () => (Array.isArray(rawMessages) ? rawMessages : []) as Message[],
     [rawMessages]
@@ -470,7 +477,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   if (loading) return <MessagingLoading />;
-  if (error)
+  if (error && messages.length === 0)
     return (
       <MessagingError onRetry={() => goBackSafe(navigation, 'MessagesList')} />
     );
@@ -518,6 +525,24 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
               styles.messagesContent,
               messages.length === 0 && styles.emptyList,
             ]}
+            maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+            ListHeaderComponent={
+              hasOlder ? (
+                <TouchableOpacity
+                  onPress={loadOlder}
+                  disabled={loadingOlder}
+                  accessibilityRole='button'
+                >
+                  <Text>
+                    {loadingOlder
+                      ? 'Loading older messages…'
+                      : olderError
+                        ? 'Could not load older messages. Tap to retry.'
+                        : 'Load older messages'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null
+            }
             ListEmptyComponent={
               <MessagingEmpty
                 jobTitle={jobTitle}
@@ -525,7 +550,9 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
               />
             }
             onContentSizeChange={() => {
-              if (messages.length > 0) {
+              const newestId = messages[messages.length - 1]?.id;
+              if (newestId && newestId !== lastScrolledMessage.current) {
+                lastScrolledMessage.current = newestId;
                 flatListRef.current?.scrollToEnd({ animated: false });
               }
             }}

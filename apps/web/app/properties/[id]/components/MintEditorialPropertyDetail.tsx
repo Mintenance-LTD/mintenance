@@ -192,10 +192,10 @@ export function MintEditorialPropertyDetail({
       ) : null}
 
       {activeTab === 'documents' ? (
-        <>
+        <div style={{ display: 'grid', gap: 24 }}>
           <PropertyFileHub propertyId={property.id} />
           <MintEditorialPropertyDocuments certificates={certificates} />
-        </>
+        </div>
       ) : null}
 
       {activeTab === 'timeline' ? (

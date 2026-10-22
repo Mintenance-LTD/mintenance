@@ -18,7 +18,7 @@ const STEPS: StepConfig[] = [
   { label: 'Posted', icon: 'clipboard-outline' },
   { label: 'Assigned', icon: 'person-add-outline' },
   { label: 'Contract', icon: 'document-text-outline' },
-  { label: 'In Progress', icon: 'hammer-outline' },
+  { label: 'Working', icon: 'hammer-outline' },
   { label: 'Completed', icon: 'checkmark-circle-outline' },
 ];
 

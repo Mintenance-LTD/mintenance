@@ -124,7 +124,7 @@ export function BentoFeaturesSection() {
             }}
           >
             Mintenance is designed around the parts of home maintenance that
-            usually create stress — finding the right person, agreeing the work,
+            usually create stress: finding the right person, agreeing the work,
             protecting the money, and keeping proof of what happened.
           </p>
         </motion.div>
