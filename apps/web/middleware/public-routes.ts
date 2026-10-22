@@ -48,6 +48,8 @@ const PUBLIC_PAGE_ROUTES = [
 
 /** Exact-match public API routes. Sub-paths are NOT allowed. */
 const PUBLIC_API_ROUTES_EXACT = new Set([
+  '/api/report-access',
+  '/api/report-photos',
   '/api/report-conversation/receipt',
   '/api/csrf',
   '/api/contact', // validated and rate-limited anonymous support form
@@ -108,6 +110,7 @@ const TENANT_REPORT_RE = /^\/(?:api\/)?report\/[0-9a-f]{32}$/i;
  * Returns true when the given pathname requires no authentication.
  */
 export function isPublicRoute(pathname: string): boolean {
+  if (pathname === '/maintenance/report-access') return true;
   // The shell exposes no report data; the API requires a private receipt.
   if (/^\/maintenance\/reports\/[0-9a-f-]{36}$/i.test(pathname)) return true;
   if (pathname === '/') return true;

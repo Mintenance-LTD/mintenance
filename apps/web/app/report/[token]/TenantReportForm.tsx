@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { ReportExtras } from '@/app/maintenance/reports/ReportExtras';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -243,7 +244,8 @@ export function TenantReportForm({ token }: { token: string }) {
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(
-                      new URL(conversationUrl, window.location.origin).href
+                      new URL(conversationUrl, 'https://www.mintenance.co.uk')
+                        .href
                     );
                     setCopied(true);
                   } catch {
@@ -265,6 +267,12 @@ export function TenantReportForm({ token }: { token: string }) {
             Keep your report reference and contact your property manager for
             updates.
           </p>
+        )}
+        {conversationUrl && (
+          <ReportExtras
+            reportId={reportId}
+            receipt={conversationUrl.split('#')[1]}
+          />
         )}
         <button
           className='mt-3 font-semibold text-emerald-800 underline underline-offset-4'
@@ -417,8 +425,9 @@ export function TenantReportForm({ token }: { token: string }) {
               3. How can we contact you?
             </h2>
             <p className='mb-5 text-sm text-slate-600'>
-              Phone and email are optional. You will receive a private link for
-              replies after submitting.
+              Phone and email are optional. After sending, you can add photos
+              and confirm your email for updates. You will receive a private
+              link for replies after submitting.
             </p>
             <label className='block text-sm font-medium' htmlFor='name'>
               Your name <span className='text-slate-500'>(required)</span>

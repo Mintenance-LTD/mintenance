@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
+import { ReportExtras } from './ReportExtras';
 type Message = {
   id: string;
   author_role: string;
@@ -16,6 +17,8 @@ export function ReportConversation({ reportId }: { reportId: string }) {
       status: string;
       messages: Message[];
       hasMore: boolean;
+      photos?: { url: string; slot: number }[];
+      photos_unavailable?: boolean;
     } | null>(null),
     [error, setError] = useState(''),
     [body, setBody] = useState(''),
@@ -120,6 +123,17 @@ export function ReportConversation({ reportId }: { reportId: string }) {
       {data && (
         <>
           <p>Status: {data.status}</p>
+          {data.photos_unavailable && (
+            <p role='status'>
+              Photos could not be loaded. Refresh to try again.
+            </p>
+          )}
+          <ReportExtras
+            reportId={reportId}
+            receipt={receipt}
+            photos={data.photos}
+            refresh={() => setAttempt((v) => v + 1)}
+          />
           <ul className='space-y-3'>
             {data.messages.map((message) => (
               <li key={message.id} className='border-b pb-3'>
