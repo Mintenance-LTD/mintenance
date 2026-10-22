@@ -42,7 +42,7 @@ it('copies the separate reporting token used by the public endpoint', async () =
   );
   await waitFor(() =>
     expect(m.copy).toHaveBeenCalledWith(
-      `${window.location.origin}/report/public-report-token`
+      `https://www.mintenance.co.uk/report/public-report-token`
     )
   );
   expect(m.success).toHaveBeenCalledWith('Link copied to clipboard');

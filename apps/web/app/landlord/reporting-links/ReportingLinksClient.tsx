@@ -50,7 +50,7 @@ export function ReportingLinksClient({
     'Unknown Property';
 
   const copyLink = async (token: string, id: string) => {
-    const url = `${window.location.origin}/report/${token}`;
+    const url = `https://www.mintenance.co.uk/report/${token}`;
     const ok = await safeCopyToClipboard(url);
     if (ok) {
       setCopiedId(id);
