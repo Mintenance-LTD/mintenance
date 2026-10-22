@@ -216,6 +216,7 @@ export const POST = withApiHandler(
     return NextResponse.json(
       {
         success: true,
+        conversation_url: `/maintenance/reports/${report.id}#${receipt}`,
         report_id: report.id,
         message:
           'Your report has been submitted. The property manager will be notified.',
