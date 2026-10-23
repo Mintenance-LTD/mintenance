@@ -80,7 +80,15 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: apps/web
-        run: npx playwright install --with-deps
+        timeout-minutes: 10
+        env:
+          E2E_ALL_BROWSERS: ${{ github.event_name == 'push' && 'true' || 'false' }}
+        run: |
+          if [ "$E2E_ALL_BROWSERS" = "true" ]; then
+            npx playwright install --with-deps
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0

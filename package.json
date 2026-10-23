@@ -73,7 +73,7 @@
     "test:accessibility": "node scripts/check-accessibility.js",
     "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts",
     "security:prepare": "node scripts/apply-security-patches.cjs",
-    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs"
+    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/zod-collection-bounds.test.cjs"
   },
   "keywords": [
     "marketplace",
@@ -132,6 +132,7 @@
     "typescript-eslint": "^8"
   },
   "overrides": {
+    "zod@>=4 <4.6.6": "4.6.7",
     "@opentelemetry/api": "1.9.1",
     "dompurify": "3.4.17",
     "react": "19.1.0",

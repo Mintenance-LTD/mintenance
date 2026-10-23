@@ -537,7 +537,10 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                   >
                     <div>
                       <div className='flex items-center justify-between mb-2'>
-                        <label className='block text-sm font-medium text-gray-700'>
+                        <label
+                          htmlFor='bid-amount'
+                          className='block text-sm font-medium text-gray-700'
+                        >
                           Your Bid Amount (£) *
                         </label>
                         <button
@@ -575,6 +578,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                           £
                         </span>
                         <input
+                          id='bid-amount'
                           type='number'
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
@@ -672,10 +676,14 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
 
               {/* Proposal Description */}
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label
+                  htmlFor='bid-description'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
                   Proposal Description * (minimum 50 characters)
                 </label>
                 <textarea
+                  id='bid-description'
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Explain your approach, timeline, and what's included in your quote..."
@@ -711,10 +719,14 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
               {/* Duration and Start Date */}
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  <label
+                    htmlFor='bid-duration'
+                    className='block text-sm font-medium text-gray-700 mb-2'
+                  >
                     Estimated Duration (days) *
                   </label>
                   <input
+                    id='bid-duration'
                     type='number'
                     value={estimatedDuration}
                     onChange={(e) => {
@@ -736,10 +748,14 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                   </p>
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  <label
+                    htmlFor='bid-start-date'
+                    className='block text-sm font-medium text-gray-700 mb-2'
+                  >
                     Proposed Start Date *
                   </label>
                   <input
+                    id='bid-start-date'
                     type='date'
                     value={proposedStartDate}
                     onChange={(e) => setProposedStartDate(e.target.value)}

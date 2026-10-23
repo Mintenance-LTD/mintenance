@@ -71,21 +71,29 @@ test.describe('Authenticated Contractor Flow', () => {
 
   test('contractor can access bid submission form', async ({ page }) => {
     // Use the isolated fixture instead of accidentally following the payouts banner.
-    expect(process.env.E2E_BID_JOB_ID, 'bootstrap-e2e must seed a bid job').toBeTruthy();
+    expect(
+      process.env.E2E_BID_JOB_ID,
+      'bootstrap-e2e must seed a bid job'
+    ).toBeTruthy();
     await page.goto(`/contractor/jobs/${process.env.E2E_BID_JOB_ID}/view`);
     await page.waitForLoadState('domcontentloaded');
 
-    // From a job detail page the bid form must be reachable: either a
-    // Submit/Place Bid CTA that opens it, or the form already inline.
-    const bidButton = page.getByRole('button', {
-      name: /submit.*bid|place.*bid|bid.*now/i,
-    });
-    if (await bidButton.isVisible().catch(() => false)) {
-      await bidButton.click();
-    }
+    // Both desktop and mobile layouts expose the same navigation action.
+    const bidButton = page
+      .getByRole('button', {
+        name: /submit.*bid|place.*bid|bid.*now/i,
+      })
+      .first();
+    await bidButton.click();
+    await expect(page).toHaveURL(
+      `/contractor/bid/${process.env.E2E_BID_JOB_ID}`
+    );
     await expect(page.getByLabel(/quote|amount|price/i)).toBeVisible({
       timeout: 5000,
     });
+    await expect(page.getByLabel(/proposal description/i)).toBeVisible();
+    await expect(page.getByLabel(/estimated duration/i)).toBeVisible();
+    await expect(page.getByLabel(/proposed start date/i)).toBeVisible();
   });
 
   test('contractor can submit a bid', async ({ page }) => {
@@ -156,7 +164,9 @@ test.describe('Authenticated Contractor Flow', () => {
     // failure (broken session handling), not a reason to skip.
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
     await expect(page.locator('#main-content')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Quotes', exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Quotes', exact: true })
+    ).toBeVisible();
   });
 
   test('contractor can view their profile', async ({ page }) => {
