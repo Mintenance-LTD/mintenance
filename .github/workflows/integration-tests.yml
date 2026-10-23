@@ -106,8 +106,12 @@ jobs:
           echo "::add-mask::$SERVICE_KEY"
           echo "SUPABASE_TEST_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_TEST_SERVICE_KEY=$SERVICE_KEY" >> "$GITHUB_ENV"
-          curl -f http://localhost:54321/rest/v1/ \
-            -H "apikey: $ANON_KEY" --output /dev/null
+          # Probe a bounded table read; the full OpenAPI document can exceed
+          # the statement timeout with this schema's hundreds of functions.
+          curl --fail --retry 5 --retry-connrefused --retry-delay 2 \
+            'http://localhost:54321/rest/v1/profiles?select=id&limit=0' \
+            -H "apikey: $SERVICE_KEY" -H "Authorization: Bearer $SERVICE_KEY" \
+            --output /dev/null
 
       - name: Run integration tests
         working-directory: apps/web

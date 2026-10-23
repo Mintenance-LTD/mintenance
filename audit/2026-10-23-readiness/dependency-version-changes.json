@@ -1,0 +1,52 @@
+[
+  {
+    "path": "node_modules/@opentelemetry/api",
+    "before": "1.9.0",
+    "after": "1.9.1"
+  },
+  {
+    "path": "node_modules/@sentry-internal/browser-utils",
+    "before": "10.42.0",
+    "after": "10.37.0"
+  },
+  {
+    "path": "node_modules/@sentry-internal/feedback",
+    "before": "7.119.1",
+    "after": "10.37.0"
+  },
+  {
+    "path": "node_modules/@sentry-internal/replay",
+    "before": "10.42.0",
+    "after": "10.37.0"
+  },
+  {
+    "path": "node_modules/@sentry-internal/replay-canvas",
+    "before": "7.119.1",
+    "after": "10.37.0"
+  },
+  {
+    "path": "node_modules/@sentry/browser",
+    "before": "7.119.1",
+    "after": "10.37.0"
+  },
+  {
+    "path": "node_modules/@sentry/react",
+    "before": "7.119.1",
+    "after": "10.37.0"
+  },
+  {
+    "path": "node_modules/dompurify",
+    "before": "3.4.16",
+    "after": "3.4.17"
+  },
+  {
+    "path": "node_modules/glob",
+    "before": "13.0.1",
+    "after": "13.0.6"
+  },
+  {
+    "path": "node_modules/path-scurry",
+    "before": "2.0.1",
+    "after": "2.0.2"
+  }
+]

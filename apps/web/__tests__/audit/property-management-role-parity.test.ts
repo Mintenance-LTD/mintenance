@@ -245,6 +245,6 @@ it('accepts the empty optional category sent by the existing property form', asy
   expect(response.status).toBe(201);
   expect(m.insert).toHaveBeenCalledWith(
     'recurring_schedules',
-    expect.objectContaining({ category: 'general' })
+      expect.objectContaining({ category: 'handyman' })
   );
 });

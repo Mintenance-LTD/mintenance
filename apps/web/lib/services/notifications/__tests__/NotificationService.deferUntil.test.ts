@@ -125,6 +125,54 @@ describe('NotificationService.createNotification — deferUntil', () => {
     expect(returned).toBe(true);
   });
 
+  it('surfaces insert failures to durable callers and does not push an unpersisted alert', async () => {
+    const chain = buildInsertChain();
+    chain.single.mockResolvedValue({
+      data: null,
+      error: { message: 'type too long' },
+    });
+    mockFrom.mockReturnValue(chain);
+    await expect(
+      NotificationService.createNotification(baseParams({ throwOnError: true }))
+    ).rejects.toThrow('notification_insert_failed');
+    expect(mockSendPush).not.toHaveBeenCalled();
+  });
+
+  it('distinguishes a muted notification from a failed write for durable callers', async () => {
+    mockLoadPreferences.mockResolvedValue({
+      ...PERMISSIVE_PREFS,
+      disabled_types: ['job_nearby'],
+    });
+    expect(
+      await NotificationService.createNotification(
+        baseParams({ throwOnError: true })
+      )
+    ).toBeNull();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('durably queues push-only delivery instead of reporting it as preference suppression', async () => {
+    mockLoadPreferences.mockResolvedValue({
+      ...PERMISSIVE_PREFS,
+      in_app_enabled: false,
+    });
+    expect(
+      await NotificationService.createNotification(
+        baseParams({ throwOnError: true })
+      )
+    ).toBe('queue-1');
+    expect(mockQueueNotification).toHaveBeenCalled();
+    expect(mockSendPush).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failed deferred enqueue to durable callers', async () => {
+    mockShouldSendImmediately.mockResolvedValue({ immediate: false });
+    mockQueueNotification.mockResolvedValue(null);
+    await expect(
+      NotificationService.createNotification(baseParams({ throwOnError: true }))
+    ).rejects.toThrow('notification_enqueue_failed');
+  });
+
   it('queues instead of firing when deferUntil is in the future', async () => {
     const deferUntil = new Date(Date.now() + 60 * 60 * 1000);
 

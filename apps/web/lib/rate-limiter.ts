@@ -42,7 +42,7 @@ interface RateLimitConfig {
    * instance count, hard-capped) to unclassified routes — see
    * fallbackRateLimit. Tagged routes still fail fully closed.
    */
-  criticality?: 'auth' | 'payment' | 'admin';
+  criticality?: 'auth' | 'payment' | 'admin' | 'ai';
 }
 
 export class RedisRateLimiter {

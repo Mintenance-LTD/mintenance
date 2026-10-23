@@ -17,6 +17,8 @@ export const GET = withCronHandler('admin-alerts', async () => {
   return {
     created: result.created,
     skipped: result.skipped,
+    suppressed: result.suppressed,
+    failed: result.failed,
     alertTypes: result.alerts.map((a) => a.type),
   };
 });

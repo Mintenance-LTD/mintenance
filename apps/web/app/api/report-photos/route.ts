@@ -7,6 +7,7 @@ import { requireReceipt } from '@/lib/reports/followup';
 
 export const POST = withApiHandler(
   {
+    // auth-check: ok — requireReceipt authenticates the report's private token before accepting or uploading photos.
     auth: false,
     csrf: false,
     rateLimit: { maxRequests: 10, windowMs: 60_000 },

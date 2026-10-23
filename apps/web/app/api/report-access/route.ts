@@ -29,6 +29,7 @@ const reply = (body: unknown, status = 200) =>
   });
 export const POST = withApiHandler(
   {
+    // auth-check: ok — guest reports use receipt tokens; recovery emails only the stored address, and verify requires its one-time token.
     auth: false,
     csrf: false,
     rateLimit: { maxRequests: 5, windowMs: 60_000, criticality: 'auth' },

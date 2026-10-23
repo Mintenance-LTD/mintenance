@@ -56,7 +56,7 @@ describe('MobileApiClient', () => {
       expect(config).toEqual({
         baseURL: expect.stringContaining('localhost:3000'),
         timeout: 30000,
-        retries: 3,
+        retries: 0,
         retryDelay: 1000,
       });
     });

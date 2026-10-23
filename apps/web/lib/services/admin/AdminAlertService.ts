@@ -4,6 +4,7 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
 
 interface AdminAlert {
   type: string;
+  dedupeKey: string;
   title: string;
   message: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
@@ -12,8 +13,11 @@ interface AdminAlert {
 }
 
 interface GenerateAlertsResult {
+  /** Number of recipient notifications persisted or durably queued. */
   created: number;
   skipped: number;
+  suppressed: number;
+  failed: number;
   alerts: AdminAlert[];
 }
 
@@ -27,6 +31,9 @@ export class AdminAlertService {
   static async generateAlerts(): Promise<GenerateAlertsResult> {
     const alerts: AdminAlert[] = [];
     let skipped = 0;
+    let failed = 0;
+    let created = 0;
+    let suppressed = 0;
 
     const checks = [
       () => this.checkOverdueEscrows(alerts),
@@ -41,6 +48,7 @@ export class AdminAlertService {
         const checkSkipped = await check();
         skipped += checkSkipped;
       } catch (error) {
+        failed++;
         logger.error('Alert check failed', error, {
           service: this.SERVICE_NAME,
         });
@@ -50,8 +58,13 @@ export class AdminAlertService {
     // Broadcast all non-duplicate alerts to every admin user
     if (alerts.length > 0) {
       try {
-        await this.broadcastToAdmins(alerts);
+        const delivery = await this.broadcastToAdmins(alerts);
+        created = delivery.created;
+        skipped += delivery.skipped;
+        suppressed = delivery.suppressed;
+        failed += delivery.failed;
       } catch (error) {
+        failed++;
         logger.error('Failed to broadcast alerts to admins', error, {
           service: this.SERVICE_NAME,
         });
@@ -60,11 +73,13 @@ export class AdminAlertService {
 
     logger.info('Alert generation complete', {
       service: this.SERVICE_NAME,
-      created: alerts.length,
+      created,
       skipped,
+      suppressed,
+      failed,
     });
 
-    return { created: alerts.length, skipped, alerts };
+    return { created, skipped, suppressed, failed, alerts };
   }
 
   // ---------------------------------------------------------------------------
@@ -78,7 +93,7 @@ export class AdminAlertService {
   private static async checkOverdueEscrows(
     alerts: AdminAlert[]
   ): Promise<number> {
-    let skipped = 0;
+    const skipped = 0;
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
@@ -94,17 +109,11 @@ export class AdminAlertService {
         service: this.SERVICE_NAME,
         error: error.message,
       });
-      return skipped;
+      throw new Error('overdue_escrow_query_failed');
     }
 
     for (const escrow of data || []) {
-      const alertType = `overdue_escrow_${escrow.id}`;
-
-      const duplicate = await this.isDuplicate(alertType);
-      if (duplicate) {
-        skipped++;
-        continue;
-      }
+      const alertType = 'overdue_escrow';
 
       const daysHeld = Math.floor(
         (Date.now() - new Date(escrow.created_at).getTime()) /
@@ -113,8 +122,9 @@ export class AdminAlertService {
 
       alerts.push({
         type: alertType,
+        dedupeKey: `${alertType}_${escrow.id}`,
         title: `Overdue Escrow (${daysHeld} days)`,
-        message: `Escrow ${escrow.id} for job ${escrow.job_id} has been held for ${daysHeld} days without release. Amount: \u00A3${(escrow.amount / 100).toFixed(2)}.`,
+        message: `Escrow ${escrow.id} for job ${escrow.job_id} has been held for ${daysHeld} days without release. Amount: ${this.formatPounds(escrow.amount)}.`,
         severity: 'high',
         actionUrl: `/admin/escrow/reviews`,
         metadata: {
@@ -155,7 +165,7 @@ export class AdminAlertService {
         service: this.SERVICE_NAME,
         error: error.message,
       });
-      return skipped;
+      throw new Error('unverified_contractor_query_failed');
     }
 
     const contractors = data || [];
@@ -165,10 +175,6 @@ export class AdminAlertService {
 
     // Deduplicate at the batch level -- one alert for the whole group
     const alertType = 'unverified_contractors_batch';
-    const duplicate = await this.isDuplicate(alertType);
-    if (duplicate) {
-      return skipped + 1;
-    }
 
     const daysSinceOldest = Math.floor(
       (Date.now() - new Date(contractors[0].created_at).getTime()) /
@@ -177,6 +183,7 @@ export class AdminAlertService {
 
     alerts.push({
       type: alertType,
+      dedupeKey: alertType,
       title: `${contractors.length} Unverified Contractor${contractors.length > 1 ? 's' : ''}`,
       message: `${contractors.length} contractor${contractors.length > 1 ? 's have' : ' has'} been registered for over 7 days without verification. Oldest: ${daysSinceOldest} days.`,
       severity: 'medium',
@@ -192,19 +199,18 @@ export class AdminAlertService {
   }
 
   /**
-   * 3. High-value payments -- any escrow transaction over 5000 (amount in
-   *    pence, so 500000) created in the last 24 hours.
+   * 3. High-value payments -- escrow transactions of at least GBP 5,000
+   *    created in the last 24 hours. Escrow amounts are stored in pounds.
    *    Severity: high
    */
   private static async checkHighValuePayments(
     alerts: AdminAlert[]
   ): Promise<number> {
-    let skipped = 0;
+    const skipped = 0;
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-    // Amount stored in pence -- 5000 GBP = 500_000 pence
-    const HIGH_VALUE_THRESHOLD = 500_000;
+    const HIGH_VALUE_THRESHOLD = 5_000;
 
     const { data, error } = await serverSupabase
       .from('escrow_transactions')
@@ -218,22 +224,17 @@ export class AdminAlertService {
         service: this.SERVICE_NAME,
         error: error.message,
       });
-      return skipped;
+      throw new Error('high_value_payment_query_failed');
     }
 
     for (const payment of data || []) {
-      const alertType = `high_value_payment_${payment.id}`;
-
-      const duplicate = await this.isDuplicate(alertType);
-      if (duplicate) {
-        skipped++;
-        continue;
-      }
+      const alertType = 'high_value_payment';
 
       alerts.push({
         type: alertType,
-        title: `High-Value Payment: \u00A3${(payment.amount / 100).toFixed(2)}`,
-        message: `A payment of \u00A3${(payment.amount / 100).toFixed(2)} was made for job ${payment.job_id}. Please review for compliance.`,
+        dedupeKey: `${alertType}_${payment.id}`,
+        title: `High-Value Payment: ${this.formatPounds(payment.amount)}`,
+        message: `A payment of ${this.formatPounds(payment.amount)} was made for job ${payment.job_id}. Please review for compliance.`,
         severity: 'high',
         actionUrl: `/admin/escrow/reviews`,
         metadata: {
@@ -271,7 +272,7 @@ export class AdminAlertService {
         service: this.SERVICE_NAME,
         error: error.message,
       });
-      return skipped;
+      throw new Error('stale_job_query_failed');
     }
 
     const staleJobs = data || [];
@@ -281,10 +282,6 @@ export class AdminAlertService {
 
     // Deduplicate at the batch level
     const alertType = 'stale_jobs_batch';
-    const duplicate = await this.isDuplicate(alertType);
-    if (duplicate) {
-      return skipped + 1;
-    }
 
     const daysSinceOldest = Math.floor(
       (Date.now() - new Date(staleJobs[0].updated_at).getTime()) /
@@ -293,6 +290,7 @@ export class AdminAlertService {
 
     alerts.push({
       type: alertType,
+      dedupeKey: alertType,
       title: `${staleJobs.length} Stale Job${staleJobs.length > 1 ? 's' : ''}`,
       message: `${staleJobs.length} job${staleJobs.length > 1 ? 's have' : ' has'} been in "assigned" status for over 30 days. Oldest: ${daysSinceOldest} days without progress.`,
       severity: 'low',
@@ -315,7 +313,7 @@ export class AdminAlertService {
   private static async checkFailedPayments(
     alerts: AdminAlert[]
   ): Promise<number> {
-    let skipped = 0;
+    const skipped = 0;
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
@@ -333,7 +331,7 @@ export class AdminAlertService {
         service: this.SERVICE_NAME,
         error: error.message,
       });
-      return skipped;
+      throw new Error('failed_payment_query_failed');
     }
 
     const attempts = data || [];
@@ -354,19 +352,18 @@ export class AdminAlertService {
         continue;
       }
 
-      const alertType = `failed_payments_${userId}`;
-      const duplicate = await this.isDuplicate(alertType);
-      if (duplicate) {
-        skipped++;
-        continue;
-      }
+      const alertType = 'failed_payments';
 
-      const totalAmount = userAttempts.reduce((sum, a) => sum + a.amount, 0);
+      const totalAmount = userAttempts.reduce(
+        (sum, a) => sum + Number(a.amount),
+        0
+      );
 
       alerts.push({
         type: alertType,
+        dedupeKey: `${alertType}_${userId}`,
         title: `Multiple Failed Payments (${userAttempts.length} attempts)`,
-        message: `User ${userId} has ${userAttempts.length} failed payment attempts in the last 24 hours totalling \u00A3${(totalAmount / 100).toFixed(2)}. Possible fraud or card issue.`,
+        message: `User ${userId} has ${userAttempts.length} failed payment attempts in the last 24 hours totalling ${this.formatPounds(totalAmount)}. Possible fraud or card issue.`,
         severity: 'critical',
         actionUrl: `/admin/users/${userId}`,
         metadata: {
@@ -385,6 +382,13 @@ export class AdminAlertService {
   // Helpers
   // ---------------------------------------------------------------------------
 
+  private static formatPounds(amount: number | string): string {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+    }).format(Number(amount));
+  }
+
   /**
    * Get all admin user IDs for sending alerts.
    */
@@ -400,53 +404,76 @@ export class AdminAlertService {
         service: this.SERVICE_NAME,
         error: error.message,
       });
-      return [];
+      throw new Error('admin_recipient_query_failed');
     }
 
     return (data || []).map((u) => u.id);
   }
 
   /**
-   * Check if a similar alert was already created in the last 24 hours
-   * (deduplication). Uses the notification `type` field which stores the
-   * alert type string.
+   * Deduplicate per recipient, including deferred delivery. A successful
+   * delivery to one admin must not suppress another admin's retry.
    */
-  private static async isDuplicate(alertType: string): Promise<boolean> {
+  private static async isDuplicate(
+    alert: AdminAlert,
+    adminId: string
+  ): Promise<boolean> {
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
     const { data, error } = await serverSupabase
       .from('notifications')
       .select('id')
-      .eq('type', alertType)
+      .eq('user_id', adminId)
+      // Legacy records stored the entity key in type. Retain compatibility
+      // during the first day after rollout, including the old batch types.
+      .or(
+        `type.eq.${alert.dedupeKey},and(type.eq.${alert.type},metadata->>adminAlertKey.eq.${alert.dedupeKey})`
+      )
       .gte('created_at', oneDayAgo.toISOString())
       .limit(1);
 
     if (error) {
-      // If the dedup check fails, treat as non-duplicate to avoid silently
-      // swallowing alerts.
       logger.error('Deduplication check failed', {
         service: this.SERVICE_NAME,
-        alertType,
+        alertType: alert.type,
         error: error.message,
       });
-      return false;
+      throw new Error('admin_alert_dedup_query_failed');
     }
 
-    return (data || []).length > 0;
+    if ((data || []).length > 0) return true;
+
+    const { data: queued, error: queueError } = await serverSupabase
+      .from('notification_queue')
+      .select('id')
+      .eq('user_id', adminId)
+      .or(
+        `notification_type.eq.${alert.dedupeKey},and(notification_type.eq.${alert.type},metadata->>adminAlertKey.eq.${alert.dedupeKey})`
+      )
+      .in('status', ['pending', 'failed_push', 'sent'])
+      .gte('created_at', oneDayAgo.toISOString())
+      .limit(1);
+    if (queueError) throw new Error('admin_alert_queue_dedup_failed');
+    return (queued || []).length > 0;
   }
 
   /**
    * Insert notification rows for every admin user for each alert.
    */
-  private static async broadcastToAdmins(alerts: AdminAlert[]): Promise<void> {
+  private static async broadcastToAdmins(alerts: AdminAlert[]): Promise<{
+    created: number;
+    skipped: number;
+    suppressed: number;
+    failed: number;
+  }> {
     const adminIds = await this.getAdminUserIds();
 
     if (adminIds.length === 0) {
       logger.warn('No admin users found -- alerts will not be persisted', {
         service: this.SERVICE_NAME,
       });
-      return;
+      return { created: 0, skipped: 0, suppressed: 0, failed: alerts.length };
     }
 
     // 2026-05-01 audit follow-up: route through NotificationService so admin
@@ -460,6 +487,8 @@ export class AdminAlertService {
     const BATCH_SIZE = 100;
     let inserted = 0;
     let failures = 0;
+    let skipped = 0;
+    let suppressed = 0;
     const pairs: Array<{ adminId: string; alert: AdminAlert }> = alerts.flatMap(
       (alert) => adminIds.map((adminId) => ({ adminId, alert }))
     );
@@ -467,8 +496,10 @@ export class AdminAlertService {
     for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
       const batch = pairs.slice(i, i + BATCH_SIZE);
       const settled = await Promise.allSettled(
-        batch.map(({ adminId, alert }) =>
-          NotificationService.createNotification({
+        batch.map(async ({ adminId, alert }) => {
+          if (await this.isDuplicate(alert, adminId)) return 'duplicate';
+          const id = await NotificationService.createNotification({
+            throwOnError: true,
             userId: adminId,
             type: alert.type,
             title: alert.title,
@@ -477,14 +508,18 @@ export class AdminAlertService {
             metadata: {
               severity: alert.severity,
               ...alert.metadata,
+              adminAlertKey: alert.dedupeKey,
             },
-          })
-        )
+          });
+          return id ? 'created' : 'suppressed';
+        })
       );
       for (const r of settled) {
-        if (r.status === 'fulfilled' && r.value) {
-          inserted += 1;
-        } else if (r.status === 'rejected') {
+        if (r.status === 'fulfilled') {
+          if (r.value === 'created') inserted++;
+          else if (r.value === 'duplicate') skipped++;
+          else suppressed++;
+        } else {
           failures += 1;
           logger.error('Admin alert fan-out failed for one admin', {
             service: this.SERVICE_NAME,
@@ -502,5 +537,6 @@ export class AdminAlertService {
       inserted,
       failures,
     });
+    return { created: inserted, skipped, suppressed, failed: failures };
   }
 }

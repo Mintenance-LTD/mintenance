@@ -17,6 +17,7 @@ export const POST = withApiHandler({ auth: false, rateLimit: { maxRequests: 10, 
   const body = parsed.data;
   const userId = await MFAService.validatePreMFASession(body.preMfaToken);
   if (!userId) return NextResponse.json({ error: 'Setup expired. Sign in again.' }, { status: 401 });
+  // scoping-check: ok — userId comes only from the validated, unexpired pre-MFA session, never a request-supplied account ID.
   const { data: profile, error } = await serverSupabase.from('profiles').select('role, mfa_enabled').eq('id', userId).single();
   if (error || profile?.role !== 'admin' || profile.mfa_enabled) {
     return NextResponse.json({ error: 'Setup is not available. Sign in again.' }, { status: 403 });
