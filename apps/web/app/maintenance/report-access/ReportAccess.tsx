@@ -43,6 +43,12 @@ export function ReportAccess() {
           data.conversation_url
         )
       ) {
+        const receipt = data.conversation_url.split('#')[1];
+        try {
+          sessionStorage.setItem(`report-receipt:${reportId}`, receipt);
+        } catch {
+          /* The URL remains usable when storage is unavailable. */
+        }
         window.location.assign(data.conversation_url);
         return;
       }
