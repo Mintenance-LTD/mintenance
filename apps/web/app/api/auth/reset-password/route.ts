@@ -8,6 +8,7 @@ import {
   BadRequestError,
   RateLimitError,
   InternalServerError,
+  ServiceUnavailableError,
 } from '@/lib/errors/api-error';
 import { PasswordValidator, checkPasswordBreach } from '@mintenance/auth';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -111,6 +112,9 @@ export const POST = withApiHandler(
 
     // SECURITY: Check if password has been exposed in data breaches
     const breachResult = await checkPasswordBreach(newPassword);
+    if (breachResult.checked !== true) {
+      throw new ServiceUnavailableError('Password security check');
+    }
     if (breachResult.isBreached) {
       logger.warn(
         '[SECURITY] Password reset blocked - breached password detected',

@@ -5,23 +5,16 @@
   "report-type": "important",
   "allowlist": [
     {
-      "GHSA-5p2g-fcmc-qvqq|image-size": {
-        "active": true,
-        "notes": "Reviewed 2026-10-04: Metro pins image-size 1.x; fixed 2.0.4 changes the callable CommonJS API used by Metro Assets.js. Trusted repository assets only; user uploads are not build inputs. No app runtime import found. Upgrade Metro compatibly or supply a tested adapter before expiry.",
-        "expiry": "2026-11-03"
-      }
-    },
-    {
       "GHSA-86w9-cpqp-85rv|expo-updates>@expo/code-signing-certificates>node-forge": {
         "active": true,
-        "notes": "Reviewed 2026-10-04: no patched node-forge release. Expo CLI/code-signing tooling only; expo-updates imports this in cli/src, not shipped JS. Use only trusted operator-owned signing material. This is not approval to validate third-party certificates with forge. Recheck upstream before expiry.",
+        "notes": "Reviewed 2026-10-23: node-forge has no patched release. scripts/apply-security-patches.cjs verifies the exact 1.4.0 registry source and enforces nested DigestAlgorithm element counts (upstream PR 1152). Root prepare/build:packages and mobile validation/EAS hooks apply it; security-scan runs positive and malformed-signature regressions. npm ci --ignore-scripts users must run npm run security:prepare before tooling. Advisory remains visible until a fixed upstream version is adopted. Trusted signing inputs only; recheck before expiry.",
         "expiry": "2026-11-03"
       }
     },
     {
       "GHSA-86w9-cpqp-85rv|expo>@expo/cli>node-forge": {
         "active": true,
-        "notes": "Reviewed 2026-10-04: no patched node-forge release. Expo CLI/code-signing tooling only; expo-updates imports this in cli/src, not shipped JS. Use only trusted operator-owned signing material. This is not approval to validate third-party certificates with forge. Recheck upstream before expiry.",
+        "notes": "Reviewed 2026-10-23: node-forge has no patched release. scripts/apply-security-patches.cjs verifies the exact 1.4.0 registry source and enforces nested DigestAlgorithm element counts (upstream PR 1152). Root prepare/build:packages and mobile validation/EAS hooks apply it; security-scan runs positive and malformed-signature regressions. npm ci --ignore-scripts users must run npm run security:prepare before tooling. Advisory remains visible until a fixed upstream version is adopted. Trusted signing inputs only; recheck before expiry.",
         "expiry": "2026-11-03"
       }
     },
@@ -92,13 +85,6 @@
       "GHSA-vfj7-8cjw-p6xm|react-native>babel-jest>@jest/transform>micromatch>braces": {
         "active": true,
         "notes": "Reviewed 2026-10-04: no patched braces release. This exact Metro/Jest build-time path receives repository-owned patterns, not request input. No application imports of braces/micromatch found. Only trusted source/assets may be built. Recheck upstream before expiry.",
-        "expiry": "2026-11-03"
-      }
-    },
-    {
-      "GHSA-w3rx-r6r6-pgpr|image-size": {
-        "active": true,
-        "notes": "Reviewed 2026-10-04: Metro image parser build path only. image-size 2.0.4 is patched but incompatible with the installed Metro callable API. Do not feed uploaded/untrusted image files into builds. Reassess compatible upstream upgrade before expiry.",
         "expiry": "2026-11-03"
       }
     }

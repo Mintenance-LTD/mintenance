@@ -5,7 +5,7 @@ import { Session } from '@supabase/supabase-js';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { logger } from '../utils/logger';
 import { checkRateLimit, resetRateLimit } from '../middleware/RateLimiter';
-import { mobileApiClient } from '../utils/mobileApiClient';
+import { assertPasswordNotBreached } from './auth/password-breach';
 
 import {
   validateEmailFormat,
@@ -91,34 +91,7 @@ export class AuthService {
         context
       );
 
-      // SECURITY: HIBP breach check via web API. Mobile cannot run
-      // SHA-1 + range fetch locally without adding a crypto dep.
-      // Fails open on network error so a flaky connection doesn't
-      // lock users out of signup.
-      try {
-        const breachResult = await mobileApiClient.post<{
-          isBreached: boolean;
-          occurrences: number | null;
-        }>('/api/auth/check-password-breach', {
-          password: userData.password,
-        });
-        if (breachResult.isBreached) {
-          throw new Error(
-            `This password has been exposed in ${(
-              breachResult.occurrences ?? 0
-            ).toLocaleString()} data breaches. ` +
-              `Please choose a different, more secure password.`
-          );
-        }
-      } catch (err) {
-        if (err instanceof Error && err.message.startsWith('This password')) {
-          throw err;
-        }
-        logger.warn(
-          '[AUTH] Password breach check failed, proceeding (fail-open)',
-          err
-        );
-      }
+      await assertPasswordNotBreached(userData.password);
 
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,

@@ -150,6 +150,7 @@ const mockAuthUser = {
 describe('AuthService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mobileApiClient.post.mockResolvedValue({ checked: true, isBreached: false });
   });
 
   describe('signUp', () => {
@@ -193,14 +194,17 @@ describe('AuthService', () => {
     });
 
     it('handles signup errors', async () => {
-      const error = { message: 'Email already registered' };
+      const error = {
+        code: 'user_already_exists',
+        message: 'Email already registered',
+      };
       mockSupabase.auth.signUp.mockResolvedValue({
         data: { user: null },
         error,
       });
 
       await expect(AuthService.signUp(signUpData)).rejects.toThrow(
-        'Email already registered'
+        'An account already exists for this email. Sign in or reset your password.'
       );
     });
 
@@ -278,7 +282,10 @@ describe('AuthService', () => {
     });
 
     it('handles invalid credentials', async () => {
-      const error = { message: 'Invalid login credentials' };
+      const error = {
+        code: 'invalid_credentials',
+        message: 'Invalid login credentials',
+      };
       mockSupabase.auth.signInWithPassword.mockResolvedValue({
         data: { user: null },
         error,
@@ -286,7 +293,9 @@ describe('AuthService', () => {
 
       await expect(
         AuthService.signIn('test@example.com', 'wrongpassword')
-      ).rejects.toThrow('Invalid login credentials');
+      ).rejects.toThrow(
+        'Invalid email or password. Check your details or reset your password.'
+      );
     });
 
     it('validates email format', async () => {

@@ -9,12 +9,12 @@
     "packages/*"
   ],
   "scripts": {
-    "prepare": "node scripts/rebuild-native.mjs",
+    "prepare": "node scripts/apply-security-patches.cjs && node scripts/rebuild-native.mjs",
     "dev": "npm run dev:web",
     "dev:web": "npm run dev -w @mintenance/web",
     "dev:mobile": "npm run dev -w @mintenance/mobile",
     "build": "npm run build:packages && npm run build:apps",
-    "build:packages": "turbo run build --filter=\"./packages/*\"",
+    "build:packages": "node scripts/apply-security-patches.cjs && turbo run build --filter=\"./packages/*\"",
     "build:apps": "npm run build -w @mintenance/web",
     "build:web": "npm run build -w @mintenance/web",
     "build:mobile": "npm run build -w @mintenance/mobile",
@@ -71,7 +71,9 @@
     "verify-task": "node scripts/verify-task-completion.js",
     "test:a11y": "node scripts/check-accessibility.js",
     "test:accessibility": "node scripts/check-accessibility.js",
-    "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts"
+    "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts",
+    "security:prepare": "node scripts/apply-security-patches.cjs",
+    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs"
   },
   "keywords": [
     "marketplace",
@@ -130,6 +132,8 @@
     "typescript-eslint": "^8"
   },
   "overrides": {
+    "@opentelemetry/api": "1.9.1",
+    "dompurify": "3.4.17",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -140,8 +144,6 @@
     "@react-native/debugger-frontend": "0.81.5",
     "@react-native/dev-middleware": "0.81.5",
     "@react-native/normalize-colors": "0.81.5",
-    "@sentry/browser": "7.119.1",
-    "@sentry/react": "7.119.1",
     "fast-xml-parser": "5.7.0",
     "fast-uri": "3.1.8",
     "minimatch": "10.2.4",
@@ -161,12 +163,41 @@
     "@remotion/renderer": {
       "ws": "8.22.0"
     },
+    "@remotion/bundler": {
+      "esbuild": "0.28.2"
+    },
     "@expo/metro-config": {
       "postcss": "8.5.28"
     },
-    "postcss": "8.5.28"
+    "postcss": "8.5.28",
+    "@google-cloud/storage": {
+      "uuid": "11.1.1"
+    },
+    "gaxios": {
+      "uuid": "11.1.1"
+    },
+    "teeny-request": {
+      "uuid": "11.1.1"
+    },
+    "@expo/metro@54.2.0": {
+      "metro": "0.83.8",
+      "metro-babel-transformer": "0.83.8",
+      "metro-cache": "0.83.8",
+      "metro-cache-key": "0.83.8",
+      "metro-config": "0.83.8",
+      "metro-core": "0.83.8",
+      "metro-file-map": "0.83.8",
+      "metro-minify-terser": "0.83.8",
+      "metro-resolver": "0.83.8",
+      "metro-runtime": "0.83.8",
+      "metro-source-map": "0.83.8",
+      "metro-symbolicate": "0.83.8",
+      "metro-transform-plugins": "0.83.8",
+      "metro-transform-worker": "0.83.8"
+    }
   },
   "dependencies": {
+    "@opentelemetry/api": "1.9.1",
     "node-cache": "^5.1.2",
     "otpauth": "^9.5.0"
   }

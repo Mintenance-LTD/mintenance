@@ -21,6 +21,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { assertPasswordNotBreached } from '../../services/auth/password-breach';
 import { me } from '../../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
 import {
@@ -77,6 +78,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     setErrorMessage(null);
     setLoading(true);
     try {
+      await assertPasswordNotBreached(password);
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setSuccess(true);

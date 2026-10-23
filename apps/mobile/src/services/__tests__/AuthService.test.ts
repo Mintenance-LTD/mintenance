@@ -7,6 +7,7 @@ import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
+import { resetRateLimit } from '../../middleware/RateLimiter';
 
 // NetworkDiagnosticsService mock removed — the module was deleted in the
 // bulk dead-code cleanup (commit 9f06a7ac) and AuthService no longer uses it.
@@ -73,7 +74,7 @@ jest.mock('../../utils/serviceErrorHandler', () => ({
   },
 }));
 
-// AuthService performs a fail-open password-breach check before calling
+// AuthService requires a completed password-breach check before calling
 // Supabase. Keep this unit test focused on signup orchestration and prevent
 // the check from reaching the network in the test runner.
 jest.mock('../../utils/mobileApiClient', () => ({
@@ -81,6 +82,7 @@ jest.mock('../../utils/mobileApiClient', () => ({
     get: jest.fn(),
     put: jest.fn(),
     post: jest.fn().mockResolvedValue({
+      checked: true,
       isBreached: false,
       occurrences: null,
     }),
@@ -132,6 +134,8 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    resetRateLimit('auth_register', 'newuser@example.com');
+    (mobileApiClient.post as jest.Mock).mockReset().mockResolvedValue({ checked: true, isBreached: false });
   });
 
   describe('signUp', () => {
@@ -142,6 +146,29 @@ describe('AuthService', () => {
       lastName: 'Smith',
       role: 'contractor',
     };
+
+    it.each([
+      { checked: true, isBreached: true },
+      { checked: false, isBreached: false },
+      { isBreached: false },
+    ])(
+      'does not create an account for an unsafe or unchecked password: %j',
+      async (result) => {
+        (mobileApiClient.post as jest.Mock).mockResolvedValueOnce(result);
+        await expect(AuthService.signUp(signUpData)).rejects.toThrow();
+        expect(supabase.auth.signUp).not.toHaveBeenCalled();
+      }
+    );
+
+    it('does not create an account when the security check is unavailable', async () => {
+      (mobileApiClient.post as jest.Mock).mockRejectedValueOnce(
+        new Error('offline')
+      );
+      await expect(AuthService.signUp(signUpData)).rejects.toThrow(
+        'Please try again shortly'
+      );
+      expect(supabase.auth.signUp).not.toHaveBeenCalled();
+    });
 
     it('should sign up a new user successfully', async () => {
       const mockAuthResponse = {
