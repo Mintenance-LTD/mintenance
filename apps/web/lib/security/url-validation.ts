@@ -201,11 +201,21 @@ export async function validateURL(
       };
     }
 
-    // Permit the configured local Supabase Storage service only during local
-    // development/tests. Production continues through the private-IP checks.
+    // CI exercises a production-mode Next build against one disposable local
+    // Supabase stack. Never enable that exception on a hosted deployment.
+    const isolatedBrowserTest =
+      process.env.CI === 'true' &&
+      !process.env.VERCEL &&
+      !process.env.VERCEL_ENV &&
+      process.env.E2E_TESTING === 'true' &&
+      /^[a-f0-9]{64}$/.test(process.env.E2E_AUTH_SECRET ?? '') &&
+      process.env.E2E_SUPABASE_URL === 'http://127.0.0.1:56321' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === process.env.E2E_SUPABASE_URL;
+    // Only the configured storage origin and job-photo path qualify below.
     if (
       process.env.NODE_ENV === 'development' ||
-      process.env.NODE_ENV === 'test'
+      process.env.NODE_ENV === 'test' ||
+      isolatedBrowserTest
     ) {
       const configured = process.env.NEXT_PUBLIC_SUPABASE_URL;
       if (configured) {

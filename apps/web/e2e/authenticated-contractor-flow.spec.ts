@@ -70,42 +70,30 @@ test.describe('Authenticated Contractor Flow', () => {
   });
 
   test('contractor can access bid submission form', async ({ page }) => {
-    // Navigate to a job (this assumes jobs exist)
-    await page.goto('/contractor/discover');
+    // Use the isolated fixture instead of accidentally following the payouts banner.
+    expect(
+      process.env.E2E_BID_JOB_ID,
+      'bootstrap-e2e must seed a bid job'
+    ).toBeTruthy();
+    await page.goto(`/contractor/jobs/${process.env.E2E_BID_JOB_ID}/view`);
     await page.waitForLoadState('domcontentloaded');
 
-    // Click on first available job. Both locators are scoped to the
-    // #main-content landmark: unscoped, `getByRole('link').first()` resolves to
-    // the layout's sr-only "Skip to content" link, which sits outside the
-    // viewport and makes the click retry until the test times out.
-    const content = page.locator('#main-content');
-    const firstJob = content.locator('[data-testid="job-card"]').first();
-    const firstJobLink = content.getByRole('link').first();
-
-    const hasJob = await firstJob.isVisible().catch(() => false);
-    const hasJobLink =
-      !hasJob && (await firstJobLink.isVisible().catch(() => false));
-    // Data gap, not a bug: the e2e seed creates no jobs to bid on.
-    test.skip(!hasJob && !hasJobLink, 'No seeded jobs on the discover feed');
-
-    if (hasJob) {
-      await firstJob.click();
-    } else {
-      await firstJobLink.click();
-    }
-    await page.waitForLoadState('domcontentloaded');
-
-    // From a job detail page the bid form must be reachable: either a
-    // Submit/Place Bid CTA that opens it, or the form already inline.
-    const bidButton = page.getByRole('button', {
-      name: /submit.*bid|place.*bid|bid.*now/i,
-    });
-    if (await bidButton.isVisible().catch(() => false)) {
-      await bidButton.click();
-    }
+    // Both desktop and mobile layouts expose the same navigation action.
+    const bidButton = page
+      .getByRole('button', {
+        name: /submit.*bid|place.*bid|bid.*now/i,
+      })
+      .first();
+    await bidButton.click();
+    await expect(page).toHaveURL(
+      `/contractor/bid/${process.env.E2E_BID_JOB_ID}`
+    );
     await expect(page.getByLabel(/quote|amount|price/i)).toBeVisible({
       timeout: 5000,
     });
+    await expect(page.getByLabel(/proposal description/i)).toBeVisible();
+    await expect(page.getByLabel(/estimated duration/i)).toBeVisible();
+    await expect(page.getByLabel(/proposed start date/i)).toBeVisible();
   });
 
   test('contractor can submit a bid', async ({ page }) => {
@@ -170,12 +158,15 @@ test.describe('Authenticated Contractor Flow', () => {
   });
 
   test('contractor can view their submitted bids', async ({ page }) => {
-    await page.goto('/contractor/dashboard');
+    await page.goto('/contractor/quotes');
     await page.waitForLoadState('domcontentloaded');
     // Auth is guaranteed by beforeEach, so a login redirect here is a real
     // failure (broken session handling), not a reason to skip.
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
     await expect(page.locator('#main-content')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Quotes', exact: true })
+    ).toBeVisible();
   });
 
   test('contractor can view their profile', async ({ page }) => {
@@ -205,7 +196,7 @@ test.describe('Authenticated Contractor Flow', () => {
     const bioInput = page.getByLabel(/bio|about|description/i);
     await expect(bioInput).toBeVisible();
     await bioInput.fill('Updated bio for testing purposes');
-    await page.getByRole('button', { name: /save|update/i }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
     await waitForNetworkIdle(page);
     await expect(page.getByText(/saved|updated/i)).toBeVisible();
   });

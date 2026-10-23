@@ -105,7 +105,8 @@ describe('contract and review access boundaries (real DB)', () => {
     if (contractError || !contract) throw new Error(contractError?.message);
     contractId = contract.id;
 
-    const { data: review, error: reviewError } = await homeownerClient
+    // Reviews are written only by authenticated APIs, not directly by clients.
+    const { data: review, error: reviewError } = await service
       .from('reviews')
       .insert({
         job_id: job.id,
@@ -219,32 +220,30 @@ describe('contract and review access boundaries (real DB)', () => {
     expect(contractId).toBeTruthy();
   });
 
-  it('permits the reviewer to update within the review window but blocks an outsider', async () => {
+  it('blocks direct review updates by both the reviewer and an outsider', async () => {
     const reviewerUpdate = await homeownerClient
       .from('reviews')
       .update({ comment: 'itest updated review' })
       .eq('id', reviewId)
-      .select('id')
-      .single();
-    expect(reviewerUpdate.error).toBeNull();
+      .select('id');
+    expect(reviewerUpdate.error?.code).toBe('42501');
 
     const outsiderUpdate = await outsiderClient
       .from('reviews')
       .update({ comment: 'itest forged review' })
       .eq('id', reviewId)
       .select('id');
-    expect(outsiderUpdate.error).toBeNull();
-    expect(outsiderUpdate.data).toEqual([]);
+    expect(outsiderUpdate.error?.code).toBe('42501');
     const persisted = await homeownerClient
       .from('reviews')
       .select('comment')
       .eq('id', reviewId)
       .single();
     expect(persisted.error).toBeNull();
-    expect(persisted.data?.comment).toBe('itest updated review');
+    expect(persisted.data?.comment).toBe('itest completed-job review');
   });
 
-  it('keeps completed-job review eligibility tied to job participants', async () => {
+  it('requires API authorization for direct review inserts, including participants', async () => {
     const contractorReview = await contractorClient
       .from('reviews')
       .insert({
@@ -256,13 +255,7 @@ describe('contract and review access boundaries (real DB)', () => {
       })
       .select('id')
       .single();
-    expect(contractorReview.error).toBeNull();
-    if (contractorReview.data?.id) {
-      await createServiceClient()
-        .from('reviews')
-        .delete()
-        .eq('id', contractorReview.data.id);
-    }
+    expect(contractorReview.error?.code).toBe('42501');
 
     const outsiderReview = await outsiderClient.from('reviews').insert({
       job_id: job.id,
@@ -271,6 +264,6 @@ describe('contract and review access boundaries (real DB)', () => {
       rating: 1,
       comment: 'itest forged review',
     });
-    expect(outsiderReview.error).not.toBeNull();
+    expect(outsiderReview.error?.code).toBe('42501');
   });
 });

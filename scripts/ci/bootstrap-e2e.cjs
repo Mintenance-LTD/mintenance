@@ -26,16 +26,27 @@ async function main() {
   };
   validateE2EEnvironment(env);
   const db = createClient(status.API_URL, status.SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  const userIds = {};
   for (const role of ['homeowner', 'contractor', 'admin']) {
     const email = 'test-' + role + '@example.com';
     const password = 'Test' + role[0].toUpperCase() + role.slice(1) + '123!';
     const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true,
       user_metadata: { role: role === 'admin' ? 'homeowner' : role, first_name: 'Test', last_name: role } });
     if (error) throw new Error('Synthetic account creation failed: ' + error.message);
-    const { error: profileError } = await db.from('profiles').update({ role, verified: true,
+    userIds[role] = data.user.id;
+    const { error: profileError } = await db.from('profiles').update({ role, verified: true, phone_verified: true,
       onboarding_completed: true, first_name: 'Test', last_name: role }).eq('id', data.user.id);
     if (profileError) throw new Error('Synthetic profile setup failed: ' + profileError.message);
   }
+  // Dedicated job for bid-form tests, independent of test order and other shards.
+  env.E2E_BID_JOB_ID = crypto.randomUUID();
+  const { error: jobError } = await db.from('jobs').insert({
+    id: env.E2E_BID_JOB_ID, homeowner_id: userIds.homeowner,
+    title: 'Synthetic bid form fixture', description: 'Fix a synthetic leaking tap for isolated browser tests.',
+    status: 'posted', category: 'plumbing', urgency: 'medium',
+    location: 'London', budget_min: 100, budget_max: 200,
+  });
+  if (jobError) throw new Error('Synthetic job setup failed: ' + jobError.message);
   const output = process.env.GITHUB_ENV || 'output/e2e-stack/runtime.json';
   if (process.env.GITHUB_ENV) {
     for (const [name, value] of Object.entries(env)) {

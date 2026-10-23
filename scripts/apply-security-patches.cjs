@@ -29,6 +29,7 @@ function patchSource(source) {
 }
 
 function applyPatches(root = path.resolve(__dirname, '..')) {
+  require('./patch-zod-v3.cjs').applyZodPatches(root);
   const lock = JSON.parse(
     fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8')
   );

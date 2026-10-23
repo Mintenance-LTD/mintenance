@@ -90,27 +90,14 @@ test.describe('Security: Auth Bypass Regression', () => {
     expect(url).not.toContain('/login');
   });
 
-  test('landing page nav links route through /login', async ({ page }) => {
+  test('landing page links expose public guides and the sign-in entry point', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Check "For Homeowners" link
-    const homeownerLink = page
-      .getByRole('link', { name: /For Homeowners/i })
-      .first();
-    if (await homeownerLink.isVisible().catch(() => false)) {
-      const href = await homeownerLink.getAttribute('href');
-      expect(href).toContain('/login');
-    }
-
-    // Check "For Contractors" link
-    const contractorLink = page
-      .getByRole('link', { name: /For Contractors/i })
-      .first();
-    if (await contractorLink.isVisible().catch(() => false)) {
-      const href = await contractorLink.getAttribute('href');
-      expect(href).toContain('/login');
-    }
+    const nav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(nav.getByRole('link', { name: 'For homeowners', exact: true })).toHaveAttribute('href', '/for-homeowners');
+    await expect(nav.getByRole('link', { name: 'For tradespeople', exact: true })).toHaveAttribute('href', '/for-contractors');
+    await expect(nav.getByRole('link', { name: 'Sign in', exact: true })).toHaveAttribute('href', '/login');
   });
 
   test('landing page does not contain "Browse Contractors" button', async ({
