@@ -8,6 +8,32 @@
 import { test, expect } from './fixtures';
 import { loginAsHomeowner, loginAsContractor } from './helpers/auth';
 import AxeBuilder from '@axe-core/playwright';
+import type { Page } from '@playwright/test';
+
+async function waitForAccessiblePage(page: Page, path: string) {
+  await expect(page.locator('main').first()).toBeVisible();
+  await expect(page).not.toHaveURL(/\/login/);
+  await page.evaluate(() => document.fonts.ready);
+  if (path === '/contractor/profile') {
+    await expect(
+      page.getByText('Profile Completion', { exact: true })
+    ).toBeVisible();
+    // Profile cards enter with staggered opacity animations. Axe otherwise
+    // samples blended text mid-fade and reports transient contrast failures.
+    // Wait for the real rendered state; do not disable contrast checks or motion.
+    await expect
+      .poll(() =>
+        page
+          .locator('main [style*="opacity"]')
+          .evaluateAll((elements) =>
+            elements.every(
+              (element) => getComputedStyle(element).opacity === '1'
+            )
+          )
+      )
+      .toBe(true);
+  }
+}
 
 // ============================================
 // TEST CONFIGURATION
@@ -43,8 +69,7 @@ test.describe('Accessibility Tests', () => {
 
       // Wait for content to load
       await page.waitForLoadState('domcontentloaded');
-      await expect(page.locator('main').first()).toBeVisible();
-      await expect(page).not.toHaveURL(/\/login/);
+      await waitForAccessiblePage(page, path);
 
       // Run axe accessibility checks
       const accessibilityScanResults = await new AxeBuilder({ page })
@@ -431,8 +456,7 @@ test.describe('WCAG Compliance Report', () => {
       else await loginAsHomeowner(page);
       await page.goto(path);
       await page.waitForLoadState('domcontentloaded');
-      await expect(page.locator('main').first()).toBeVisible();
-      await expect(page).not.toHaveURL(/\/login/);
+      await waitForAccessiblePage(page, path);
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

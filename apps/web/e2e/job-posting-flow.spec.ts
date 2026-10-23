@@ -147,20 +147,10 @@ test.describe('Job Listing Page', () => {
     await page.waitForLoadState('domcontentloaded');
     await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
 
-    // Jobs heading, a table/cards list, or an explicit empty/CTA state — never
-    // a blank page (the old test only asserted `body` was visible).
-    const hasJobsHeading = await page
-      .getByRole('heading', { name: /job|project/i })
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasTableOrCards =
-      (await page.locator('table, [class*="card"]').count()) > 0;
-    const hasEmptyState = await page
-      .getByText(/no.*job|no.*result|create.*job|post.*job/i)
-      .first()
-      .isVisible()
-      .catch(() => false);
-    expect(hasJobsHeading || hasTableOrCards || hasEmptyState).toBeTruthy();
+    // The workspace shell can still be loading at DOMContentLoaded. Wait for
+    // the actual jobs page instead of taking an immediate visibility snapshot.
+    await expect(
+      page.getByRole('heading', { name: 'Your jobs', exact: true })
+    ).toBeVisible();
   });
 });
