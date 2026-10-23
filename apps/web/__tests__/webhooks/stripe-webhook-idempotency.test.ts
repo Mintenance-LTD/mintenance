@@ -287,6 +287,7 @@ function setupFromChain(status?: string, error: unknown = null) {
 function setupDefaultMockEvent() {
   mockConstructEvent.mockReturnValue({
     id: 'evt_1',
+    livemode: false,
     type: 'payment_intent.succeeded',
     data: { object: { id: 'pi_1' } },
     created: Math.floor(Date.now() / 1000),

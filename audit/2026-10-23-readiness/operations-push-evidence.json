@@ -1,0 +1,16 @@
+{
+  "reviewDate": "2026-10-23",
+  "project": "ukrjudtlvapiajkjbcrd",
+  "attemptIds": ["d9ba62ba-2945-49b1-9c5e-e8090e2bc38a", "7441f98f-8449-4b0d-8ea4-18e1dff19c10", "d809d85a-3711-47b7-82c2-5d3ddc08a07d", "52acfe9c-c9ed-466d-a8f7-3dfb543058fe"],
+  "notificationIds": ["da523869-b2ac-4f6d-901f-72845cd65135", "e661ed05-6f8d-4c9b-9c1f-ce0573465132"],
+  "providerResponse": "Expo HTTP 503",
+  "failureTimesUtc": ["2026-10-05T21:00:19.417Z", "2026-10-05T21:00:19.438Z", "2026-10-05T21:00:38.408Z", "2026-10-05T21:00:48.219Z"],
+  "vercelDeployment": "dpl_4jWaXnxM1R57rNJRujMth4Mmss7w",
+  "vercelRequestIds": ["b6dxd-1791234005513-7349498060d8", "p72vs-1791234028231-7bc68841f296", "npp62-1791234328641-972719fe13e2"],
+  "subsequentRetryLogTimesUtc": ["2026-10-05T21:05:29.892Z", "2026-10-05T21:05:30.316Z"],
+  "subsequentRetryLogMessage": "Failed-push retry succeeded",
+  "originalAttemptsHaveNearbyReceiptRows": false,
+  "deviceDelivery": "unknown",
+  "disposition": "reviewed_unknown; no resend; no claim of device delivery",
+  "reviewAttribution": "Codex operational review requested by the user; no application administrator identity impersonated"
+}

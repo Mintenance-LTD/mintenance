@@ -329,6 +329,7 @@ function createMockEvent(
 ) {
   return {
     id: 'evt_test_123',
+    livemode: false,
     type: 'payment_intent.succeeded',
     data: {
       object: {

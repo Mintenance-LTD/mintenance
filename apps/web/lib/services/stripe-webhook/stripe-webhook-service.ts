@@ -64,6 +64,20 @@ export class StripeWebhookService {
       const stripe = this.getStripeInstance();
       const event = this.constructEvent(stripe, body, signature, webhookSecret);
 
+      // A valid signature proves origin, not the correct payment environment.
+      // Check before claiming or processing an event so test payments cannot
+      // update a database whose Stripe client is configured for live funds.
+      const keyMode = /^sk_(live|test)_/.exec(env.STRIPE_SECRET_KEY ?? '')?.[1];
+      if (!keyMode) {
+        throw new InternalServerError('Stripe payment mode is not configured');
+      }
+      if (event.livemode !== (keyMode === 'live')) {
+        logger.error('Stripe webhook payment mode mismatch', null, {
+          service: 'stripe-webhook', eventId: event.id,
+        });
+        throw new BadRequestError('Stripe webhook payment mode mismatch');
+      }
+
       const idempotencyKey = this.buildIdempotencyKey(event);
       const { eventRecordId, isDuplicate } = await this.checkIdempotency(
         event,

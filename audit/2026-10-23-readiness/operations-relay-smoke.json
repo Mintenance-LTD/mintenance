@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-23T19:00:06.805Z",
+  "pass": true,
+  "results": [
+    {
+      "label": "non-post",
+      "status": 405,
+      "body": "{\"error\":\"Method not allowed\"}"
+    },
+    {
+      "label": "unsigned",
+      "status": 400,
+      "body": "{\"error\":\"Missing signature\"}"
+    },
+    {
+      "label": "forged-signature",
+      "status": 400,
+      "body": "{\"error\":\"Invalid payload or signature\"}"
+    },
+    {
+      "label": "original-route-still-protected",
+      "status": 302,
+      "ssoRedirect": true
+    }
+  ]
+}
