@@ -24,7 +24,8 @@ on:
 jobs:
   e2e-tests:
     name: E2E Tests (shard ${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
+    # Playwright 1.60 does not support the Ubuntu 26.04 latest runner yet.
+    runs-on: ubuntu-24.04
     # 2026-07-28 PM: 45min per shard. The 60min single-job run (30366471487)
     # was killed at exactly 60:00; sharding 2× + Chromium-only PRs + 1 retry
     # + video-on-retry-only should land each shard well under this.
@@ -90,6 +91,7 @@ jobs:
         run: node scripts/ci/prepare-e2e-stack.cjs
 
       - name: Start disposable database and apply migrations
+        id: start-database
         run: supabase start --workdir output/e2e-stack > output/e2e-stack/start.log 2>&1
 
       - name: Seed synthetic accounts and generate isolated credentials
@@ -113,7 +115,7 @@ jobs:
           E2E_ALL_BROWSERS: ${{ github.event_name == 'push' && 'true' || 'false' }}
 
       - name: Stop disposable database
-        if: always()
+        if: always() && (steps.start-database.outcome == 'success' || steps.start-database.outcome == 'failure')
         run: supabase stop --workdir output/e2e-stack --no-backup
 
       - name: Upload test results
