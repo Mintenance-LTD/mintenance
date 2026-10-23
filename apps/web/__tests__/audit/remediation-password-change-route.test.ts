@@ -70,7 +70,7 @@ beforeEach(() => {
   m.update.mockResolvedValue({ data: { user }, error: null });
   m.status.mockResolvedValue({ enabled: false });
   m.verify.mockResolvedValue({ success: true });
-  m.breach.mockResolvedValue({ isBreached: false });
+  m.breach.mockResolvedValue({ checked: true, isBreached: false });
   m.rpc.mockImplementation(async (name: string) => ({
     data: name === 'begin_password_change' ? op : null,
     error: null,
@@ -147,7 +147,7 @@ it('rejects extra actor IDs, weak passwords and breached passwords', async () =>
   await expect(call({ ...body, newPassword: 'weak' })).rejects.toMatchObject({
     statusCode: 400,
   });
-  m.breach.mockResolvedValue({ isBreached: true });
+  m.breach.mockResolvedValue({ checked: true, isBreached: true });
   await expect(call()).rejects.toMatchObject({ statusCode: 400 });
   expect(m.update).not.toHaveBeenCalled();
 });
@@ -162,4 +162,11 @@ it('rate limits password checks by the authenticated account before provider cal
       criticality: 'auth',
     })
   );
+});
+
+it('rejects an unavailable breach lookup before starting a password change', async () => {
+  m.breach.mockResolvedValue({ checked: false, isBreached: false });
+  await expect(call()).rejects.toMatchObject({ statusCode: 503 });
+  expect(m.update).not.toHaveBeenCalled();
+  expect(m.rpc).not.toHaveBeenCalled();
 });

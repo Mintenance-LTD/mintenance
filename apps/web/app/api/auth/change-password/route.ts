@@ -88,6 +88,9 @@ export const POST = withApiHandler(
         throw new UnauthorizedError('Invalid MFA code');
     }
     const breach = await checkPasswordBreach(newPassword);
+    if (breach.checked !== true) {
+      throw new ServiceUnavailableError('Password security check');
+    }
     if (breach.isBreached)
       throw new BadRequestError(
         'Choose a password that has not appeared in a data breach'

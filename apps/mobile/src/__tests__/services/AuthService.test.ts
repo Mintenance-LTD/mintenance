@@ -150,6 +150,7 @@ const mockAuthUser = {
 describe('AuthService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mobileApiClient.post.mockResolvedValue({ checked: true, isBreached: false });
   });
 
   describe('signUp', () => {

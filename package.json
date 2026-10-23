@@ -9,12 +9,12 @@
     "packages/*"
   ],
   "scripts": {
-    "prepare": "node scripts/rebuild-native.mjs",
+    "prepare": "node scripts/apply-security-patches.cjs && node scripts/rebuild-native.mjs",
     "dev": "npm run dev:web",
     "dev:web": "npm run dev -w @mintenance/web",
     "dev:mobile": "npm run dev -w @mintenance/mobile",
     "build": "npm run build:packages && npm run build:apps",
-    "build:packages": "turbo run build --filter=\"./packages/*\"",
+    "build:packages": "node scripts/apply-security-patches.cjs && turbo run build --filter=\"./packages/*\"",
     "build:apps": "npm run build -w @mintenance/web",
     "build:web": "npm run build -w @mintenance/web",
     "build:mobile": "npm run build -w @mintenance/mobile",
@@ -71,7 +71,9 @@
     "verify-task": "node scripts/verify-task-completion.js",
     "test:a11y": "node scripts/check-accessibility.js",
     "test:accessibility": "node scripts/check-accessibility.js",
-    "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts"
+    "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts",
+    "security:prepare": "node scripts/apply-security-patches.cjs",
+    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs"
   },
   "keywords": [
     "marketplace",
@@ -167,7 +169,32 @@
     "@expo/metro-config": {
       "postcss": "8.5.28"
     },
-    "postcss": "8.5.28"
+    "postcss": "8.5.28",
+    "@google-cloud/storage": {
+      "uuid": "11.1.1"
+    },
+    "gaxios": {
+      "uuid": "11.1.1"
+    },
+    "teeny-request": {
+      "uuid": "11.1.1"
+    },
+    "@expo/metro@54.2.0": {
+      "metro": "0.83.8",
+      "metro-babel-transformer": "0.83.8",
+      "metro-cache": "0.83.8",
+      "metro-cache-key": "0.83.8",
+      "metro-config": "0.83.8",
+      "metro-core": "0.83.8",
+      "metro-file-map": "0.83.8",
+      "metro-minify-terser": "0.83.8",
+      "metro-resolver": "0.83.8",
+      "metro-runtime": "0.83.8",
+      "metro-source-map": "0.83.8",
+      "metro-symbolicate": "0.83.8",
+      "metro-transform-plugins": "0.83.8",
+      "metro-transform-worker": "0.83.8"
+    }
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.1",
