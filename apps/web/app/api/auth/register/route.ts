@@ -4,7 +4,11 @@ import { checkLoginRateLimit } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { registerSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  RateLimitError,
+  ServiceUnavailableError,
+} from '@/lib/errors/api-error';
 import { checkPasswordBreach } from '@mintenance/auth';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
@@ -39,6 +43,9 @@ export const POST = withApiHandler(
 
     // SECURITY: Check if password has been exposed in data breaches
     const breachResult = await checkPasswordBreach(password);
+    if (breachResult.checked !== true) {
+      throw new ServiceUnavailableError('Password security check');
+    }
     if (breachResult.isBreached) {
       logger.warn(
         '[SECURITY] Registration blocked - breached password detected',

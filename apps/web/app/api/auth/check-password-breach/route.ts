@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { checkPasswordBreach } from '@mintenance/auth';
-import { BadRequestError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ServiceUnavailableError,
+} from '@/lib/errors/api-error';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // replaces the manual `typeof password === 'string'` + length pair.
@@ -16,8 +19,7 @@ const checkPasswordBreachSchema = z
  * POST /api/auth/check-password-breach
  *
  * Pre-signup / pre-password-change HIBP probe. Mobile clients call this before
- * `supabase.auth.signUp()` because they cannot run the SHA-1 + HIBP-range fetch
- * locally without adding a crypto dependency. Web routes (/api/auth/register,
+ * signup and password reset. Web routes (/api/auth/register,
  * /api/auth/reset-password) already wrap checkPasswordBreach inline.
  *
  * The endpoint receives the raw password over HTTPS, identical privacy posture
@@ -50,8 +52,12 @@ export const POST = withApiHandler(
     const { password } = parsed.data;
 
     const result = await checkPasswordBreach(password);
+    if (result.checked !== true) {
+      throw new ServiceUnavailableError('Password security check');
+    }
 
     return NextResponse.json({
+      checked: true,
       isBreached: result.isBreached,
       occurrences: result.occurrences ?? null,
     });

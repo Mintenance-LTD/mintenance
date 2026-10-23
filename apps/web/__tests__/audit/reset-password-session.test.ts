@@ -4,6 +4,7 @@ const m = vi.hoisted(() => ({
   session: vi.fn(),
   update: vi.fn(),
   signOut: vi.fn(),
+  breach: vi.fn(),
 }));
 vi.mock('@/lib/api/supabaseServer', () => ({
   createAnonClient: () => ({
@@ -19,7 +20,7 @@ vi.mock('@/lib/rate-limiter', () => ({
 }));
 vi.mock('@mintenance/auth', () => ({
   PasswordValidator: { validate: () => ({ isValid: true }) },
-  checkPasswordBreach: async () => ({ isBreached: false }),
+  checkPasswordBreach: m.breach,
 }));
 import { POST } from '@/app/api/auth/reset-password/route';
 const accessToken =
@@ -30,12 +31,27 @@ const request = (body: unknown) =>
     body: JSON.stringify(body),
   });
 beforeEach(() => {
+  m.breach.mockResolvedValue({ checked: true, isBreached: false });
   m.session.mockResolvedValue({ error: null });
   m.update.mockResolvedValue({
     data: { user: { id: 'synthetic-user' } },
     error: null,
   });
   m.signOut.mockResolvedValue({ error: null });
+});
+it('rejects an unavailable security check before changing the recovered account password', async () => {
+  m.breach.mockResolvedValue({ checked: false, isBreached: false });
+  await expect(
+    POST(
+      request({
+        accessToken,
+        refreshToken: 'synthetic-refresh',
+        password: 'Fresh-Password!7429',
+      }),
+      {} as never
+    )
+  ).rejects.toMatchObject({ statusCode: 503 });
+  expect(m.update).not.toHaveBeenCalled();
 });
 it('restores the complete recovery session before changing the password', async () => {
   const response = await POST(
