@@ -5,7 +5,6 @@
     "node": "20.19.4"
   },
   "dependencies": {
-    "@mintenance/monorepo": "file:../..",
     "eas-cli": "25.3.0"
   },
   "overrides": {
