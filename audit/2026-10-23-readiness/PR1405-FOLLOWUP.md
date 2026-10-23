@@ -27,3 +27,15 @@ The merge commit `55a67d68` cleared the GitHub conflict. Its CI run successfully
 The Mintenance preview for `55a67d68` completed successfully (`dpl_6CtS7YfV3ceZv7iuAeUpDzQzr72R`). CI database authorization/concurrency tests passed. The real-DB integration readiness probe requested the full OpenAPI schema and timed out with HTTP 500; replaced it with a bounded, zero-row profile query using only the disposable stack's credentials, with bounded retries. Its CI rerun still needs verification.
 
 An additional EAS environment blocker remains: setup installs a latest transitive CLI package requiring Node >=22 while the repository requires Node 20.19.4. Native build completion is not verified. No application runtime version or release credentials were changed in this follow-up.
+
+## CI continuation after commit 5bcc01f7
+
+The Vercel preview, mobile test workflow, security scan, Lighthouse and performance checks passed. The web suite passed 4,757/4,759 tests; both failures expected immediate review notifications even though the route now durably queues them. Updated the mock/assertions; the 23-test job lifecycle suite passes locally.
+
+Real-DB setup now succeeds. Updated the contract/review suite to seed through the service client and assert that direct client writes remain denied by the October authoritative-mutations migration. Retention cleanup removes only the synthetic dispute's generated admin tasks before deleting its parent. No production grants or data were changed.
+
+Browser corrections: verified-phone synthetic accounts, a dedicated isolated bid-form job, fresh random signup passwords (the old fixed password is breached), current quotes URL, exact Save button, and public marketing-link assertions alongside the existing protected-page checks. Reviewed all six failed Linux visual snapshots against their expected images/current markup; refreshed the baselines for the current product preview, payment wording, theme and cookie-consent fixture. No comparison tolerance was raised.
+
+EAS 25.3.0 is now installed from tools/eas-cli/package-lock.json, separately from app dependencies. The autocomplete package is pinned to Node-20-compatible 3.2.40 instead of drifting to Node-22-only 3.3.0. Strict engine installation and CLI startup passed on Node 20.19.4. Auth credentials remain confined to the build commands. This does not yet establish that a native EAS build completed.
+
+Validation before push: 23 job-lifecycle tests, five E2E isolation tests, changed test syntax, workflow YAML and git diff checks pass. Real-DB and browser reruns require the Linux CI environment; Docker is not installed in this local Windows environment.

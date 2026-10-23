@@ -179,10 +179,15 @@ describe('bounded maintenance preserves financial and dispute evidence', () => {
     await requireSuccess(
       await db.from('password_reset_tokens').delete().in('id', tokenIds)
     );
-    if (disputeId)
+    if (disputeId) {
+      // The dispute trigger creates an admin task with a restrictive foreign key.
+      await requireSuccess(
+        await db.from('admin_dispute_tasks').delete().eq('dispute_id', disputeId)
+      );
       await requireSuccess(
         await db.from('disputes').delete().eq('id', disputeId)
       );
+    }
     await heldEscrow?.cleanup();
     await settledPayment?.cleanup();
     if (jobIds.length)

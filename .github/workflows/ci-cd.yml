@@ -272,12 +272,10 @@ jobs:
           node-version: '20.19.4'
           cache: 'npm'
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
-        with:
-          expo-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-          eas-version: latest
+      - name: Install pinned EAS CLI
+        run: |
+          npm ci --prefix tools/eas-cli --ignore-scripts --engine-strict --no-audit --no-fund
+          echo "$GITHUB_WORKSPACE/tools/eas-cli/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Pin npm
         run: npm install --global npm@11.6.2 --ignore-scripts
@@ -319,12 +317,10 @@ jobs:
           node-version: '20.19.4'
           cache: 'npm'
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8 (2026-07-27: old pin no longer resolves upstream)
-        with:
-          expo-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-          eas-version: latest
+      - name: Install pinned EAS CLI
+        run: |
+          npm ci --prefix tools/eas-cli --ignore-scripts --engine-strict --no-audit --no-fund
+          echo "$GITHUB_WORKSPACE/tools/eas-cli/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Pin npm
         run: npm install --global npm@11.6.2 --ignore-scripts

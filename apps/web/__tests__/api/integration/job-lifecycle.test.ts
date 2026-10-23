@@ -51,6 +51,7 @@ const mocks = vi.hoisted(() => ({
   jobQueryServiceListJobs: vi.fn(),
   jobCreationServiceCreateJob: vi.fn(),
   createNotification: vi.fn(),
+  enqueueScheduled: vi.fn(),
   sendBidAcceptedEmail: vi.fn(),
   sendJobStartedEmail: vi.fn(),
   sendJobCompletedEmail: vi.fn(),
@@ -207,6 +208,7 @@ vi.mock('@/lib/services/job-creation-service', () => ({
 
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
+    enqueueScheduled: (...args: unknown[]) => mocks.enqueueScheduled(...args),
     createNotification: (...args: unknown[]) =>
       mocks.createNotification(...args),
     markEmailSent: vi.fn().mockResolvedValue(undefined),
@@ -2189,8 +2191,8 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
     expect(body.success).toBe(true);
     expect(body.reviewId).toBe('review-001');
 
-    // Verify notification was sent to the contractor (reviewee)
-    expect(mocks.createNotification).toHaveBeenCalledWith(
+    // Review notifications are durably queued for the contractor (reviewee).
+    expect(mocks.enqueueScheduled).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: contractorUser.id,
         type: 'review',
@@ -2263,8 +2265,8 @@ describe('Job Lifecycle - 10. Reviews submitted', () => {
     expect(body.success).toBe(true);
     expect(body.reviewId).toBe('review-002');
 
-    // Verify notification was sent to the homeowner (reviewee)
-    expect(mocks.createNotification).toHaveBeenCalledWith(
+    // Review notifications are durably queued for the homeowner (reviewee).
+    expect(mocks.enqueueScheduled).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: homeownerUser.id,
         type: 'review',

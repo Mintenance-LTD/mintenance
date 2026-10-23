@@ -10,7 +10,7 @@
  */
 
 import { test, expect } from './fixtures';
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 
 /**
  * Fill every field the register schema requires.
@@ -53,7 +53,7 @@ test.describe('Authentication Flow', () => {
       const randomSuffix = randomInt(10000);
       await fillSignUpForm(page, {
         email: `test${timestamp}${randomSuffix}@example.com`,
-        password: 'SecurePass123!',
+        password: `E2e!${randomBytes(24).toString('hex')}`,
       });
 
       // Submit form
