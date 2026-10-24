@@ -26,25 +26,36 @@ vi.mock('@mintenance/shared', () => ({
   },
 }));
 
-// Mock the theme to provide all needed values
-vi.mock('@/lib/theme', () => ({
-  theme: {
-    spacing: { 2: '8px', 4: '16px', 8: '32px' },
-    colors: {
-      primary: '#0F172A',
-      primaryDark: '#1e3a8a',
-      error: '#EF4444',
-      backgroundSecondary: '#F8FAFC',
-      border: '#E2E8F0',
-      textSecondary: '#64748B',
-    },
-    typography: {
-      fontSize: { sm: '13px', base: '15px' },
-      fontWeight: { medium: '500' },
-    },
-    borderRadius: { md: '8px', lg: '12px' },
-  },
-}));
+// Exercise the real design tokens: mocking colors would hide contrast regressions.
+function contrastRatio(foreground: string, background: string) {
+  const luminance = (color: string) => {
+    const channels = color.startsWith('#')
+      ? color.slice(1).match(/.{2}/g)!.map((value) => parseInt(value, 16))
+      : color.match(/[\d.]+/g)!.slice(0, 3).map(Number);
+    const linear = channels.map((value) => {
+      const channel = value / 255;
+      return channel <= 0.04045
+        ? channel / 12.92
+        : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+  };
+  const light = luminance(foreground);
+  const dark = luminance(background);
+  return (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05);
+}
+
+function expectReadableMapError(message: string) {
+  const text = screen.getByText(message);
+  const panel = text.closest('[data-map-state="error"]');
+  expect(panel).not.toBeNull();
+  expect(
+    contrastRatio(
+      getComputedStyle(text).color,
+      getComputedStyle(panel!).backgroundColor
+    )
+  ).toBeGreaterThanOrEqual(4.5);
+}
 
 describe('GoogleMapContainer', () => {
   const mockOnMapLoad = vi.fn();
@@ -90,6 +101,7 @@ describe('GoogleMapContainer', () => {
         screen.getByText('Map configuration error. Please contact support.')
       ).toBeInTheDocument();
     });
+    expectReadableMapError('Map configuration error. Please contact support.');
   });
 
   it('should show a Try Again button in error state', async () => {
@@ -129,6 +141,7 @@ describe('GoogleMapContainer', () => {
         screen.getByText('Failed to load map. Please try again.')
       ).toBeInTheDocument();
     });
+    expectReadableMapError('Failed to load map. Please try again.');
   });
 
   it('should apply custom styles to the container', () => {

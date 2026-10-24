@@ -185,6 +185,7 @@ function GoogleMapContent({
   if (error) {
     return (
       <div
+        data-map-state='error'
         style={{
           padding: theme.spacing[8],
           textAlign: 'center',
@@ -211,7 +212,7 @@ function GoogleMapContent({
         </div>
         <p
           style={{
-            color: theme.colors.error,
+            color: theme.colors.status.error.text,
             fontSize: theme.typography.fontSize.base,
             marginBottom: theme.spacing[4],
           }}
@@ -246,7 +247,11 @@ function GoogleMapContent({
   }
 
   return (
-    <div style={{ position: 'relative', ...style }} className={className}>
+    <div
+      data-map-state={loading ? 'loading' : 'ready'}
+      style={{ position: 'relative', ...style }}
+      className={className}
+    >
       {loading && (
         <div
           style={{
