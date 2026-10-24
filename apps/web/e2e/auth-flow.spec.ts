@@ -67,8 +67,8 @@ test.describe('Authentication Flow', () => {
       await fillSignUpForm(page, {
         email: `test${timestamp}${randomSuffix}@example.com`,
         // Separators prevent random hex from accidentally containing a banned
-        // sequence such as "123" or "abc". Keep the full 192 bits of entropy.
-        password: `E2e!${randomBytes(24).toString('hex').match(/.{2}/g)!.join('-')}`,
+        // sequence such as "123" or "abc". Keep the 176 bits of entropy below Supabase's 72-character limit.
+        password: `E2e!${randomBytes(22).toString('hex').match(/.{2}/g)!.join('-')}`,
       });
 
       // Submit form
