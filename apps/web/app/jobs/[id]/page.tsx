@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
+import { PropertyEntryUnavailableNotice } from '@/components/properties/PropertyEntryUnavailableNotice';
+import { readPropertyEntryForDisplay } from '@/lib/services/property-entry-secret';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { redirect } from 'next/navigation';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
@@ -196,18 +197,16 @@ export default async function JobDetailPage2025({
       .eq('id', user.id)
       .single(),
   ]);
+  let entrySecretUnavailable = false;
   if (property && job.property_id) {
-    // Entry secrets must fail closed without taking down the whole job page.
     property.key_safe_code = null;
-    try {
-      property.key_safe_code = await readPropertyEntrySecret(
-        job.property_id,
-        user.id,
-        job.id
-      );
-    } catch {
-      logger.warn('Property entry details unavailable', { jobId: job.id });
-    }
+    const entry = await readPropertyEntryForDisplay(
+      job.property_id,
+      user.id,
+      job.id
+    );
+    property.key_safe_code = entry.code;
+    entrySecretUnavailable = entry.unavailable;
   }
 
   if (bidsError) {
@@ -378,6 +377,7 @@ export default async function JobDetailPage2025({
   if (isMintEditorial) {
     return (
       <>
+        <PropertyEntryUnavailableNotice unavailable={entrySecretUnavailable} />
         <MintEditorialJobDetailView
           job={{
             id: job.id,
@@ -428,6 +428,7 @@ export default async function JobDetailPage2025({
 
   return (
     <>
+      <PropertyEntryUnavailableNotice unavailable={entrySecretUnavailable} />
       <JobViewTracker jobId={resolvedParams.id} />
 
       <HomeownerPageWrapper>

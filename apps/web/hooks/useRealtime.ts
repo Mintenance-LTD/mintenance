@@ -7,7 +7,8 @@ import { logger } from '@/lib/logger';
 
 /** Per-client connection limit to prevent resource exhaustion (Issue 37) */
 const MAX_CHANNELS_PER_CLIENT = 10;
-const activeChannels = new Set<string>();
+const activeChannels = new Set<ReturnType<typeof supabase.channel>>();
+let nextSubscriptionId = 0;
 
 /**
  * Payload for realtime database changes
@@ -55,140 +56,105 @@ export function useRealtime(config?: RealtimeConfig) {
   });
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const configRef = useRef<RealtimeConfig | undefined>(config);
-
-  // Update config ref when config changes
+  const configRef = useRef(config);
   useEffect(() => {
     configRef.current = config;
   }, [config]);
 
-  const subscribe = useCallback((customConfig?: RealtimeConfig) => {
-    const finalConfig = customConfig || configRef.current;
-
-    if (!finalConfig) {
-      logger.error('No configuration provided for realtime subscription');
-      return;
-    }
-
-    // Unsubscribe from existing channel
-    if (channelRef.current) {
-      const prevName = (channelRef.current as unknown as { topic?: string })
-        .topic;
-      if (prevName) activeChannels.delete(prevName);
-      channelRef.current.unsubscribe();
-    }
-
-    const {
-      table,
-      schema = 'public',
-      filter,
-      onInsert,
-      onUpdate,
-      onDelete,
-      onError,
-    } = finalConfig;
-
-    // Create a unique channel name
-    const channelName = `${schema}:${table}${filter ? `:${filter}` : ''}`;
-
-    // Enforce per-client connection limit
-    if (
-      activeChannels.size >= MAX_CHANNELS_PER_CLIENT &&
-      !activeChannels.has(channelName)
-    ) {
-      logger.error('Realtime channel limit reached', {
-        max: MAX_CHANNELS_PER_CLIENT,
-        active: activeChannels.size,
-        rejected: channelName,
+  const releaseChannel = useCallback(() => {
+    const channel = channelRef.current;
+    channelRef.current = null;
+    if (!channel) return;
+    activeChannels.delete(channel);
+    try {
+      void supabase.removeChannel(channel).catch(() => {
+        logger.warn('Realtime channel cleanup failed');
       });
-      onError?.(
-        new Error(`Channel limit (${MAX_CHANNELS_PER_CLIENT}) reached`)
-      );
-      return;
+    } catch {
+      logger.warn('Realtime channel cleanup failed');
     }
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema,
-          table,
-          filter,
-        },
-        (payload) => {
-          setStatus((prev) => ({
-            ...prev,
-            lastUpdate: new Date(),
-          }));
-
-          switch (payload.eventType) {
-            case 'INSERT':
-              onInsert?.(payload);
-              break;
-            case 'UPDATE':
-              onUpdate?.(payload);
-              break;
-            case 'DELETE':
-              onDelete?.(payload);
-              break;
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          activeChannels.add(channelName);
-          setStatus((prev) => ({
-            ...prev,
-            connected: true,
-            error: null,
-          }));
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          activeChannels.delete(channelName);
-          setStatus((prev) => ({
-            ...prev,
-            connected: false,
-            error: `Connection ${status}`,
-          }));
-          onError?.(new Error(`Connection ${status}`));
-        }
-      });
-
-    channelRef.current = channel;
   }, []);
 
   const unsubscribe = useCallback(() => {
-    if (channelRef.current) {
-      const topic = (channelRef.current as unknown as { topic?: string }).topic;
-      if (topic) activeChannels.delete(topic);
-      channelRef.current.unsubscribe();
-      channelRef.current = null;
-      setStatus({
-        connected: false,
-        error: null,
-        lastUpdate: null,
-      });
-    }
-  }, []);
+    releaseChannel();
+    setStatus({ connected: false, error: null, lastUpdate: null });
+  }, [releaseChannel]);
 
-  // Auto-subscribe if config is provided
+  const subscribe = useCallback(
+    (customConfig?: RealtimeConfig) => {
+      releaseChannel();
+      setStatus({ connected: false, error: null, lastUpdate: null });
+      const finalConfig = customConfig ?? configRef.current;
+      if (!finalConfig) return;
+      const callbacks = () => customConfig ?? configRef.current ?? finalConfig;
+      const fail = (message: string) => {
+        setStatus((prev) => ({ ...prev, connected: false, error: message }));
+        logger.warn('Realtime subscription unavailable', { reason: message });
+        callbacks().onError?.(new Error(message));
+      };
+      if (activeChannels.size >= MAX_CHANNELS_PER_CLIENT) {
+        fail(`Channel limit (${MAX_CHANNELS_PER_CLIENT}) reached`);
+        return;
+      }
+      const { table, schema = 'public', filter } = finalConfig;
+      try {
+        // Separate ownership prevents one consumer unsubscribing another.
+        const channel = supabase.channel(
+          `${schema}:${table}:${++nextSubscriptionId}`
+        );
+        channelRef.current = channel;
+        activeChannels.add(channel); // Reserve while connecting too.
+        channel
+          .on(
+            'postgres_changes',
+            { event: '*', schema, table, filter },
+            (payload) => {
+              if (channelRef.current !== channel) return;
+              setStatus((prev) => ({ ...prev, lastUpdate: new Date() }));
+              switch (payload.eventType) {
+                case 'INSERT':
+                  callbacks().onInsert?.(payload);
+                  break;
+                case 'UPDATE':
+                  callbacks().onUpdate?.(payload);
+                  break;
+                case 'DELETE':
+                  callbacks().onDelete?.(payload);
+                  break;
+              }
+            }
+          )
+          .subscribe((connectionStatus) => {
+            if (channelRef.current !== channel) return;
+            if (connectionStatus === 'SUBSCRIBED') {
+              setStatus((prev) => ({ ...prev, connected: true, error: null }));
+            } else if (
+              connectionStatus === 'CHANNEL_ERROR' ||
+              connectionStatus === 'TIMED_OUT'
+            ) {
+              // The SDK may reconnect this channel; keep its slot reserved.
+              fail(`Connection ${connectionStatus}`);
+            } else if (connectionStatus === 'CLOSED') {
+              releaseChannel();
+              fail('Connection CLOSED');
+            }
+          });
+      } catch {
+        // Safari can throw before subscribe returns. Consumers can use HTTP;
+        // do not weaken TLS/CSP or let the exception take down the page.
+        releaseChannel();
+        fail('Realtime connection could not be opened');
+      }
+    },
+    [releaseChannel]
+  );
+
   useEffect(() => {
-    if (config) {
-      subscribe(config);
-    }
+    subscribe();
+    return unsubscribe;
+  }, [config?.table, config?.schema, config?.filter, subscribe, unsubscribe]);
 
-    return () => {
-      unsubscribe();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- subscribe/unsubscribe are stable refs
-  }, [config?.table, config?.filter, subscribe, unsubscribe]);
-
-  return {
-    status,
-    subscribe,
-    unsubscribe,
-  };
+  return { status, subscribe, unsubscribe };
 }
 
 /**

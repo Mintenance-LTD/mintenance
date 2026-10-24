@@ -101,3 +101,49 @@ The retry trace identifies a real contrast defect, not a fade-animation false po
 The map now uses the existing semantic error-text token `#991b1b`. It exposes loading/ready/error state, and Discover accessibility scans wait for ready or error before running axe. Contrast checks remain enabled. The aggregate failure report now includes offending selectors, HTML and failure summaries so future failures are diagnosable without decoding a trace.
 
 Validation: seven map component tests pass using actual design tokens, including contrast checks for missing-key and script-load failure states. Three isolated Playwright readiness regressions passed three consecutive repetitions (nine passes). A headless Edge browser harness rendering the real map component reproduced the original 3.59:1 failure, then found zero contrast violations and zero incomplete checks with the fixed color at 1280x800 and 375x667. Full web TypeScript checking passes; the changed component passes lint (test files are excluded by the repository lint configuration). The local browser harness used synthetic content and blocked all external requests. Full authenticated CI and production inclusion remain separate verification steps.
+
+## 24 October 2026: Sentry runtime resilience follow-up
+
+User-authorized work on the four unresolved Sentry groups (project 4511226460438608).
+Base: main 3f8508599ffa0e2e50bb9c8ab694c48f1b6f0ef5, containing merged PR 1410.
+
+- [JAVASCRIPT-NEXTJS-C](https://mintenance-6r.sentry.io/issues/139977808/): older Mobile
+  Safari 18.5 / iOS 18.5 event on the contractor dashboard reported a synchronous WebSocket
+  security exception in subscribe/connect. Its minified stack does not establish the exact
+  caller. The shared realtime hook demonstrably lacked a synchronous exception boundary.
+  It now handles connection refusal and closure, isolates channel ownership, bounds connecting
+  subscriptions, removes channels on cleanup, and ignores callbacks after replacement.
+  The notification bell reconciles the authenticated HTTP count every 30 seconds, on realtime
+  events and reconnection. Requests are serialized, bounded to 10 seconds, cancelled on cleanup
+  and scoped to the current account. Failed reads display an unknown count rather than zero.
+  This is resilience against blocked WebSockets, not evidence the browser restriction itself
+  has been removed or every other realtime consumer has an HTTP fallback.
+- [JAVASCRIPT-NEXTJS-D](https://mintenance-6r.sentry.io/issues/152824811/) and
+  [JAVASCRIPT-NEXTJS-E](https://mintenance-6r.sentry.io/issues/152869348/): October 10/11
+  job/property entry reads failed near a filtered POST 404. The exact failed endpoint was
+  filtered; attribution to a missing RPC remains an inference. Earlier read-only verification
+  found the canonical RPC present, service-role-only, returning no secret for a null actor.
+  The helper now retains only a validated database error code and a generic public error.
+  Page reads withhold the secret, log the lookup failure, and show an explicit retry notice
+  while other details render. The owner access form is disabled until the saved code can be
+  read, preventing accidental writes from an unknown baseline. API/mutation callers still
+  throw on failure; database grants, reveal windows and actor authorization are unchanged.
+  In particular, the access PATCH reads the secret after writing, so the degraded page must
+  not invite writes that might commit yet report a readback error.
+- [JAVASCRIPT-NEXTJS-F](https://mintenance-6r.sentry.io/issues/154089743/): one old mobile
+  homepage hydration event contained nested font elements absent from the source. An isolated
+  local Edge probe used the actual root-layout skip-link markup and blocked all network traffic:
+  original markup: 0 recoveries; nested font wrappers retaining the English text: 0 recoveries;
+  a translated text mutation before hydration: 1 recoverable mismatch, with the link restored
+  to its correct text and destination. This supports external text mutation as a possible
+  trigger, but wrappers alone do not prove causation for the historic event. No translation
+  disabling, blanket hydration suppression, or speculative homepage change was applied.
+  Follow-up requires a new event/reproduction with browser language and translation state;
+  source-map upload configuration remains an operational gap.
+
+Validation: focused realtime, notification, entry-service and disabled-form regressions;
+full web TypeScript check; changed-source ESLint (two pre-existing unused helper warnings).
+The hydration probe is a local synthetic reproduction, not an authenticated mobile/Safari
+production test. No Sentry group is marked resolved; production inclusion and post-release
+verification remain necessary. No production writes, credentials, access protections or billing
+settings were changed.
