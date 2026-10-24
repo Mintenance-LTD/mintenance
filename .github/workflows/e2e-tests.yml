@@ -27,8 +27,8 @@ jobs:
     # Playwright 1.60 does not support the Ubuntu 26.04 latest runner yet.
     runs-on: ubuntu-24.04
     # 2026-07-28 PM: 45min per shard. The 60min single-job run (30366471487)
-    # was killed at exactly 60:00; sharding 2× + Chromium-only PRs + 1 retry
-    # + video-on-retry-only should land each shard well under this.
+    # was killed at exactly 60:00; sharding 2×, one retry and video only on
+    # retry keep costs bounded. Auth flows run in all browsers before merge.
     timeout-minutes: 45
 
     # Production-mode tests exercise the real limiter against disposable Redis.
@@ -82,7 +82,7 @@ jobs:
         working-directory: apps/web
         timeout-minutes: 10
         env:
-          E2E_ALL_BROWSERS: ${{ github.event_name == 'push' && 'true' || 'false' }}
+          E2E_ALL_BROWSERS: 'true'
         run: |
           if [ "$E2E_ALL_BROWSERS" = "true" ]; then
             npx playwright install --with-deps
@@ -120,7 +120,7 @@ jobs:
         working-directory: apps/web
         run: npx playwright test --shard=${{ matrix.shard }}/2
         env:
-          E2E_ALL_BROWSERS: ${{ github.event_name == 'push' && 'true' || 'false' }}
+          E2E_ALL_BROWSERS: 'true'
 
       - name: Stop disposable database
         if: always() && (steps.start-database.outcome == 'success' || steps.start-database.outcome == 'failure')
