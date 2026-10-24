@@ -6,6 +6,8 @@ fs.mkdirSync(path.join(target, 'supabase'), { recursive: true });
 let config = fs.readFileSync('supabase/config.toml', 'utf8')
   .replace(/project_id = ".*"/, 'project_id = "mintenance-e2e-ci"')
   .replace(/543(\d\d)/g, '563$1')
+  .replace(/^site_url = .*$/m, 'site_url = "https://localhost:3000"')
+  .replace(/^additional_redirect_urls = .*$/m, 'additional_redirect_urls = ["https://localhost:3000/**"]')
   .replace(/(\[db.seed\]\s*[^[]*?enabled = )true/, '$1false');
 for (const section of ['db.pooler', 'studio', 'analytics', 'edge_runtime']) {
   const escaped = section.replace('.', '\\.');

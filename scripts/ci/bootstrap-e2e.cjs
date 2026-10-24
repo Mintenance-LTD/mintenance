@@ -20,7 +20,8 @@ async function main() {
     STRIPE_SECRET_KEY: 'sk_test_isolated_browser_fixture',
     STRIPE_WEBHOOK_SECRET: 'whsec_isolated_browser_fixture',
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: 'pk_test_isolated_browser_fixture',
-    NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
+    NEXT_PUBLIC_APP_URL: 'https://localhost:3000',
+    PLAYWRIGHT_TEST_BASE_URL: 'https://localhost:3000',
     E2E_TESTING: 'true',
     REDIS_REQUIRED: 'false',
   };

@@ -61,4 +61,14 @@ The refreshed registry audit also reported [GHSA-834v-8h66-3h79](https://github.
 
 ## Release boundary
 
-Corrections in this follow-up branch are local until committed, reviewed and deployed. Focused regression tests and CSS compilation passed; they are not a fresh complete Next.js production build or full browser/mobile acceptance run. Preserve restricted-beta protection and the existing Supabase Free decision. Stripe delivery verification and the other readiness blockers remain tracked separately.
+The build/CSS corrections were pushed as `1b9eb931` in [PR #1407](https://github.com/Mintenance-LTD/mintenance/pull/1407). Its [Vercel preview](https://vercel.com/mintenance/mintenance-clean/4hXsNXzw3LEzapZxMHSLyHhZH7on) reached READY. This is not a production merge or full browser/mobile acceptance. Preserve restricted-beta protection and the existing Supabase Free decision. Stripe delivery verification and the other readiness blockers remain tracked separately.
+
+## Post-merge cross-browser failures
+
+[Main run 40035200409, shard 2](https://github.com/Mintenance-LTD/mintenance/actions/runs/40035200409/job/120692837169) failed four Safari/mobile-Safari signup and reset checks, with one flaky Firefox signup. Downloaded Playwright traces establish three causes:
+
+- The CI production server used HTTP localhost while issuing `Secure; __Host-` CSRF cookies. Safari's next POST included the CSRF header but omitted the cookie; signup and reset returned 403. The Firefox retry included the cookie and registration returned 201. These traces do not establish a production HTTPS defect.
+- All browser projects shared one IP and a three-per-hour password-reset budget. The later reset trace returned 429. Tests must isolate clients without disabling the real limiter.
+- One randomly generated hexadecimal signup password contained a forbidden three-character sequence. The page correctly rejected it before submission.
+
+CI now serves the production build over loopback HTTPS using an ephemeral certificate, with certificate trust relaxed only for that exact local test URL. Auth tests simulate distinct trusted-edge client IPs only against the disposable local stack; requests within each test still share real Redis budgets. A browser regression requires reset statuses 200/200/200/429. Random signup passwords retain 192 bits of entropy with separators preventing accidental banned sequences. All five auth browser projects now run on PRs, so these failures cannot hide behind Chromium-only acceptance. Production security controls are unchanged. Cross-browser CI verification of these corrections is pending.
