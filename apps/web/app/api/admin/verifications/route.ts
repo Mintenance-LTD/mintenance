@@ -86,10 +86,21 @@ export const GET = withApiHandler(
     > = {};
 
     if (contractorIds.length > 0) {
-      const { data: skills } = await serverSupabase
+      const { data: skills, error: skillsError } = await serverSupabase
         .from('contractor_skills')
-        .select('contractor_id, skill_name, years_experience, verified')
+        .select('contractor_id, skill_name, years_experience, verified:is_verified')
         .in('contractor_id', contractorIds);
+
+      if (skillsError) {
+        logger.error('Failed to fetch contractor verification skills', {
+          service: 'admin-verifications',
+          error: skillsError.message,
+        });
+        return NextResponse.json(
+          { error: 'Failed to fetch contractor verification skills' },
+          { status: 500 }
+        );
+      }
 
       if (skills) {
         skillsMap = skills.reduce<typeof skillsMap>((acc, s) => {
