@@ -42,6 +42,7 @@ import { DashboardAppointmentsSection } from './components/DashboardAppointments
 import { ReferralCard } from './components/ReferralCard';
 import { LandlordPayerJobsCard } from './components/LandlordPayerJobsCard';
 import { HomeHealthCtaCard } from './components/HomeHealthCtaCard';
+import { GettingStartedCard } from '../../components/onboarding/GettingStartedCard';
 import { FinishSetupCard } from './components/FinishSetupCard';
 import { PushPermissionRecoveryBanner } from '../../components/onboarding/PushPermissionRecoveryBanner';
 
@@ -389,6 +390,7 @@ export const HomeownerDashboard: React.FC = () => {
 
           {/* Phase 1.3 — Finish-setup checklist. Self-hides when done. */}
           <FadeIn duration={400} delay={380}>
+            <GettingStartedCard />
             <FinishSetupCard />
           </FadeIn>
 

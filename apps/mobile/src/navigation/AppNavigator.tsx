@@ -212,7 +212,7 @@ const TabNavigator: React.FC = () => {
   return (
     <>
       <OfflineSyncStatus showWhenOnline compact position='top' />
-      <OnboardingGateStack />
+      <OnboardingGateStack key={user?.id} />
       <QuickJobModal
         visible={showQuickJobModal}
         onClose={() => setShowQuickJobModal(false)}

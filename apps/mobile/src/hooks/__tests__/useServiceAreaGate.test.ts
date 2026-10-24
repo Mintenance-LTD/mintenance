@@ -40,7 +40,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { useServiceAreaGate } from '../useServiceAreaGate';
 
-const STORAGE_KEY = 'service_area_prompt_dismissed_at';
+const STORAGE_KEY = 'service_area_prompt_dismissed_at:u1';
 const onboardedContractor = {
   id: 'u1',
   role: 'contractor',

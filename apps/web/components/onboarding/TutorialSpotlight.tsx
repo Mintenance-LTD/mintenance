@@ -1,17 +1,8 @@
 'use client';
-
-/**
- * TutorialSpotlight Component
- * Non-blocking tutorial guide that highlights sidebar items
- * and explains each feature without locking the user to one page.
- */
-
-import React, { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, ArrowLeft, Check } from 'lucide-react';
-import { OnboardingStep } from '@/lib/onboarding/flows';
-
-interface TutorialSpotlightProps {
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { OnboardingStep } from '@/lib/onboarding/flows';
+interface Props {
   step: OnboardingStep;
   stepIndex: number;
   totalSteps: number;
@@ -22,248 +13,146 @@ interface TutorialSpotlightProps {
   isFirstStep: boolean;
   isLastStep: boolean;
 }
-
-export function TutorialSpotlight(props: TutorialSpotlightProps) {
-  const {
-    step,
-    stepIndex = 0,
-    totalSteps = 1,
-    onNext = () => {},
-    onPrevious,
-    onSkip = () => {},
-    onComplete = () => {},
-    isFirstStep = true,
-    isLastStep = false,
-  } = props || {};
-
-  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detect mobile
+export function TutorialSpotlight({
+  step,
+  stepIndex,
+  totalSteps,
+  onNext,
+  onPrevious,
+  onSkip,
+  onComplete,
+  isFirstStep,
+  isLastStep,
+}: Props) {
+  const dialog = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [rect, setRect] = useState<DOMRect | null>(null);
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    setMounted(true);
   }, []);
-
-  // Find and highlight target element (sidebar item)
   useEffect(() => {
-    if (!step?.targetSelector) {
-      setTargetRect(null);
-      return;
-    }
-
-    const findAndHighlight = () => {
-      const el = document.querySelector(step.targetSelector!) as HTMLElement;
-      if (el) {
-        setTargetRect(el.getBoundingClientRect());
-        // Scroll sidebar item into view if needed
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } else {
-        setTargetRect(null);
-      }
+    if (!mounted) return;
+    const previous = document.activeElement as HTMLElement | null;
+    dialog.current?.focus();
+    return () => previous?.focus();
+  }, [mounted]);
+  useEffect(() => {
+    const update = () => {
+      const node = step.targetSelector
+        ? document.querySelector(step.targetSelector)
+        : null;
+      const bounds = node?.getBoundingClientRect();
+      setRect(
+        bounds &&
+          bounds.width > 0 &&
+          bounds.left >= 0 &&
+          bounds.right <= window.innerWidth
+          ? bounds
+          : null
+      );
     };
-
-    findAndHighlight();
-    const timer = setTimeout(findAndHighlight, 300);
-
-    const handleUpdate = () => {
-      const el = document.querySelector(step.targetSelector!) as HTMLElement;
-      if (el) setTargetRect(el.getBoundingClientRect());
-    };
-
-    window.addEventListener('scroll', handleUpdate, true);
-    window.addEventListener('resize', handleUpdate);
-
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
     return () => {
-      clearTimeout(timer);
-      window.removeEventListener('scroll', handleUpdate, true);
-      window.removeEventListener('resize', handleUpdate);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
     };
-  }, [step?.targetSelector]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        isLastStep ? onComplete() : onNext();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        onSkip();
-      } else if (e.key === 'ArrowLeft' && !isFirstStep && onPrevious) {
-        e.preventDefault();
-        onPrevious();
-      } else if (e.key === 'ArrowRight' && !isLastStep) {
-        e.preventDefault();
-        onNext();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFirstStep, isLastStep, onNext, onPrevious, onSkip, onComplete]);
-
-  // Calculate card position — next to the highlighted sidebar item, or centered for welcome step
-  const isWelcomeStep = !step?.targetSelector;
-
-  const cardStyle: React.CSSProperties = isWelcomeStep
-    ? {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 9999,
-      }
-    : {
-        position: 'fixed',
-        top: targetRect
-          ? Math.min(
-              Math.max(targetRect.top - 20, 16),
-              window.innerHeight - 340
-            )
-          : 100,
-        left: isMobile ? 16 : 280,
-        zIndex: 9999,
-      };
-
-  return (
-    <AnimatePresence>
-      {/* Light backdrop only for welcome step */}
-      {isWelcomeStep && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className='fixed inset-0 bg-black/40 z-[9998]'
-          onClick={onSkip}
-        />
-      )}
-
-      {/* Highlight ring on sidebar item */}
-      {targetRect && !isWelcomeStep && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className='fixed pointer-events-none z-[9998]'
+  }, [step.targetSelector]);
+  if (!mounted) return null;
+  return createPortal(
+    <div
+      data-theme='mint-editorial'
+      className='me-root fixed inset-0 z-[9998] flex items-end justify-center bg-black/40 p-4 sm:items-center'
+    >
+      {rect && (
+        <div
+          aria-hidden='true'
+          className='pointer-events-none fixed rounded-xl border-2 border-[var(--me-brand)]'
           style={{
-            top: targetRect.top - 4,
-            left: targetRect.left - 4,
-            width: targetRect.width + 8,
-            height: targetRect.height + 8,
-            borderRadius: 10,
-            border: '2px solid #0d9488',
-            boxShadow:
-              '0 0 0 3px rgba(13, 148, 136, 0.25), 0 0 20px rgba(13, 148, 136, 0.15)',
-            background: 'rgba(13, 148, 136, 0.05)',
+            top: rect.top - 3,
+            left: rect.left - 3,
+            width: rect.width + 6,
+            height: rect.height + 6,
           }}
         />
       )}
-
-      {/* Tutorial card */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 10 }}
-        transition={{ duration: 0.25, delay: 0.05 }}
-        className='bg-white rounded-2xl shadow-xl border border-gray-200 p-5 w-[380px] max-w-[calc(100vw-32px)]'
-        style={cardStyle}
+      <div
+        ref={dialog}
+        tabIndex={-1}
         role='dialog'
-        aria-modal={isWelcomeStep ? 'true' : undefined}
-        aria-labelledby='tutorial-title'
+        aria-modal='true'
+        aria-labelledby='tour-title'
+        aria-describedby='tour-description'
+        className='relative z-[9999] max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--me-line)] bg-[var(--me-surface)] p-6 text-[var(--me-ink)] shadow-xl'
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            onSkip();
+          }
+          if (event.key !== 'Tab') return;
+          const controls =
+            dialog.current?.querySelectorAll<HTMLElement>('button, a[href]');
+          const first = controls?.[0],
+            last = controls?.[controls.length - 1];
+          if (
+            event.shiftKey &&
+            (document.activeElement === first ||
+              document.activeElement === dialog.current)
+          ) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }}
       >
-        {/* Close button */}
-        <button
-          onClick={onSkip}
-          className='absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-100 transition-colors'
-          aria-label='Close tutorial'
-        >
-          <X className='w-4 h-4 text-gray-400' />
-        </button>
-
-        {/* Progress bar */}
-        <div className='flex items-center gap-1.5 mb-3'>
-          {Array.from({ length: totalSteps }).map((_, idx) => (
-            <div
-              key={idx}
-              className={`h-1.5 rounded-full transition-all ${
-                idx === stepIndex
-                  ? 'w-6 bg-teal-500'
-                  : idx < stepIndex
-                    ? 'w-1.5 bg-teal-500'
-                    : 'w-1.5 bg-gray-200'
-              }`}
-              role='progressbar'
-              aria-valuenow={stepIndex + 1}
-              aria-valuemin={1}
-              aria-valuemax={totalSteps}
-              aria-label={`Step ${idx + 1} of ${totalSteps}`}
-            />
-          ))}
-        </div>
-
-        {/* Step counter */}
-        <div className='text-xs font-medium text-teal-600 mb-1.5'>
+        <div aria-live='polite' className='text-sm text-[var(--me-ink-2)]'>
           Step {stepIndex + 1} of {totalSteps}
         </div>
-
-        {/* Title */}
-        <h2
-          id='tutorial-title'
-          className='text-lg font-bold text-gray-900 mb-2'
-        >
-          {step?.title || 'Tutorial Step'}
+        <h2 id='tour-title' className='mt-2 text-xl font-semibold'>
+          {step.title}
         </h2>
-
-        {/* Description */}
-        <p className='text-sm text-gray-600 mb-5 leading-relaxed'>
-          {step?.description || 'Follow the tutorial steps to get started.'}
+        <p id='tour-description' className='my-4 text-sm leading-relaxed'>
+          {step.description}
         </p>
-
-        {/* Action buttons */}
-        <div className='flex items-center justify-between gap-2'>
-          <div className='flex items-center gap-2'>
-            {!isFirstStep && onPrevious && (
-              <button
-                onClick={onPrevious}
-                className='px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5 text-sm'
-              >
-                <ArrowLeft className='w-3.5 h-3.5' />
-                Back
-              </button>
-            )}
-
-            {isFirstStep && (
-              <button
-                onClick={onSkip}
-                className='px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors'
-              >
-                Skip Tour
-              </button>
-            )}
-          </div>
-
-          <button
-            onClick={isLastStep ? onComplete : onNext}
-            className='px-5 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-1.5 text-sm font-medium'
+        {step.href && (
+          <a
+            className='mb-4 inline-block underline'
+            href={step.href}
+            onClick={onSkip}
           >
-            {isLastStep ? (
-              <>
-                <Check className='w-3.5 h-3.5' />
-                Got it!
-              </>
-            ) : (
-              <>
-                {step?.nextLabel || 'Next'}
-                <ArrowRight className='w-3.5 h-3.5' />
-              </>
-            )}
+            Open this feature
+          </a>
+        )}
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <button
+            type='button'
+            onClick={onSkip}
+            className='min-h-11 rounded-full px-3'
+          >
+            Skip tour
+          </button>
+          {!isFirstStep && (
+            <button
+              type='button'
+              onClick={onPrevious}
+              className='min-h-11 rounded-full border border-[var(--me-line)] px-4'
+            >
+              Back
+            </button>
+          )}
+          <button
+            type='button'
+            onClick={isLastStep ? onComplete : onNext}
+            className='min-h-11 rounded-full bg-[var(--me-brand)] px-5 text-white'
+          >
+            {isLastStep ? 'Finish tour' : 'Next'}
           </button>
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </div>,
+    document.body
   );
 }

@@ -15,7 +15,7 @@ interface Props {
   onNext: (data: BusinessInfoData) => void;
   saving: boolean;
   /** Wizard-level theme flag — only changes the section header + submit
-   *  button class. Input chrome stays legacy in v1 (see wizard comment). */
+   *  button class. Input chrome uses the Mint Editorial tokens. */
   isMintEditorial?: boolean;
 }
 
@@ -57,13 +57,17 @@ export function BusinessInfoStep({
     <form onSubmit={handleSubmit} noValidate>
       <h2
         className={
-          isMintEditorial ? 't-h3' : 'text-xl font-semibold text-gray-900 mb-1'
+          isMintEditorial
+            ? 't-h3'
+            : 'text-xl font-semibold text-[var(--me-ink)] mb-1'
         }
       >
         Business Information
       </h2>
       <p
-        className={isMintEditorial ? 't-meta' : 'text-sm text-gray-500 mb-6'}
+        className={
+          isMintEditorial ? 't-meta' : 'text-sm text-[var(--me-ink-2)] mb-6'
+        }
         style={isMintEditorial ? { marginBottom: 20 } : undefined}
       >
         Tell homeowners about your business.
@@ -72,10 +76,10 @@ export function BusinessInfoStep({
       <div className='space-y-4'>
         <div>
           <label
-            className='block text-sm font-medium text-gray-700 mb-1'
+            className='block text-sm font-medium text-[var(--me-ink-2)] mb-1'
             htmlFor='businessName'
           >
-            Business Name <span className='text-red-500'>*</span>
+            Business Name <span className='text-[var(--me-err-fg)]'>*</span>
           </label>
           <input
             id='businessName'
@@ -83,19 +87,21 @@ export function BusinessInfoStep({
             value={form.businessName}
             onChange={(e) => setForm({ ...form, businessName: e.target.value })}
             placeholder='e.g. Smith Plumbing Ltd'
-            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${errors.businessName ? 'border-red-400' : 'border-gray-300'}`}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--me-brand)] ${errors.businessName ? 'border-[var(--me-err-fg)]' : 'border-[var(--me-line)]'}`}
           />
           {errors.businessName && (
-            <p className='text-xs text-red-500 mt-1'>{errors.businessName}</p>
+            <p className='text-xs text-[var(--me-err-fg)] mt-1'>
+              {errors.businessName}
+            </p>
           )}
         </div>
 
         <div>
           <label
-            className='block text-sm font-medium text-gray-700 mb-1'
+            className='block text-sm font-medium text-[var(--me-ink-2)] mb-1'
             htmlFor='phoneNumber'
           >
-            Phone Number <span className='text-red-500'>*</span>
+            Phone Number <span className='text-[var(--me-err-fg)]'>*</span>
           </label>
           <input
             id='phoneNumber'
@@ -103,16 +109,18 @@ export function BusinessInfoStep({
             value={form.phoneNumber}
             onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
             placeholder='e.g. 07700 900000'
-            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${errors.phoneNumber ? 'border-red-400' : 'border-gray-300'}`}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--me-brand)] ${errors.phoneNumber ? 'border-[var(--me-err-fg)]' : 'border-[var(--me-line)]'}`}
           />
           {errors.phoneNumber && (
-            <p className='text-xs text-red-500 mt-1'>{errors.phoneNumber}</p>
+            <p className='text-xs text-[var(--me-err-fg)] mt-1'>
+              {errors.phoneNumber}
+            </p>
           )}
         </div>
 
         <div>
           <label
-            className='block text-sm font-medium text-gray-700 mb-1'
+            className='block text-sm font-medium text-[var(--me-ink-2)] mb-1'
             htmlFor='yearsExperience'
           >
             Years of Experience
@@ -127,10 +135,10 @@ export function BusinessInfoStep({
               setForm({ ...form, yearsExperience: e.target.value })
             }
             placeholder='e.g. 5'
-            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${errors.yearsExperience ? 'border-red-400' : 'border-gray-300'}`}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--me-brand)] ${errors.yearsExperience ? 'border-[var(--me-err-fg)]' : 'border-[var(--me-line)]'}`}
           />
           {errors.yearsExperience && (
-            <p className='text-xs text-red-500 mt-1'>
+            <p className='text-xs text-[var(--me-err-fg)] mt-1'>
               {errors.yearsExperience}
             </p>
           )}
@@ -138,7 +146,7 @@ export function BusinessInfoStep({
 
         <div>
           <label
-            className='block text-sm font-medium text-gray-700 mb-1'
+            className='block text-sm font-medium text-[var(--me-ink-2)] mb-1'
             htmlFor='bio'
           >
             About Your Business
@@ -149,13 +157,13 @@ export function BusinessInfoStep({
             value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
             placeholder='Briefly describe your services, specialties, and why homeowners should choose you...'
-            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none ${errors.bio ? 'border-red-400' : 'border-gray-300'}`}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--me-brand)] resize-none ${errors.bio ? 'border-[var(--me-err-fg)]' : 'border-[var(--me-line)]'}`}
           />
-          <p className='text-xs text-gray-400 mt-1'>
+          <p className='text-xs text-[var(--me-ink-2)] mt-1'>
             {form.bio.length}/500 characters
           </p>
           {errors.bio && (
-            <p className='text-xs text-red-500 mt-1'>{errors.bio}</p>
+            <p className='text-xs text-[var(--me-err-fg)] mt-1'>{errors.bio}</p>
           )}
         </div>
       </div>
@@ -167,7 +175,7 @@ export function BusinessInfoStep({
           className={
             isMintEditorial
               ? 'btn-primary'
-              : 'flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors'
+              : 'flex items-center gap-2 bg-[var(--me-brand)] hover:bg-[var(--me-brand)] disabled:bg-[var(--me-brand)] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors'
           }
         >
           {saving ? 'Saving…' : 'Next'}

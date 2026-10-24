@@ -29,13 +29,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePushSoftAskGate } from '../../hooks/usePushSoftAskGate';
 import { MOBILE_STORAGE_KEYS } from '../../config/storageKeys';
-import { theme } from '../../theme';
+import { useOnboardingTheme } from '../../hooks/useOnboardingTheme';
 import { logger } from '../../utils/logger';
 
 const STORAGE_KEY = MOBILE_STORAGE_KEYS.PUSH_RECOVERY_BANNER_DISMISSED;
 const COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export const PushPermissionRecoveryBanner: React.FC = () => {
+  const theme = useOnboardingTheme();
+  const styles = createStyles(theme);
   const { user } = useAuth();
   const { permissionStatus, openSystemSettings } = usePushSoftAskGate();
   const [dismissedRecently, setDismissedRecently] = useState<boolean | null>(
@@ -132,56 +134,57 @@ export const PushPermissionRecoveryBanner: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginTop: 8,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  iconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  body: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    marginTop: 1,
-  },
-  openButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    backgroundColor: theme.colors.textPrimary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  openButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  dismissButton: {
-    padding: 2,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useOnboardingTheme>) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginHorizontal: 16,
+      marginTop: 8,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    iconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    body: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: 11,
+      color: theme.colors.textSecondary,
+      marginTop: 1,
+    },
+    openButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      backgroundColor: theme.colors.textPrimary,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    openButtonText: {
+      color: theme.colors.textInverse,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    dismissButton: {
+      padding: 2,
+    },
+  });

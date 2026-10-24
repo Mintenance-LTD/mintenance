@@ -60,13 +60,17 @@ export function ServiceAreaStep({
     <form onSubmit={handleSubmit} noValidate>
       <h2
         className={
-          isMintEditorial ? 't-h3' : 'text-xl font-semibold text-gray-900 mb-1'
+          isMintEditorial
+            ? 't-h3'
+            : 'text-xl font-semibold text-[var(--me-ink)] mb-1'
         }
       >
         Service Area
       </h2>
       <p
-        className={isMintEditorial ? 't-meta' : 'text-sm text-gray-500 mb-6'}
+        className={
+          isMintEditorial ? 't-meta' : 'text-sm text-[var(--me-ink-2)] mb-6'
+        }
         style={isMintEditorial ? { marginBottom: 20 } : undefined}
       >
         Define where you work. Only jobs within your radius will be shown to
@@ -76,13 +80,13 @@ export function ServiceAreaStep({
       <div className='space-y-5'>
         <div>
           <label
-            className='block text-sm font-medium text-gray-700 mb-1'
+            className='block text-sm font-medium text-[var(--me-ink-2)] mb-1'
             htmlFor='postcode'
           >
-            Base Postcode <span className='text-red-500'>*</span>
+            Base Postcode <span className='text-[var(--me-err-fg)]'>*</span>
           </label>
           <div className='relative'>
-            <MapPin className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none' />
+            <MapPin className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--me-ink-2)] pointer-events-none' />
             <input
               id='postcode'
               type='text'
@@ -92,20 +96,23 @@ export function ServiceAreaStep({
               }
               placeholder='e.g. SW1A 1AA'
               maxLength={8}
-              className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${errors.postcode ? 'border-red-400' : 'border-gray-300'}`}
+              className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--me-brand)] ${errors.postcode ? 'border-[var(--me-err-fg)]' : 'border-[var(--me-line)]'}`}
             />
           </div>
           {errors.postcode && (
-            <p className='text-xs text-red-500 mt-1'>{errors.postcode}</p>
+            <p className='text-xs text-[var(--me-err-fg)] mt-1'>
+              {errors.postcode}
+            </p>
           )}
-          <p className='text-xs text-gray-400 mt-1'>
+          <p className='text-xs text-[var(--me-ink-2)] mt-1'>
             Your home base — used to calculate travel distance to jobs
           </p>
         </div>
 
         <div>
-          <p className='text-sm font-medium text-gray-700 mb-2'>
-            How far will you travel? <span className='text-red-500'>*</span>
+          <p className='text-sm font-medium text-[var(--me-ink-2)] mb-2'>
+            How far will you travel?{' '}
+            <span className='text-[var(--me-err-fg)]'>*</span>
           </p>
           <div className='grid grid-cols-5 gap-2'>
             {RADIUS_OPTIONS.map((opt) => (
@@ -115,8 +122,8 @@ export function ServiceAreaStep({
                 onClick={() => setForm({ ...form, radiusMiles: opt.value })}
                 className={`py-2 rounded-lg border text-sm font-medium transition-colors ${
                   form.radiusMiles === opt.value
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    ? 'border-[var(--me-brand)] bg-[var(--me-brand-soft)] text-[var(--me-ink)]'
+                    : 'border-[var(--me-line)] bg-[var(--me-surface)] text-[var(--me-ink-2)] hover:border-[var(--me-line)]'
                 }`}
               >
                 {opt.label}
@@ -124,7 +131,9 @@ export function ServiceAreaStep({
             ))}
           </div>
           {errors.radiusMiles && (
-            <p className='text-xs text-red-500 mt-1'>{errors.radiusMiles}</p>
+            <p className='text-xs text-[var(--me-err-fg)] mt-1'>
+              {errors.radiusMiles}
+            </p>
           )}
         </div>
 
@@ -144,7 +153,7 @@ export function ServiceAreaStep({
           className={
             isMintEditorial
               ? 'btn-secondary'
-              : 'flex items-center gap-2 text-gray-500 hover:text-gray-700 px-4 py-2.5 rounded-lg border border-gray-200 hover:border-gray-300 text-sm font-medium transition-colors'
+              : 'flex items-center gap-2 text-[var(--me-ink-2)] hover:text-[var(--me-ink-2)] px-4 py-2.5 rounded-lg border border-[var(--me-line)] hover:border-[var(--me-line)] text-sm font-medium transition-colors'
           }
         >
           <ArrowLeft className='w-4 h-4' />
@@ -156,7 +165,7 @@ export function ServiceAreaStep({
           className={
             isMintEditorial
               ? 'btn-primary'
-              : 'flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors'
+              : 'flex items-center gap-2 bg-[var(--me-brand)] hover:bg-[var(--me-brand)] disabled:bg-[var(--me-brand)] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors'
           }
         >
           {saving ? 'Saving…' : 'Next'}

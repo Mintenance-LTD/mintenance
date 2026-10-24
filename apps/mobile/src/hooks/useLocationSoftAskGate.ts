@@ -129,7 +129,9 @@ export function useLocationSoftAskGate(): LocationSoftAskGate {
         }
 
         // Respect the 7-day cool-off after a "Not Now" dismissal.
-        const dismissedAtRaw = await AsyncStorage.getItem(STORAGE_KEY);
+        const dismissedAtRaw = await AsyncStorage.getItem(
+          `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`
+        );
         if (dismissedAtRaw) {
           const dismissedAt = Date.parse(dismissedAtRaw);
           if (
@@ -184,7 +186,10 @@ export function useLocationSoftAskGate(): LocationSoftAskGate {
         // Record the attempt so we don't re-prompt within the
         // cool-off window.
         try {
-          await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+          await AsyncStorage.setItem(
+            `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+            new Date().toISOString()
+          );
         } catch {
           // Non-critical.
         }
@@ -203,13 +208,16 @@ export function useLocationSoftAskGate(): LocationSoftAskGate {
   const dismiss = useCallback(async () => {
     setShouldShow(false);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+      await AsyncStorage.setItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+        new Date().toISOString()
+      );
     } catch (err) {
       logger.warn('useLocationSoftAskGate: dismiss persist failed', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
-  }, []);
+  }, [user?.id]);
 
   const openSystemSettings = useCallback(async () => {
     try {
@@ -223,11 +231,14 @@ export function useLocationSoftAskGate(): LocationSoftAskGate {
     // returns to the app the next mount of the gate re-reads status.
     setShouldShow(false);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+      await AsyncStorage.setItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+        new Date().toISOString()
+      );
     } catch {
       // Non-critical.
     }
-  }, []);
+  }, [user?.id]);
 
   return {
     shouldShow: checked && shouldShow,

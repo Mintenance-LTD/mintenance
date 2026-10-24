@@ -10,6 +10,7 @@
  */
 
 export interface OnboardingStep {
+  href?: string;
   id: string;
   title: string;
   description: string;
@@ -223,7 +224,32 @@ const contractorFlow: OnboardingFlow = {
 export function getFlowByUserType(
   userType: 'homeowner' | 'contractor'
 ): OnboardingFlow {
-  return userType === 'homeowner' ? homeownerFlow : contractorFlow;
+  const flow = userType === 'homeowner' ? homeownerFlow : contractorFlow;
+  const paths: Record<string, string> =
+    userType === 'homeowner'
+      ? {
+          jobs: '/jobs',
+          messages: '/messages',
+          documents: '/documents',
+          properties: '/properties',
+          payments: '/payments',
+          profile: '/profile',
+        }
+      : {
+          dashboard: '/contractor/dashboard-enhanced',
+          jobs: '/contractor/jobs',
+          messages: '/contractor/messages',
+          documents: '/contractor/documents',
+          calendar: '/contractor/calendar',
+          profile: '/contractor/profile',
+        };
+  return {
+    ...flow,
+    steps: flow.steps.map((step) => ({
+      ...step,
+      href: paths[step.id] ?? '/getting-started',
+    })),
+  };
 }
 
 /**

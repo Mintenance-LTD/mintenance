@@ -32,6 +32,7 @@ import type { HeaderMenuItem } from '../../components/navigation/NavigationHeade
 import { QuickActions } from './QuickActions';
 import { TodayRow } from './components/TodayRow';
 import { ScheduleSection } from './ScheduleSection';
+import { GettingStartedCard } from '../../components/onboarding/GettingStartedCard';
 import { FinishSetupCard } from './components/FinishSetupCard';
 import { ContractorBadgesCard } from './components/ContractorBadgesCard';
 import { NextUpCard } from './components/NextUpCard';
@@ -346,6 +347,7 @@ export const ContractorDashboard: React.FC = () => {
 
           {/* Phase 1.3 — Finish-setup checklist. Self-hides when done. */}
           <FadeIn duration={400} delay={200}>
+            <GettingStartedCard />
             <FinishSetupCard />
           </FadeIn>
 

@@ -4,35 +4,13 @@ import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
-import { OnboardingService } from '@/lib/services/OnboardingService';
 import { InternalServerError } from '@/lib/errors/api-error';
 
-/**
- * POST /api/homeowner/onboarding/complete
- *
- * Persists the answers from the homeowner web wizard
- * (/onboarding/homeowner) and flips the `profiles.onboarding_completed`
- * flag in a single round-trip.
- *
- * 2026-05-25 audit-P0-2 — the web app previously had no homeowner
- * onboarding surface. Mobile's HomeownerSetupScreen captures the same
- * fields via PUT /api/users/profile, but only the mobile intro-swiper
- * dismissal flow flips the DB flag (via OnboardingService). Live: 6 of
- * 9 homeowners are flagged complete — all mobile-onboarded. Web-only
- * homeowners stayed at false forever.
- *
- * This route bundles both writes so the wizard's Finish button is one
- * idempotent call. Re-running with the same payload re-merges the
- * settings JSONB (no clobbering of unrelated keys) and is a no-op on
- * the already-flipped flag.
- *
- * Schema mirrors apps/web/app/api/users/profile/route.ts:66-71 so the
- * accepted enum + array shape stays consistent across both write paths.
- */
+/** Saves setup preferences independently of platform introduction progress. */
 const homeownerOnboardingCompleteSchema = z
   .object({
     propertyType: z
-      .enum(['house', 'flat', 'bungalow', 'maisonette', 'other'])
+      .enum(['house', 'flat', 'terrace', 'bungalow', 'maisonette', 'other'])
       .optional()
       .nullable(),
     concernTags: z.array(z.string().max(60)).max(20).optional().nullable(),
@@ -52,7 +30,9 @@ export const POST = withApiHandler(
 
     const { propertyType, concernTags } = validation.data;
 
-    const setupPatch: Record<string, unknown> = {};
+    const setupPatch: Record<string, unknown> = {
+      homeowner_setup_completed: true,
+    };
     if (propertyType !== undefined) {
       setupPatch.property_type = propertyType;
     }
@@ -128,24 +108,7 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to save setup answers');
     }
 
-    // Flip the completion flag via the shared service so the columns
-    // (onboarding_completed, onboarding_completed_at,
-    // intro_swiper_dismissed_at) stay in lock-step with the mobile
-    // intro-swiper path.
-    const flagOk = await OnboardingService.markOnboardingComplete(user.id);
-    if (!flagOk) {
-      // Settings were saved but the flag wasn't — surface a soft error
-      // so the client can decide what to do. The wizard's onSuccess
-      // still advances to the welcome step.
-      logger.warn(
-        'Homeowner settings saved but onboarding_completed flag write failed',
-        { service: 'homeowner-onboarding', userId: user.id }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      onboardingCompleted: flagOk,
-    });
+    // Preferences are separate from learning the web/mobile controls.
+    return NextResponse.json({ success: true, preferencesCompleted: true });
   }
 );

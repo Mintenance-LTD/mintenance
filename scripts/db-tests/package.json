@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node authoritative-mutations.mjs"
+    "test": "node authoritative-mutations.mjs",
+    "test:onboarding": "node onboarding.mjs"
   },
   "dependencies": {
     "embedded-postgres": "17.10.0-beta.17",

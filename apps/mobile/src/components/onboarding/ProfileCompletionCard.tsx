@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { theme } from '../../theme';
+import { useOnboardingTheme } from '../../hooks/useOnboardingTheme';
 
 interface ProfileCompletionItem {
   id: string;
@@ -38,6 +38,8 @@ export function ProfileCompletionCard({
   onItemClick,
   compact = false,
 }: ProfileCompletionCardProps) {
+  const theme = useOnboardingTheme();
+  const styles = createStyles(theme);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function ProfileCompletionCard({
       duration: 1000,
       useNativeDriver: false,
     }).start();
-  }, [completion]);
+  }, [completion, progressAnim]);
 
   const completedCount = items.filter((item) => item.completed).length;
   const totalCount = items.length;
@@ -168,144 +170,145 @@ export function ProfileCompletionCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  circularProgress: {
-    position: 'relative',
-    marginRight: 16,
-  },
-  percentageContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  percentageText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  headerDescription: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  itemsContainer: {
-    gap: 8,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-  },
-  itemCompleted: {
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 9999,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxCompleted: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
-  },
-  checkmark: {
-    color: theme.colors.textInverse,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  itemLabel: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-  },
-  itemLabelCompleted: {
-    color: theme.colors.textTertiary,
-    textDecorationLine: 'line-through',
-  },
-  arrow: {
-    fontSize: 20,
-    color: theme.colors.textTertiary,
-  },
-  celebration: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: 'rgba(34, 34, 34, 0.06)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.textPrimary,
-  },
-  celebrationIcon: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  celebrationContent: {
-    flex: 1,
-  },
-  celebrationTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  celebrationText: {
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-  },
-  completeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'rgba(34, 34, 34, 0.06)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.textPrimary,
-  },
-  completeBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useOnboardingTheme>) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 20,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+        },
+        android: {
+          elevation: 4,
+        },
+      }),
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    circularProgress: {
+      position: 'relative',
+      marginRight: 16,
+    },
+    percentageContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    percentageText: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.colors.textPrimary,
+    },
+    headerContent: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.textPrimary,
+      marginBottom: 6,
+    },
+    headerDescription: {
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+    },
+    itemsContainer: {
+      gap: 8,
+    },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+    },
+    itemCompleted: {
+      backgroundColor: theme.colors.backgroundSecondary,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 9999,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      marginRight: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxCompleted: {
+      backgroundColor: theme.colors.textPrimary,
+      borderColor: theme.colors.textPrimary,
+    },
+    checkmark: {
+      color: theme.colors.textInverse,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    itemLabel: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.colors.textPrimary,
+    },
+    itemLabelCompleted: {
+      color: theme.colors.textTertiary,
+      textDecorationLine: 'line-through',
+    },
+    arrow: {
+      fontSize: 20,
+      color: theme.colors.textTertiary,
+    },
+    celebration: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 20,
+      padding: 16,
+      backgroundColor: 'rgba(34, 34, 34, 0.06)',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.textPrimary,
+    },
+    celebrationIcon: {
+      fontSize: 32,
+      marginRight: 12,
+    },
+    celebrationContent: {
+      flex: 1,
+    },
+    celebrationTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.colors.textPrimary,
+      marginBottom: 6,
+    },
+    celebrationText: {
+      fontSize: 13,
+      color: theme.colors.textPrimary,
+    },
+    completeBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: 'rgba(34, 34, 34, 0.06)',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.textPrimary,
+    },
+    completeBadgeText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textPrimary,
+    },
+  });
