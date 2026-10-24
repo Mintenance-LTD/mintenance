@@ -46,6 +46,9 @@ jobs:
       run: npm install --global npm@11.6.2 --ignore-scripts
 
     - name: Install dependencies
+      # CPU runners use bundled ONNX binaries; skip only the extra CUDA download.
+      env:
+        ONNXRUNTIME_NODE_INSTALL: 'skip'
       run: npm ci --ignore-scripts=false
       timeout-minutes: 10
 

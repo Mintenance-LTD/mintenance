@@ -66,8 +66,15 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        # CPU runners use bundled ONNX binaries; skip only the extra CUDA download.
+        env:
+          ONNXRUNTIME_NODE_INSTALL: 'skip'
         run: npm ci --ignore-scripts=false
         timeout-minutes: 10
+
+      - name: Verify ONNX CPU runtime
+        run: node scripts/ci/verify-onnx-cpu.cjs
+        timeout-minutes: 1
 
       - name: Verify disposable Redis
         run: |
