@@ -11,12 +11,13 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 
 async function waitForAccessiblePage(page: Page, path: string) {
-  await expect(page.locator('main').first()).toBeVisible();
+  const main = page.locator('main').first();
+  await expect(main).toBeVisible();
   await expect(page).not.toHaveURL(/\/login/);
   await page.evaluate(() => document.fonts.ready);
   if (path === '/contractor/profile') {
     await expect(
-      page.getByText('Profile Completion', { exact: true })
+      main.getByText('Profile Completion', { exact: true })
     ).toBeVisible();
     // Profile cards enter with staggered opacity animations. Axe otherwise
     // samples blended text mid-fade and reports transient contrast failures.
@@ -33,7 +34,39 @@ async function waitForAccessiblePage(page: Page, path: string) {
       )
       .toBe(true);
   }
+  if (path === '/contractor/discover') {
+    // The code-split map can still be a skeleton when the page is visible.
+    // Scan the loaded map OR its fallback, so a quick scan cannot miss errors.
+    await expect(
+      main.locator('[data-map-state="ready"], [data-map-state="error"]')
+    ).toBeVisible({ timeout: 20_000 });
+  }
 }
+
+test.describe('Accessibility readiness', () => {
+  test('ignores a hidden profile duplicate outside main', async ({ page }) => {
+    await page.setContent(`
+      <main><span>Profile Completion</span></main>
+      <div hidden><span>Profile Completion</span></div>
+    `);
+    await waitForAccessiblePage(page, '/contractor/profile');
+  });
+
+  for (const state of ['ready', 'error']) {
+    test(`waits for the map ${state} state before scanning`, async ({ page }) => {
+      await page.setContent('<main><div id="map">Loading map...</div></main>');
+      await page.evaluate((nextState) => {
+        setTimeout(() => {
+          document
+            .querySelector('#map')!
+            .setAttribute('data-map-state', nextState);
+        }, 200);
+      }, state);
+      await waitForAccessiblePage(page, '/contractor/discover');
+      await expect(page.locator('#map')).toHaveAttribute('data-map-state', state);
+    });
+  }
+});
 
 // ============================================
 // TEST CONFIGURATION
@@ -472,7 +505,11 @@ test.describe('WCAG Compliance Report', () => {
           id: v.id,
           impact: v.impact,
           description: v.description,
-          nodes: v.nodes.length,
+          nodes: v.nodes.map((node) => ({
+            target: node.target,
+            html: node.html,
+            failureSummary: node.failureSummary,
+          })),
         })),
       });
     }
