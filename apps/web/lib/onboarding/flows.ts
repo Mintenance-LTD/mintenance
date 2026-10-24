@@ -247,7 +247,7 @@ export function getFlowByUserType(
     ...flow,
     steps: flow.steps.map((step) => ({
       ...step,
-      href: paths[step.id] ?? '/getting-started',
+      href: paths[step.id],
     })),
   };
 }

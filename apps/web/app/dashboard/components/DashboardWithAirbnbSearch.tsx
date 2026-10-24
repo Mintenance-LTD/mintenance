@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { useQuery } from '@tanstack/react-query';
 import { formatMoney } from '@/lib/utils/currency';
 import { AirbnbSearchBar } from './AirbnbSearchBar';
@@ -108,6 +109,7 @@ export function DashboardWithAirbnbSearch({
             <p className='text-gray-600'>What maintenance do you need today?</p>
           </div>
 
+          <DashboardOnboarding />
           {/* Airbnb Search Bar */}
           <AirbnbSearchBar properties={properties} />
 

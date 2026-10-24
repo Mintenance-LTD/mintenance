@@ -1,7 +1,9 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ArrowRight, Compass } from 'lucide-react';
 import type { OnboardingStep } from '@/lib/onboarding/flows';
+import styles from './Onboarding.module.css';
 interface Props {
   step: OnboardingStep;
   stepIndex: number;
@@ -33,8 +35,16 @@ export function TutorialSpotlight({
   useEffect(() => {
     if (!mounted) return;
     const previous = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     dialog.current?.focus();
-    return () => previous?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
+      previous?.focus({ preventScroll: true });
+    };
   }, [mounted]);
   useEffect(() => {
     const update = () => {
@@ -45,8 +55,11 @@ export function TutorialSpotlight({
       setRect(
         bounds &&
           bounds.width > 0 &&
+          bounds.height > 0 &&
           bounds.left >= 0 &&
-          bounds.right <= window.innerWidth
+          bounds.top >= 0 &&
+          bounds.right <= window.innerWidth &&
+          bounds.bottom <= window.innerHeight
           ? bounds
           : null
       );
@@ -61,14 +74,11 @@ export function TutorialSpotlight({
   }, [step.targetSelector]);
   if (!mounted) return null;
   return createPortal(
-    <div
-      data-theme='mint-editorial'
-      className='me-root fixed inset-0 z-[9998] flex items-end justify-center bg-black/40 p-4 sm:items-center'
-    >
-      {rect && (
+    <div data-theme='mint-editorial' className={styles.overlay}>
+      {rect ? (
         <div
           aria-hidden='true'
-          className='pointer-events-none fixed rounded-xl border-2 border-[var(--me-brand)]'
+          className={styles.spotlight}
           style={{
             top: rect.top - 3,
             left: rect.left - 3,
@@ -76,6 +86,8 @@ export function TutorialSpotlight({
             height: rect.height + 6,
           }}
         />
+      ) : (
+        <div aria-hidden='true' className={styles.shade} />
       )}
       <div
         ref={dialog}
@@ -84,7 +96,7 @@ export function TutorialSpotlight({
         aria-modal='true'
         aria-labelledby='tour-title'
         aria-describedby='tour-description'
-        className='relative z-[9999] max-h-[calc(100dvh-32px)] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--me-line)] bg-[var(--me-surface)] p-6 text-[var(--me-ink)] shadow-xl'
+        className={styles.dialog}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault();
@@ -108,49 +120,73 @@ export function TutorialSpotlight({
           }
         }}
       >
-        <div aria-live='polite' className='text-sm text-[var(--me-ink-2)]'>
-          Step {stepIndex + 1} of {totalSteps}
+        <div className={styles.tourMeta}>
+          <span className={styles.tourLabel}>Your quick tour</span>
+          <span aria-live='polite'>
+            Step {stepIndex + 1} of {totalSteps}
+          </span>
         </div>
-        <h2 id='tour-title' className='mt-2 text-xl font-semibold'>
+        <div className={styles.progress} aria-hidden='true'>
+          {Array.from({ length: totalSteps }, (_, i) => (
+            <span
+              key={i}
+              className={i <= stepIndex ? styles.filled : undefined}
+            />
+          ))}
+        </div>
+        {isFirstStep && (
+          <span className={`${styles.icon} ${styles.tourIcon}`}>
+            <Compass size={25} aria-hidden='true' />
+          </span>
+        )}
+        <h2 id='tour-title' className={styles.tourTitle}>
           {step.title}
         </h2>
-        <p id='tour-description' className='my-4 text-sm leading-relaxed'>
+        <p id='tour-description' className={styles.description}>
           {step.description}
         </p>
         {step.href && (
           <a
-            className='mb-4 inline-block underline'
+            className={`${styles.secondary} ${styles.featureAction}`}
             href={step.href}
             onClick={onSkip}
           >
-            Open this feature
+            Open this feature <ArrowRight size={15} aria-hidden='true' />
           </a>
         )}
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <button
-            type='button'
-            onClick={onSkip}
-            className='min-h-11 rounded-full px-3'
-          >
+        <div className={styles.tourFooter}>
+          <button type='button' onClick={onSkip} className={styles.textButton}>
             Skip tour
           </button>
-          {!isFirstStep && (
+          <div className={styles.actions}>
+            {!isFirstStep && (
+              <button
+                type='button'
+                onClick={onPrevious}
+                className={styles.secondary}
+              >
+                Back
+              </button>
+            )}
             <button
               type='button'
-              onClick={onPrevious}
-              className='min-h-11 rounded-full border border-[var(--me-line)] px-4'
+              onClick={isLastStep ? onComplete : onNext}
+              className={styles.primary}
             >
-              Back
+              {isLastStep
+                ? 'Finish tour'
+                : isFirstStep
+                  ? 'Let’s take a look'
+                  : 'Next'}
+              {!isLastStep && <ArrowRight size={15} aria-hidden='true' />}
             </button>
-          )}
-          <button
-            type='button'
-            onClick={isLastStep ? onComplete : onNext}
-            className='min-h-11 rounded-full bg-[var(--me-brand)] px-5 text-white'
-          >
-            {isLastStep ? 'Finish tour' : 'Next'}
-          </button>
+          </div>
         </div>
+        {isFirstStep && (
+          <p className={styles.tourHint}>
+            Explore at your pace. You can replay this tour any time.
+          </p>
+        )}
       </div>
     </div>,
     document.body

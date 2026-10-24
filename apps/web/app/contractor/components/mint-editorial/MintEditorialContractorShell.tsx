@@ -1,7 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { Search } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { Search, Menu, X } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialContractorSidebar } from './MintEditorialContractorSidebar';
 import { MintEditorialContractorTopNav } from './MintEditorialContractorTopNav';
@@ -38,8 +39,21 @@ export function MintEditorialContractorShell({
   children,
   contentPadding = '28px 36px 140px',
 }: MintEditorialContractorShellProps) {
+  const pathname = usePathname();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
   return (
-    <div className='me-root' style={{ display: 'flex' }}>
+    <div
+      className={'me-root me-shell' + (drawerOpen ? ' me-drawer-open' : '')}
+      style={{ display: 'flex' }}
+    >
+      <div
+        className='me-drawer-backdrop'
+        onClick={() => setDrawerOpen(false)}
+        aria-hidden='true'
+      />
       <MintEditorialContractorSidebar
         contractorName={contractorName}
         email={email}
@@ -56,6 +70,17 @@ export function MintEditorialContractorShell({
         }}
       >
         <div className='me-topbar'>
+          <button
+            type='button'
+            className='me-menu-btn'
+            onClick={() => setDrawerOpen((open) => !open)}
+            aria-label={
+              drawerOpen ? 'Close navigation menu' : 'Open navigation menu'
+            }
+            aria-expanded={drawerOpen}
+          >
+            {drawerOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
           <div className='search-pill' style={{ width: 280 }}>
             <Search size={15} strokeWidth={1.75} />
             <span>Search jobs, customers, invoices</span>
@@ -78,7 +103,7 @@ export function MintEditorialContractorShell({
         <main
           id='main-content'
           tabIndex={-1}
-          className='me-legacy-fit'
+          className='me-content me-legacy-fit'
           style={{ padding: contentPadding, flex: 1 }}
         >
           {children}
