@@ -74,3 +74,12 @@ The build/CSS corrections were pushed as `1b9eb931` in [PR #1407](https://github
 - One randomly generated hexadecimal signup password contained a forbidden three-character sequence. The page correctly rejected it before submission.
 
 CI now serves the production build over loopback HTTPS using an ephemeral certificate, with certificate trust relaxed only for that exact local test URL. Auth tests simulate distinct trusted-edge client IPs only against the disposable local stack; requests within each test still share real Redis budgets. A browser regression requires reset statuses 200/200/200/429. Random signup passwords retain 176 bits of entropy with separators preventing accidental banned sequences. All five auth browser projects now run on PRs, so these failures cannot hide behind Chromium-only acceptance. Production security controls are unchanged. Cross-browser CI verification of these corrections is pending.
+
+## Admin query defects found by production monitoring
+
+The 24 October 01:07–10:06 UTC log window exposed two mismatches with the live schema:
+
+- `security-dashboard` requested `security_events.description`, but the column is `details`. Its broad missing-object fallback converted the error into HTTP 200 with empty event and IP lists. The query now aliases `details` to the existing `description` response field. Event/IP query errors now fail visibly. Only an explicitly missing metrics RPC (`42883` / `PGRST202`) retains the documented partial-data mode, using the same checked event/IP queries.
+- Admin contractor verification requested `contractor_skills.verified` 29 times; the column is `is_verified`. The query now aliases the canonical column to `verified`, preserving both true and false values. A skills query failure returns HTTP 500 instead of a successful empty skills list.
+
+The schema metadata and zero-row SELECTs were checked read-only against production. No data, schema, authorization, MFA, or deployment-protection changes were made. Thirteen new route regressions use a schema-aware query mock to reject nonexistent columns and exercise both successful responses and error paths; these and the two existing security-screen request tests pass (15 total). Full web TypeScript checking and lint of both changed routes pass. These are code fixes awaiting PR CI and a production deployment, not a claim that the production defects are already resolved. Earlier browser-suite success applies to head `b1d9efd3`; the new head must run its own checks.
