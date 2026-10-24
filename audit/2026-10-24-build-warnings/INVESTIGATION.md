@@ -57,7 +57,9 @@ Priority review examples: stats fetching on rapid time-range changes in `HybridI
 
 ## Additional advisory discovered during verification
 
-The refreshed registry audit also reported [GHSA-834v-8h66-3h79](https://github.com/advisories/GHSA-834v-8h66-3h79) for Happy DOM. It is a development dependency used as the Vitest environment, not an application import found by this review. The fixed release is 21.0.4; the current declared range is v20, so remediation requires a test-environment major upgrade and compatibility checks. It must not be dismissed merely because it was absent from the pasted build's audit snapshot.
+The refreshed registry audit also reported [GHSA-834v-8h66-3h79](https://github.com/advisories/GHSA-834v-8h66-3h79) for Happy DOM. It is a development dependency used as the Vitest environment, not an application import found by this review. The dependency and lockfile now use the fixed 21.0.4 release. This is a test-environment major upgrade; full web-test compatibility must pass CI before merge.
+
+The first PR quality gate then surfaced [GHSA-xjj6-f33q-929c](https://github.com/advisories/GHSA-xjj6-f33q-929c) in Undici 6.29.0. The existing v6 override and lockfile now select patched 6.29.1, retaining Node 20 compatibility. The unchanged `npm run audit:security` gate passes locally after this update; no new advisory exception was added. Existing dated Zod/node-forge exceptions remain visible.
 
 ## Release boundary
 
