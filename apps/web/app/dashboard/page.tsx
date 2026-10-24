@@ -36,6 +36,10 @@ export default async function DashboardPage2025() {
   }
 
   // Redirect contractors to their enhanced dashboard
+  if (user.role === 'admin') {
+    const { redirect } = await import('next/navigation');
+    redirect('/admin/dashboard');
+  }
   if (user.role === 'contractor') {
     const { redirect } = await import('next/navigation');
     redirect('/contractor/dashboard-enhanced');
@@ -51,7 +55,6 @@ export default async function DashboardPage2025() {
     properties,
     payments,
     recommendations,
-    onboardingStatus,
   } = dashboardData;
 
   // Process data
@@ -390,10 +393,7 @@ export default async function DashboardPage2025() {
 
   return (
     <ErrorBoundary>
-      <OnboardingWrapper
-        userType='homeowner'
-        autoStart={!onboardingStatus.completed}
-      >
+      <OnboardingWrapper userId={user.id} userType='homeowner' autoStart>
         <DashboardClient data={professionalDashboardData} />
       </OnboardingWrapper>
     </ErrorBoundary>

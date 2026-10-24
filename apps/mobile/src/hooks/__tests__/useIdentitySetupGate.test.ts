@@ -43,7 +43,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { useIdentitySetupGate } from '../useIdentitySetupGate';
 
-const STORAGE_KEY = 'identity_setup_prompt_dismissed_at';
+const STORAGE_KEY = 'identity_setup_prompt_dismissed_at:u1';
 const onboardedContractor = {
   id: 'u1',
   role: 'contractor',

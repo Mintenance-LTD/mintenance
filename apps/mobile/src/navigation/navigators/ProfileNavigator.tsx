@@ -1,4 +1,5 @@
 import React from 'react';
+import { GettingStartedScreen } from '../../screens/onboarding/GettingStartedScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../types';
 
@@ -92,6 +93,10 @@ const ProfileNavigator = () => {
       }}
       initialRouteName='ProfileMain'
     >
+      <ProfileStack.Screen
+        name='GettingStarted'
+        component={GettingStartedScreen}
+      />
       <ProfileStack.Screen
         name='ProfileMain'
         component={SafeProfileScreen}

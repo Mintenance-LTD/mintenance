@@ -141,6 +141,7 @@ export type MessagingStackParamList = {
 // ============================================================================
 
 export type ProfileStackParamList = {
+  GettingStarted: undefined;
   ProfileMain: undefined;
   EditProfile: undefined;
   // BusinessHub is the initial screen of the BusinessNavigator (contractor

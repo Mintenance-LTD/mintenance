@@ -95,7 +95,10 @@ export const SubscriptionScreen: React.FC = () => {
         ) : (
           <>
             {earlyAccess ? (
-              <FoundingMemberCard />
+              <FoundingMemberCard
+                role={status.role}
+                platformFeePercent={status.platformFeePercent}
+              />
             ) : (
               <>
                 <CurrentPlanCard

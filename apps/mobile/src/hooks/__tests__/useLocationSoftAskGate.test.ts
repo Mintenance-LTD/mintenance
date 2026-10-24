@@ -48,7 +48,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { useLocationSoftAskGate } from '../useLocationSoftAskGate';
 
-const STORAGE_KEY = 'location_soft_ask_dismissed_at';
+const STORAGE_KEY = 'location_soft_ask_dismissed_at:u1';
 const onboardedContractor = {
   id: 'u1',
   role: 'contractor',

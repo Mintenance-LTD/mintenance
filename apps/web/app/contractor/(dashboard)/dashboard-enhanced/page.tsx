@@ -1,4 +1,6 @@
 import { cookies } from 'next/headers';
+import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
+import { contractorOnboardingAudience } from '@/lib/onboarding/audience';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -21,6 +23,10 @@ export default async function ContractorDashboard2025() {
 
   const onboardingStatus = await OnboardingService.checkOnboardingStatus(
     user.id
+  );
+  // Optional education must not prevent the dashboard from loading.
+  const audience = await contractorOnboardingAudience(user.id).catch(
+    () => undefined
   );
 
   // Fetch all data in parallel
@@ -324,8 +330,26 @@ export default async function ContractorDashboard2025() {
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
   if (isMintEditorial) {
-    return <MintEditorialContractorDashboard data={dashboardData} />;
+    return (
+      <OnboardingWrapper
+        userId={user.id}
+        userType='contractor'
+        audience={audience}
+        autoStart={!!audience}
+      >
+        <MintEditorialContractorDashboard data={dashboardData} />
+      </OnboardingWrapper>
+    );
   }
 
-  return <ContractorDashboardProfessional data={dashboardData} />;
+  return (
+    <OnboardingWrapper
+      userId={user.id}
+      userType='contractor'
+      audience={audience}
+      autoStart={!!audience}
+    >
+      <ContractorDashboardProfessional data={dashboardData} />
+    </OnboardingWrapper>
+  );
 }

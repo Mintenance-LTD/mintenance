@@ -51,6 +51,7 @@ import { useHomeownerSetupGate } from '../../hooks/useHomeownerSetupGate';
 import { useWelcomeFirstJobGate } from '../../hooks/useWelcomeFirstJobGate';
 import { OnboardingModal } from './OnboardingModal';
 import { PushSoftAskModal } from './PushSoftAskModal';
+import { useOnboardingAudience } from '../../hooks/useOnboardingAudience';
 import { FirstPropertyPromptModal } from './FirstPropertyPromptModal';
 import { LocationSoftAskModal } from './LocationSoftAskModal';
 import { ServiceAreaPromptModal } from './ServiceAreaPromptModal';
@@ -66,7 +67,9 @@ export const OnboardingGateStack: React.FC = () => {
   const { user } = useAuth();
   const [setupAccount, setSetupAccount] = useState<string | null>(null);
   const pauseForSetup = () => setSetupAccount(user?.id ?? null);
-  const onboarding = useOnboardingGate();
+  const audience = useOnboardingAudience();
+  const ownerPromptsAllowed = audience.audience === 'contractor';
+  const onboarding = useOnboardingGate(audience.audience);
   const firstProperty = useFirstPropertyGate();
   const locationSoftAsk = useLocationSoftAskGate();
   const serviceArea = useServiceAreaGate();
@@ -101,6 +104,7 @@ export const OnboardingGateStack: React.FC = () => {
   const showLocationSoftAsk =
     !showOnboarding && !showPushSoftAsk && locationSoftAsk.shouldShow;
   const showServiceArea =
+    ownerPromptsAllowed &&
     !showOnboarding &&
     !showPushSoftAsk &&
     !showLocationSoftAsk &&
@@ -131,6 +135,7 @@ export const OnboardingGateStack: React.FC = () => {
   // contractor who somehow wins a bid mid-intro doesn't get
   // Stripe thrown at them while the swiper is still open.
   const showStripeConnect =
+    ownerPromptsAllowed &&
     !showOnboarding &&
     !showFirstProperty &&
     !showLocationSoftAsk &&
@@ -190,14 +195,22 @@ export const OnboardingGateStack: React.FC = () => {
     welcomeFirstJob.shouldShow;
 
   // Keep subsequent prompts from covering the setup form for this session.
-  if (user && setupAccount === user.id) return null;
+  if (
+    !onboarding.ready ||
+    !audience.ready ||
+    !audience.audience ||
+    (user && setupAccount === user.id)
+  )
+    return null;
 
   return (
     <>
       <OnboardingModal
+        audience={audience.audience}
         visible={showOnboarding}
         userRole={user?.role || 'homeowner'}
         onDismiss={onboarding.dismiss}
+        onComplete={onboarding.complete}
       />
       <FirstPropertyPromptModal
         visible={showFirstProperty}
@@ -232,6 +245,7 @@ export const OnboardingGateStack: React.FC = () => {
         onAfterNavigate={selfieCapture.refresh}
       />
       <PushSoftAskModal
+        userRole={user?.role}
         visible={showPushSoftAsk}
         permissionStatus={pushSoftAsk.permissionStatus}
         onAllow={pushSoftAsk.allowNotifications}

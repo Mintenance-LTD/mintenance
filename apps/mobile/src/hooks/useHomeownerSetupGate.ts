@@ -1,67 +1,52 @@
-/**
- * useHomeownerSetupGate — decides whether the HomeownerSetupModal
- * should fire as part of the post-sign-up onboarding chain.
- *
- * Rules:
- *   1. Suppress unless user.role === 'homeowner'. Contractors have
- *      their own verification flow (IdentitySetup / BackgroundCheck /
- *      SelfieCapture gates above this one).
- *   2. Suppress once the local `homeowner_setup_dismissed` flag is
- *      set in AsyncStorage. The screen captures preferences (property
- *      type + concern tags) that aren't a hard onboarding gate, so a
- *      single dismissal sticks for the device.
- *   3. The dismissal flag is per-device (no DB column today). If the
- *      user re-installs the app they'll see the modal again — that's
- *      acceptable for v1, and a follow-up can migrate the flag to
- *      `profiles.preferences_completed` JSONB.
- *
- * Mirrors the shape of `useOnboardingGate` so OnboardingGateStack can
- * compose them the same way.
- */
-
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
-
-const STORAGE_KEY = 'homeowner_setup_dismissed';
-
+import { mobileApiClient } from '../utils/mobileApiClient';
 export function useHomeownerSetupGate() {
   const { user } = useAuth();
-  const [shouldShow, setShouldShow] = useState(false);
-  const [checked, setChecked] = useState(false);
-
+  const userId = user?.id;
+  const role = user?.role;
+  const [account, setAccount] = useState<string | null>(null);
+  const key = `homeowner_setup_dismissed:${user?.id}`;
   useEffect(() => {
-    if (!user) {
-      setChecked(true);
-      setShouldShow(false);
-      return;
-    }
-    if (user.role !== 'homeowner') {
-      setChecked(true);
-      setShouldShow(false);
-      return;
-    }
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((val) => {
-        setShouldShow(val !== '1');
-        setChecked(true);
-      })
-      .catch(() => {
-        // Storage failure → don't show (safe default; user can hit
-        // the setup later via Profile → Edit Profile).
-        setChecked(true);
-        setShouldShow(false);
-      });
-  }, [user]);
-
+    let active = true;
+    setAccount(null);
+    if (!userId || role !== 'homeowner') return;
+    (async () => {
+      try {
+        const [dismissed, result] = await Promise.all([
+          AsyncStorage.getItem(key),
+          mobileApiClient.get<{
+            profile: {
+              settings?: {
+                homeowner_setup_completed?: boolean;
+                property_type?: unknown;
+                concern_tags?: unknown;
+              };
+            };
+          }>('/api/users/profile'),
+        ]);
+        const settings = result.profile.settings;
+        const completed =
+          settings?.homeowner_setup_completed ||
+          (settings?.property_type != null &&
+            Array.isArray(settings?.concern_tags));
+        if (active && !dismissed && !completed) setAccount(userId);
+      } catch {
+        /* A temporary lookup error must not interrupt the current task. */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [key, userId, role]);
   const dismiss = useCallback(async () => {
-    setShouldShow(false);
+    setAccount(null);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, '1');
+      await AsyncStorage.setItem(key, '1');
     } catch {
-      // Non-critical — the gate will re-evaluate on next mount.
+      /* Retry on next session. */
     }
-  }, []);
-
-  return { shouldShow: checked && shouldShow, dismiss };
+  }, [key]);
+  return { shouldShow: !!user && account === user.id, dismiss };
 }

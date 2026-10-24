@@ -13,6 +13,7 @@ import { ResponsiveContainer } from '../../components/responsive';
 import { HomeownerDashboard } from './HomeownerDashboard';
 import { ContractorDashboard } from './ContractorDashboard';
 import { HomeScreenLoading } from './HomeScreenLoading';
+import { GettingStartedScreen } from '../onboarding/GettingStartedScreen';
 import { me } from '../../design-system/mint-editorial';
 
 interface HomeScreenProps {
@@ -26,6 +27,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
   if ((!user && authLoading) || (user?.role === 'contractor' && authLoading)) {
     return <HomeScreenLoading />;
   }
+  // Native has no admin console. Its dedicated guides link to the web tools.
+  if (user?.role === 'admin') return <GettingStartedScreen />;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>

@@ -1,4 +1,5 @@
 'use client';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 
 /**
  * Accept-invite page — R6 #18 of docs/RETENTION_ROADMAP_2026.md.
@@ -66,7 +67,7 @@ function AcceptInviteInner() {
           if (res.status === 401) {
             // Not signed in yet — send them through login with a redirect back.
             router.replace(
-              `/login?returnUrl=${encodeURIComponent(`/accept-invite?token=${token}`)}`
+              `/login?redirect=${encodeURIComponent(`/accept-invite?token=${token}`)}`
             );
             return;
           }
@@ -85,7 +86,7 @@ function AcceptInviteInner() {
   async function accept() {
     setAccepting(true);
     try {
-      const res = await fetch('/api/organizations/accept-invite', {
+      const res = await fetchWithCsrf('/api/organizations/accept-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
@@ -97,7 +98,11 @@ function AcceptInviteInner() {
         return;
       }
       toast.success('You are now a member of the organization');
-      router.replace('/contractor/team');
+      router.replace(
+        preview?.orgType === 'contractor_company'
+          ? '/getting-started?persona=team-member&guide=team-member'
+          : '/getting-started?persona=agency&guide=agency'
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Accept failed');
     } finally {

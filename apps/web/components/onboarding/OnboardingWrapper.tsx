@@ -1,90 +1,94 @@
 'use client';
-
-/**
- * OnboardingWrapper Component
- * Wraps page content and shows the non-blocking tutorial guide.
- * Marks onboarding as complete on the server when finished or skipped,
- * so the tutorial never shows again.
- */
-
-import React, { useCallback } from 'react';
+import React from 'react';
+import Link from 'next/link';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { EarlyAccessSummary } from './EarlyAccessSummary';
 import { TutorialSpotlight } from './TutorialSpotlight';
 
-interface OnboardingWrapperProps {
+interface Props {
   children: React.ReactNode;
+  userId?: string;
   userType?: 'homeowner' | 'contractor';
   autoStart?: boolean;
+  audience?: 'contractor' | 'team-member';
 }
-
-export function OnboardingWrapper({
+export function OnboardingWrapper(props: Props) {
+  const { user } = useCurrentUser();
+  const userId = props.userId ?? user?.id;
+  if (!userId) return <>{props.children}</>;
+  return (
+    <AccountOnboarding
+      key={`${userId}:${props.audience ?? props.userType}`}
+      {...props}
+      userId={userId}
+    />
+  );
+}
+function AccountOnboarding({
   children,
+  userId,
   userType = 'homeowner',
   autoStart = false,
-}: OnboardingWrapperProps) {
-  const markServerComplete = useCallback(async () => {
-    try {
-      const csrfToken =
-        typeof document !== 'undefined'
-          ? document.cookie
-              .split('; ')
-              .find(
-                (c) =>
-                  c.startsWith('csrf-token=') ||
-                  c.startsWith('__Host-csrf-token=')
-              )
-              ?.split('=')[1]
-          : undefined;
-      await fetch('/api/onboarding/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-        },
-        body: '{}',
-      });
-    } catch {
-      // Silent fail — localStorage state is the primary guard
-    }
-  }, []);
-
-  const {
-    isActive,
-    currentStep,
-    currentStepIndex,
-    totalSteps,
-    isFirstStep,
-    isLastStep,
-    completeStep,
-    previousStep,
-    skip,
-  } = useOnboarding({
-    userType,
-    autoStart,
-    onComplete: () => {
-      markServerComplete();
-    },
-    onSkip: () => {
-      markServerComplete();
-    },
-  });
-
+  audience,
+}: Props & { userId: string }) {
+  const tour = useOnboarding({ userId, userType, autoStart, audience });
   return (
     <>
+      <div
+        data-theme='mint-editorial'
+        className='me-root flex flex-wrap items-center gap-3 px-4 py-3 text-sm'
+      >
+        <Link
+          className='underline'
+          href={
+            audience === 'team-member'
+              ? '/getting-started?persona=team-member'
+              : '/getting-started'
+          }
+        >
+          Getting started — all feature guides
+        </Link>
+        <button
+          type='button'
+          className='underline'
+          onClick={() => void tour.startOnboarding()}
+        >
+          Replay quick tour
+        </button>
+        {userType === 'contractor' && audience !== 'team-member' && (
+          <Link className='underline' href='/contractor/onboarding'>
+            Finish business setup
+          </Link>
+        )}
+        {tour.error && (
+          <span role='status'>
+            {tour.error}{' '}
+            <button
+              type='button'
+              className='underline'
+              onClick={() => void tour.retry()}
+            >
+              Retry
+            </button>
+          </span>
+        )}
+      </div>
+      <div data-theme='mint-editorial' className='me-root'>
+        <EarlyAccessSummary userId={userId} role={userType} />
+      </div>
       {children}
-
-      {/* Tutorial guide overlay */}
-      {isActive && currentStep && (
+      {tour.isActive && (
         <TutorialSpotlight
-          step={currentStep}
-          stepIndex={currentStepIndex}
-          totalSteps={totalSteps}
-          onNext={() => completeStep()}
-          onPrevious={!isFirstStep ? previousStep : undefined}
-          onSkip={skip}
-          onComplete={skip}
-          isFirstStep={isFirstStep}
-          isLastStep={isLastStep}
+          step={tour.currentStep}
+          stepIndex={tour.currentStepIndex}
+          totalSteps={tour.totalSteps}
+          isFirstStep={tour.isFirstStep}
+          isLastStep={tour.isLastStep}
+          onNext={() => void tour.completeStep()}
+          onComplete={() => void tour.completeStep()}
+          onPrevious={() => void tour.previousStep()}
+          onSkip={() => void tour.skip()}
         />
       )}
     </>

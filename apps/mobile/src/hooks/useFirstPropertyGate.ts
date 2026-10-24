@@ -98,7 +98,9 @@ export function useFirstPropertyGate(): FirstPropertyGate {
     }
 
     try {
-      const dismissedAt = await AsyncStorage.getItem(STORAGE_KEY);
+      const dismissedAt = await AsyncStorage.getItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`
+      );
       if (dismissedAt) {
         setShouldShow(false);
         setLoading(false);
@@ -147,7 +149,10 @@ export function useFirstPropertyGate(): FirstPropertyGate {
   const dismiss = useCallback(async () => {
     setShouldShow(false);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+      await AsyncStorage.setItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+        new Date().toISOString()
+      );
     } catch (err) {
       // Non-critical — the in-memory state is enough for this session;
       // worst case the modal shows again next launch.
@@ -155,7 +160,7 @@ export function useFirstPropertyGate(): FirstPropertyGate {
         error: err instanceof Error ? err.message : String(err),
       });
     }
-  }, []);
+  }, [user?.id]);
 
   return {
     shouldShow,

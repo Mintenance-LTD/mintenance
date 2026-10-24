@@ -43,7 +43,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { useSelfieCaptureGate } from '../useSelfieCaptureGate';
 
-const STORAGE_KEY = 'selfie_capture_prompt_dismissed_at';
+const STORAGE_KEY = 'selfie_capture_prompt_dismissed_at:u1';
 const onboardedContractor = {
   id: 'u1',
   role: 'contractor',

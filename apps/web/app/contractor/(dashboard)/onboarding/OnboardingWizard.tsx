@@ -1,4 +1,5 @@
 'use client';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -64,7 +65,7 @@ const STEPS: StepDef[] = [
   },
 ];
 
-interface OnboardingFormData {
+export interface OnboardingFormData {
   business: BusinessInfoData;
   skills: SkillsData;
   serviceArea: ServiceAreaData;
@@ -90,11 +91,15 @@ function LeafMark({ size = 22 }: { size?: number }) {
   );
 }
 
-export function OnboardingWizard() {
+export function OnboardingWizard({
+  initialData = INITIAL_DATA,
+}: {
+  initialData?: OnboardingFormData;
+}) {
   const router = useRouter();
   const { user } = useCurrentUser();
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<OnboardingFormData>(INITIAL_DATA);
+  const [formData, setFormData] = useState<OnboardingFormData>(initialData);
   const [saving, setSaving] = useState(false);
 
   /**
@@ -118,7 +123,7 @@ export function OnboardingWizard() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/contractor/onboarding/save', {
+      const res = await fetchWithCsrf('/api/contractor/onboarding/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -186,7 +191,7 @@ export function OnboardingWizard() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/contractor/onboarding/save', {
+      const res = await fetchWithCsrf('/api/contractor/onboarding/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ step: 'finish' }),

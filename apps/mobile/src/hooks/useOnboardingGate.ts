@@ -1,118 +1,75 @@
-/**
- * useOnboardingGate — determines if the onboarding intro should show.
- *
- * Rules:
- * 1. If user.onboarding_completed === true → skip (DB flag)
- * 2. If AsyncStorage 'onboarding_dismissed' === '1' → skip (local flag)
- * 3. Otherwise → show the OnboardingSwiper
- *
- * On complete/skip:
- * - Sets AsyncStorage flag (immediate, offline-safe)
- * - Calls POST /api/onboarding/complete (syncs to DB for cross-platform)
- * - Refreshes auth context so the flag propagates
- *
- * Non-forced: user can dismiss at any time. Never shows again.
- *
- * Sprint 7 (4.5) note: an audit flagged AsyncStorage use here as
- * "unencrypted progress in DevTools". That was a false alarm — mobile
- * AsyncStorage writes to app-private storage (NSUserDefaults on iOS,
- * SharedPreferences on Android), not a DevTools-visible bucket, and
- * we only persist a single dismissal flag `'1'`, not step-by-step
- * progress. Source of truth remains `profiles.onboarding_completed`
- * on the server; the local flag is just an offline / cross-session
- * optimization. No SecureStore migration needed.
- */
-
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
-const storageKey = (userId: string) => `onboarding_dismissed:${userId}`;
-
-export function useOnboardingGate() {
+export function useOnboardingGate(audience?: string | null) {
   const { user, refreshUser } = useAuth();
-  const [shouldShow, setShouldShow] = useState(false);
-  const [checked, setChecked] = useState(false);
-
+  const userId = user?.id;
+  const role = user?.role;
+  const introRole = audience ?? role;
+  const [visibleAccount, setVisibleAccount] = useState<string | null>(null);
+  const [checkedAccount, setCheckedAccount] = useState<string | null>(null);
+  const key = `onboarding:v2:mobile:${userId}:intro-${introRole}`;
   useEffect(() => {
     let active = true;
-    setShouldShow(false);
-    setChecked(false);
-    if (!user) {
-      setChecked(true);
+    setVisibleAccount(null);
+    setCheckedAccount(null);
+    if (!userId || !role) return;
+    if (!['homeowner', 'contractor'].includes(role)) {
+      setCheckedAccount(userId);
       return;
     }
-
-    // Already completed in DB — never show
-    if (user.onboarding_completed) {
-      setChecked(true);
-      setShouldShow(false);
-      return;
-    }
-
-    // Check local flag (covers offline + cross-session)
-    AsyncStorage.getItem(storageKey(user.id))
-      .then((val) => {
-        if (!active) return;
-        setShouldShow(val !== '1');
-        setChecked(true);
-      })
-      .catch(() => {
-        if (!active) return;
-        // A storage failure must not hide helpful guidance for a new account.
-        setShouldShow(true);
-        setChecked(true);
-      });
+    const accountId = userId;
+    (async () => {
+      let local: string | null = null;
+      try {
+        local = await AsyncStorage.getItem(key);
+        const remote = await mobileApiClient.get<{
+          progress: { journey: string; platform: string; status: string }[];
+        }>('/api/onboarding/progress');
+        const intro = remote.progress.find(
+          (p) => p.journey === `intro-${introRole}` && p.platform === 'mobile'
+        );
+        if (active && !local && (!intro || intro.status === 'in_progress'))
+          setVisibleAccount(accountId);
+      } catch {
+        if (active && !local) setVisibleAccount(accountId);
+      } finally {
+        if (active) setCheckedAccount(accountId);
+      }
+    })();
     return () => {
       active = false;
     };
-  }, [user?.id, user?.onboarding_completed]);
-
-  /**
-   * AUDIT_PUNCH_LIST P2 #74 (B6-P2-5) — race fix 2026-05-09.
-   *
-   * Old flow:
-   *   1. setShouldShow(false) — UI hides
-   *   2. AsyncStorage flag set
-   *   3. API call → refreshUser
-   *
-   * If step 3 failed (network blip), the local flag was set but the
-   * DB stayed stale. Cross-platform (web) would still show
-   * onboarding, and a future cache wipe of AsyncStorage would
-   * resurrect the swiper.
-   *
-   * New flow:
-   *   1. setShouldShow(false) — optimistic UI dismiss (UX win)
-   *   2. API call → refreshUser FIRST
-   *   3. Local flag set ONLY if API succeeded
-   *   4. If API fails, the local flag stays unset, so the gate
-   *      re-evaluates on next mount and retries — eventually the
-   *      user lands online and the sync completes.
-   */
-  const dismiss = useCallback(async () => {
-    if (!user) return;
-    setShouldShow(false);
-
-    try {
-      await mobileApiClient.post('/api/onboarding/complete', {});
-      await refreshUser();
-      // Persist locally only after server confirmed.
+  }, [key, userId, role, introRole]);
+  const dismiss = useCallback(
+    async (status: 'completed' | 'skipped' = 'skipped') => {
+      if (!userId || !role) return;
+      setVisibleAccount(null);
       try {
-        await AsyncStorage.setItem(storageKey(user.id), '1');
-      } catch {
-        // Non-critical — DB is now source of truth.
+        // Maintain compatibility with the existing setup-gate ladder, but keep
+        // this platform's learning outcome independent from that legacy flag.
+        await mobileApiClient.post('/api/onboarding/complete', {});
+        await mobileApiClient.put('/api/onboarding/progress', {
+          journey: `intro-${introRole}`,
+          platform: 'mobile',
+          status,
+          step: 0,
+        });
+        await AsyncStorage.setItem(key, status);
+        await refreshUser();
+      } catch (error) {
+        logger.warn('Intro progress will be retried next session', { error });
       }
-    } catch (err) {
-      logger.warn(
-        'Failed to sync onboarding completion to server — gate will retry on next session',
-        { error: err }
-      );
-      // Don't write the local flag. Next mount re-evaluates and the
-      // user gets another chance to dismiss when they're back online.
-    }
-  }, [refreshUser, user?.id]);
-
-  return { shouldShow: checked && shouldShow, dismiss };
+    },
+    [key, userId, role, introRole, refreshUser]
+  );
+  return {
+    ready: !!user && checkedAccount === user.id,
+    shouldShow: !!user && visibleAccount === user.id,
+    dismiss: () => dismiss('skipped'),
+    complete: () => dismiss('completed'),
+  };
 }

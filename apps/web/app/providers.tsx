@@ -1,6 +1,7 @@
 'use client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
+import { FeatureGuideLink } from '@/components/onboarding/FeatureGuideLink';
 import { Toaster } from 'react-hot-toast';
 import { queryClient } from '@/lib/react-query-client';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -29,6 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ConfirmDialogProvider>
+          <FeatureGuideLink />
           {children}
           {/*
           react-hot-toast portal. Mounted globally because 107+ files

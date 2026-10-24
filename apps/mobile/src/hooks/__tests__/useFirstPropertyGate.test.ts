@@ -41,7 +41,7 @@ jest.mock('../../utils/logger', () => ({
 
 import { useFirstPropertyGate } from '../useFirstPropertyGate';
 
-const STORAGE_KEY = 'first_property_prompt_dismissed_at';
+const STORAGE_KEY = 'first_property_prompt_dismissed_at:u1';
 const onboardedHomeowner = {
   id: 'u1',
   role: 'homeowner',

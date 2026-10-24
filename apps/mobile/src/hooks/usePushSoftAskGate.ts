@@ -137,7 +137,9 @@ export function usePushSoftAskGate(): PushSoftAskGate {
         }
 
         // Respect the 24-hour cool-off after a "Not Now" dismissal.
-        const dismissedAtRaw = await AsyncStorage.getItem(STORAGE_KEY);
+        const dismissedAtRaw = await AsyncStorage.getItem(
+          `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`
+        );
         if (dismissedAtRaw) {
           const dismissedAt = Date.parse(dismissedAtRaw);
           if (
@@ -229,7 +231,10 @@ export function usePushSoftAskGate(): PushSoftAskGate {
 
         // Record this attempt so we don't re-prompt for 24 hours.
         try {
-          await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+          await AsyncStorage.setItem(
+            `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+            new Date().toISOString()
+          );
         } catch {
           // Non-critical.
         }
@@ -248,13 +253,16 @@ export function usePushSoftAskGate(): PushSoftAskGate {
   const dismiss = useCallback(async () => {
     setShouldShow(false);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+      await AsyncStorage.setItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+        new Date().toISOString()
+      );
     } catch (err) {
       logger.warn('usePushSoftAskGate: dismiss persist failed', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
-  }, []);
+  }, [user?.id]);
 
   const openSystemSettings = useCallback(async () => {
     try {
@@ -269,11 +277,14 @@ export function usePushSoftAskGate(): PushSoftAskGate {
     // the next mount of the gate will pick up.
     setShouldShow(false);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
+      await AsyncStorage.setItem(
+        `${STORAGE_KEY}:${user?.id ?? 'signed-out'}`,
+        new Date().toISOString()
+      );
     } catch {
       // Non-critical.
     }
-  }, []);
+  }, [user?.id]);
 
   return {
     shouldShow: checked && shouldShow,

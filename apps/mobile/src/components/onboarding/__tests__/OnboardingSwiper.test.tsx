@@ -1,3 +1,6 @@
+jest.mock('../../../design-system/theme', () => ({
+  useTheme: () => ({ colorScheme: 'light' }),
+}));
 import React from 'react';
 import { render, fireEvent } from '../../test-utils';
 import { OnboardingSwiper } from '../OnboardingSwiper';

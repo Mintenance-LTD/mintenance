@@ -5,6 +5,20 @@ import { isAllowedRedirect, safeRedirect } from '../safe-redirect';
 const ORIGIN = 'http://localhost:3000';
 
 describe('isAllowedRedirect', () => {
+  it('preserves onboarding and invitation destinations without accepting lookalikes', () => {
+    for (const destination of [
+      '/getting-started?persona=tenant',
+      '/accept-invite?token=example',
+      '/onboarding/homeowner',
+    ]) {
+      expect(isAllowedRedirect(destination)).toBe(true);
+      expect(isAllowedRedirect(`https://evil.example${destination}`)).toBe(
+        false
+      );
+    }
+    expect(isAllowedRedirect('/accept-invite-evil')).toBe(false);
+    expect(isAllowedRedirect('/getting-started-evil')).toBe(false);
+  });
   it('accepts same-origin path with an allowlisted prefix', () => {
     expect(isAllowedRedirect('/dashboard')).toBe(true);
     expect(isAllowedRedirect('/dashboard/analytics')).toBe(true);

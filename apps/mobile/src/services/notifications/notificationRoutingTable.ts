@@ -322,6 +322,11 @@ export function routeForNotification(
     case 'location_sharing_enabled':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
+    case 'early_access_granted':
+      return {
+        screen: 'Main',
+        params: { screen: 'ProfileTab', params: { screen: 'Subscription' } },
+      };
     case 'bid_received':
       return p.jobId ? bidReviewRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 

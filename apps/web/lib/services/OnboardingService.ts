@@ -83,7 +83,8 @@ export class OnboardingService {
           onboarding_completed_at: now,
           intro_swiper_dismissed_at: now,
         })
-        .eq('id', userId);
+        .eq('id', userId)
+        .is('intro_swiper_dismissed_at', null);
 
       if (error) {
         logger.error('Failed to mark onboarding complete', {

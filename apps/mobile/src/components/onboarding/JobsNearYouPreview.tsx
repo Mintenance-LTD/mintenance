@@ -25,7 +25,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { useOnboardingTheme } from '../../hooks/useOnboardingTheme';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -76,16 +76,18 @@ const SAMPLE_JOBS: ReadonlyArray<SampleJob> = [
  * needing errorLight / warningLight tokens that the theme doesn't
  * currently define.
  */
-const URGENCY_STYLE: Record<
-  SampleJob['urgency'],
-  { label: string; color: string }
-> = {
+const urgencyStyles = (
+  theme: ReturnType<typeof useOnboardingTheme>
+): Record<SampleJob['urgency'], { label: string; color: string }> => ({
   high: { label: 'Urgent', color: theme.colors.error },
   medium: { label: 'This week', color: theme.colors.primary },
   low: { label: 'Flexible', color: theme.colors.textSecondary },
-};
+});
 
 export const JobsNearYouPreview: React.FC = () => {
+  const theme = useOnboardingTheme();
+  const styles = createStyles(theme);
+  const URGENCY_STYLE = urgencyStyles(theme);
   return (
     <View style={styles.container}>
       {SAMPLE_JOBS.map((job) => (
@@ -147,87 +149,88 @@ export const JobsNearYouPreview: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    gap: 10,
-  },
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  categoryWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  urgencyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  urgencyDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  urgencyText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  jobTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  footerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  footerText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-  budgetText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  gateBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginTop: 4,
-  },
-  gateText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useOnboardingTheme>) =>
+  StyleSheet.create({
+    container: {
+      width: '100%',
+      gap: 10,
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    categoryWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    categoryText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    urgencyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    urgencyDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    urgencyText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    jobTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.colors.textPrimary,
+      marginBottom: 6,
+    },
+    cardFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    footerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    footerText: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+    },
+    budgetText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.colors.textPrimary,
+    },
+    gateBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginTop: 4,
+    },
+    gateText: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      fontWeight: '500',
+    },
+  });
