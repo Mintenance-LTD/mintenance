@@ -73,7 +73,7 @@
     "test:accessibility": "node scripts/check-accessibility.js",
     "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts",
     "security:prepare": "node scripts/apply-security-patches.cjs",
-    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/zod-collection-bounds.test.cjs"
+    "test:security-dependencies": "node scripts/apply-security-patches.cjs && node --test scripts/security-dependencies.test.cjs scripts/zod-collection-bounds.test.cjs scripts/vercel-build.test.cjs"
   },
   "keywords": [
     "marketplace",
@@ -85,7 +85,7 @@
   "author": "Mintenance Team",
   "license": "MIT",
   "engines": {
-    "node": ">=20.19.4",
+    "node": ">=20.19.4 <25",
     "npm": ">=9.0.0"
   },
   "devDependencies": {
@@ -132,6 +132,7 @@
     "typescript-eslint": "^8"
   },
   "overrides": {
+    "postcss-selector-parser": "7.1.7",
     "zod@>=4 <4.6.6": "4.6.7",
     "@opentelemetry/api": "1.9.1",
     "dompurify": "3.4.17",
