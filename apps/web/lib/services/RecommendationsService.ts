@@ -47,10 +47,10 @@ interface PropertyData {
 
 interface UserSubscription {
   id: string;
-  name: string;
-  category?: string;
-  next_billing_date?: string;
-  frequency?: string;
+  plan_type: string;
+  plan_name: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
 }
 
 /**
@@ -85,9 +85,11 @@ export class RecommendationsService {
                 .order('created_at', { ascending: false })
                 .limit(50),
               serverSupabase
-                .from('subscriptions')
-                .select('id, name, category, next_billing_date, frequency')
-                .eq('user_id', userId)
+                .from('homeowner_subscriptions')
+                .select(
+                  'id, plan_type, plan_name, current_period_end, cancel_at_period_end'
+                )
+                .eq('homeowner_id', userId)
                 .eq('status', 'active')
                 .limit(20),
               // Properties query - handle error gracefully since table might not exist
@@ -157,7 +159,19 @@ export class RecommendationsService {
               realised_amount: realised > 0 ? realised : null,
             };
           });
-          const subscriptions = subscriptionsResult.data || [];
+          if (subscriptionsResult.error) {
+            // Recommendations are optional: retain job/property suggestions,
+            // but make a failed subscription lookup observable.
+            logger.error('Failed to load subscriptions for recommendations', {
+              service: 'recommendations',
+              userId,
+              code: subscriptionsResult.error.code,
+              error: subscriptionsResult.error.message,
+            });
+          }
+          const subscriptions: UserSubscription[] = subscriptionsResult.error
+            ? []
+            : subscriptionsResult.data || [];
           const properties = propertiesResult.data || [];
 
           const recommendations: MaintenanceRecommendation[] = [];
@@ -188,12 +202,6 @@ export class RecommendationsService {
             }
           });
 
-          const subscriptionCategories = new Set(
-            subscriptions
-              .map((sub: UserSubscription) => sub.category)
-              .filter(Boolean)
-          );
-
           // Score recommendations using ML prediction (engagement prediction) - optimized
           const priorityScore = { high: 30, medium: 20, low: 10 };
           const scoredRecommendations = recommendations.map((rec) => {
@@ -206,11 +214,6 @@ export class RecommendationsService {
 
             // Higher score for high-priority recommendations
             engagementScore += priorityScore[rec.priority];
-
-            // Higher score if user has subscription in this category
-            if (rec.category && subscriptionCategories.has(rec.category)) {
-              engagementScore += 20;
-            }
 
             // Higher score if recommendation has cost savings
             if (rec.potentialSavings && rec.potentialSavings > 0) {
@@ -321,22 +324,25 @@ export class RecommendationsService {
 
     // Check subscription renewal dates
     subscriptions.forEach((sub) => {
-      if (sub.next_billing_date) {
-        const nextDate = new Date(sub.next_billing_date);
+      if (sub.current_period_end && !sub.cancel_at_period_end) {
+        const nextDate = new Date(sub.current_period_end);
         const daysUntil = Math.ceil(
           (nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
         );
 
         if (daysUntil <= 30 && daysUntil > 0) {
+          const planName = sub.plan_name?.trim() || 'Mintenance';
           recommendations.push({
             id: `subscription-${sub.id}`,
             type: 'maintenance_schedule',
-            title: `${sub.name} Renewal Coming Up`,
-            description: `Your ${sub.name} subscription is due for renewal in ${daysUntil} days.`,
+            title: `${planName} Renewal Coming Up`,
+            description: `Your ${planName} subscription is due for renewal in ${daysUntil} days.`,
             priority: daysUntil <= 7 ? 'high' : 'medium',
             suggestedDate: nextDate,
-            category: sub.category,
-            actionUrl: '/financials',
+            actionUrl:
+              sub.plan_type === 'home_health'
+                ? '/homeowner/subscriptions/home-health'
+                : '/homeowner/subscription',
           });
         }
       }
