@@ -100,6 +100,7 @@ export interface PropertyAccessShape {
    * for masking; this prop trusts what it receives.
    */
   key_safe_code: string | null;
+  entry_secret_unavailable?: boolean;
   access_notes: string | null;
   stopcock_location: string | null;
   gas_isolator_location: string | null;
@@ -793,7 +794,8 @@ export function MintEditorialJobDetailView({
                       {property.key_safe_code}
                     </span>
                   </div>
-                ) : property?.access_mode === 'key_safe' ? (
+                ) : property?.access_mode === 'key_safe' &&
+                  !property.entry_secret_unavailable ? (
                   <div className='col' style={{ gap: 4 }}>
                     <span className='t-meta'>Lock-box code</span>
                     <span className='t-meta'>

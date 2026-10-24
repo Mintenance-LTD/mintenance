@@ -4,7 +4,8 @@ import React from 'react';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { readPropertyEntrySecret } from '@/lib/services/property-entry-secret';
+import { PropertyEntryUnavailableNotice } from '@/components/properties/PropertyEntryUnavailableNotice';
+import { readPropertyEntryForDisplay } from '@/lib/services/property-entry-secret';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import PropertyDetailsClient from './components/PropertyDetailsClient';
 import { MintEditorialPropertyDetail } from './components/MintEditorialPropertyDetail';
@@ -106,6 +107,11 @@ export default async function PropertyDetailPage({
       return sum;
     }, 0) || 0;
 
+  const entry =
+    access.role === 'owner'
+      ? await readPropertyEntryForDisplay(property.id, user.id)
+      : { code: null, unavailable: false };
+
   // Format property data
   const formattedProperty = {
     id: property.id,
@@ -128,10 +134,8 @@ export default async function PropertyDetailPage({
       | 'smart_lock'
       | 'in_person'
       | null,
-    key_safe_code:
-      access.role === 'owner'
-        ? await readPropertyEntrySecret(property.id, user.id)
-        : null,
+    key_safe_code: entry.code,
+    entry_secret_unavailable: entry.unavailable,
     access_notes: property.access_notes ?? null,
     stopcock_location: property.stopcock_location ?? null,
     gas_isolator_location: property.gas_isolator_location ?? null,
@@ -225,7 +229,27 @@ export default async function PropertyDetailPage({
 
   if (isMintEditorial) {
     return (
-      <MintEditorialPropertyDetail
+      <>
+        <PropertyEntryUnavailableNotice unavailable={entry.unavailable} />
+        <MintEditorialPropertyDetail
+          property={formattedProperty}
+          jobs={formattedJobs}
+          stats={{
+            completedJobs,
+            activeJobs,
+            totalSpent,
+          }}
+          schedules={schedules}
+          certificates={certificates || []}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PropertyEntryUnavailableNotice unavailable={entry.unavailable} />
+      <PropertyDetailsClient
         property={formattedProperty}
         jobs={formattedJobs}
         stats={{
@@ -233,21 +257,7 @@ export default async function PropertyDetailPage({
           activeJobs,
           totalSpent,
         }}
-        schedules={schedules}
-        certificates={certificates || []}
       />
-    );
-  }
-
-  return (
-    <PropertyDetailsClient
-      property={formattedProperty}
-      jobs={formattedJobs}
-      stats={{
-        completedJobs,
-        activeJobs,
-        totalSpent,
-      }}
-    />
+    </>
   );
 }

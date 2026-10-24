@@ -29,6 +29,7 @@ export interface PropertyShape {
   // when these are unset.
   access_mode?: 'key_safe' | 'smart_lock' | 'in_person' | null;
   key_safe_code?: string | null;
+  entry_secret_unavailable?: boolean;
   access_notes?: string | null;
   stopcock_location?: string | null;
   gas_isolator_location?: string | null;
