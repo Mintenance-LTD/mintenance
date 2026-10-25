@@ -32,6 +32,7 @@ const CONFIG = {
 interface RetrainingCheckResult {
   shouldRetrain: boolean;
   awaitingTrainingData?: boolean;
+  performanceCheckFailed?: boolean;
   reasons: string[];
   metrics: {
     correctionsCount: number;
@@ -72,6 +73,15 @@ export class ModelRetrainingService {
     const alerts: Alert[] = [];
     let jobId: string | undefined;
     let retrainingTriggered = false;
+
+    if (checkResult.performanceCheckFailed) {
+      alerts.push({
+        type: 'PERFORMANCE_CHECK_UNAVAILABLE',
+        severity: 'warning',
+        message:
+          'Model performance could not be evaluated; review the check failure before assuming models are up to date',
+      });
+    }
 
     // Generate alerts for drift / performance
     if (
@@ -140,7 +150,7 @@ export class ModelRetrainingService {
         severity: 'info',
         message: `Awaiting approved corrections (${checkResult.metrics.correctionsCount}/${CONFIG.MIN_CORRECTIONS_FOR_TRAINING})`,
       });
-    } else {
+    } else if (!checkResult.performanceCheckFailed) {
       alerts.push({
         type: 'NO_RETRAINING_NEEDED',
         severity: 'info',
@@ -203,7 +213,9 @@ export class ModelRetrainingService {
         ? 'Retraining conditions met'
         : checkResult.awaitingTrainingData
           ? 'Awaiting sufficient approved corrections'
-          : 'No retraining needed',
+          : checkResult.performanceCheckFailed
+            ? 'Model performance check unavailable'
+            : 'No retraining needed',
     };
   }
 
@@ -211,6 +223,7 @@ export class ModelRetrainingService {
 
   private static async checkRetrainingConditions(): Promise<RetrainingCheckResult> {
     const reasons: string[] = [];
+    let performanceCheckFailed = false;
     const metrics: RetrainingCheckResult['metrics'] = {
       correctionsCount: 0,
       daysSinceLastTraining: 0,
@@ -277,7 +290,18 @@ export class ModelRetrainingService {
           }
         }
       } catch (error) {
-        logger.warn('Performance check failed', { error });
+        performanceCheckFailed = true;
+        const code =
+          error && typeof error === 'object' && 'code' in error
+            ? error.code
+            : undefined;
+        logger.warn('Performance check failed', {
+          service: 'ModelRetrainingService',
+          code:
+            typeof code === 'string' && /^[A-Z0-9]{5,20}$/.test(code)
+              ? code
+              : undefined,
+        });
       }
     }
 
@@ -287,6 +311,7 @@ export class ModelRetrainingService {
         metrics.correctionsCount >= CONFIG.MIN_CORRECTIONS_FOR_TRAINING,
       awaitingTrainingData:
         metrics.correctionsCount < CONFIG.MIN_CORRECTIONS_FOR_TRAINING,
+      performanceCheckFailed,
       reasons: reasons.length > 0 ? reasons : ['No retraining conditions met'],
       metrics,
     };
@@ -297,14 +322,16 @@ export class ModelRetrainingService {
     currentAccuracy: number;
     baselineAccuracy: number;
   } | null> {
-    const { data: recentAssessments } = await serverSupabase
+    const { data: recentAssessments, error } = await serverSupabase
       .from('building_assessments')
-      .select('id, created_at, damage_assessment')
+      .select('id')
       .gte(
         'created_at',
         new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
       )
       .limit(CONFIG.MIN_SAMPLES_FOR_EVALUATION);
+
+    if (error) throw error;
 
     if (
       !recentAssessments ||
