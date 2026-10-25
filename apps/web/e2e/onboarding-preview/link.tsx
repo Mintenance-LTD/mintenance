@@ -1,4 +1,5 @@
 import React from 'react';
+import { previewHref } from './navigation';
 export default function Link({
   href,
   children,
@@ -6,7 +7,7 @@ export default function Link({
   ...props
 }: any) {
   return (
-    <a href={href} {...props}>
+    <a href={previewHref(href)} {...props}>
       {children}
     </a>
   );

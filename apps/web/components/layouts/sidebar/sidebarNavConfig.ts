@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import {
   Home,
+  HelpCircle,
   Calendar,
   Briefcase,
   MessageSquare,
@@ -151,6 +152,7 @@ export function useNavSections(
             icon: BarChart3,
           },
           { label: 'Settings', href: '/settings', icon: Settings },
+          { label: 'Help', href: '/getting-started', icon: HelpCircle },
         ],
       },
     ],
@@ -284,6 +286,7 @@ export function useNavSections(
           // Contractors have their own settings screen — bare /settings
           // is the homeowner UX. Same fix as useLayoutState.ts:206.
           { label: 'Settings', href: '/contractor/settings', icon: Settings },
+          { label: 'Help', href: '/getting-started', icon: HelpCircle },
           {
             label: 'Notifications',
             href: '/notifications',
