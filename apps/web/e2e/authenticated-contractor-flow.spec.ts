@@ -195,10 +195,24 @@ test.describe('Authenticated Contractor Flow', () => {
     await editButton.click();
     const bioInput = page.getByLabel(/bio|about|description/i);
     await expect(bioInput).toBeVisible();
-    await bioInput.fill('Updated bio for testing purposes');
+    // A fresh value proves this save persisted, rather than a previous run's bio.
+    const updatedBio = `Updated bio for testing purposes ${Date.now()}`;
+    await bioInput.fill(updatedBio);
     await page.getByRole('button', { name: 'Save', exact: true }).click();
-    await waitForNetworkIdle(page);
-    await expect(page.getByText(/saved|updated/i)).toBeVisible();
+    // The bio also contains "Updated"; only the status notice confirms success.
+    // Observe it immediately, before a network-idle wait can outlast the toast.
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: /^Profile updated successfully!?$/ })
+    ).toBeVisible();
+    await expect(bioInput).not.toBeVisible();
+    await expect(page.getByText(updatedBio, { exact: true })).toBeVisible();
+
+    // Reload from the server so optimistic/local form state cannot pass the test.
+    await page.reload();
+    await expect(page).not.toHaveURL(/\/auth\/login|\/login/);
+    await expect(page.getByText(updatedBio, { exact: true })).toBeVisible();
   });
 });
 
