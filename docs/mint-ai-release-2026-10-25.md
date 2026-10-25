@@ -36,8 +36,25 @@ confidence 0 and validation status `needs_review`. No pilot case or training lab
 The user then requested improved survey styling. The follow-up adds the shared navigation shell,
 a clear header and recapture banner, responsive form/history cards, styled upload controls and
 photo-selection states. The existing page, activity and API regression tests passed (33 tests).
-CI now also runs the 15 pilot/CLI tests. Visual preview and final deployment must be verified on
-the resulting commit; the live main upload check does not prove the new UI or isolation is deployed.
+CI now also runs the 15 pilot/CLI tests. The staged production build from clean UI commit
+`1759392b1cff72a504352fee724c81664d1ac742` is READY:
+`https://mintenance-clean-rgcphhzre-mintenance.vercel.app`
+(`dpl_CosayKxWQGDJ54wXAofz5wD7aF15`). Desktop and phone-width visual checks passed, with no
+horizontal overflow. An authenticated photo-linked follow-up saved and survived reload at 18:36 UTC:
+`a4587a0a-d6cf-40f7-b334-7d1347f92b81`. The QA record now has four entries, five photos, the same
+source hash, zero expert labels and zero training rows. Anonymous assessment/activity/expert-review
+and evaluation API requests returned application-level 401 responses. The live custom domain
+remains on the earlier main deployment above; this staged build has not been promoted.
+
+The first CI run on `1759392b` passed code quality/testing, security, CodeQL, Lighthouse and mobile
+smoke checks. E2E shard 1 failed six public-page screenshot comparisons inherited from the earlier
+marketing change `b1e09a44` (also failed in run `40214477299`). Reviewed Linux captures from that
+marketing run refresh the references without raising thresholds. Shard 2 timed out downloading
+Ubuntu dependencies before tests ran. The APT setup now also rewrites the hosted runner's
+`apt-mirrors.txt` and places its bounded download policy after `zz-retries`; the prior setup changed
+zero source files and continued downloading from Azure. These test/CI-only repairs require a new
+CI run, but do not change the staged application source. Do not claim all release checks passed
+until the resulting PR revision is green.
 
 ### Earlier release observations (historical)
 

@@ -25,8 +25,10 @@ This is separate from the public SDNET evaluation experiment.
 
 The user also requested a survey UI improvement. PR #1427 adds the missing shared app shell,
 clearer survey header and recapture guidance, responsive form/history cards, styled file selection
-and selected-photo states. CI includes the pilot checker and bootstrap-export hold test. Confirm
-the final preview and deployment before claiming these source changes are live.
+and selected-photo states. CI includes the pilot checker and bootstrap-export hold test. The staged
+production build passed authenticated photo-linked save/reload and desktop/phone layout checks;
+the release record identifies its exact source and URL. Public-page snapshot and Ubuntu download
+issues in CI are being repaired. Confirm final CI and promotion before claiming the changes are live.
 
 ## Objective and current architecture
 
