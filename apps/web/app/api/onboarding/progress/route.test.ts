@@ -53,3 +53,32 @@ it('surfaces a failed database write', async () => {
   mocks.upsert.mockResolvedValue({ error: { message: 'unavailable' } });
   await expect(PUT(request(progress))).rejects.toThrow('Could not save');
 });
+it.each(['homeowner', 'contractor'])(
+  'saves only the authenticated %s benefits notice',
+  async (role) => {
+    mocks.user.role = role;
+    await PUT(
+      request({
+        ...progress,
+        journey: `notice-early-access-${role}`,
+        status: 'skipped',
+      })
+    );
+    expect(mocks.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: 'actor',
+        journey: `notice-early-access-${role}`,
+        status: 'skipped',
+      }),
+      expect.anything()
+    );
+    await expect(
+      PUT(
+        request({
+          ...progress,
+          journey: `notice-early-access-${role === 'homeowner' ? 'contractor' : 'homeowner'}`,
+        })
+      )
+    ).rejects.toThrow('not available');
+  }
+);

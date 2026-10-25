@@ -18,17 +18,19 @@ export default async function GettingStartedPage({
       `/login?redirect=${encodeURIComponent(`/getting-started?${params}`)}`
     );
   }
+  const tourAudience =
+    user.role === 'contractor'
+      ? await contractorOnboardingAudience(user.id).catch(() => undefined)
+      : user.role === 'homeowner'
+        ? 'homeowner'
+        : undefined;
   return (
     <GuideHub
       key={user.id}
       userId={user.id}
       role={user.role}
-      initialPersona={
-        query.persona ??
-        (user.role === 'contractor'
-          ? await contractorOnboardingAudience(user.id).catch(() => undefined)
-          : undefined)
-      }
+      tourAudience={tourAudience}
+      initialPersona={query.persona ?? tourAudience}
       initialGuide={query.guide}
     />
   );

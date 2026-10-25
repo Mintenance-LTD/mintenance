@@ -5,6 +5,7 @@ import { MintEditorialContractorDashboard } from '../../app/contractor/(dashboar
 import '../../app/globals.css';
 import { MintEditorialHomeownerDashboard } from '../../app/dashboard/components/MintEditorialHomeownerDashboard';
 import { OnboardingWrapper } from '../../components/onboarding/OnboardingWrapper';
+import { GuideHub } from '../../components/onboarding/GuideHub';
 // This isolated fixture uses the real dashboard, onboarding components and CSS.
 // API responses are deterministic sample data. No live auth or database is used.
 const query = new URLSearchParams(window.location.search);
@@ -112,7 +113,22 @@ const wrapped = (
   </OnboardingWrapper>
 );
 createRoot(document.getElementById('root')!).render(
-  contractor ? (
+  window.location.pathname === '/getting-started' ? (
+    <GuideHub
+      userId={`visual-test-${query.get('case') ?? 'default'}`}
+      role={contractor ? 'contractor' : 'homeowner'}
+      tourAudience={
+        contractor
+          ? query.get('member') === 'true'
+            ? 'team-member'
+            : 'contractor'
+          : 'homeowner'
+      }
+      initialPersona={
+        query.get('member') === 'true' ? 'team-member' : undefined
+      }
+    />
+  ) : contractor ? (
     <MintEditorialContractorShell contractorName='Alex Morgan'>
       {wrapped}
     </MintEditorialContractorShell>

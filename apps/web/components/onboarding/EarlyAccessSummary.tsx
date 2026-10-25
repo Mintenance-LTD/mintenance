@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Gift } from 'lucide-react';
+import { ArrowRight, Gift, X } from 'lucide-react';
 import styles from './Onboarding.module.css';
+import { useJourneyProgress } from '@/hooks/useJourneyProgress';
 import { earlyAccessBenefits } from '@mintenance/shared';
 export function EarlyAccessSummary({
   userId,
@@ -35,27 +36,12 @@ export function EarlyAccessSummary({
   const benefits = earlyAccessBenefits(role, status.platformFeePercent);
   if (compact)
     return (
-      <section aria-label='Early-user benefits' className={styles.benefits}>
-        <Gift size={18} className={styles.benefitsIcon} aria-hidden='true' />
-        <div className={styles.copy}>
-          <strong>{benefits.title}</strong>
-          <p>
-            {role === 'contractor'
-              ? 'Your early-access Business plan is included.'
-              : 'Your early-access Agency features are included.'}
-          </p>
-        </div>
-        <Link
-          className={styles.textButton}
-          href={
-            role === 'contractor'
-              ? '/contractor/subscription'
-              : '/homeowner/subscription'
-          }
-        >
-          View benefits <ArrowRight size={14} aria-hidden='true' />
-        </Link>
-      </section>
+      <BenefitsNotice
+        key={`${userId}:${role}`}
+        userId={userId}
+        role={role}
+        title={benefits.title}
+      />
     );
   return (
     <section
@@ -78,6 +64,55 @@ export function EarlyAccessSummary({
         }
       >
         View your benefits
+      </Link>
+    </section>
+  );
+}
+
+function BenefitsNotice({
+  userId,
+  role,
+  title,
+}: {
+  userId: string;
+  role: string;
+  title: string;
+}) {
+  const notice = useJourneyProgress(userId, `notice-early-access-${role}`);
+  if (
+    !notice.loaded ||
+    notice.progress?.status === 'skipped' ||
+    notice.progress?.status === 'completed'
+  )
+    return null;
+  return (
+    <section aria-label='Early-user benefits' className={styles.benefits}>
+      <button
+        type='button'
+        className={styles.dismiss}
+        aria-label='Dismiss early-user benefits notice'
+        onClick={() => void notice.save({ status: 'skipped', step: 0 })}
+      >
+        <X size={16} aria-hidden='true' />
+      </button>
+      <Gift size={18} className={styles.benefitsIcon} aria-hidden='true' />
+      <div className={styles.copy}>
+        <strong>{title}</strong>
+        <p>
+          {role === 'contractor'
+            ? 'Your early-access Business plan is included.'
+            : 'Your early-access Agency features are included.'}
+        </p>
+      </div>
+      <Link
+        className={styles.textButton}
+        href={
+          role === 'contractor'
+            ? '/contractor/subscription'
+            : '/homeowner/subscription'
+        }
+      >
+        View benefits <ArrowRight size={14} aria-hidden='true' />
       </Link>
     </section>
   );

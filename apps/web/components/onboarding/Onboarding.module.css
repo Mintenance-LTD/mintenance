@@ -315,3 +315,46 @@
     padding: 4px 16px;
   }
 }
+
+/* No empty border or spacing after both independent notices are dismissed. */
+.panel:empty {
+  display: none;
+}
+.guideRow,
+.benefits {
+  position: relative;
+  padding-right: 60px;
+}
+.benefits:first-child {
+  border-top: 0;
+}
+.dismiss {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--me-ink-2);
+  cursor: pointer;
+}
+.dismiss:hover {
+  background: var(--me-bg-2);
+}
+@media (max-width: 700px) {
+  .guideRow {
+    padding-right: 16px;
+  }
+  .guideRow > .copy {
+    padding-right: 36px;
+  }
+  .benefits .copy {
+    flex-basis: calc(100% - 32px);
+  }
+}

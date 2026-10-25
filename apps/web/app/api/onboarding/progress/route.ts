@@ -35,6 +35,8 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
   const value = parsed.data;
   const personas = onboardingPersonas(user.role);
   const allowed =
+    (['homeowner', 'contractor'].includes(user.role) &&
+      value.journey === `notice-early-access-${user.role}`) ||
     personas.some((persona) => value.journey === `intro-${persona}`) ||
     personas.some((persona) =>
       FEATURE_GUIDES.some(

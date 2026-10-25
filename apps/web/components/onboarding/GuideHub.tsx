@@ -10,17 +10,20 @@ import {
 } from '@mintenance/shared';
 import { useJourneyProgress } from '@/hooks/useJourneyProgress';
 import { EarlyAccessSummary } from './EarlyAccessSummary';
+import { ReplayQuickTour } from './ReplayQuickTour';
 
 export function GuideHub({
   userId,
   role,
   initialPersona,
   initialGuide,
+  tourAudience,
 }: {
   userId: string;
   role: string;
   initialPersona?: string;
   initialGuide?: string;
+  tourAudience?: 'homeowner' | 'contractor' | 'team-member';
 }) {
   const personas = onboardingPersonas(role);
   const [persona, setPersona] = useState<OnboardingPersona>(
@@ -55,6 +58,13 @@ export function GuideHub({
           and come back at any time. Access to features depends on your account
           and permissions.
         </p>
+        {tourAudience && (
+          <ReplayQuickTour
+            key={`${userId}:${tourAudience}`}
+            userId={userId}
+            audience={tourAudience}
+          />
+        )}
         <EarlyAccessSummary userId={userId} role={role} />
         <label className='block'>
           My guide

@@ -33,3 +33,16 @@ Web TypeScript passed. The 18 focused onboarding regression tests passed (progre
 ## Production prerequisite
 
 Read-only verification found `public.onboarding_journeys` absent and migration `20261024142808` unapplied in production. Vercel logs for the reported deployment show `GET /api/onboarding/progress` returning 500. The existing migration must be reviewed/applied as part of release; it also creates inbox benefits notifications for existing eligible grants. This UI correction does not apply migrations or deploy production. Native-device acceptance from the original remediation remains outstanding.
+## Dashboard notice lifecycle — follow-up
+
+The introduction now remains until the user finishes the quick tour, skips it, or uses its close button. There is no arbitrary time limit. Help remains in homeowner and contractor navigation, with account-appropriate tour replay. The server resolves the contractor owner/team-member audience independently of the selected educational guide.
+
+The early-user benefits announcement has its own close button and account-scoped progress key. Closing it does not revoke benefits or hide the detailed benefits information in Help/Subscription. After both sections are hidden, the dashboard has no empty card or residual spacing. Failed progress messages disappear with the introduction.
+
+Dismissals are stored immediately per account in this browser and retried through the existing progress API. Successful synchronization makes the choice available to other browsers; until the production migration above is applied, persistence is limited to the current browser. Clearing browser storage can reset unsynced choices. These changes do not apply the migration.
+
+Verification: 31 focused tests passed, including completion, independent dismissals, offline remount, another account, remote terminal progress, role-specific replay, and API notice ownership. Web TypeScript passed; changed-file ESLint had no errors and one existing test-helper warning. Actual component/CSS browser checks at 1440×900 and 390×844 confirmed independent dismissal and refresh persistence. Mobile navigation → Help → Replay reopened the five-step team-member tour; skipping it removed the intro while the dismissed benefits notice stayed hidden. These checks use sample data and mocked API failures, not a live database or native mobile runtime.
+
+- [Desktop after dismissal and refresh](lifecycle-dismissed-desktop.jpg)
+- [Phone dismissal controls](lifecycle-mobile-controls.jpg)
+- [Phone after replay and skip](lifecycle-dismissed-mobile.jpg)
