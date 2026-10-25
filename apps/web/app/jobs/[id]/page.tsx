@@ -22,13 +22,6 @@ export const metadata: Metadata = {
     'View job details, contractor bids, and project status for your maintenance request.',
 };
 
-interface PortfolioPostRow {
-  contractor_id: string;
-  media_urls: string[] | null;
-  title: string | null;
-  project_category: string | null;
-}
-
 export default async function JobDetailPage2025({
   params,
 }: {
@@ -216,57 +209,32 @@ export default async function JobDetailPage2025({
     });
   }
 
-  // Second parallel batch: everything that needs a phase-1 result. Portfolio
-  // images + review counts key off the bids' contractor ids; storage
+  // Second parallel batch: everything that needs a phase-1 result.
+  // Review counts key off the bids' contractor ids; storage
   // re-signing keys off the fetched photos (the `Job-storage` bucket is
   // private since the 2026-04-17 hardening migration, so legacy/expired URLs
   // must be re-signed at render time — external URLs pass through).
   const contractorIds = bids?.map((b) => b.contractor_id).filter(Boolean) || [];
-  const [portfolioResult, reviewResult, jobPhotoUrls, evidencePhotoUrls] =
-    await Promise.all([
-      contractorIds.length > 0
-        ? serverSupabase
-            .from('contractor_posts')
-            .select('contractor_id, media_urls, title, project_category')
-            .in('contractor_id', contractorIds)
-            .in('post_type', ['portfolio', 'work_showcase'])
-            .eq('is_active', true)
-            .not('media_urls', 'is', null)
-            .order('created_at', { ascending: false })
-            .limit(100)
-        : Promise.resolve({ data: [] as PortfolioPostRow[] }),
-      contractorIds.length > 0
-        ? serverSupabase
-            .from('reviews')
-            .select('reviewee_id')
-            .in('reviewee_id', contractorIds)
-        : Promise.resolve({
-            data: [] as Array<{ reviewee_id: string | null }>,
-          }),
-      resignJobStorageUrls(
-        (photos ?? []).map((p) => p.file_url as string | null),
-        user.id
-      ),
-      resignJobStorageUrls(
-        (photoEvidence ?? []).map((p) => p.photo_url),
-        user.id
-      ),
-    ]);
-
-  // Build the portfolio image map from the fetched posts.
-  const portfolioMap = new Map();
-  const portfolioPosts = (portfolioResult.data ?? []) as PortfolioPostRow[];
-  portfolioPosts.forEach((post) => {
-    if (!portfolioMap.has(post.contractor_id)) {
-      portfolioMap.set(post.contractor_id, []);
-    }
-    const images = (post.media_urls || []).map((url: string) => ({
-      url,
-      title: post.title || 'Previous Work',
-      category: post.project_category || 'General',
-    }));
-    portfolioMap.get(post.contractor_id).push(...images);
-  });
+  // Portfolio browsing lives on the linked contractor profile. Neither job
+  // detail layout consumes portfolio images, so do not fetch posts here.
+  const [reviewResult, jobPhotoUrls, evidencePhotoUrls] = await Promise.all([
+    contractorIds.length > 0
+      ? serverSupabase
+          .from('reviews')
+          .select('reviewee_id')
+          .in('reviewee_id', contractorIds)
+      : Promise.resolve({
+          data: [] as Array<{ reviewee_id: string | null }>,
+        }),
+    resignJobStorageUrls(
+      (photos ?? []).map((p) => p.file_url as string | null),
+      user.id
+    ),
+    resignJobStorageUrls(
+      (photoEvidence ?? []).map((p) => p.photo_url),
+      user.id
+    ),
+  ]);
 
   // Review counts per contractor so the bid card can show "(12 reviews)".
   const reviewCountMap = new Map<string, number>();
@@ -295,10 +263,6 @@ export default async function JobDetailPage2025({
         return null;
       }
 
-      const portfolioImages = bid.contractor_id
-        ? (portfolioMap.get(bid.contractor_id) || []).slice(0, 12)
-        : [];
-
       const quote = Array.isArray(bid.quote) ? bid.quote[0] : bid.quote;
       const lineItems = quote?.line_items ?? [];
 
@@ -306,7 +270,6 @@ export default async function JobDetailPage2025({
         ...bid,
         contractor: {
           ...contractor,
-          portfolioImages,
           reviews_count: reviewCountMap.get(contractor.id) || 0,
         },
         lineItems,
