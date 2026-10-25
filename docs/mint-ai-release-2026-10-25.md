@@ -106,6 +106,8 @@ the existing Dashboard h1. Contractor Discover also had a flaky contrast scan du
 location dialog entrance animation. The test now waits for the fixture's dialog to be visible and
 fully opaque, scans it, dismisses it through the normal button and scans the underlying page too.
 No accessibility assertion was disabled. The new CI run must pass before promotion.
+Full web TypeScript passed after this change. Changed dashboard lint passed with one existing
+navigation warning; the E2E directory is excluded from ESLint and will be verified by browser CI.
 
 These source changes supersede the staged application bundle for the next release. **Do not promote
 the previously staged deployment below as the final revised release.** Build and verify a new staged
