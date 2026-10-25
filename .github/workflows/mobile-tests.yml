@@ -56,7 +56,9 @@ jobs:
 
       - name: Run mobile unit tests
         working-directory: apps/mobile
-        run: npm test -- --coverage --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit
+        run: |
+          mkdir -p test-results
+          npm test -- --coverage --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit --json --outputFile=test-results/jest-results.json
         env:
           CI: true
 

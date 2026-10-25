@@ -189,6 +189,21 @@ jest.mock('../../../services/NotificationService', () => ({
 // logic) can be fired from the test.
 // ----------------------------------------------------------------------------
 
+// This suite isolates dashboard children; the real card/provider contract is
+// covered in GettingStartedCard.test.tsx.
+jest.mock('../../../components/onboarding/GettingStartedCard', () => {
+  const React2 = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
+  return {
+    GettingStartedCard: () =>
+      React2.createElement(
+        Text,
+        { testID: 'getting-started-card' },
+        'Getting started'
+      ),
+  };
+});
+
 jest.mock('../RecentJobs', () => {
   const React2 = jest.requireActual('react');
   const { Text, TouchableOpacity } = jest.requireActual('react-native');
@@ -716,6 +731,7 @@ describe('HomeownerDashboard', () => {
         <HomeownerDashboard />
       );
       expect(getByTestId('finishsetup-card')).toBeTruthy();
+      expect(getByTestId('getting-started-card')).toBeTruthy();
       expect(getByTestId('push-banner')).toBeTruthy();
       expect(getByTestId('landlord-card')).toBeTruthy();
       expect(queryByTestId('homehealth-card')).toBeNull();

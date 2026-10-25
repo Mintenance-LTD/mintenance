@@ -1,6 +1,11 @@
 import React from 'react';
 import { render } from '../test-utils';
 
+// Role-router tests isolate every destination, including the admin guide.
+jest.mock('../../../screens/onboarding/GettingStartedScreen', () => ({
+  GettingStartedScreen: () => null,
+}));
+
 // ---------------------------------------------------------------------------
 // Realigned 2026-06-03 to the Mint Editorial v2 architecture.
 //
