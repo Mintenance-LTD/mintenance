@@ -20,7 +20,7 @@ interface Message {
   receiver_id: string;
   content: string;
   created_at: string;
-  read_at: string | null;
+  read: boolean | null;
 }
 
 interface MessagesSidebarProps {
@@ -28,6 +28,7 @@ interface MessagesSidebarProps {
   messages: Message[];
   unreadCounts: Map<string, number>;
   currentUserId: string;
+  messagesAvailable?: boolean;
 }
 
 export function MessagesSidebar({
@@ -35,6 +36,7 @@ export function MessagesSidebar({
   messages,
   unreadCounts,
   currentUserId,
+  messagesAvailable = true,
 }: MessagesSidebarProps) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
     null
@@ -95,7 +97,6 @@ export function MessagesSidebar({
             content: lastMessage.content,
             messageType: 'text' as const,
             createdAt: lastMessage.created_at,
-            readAt: lastMessage.read_at || undefined,
           }
         : undefined,
     };
@@ -138,7 +139,15 @@ export function MessagesSidebar({
         </h3>
       </div>
 
-      {conversations.length === 0 ? (
+      {!messagesAvailable ? (
+        <p
+          role='status'
+          className={isMintEditorial ? 't-body' : 'text-sm text-gray-700'}
+        >
+          Messages and unread counts are temporarily unavailable. Refresh this
+          page to try again.
+        </p>
+      ) : conversations.length === 0 ? (
         <div
           className={isMintEditorial ? undefined : 'text-center py-8'}
           style={

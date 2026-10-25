@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
 import { CustomersTable } from './components/CustomersTable';
 import { MessagesSidebar } from './components/MessagesSidebar';
 import {
@@ -68,6 +69,23 @@ function unwrap<T>(value: T | T[] | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
+// Do not send database messages or message contents to diagnostics.
+async function loadMessages<T>(
+  query: PromiseLike<{ data: T | null; error: { code?: string } | null }>
+) {
+  try {
+    const result = await query;
+    if (result.error) {
+      logger.warn('Customer messages unavailable', { code: result.error.code });
+      return { data: null, available: false };
+    }
+    return { data: result.data, available: true };
+  } catch {
+    logger.warn('Customer messages unavailable', { code: 'TRANSPORT_ERROR' });
+    return { data: null, available: false };
+  }
+}
+
 export default async function CustomersPage() {
   const user = await getCurrentUserFromCookies();
 
@@ -95,12 +113,14 @@ export default async function CustomersPage() {
           'job:jobs!inner(homeowner:profiles!homeowner_id (id, first_name, last_name, profile_image_url, email))'
         )
         .eq('contractor_id', user.id),
-      serverSupabase
-        .from('messages')
-        .select(
-          'sender_id, receiver_id, sender:sender_id (id, first_name, last_name, profile_image_url, email), receiver:receiver_id (id, first_name, last_name, profile_image_url, email)'
-        )
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
+      loadMessages(
+        serverSupabase
+          .from('messages')
+          .select(
+            'sender_id, receiver_id, sender:sender_id (id, first_name, last_name, profile_image_url, email), receiver:receiver_id (id, first_name, last_name, profile_image_url, email)'
+          )
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      ),
       serverSupabase
         .from('contractor_quotes')
         .select('status, total_amount, client_email')
@@ -126,6 +146,8 @@ export default async function CustomersPage() {
   });
 
   ((messagesData.data || []) as MessageRow[]).forEach((message) => {
+    if (message.sender_id !== user.id && message.receiver_id !== user.id)
+      return;
     const sender = unwrap(message.sender);
     const receiver = unwrap(message.receiver);
     const otherUser = message.sender_id === user.id ? receiver : sender;
@@ -142,21 +164,37 @@ export default async function CustomersPage() {
     profile_image_url: c.profile_image_url || null,
   }));
 
-  // Fetch message threads for each customer (kept for the legacy sidebar)
+  // Bound previews to 100 recent messages, and require this contractor on
+  // every conversation. The service-role client must not fetch other parties'
+  // conversations just because they share a customer.
   const customerIds = customers.map((c) => c.id);
-  const { data: recentMessages } = await serverSupabase
-    .from('messages')
-    .select('id, sender_id, receiver_id, content, created_at, read_at')
-    .or(
-      `sender_id.in.(${customerIds.join(',')}),receiver_id.in.(${customerIds.join(',')})`
-    )
-    .order('created_at', { ascending: false })
-    .limit(100);
+  const recentResult =
+    customerIds.length === 0
+      ? { data: [], available: true }
+      : await loadMessages(
+          serverSupabase
+            .from('messages')
+            .select('id, sender_id, receiver_id, content, created_at, read')
+            .or(
+              `and(sender_id.eq.${user.id},receiver_id.in.(${customerIds.join(',')})),and(receiver_id.eq.${user.id},sender_id.in.(${customerIds.join(',')}))`
+            )
+            .order('created_at', { ascending: false })
+            .limit(100)
+        );
+  const messagesAvailable = messagesData.available && recentResult.available;
+  const customerIdSet = new Set(customerIds);
+  // Defense in depth before serializing message content to a client component.
+  const recentMessages = (recentResult.data || []).filter(
+    (message) =>
+      (message.sender_id === user.id &&
+        customerIdSet.has(message.receiver_id)) ||
+      (message.receiver_id === user.id && customerIdSet.has(message.sender_id))
+  );
 
   // Unread counts per customer (legacy sidebar)
   const unreadCounts = new Map<string, number>();
   recentMessages?.forEach((message) => {
-    if (message.receiver_id === user.id && !message.read_at) {
+    if (message.receiver_id === user.id && !message.read) {
       const customerId = message.sender_id;
       unreadCounts.set(customerId, (unreadCounts.get(customerId) || 0) + 1);
     }
@@ -296,7 +334,7 @@ export default async function CustomersPage() {
         customers={customerRecords}
         kpis={kpis}
         totalCount={customerRecords.length}
-        leadsWaiting={leadsWaiting}
+        leadsWaiting={messagesAvailable ? leadsWaiting : null}
       />
     );
   }
@@ -323,6 +361,7 @@ export default async function CustomersPage() {
             messages={recentMessages || []}
             unreadCounts={unreadCounts}
             currentUserId={user.id}
+            messagesAvailable={messagesAvailable}
           />
         </div>
       </div>
