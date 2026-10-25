@@ -36,7 +36,7 @@ export function HowItWorksCTA() {
         Ready to Get Started?
       </h2>
       <p className='text-xl mb-8' style={{ color: 'var(--me-brand-soft)' }}>
-        Join thousands of homeowners and contractors using Mintenance
+        Choose your account type and take the first step.
       </p>
       {/* Audit follow-up (2026-04-29): the marketing CTA used
           to push to `/signup` which doesn't exist as a route. The

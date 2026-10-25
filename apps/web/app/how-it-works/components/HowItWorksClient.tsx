@@ -12,6 +12,8 @@ import { HowItWorksSteps } from './HowItWorksSteps';
 import { HowItWorksFeatures } from './HowItWorksFeatures';
 import { HowItWorksFAQs } from './HowItWorksFAQs';
 import { HowItWorksCTA } from './HowItWorksCTA';
+import { ProductDemos } from '@/components/marketing/ProductDemos';
+import { GettingStartedLinks } from '@/components/marketing/GettingStartedLinks';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -66,7 +68,7 @@ export function HowItWorksClient() {
           </MotionP>
           <MotionButton
             variants={fadeIn}
-            onClick={() => router.push('/register')}
+            onClick={() => router.push(`/register?role=${activeRole}`)}
             className='px-8 py-4 transition-colors font-semibold text-lg'
             style={{
               background: 'var(--me-surface)',
@@ -80,7 +82,12 @@ export function HowItWorksClient() {
         </div>
       </MotionDiv>
 
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
+      <ProductDemos />
+
+      <div
+        id='steps'
+        className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 scroll-mt-24'
+      >
         <MotionDiv
           initial='hidden'
           animate='visible'
@@ -140,6 +147,7 @@ export function HowItWorksClient() {
         <HowItWorksFAQs />
         <HowItWorksCTA />
       </div>
+      <GettingStartedLinks />
     </div>
   );
 }

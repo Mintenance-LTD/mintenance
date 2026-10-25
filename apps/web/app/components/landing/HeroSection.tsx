@@ -114,7 +114,7 @@ export function HeroSection() {
             style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}
           >
             <Link
-              href='/jobs/create'
+              href='/register?role=homeowner'
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -132,7 +132,7 @@ export function HeroSection() {
               Post your first job for free
             </Link>
             <a
-              href='#how-it-works'
+              href='#watch-demo'
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -147,9 +147,23 @@ export function HeroSection() {
                 textDecoration: 'none',
               }}
             >
-              See how it works
+              Watch the app in action
             </a>
           </motion.div>
+
+          <p style={{ marginTop: 18, fontSize: 14, color: 'var(--me-ink-2)' }}>
+            Here for your trade business?{' '}
+            <Link
+              href='/for-contractors'
+              style={{
+                color: 'var(--me-brand)',
+                textDecoration: 'underline',
+                textUnderlineOffset: 4,
+              }}
+            >
+              Explore the contractor tools →
+            </Link>
+          </p>
 
           <motion.div
             variants={itemVariants}

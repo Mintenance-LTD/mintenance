@@ -10,6 +10,8 @@ import { TrustIndicators } from '@/components/landing/trust-indicators';
 import { FAQSection } from '@/components/landing/faq-section';
 import { ContractorCTA } from '@/components/landing/contractor-cta';
 import { FinalCTA } from '@/components/landing/final-cta';
+import { ProductDemos } from '@/components/marketing/ProductDemos';
+import { GettingStartedLinks } from '@/components/marketing/GettingStartedLinks';
 
 // 2026-05-13 Mint Editorial rebuild: AppPreviewSection was dropped —
 // the new hero already shows the browser + phone "both platforms"
@@ -34,8 +36,7 @@ export const metadata: Metadata = {
     locale: 'en_GB',
     url: 'https://www.mintenance.co.uk',
     siteName: 'Mintenance',
-    title:
-      'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
+    title: 'Mintenance: Hire Local Tradespeople With Escrow-Protected Payments',
     description:
       'Post home maintenance jobs, compare local tradespeople on the platform, and keep payment protected in escrow until the work is approved.',
     images: [
@@ -76,9 +77,11 @@ export default function LandingPage() {
         <HeroSection />
         <TrustIndicators />
         <HowItWorks />
+        <ProductDemos />
         <BentoFeaturesSection />
         <ComparisonTable />
         <ContractorCTA />
+        <GettingStartedLinks />
         <FAQSection />
         <FinalCTA />
       </main>

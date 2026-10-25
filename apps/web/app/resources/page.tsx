@@ -9,6 +9,16 @@ export const metadata = {
 };
 const resources = [
   [
+    'Watch the job-map demo',
+    'See service areas, the map and how a proposal comes together.',
+    '/for-contractors#demo-local-work',
+  ],
+  [
+    'Explore your Business hub',
+    'Take a short tour of business tools, expenses and documents.',
+    '/for-contractors#demo-business',
+  ],
+  [
     'Get ready to work',
     'Understand business verification and the information to prepare.',
     '/verification',

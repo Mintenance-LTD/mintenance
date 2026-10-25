@@ -11,13 +11,13 @@ const STEPS = [
     number: 1,
     title: 'Post your job',
     description:
-      'Snap a photo of what needs doing, add a short description and a budget. It takes about 30 seconds.',
+      'Add photos, describe what needs doing and set your budget and preferred timing.',
   },
   {
     number: 2,
     title: 'Compare bids',
     description:
-      'Local tradespeople on the platform send honest quotes: typically within 24–48 hours. Review profiles, ratings and past work.',
+      'Review proposals from interested tradespeople. Compare the scope, price, availability and profile details.',
   },
   {
     number: 3,
@@ -78,7 +78,8 @@ export function HowItWorks() {
               margin: '0 auto',
             }}
           >
-            Posting a job takes 30 seconds. Most homeowners hire by lunch.
+            From describing the problem to reviewing the finished work, keep the
+            details together.
           </p>
         </div>
 
@@ -136,7 +137,7 @@ export function HowItWorks() {
 
         <div style={{ textAlign: 'center', marginTop: 48 }}>
           <Link
-            href='/jobs/create'
+            href='/how-it-works'
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -151,7 +152,7 @@ export function HowItWorks() {
               boxShadow: 'var(--me-shadow-btn)',
             }}
           >
-            Post a job: free
+            Explore each step
           </Link>
         </div>
       </div>

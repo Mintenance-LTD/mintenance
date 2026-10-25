@@ -40,22 +40,22 @@ const FEATURES: MarketingFeature[] = [
     icon: MapPin,
     title: 'Find Jobs Near You',
     description:
-      'Browse a curated marketplace of local jobs filtered by trade, distance, and budget. See jobs on a map, bid with one tap, and get notified when new work drops in your area.',
-    screenshot: '/screenshots/contractor/discover-jobs.png',
-    screenshotAlt:
-      'Discover Jobs page showing map view with available jobs and filter chips',
-    mobileScreenshot: '/screenshots/mobile/contractor-find-jobs.png',
-    mobileAlt: 'Mobile map view showing nearby jobs with Quick Bid buttons',
+      'Set your service area, explore the job map and review the scope before preparing a proposal. Available jobs depend on your area and trade.',
+    screenshot: '/media/landing/contractor-discover.webp',
+    screenshotAlt: 'Current web Discover page with distance and budget filters',
+    mobileScreenshot: '/media/landing/mobile-contractor-map.webp',
+    mobileAlt:
+      'Current mobile job map with fictional locations and a demo Quick Bid card',
     badge: 'Smart Matching',
   },
   {
     icon: BarChart3,
-    title: 'Track Your Performance',
+    title: 'Track Your Finances',
     description:
-      'See your win rate, total earnings, average rating, and bid trends over time. Understand which job categories bring the best return and where to focus your energy.',
-    screenshot: '/screenshots/contractor/marketing.png',
+      'Review revenue, pending payouts and average job value in one place. Follow the monthly trend and keep business costs and payment records close.',
+    screenshot: '/media/landing/contractor-finance.webp',
     screenshotAlt:
-      'Marketing & Performance dashboard with activity trends and job categories',
+      'Current contractor finance overview with fictional revenue and payout figures',
     badge: 'Data-Driven',
   },
   {
@@ -63,34 +63,37 @@ const FEATURES: MarketingFeature[] = [
     title: 'Run Your Business',
     description:
       'Everything in one place \u2014 finance dashboard, invoicing, quotes, client CRM, expense tracking, payouts, calendar, and time logging. No more spreadsheets.',
-    screenshot: '/screenshots/contractor/dashboard.png',
+    screenshot: '/media/landing/contractor-quotes.webp',
     screenshotAlt:
-      'Contractor dashboard showing revenue overview, completion rate, and active jobs',
-    mobileScreenshot: '/screenshots/mobile/contractor-business-hub.png',
+      'Current contractor quotes workspace with fictional amounts and customer records',
+    mobileScreenshot: '/media/landing/mobile-contractor-business.webp',
+    mobileScreenshotHeight: 1150,
     mobileAlt:
       'Mobile Business Hub with Finance, Invoices, Quotes, Clients, Expenses, Payouts tiles',
     badge: 'All-in-One',
   },
   {
     icon: Zap,
-    title: 'Job Marketplace',
+    title: 'Keep Your Jobs Organised',
     description:
-      'A curated feed of opportunities tailored to your expertise. Filter by trade, sort by pay or distance, and see AI-matched job scores. Save favourites and bid when ready.',
-    mobileScreenshot: '/screenshots/mobile/contractor-marketplace.png',
+      'Move between bids, contracts and active jobs. Open the job record to review the scope, check its status and keep track of the next step.',
+    mobileScreenshot: '/media/landing/mobile-contractor-jobs.webp',
     mobileAlt:
-      'Mobile Job Marketplace with local listings, average value, and filter tabs',
-    screenshot: '/screenshots/contractor/discover-jobs.png',
-    screenshotAlt: 'Discover Jobs page with job cards and map',
-    badge: 'Curated Feed',
+      'Current mobile job workspace with bids, contracts and active-job tabs',
+    screenshot: '/media/landing/contractor-jobs.webp',
+    screenshotAlt:
+      'Current contractor job list with fictional customers and status badges',
+    badge: 'Your Workflow',
   },
   {
     icon: Shield,
     title: 'Get Paid Securely',
     description:
-      'Homeowner payment is held in escrow before you start. Complete the work, upload after photos \u2014 payment releases directly to your bank via Stripe Connect. No chasing invoices.',
-    screenshot: '/screenshots/contractor/dashboard.png',
-    screenshotAlt: 'Contractor dashboard showing earnings and pending payouts',
-    mobileScreenshot: '/screenshots/mobile/contractor-dashboard.png',
+      'Follow the funding and completion stages in the job record. Submit completion evidence for review and check the payment and payout status in your account.',
+    screenshot: '/media/landing/contractor-finance.webp',
+    screenshotAlt:
+      'Current finance overview showing demo revenue and pending payouts',
+    mobileScreenshot: '/media/landing/mobile-contractor-home.webp',
     mobileAlt:
       'Mobile contractor dashboard with Active Portfolio, earnings, and rating stats',
     badge: 'Escrow Protected',
@@ -135,7 +138,7 @@ const WHY_MINTENANCE: MarketingTrustPoint[] = [
     icon: Shield,
     title: 'Escrow-protected payment',
     description:
-      'Homeowner funds are held in escrow before you start work. Complete the job, upload photos, and on homeowner approval the money goes straight to your Stripe Connect payout account. No invoicing, no chasing.',
+      'Check the funding status before starting work and submit completion evidence for homeowner review. Read the payment terms for release conditions and payout timing.',
   },
   {
     icon: Award,
@@ -225,32 +228,36 @@ function BusinessToolsGrid() {
 export default function ForContractorsPage() {
   return (
     <MarketingFeaturePage
+      audience='contractor'
       accent='emerald'
       hero={{
         badge: { icon: Briefcase, label: 'For Contractors' },
         title: 'Grow Your',
         highlightedWord: 'Trade Business.',
         description:
-          'Find local jobs, manage your business, and get paid securely. Mintenance gives you the tools, the clients, and the confidence to grow.',
+          'Explore local jobs, prepare proposals and keep business admin together. See the map, expenses and document tools before you join.',
         primaryCTA: {
           label: 'Join as a Contractor',
           href: '/register?role=contractor',
         },
-        secondaryCTA: { label: 'See How It Works', href: '/how-it-works' },
+        secondaryCTA: {
+          label: 'Watch the Job Map Demo',
+          href: '#demo-local-work',
+        },
         desktopScreenshot: {
-          src: '/screenshots/contractor/dashboard.png',
-          alt: 'Mintenance contractor dashboard showing company stats, revenue overview, and active jobs',
+          src: '/media/landing/contractor-quotes.webp',
+          alt: 'Current contractor quotes workspace with fictional customer and pricing details',
         },
         mobileScreenshot: {
-          src: '/screenshots/mobile/contractor-dashboard.png',
+          src: '/media/landing/mobile-contractor-home.webp',
           alt: 'Mobile contractor dashboard with portfolio stats',
         },
       }}
       stats={[
-        { value: 'Free', label: 'To join and start bidding' },
-        { value: '100%', label: 'Escrow-protected payments' },
-        { value: '0', label: 'Chasing invoices' },
-        { value: '1 day', label: 'To set up your profile' },
+        { value: 'Explore', label: 'Work in your service area' },
+        { value: 'Propose', label: 'Your price and scope' },
+        { value: 'Manage', label: 'Business costs and records' },
+        { value: 'Build', label: 'Your contractor profile' },
       ]}
       featuresHeading={{
         title: 'Everything You Need to Win More Work',

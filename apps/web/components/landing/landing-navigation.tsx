@@ -20,7 +20,7 @@ const NAV_LINKS = [
     href: '/for-contractors',
     label: 'For tradespeople',
   },
-  { href: '/about', label: 'About' },
+  { href: '/how-it-works#watch-demo', label: 'Watch demos' },
 ];
 
 function LeafMark({ size = 22 }: { size?: number }) {

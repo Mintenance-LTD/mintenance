@@ -110,6 +110,13 @@ const TENANT_REPORT_RE = /^\/(?:api\/)?report\/[0-9a-f]{32}$/i;
  * Returns true when the given pathname requires no authentication.
  */
 export function isPublicRoute(pathname: string): boolean {
+  // Only the four reviewed marketing exports are public, never arbitrary media.
+  if (
+    /^\/media\/demos\/(?:01-homeowner|02-contractor-business|03-find-local-work|04-clear-agreements)\.(?:mp4|vtt)$/.test(
+      pathname
+    )
+  )
+    return true;
   if (pathname === '/maintenance/report-access') return true;
   // The shell exposes no report data; the API requires a private receipt.
   if (/^\/maintenance\/reports\/[0-9a-f-]{36}$/i.test(pathname)) return true;
