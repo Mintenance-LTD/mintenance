@@ -9,7 +9,8 @@ for (const width of [375, 1440]) {
     await page.setContent(`
       <style>
         body { margin: 0; }
-        .spacer { height: 1100px; }
+        .spacer { height: 900px; }
+        section { min-height: 1100px; }
         .reveal { opacity: 0; transform: translateY(24px); transition: opacity .2s, transform .2s; }
         .reveal.shown { opacity: 1; transform: none; }
       </style>
@@ -26,7 +27,7 @@ for (const width of [375, 1440]) {
             setTimeout(() => el.classList.add('shown'), el.querySelector('h3') ? 350 : 100);
             observer.unobserve(el);
           }
-        });
+        }, { threshold: 0.25 });
         document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
         const image = document.querySelector('img');
         const images = new IntersectionObserver(entries => {

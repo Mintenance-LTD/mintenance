@@ -39,18 +39,23 @@ export async function prepareVisualPage(
                 ) {
                   const style = getComputedStyle(ancestor);
                   opacity *= Number(style.opacity);
-                  if (style.visibility !== 'visible')
+                  if (!viewportOnly && style.visibility !== 'visible')
                     issues.push(`${label}: hidden`);
                 }
-                if (opacity < 0.99)
+                // A tall parent's observer may need more of the next viewport
+                // before it starts. Keep scrolling; require visibility only
+                // after the entire page has been visited.
+                if (!viewportOnly && opacity < 0.99)
                   issues.push(`${label}: opacity ${opacity.toFixed(3)}`);
                 if (
+                  !viewportOnly &&
                   element instanceof HTMLImageElement &&
                   (!element.complete || !element.naturalWidth)
                 ) {
                   issues.push(`${label}: image not loaded`);
                 }
                 geometry.push(
+                  Math.round(opacity * 1000),
                   ...[rect.x, rect.y, rect.width, rect.height].map((n) =>
                     Math.round(n * 10)
                   )
