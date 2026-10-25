@@ -54,16 +54,18 @@ export function checkFieldPilot(manifest) {
   for (const [index, entry] of cases.entries()) {
     const row = object(entry) ? entry : {};
     const label = `Case ${index + 1}`;
+    const assessmentId = typeof row.assessmentId === 'string' ? row.assessmentId.toLowerCase() : row.assessmentId;
+    const propertyId = typeof row.propertyId === 'string' ? row.propertyId.toLowerCase() : row.propertyId;
     require(UUID.test(row.assessmentId ?? ''), `${label}: assessment ID is missing or invalid`);
-    require(!assessmentIds.has(row.assessmentId), `${label}: duplicate assessment`);
-    assessmentIds.add(row.assessmentId);
+    require(!assessmentIds.has(assessmentId), `${label}: duplicate assessment`);
+    assessmentIds.add(assessmentId);
     require(UUID.test(row.propertyId ?? ''), `${label}: property ID is missing or invalid`);
-    if (UUID.test(row.propertyId ?? '')) properties.add(row.propertyId);
+    if (UUID.test(row.propertyId ?? '')) properties.add(propertyId);
     require(text(row.captureGroup), `${label}: capture group is missing`);
     if (text(row.captureGroup)) {
-      require(!groups.has(row.captureGroup) || groups.get(row.captureGroup) === row.propertyId,
+      require(!groups.has(row.captureGroup) || groups.get(row.captureGroup) === propertyId,
         `${label}: capture group spans different properties; reconcile grouping`);
-      groups.set(row.captureGroup, row.propertyId);
+      groups.set(row.captureGroup, propertyId);
     }
     require(row.sourceType === 'permissioned_field_capture', `${label}: synthetic/public/unknown source is excluded`);
     require(object(row.permission) && text(row.permission.reference) && text(row.permission.recordedBy) &&

@@ -46,7 +46,12 @@ for (const [name, change, message] of [
   ['changed source without fingerprint', (m) => { delete m.cases[0].sourceFingerprint; }, 'fingerprint is missing'],
   ['missing wide view', (m) => { m.cases[0].photos[0].view = 'detail'; }, 'overview and detail'],
   ['duplicate image bytes', (m) => { m.cases[0].photos[1].sha256 = m.cases[0].photos[0].sha256.toUpperCase(); }, 'duplicate image bytes'],
-  ['duplicate assessment', (m) => { m.cases.push(structuredClone(m.cases[0])); }, 'duplicate assessment'],
+  ['duplicate assessment', (m) => {
+    m.cases[0].assessmentId = 'abcdefab-0000-4000-8000-000000000001';
+    const second = structuredClone(m.cases[0]);
+    second.assessmentId = second.assessmentId.toUpperCase();
+    m.cases.push(second);
+  }, 'duplicate assessment'],
   ['invalid row', (m) => { m.cases = [null]; }, 'assessment ID'],
 ]) {
   test(`blocks ${name}`, () => {
