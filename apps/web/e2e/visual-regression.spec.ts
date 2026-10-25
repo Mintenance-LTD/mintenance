@@ -2,13 +2,39 @@
  * Visual Regression Tests
  *
  * Uses Playwright's built-in screenshot comparison to detect visual changes.
- * Baseline screenshots are stored in e2e/__screenshots__/ and committed to git.
+ * Baselines live in visual-regression.spec.ts-snapshots/ and are generated on Linux.
  *
  * First run generates baselines; subsequent runs compare against them.
  * To update baselines: npx playwright test visual-regression --update-snapshots
  */
 
 import { test, expect } from './fixtures';
+import { prepareVisualPage } from './helpers/prepare-visual-page';
+
+const REVEAL_HEADINGS: Record<string, string[]> = {
+  landing: ['Whatever the house needs.', 'Mint AI guidance'],
+  pricing: ['Frequently Asked Questions', 'Still have questions?'],
+  about: [
+    'Our Mission',
+    'Our Values',
+    'Our Journey',
+    'Our Story',
+    'Join Our Growing Community',
+  ],
+};
+
+async function preparePage(
+  page: import('@playwright/test').Page,
+  name: string
+) {
+  // Avoid accepting a login/error page or a missing section as a new baseline.
+  for (const heading of REVEAL_HEADINGS[name] ?? []) {
+    await expect(
+      page.getByRole('heading', { name: heading, exact: true })
+    ).toHaveCount(1);
+  }
+  await prepareVisualPage(page);
+}
 
 const PUBLIC_PAGES = [
   { name: 'landing', path: '/' },
@@ -23,6 +49,7 @@ test.describe('Visual Regression - Public Pages', () => {
     test(`${name} page matches baseline`, async ({ page }) => {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
+      await preparePage(page, name);
 
       // Hide dynamic content that changes between runs
       await page.evaluate(() => {
@@ -54,9 +81,10 @@ test.describe('Visual Regression - Responsive', () => {
       });
       await page.goto('/');
       await page.waitForLoadState('networkidle');
+      await preparePage(page, 'landing');
 
       await expect(page).toHaveScreenshot(`landing-${viewport.name}.png`, {
-        fullPage: false,
+        fullPage: true,
         maxDiffPixelRatio: 0.01,
       });
     });
