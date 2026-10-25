@@ -8,6 +8,12 @@ Current migration and staged-release evidence, test results and exact continuati
 staging; the app build is READY on Vercel but has not been promoted. Authenticated activity save
 and reload passed. Browser photo-upload verification is blocked by extension file-access support.
 
+The owner requested preparation of a supervised field pilot, with an independent reviewer still
+to be arranged. The [pilot pack](pilot/README.md) contains the proposed 10-property/30-assessment
+scope, capture register, photo-first reviewer handoff and a documentary readiness checker. No real
+cases are enrolled. Reviewer assignment, permissions, release checks and verified training/retrieval
+isolation remain prerequisites. This is separate from the public SDNET evaluation experiment.
+
 ## Objective and current architecture
 
 Build the evidence-led inspection system described in

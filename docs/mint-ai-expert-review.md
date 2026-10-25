@@ -40,10 +40,14 @@ JSON endpoint `/api/admin/building-assessments/evaluation` includes source revie
 identifier and a generation cutoff for traceability. Pagination prevents silent truncation at
 Supabase's default row limit; the interactive report refuses histories of 10,000 or more rows.
 
-This is a **historical review audit**, not a held-out model benchmark. Reviewers can see the
-original report, so anchoring bias is possible. A label on the primary defect does not measure every
+This is a **historical review audit**, not a held-out model benchmark. The dedicated photo-first
+review page hides the AI report, but reviewers can access it elsewhere; prior exposure and
+independence are not enforced. A label on the primary defect does not measure every
 finding, segmentation accuracy, physical measurements or diagnosis of hidden faults. No model
 training or promotion is triggered by these reviews.
+
+For the planned supervised field pilot, use the [capture and reviewer handoff pack](pilot/README.md).
+Its reviewer is still unassigned; preparation is not evidence of independent review or accuracy.
 
 ## Verification
 
