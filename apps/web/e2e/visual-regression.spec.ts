@@ -34,6 +34,14 @@ async function preparePage(
     ).toHaveCount(1);
   }
   await prepareVisualPage(page);
+  // Parallel CI traffic can show this short-lived session back-off notice.
+  // Let it dismiss normally; never bake it into a baseline or hide app errors.
+  await expect(
+    page.getByText(
+      'Session check paused for 2 minutes (rate-limited). We will retry automatically. If you are about to be signed out, click "Extend Session" when the warning appears.',
+      { exact: true }
+    )
+  ).toBeHidden({ timeout: 15_000 });
 }
 
 const PUBLIC_PAGES = [
