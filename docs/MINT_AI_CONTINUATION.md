@@ -5,8 +5,15 @@ historical designs and experiments; they are not proof of the deployed configura
 
 Current migration and staged-release evidence, test results and exact continuation steps:
 [25 October release record](mint-ai-release-2026-10-25.md). The schema is live in production and
-staging; the app build is READY on Vercel but has not been promoted. Authenticated activity save
-and reload passed. Browser photo-upload verification is blocked by extension file-access support.
+staging. PR #1421 was subsequently merged and its Git production deployment is live on
+`www.mintenance.co.uk`. Authenticated activity save and reload passed; photo-upload verification
+remains blocked by extension file-access support. The pilot/accessibility follow-up is separate.
+
+The owner requested preparation of a supervised field pilot, with an independent reviewer still
+to be arranged. The [pilot pack](pilot/README.md) contains the proposed 10-property/30-assessment
+scope, capture register, photo-first reviewer handoff and a documentary readiness checker. No real
+cases are enrolled. Reviewer assignment, permissions, release checks and verified training/retrieval
+isolation remain prerequisites. This is separate from the public SDNET evaluation experiment.
 
 ## Objective and current architecture
 

@@ -366,3 +366,6 @@ apps/mobile/phase4-after-mocks.txt
 # Isolated readiness database configuration and local credentials
 /output/readiness-stack/
 /output/readiness-toolchain/
+
+# Public blank pilot schema; populated registers stay in ignored private storage.
+!docs/pilot/pilot-manifest.template.json

@@ -1,0 +1,28 @@
+{
+  "protocolVersion": "mint-building-pilot-v1",
+  "pilotId": "mint-building-pilot-01",
+  "purpose": "supervised_workflow_pilot",
+  "coordinator": null,
+  "reviewer": null,
+  "scope": {
+    "targetProperties": 10,
+    "targetAssessments": 30,
+    "approvedBy": null,
+    "approvalReference": null
+  },
+  "release": {
+    "deploymentId": null,
+    "commitSha": null,
+    "checks": {
+      "requiredCI": null,
+      "photoUploadReload": null,
+      "photoLinkedActivityReload": null,
+      "crossAccountIsolation": null,
+      "originalAssessmentPreserved": null,
+      "reviewerAccessAndMfa": null,
+      "trainingAndRetrievalIsolation": null,
+      "humanEscalationProcedure": null
+    }
+  },
+  "cases": []
+}

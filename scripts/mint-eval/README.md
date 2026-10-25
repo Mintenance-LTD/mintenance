@@ -1,5 +1,9 @@
 # Mint AI: SDNET2018 evaluation pilot
 
+For the separate **supervised property workflow pilot**, see [the field pilot pack](../../docs/pilot/README.md).
+`check-field-pilot.mjs` validates its documentary register only; it does not use this public dataset,
+call a model, query Supabase or authorize training.
+
 The preparation scripts create a local **evaluation-only** pack: 80 cracked crops, 80 non-cracked
 crops, and 40 pixel-degraded derivatives. Preparation makes no model calls. The separate baseline
 runner below calls the configured provider with a spending cap. None of these scripts trains a model

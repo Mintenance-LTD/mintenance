@@ -104,6 +104,25 @@ test.describe('Accessibility Tests', () => {
       await page.waitForLoadState('domcontentloaded');
       await waitForAccessiblePage(page, path);
 
+      if (path === '/contractor/discover') {
+        // The isolated contractor fixture has no stored coordinates. Its prompt
+        // opens after one second, independently of map loading. Scan the actual
+        // dialog after its entrance animation, then scan the page after dismissal.
+        const dialog = page.getByRole('dialog', { name: 'Set Your Location' });
+        await expect(dialog).toBeVisible();
+        await expect
+          .poll(() =>
+            dialog.evaluate((element) => getComputedStyle(element).opacity)
+          )
+          .toBe('1');
+        const dialogScan = await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+          .analyze();
+        expect(dialogScan.violations).toEqual([]);
+        await dialog.getByRole('button', { name: 'Skip for now' }).click();
+        await expect(dialog).toBeHidden();
+      }
+
       // Run axe accessibility checks
       const accessibilityScanResults = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

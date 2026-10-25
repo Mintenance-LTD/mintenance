@@ -1,5 +1,22 @@
 # Mint AI inspection activity release — 25 October 2026
 
+## Latest observed state
+
+During pilot preparation, GitHub showed PR #1421 had been merged by the repository user as
+`d41abb7a9118914f4ec44a8edd0c6a8a5ee94adf` (21 of 22 checks passed). Vercel confirmed
+`www.mintenance.co.uk` points to READY production deployment `dpl_6aWQU6Cg4Lx4bQgbcQJFEMKWWU6W`,
+built by Git integration from that merge. This supersedes the earlier **not promoted** status below;
+the agent did not manually promote the staged deployment. Photo-upload verification is still pending.
+
+Main then advanced through PR #1422 to `df7ff33678a1f4b83eecdfcfac97247de7f2313c` (native build CI
+configuration). Its production deployment `dpl_6HT6ypbNJY6LsGF2YQR2uFynLB8Q` was BUILDING when
+checked. The pilot/accessibility work now uses a separate follow-up branch,
+`fix/mint-field-pilot-oct25`, incorporating that main revision. Do not rewrite or reopen merged PR
+#1421, roll back another person's release, or describe the new follow-up as already deployed.
+
+The remaining sections retain the staged-release evidence and unfinished checks, followed by the
+pilot preparation follow-up. Verify current aliases again before any future promotion.
+
 ## Scope and source
 
 Application commit `1f2c0a17cdfd78f82fdb35d08bf5e9f8e36dab8e`; follow-up test-only commit
@@ -92,6 +109,29 @@ This is a bounded check, not a guarantee of absence of errors.
 
 ## Continue the release
 
+### Pilot preparation follow-up
+
+The owner requested pilot preparation with the independent reviewer still to be arranged. The
+[field pilot pack](pilot/README.md) now provides the proposed scope, capture register, reviewer
+handoff and documentary readiness checks. All 14 checker tests passed. No field cases, permissions,
+reviewer qualifications or expert labels were invented. Actual exclusion of pilot records from
+training capture/retrieval remains an operational prerequisite, not a capability of the manifest.
+
+Later CI on `6c294687` completed with E2E shard 1 failing and shard 2 passing (run `40197307651`).
+The failure was the legacy dashboard rendering two h1 headings; its welcome heading is now h2 under
+the existing Dashboard h1. Contractor Discover also had a flaky contrast scan during the delayed
+location dialog entrance animation. The test now waits for the fixture's dialog to be visible and
+fully opaque, scans it, dismisses it through the normal button and scans the underlying page too.
+No accessibility assertion was disabled. The new CI run must pass before promotion.
+Full web TypeScript passed after this change. Changed dashboard lint passed with one existing
+navigation warning; the E2E directory is excluded from ESLint and will be verified by browser CI.
+
+These source changes supersede the staged application bundle for the next release. **Do not promote
+the previously staged deployment below as the final revised release.** Build and verify a new staged
+production deployment from the updated commit after the checks pass, then record its ID here.
+
+### Remaining deployment checks
+
 1. In the signed-in staged browser, open
    `/building-assessments/75eb5e85-a3e9-4eeb-817f-f85efb011c4d`. Select the synthetic PNG above
    with **Add follow-up photos**. The extension permission error is outside the app; do not weaken
@@ -102,7 +142,7 @@ This is a bounded check, not a guarantee of absence of errors.
    repair or assign a defect label to the blank image.
 3. Check the final required GitHub checks on the latest head. The final documentation commit does
    not change the staged application bundle.
-4. Promote `dpl_H8Z4JKUJJ6zAhPsuafYDNunpkdYi` in the verified Mintenance team/project, confirm
+4. Promote the newly built and verified staged production deployment in the Mintenance team/project, confirm
    `www.mintenance.co.uk` points to it, then repeat authenticated read/smoke and runtime-error checks.
    Keep the recorded previous deployment available for rollback. Record the result here and finish
    the PR through normal required checks.
