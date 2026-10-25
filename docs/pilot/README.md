@@ -114,10 +114,15 @@ appointed adjudicator or remain unresolved. Revised labels append a new review; 
   evidence. Record exact commit/deployment and CI results.
 - Appoint the reviewer and coordinator, obtain capture/review permission and agree the scope,
   retention, removal process, contact and escalation procedure.
-- **Verify actual exclusion from training capture and retrieval before enrolment.** This manifest's
-  `trainingAllowed: false` is only a declaration. It does not configure existing teacher capture,
-  training buffers, exports or model memory. No isolated field-pilot ingestion path has been
-  implemented or verified in this preparation. Keep real field cases pending until that is done.
+- **Verify the deployed beta reuse hold before enrolment.** The application policy blocks training
+  capture and exports for all customer assessments. The pilot-isolation follow-up also disables
+  assessment-history retrieval, continuum memory, learned feature state and learning from repairs,
+  follow-ups or validation. Current-photo assessment and curated reference knowledge remain usable.
+  The legacy bootstrap export command exits 2, including `--dry-run`, before database access.
+  These are application/code guards, not database-level restrictions on service-role operators.
+  Record the deployed commit containing the guards and its passing checks before real enrolment.
+  The manifest's `trainingAllowed: false` remains documentary; no per-source consent or cohort
+  ingestion mechanism exists. Do not lift the global hold until those controls are implemented.
 - Confirm the reviewer can load private photos and save with MFA. Do not grant broad admin access
   solely to populate the pilot; use the existing account approval process.
 

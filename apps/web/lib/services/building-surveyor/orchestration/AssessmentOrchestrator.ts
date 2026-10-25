@@ -12,6 +12,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { isAssessmentMemoryReuseAllowed } from '../training-reuse-policy';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 import { RoboflowDetectionService } from '../RoboflowDetectionService';
 import { FeatureExtractionService } from './FeatureExtractionService';
@@ -49,6 +50,7 @@ export class AssessmentOrchestrator {
   }
 
   private static async initializeMemorySystem(): Promise<void> {
+    if (!isAssessmentMemoryReuseAllowed()) return;
     if (this.memorySystemInitialized) return;
     const config = getConfig();
     try {
@@ -313,6 +315,7 @@ export class AssessmentOrchestrator {
    * stub — wired into the agent dashboard for future tuning loops.
    */
   static async triggerSelfModification(accuracyDrop: number): Promise<void> {
+    if (!isAssessmentMemoryReuseAllowed()) return;
     logger.info('AssessmentOrchestrator self-modification triggered', {
       agentName: this.AGENT_NAME,
       accuracyDrop,

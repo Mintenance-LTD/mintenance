@@ -86,6 +86,9 @@ jobs:
       - name: Check native build configuration without submitting builds
         run: node --test scripts/validate-eas-config.test.cjs scripts/mobile-build-changes.test.cjs
 
+      - name: Check pilot readiness and training export hold
+        run: node --test scripts/mint-eval/check-field-pilot.test.mjs scripts/vlm-training/export-reuse-hold.test.mjs
+
       - name: TypeScript compilation check
         run: npm run type-check
 

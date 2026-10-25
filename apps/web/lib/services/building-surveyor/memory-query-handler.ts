@@ -6,6 +6,7 @@
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import type { MemoryQueryResult } from '../ml-engine/memory/types';
 import { logger } from '@mintenance/shared';
+import { isAssessmentMemoryReuseAllowed } from './training-reuse-policy';
 
 const AGENT_NAME = 'building-surveyor';
 
@@ -18,6 +19,7 @@ export async function queryMemoryAdjustments(
   useTitans: boolean = false
 ): Promise<number[]> {
   const memoryAdjustments: number[] = [0, 0, 0, 0, 0]; // Default: no adjustments
+  if (!isAssessmentMemoryReuseAllowed()) return memoryAdjustments;
 
   try {
     const memorySystem = memoryManager.getMemorySystem(AGENT_NAME);

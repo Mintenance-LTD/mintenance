@@ -19,7 +19,12 @@ const downloadPolicy = [
 
 function configureApt(aptDirectory) {
   const sourcesDirectory = path.join(aptDirectory, 'sources.list.d');
-  const sourceFiles = [path.join(aptDirectory, 'sources.list')];
+  // Current hosted images use mirror+file sources. Rewriting only the .sources
+  // file leaves the Azure URL in this mirror list active.
+  const sourceFiles = [
+    path.join(aptDirectory, 'sources.list'),
+    path.join(aptDirectory, 'apt-mirrors.txt'),
+  ];
   if (fs.existsSync(sourcesDirectory)) {
     for (const entry of fs.readdirSync(sourcesDirectory, {
       withFileTypes: true,
@@ -41,7 +46,8 @@ function configureApt(aptDirectory) {
     }
   }
   fs.writeFileSync(
-    path.join(aptDirectory, 'apt.conf.d', '99-e2e-downloads'),
+    // Hosted images also ship zz-retries; our policy must sort after it.
+    path.join(aptDirectory, 'apt.conf.d', 'zzzz-e2e-downloads'),
     downloadPolicy
   );
   return changed;

@@ -17,7 +17,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Camera, CalendarDays, ClipboardList } from 'lucide-react';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import type { ObservationAssessment } from '@/lib/services/building-surveyor/observation-assessment';
@@ -102,39 +102,73 @@ export default function ViewAssessmentPage() {
   );
 
   return (
-    <div className='container mx-auto px-4 py-8'>
-      <div className='max-w-4xl mx-auto'>
-        {recaptureMessage && (
-          <div
-            role='alert'
-            className='mb-4 rounded border border-amber-300 bg-amber-50 p-4'
-          >
-            <h2 className='font-semibold'>New photos needed</h2>
-            <p>{recaptureMessage}</p>
-          </div>
-        )}
+    <div className='mx-auto w-full max-w-7xl py-6 sm:py-8'>
+      <div className='min-w-0'>
         <Link
           href='/properties'
-          className='inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4'
+          className='mb-6 inline-flex min-h-10 items-center gap-2 rounded-lg text-sm font-medium text-gray-600 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700'
         >
-          <ArrowLeft className='w-4 h-4' />
+          <ArrowLeft className='w-4 h-4' aria-hidden='true' />
           Back to properties
         </Link>
 
-        <div className='flex flex-wrap items-baseline justify-between gap-2 mb-6'>
-          <h1 className='text-2xl font-bold text-gray-900'>Survey</h1>
-          {createdAt && (
-            <span className='text-sm text-gray-500'>
-              {new Date(createdAt).toLocaleString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+        <header className='mb-8 flex flex-wrap items-end justify-between gap-5 border-b border-gray-200 pb-7'>
+          <div>
+            <p className='mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-teal-700'>
+              <ClipboardList size={16} aria-hidden='true' /> Property record
+            </p>
+            <h1 className='text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl'>
+              Survey
+            </h1>
+            <p className='mt-3 max-w-xl text-sm leading-6 text-gray-600'>
+              Your saved findings, supporting photos and a record of what
+              happens next.
+            </p>
+          </div>
+          <div className='flex flex-wrap items-center gap-3 text-sm text-gray-600'>
+            {createdAt && (
+              <span className='inline-flex items-center gap-2'>
+                <CalendarDays size={16} aria-hidden='true' />
+                {new Date(createdAt).toLocaleString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            )}
+            {!loading && !error && (
+              <span className='inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5'>
+                <Camera size={16} aria-hidden='true' />
+                {images.length} attached photos
+              </span>
+            )}
+          </div>
+        </header>
+
+        {recaptureMessage && (
+          <div
+            role='alert'
+            className='mb-6 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6'
+          >
+            <span className='rounded-xl bg-white p-3 text-amber-800'>
+              <Camera size={22} aria-hidden='true' />
             </span>
-          )}
-        </div>
+            <div>
+              <h2 className='text-lg font-semibold text-amber-950'>
+                New photos needed
+              </h2>
+              <p className='mt-1 max-w-3xl text-sm leading-6 text-amber-900'>
+                {recaptureMessage}
+              </p>
+              <p className='mt-2 text-sm text-amber-900'>
+                Photos added below are kept as follow-up evidence. They do not
+                change the original assessment.
+              </p>
+            </div>
+          </div>
+        )}
 
         {loading && <p className='text-gray-600'>Loading survey…</p>}
 

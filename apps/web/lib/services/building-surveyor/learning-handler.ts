@@ -4,6 +4,7 @@
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { isAssessmentMemoryReuseAllowed } from './training-reuse-policy';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
 import type {
   Phase1BuildingAssessment,
@@ -38,6 +39,7 @@ export async function learnFromRepairOutcome(
   useLearnedFeatures: boolean = false,
   learnedFeatureExtractor: LearnedFeatureExtractor | null | undefined = null
 ): Promise<void> {
+  if (!isAssessmentMemoryReuseAllowed()) return;
   try {
     // Get original assessment
     const { data: assessmentRecord, error } = await serverSupabase
@@ -148,6 +150,7 @@ export async function learnFromProgression(
   useLearnedFeatures: boolean = false,
   learnedFeatureExtractor: LearnedFeatureExtractor | null | undefined = null
 ): Promise<void> {
+  if (!isAssessmentMemoryReuseAllowed()) return;
   try {
     // Get both assessments
     const { data: originalRecord, error: originalError } = await serverSupabase
@@ -268,6 +271,7 @@ export async function learnFromValidation(
   assessmentId: string,
   humanValidatedAssessment: Phase1BuildingAssessment
 ): Promise<void> {
+  if (!isAssessmentMemoryReuseAllowed()) return;
   await initializeMemorySystem();
 
   try {

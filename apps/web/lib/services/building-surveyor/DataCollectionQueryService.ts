@@ -9,6 +9,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BuildingSurveyorService } from './BuildingSurveyorService';
+import { assertTrainingReuseAllowed } from './training-reuse-policy';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 
 /**
@@ -81,6 +82,7 @@ export async function exportTrainingData(
   format: 'jsonl' | 'json' = 'jsonl',
   limit = 10000
 ): Promise<string> {
+  assertTrainingReuseAllowed();
   try {
     const validatedAssessments = await getValidatedAssessments(limit, 0);
 

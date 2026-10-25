@@ -2,6 +2,62 @@
 
 ## Latest observed state
 
+At the later technical-prep check, PR #1423 was merged and all its checks passed, including E2E
+shards 1 and 2 (run `40204725136`). Production `www.mintenance.co.uk` resolves to READY deployment
+`dpl_9x6PHC188ZnPbyrHP3YAuU54ipGJ`, source `2c30907f61b8f9df29340cb8b28c8a796d96d033` on `main`.
+This includes PRs #1423, #1425 and #1426. Do not promote the older staged bundle described below.
+
+The new `fix/mint-pilot-isolation-oct25` follow-up extends the existing beta training hold to
+assessment-history retrieval, continuum and learned memory, repair/progression/validation learning,
+legacy assessment export and the bootstrap export command. Background capture now exits before
+teacher/shadow processing. Current-photo analysis and curated reference knowledge remain usable.
+There is no environment bypass and no new database migration. These application guards do not
+restrict privileged database operators or establish source consent. Real cases remain pending
+deployment verification, reviewer appointment and permission records.
+
+Local validation of isolation commit `f78d053a3a774cc1bc47b4c3be5cd570e2f92fa3`: all **4,948 web
+tests / 547 files** passed, plus 15 pilot/CLI tests and full web TypeScript. Changed production lint
+had no errors and three existing unused-symbol warnings. PR #1427 contains this follow-up.
+
+Authenticated upload and photo-linked save/reload passed on the live main deployment above at
+18:21 UTC. Automated file selection remained unavailable, so the user selected **five building
+sample photos**, not the requested blank PNG, through the normal chooser. All five rendered after
+reload. The QA fixture retains its test-only source and now has these attributed reports:
+
+- Correction `8694888c-5b65-4ac1-a15d-0ed59dc4b220`: `insufficient_evidence`, five linked photos.
+- Follow-up `2bd9476d-8336-49a6-907b-03bd69c761e8`: `unknown`, one linked photo.
+- Earlier repair `9a79d7f4-242c-4ed4-88d5-ed6025329002`: no photos and no claimed outcome.
+
+The new notes explicitly describe software QA, not independent judgements or real repairs.
+Browser reload and database verification agree: five photos, three activity entries, **zero expert
+labels, zero training rows**, unchanged source JSON MD5 `010064c8eca5451eab94311a0db911ad`,
+confidence 0 and validation status `needs_review`. No pilot case or training label was created.
+
+The user then requested improved survey styling. The follow-up adds the shared navigation shell,
+a clear header and recapture banner, responsive form/history cards, styled upload controls and
+photo-selection states. The existing page, activity and API regression tests passed (33 tests).
+CI now also runs the 15 pilot/CLI tests. The staged production build from clean UI commit
+`1759392b1cff72a504352fee724c81664d1ac742` is READY:
+`https://mintenance-clean-rgcphhzre-mintenance.vercel.app`
+(`dpl_CosayKxWQGDJ54wXAofz5wD7aF15`). Desktop and phone-width visual checks passed, with no
+horizontal overflow. An authenticated photo-linked follow-up saved and survived reload at 18:36 UTC:
+`a4587a0a-d6cf-40f7-b334-7d1347f92b81`. The QA record now has four entries, five photos, the same
+source hash, zero expert labels and zero training rows. Anonymous assessment/activity/expert-review
+and evaluation API requests returned application-level 401 responses. The live custom domain
+remains on the earlier main deployment above; this staged build has not been promoted.
+
+The first CI run on `1759392b` passed code quality/testing, security, CodeQL, Lighthouse and mobile
+smoke checks. E2E shard 1 failed six public-page screenshot comparisons inherited from the earlier
+marketing change `b1e09a44` (also failed in run `40214477299`). Reviewed Linux captures from that
+marketing run refresh the references without raising thresholds. Shard 2 timed out downloading
+Ubuntu dependencies before tests ran. The APT setup now also rewrites the hosted runner's
+`apt-mirrors.txt` and places its bounded download policy after `zz-retries`; the prior setup changed
+zero source files and continued downloading from Azure. These test/CI-only repairs require a new
+CI run, but do not change the staged application source. Do not claim all release checks passed
+until the resulting PR revision is green.
+
+### Earlier release observations (historical)
+
 During pilot preparation, GitHub showed PR #1421 had been merged by the repository user as
 `d41abb7a9118914f4ec44a8edd0c6a8a5ee94adf` (21 of 22 checks passed). Vercel confirmed
 `www.mintenance.co.uk` points to READY production deployment `dpl_6aWQU6Cg4Lx4bQgbcQJFEMKWWU6W`,
