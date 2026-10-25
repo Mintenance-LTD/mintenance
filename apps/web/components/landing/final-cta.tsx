@@ -54,9 +54,9 @@ export function FinalCTA() {
             margin: '0 auto 32px',
           }}
         >
-          Post a job in 30 seconds. Free for homeowners, with payment held
-          safely until you approve the work. Serving Greater London now, more of
-          the UK through 2026.
+          Create your account, describe the work and compare proposals from
+          interested tradespeople. Review the plans, fees and payment process
+          before committing to a job.
         </p>
         <div
           style={{
@@ -67,7 +67,7 @@ export function FinalCTA() {
           }}
         >
           <Link
-            href='/jobs/create'
+            href='/register?role=homeowner'
             style={{
               display: 'inline-flex',
               alignItems: 'center',

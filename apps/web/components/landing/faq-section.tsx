@@ -21,11 +21,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What fees does Mintenance charge?',
-    a: 'Homeowners post jobs completely free. Contractors pay a small service fee only when they win a job: no monthly subscriptions, listing fees, or hidden costs. The exact fee is shown before accepting any job.',
+    a: 'Review the Pricing page for current plans and fees. Any confirmed early-access award has its own terms; signing up alone does not guarantee an award. Check the charges shown for your account before committing to work.',
   },
   {
     q: 'How long does it take to get quotes?',
-    a: 'Most jobs receive competitive bids within 24–48 hours. You can review profiles, ratings, past work and quotes before choosing.',
+    a: 'Response times depend on the work, location and contractor availability. You can review proposals, profiles and past work before choosing.',
   },
   {
     q: 'Do I have to use Mint AI?',

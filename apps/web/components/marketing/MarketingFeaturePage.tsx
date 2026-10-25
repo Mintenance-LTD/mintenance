@@ -3,6 +3,8 @@ import { ArrowRight, type LucideIcon } from 'lucide-react';
 import { LandingNavigation } from '@/app/components/landing/LandingNavigation';
 import { Footer2025 } from '@/app/components/landing/Footer2025';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ProductDemos } from './ProductDemos';
+import { GettingStartedLinks } from './GettingStartedLinks';
 
 export type MarketingAccent = 'teal' | 'emerald';
 
@@ -12,8 +14,11 @@ export interface MarketingFeature {
   description: string;
   screenshot: string;
   screenshotAlt: string;
+  screenshotWidth?: number;
+  screenshotHeight?: number;
   mobileScreenshot?: string;
   mobileAlt?: string;
+  mobileScreenshotHeight?: number;
   badge: string;
 }
 
@@ -24,6 +29,7 @@ export interface MarketingTrustPoint {
 }
 
 export interface MarketingFeaturePageProps {
+  audience: 'homeowner' | 'contractor';
   accent: MarketingAccent;
   hero: {
     badge: { icon: LucideIcon; label: string };
@@ -103,6 +109,7 @@ const ACCENT_CLASSES: Record<
 };
 
 export function MarketingFeaturePage({
+  audience,
   accent,
   hero,
   stats,
@@ -175,8 +182,8 @@ export function MarketingFeaturePage({
                     <img
                       src={hero.desktopScreenshot.src}
                       alt={hero.desktopScreenshot.alt}
-                      width={800}
-                      height={500}
+                      width={1440}
+                      height={739}
                       className='w-full h-auto'
                       loading='eager'
                     />
@@ -187,8 +194,8 @@ export function MarketingFeaturePage({
                       <img
                         src={hero.mobileScreenshot.src}
                         alt={hero.mobileScreenshot.alt}
-                        width={240}
-                        height={520}
+                        width={600}
+                        height={1259}
                         className='w-full h-auto'
                         loading='lazy'
                       />
@@ -196,6 +203,10 @@ export function MarketingFeaturePage({
                   )}
                 </div>
               </div>
+              <p className='mt-12 text-xs text-white/70'>
+                App walkthrough stills with fictional demo details. Web and
+                mobile screens may differ.
+              </p>
             </div>
           </section>
 
@@ -218,6 +229,7 @@ export function MarketingFeaturePage({
           </section>
 
           {/* Features — alternating layout */}
+          <ProductDemos audience={audience} />
           <section className='py-20'>
             <div className='max-w-7xl mx-auto px-6'>
               <div className='text-center mb-16'>
@@ -254,23 +266,23 @@ export function MarketingFeaturePage({
                         </p>
                       </div>
 
-                      <div
-                        className={`relative ${isReversed ? 'lg:order-1' : ''}`}
+                      <figure
+                        className={`relative pb-8 ${isReversed ? 'lg:order-1' : ''}`}
                       >
                         <div className='relative bg-[#203d32] rounded-2xl p-2 shadow-lg'>
                           <div className='flex items-center gap-1.5 px-3 py-2'>
                             <div className='w-2.5 h-2.5 rounded-full bg-red-400' />
                             <div className='w-2.5 h-2.5 rounded-full bg-yellow-400' />
                             <div className='w-2.5 h-2.5 rounded-full bg-green-400' />
-                            <div className='flex-1 mx-3 h-5 bg-gray-700 rounded-md' />
+                            <div className='flex-1 mx-3 h-5 bg-[#dceae5]/20 rounded-md' />
                           </div>
                           <div className='rounded-lg overflow-hidden'>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={feature.screenshot}
                               alt={feature.screenshotAlt}
-                              width={700}
-                              height={440}
+                              width={feature.screenshotWidth ?? 1440}
+                              height={feature.screenshotHeight ?? 739}
                               className='w-full h-auto'
                               loading='lazy'
                             />
@@ -278,19 +290,25 @@ export function MarketingFeaturePage({
                         </div>
 
                         {feature.mobileScreenshot && (
-                          <div className='absolute -bottom-6 -right-6 w-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white hidden md:block'>
+                          <div className='relative mx-auto mt-5 w-44 md:absolute md:bottom-2 md:right-0 lg:-right-6 md:mt-0 md:w-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white'>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={feature.mobileScreenshot}
                               alt={feature.mobileAlt || ''}
-                              width={180}
-                              height={390}
+                              width={600}
+                              height={feature.mobileScreenshotHeight ?? 1259}
                               className='w-full h-auto'
                               loading='lazy'
                             />
                           </div>
                         )}
-                      </div>
+                        <figcaption className='mt-3 text-xs text-[#4a5751] md:pr-40'>
+                          {feature.mobileScreenshot
+                            ? 'Web and mobile'
+                            : 'Web app'}{' '}
+                          · Demonstration with fictional details
+                        </figcaption>
+                      </figure>
                     </div>
                   );
                 })}
@@ -337,6 +355,7 @@ export function MarketingFeaturePage({
           </section>
 
           {/* Final CTA */}
+          <GettingStartedLinks />
           <section
             className={`bg-gradient-to-r ${c.ctaGradient} text-white py-16`}
           >

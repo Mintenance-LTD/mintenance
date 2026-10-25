@@ -152,7 +152,7 @@ export function ComparisonTable() {
 
         <div style={{ textAlign: 'center', marginTop: 40 }}>
           <Link
-            href='/jobs/create'
+            href='/register?role=homeowner'
             style={{
               display: 'inline-flex',
               alignItems: 'center',

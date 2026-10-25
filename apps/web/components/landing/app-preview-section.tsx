@@ -1,11 +1,13 @@
 'use client';
 
+import Image from 'next/image';
+
 /**
  * App Preview Section — shows real screenshots of the platform
  * in device mockup frames to build credibility and excitement.
  *
- * Uses plain <img> tags (not next/image) since these are large static
- * PNGs from /public that don't benefit from on-demand optimization.
+ * Pre-compressed WebP stills from the reviewed, fictional-data demo footage.
+ * Explicit dimensions reserve the correct space before lazy images arrive.
  */
 export function AppPreviewSection() {
   return (
@@ -20,7 +22,7 @@ export function AppPreviewSection() {
           </h2>
           <p className='text-gray-500 mt-3 max-w-xl mx-auto'>
             Homeowners post jobs and track progress. Contractors find work and
-            manage their business. Both get paid securely.
+            manage their business. Follow the same job from either side.
           </p>
         </div>
 
@@ -35,9 +37,12 @@ export function AppPreviewSection() {
               <div className='flex-1 mx-4 h-5 bg-gray-700 rounded-md' />
             </div>
             <div className='rounded-xl overflow-hidden'>
-              <img
-                src='/screenshots/contractor/discover-jobs.png'
-                alt='Discover Jobs: browse available projects on a map, filter by trade, distance, and budget'
+              <Image
+                src='/media/landing/contractor-quotes.webp'
+                width={1440}
+                height={739}
+                unoptimized
+                alt='Current contractor quotes workspace with fictional customer records'
                 className='w-full h-auto'
                 loading='eager'
               />
@@ -46,8 +51,11 @@ export function AppPreviewSection() {
 
           {/* Floating mobile — homeowner dashboard (left) */}
           <div className='absolute -bottom-8 -left-4 w-40 sm:w-48 rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-[-4deg] hidden md:block z-10'>
-            <img
-              src='/screenshots/mobile/homeowner-dashboard.png'
+            <Image
+              src='/media/landing/mobile-homeowner-home.webp'
+              width={600}
+              height={1259}
+              unoptimized
               alt='Homeowner mobile app: active projects, bids received'
               className='w-full h-auto'
               loading='lazy'
@@ -56,9 +64,12 @@ export function AppPreviewSection() {
 
           {/* Floating mobile — contractor dashboard (right) */}
           <div className='absolute -bottom-8 -right-4 w-40 sm:w-48 rounded-3xl overflow-hidden shadow-2xl border-4 border-white rotate-[4deg] hidden md:block z-10'>
-            <img
-              src='/screenshots/mobile/contractor-dashboard.png'
-              alt='Contractor mobile app: portfolio stats, earnings, quick actions'
+            <Image
+              src='/media/landing/mobile-contractor-map.webp'
+              width={600}
+              height={1259}
+              unoptimized
+              alt='Current contractor mobile map with illustrative demo locations'
               className='w-full h-auto'
               loading='lazy'
             />
@@ -75,7 +86,7 @@ export function AppPreviewSection() {
           </div>
           <div className='text-center flex-1'>
             <p className='text-sm font-semibold text-gray-900'>
-              Discover Jobs Near You
+              From First Quote to Finished Job
             </p>
             <p className='text-xs text-gray-500'>
               Browse &middot; Filter &middot; Bid &middot; Get Paid
@@ -88,6 +99,10 @@ export function AppPreviewSection() {
             <p className='text-xs text-gray-500'>Find work &middot; Get paid</p>
           </div>
         </div>
+        <p className='text-center text-xs text-gray-500 mt-6'>
+          Current app walkthroughs with fictional demo details and illustrative
+          map locations.
+        </p>
       </div>
     </section>
   );
