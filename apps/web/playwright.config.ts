@@ -100,7 +100,7 @@ export default defineConfig({
     // Visual regression tests
     {
       name: 'visual-regression',
-      testMatch: /visual-regression\.spec\.ts/,
+      testMatch: /visual-(regression|capture)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
 
