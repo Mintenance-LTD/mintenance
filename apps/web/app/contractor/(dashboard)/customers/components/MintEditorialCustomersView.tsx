@@ -52,7 +52,7 @@ interface MintEditorialCustomersViewProps {
   kpis: CustomersKpis;
   totalCount: number;
   /** Whether the contractor has any leads waiting on them (i.e. unreplied bids/messages) */
-  leadsWaiting: number;
+  leadsWaiting: number | null;
 }
 
 const formatCurrency = (value: number) =>
@@ -259,7 +259,7 @@ export function MintEditorialCustomersView({
           {totalCount === 0
             ? 'Homeowners you’ve worked with or messaged will appear here.'
             : `${totalCount} ${totalCount === 1 ? 'customer' : 'customers'}${
-                leadsWaiting > 0
+                leadsWaiting !== null && leadsWaiting > 0
                   ? ` · ${leadsWaiting} ${
                       leadsWaiting === 1 ? 'lead' : 'leads'
                     } waiting on you`
@@ -267,6 +267,13 @@ export function MintEditorialCustomersView({
               }.`}
         </p>
       </div>
+
+      {leadsWaiting === null ? (
+        <p role='status' className='t-body'>
+          Messages and waiting leads are temporarily unavailable. Refresh this
+          page to try again.
+        </p>
+      ) : null}
 
       {/* KPI row */}
       <div
