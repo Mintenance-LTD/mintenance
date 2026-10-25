@@ -25,6 +25,7 @@ it('finishes rather than skips and keeps keyboard navigation inside the dialog',
     />
   );
   const dialog = await screen.findByRole('dialog');
+  expect(document.body.style.overflow).toBe('hidden');
   await waitFor(() => expect(document.activeElement).toBe(dialog));
   const finish = screen.getByRole('button', { name: 'Finish tour' });
   finish.focus();
@@ -38,6 +39,7 @@ it('finishes rather than skips and keeps keyboard navigation inside the dialog',
   fireEvent.keyDown(dialog, { key: 'Escape' });
   expect(skip).toHaveBeenCalledOnce();
   unmount();
+  expect(document.body.style.overflow).toBe('');
   expect(document.activeElement).toBe(before);
   before.remove();
 });

@@ -192,10 +192,8 @@ footer #newsletter-email::placeholder {
 [data-debug-overlay],
 [class*='debug'],
 [class*='ruler'],
-[class*='guide'],
 [id*='debug'],
-[id*='ruler'],
-[id*='guide'] {
+[id*='ruler'] {
   display: none !important;
 }
 

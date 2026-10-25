@@ -38,7 +38,7 @@ export function useOnboarding({
   const active =
     journey.loaded &&
     (journey.progress?.status === 'in_progress' ||
-      (!journey.progress && autoStart));
+      (!journey.progress && !journey.error && autoStart));
   return {
     ...journey,
     flow,

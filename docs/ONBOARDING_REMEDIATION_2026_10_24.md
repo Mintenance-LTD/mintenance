@@ -66,3 +66,7 @@ The local test setup reused installed dependencies via junctions. Database check
 5. Release web/API and then the mobile build after staging acceptance. Existing builds continue using the legacy completion endpoint; the new journey table is additive.
 
 The catalogue covers feature families, not a separate interactive tour for every detail screen or every permission-specific organization workflow. Cross-device persistence covers education progress and completed preferences; OS permission prompts and temporary nudges retain device-local, account-scoped dismissal state. Complete staging and device acceptance before calling the full onboarding audit closed.
+
+## 25 October visual correction
+
+The first implementation was not visually accepted: the user reported full-viewport blank panels before the dashboard. This is corrected by moving a compact onboarding surface inside dashboard content, isolating component CSS, and fixing the global rule that hid guide elements. Desktop and phone browser evidence, fixture instructions, and the confirmed missing production migration are recorded in [onboarding-visual-checks/README.md](onboarding-visual-checks/README.md). These fixture checks do not replace the remaining live signup, database rollout or native-device acceptance above.

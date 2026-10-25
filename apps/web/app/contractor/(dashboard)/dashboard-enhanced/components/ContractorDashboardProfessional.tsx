@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
+import { DashboardOnboarding } from '@/components/onboarding/OnboardingWrapper';
 import { ProfessionalRevenueChart } from './ProfessionalRevenueChart';
 import { ProfessionalJobsTable } from './ProfessionalJobsTable';
 import {
@@ -193,6 +194,7 @@ export function ContractorDashboardProfessional(
   return (
     <ContractorPageWrapper>
       <ProtectedPaymentExplainerModal />
+      <DashboardOnboarding />
       <div className='space-y-8 pb-12'>
         {/* Professional Welcome Section - Birch Inspired */}
         <section className='bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 md:p-10 text-white shadow-2xl relative overflow-hidden'>

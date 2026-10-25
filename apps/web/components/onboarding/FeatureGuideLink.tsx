@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FEATURE_GUIDES } from '@mintenance/shared';
+import styles from './Onboarding.module.css';
 /** Discoverable on supported feature pages without covering the user's work. */
 export function FeatureGuideLink() {
   const pathname = usePathname();
@@ -10,17 +11,13 @@ export function FeatureGuideLink() {
     .find((g) => pathname === g.href || pathname?.startsWith(g.href + '/'));
   if (!guide) return null;
   return (
-    <div
-      data-theme='mint-editorial'
-      className='me-root border-b border-[var(--me-line)] bg-[var(--me-surface)] px-4 py-2 text-sm text-[var(--me-ink)]'
-    >
+    <div data-theme='mint-editorial' className={styles.featureBar}>
       <Link
         className='underline'
         href={`/getting-started?persona=${guide.personas[0]}&guide=${guide.id}`}
       >
         Guide: {guide.title}
       </Link>
-      {' · '}
       <Link className='underline' href='/getting-started'>
         All feature guides
       </Link>
