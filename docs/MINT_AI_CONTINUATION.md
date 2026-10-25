@@ -3,6 +3,11 @@
 Updated 25 October 2026. Start here for AI/data work. Older rebuild and VLM v2 documents describe
 historical designs and experiments; they are not proof of the deployed configuration or readiness.
 
+Current migration and staged-release evidence, test results and exact continuation steps:
+[25 October release record](mint-ai-release-2026-10-25.md). The schema is live in production and
+staging; the app build is READY on Vercel but has not been promoted. Authenticated activity save
+and reload passed. Browser photo-upload verification is blocked by extension file-access support.
+
 ## Objective and current architecture
 
 Build the evidence-led inspection system described in
@@ -158,7 +163,7 @@ ground truth.
 
 ## Remaining work and acceptance
 
-### Inspection workflow implemented locally (25 October)
+### Inspection workflow implemented and staged (25 October)
 
 The saved web survey at `/building-assessments/:id` now includes:
 
