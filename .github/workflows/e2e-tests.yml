@@ -85,17 +85,24 @@ jobs:
       - name: Build shared packages
         run: npm run build:packages
 
+      - name: Configure bounded Ubuntu dependency downloads
+        run: |
+          node --test scripts/ci/configure-e2e-apt.test.cjs
+          sudo "$(command -v node)" scripts/ci/configure-e2e-apt.cjs
+
+      # Split APT from browser downloads so slow OS packages cannot consume the
+      # browser download budget. Keep signature verification and all engines.
+      - name: Install Playwright system dependencies
+        working-directory: apps/web
+        timeout-minutes: 15
+        run: npx playwright install-deps chromium firefox webkit
+
       - name: Install Playwright browsers
         working-directory: apps/web
-        timeout-minutes: 10
+        timeout-minutes: 5
         env:
-          E2E_ALL_BROWSERS: 'true'
-        run: |
-          if [ "$E2E_ALL_BROWSERS" = "true" ]; then
-            npx playwright install --with-deps
-          else
-            npx playwright install --with-deps chromium
-          fi
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
+        run: npx playwright install chromium firefox webkit
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
