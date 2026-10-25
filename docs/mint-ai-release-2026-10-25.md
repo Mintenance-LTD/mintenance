@@ -1,5 +1,22 @@
 # Mint AI inspection activity release — 25 October 2026
 
+## Latest observed state
+
+During pilot preparation, GitHub showed PR #1421 had been merged by the repository user as
+`d41abb7a9118914f4ec44a8edd0c6a8a5ee94adf` (21 of 22 checks passed). Vercel confirmed
+`www.mintenance.co.uk` points to READY production deployment `dpl_6aWQU6Cg4Lx4bQgbcQJFEMKWWU6W`,
+built by Git integration from that merge. This supersedes the earlier **not promoted** status below;
+the agent did not manually promote the staged deployment. Photo-upload verification is still pending.
+
+Main then advanced through PR #1422 to `df7ff33678a1f4b83eecdfcfac97247de7f2313c` (native build CI
+configuration). Its production deployment `dpl_6HT6ypbNJY6LsGF2YQR2uFynLB8Q` was BUILDING when
+checked. The pilot/accessibility work now uses a separate follow-up branch,
+`fix/mint-field-pilot-oct25`, incorporating that main revision. Do not rewrite or reopen merged PR
+#1421, roll back another person's release, or describe the new follow-up as already deployed.
+
+The remaining sections retain the staged-release evidence and unfinished checks, followed by the
+pilot preparation follow-up. Verify current aliases again before any future promotion.
+
 ## Scope and source
 
 Application commit `1f2c0a17cdfd78f82fdb35d08bf5e9f8e36dab8e`; follow-up test-only commit
