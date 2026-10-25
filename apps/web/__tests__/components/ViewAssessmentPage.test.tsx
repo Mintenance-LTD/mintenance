@@ -28,6 +28,12 @@ vi.mock('next/link', () => ({
   }) => <a href={href}>{children}</a>,
 }));
 
+// Activity has its own API/upload integration suite. This suite exercises the
+// survey rendering contract without answering /activity with a /status fixture.
+vi.mock('@/components/building-surveyor/InspectionActivity', () => ({
+  InspectionActivity: () => <section aria-label='Survey activity' />,
+}));
+
 const ASSESSMENT = {
   sceneSummary: 'Modern kitchen, recently built.',
   ricsConditionRating: 3,
@@ -79,8 +85,8 @@ function mockStatusResponse(over: Record<string, unknown> = {}) {
       isFailed: false,
       assessment: { damageType: 'damp', data: ASSESSMENT },
       images: [
-        { image_url: 'https://signed/0.jpg', image_index: 0 },
-        { image_url: 'https://signed/1.jpg', image_index: 1 },
+        { id: 'photo-0', image_url: 'https://signed/0.jpg', image_index: 0 },
+        { id: 'photo-1', image_url: 'https://signed/1.jpg', image_index: 1 },
       ],
       createdAt: '2026-07-28T21:54:12.490Z',
       ...over,
@@ -168,8 +174,8 @@ describe('ViewAssessmentPage', () => {
         status: 'pending',
         assessment: { data: legacy },
         images: [
-          { image_url: 'https://signed/0.jpg', image_index: 0 },
-          { image_url: 'https://signed/1.jpg', image_index: 1 },
+          { id: 'photo-0', image_url: 'https://signed/0.jpg', image_index: 0 },
+          { id: 'photo-1', image_url: 'https://signed/1.jpg', image_index: 1 },
         ],
         createdAt: '2026-07-28T21:54:12.490Z',
       }),
@@ -218,7 +224,7 @@ describe('ViewAssessmentPage', () => {
         id: 'assessment-1',
         status: 'pending',
         assessment: { data: clean },
-        images: [{ image_url: 'https://signed/0.jpg', image_index: 0 }],
+        images: [{ id: 'photo-0', image_url: 'https://signed/0.jpg', image_index: 0 }],
         createdAt: '2026-07-28T21:54:12.490Z',
       }),
     }) as never;
@@ -281,8 +287,10 @@ describe('ViewAssessmentPage', () => {
     });
   });
 
-  it('still offers the correction tool as a secondary action', async () => {
-    global.fetch = vi.fn().mockResolvedValue(mockStatusResponse()) as never;
+  it('offers the legacy correction tool only when detector results exist', async () => {
+    global.fetch = vi.fn().mockResolvedValue(mockStatusResponse({
+      assessment: { data: { ...ASSESSMENT, evidence: { roboflowDetections: [{ class: 'crack' }] } } },
+    })) as never;
 
     render(<ViewAssessmentPage />);
 
@@ -293,5 +301,28 @@ describe('ViewAssessmentPage', () => {
         '/building-assessments/assessment-1/correct'
       );
     });
+  });
+
+  it('omits detector corrections for a survey without detector results', async () => {
+    global.fetch = vi.fn().mockResolvedValue(mockStatusResponse()) as never;
+    render(<ViewAssessmentPage />);
+    await screen.findByText('Exposed light fitting');
+    expect(screen.queryByText(/Correct the AI/)).toBeNull();
+    expect(screen.getByRole('region', { name: 'Survey activity' })).toBeInTheDocument();
+  });
+
+  it('keeps finding frames in recorded AI input order when later photos are attached', async () => {
+    global.fetch = vi.fn().mockResolvedValue(mockStatusResponse({
+      assessment: { data: { ...ASSESSMENT, analysis: { imageIds: ['photo-b', 'photo-a'] } } },
+      images: [
+        { id: 'photo-a', image_url: 'https://signed/a.jpg', image_index: 2 },
+        { id: 'photo-b', image_url: 'https://signed/b.jpg', image_index: 7 },
+        { id: 'photo-later', image_url: 'https://signed/later.jpg', image_index: 8 },
+      ],
+    })) as never;
+    render(<ViewAssessmentPage />);
+    expect(await screen.findByAltText(/Frame showing main walls/)).toHaveAttribute('src', 'https://signed/a.jpg');
+    expect(screen.getByAltText(/Frame showing ceilings/)).toHaveAttribute('src', 'https://signed/b.jpg');
+    expect(screen.getByText('AI assessed 2 photos from this survey. 1 attached photos were not included in that run.')).toBeInTheDocument();
   });
 });

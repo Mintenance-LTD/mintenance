@@ -20,11 +20,14 @@ export async function checkMintStaging(baseUrl, { request = fetch, adminCookie, 
   await check('Evaluation denies anonymous access', '/api/admin/building-assessments/evaluation', {}, denied);
   await check('Review evidence denies anonymous access', `/api/admin/building-assessments/${id}/expert-review`, {}, denied);
   await check('Analysis status denies anonymous access', `/api/assessments/${id}/status`, {}, denied);
+  await check('Inspection activity denies anonymous access', `/api/assessments/${id}/activity`, {}, denied);
   if (adminCookie) {
     await check('Admin evaluation loads the deployed database schema', '/api/admin/building-assessments/evaluation', { headers: { Cookie: adminCookie } },
       (status, body) => status === 200 && body?.kind === 'historical_review_audit' && Array.isArray(body.groups) && typeof body.reviewCount === 'number' && typeof body.datasetId === 'string');
     if (assessmentId) await check('Admin review evidence loads', `/api/admin/building-assessments/${assessmentId}/expert-review`, { headers: { Cookie: adminCookie } },
       (status, body) => status === 200 && /^[a-f0-9]{64}$/.test(body?.sourceFingerprint ?? '') && Array.isArray(body.images) && Array.isArray(body.reviews));
+    if (assessmentId) await check('Inspection activity loads the deployed schema', `/api/assessments/${assessmentId}/activity`, { headers: { Cookie: adminCookie } },
+      (status, body) => status === 200 && /^[a-f0-9]{64}$/.test(body?.sourceFingerprint ?? '') && Array.isArray(body.images) && Array.isArray(body.events));
   }
   return { passed: results.every(result => result.pass), authenticatedChecksRun: Boolean(adminCookie), results };
 }

@@ -22,3 +22,19 @@ test('checks the authenticated evaluation response and never includes credential
   assert.equal(result.passed, true);
   assert.equal(JSON.stringify(result).includes('secret-cookie'), false);
 });
+
+test('requires the inspection schema for an authenticated assessment check', async () => {
+  const run = (activity) => checkMintStaging('https://preview.example', {
+    adminCookie: 'secret-cookie', assessmentId: 'fixture',
+    request: async (url, options) => {
+      if (!options.headers.Cookie) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      if (url.pathname.endsWith('/evaluation')) return Response.json({ kind: 'historical_review_audit', groups: [], reviewCount: 0, datasetId: 'dataset' });
+      if (url.pathname.endsWith('/activity')) return Response.json(activity);
+      return Response.json({ sourceFingerprint: 'a'.repeat(64), images: [], reviews: [] });
+    },
+  });
+  assert.equal((await run({ sourceFingerprint: 'a'.repeat(64), images: [], events: [] })).passed, true);
+  const missingSchema = await run({ error: 'Missing migration' });
+  assert.equal(missingSchema.passed, false);
+  assert.equal(missingSchema.results.find(row => row.name.startsWith('Inspection activity loads')).pass, false);
+});
