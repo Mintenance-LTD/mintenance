@@ -1,4 +1,5 @@
 import { logger } from '@mintenance/shared';
+import { isAssessmentMemoryReuseAllowed } from '../training-reuse-policy';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 
 /**
@@ -17,6 +18,7 @@ export async function computeMemoryAdjustments(
   useTitans: boolean
 ): Promise<number[]> {
   const memoryAdjustments: number[] = [0, 0, 0, 0, 0];
+  if (!isAssessmentMemoryReuseAllowed()) return memoryAdjustments;
 
   try {
     const memorySystem = memoryManager.getMemorySystem(agentName);

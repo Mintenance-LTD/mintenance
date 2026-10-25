@@ -3,6 +3,7 @@
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { isAssessmentMemoryReuseAllowed } from '../training-reuse-policy';
 import { queryMemoryAdjustments } from '../memory-query-handler';
 import type {
   RetrieveMemoryToolResult,
@@ -24,6 +25,15 @@ interface RetrieveMemoryToolParams {
 export async function runRetrieveMemoryTool(
   params: RetrieveMemoryToolParams
 ): Promise<ToolRun<RetrieveMemoryToolResult>> {
+  if (!isAssessmentMemoryReuseAllowed()) {
+    const message = 'Assessment memory reuse is disabled during beta.';
+    return {
+      toolName: 'retrieve_memory',
+      params: {},
+      result: { continuumSummary: message, combined: message },
+      summary: { success: true, message },
+    };
+  }
   let continuumSummary = 'No continuum feature vector provided.';
   let pastAssessmentsSummary: string | undefined;
 

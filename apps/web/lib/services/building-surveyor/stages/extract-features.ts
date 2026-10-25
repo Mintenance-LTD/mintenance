@@ -1,4 +1,5 @@
 import { logger } from '@mintenance/shared';
+import { isAssessmentMemoryReuseAllowed } from '../training-reuse-policy';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 import { ImageQualityService } from '../ImageQualityService';
 import { extractDetectionFeatures } from '../feature-extractor';
@@ -79,6 +80,9 @@ export async function extractAllFeatures(
 
   // Memory adjustments
   const memoryAdjustments: number[] = [0, 0, 0, 0, 0];
+  if (!isAssessmentMemoryReuseAllowed()) {
+    return { finalFeatures, sceneGraphFeatures, sceneGraph, memoryAdjustments, imageQuality };
+  }
   try {
     const memorySystem = memoryManager.getMemorySystem(AGENT_NAME);
     const useTitans = process.env.USE_TITANS === 'true' || false;

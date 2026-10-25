@@ -8,6 +8,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { isAssessmentMemoryReuseAllowed } from '../training-reuse-policy';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 import { AdaptiveUpdateEngine } from '../../agents/AdaptiveUpdateEngine';
 import { LearnedFeatureExtractor } from '../LearnedFeatureExtractor';
@@ -77,6 +78,7 @@ async function initializeLearnedFeatureExtractor(): Promise<void> {
  * Initialize continuum memory system for building surveyor
  */
 export async function initializeMemorySystem(): Promise<void> {
+  if (!isAssessmentMemoryReuseAllowed()) return;
   if (state.memorySystemInitialized) return;
 
   await initializeAdaptiveEngine();
@@ -158,6 +160,7 @@ export async function initializeMemorySystem(): Promise<void> {
  * Trigger self-modification when accuracy drops
  */
 export async function triggerSelfModification(accuracyDrop: number): Promise<void> {
+  if (!isAssessmentMemoryReuseAllowed()) return;
   await initializeAdaptiveEngine();
 
   logger.info('BuildingSurveyorService self-modification triggered', {
@@ -174,6 +177,7 @@ export async function triggerSelfModification(accuracyDrop: number): Promise<voi
  * Get learned feature extractor instance
  */
 export function getLearnedFeatureExtractor(): LearnedFeatureExtractor | null {
+  if (!isAssessmentMemoryReuseAllowed()) return null;
   return state.learnedFeatureExtractor;
 }
 
@@ -181,6 +185,6 @@ export function getLearnedFeatureExtractor(): LearnedFeatureExtractor | null {
  * Check if learned features are enabled
  */
 export function isLearnedFeaturesEnabled(): boolean {
-  return state.useLearnedFeatures;
+  return isAssessmentMemoryReuseAllowed() && state.useLearnedFeatures;
 }
 

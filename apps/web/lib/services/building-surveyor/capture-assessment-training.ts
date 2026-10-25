@@ -1,4 +1,5 @@
 import { logger } from '@mintenance/shared';
+import { isTrainingReuseAllowed } from './training-reuse-policy';
 import { KnowledgeDistillationService } from './KnowledgeDistillationService';
 import { StudentShadowService } from './distillation/StudentShadowService';
 import { PromptBuilder } from './orchestration/PromptBuilder';
@@ -13,6 +14,7 @@ export async function captureAssessmentTraining(
   imageUrls: string[],
   context?: AssessmentContext
 ): Promise<void> {
+  if (!isTrainingReuseAllowed()) return;
   // A student result is not a teacher label and must not supervise itself.
   if (assessment.modelMetadata?.provider !== 'openai') return;
   try {

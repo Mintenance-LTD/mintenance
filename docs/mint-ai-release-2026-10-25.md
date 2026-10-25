@@ -2,6 +2,29 @@
 
 ## Latest observed state
 
+At the later technical-prep check, PR #1423 was merged and all its checks passed, including E2E
+shards 1 and 2 (run `40204725136`). Production `www.mintenance.co.uk` resolves to READY deployment
+`dpl_9x6PHC188ZnPbyrHP3YAuU54ipGJ`, source `2c30907f61b8f9df29340cb8b28c8a796d96d033` on `main`.
+This includes PRs #1423, #1425 and #1426. Do not promote the older staged bundle described below.
+
+The new `fix/mint-pilot-isolation-oct25` follow-up extends the existing beta training hold to
+assessment-history retrieval, continuum and learned memory, repair/progression/validation learning,
+legacy assessment export and the bootstrap export command. Background capture now exits before
+teacher/shadow processing. Current-photo analysis and curated reference knowledge remain usable.
+There is no environment bypass and no new database migration. These application guards do not
+restrict privileged database operators or establish source consent. Real cases remain pending
+deployment verification, reviewer appointment and permission records.
+
+Local validation: 42 focused web tests passed; 15 pilot/CLI tests passed; full web TypeScript passed;
+changed production lint passed with three existing unused-symbol warnings. Full web regression is
+running. Authenticated production survey reads work. The upload automation still reports a file
+access error, and native control approval timed out; manual synthetic file selection is being
+checked. The database check still found zero attached photos, zero expert labels, zero training
+rows and the original single QA repair report. Source JSON MD5: `010064c8eca5451eab94311a0db911ad`.
+Do not mark photo-linked save/reload complete until the image and saved events are verified.
+
+### Earlier release observations (historical)
+
 During pilot preparation, GitHub showed PR #1421 had been merged by the repository user as
 `d41abb7a9118914f4ec44a8edd0c6a8a5ee94adf` (21 of 22 checks passed). Vercel confirmed
 `www.mintenance.co.uk` points to READY production deployment `dpl_6aWQU6Cg4Lx4bQgbcQJFEMKWWU6W`,

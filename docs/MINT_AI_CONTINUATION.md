@@ -6,14 +6,20 @@ historical designs and experiments; they are not proof of the deployed configura
 Current migration and staged-release evidence, test results and exact continuation steps:
 [25 October release record](mint-ai-release-2026-10-25.md). The schema is live in production and
 staging. PR #1421 was subsequently merged and its Git production deployment is live on
-`www.mintenance.co.uk`. Authenticated activity save and reload passed; photo-upload verification
-remains blocked by extension file-access support. The pilot/accessibility follow-up is separate.
+`www.mintenance.co.uk`. The pilot/accessibility follow-up PR #1423 is also merged; its checks,
+including both E2E groups, passed. Authenticated activity save and reload passed. Manual selection
+of the synthetic upload is pending verification because browser file automation remains unavailable.
 
 The owner requested preparation of a supervised field pilot, with an independent reviewer still
 to be arranged. The [pilot pack](pilot/README.md) contains the proposed 10-property/30-assessment
 scope, capture register, photo-first reviewer handoff and a documentary readiness checker. No real
 cases are enrolled. Reviewer assignment, permissions, release checks and verified training/retrieval
-isolation remain prerequisites. This is separate from the public SDNET evaluation experiment.
+isolation remain prerequisites. The pilot-isolation follow-up adds a beta-wide application hold on
+assessment-history retrieval, continuum/learned memory and repair/review learning, extends the
+existing training hold to legacy export paths, and skips background capture before processing.
+This is source-level protection until its exact deployment is verified. It is not a database
+restriction on privileged operators, a per-source consent mechanism or model validation.
+This is separate from the public SDNET evaluation experiment.
 
 ## Objective and current architecture
 
@@ -29,8 +35,9 @@ There are two separate model tasks:
 - **Main assessment AI:** interprets the whole scene and produces findings, severity, urgency and
   explanations. Its training needs reviewed full assessment targets, not just boxes or class names.
 
-In the latest local source, `AgentRunner.ts` retrieves memory and calls the vision-language
-generator. `stages/collect-evidence.ts` deliberately excludes legacy Roboflow/YOLO/SAM outputs from
+In the latest local source, `AgentRunner.ts` invokes a memory tool that returns a disabled result
+during beta, then calls the vision-language generator. Current-photo evidence and curated reference
+knowledge remain available. `stages/collect-evidence.ts` deliberately excludes legacy Roboflow/YOLO/SAM outputs from
 the production assessment path. Preserve that exclusion until a candidate passes an independent
 evaluation. Some legacy tools and maintenance routes still reference detector services.
 
