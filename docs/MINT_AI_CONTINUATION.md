@@ -7,8 +7,10 @@ Current migration and staged-release evidence, test results and exact continuati
 [25 October release record](mint-ai-release-2026-10-25.md). The schema is live in production and
 staging. PR #1421 was subsequently merged and its Git production deployment is live on
 `www.mintenance.co.uk`. The pilot/accessibility follow-up PR #1423 is also merged; its checks,
-including both E2E groups, passed. Authenticated activity save and reload passed. Manual selection
-of the synthetic upload is pending verification because browser file automation remains unavailable.
+including both E2E groups, passed. Authenticated upload and photo-linked correction/follow-up
+save/reload passed on the live main deployment. The user selected five building sample photos
+through the normal file chooser; these were not the blank synthetic PNG. The QA assessment and
+reports are explicitly test-only, with zero expert/training rows and unchanged source JSON.
 
 The owner requested preparation of a supervised field pilot, with an independent reviewer still
 to be arranged. The [pilot pack](pilot/README.md) contains the proposed 10-property/30-assessment
@@ -20,6 +22,11 @@ existing training hold to legacy export paths, and skips background capture befo
 This is source-level protection until its exact deployment is verified. It is not a database
 restriction on privileged operators, a per-source consent mechanism or model validation.
 This is separate from the public SDNET evaluation experiment.
+
+The user also requested a survey UI improvement. PR #1427 adds the missing shared app shell,
+clearer survey header and recapture guidance, responsive form/history cards, styled file selection
+and selected-photo states. CI includes the pilot checker and bootstrap-export hold test. Confirm
+the final preview and deployment before claiming these source changes are live.
 
 ## Objective and current architecture
 
