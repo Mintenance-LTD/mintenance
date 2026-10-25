@@ -2,8 +2,10 @@ import type { VisualEvidence } from '@/lib/services/building-surveyor/stages/obs
 
 export function VisibleEvidenceCard({
   evidence,
+  frameUrls,
 }: {
   evidence: VisualEvidence;
+  frameUrls?: string[];
 }) {
   return (
     <section className='rounded-xl border border-emerald-200 bg-white p-6 space-y-4'>
@@ -16,7 +18,21 @@ export function VisibleEvidenceCard({
       </p>
       {evidence.photos.map((photo) => (
         <div key={photo.photoIndex} className='border-t pt-4 space-y-2'>
-          <h4 className='font-semibold'>Photo {photo.photoIndex + 1}</h4>
+          <h4 className='font-semibold'>AI photo {photo.photoIndex + 1}</h4>
+          {frameUrls?.[photo.photoIndex] && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={frameUrls[photo.photoIndex]}
+              alt={`AI input photo ${photo.photoIndex + 1}`}
+              className='max-h-80 w-full object-contain rounded'
+            />
+          )}
+          {photo.observation.outcome === 'insufficient_evidence' && (
+            <p>
+              More evidence is needed before this visible region can be
+              assessed.
+            </p>
+          )}
           {photo.observation.outcome === 'no_visible_defect' ? (
             <p>
               No defect identified in this visible region. Hidden defects and

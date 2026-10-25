@@ -95,11 +95,7 @@ export const POST = withApiHandler(
       }
       return extractAssessmentPath(url);
     });
-    if (
-      imagePaths.some(
-        (path) => !path || !path.startsWith(expectedPrefix)
-      )
-    ) {
+    if (imagePaths.some((path) => !path || !path.startsWith(expectedPrefix))) {
       throw new BadRequestError(
         'Image URLs must reference this assessment photo storage path'
       );
@@ -109,11 +105,19 @@ export const POST = withApiHandler(
     // append after whatever already exists so re-runs don't collide.
     let startIndex = parsed.data.start_index;
     if (startIndex == null) {
-      const { count } = await serverSupabase
+      const { data: lastImage, error: indexError } = await serverSupabase
         .from('assessment_images')
-        .select('*', { count: 'exact', head: true })
-        .eq('assessment_id', assessmentId);
-      startIndex = count ?? 0;
+        .select('image_index')
+        .eq('assessment_id', assessmentId)
+        .order('image_index', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (indexError)
+        throw new InternalServerError('Unable to read existing photos');
+      startIndex =
+        typeof lastImage?.image_index === 'number'
+          ? lastImage.image_index + 1
+          : 0;
     }
 
     const imageRows = parsed.data.urls.map((url, idx) => ({

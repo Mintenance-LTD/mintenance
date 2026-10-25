@@ -10,8 +10,8 @@
  * - ROBOFLOW_MODEL_ID: The model ID (e.g., "building-defect-detection-7-ks0im")
  * - ROBOFLOW_MODEL_VERSION: The model version number (e.g., "1", "2", "4")
  *   This corresponds to the version segment in the detect URL.
- *   Recommended: use version "4" (Building Defect Detection 7 4, YOLOv11 Accurate) for best mAP@50.
- *   Update this when deploying a new trained model version.
+ *   Version "4" is the legacy default, not a claim of best performance.
+ *   Evaluate a candidate on a reviewed held-out set before changing this pin.
  * - ROBOFLOW_TIMEOUT_MS: Request timeout in milliseconds (default: 10000)
  * - USE_LOCAL_YOLO: Set to "true" to use local YOLO model instead of API (default: false)
  * - YOLO_MODEL_PATH: Path to ONNX model file (required if USE_LOCAL_YOLO=true)

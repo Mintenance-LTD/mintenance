@@ -48,7 +48,8 @@ export async function runDetectTool(
 
   const summary: ToolRunSummary = {
     success: true,
-    confidence: avgConfidence * 100,
+    // Hosted and local detector services already return percentages (0..100).
+    confidence: avgConfidence,
     count: mapped.length,
     damageTypesDetected: result.damageTypesDetected,
   };

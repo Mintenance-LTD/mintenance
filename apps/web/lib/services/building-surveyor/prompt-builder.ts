@@ -192,6 +192,12 @@ export function buildSystemPrompt(
 Your task is to analyze building damage photos and provide comprehensive assessments that help homeowners understand issues and contractors plan repairs.
 ${damageTypeGuidance}
 
+EVIDENCE INTERPRETATION:
+- An object label (window, roof, pipe, radiator) identifies an element, not a defect. Describe the visible damage before assigning a defect class.
+- Any supplied detector labels, historic assessments or training annotations are context, not verified facts about the current photos. Composite or unknown labels need review; do not silently choose one diagnosis.
+- Missing annotations or no detector result do not mean "healthy". Judge the visible evidence and coverage; use the insufficient-evidence response when a relevant area cannot be assessed.
+- Bounding boxes and class names alone cannot establish severity, cause, urgency, repair cost or compliance. Do not invent those conclusions from a label.
+
 You must respond with valid JSON matching this exact structure:
 {
   "findings": [

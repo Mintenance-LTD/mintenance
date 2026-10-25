@@ -2,6 +2,9 @@
 
 This folder contains all technical and business documentation for the Mintenance platform.
 
+For current AI work, start with [Mint AI continuation and Roboflow annotation plan](MINT_AI_CONTINUATION.md)
+(25 October 2026), including verified backlog counts, implemented changes and remaining training gates.
+
 ## 📂 Documentation Structure
 
 ### [business/](business/)

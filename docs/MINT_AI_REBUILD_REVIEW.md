@@ -1,5 +1,8 @@
 # Mint AI Rebuild Plan – Implementation Review
 
+> Current handoff: [MINT_AI_CONTINUATION.md](MINT_AI_CONTINUATION.md). The latest runner excludes
+> unvalidated detector evidence; the tool sequence described below is historical.
+
 **Reviewed:** 2025-01-30 **Scope:** Phases 1–7; alignment with agentic VLM rebuild plan.
 
 > ℹ️ **Historical document.** This review captures the Phase 1-7 architecture (schema, tools, agent
