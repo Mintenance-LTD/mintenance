@@ -1,5 +1,12 @@
 # AGENTS.md
 
+## Mint AI and Roboflow continuation
+
+For AI, annotation or training work, start with [docs/MINT_AI_CONTINUATION.md](docs/MINT_AI_CONTINUATION.md).
+It records the 25 October 2026 source audit, Roboflow backlog, reviewed-data workflow and remaining
+evaluation gates. Older rebuild/VLM v2 documents are historical; verify current code and deployed
+configuration before relying on their routing or model-readiness claims.
+
 ## Cursor Cloud specific instructions
 
 ### Node.js version

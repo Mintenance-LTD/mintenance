@@ -1,5 +1,5 @@
 /**
- * Read-only view of a saved building survey.
+ * Saved building survey with a separate, attributed inspection activity log.
  *
  * The only link out of Assessment History used to be `/correct`, which is a
  * YOLO detection-annotation tool: it draws bounding boxes over the frames so a
@@ -8,8 +8,8 @@
  * nothing else -- not the findings, not the diagnosis, not the RICS rating,
  * none of the reasoning that makes the survey worth keeping.
  *
- * This is the page that shows the survey. Correcting detections stays available
- * as a secondary action for anyone who actually wants to retrain the model.
+ * The AI result remains unchanged by reported corrections and repair outcomes.
+ * Legacy box corrections are available only when stored detections exist.
  */
 
 'use client';
@@ -21,11 +21,11 @@ import { ArrowLeft } from 'lucide-react';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import type { ObservationAssessment } from '@/lib/services/building-surveyor/observation-assessment';
-
-interface AssessmentImage {
-  image_url: string;
-  image_index?: number | null;
-}
+import { InspectionActivity } from '@/components/building-surveyor/InspectionActivity';
+import {
+  assessmentPhotoCoverage,
+  type AssessmentPhoto,
+} from '@/lib/services/building-surveyor/photo-coverage';
 
 export default function ViewAssessmentPage() {
   const params = useParams();
@@ -34,7 +34,7 @@ export default function ViewAssessmentPage() {
   const [assessment, setAssessment] = useState<
     Phase1BuildingAssessment | ObservationAssessment | null
   >(null);
-  const [images, setImages] = useState<AssessmentImage[]>([]);
+  const [images, setImages] = useState<AssessmentPhoto[]>([]);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   // null = still loading. An assessment that has no result and one whose
   // request failed are different things and must not read the same.
@@ -43,13 +43,17 @@ export default function ViewAssessmentPage() {
   const [recaptureMessage, setRecaptureMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     async function load() {
       try {
         setLoading(true);
         setError(null);
         setRecaptureMessage(null);
 
-        const response = await fetch(`/api/assessments/${assessmentId}/status`);
+        const response = await fetch(
+          `/api/assessments/${assessmentId}/status`,
+          { signal: controller.signal, cache: 'no-store' }
+        );
         if (!response.ok) {
           throw new Error(
             response.status === 404
@@ -76,26 +80,26 @@ export default function ViewAssessmentPage() {
         setImages(Array.isArray(data.images) ? data.images : []);
         setCreatedAt(data.createdAt ?? null);
       } catch (err) {
+        if (controller.signal.aborted) return;
         setError(
           err instanceof Error ? err.message : 'Failed to load this survey.'
         );
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
     if (assessmentId) void load();
+    return () => controller.abort();
   }, [assessmentId]);
 
   // Frames in index order. Findings carry a sourceFrameIndex into this list, so
   // position is the contract -- a gap or a reorder would pair a finding with
   // the wrong photograph, which is worse than showing none.
-  const frameUrls: string[] = [];
-  for (const img of images) {
-    if (typeof img.image_index === 'number') {
-      frameUrls[img.image_index] = img.image_url;
-    }
-  }
+  const { frames: frameUrls, recordedIds } = assessmentPhotoCoverage(
+    assessment,
+    images
+  );
 
   return (
     <div className='container mx-auto px-4 py-8'>
@@ -150,47 +154,71 @@ export default function ViewAssessmentPage() {
 
         {!loading && !error && assessment && (
           <>
+            <p className='mb-4 rounded bg-gray-50 p-3 text-sm'>
+              {recordedIds
+                ? `AI assessed ${recordedIds.length} photos from this survey. ${images.filter((image) => !recordedIds.includes(image.id)).length} attached photos were not included in that run.`
+                : 'This older survey does not record exactly which attached photos the AI used.'}
+            </p>
             <BuildingAssessmentDisplay
               assessment={assessment}
               photoUrls={frameUrls.filter(Boolean)}
               frameUrls={frameUrls}
             />
 
-            {frameUrls.filter(Boolean).length > 0 && (
+            {images.length > 0 && (
               <div className='mt-8'>
                 <h2 className='text-sm font-semibold text-gray-900 mb-3'>
-                  Source photos ({frameUrls.filter(Boolean).length})
+                  Attached photos ({images.length})
                 </h2>
                 <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'>
-                  {frameUrls.map((url, index) =>
-                    url ? (
-                      // Signed Supabase URLs are not a configured next/image
-                      // remote pattern, and they expire — optimisation would
-                      // cache a dead asset.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={index}
-                        src={url}
-                        alt={`Assessment source photo ${index + 1}`}
-                        className='w-full aspect-square object-cover rounded-lg border border-gray-200'
-                      />
-                    ) : null
-                  )}
+                  {images.map((image, index) => (
+                    <figure key={image.id}>
+                      {image.image_url ? (
+                        // Signed Supabase URLs are not a configured next/image
+                        // remote pattern, and they expire — optimisation would
+                        // cache a dead asset.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={image.image_url}
+                          alt={`Assessment source photo ${(image.image_index ?? index) + 1}`}
+                          className='w-full aspect-square object-cover rounded-lg border border-gray-200'
+                        />
+                      ) : (
+                        <p>Photo unavailable</p>
+                      )}
+                      <figcaption className='text-xs mt-1'>
+                        Photo {(image.image_index ?? index) + 1}
+                        {recordedIds
+                          ? recordedIds.includes(image.id)
+                            ? ' · Used by AI'
+                            : ' · Not assessed in this run'
+                          : ''}
+                      </figcaption>
+                    </figure>
+                  ))}
                 </div>
               </div>
             )}
 
-            {!('protocol' in assessment) && (
-              <div className='mt-8 pt-4 border-t border-gray-200'>
-                <Link
-                  href={`/building-assessments/${assessmentId}/correct`}
-                  className='text-xs font-semibold text-gray-500 hover:text-gray-700'
-                >
-                  Correct the AI’s detections →
-                </Link>
-              </div>
-            )}
+            {!('protocol' in assessment) &&
+              Boolean(assessment.evidence?.roboflowDetections?.length) && (
+                <div className='mt-8 pt-4 border-t border-gray-200'>
+                  <Link
+                    href={`/building-assessments/${assessmentId}/correct`}
+                    className='text-xs font-semibold text-gray-500 hover:text-gray-700'
+                  >
+                    Correct the AI’s detections →
+                  </Link>
+                </div>
+              )}
           </>
+        )}
+        {!loading && !error && (assessment || recaptureMessage) && (
+          <InspectionActivity
+            key={assessmentId}
+            assessmentId={assessmentId}
+            onPhotosChanged={setImages}
+          />
         )}
       </div>
     </div>

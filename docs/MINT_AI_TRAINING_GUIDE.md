@@ -1,11 +1,16 @@
 # How Mint AI Is Trained
 
+> **Current handoff (25 October 2026):** Read [MINT_AI_CONTINUATION.md](MINT_AI_CONTINUATION.md)
+> first. This guide describes historical pipelines. The latest production assessment code excludes
+> unvalidated Roboflow/YOLO/SAM evidence. A detector label or a `needs_review` assessment is not
+> verified training ground truth. Use the reviewed export and audit workflow linked in that handoff.
+
 > ⚠️ **Section 2 ("Generator Training") below is partially outdated as of April 2026.** The in-house
 > Mint AI VLM is now trained and deployed — see [`MINT_AI_VLM_v2.md`](./MINT_AI_VLM_v2.md) for
 > current architecture, training pipeline, validation metrics, and deployment details.
 >
-> Section 1 ("Detector Training") remains accurate — YOLOCorrectionService, YOLORetrainingService,
-> and ContinuousLearningService work as described.
+> Section 1 describes legacy detector services; their existence does not establish that they are
+> active in the main assessment flow or that a deployed model is validated.
 
 Mint AI has **two trainable parts**: (1) **detectors** (YOLO for damage detection, SAM3 for
 segmentation) and (2) the **generator** (the model that produces the final assessment JSON from

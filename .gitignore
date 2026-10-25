@@ -241,6 +241,7 @@ yolo11n.pt
 !scripts/**/*.sh
 !infrastructure/**/*.sh
 *.json
+!apps/web/lib/services/building-surveyor/taxonomy/roboflow-label-policy.json
 !package*.json
 !turbo.json
 !tsconfig*.json
