@@ -290,6 +290,8 @@ jobs:
   notify-failure:
     name: Notify Build Failure
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     needs: [build-android, build-ios]
     if: |
       failure() &&
