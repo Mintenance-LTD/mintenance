@@ -1,0 +1,17 @@
+name: Install pinned k6
+description: Install the official k6 release without APT or an external GPG keyserver.
+runs:
+  using: composite
+  steps:
+    - name: Download k6
+      uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1.2.1
+      with:
+        k6-version: '2.3.0'
+        browser: false
+    - name: Verify k6 version
+      shell: bash
+      run: |
+        set -euo pipefail
+        version="$(k6 version)"
+        printf '%s\n' "$version"
+        [[ "$version" == 'k6 v2.3.0 '* ]]
