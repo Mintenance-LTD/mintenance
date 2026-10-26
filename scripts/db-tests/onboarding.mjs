@@ -85,14 +85,216 @@ try {
     INSERT INTO profiles VALUES('${uid(1)}','homeowner'),('${uid(2)}','contractor'),('${uid(3)}','admin'),('${uid(4)}','homeowner');
     INSERT INTO early_access_grants(user_id,role,grant_type) VALUES('${uid(1)}','homeowner','max_subscription_features'),('${uid(2)}','contractor','max_subscription_features'),('${uid(3)}','contractor','max_subscription_features');
   `);
+  const legacy = await fs.readFile(
+    path.join(
+      root,
+      'supabase/migrations/20261024142808_onboarding_journeys_and_early_access_notices.sql'
+    ),
+    'utf8'
+  );
+  const recovery = await fs.readFile(
+    path.join(
+      root,
+      'supabase/migrations/20261026205525_onboarding_journeys_table_recovery.sql'
+    ),
+    'utf8'
+  );
+  const legacyFirst = process.argv.includes('--legacy-first');
+  if (legacyFirst) await db.query(legacy);
+  const noticeState = async () =>
+    (
+      await db.query(`
+    SELECT (SELECT count(*)::int FROM notifications) notices,
+      (SELECT count(*)::int FROM early_access_grants) grants,
+      (SELECT count(*)::int FROM pg_trigger WHERE NOT tgisinternal) triggers,
+      to_regprocedure('public.reconcile_early_access_notices(uuid)')::text reconciler
+  `)
+    ).rows[0];
+  const before = await noticeState();
+  // Simulate environments with permissive default grants, including PUBLIC.
   await db.query(
-    await fs.readFile(
-      path.join(
-        root,
-        'supabase/migrations/20261024142808_onboarding_journeys_and_early_access_notices.sql'
-      ),
-      'utf8'
-    )
+    'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO PUBLIC, anon, authenticated'
+  );
+  await db.query(recovery);
+  await check(
+    'recovery makes no notices, grants, triggers or reconciliation functions',
+    async () => {
+      assert.deepEqual(await noticeState(), before);
+    }
+  );
+  await check(
+    'API projection and composite upsert work with the service role',
+    async () => {
+      for (const step of [1, 4])
+        await as(
+          'service_role',
+          '',
+          `
+      INSERT INTO onboarding_journeys(user_id,journey,platform,version,status,step)
+      VALUES('${uid(1)}','recovery-test','web',2,'in_progress',${step})
+      ON CONFLICT(user_id,journey,platform,version) DO UPDATE
+      SET step=EXCLUDED.step, status=EXCLUDED.status, updated_at=now()`
+        );
+      const result = await as(
+        'service_role',
+        '',
+        `
+      SELECT journey,platform,status,step,updated_at FROM onboarding_journeys
+      WHERE user_id='${uid(1)}' AND version=2`
+      );
+      assert.equal(result.rows.length, 1);
+      assert.equal(result.rows[0].step, 4);
+    }
+  );
+  await check(
+    'user, journey, platform and version are separate progress keys',
+    async () => {
+      await as(
+        'service_role',
+        '',
+        `
+      INSERT INTO onboarding_journeys(user_id,journey,platform,version,status) VALUES
+      ('${uid(1)}','recovery-test','mobile',2,'skipped'),
+      ('${uid(1)}','recovery-test','web',3,'completed'),
+      ('${uid(1)}','another-guide','web',2,'completed'),
+      ('${uid(2)}','recovery-test','web',2,'completed')`
+      );
+      assert.equal(
+        (await db.query('SELECT count(*)::int n FROM onboarding_journeys'))
+          .rows[0].n,
+        5
+      );
+    }
+  );
+  await check(
+    'authenticated reads cannot expose another user; missing identity reads nothing',
+    async () => {
+      const own = await as(
+        'authenticated',
+        uid(1),
+        'SELECT * FROM onboarding_journeys'
+      );
+      assert.equal(own.rows.length, 4);
+      assert.ok(own.rows.every((row) => row.user_id === uid(1)));
+      assert.equal(
+        (
+          await as(
+            'authenticated',
+            uid(1),
+            `SELECT * FROM onboarding_journeys WHERE user_id='${uid(2)}'`
+          )
+        ).rowCount,
+        0
+      );
+      assert.equal(
+        (await as('authenticated', '', 'SELECT * FROM onboarding_journeys'))
+          .rowCount,
+        0
+      );
+      await assert.rejects(
+        as('anon', '', 'SELECT * FROM onboarding_journeys'),
+        (e) => e.code === '42501'
+      );
+    }
+  );
+  await check(
+    'clients cannot insert, update, delete or truncate progress',
+    async () => {
+      for (const role of ['anon', 'authenticated']) {
+        for (const sql of [
+          `INSERT INTO onboarding_journeys(user_id,journey,platform,status) VALUES('${uid(1)}','spoof','web','completed')`,
+          "UPDATE onboarding_journeys SET status='completed'",
+          'DELETE FROM onboarding_journeys',
+          'TRUNCATE onboarding_journeys',
+        ])
+          await assert.rejects(
+            as(role, uid(1), sql),
+            (e) => e.code === '42501'
+          );
+      }
+    }
+  );
+  await check(
+    'database constraints reject invalid progress and unknown users',
+    async () => {
+      for (const [column, value, code] of [
+        ['journey', "''", '23514'],
+        ['journey', "repeat('x',121)", '23514'],
+        ['platform', "'desktop'", '23514'],
+        ['version', '0', '23514'],
+        ['status', "'authorized'", '23514'],
+        ['step', '-1', '23514'],
+        ['step', '101', '23514'],
+        ['user_id', `'${uid(999)}'::uuid`, '23503'],
+        ['updated_at', 'NULL', '23502'],
+      ])
+        await assert.rejects(
+          as(
+            'service_role',
+            '',
+            `UPDATE onboarding_journeys SET ${column}=${value}
+             WHERE user_id='${uid(1)}' AND journey='recovery-test' AND platform='web' AND version=2`
+          ),
+          (e) => e.code === code
+        );
+    }
+  );
+  await check(
+    'recovery replay preserves progress and authorization',
+    async () => {
+      const saved = (
+        await db.query(
+          'SELECT * FROM onboarding_journeys ORDER BY user_id,journey,platform,version'
+        )
+      ).rows;
+      await db.query(recovery);
+      assert.deepEqual(
+        (
+          await db.query(
+            'SELECT * FROM onboarding_journeys ORDER BY user_id,journey,platform,version'
+          )
+        ).rows,
+        saved
+      );
+      assert.deepEqual(await noticeState(), before);
+      assert.equal(
+        (await as('authenticated', uid(2), 'SELECT * FROM onboarding_journeys'))
+          .rowCount,
+        1
+      );
+    }
+  );
+  await check('deleting a profile removes its progress', async () => {
+    await db.query(`INSERT INTO profiles VALUES('${uid(99)}','homeowner');
+      INSERT INTO onboarding_journeys(user_id,journey,platform,status) VALUES('${uid(99)}','intro-homeowner','web','skipped');
+      DELETE FROM profiles WHERE id='${uid(99)}'`);
+    assert.equal(
+      (
+        await db.query(
+          `SELECT * FROM onboarding_journeys WHERE user_id='${uid(99)}'`
+        )
+      ).rowCount,
+      0
+    );
+  });
+  await check(
+    'legacy bundle and recovery work in either order without losing progress',
+    async () => {
+      if (!legacyFirst) await db.query(legacy);
+      await db.query(recovery);
+      assert.equal(
+        (await db.query('SELECT count(*)::int n FROM onboarding_journeys'))
+          .rows[0].n,
+        5
+      );
+      assert.equal(
+        (await as('authenticated', uid(2), 'SELECT * FROM onboarding_journeys'))
+          .rowCount,
+        1
+      );
+      // Leave the existing notice/cohort regressions their original progress fixtures.
+      await db.query('DELETE FROM onboarding_journeys');
+    }
   );
   await check(
     'backfill only valid grants with role-specific benefits',
@@ -225,5 +427,11 @@ try {
     path.dirname(resolved) === path.resolve(os.tmpdir()) &&
     path.basename(resolved).startsWith('mintenance-onboarding-')
   )
-    await fs.rm(resolved, { recursive: true, force: true });
+    // Windows can retain a short-lived file handle after PostgreSQL exits.
+    await fs.rm(resolved, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
 }

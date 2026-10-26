@@ -1,5 +1,7 @@
 -- Independent, versioned learning progress. This is never an authorization signal.
-CREATE TABLE public.onboarding_journeys (
+-- The table-only recovery may have been approved/applied before this bundle.
+-- Keep this section replay-compatible; the notice/cohort changes still need review.
+CREATE TABLE IF NOT EXISTS public.onboarding_journeys (
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   journey text NOT NULL CHECK (length(journey) BETWEEN 1 AND 120),
   platform text NOT NULL CHECK (platform IN ('web', 'mobile')),
@@ -10,9 +12,10 @@ CREATE TABLE public.onboarding_journeys (
   PRIMARY KEY (user_id, journey, platform, version)
 );
 ALTER TABLE public.onboarding_journeys ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.onboarding_journeys FROM anon, authenticated;
+REVOKE ALL ON public.onboarding_journeys FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.onboarding_journeys TO authenticated;
 GRANT ALL ON public.onboarding_journeys TO service_role;
+DROP POLICY IF EXISTS onboarding_read_own ON public.onboarding_journeys;
 CREATE POLICY onboarding_read_own ON public.onboarding_journeys FOR SELECT TO authenticated
   USING (user_id = (SELECT auth.uid()));
 
