@@ -79,8 +79,8 @@ vercel env add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 **For Other Platforms**:
 ```bash
 # Add to your deployment platform's environment variables
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyDCtPcCQqECwanf7tn9avJU4gvT6nezSi8
-GOOGLE_MAPS_API_KEY=AIzaSyDCtPcCQqECwanf7tn9avJU4gvT6nezSi8
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_restricted_browser_key_here
+GOOGLE_MAPS_API_KEY=your_restricted_server_key_here
 ```
 
 #### 2.2 Restrict API Key

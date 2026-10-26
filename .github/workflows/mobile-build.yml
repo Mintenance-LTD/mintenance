@@ -124,12 +124,14 @@ jobs:
   # ============================================================
   # ANDROID BUILD (EAS)
   # ============================================================
+  # PRs validate locally above; EAS submissions belong to branch pushes or manual dispatch.
   build-android:
     name: Build Android (${{ needs.pre-build-checks.outputs.build-profile }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: pre-build-checks
     if: |
+      github.event_name != 'pull_request' &&
       needs.pre-build-checks.outputs.should-build == 'true' &&
       (github.event.inputs.platform == 'android' ||
        github.event.inputs.platform == 'all' ||
@@ -209,6 +211,7 @@ jobs:
     timeout-minutes: 45
     needs: pre-build-checks
     if: |
+      github.event_name != 'pull_request' &&
       needs.pre-build-checks.outputs.should-build == 'true' &&
       (github.event.inputs.platform == 'ios' ||
        github.event.inputs.platform == 'all' ||

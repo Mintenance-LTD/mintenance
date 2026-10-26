@@ -1,19 +1,10 @@
 name: Storage Integrity Check
 
-# 2026-04-30 audit P1 (Thumbnail/Image Failures): nightly verification
-# that every image reference in the database (job_attachments,
-# assessment_images, properties.photos) points at an object that
-# actually exists in Supabase Storage. Exits 1 on orphans so the run
-# turns red and emits the usual GitHub failure notifications.
-#
-# The script (scripts/storage-integrity-check.ts) writes a detailed
-# JSON report to scripts/.storage-integrity-report.json. We upload it
-# as a workflow artifact so engineers can drill into individual
-# orphans without re-running the script locally.
-#
-# Cron is 04:00 UTC nightly — outside business hours, before the
-# morning standup. The workflow_dispatch trigger lets us re-run on
-# demand after fixes ship.
+# Read-only nightly audit. Bare paths use the source-specific storage bucket.
+# Exit 1 reports confirmed missing/invalid references; exit 2 means incomplete
+# coverage (query, lookup, configuration or pagination failure).
+# The aggregate report contains no signed URLs, object paths or raw row IDs.
+# A finding reference is SHA-256 of "table:rowId:photoIndex" for authorized triage.
 
 on:
   schedule:
@@ -53,5 +44,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: storage-integrity-report
-          path: scripts/.storage-integrity-report.json
+          path: scripts/storage-integrity-report.json
+          if-no-files-found: error
           retention-days: 30
