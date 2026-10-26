@@ -369,3 +369,6 @@ apps/mobile/phase4-after-mocks.txt
 
 # Public blank pilot schema; populated registers stay in ignored private storage.
 !docs/pilot/pilot-manifest.template.json
+
+# Generated aggregate storage audit report
+/scripts/storage-integrity-report.json
