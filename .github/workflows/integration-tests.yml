@@ -59,6 +59,10 @@ jobs:
         working-directory: scripts/db-tests/node_modules/@embedded-postgres/linux-x64
         run: node scripts/hydrate-symlinks.js
       - run: npm test --prefix scripts/db-tests
+      - name: Check onboarding recovery and legacy migration compatibility
+        run: |
+          npm run test:onboarding --prefix scripts/db-tests
+          npm run test:onboarding --prefix scripts/db-tests -- --legacy-first
 
   integration-tests:
     name: Integration Tests (Real DB)

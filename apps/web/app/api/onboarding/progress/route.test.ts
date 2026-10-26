@@ -3,6 +3,8 @@ const mocks = vi.hoisted(() => ({
   user: { id: 'actor', role: 'homeowner' },
   upsert: vi.fn(),
   from: vi.fn(),
+  select: vi.fn(),
+  eq: vi.fn(),
 }));
 vi.mock('@/lib/api/with-api-handler', () => ({
   withApiHandler:
@@ -12,10 +14,14 @@ vi.mock('@/lib/api/with-api-handler', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: { from: mocks.from },
 }));
-import { PUT } from './route';
+import { GET, PUT } from './route';
 beforeEach(() => {
   mocks.user.role = 'homeowner';
-  mocks.from.mockReturnValue({ upsert: mocks.upsert });
+  mocks.from
+    .mockReset()
+    .mockReturnValue({ upsert: mocks.upsert, select: mocks.select });
+  mocks.select.mockReset().mockReturnValue({ eq: mocks.eq });
+  mocks.eq.mockReset().mockReturnValue({ eq: mocks.eq });
   mocks.upsert.mockReset().mockResolvedValue({ error: null });
 });
 const request = (body: object) =>
@@ -29,6 +35,37 @@ const progress = {
   status: 'completed',
   step: 4,
 };
+it('reads only the authenticated user and current server version', async () => {
+  mocks.eq.mockReturnValueOnce({ eq: mocks.eq }).mockResolvedValueOnce({
+    data: [progress],
+    error: null,
+  });
+  const response = await GET(request({}));
+  expect(await response.json()).toEqual({ progress: [progress] });
+  expect(mocks.from).toHaveBeenCalledWith('onboarding_journeys');
+  expect(mocks.select).toHaveBeenCalledWith(
+    'journey, platform, status, step, updated_at'
+  );
+  expect(mocks.eq.mock.calls).toEqual([
+    ['user_id', 'actor'],
+    ['version', 2],
+  ]);
+});
+it('does not report missing-table reads as empty successful progress', async () => {
+  mocks.eq.mockReturnValueOnce({ eq: mocks.eq }).mockResolvedValueOnce({
+    data: null,
+    error: { code: 'PGRST205' },
+  });
+  await expect(GET(request({}))).rejects.toThrow(
+    'Could not load your guide progress'
+  );
+});
+it('does not acknowledge a missing-table save', async () => {
+  mocks.upsert.mockResolvedValue({ error: { code: 'PGRST205' } });
+  await expect(PUT(request(progress))).rejects.toThrow(
+    'Could not save your guide progress'
+  );
+});
 it('writes progress under the authenticated user and server version', async () => {
   expect((await PUT(request(progress))).status).toBe(200);
   expect(mocks.upsert).toHaveBeenCalledWith(
