@@ -1,6 +1,13 @@
 name: Load Test (k6 Smoke)
 
 on:
+  # Validate installation on Linux without sending load to any application.
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/actions/setup-k6/**'
+      - '.github/workflows/load-test.yml'
+
   # Manual trigger with configurable target URL
   workflow_dispatch:
     inputs:
@@ -22,8 +29,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify-installer:
+    name: Verify k6 installation (no application traffic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Install k6
+        uses: ./.github/actions/setup-k6
+
+      - name: Execute a bounded offline k6 check
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/k6-install-check.js" <<'JS'
+          import { check } from 'k6';
+          export const options = {
+            vus: 1,
+            iterations: 1,
+            thresholds: { checks: ['rate==1'] },
+          };
+          export default function () {
+            check(1, { 'k6 executes checks': (value) => value === 1 });
+          }
+          JS
+          k6 run --no-usage-report "$RUNNER_TEMP/k6-install-check.js"
+
   smoke-test:
     name: k6 Smoke Test
+    # PRs exercise only the installer, with no app credentials or HTTP requests.
+    if: github.event_name != 'pull_request'
+    needs: verify-installer
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -32,12 +70,14 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Install k6
+        uses: ./.github/actions/setup-k6
+
+      - name: Verify smoke script exists
         run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D68
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install k6
+          if [ ! -f apps/web/load-tests/k6/smoke-test.js ]; then
+            echo '::error::Missing apps/web/load-tests/k6/smoke-test.js; no application load test has run.'
+            exit 1
+          fi
 
       - name: Determine target URL
         id: target
