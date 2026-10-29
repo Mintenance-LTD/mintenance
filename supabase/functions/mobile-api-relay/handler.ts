@@ -1,5 +1,7 @@
 const ORIGIN = 'https://www.mintenance.co.uk';
-const PREFIX = '/functions/v1/mobile-api-relay';
+// The hosted gateway strips /functions/v1 before invoking the function.
+// Keep the external form for direct handler invocations, with exact boundaries.
+const PREFIXES = ['/mobile-api-relay', '/functions/v1/mobile-api-relay'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const API_GROUPS = new Set([
   'appointments',
@@ -107,10 +109,13 @@ export function createMobileRelay(deps: RelayDependencies) {
       return reply(405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
     }
     const incoming = new URL(request.url);
-    const path = incoming.pathname.slice(PREFIX.length);
+    const prefix = PREFIXES.find((value) =>
+      incoming.pathname.startsWith(`${value}/api/`)
+    );
+    const path = prefix ? incoming.pathname.slice(prefix.length) : '';
     // Reject encoded path separators, dot traversal, normalization tricks and non-API destinations.
     if (
-      !incoming.pathname.startsWith(`${PREFIX}/api/`) ||
+      !prefix ||
       !/^\/api\/[A-Za-z0-9_/-]+$/.test(path) ||
       path.includes('//') ||
       !API_GROUPS.has(path.split('/')[2]) ||
