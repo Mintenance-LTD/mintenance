@@ -149,7 +149,30 @@ Training takes ~6 hours on A10G, costs ~$6-8.
 ### Modal inference endpoint
 
 ```bash
-python -m modal deploy scripts/vlm-training/modal_serve.py
+python -m modal run --env main scripts/vlm-training/modal_serve.py::validate_candidate
+python -m modal deploy --env main scripts/vlm-training/modal_serve.py
+python -m modal run --env main scripts/vlm-training/modal_serve.py::verify_production
+```
+
+The serving source was recovered from production v6 on 2026-10-29. Its separate
+`scripts/vlm-training/requirements-serve.lock` pins the complete serving stack,
+including PyTorch 2.13.0, torchvision 0.28.0 and vLLM 0.32.0. Do not install the
+LLaMA-Factory training requirements into this image. The candidate check loads
+the existing adapter on A10G, verifies CUDA/torchvision operators, and generates
+a completion from a synthetic image before deployment. The production check
+also verifies the stable endpoint, API-key enforcement and adapter routing.
+
+Run CPU regression tests with FastAPI 0.136.3, Starlette 1.10.0, HTTPX 0.28.1
+and Modal 1.6.3 installed:
+
+```bash
+python -m unittest discover -s scripts/vlm-training -p 'test_*.py' -v
+```
+
+Regenerate the lock from `requirements-serve.in` for the image platform:
+
+```bash
+uv pip compile scripts/vlm-training/requirements-serve.in --python-version 3.11 --python-platform x86_64-manylinux_2_36 --only-binary :all: -o scripts/vlm-training/requirements-serve.lock
 ```
 
 Stable URL: `https://gloire--mint-ai-serve-mintaiserver-openai.modal.run`
@@ -161,6 +184,7 @@ Routes:
 - `GET /v1/models` — list served models
 
 **Auth:** Bearer token matching `MINT_AI_API_KEY` secret. Non-auth'd requests return 401.
+The service refuses to start its proxy if that secret is missing or empty.
 
 **Cold start:** 60–90s on first request after idle (scales to zero). Warm inference: 5–15s.
 

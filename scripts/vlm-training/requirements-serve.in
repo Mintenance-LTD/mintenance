@@ -1,0 +1,9 @@
+# Production serving stack: keep separate from LLaMA-Factory training.
+# Resolve together so vLLM cannot silently downgrade PyTorch.
+vllm==0.32.0
+torch==2.13.0
+torchvision==0.28.0
+torchaudio==2.11.0
+transformers>=5.16.1,<5.20.0
+pillow>=12.3.0
+httpx==0.28.1
