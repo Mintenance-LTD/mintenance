@@ -158,3 +158,79 @@ test('private credentials and missing staging API settings stay rejected without
     /EXPO_PUBLIC_API_BASE_URL is required/
   );
 });
+
+test('isolated beta APK resolves the verified relay with OTA disabled and existing package identity', () => {
+  const env = {
+    ...workflowEnvironment('production'),
+    EXPO_PUBLIC_SUPABASE_URL: 'https://ukrjudtlvapiajkjbcrd.supabase.co',
+  };
+  const resolved = resolveBuildEnvironment('beta-login-test', env);
+  const config = validateExpoConfig('beta-login-test', env);
+  assert.equal(
+    resolved.EXPO_PUBLIC_MOBILE_API_GATEWAY_URL,
+    'https://ukrjudtlvapiajkjbcrd.supabase.co/functions/v1/mobile-api-relay'
+  );
+  assert.equal(resolved.EXPO_PUBLIC_USE_MOCK, 'false');
+  assert.equal(resolved.NODE_ENV, 'production');
+  assert.equal(config.android.package, 'com.mintenance.app');
+  assert.equal(config.android.versionCode, 41);
+  assert.equal(config.name, 'Mintenance Beta');
+  assert.equal(config.runtimeVersion, '1.2.4-beta-login1');
+  assert.equal(config.updates.enabled, false);
+  assert.deepEqual(
+    config.plugins.find((plugin) => plugin[0] === 'expo-sqlite'),
+    ['expo-sqlite', { useSQLCipher: true }]
+  );
+  const profiles = require('../apps/mobile/eas.json').build;
+  assert.equal(profiles['beta-login-test'].extends, 'preview');
+  assert.equal(profiles['beta-login-test'].channel, 'beta-login-test');
+  assert.equal(profiles['beta-login-test'].credentialsSource, 'remote');
+  assert.equal(profiles.preview.distribution, 'internal');
+  assert.equal(profiles.preview.android.buildType, 'apk');
+  assert.equal(profiles.preview.environment, 'production');
+});
+
+test('ordinary production config retains its runtime, version and update behavior', () => {
+  const config = validateExpoConfig(
+    'production',
+    workflowEnvironment('production')
+  );
+  assert.equal(config.android.versionCode, 40);
+  assert.equal(config.name, 'Mintenance');
+  assert.equal(config.runtimeVersion, '1.2.4-sqlcipher1');
+  assert.notEqual(config.updates.enabled, false);
+});
+
+test('beta APK rejects a different Supabase project before a build is submitted', () => {
+  assert.throws(
+    () =>
+      validateExpoConfig('beta-login-test', workflowEnvironment('production')),
+    /Expo config evaluation failed/
+  );
+});
+
+test('beta APK still requires public client settings and rejects private keys without logging values', () => {
+  const env = {
+    ...workflowEnvironment('production'),
+    EXPO_PUBLIC_SUPABASE_URL: 'https://ukrjudtlvapiajkjbcrd.supabase.co',
+  };
+  assert.throws(
+    () =>
+      resolveBuildEnvironment('beta-login-test', {
+        ...env,
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: '',
+      }),
+    /EXPO_PUBLIC_SUPABASE_ANON_KEY is required/
+  );
+  const secret = 'sb_secret_SYNTHETIC_NOT_A_REAL_KEY';
+  assert.throws(
+    () =>
+      resolveBuildEnvironment('beta-login-test', {
+        ...env,
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: secret,
+      }),
+    (error) =>
+      error.message.includes('Private credentials') &&
+      !error.message.includes(secret)
+  );
+});

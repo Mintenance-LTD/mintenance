@@ -9,13 +9,17 @@ const {
 const profiles = require('../apps/mobile/eas.json').build;
 
 function resolveBuildEnvironment(profile, env = process.env) {
-  if (!['production', 'staging'].includes(profile)) {
-    throw new Error('Choose a production or staging config preflight.');
+  if (!['production', 'staging', 'beta-login-test'].includes(profile)) {
+    throw new Error(
+      'Choose a production, staging or beta-login-test config preflight.'
+    );
   }
   // Match EAS profile precedence. Do not fetch credentials, load local dotenv
   // files, or weaken the validators to get through initial config evaluation.
   const resolved = {
     ...env,
+    // The isolated beta profile inherits preview's public build defaults.
+    ...(profile === 'beta-login-test' ? profiles.preview.env : {}),
     ...profiles[profile].env,
     EAS_BUILD_PROFILE: profile,
     EXPO_NO_DOTENV: '1',
@@ -49,6 +53,7 @@ function validateExpoConfig(profile, env = process.env) {
   try {
     const config = JSON.parse(result.stdout);
     if (!config.slug || !config.extra?.eas?.projectId) throw new Error();
+    return config;
   } catch {
     throw new Error(
       'Expo did not return valid project configuration. No build was submitted.'
