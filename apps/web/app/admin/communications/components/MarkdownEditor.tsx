@@ -13,7 +13,8 @@ const CONTENT_MAX_LENGTH = 5000;
  */
 export function sanitizeUrlScheme(url: string): string {
   // Trim and remove ASCII control chars
-  let cleaned = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
+  const href = url.trim().replace(/[\x00-\x1f\x7f]/g, '');
+  let cleaned = href;
 
   // Canonicalize encoded payloads (e.g. javascript%3a...)
   for (let i = 0; i < 2; i += 1) {
@@ -35,7 +36,9 @@ export function sanitizeUrlScheme(url: string): string {
   if (cleaned.startsWith('//')) return '#';
 
   // Allow explicit safe schemes
-  if (/^(https?:|mailto:)/i.test(cleaned)) return cleaned;
+  // Canonicalize only for validation: decoding the returned href changes
+  // encoded path/query delimiters, while stripping spaces changes link data.
+  if (/^(https?:|mailto:)/i.test(cleaned)) return href;
 
   // Allow safe relative references
   if (
@@ -45,11 +48,11 @@ export function sanitizeUrlScheme(url: string): string {
     cleaned.startsWith('./') ||
     cleaned.startsWith('../')
   ) {
-    return cleaned;
+    return href;
   }
 
   // Allow plain relative paths with no scheme (e.g. "docs/page")
-  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(cleaned)) return cleaned;
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(cleaned)) return href;
 
   return '#';
 }

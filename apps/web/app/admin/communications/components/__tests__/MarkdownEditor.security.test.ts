@@ -15,6 +15,24 @@ const simpleMarkdownToHtml = (markdown: string) =>
   );
 
 describe('sanitizeUrlScheme', () => {
+  it.each([
+    'javascript%3Aalert',
+    'javascript%253Aalert',
+    'java%09script%3Aalert',
+    '%2F%2Fevil.example',
+    '//evil.example',
+  ])('blocks obfuscated schemes and network references: %s', (url) => {
+    expect(sanitizeUrlScheme(url)).toBe('#');
+  });
+
+  it.each([
+    'https://example.com/path%2Fname?q=a%26b%3Dc%23d',
+    'mailto:hello@example.com?subject=Hello%20world',
+    '/search?q=two words',
+  ])('preserves safe URL data: %s', (url) => {
+    expect(sanitizeUrlScheme(url)).toBe(url);
+  });
+
   it('allows http:// URLs', () => {
     expect(sanitizeUrlScheme('http://example.com')).toBe('http://example.com');
   });

@@ -55,6 +55,9 @@ jobs:
     - name: Verify dependency security mitigations
       run: npm run test:security-dependencies
 
+    - name: Verify workflow injection regressions
+      run: node --test scripts/__tests__/workflow-shell-security.test.cjs scripts/__tests__/mobile-build-workflow.test.cjs
+
     - name: Run security audit
       # 2026-07-28: switched from bare `npm audit --audit-level high` to the
       # same audit-ci gate ci-cd.yml uses (audit-ci.jsonc: prod deps only,

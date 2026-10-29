@@ -204,3 +204,26 @@ Additional checks and limits:
   dependency installation. No successful lint/full application build is claimed.
 - Aikido's MCP scan tools remain unavailable. The signed-in dashboard supplied
   the findings; no Aikido rescan or all-clear result is claimed.
+
+## PR #1435 CI follow-up (2026-10-29)
+
+The seven GitHub Actions workflows on f74f9ba1 completed successfully. Pulled
+92578ee4, the subsequent URL-sanitizer change, before continuing this work.
+
+- Replaced four stale load-test tests that referenced the removed `target` step
+  with tests executing the actual `Validate staging configuration` command from
+  the current YAML. Safe staging/loopback origins pass, shell payloads and
+  multiline targets fail, and no injection marker is created. Added a check that
+  validation precedes k6 and receives the URL via the job environment.
+- Added both workflow injection regression suites to the security workflow.
+- Fixed the new sanitizer's link-data regression: percent decoding and whitespace
+  removal now apply only to the validation copy. Valid href path/query data is
+  preserved, while encoded unsafe schemes and protocol-relative URLs stay blocked.
+- `eslint-config-next` 16.4.1 was already declared in apps/web/package.json and
+  package-lock.json. Restored the missing local configuration and parser peers
+  through an isolated install, leaving the shared dependency directory untouched.
+  No dependency-manifest change was needed. Targeted component ESLint passes.
+
+Local verification: 29 workflow/change-detection tests and 32 Markdown security
+and formatting tests pass. `git diff --check` passes. Aikido MCP scanning is
+still unavailable; CI security and CodeQL results are checked separately.
